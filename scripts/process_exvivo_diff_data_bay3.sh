@@ -12,6 +12,11 @@
 # ** some important updates: computing both distance normalized and unnormalized versions and probab. 
 # curvature threshold differs between deterministic and probabilitic reconstructions!! (in order to match probab default) 
 
+# LZ
+# 5/11/2022: added dogradcheck as default; aslo orientation as a parameter to accomodate non-standard positionning of full 
+#            brain speciments in the scanner
+# 5/17/2022: updated with elements from C. Maffei hemi pipeline: dodenoise, dodegibb, dobiascorr
+#
 
 if ($#argv == 0) then
   echo "USAGE: $0 configfile"
@@ -59,20 +64,35 @@ if (! $?dwidir) then
   echo "ERROR: Must specify dwidir in configuration file"
 endif
 
+if (! $?orientation) then # indicating how the sample was placed in the scanner	
+  set orientation = 0
+endif
 if (! $?doconcat) then	
   set doconcat = 0
+endif
+if (! $?dodenoise) then	
+  set dodenoise = 0
 endif
 if (! $?dodrift) then	
   set dodrift = 0
 endif
+if (! $?dodegibb) then	
+  set dodegibb = 0
+endif
 if (! $?doorient) then	
   set doorient = 0
+endif
+if (! $?dogradcheck) then	
+  set dogradcheck = 1
 endif
 if (! $?domask) then	
   set domask = 0
 endif
 if (! $?doeddy) then	
   set doeddy = 0
+endif
+if (! $?dobiascor) then	
+  set dobiascor = 0
 endif
 if (! $?dotensor) then	
   set dotensor = 0
@@ -108,6 +128,9 @@ endif
 if (! $?usehibmask) then	
   set usehibmask = 0
 endif
+if (! $?extent_window) then
+  set extent = 5
+endif  
 if (! $?angthresh) then		
   set angthresh = 60   
 endif
@@ -127,12 +150,14 @@ endif
 
 echo "Everything from the configuration file has been properly sourced."
  
-
 # Create output directory
  umask 002
  mkdir -p $dwidir
  set LF = $dwidir/log.txt
 
+# Source Mrtrix
+set mrtrix = /usr/pubsw/packages/mrtrix/current/bin/ 
+source /usr/pubsw/packages/mrtrix/env.csh
 
 #
 # Find b=0 and b>0 volumes
@@ -195,21 +220,116 @@ if ($doconcat) then
   $cmd |& tee -a $LF
 endif
 
+# 05/17/2022
+
+if ($dodenoise) then 
+  #
+  # Apply denoising Veraart 2016, MRtrix Implementation
+  echo "Denoising data..."
+  echo "-------------------------------" >> $LF
+  echo "---------- Denoising ----------" >> $LF 
+  # 
+  set cmd = $mrtrix/dwidenoise
+  set cmd = ($cmd -extent $extent)
+  set cmd = ($cmd -noise $dwidir/noise_est.nii.gz)
+  set cmd = ($cmd $dwidir/dwi_orig.nii.gz)
+  set cmd = ($cmd $dwidir/dwi_denoised.nii.gz)
+  set cmd = ($cmd -force)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  
+  # Compute residuals
+  set cmd = $mrtrix/mrcalc
+  set cmd = ($cmd $dwidir/dwi_orig.nii.gz)
+  set cmd = ($cmd $dwidir/noise_est.nii.gz)
+  set cmd = ($cmd -subtract)
+  set cmd = ($cmd $dwidir/residuals.nii.gz)
+  echo $cmd | tee -a $LF
+  set cmd = ($cmd -force)
+  $cmd |& tee -a $LF
+  # Compute RMS
+  set cmd = $mrtrix/mrmath
+  set cmd = ($cmd $dwidir/residuals.nii.gz)
+  set cmd = ($cmd rms)
+  set cmd = ($cmd -axis 3)
+  set cmd = ($cmd $dwidir/rms_residuals.nii.gz)
+  set cmd = ($cmd -force)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  #
+endif
+
 if ($dodrift) then
+  echo "Running drift correction..."
+  echo "-------------------------------" >> $LF
+  echo "----- Drift Correction --------" >> $LF
+
   #
   # Normalize images to compensate for temperature drift
   #
+
+  if (-e $dwidir/dwi_denoised.nii.gz) then
+     set dwiname = dwi_denoised.nii.gz
+  else
+     set dwiname = dwi_orig.nii.gz
+  endif
+
   set cmd = "addpath $FREESURFER_HOME/matlab"
-#  set cmd = "addpath /autofs/space/turan_001/users/lzollei/dev/matlab"
-  # set cmd = "addpath /usr/pubsw/packages/matlab/R2015b/bin/matlab"  # 01/22/2020: changed due to consistent failure when processing exvivo data -- not really sure what in the newer version makes things brake
+  # set cmd = "addpath /autofs/space/turan_001/users/lzollei/dev/matlab"
+  # set cmd = "addpath /usr/pubsw/packages/matlab/R2015b/bin/matlab"  # 01/22/2020: changed due to consistent 
+  #           failure when processing exvivo data -- not really sure what in the newer version makes things brake
   set cmd = "$cmd; fix_exvivo_dwi_drift("
   set cmd = "$cmd '$dwidir/dwi_drift.nii.gz', "
   set cmd = "$cmd '$dwidir/drift', "
-  set cmd = "$cmd '$dwidir/dwi_orig.nii.gz', "
+  #set cmd = "$cmd '$dwidir/dwi_orig.nii.gz', "
+  set cmd = "$cmd '$dwidir/$dwiname', "
   set cmd = "$cmd  $#lowblist);"
   echo $cmd | tee -a $LF
-  echo $cmd | /usr/pubsw/packages/matlab/R2015b/bin/matlab -nosplash -nodesktop # 01/28/2020 see notes from 01/22/2020
+  echo $cmd | matlab -nosplash # 5/17/2022
+  #echo $cmd | /usr/pubsw/packages/matlab/R2015b/bin/matlab -nosplash -nodesktop # 01/28/2020 see notes from 01/22/2020
   # echo $cmd | /usr/pubsw/bin/matlab9.5 -nosplash
+endif
+
+# 5/17/2022
+
+if ($dodegibb) then
+  echo "Running Gibbs Correction..."
+  echo "-------------------------------" >> $LF
+  echo "--------Gibbs Correction-------" >> $LF
+
+  if (-e $dwidir/dwi_drift.nii.gz) then
+     set dwiname = dwi_drift.nii.gz
+  else if (-e $dwidir/dwi_denoised.nii.gz) then
+     set dwiname = dwi_denoised.nii.gz
+  else 
+     set dwiname = dwi_orig.nii.gz
+  endif
+
+  # Specify acquisition plane in -axes option:
+  # 0,1 axial 0,2 coronal 1,2 sagittal
+  if ($?acq_plane) then
+  if ($acq_plane == axial ) then 
+     set axes = 0,1
+  else if ($acq_plane == coronal) then 
+     set axes = 0,2
+  else 
+     set exes = 1,2
+  endif
+  else 
+  echo "Acq plane non specified. Axial will be used."
+  set axes = 0,1
+  endif
+  #
+  # Attempts to remove Gibbs ringing artefacts from MR
+  # Kellner et al 2016, MRtrix implementation
+  # 
+  set cmd = $mrtrix/mrdegibbs
+  set cmd = ($cmd -axes $axes)
+  set cmd = ($cmd $dwidir/$dwiname)
+  set cmd = ($cmd $dwidir/dwi_degibb.nii.gz)  
+  set cmd = ($cmd -force)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
 endif
 
 #############
@@ -218,6 +338,7 @@ endif
 #####       Here bvecs are rotated by the abs value of the ras2vox matrix
 #####       This needs to happen before any of the operations with bvecs start
 ## 07/11/2017 (LZ)
+
 set cmd = (mri_info --ras2vox $dwidir/dwi_orig.nii.gz)  
 echo $cmd | tee -a $LF
 eval $cmd  >> $dwidir/mtx.r2v.txt
@@ -238,10 +359,16 @@ set bvecfile = $dwidir/r2v.bvecs
 #############
 
 if ($doorient) then
-  if (-e $dwidir/dwi_drift.nii.gz) then
-    set dwiname = dwi_drift
+  echo "Reorienting volume"
+
+  if (-e $dwidir/dwi_degibb.nii.gz) then 
+     set dwiname = dwi_degibb
+  else if (-e $dwidir/dwi_drift.nii.gz) then
+     set dwiname = dwi_drift
+  else if (-e $dwidir/dwi_denoised.nii.gz) then
+     set dwiname = dwi_denoised
   else
-    set dwiname = dwi_orig
+     set dwiname = dwi_orig
   endif
 
   #
@@ -257,11 +384,28 @@ if ($doorient) then
   # would be needed that is not performed here!
   #
 
-  set cdc =  `mri_info --cdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
-  set rdc =  `mri_info --rdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
-  set sdc =  `mri_info --sdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
-  set cras = `mri_info --cras $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
+  switch ($orientation)
+  case '1': #C4
+    set cdc =  `mri_info --cdc $dwidir/$dwiname.nii.gz | awk '{print -$1, -$3, -$2}'`
+    set rdc =  `mri_info --rdc $dwidir/$dwiname.nii.gz | awk '{print -$1, -$3, -$2}'`
+    set sdc =  `mri_info --sdc $dwidir/$dwiname.nii.gz | awk '{print -$1, -$3, -$2}'`
+    set cras = `mri_info --cras $dwidir/$dwiname.nii.gz | awk '{print -$1,-$3, -$2}'`
+    breaksw
+  case '2': #C5
+    set cdc =  `mri_info --cdc $dwidir/$dwiname.nii.gz | awk '{print -$1, $3, $2}'`
+    set rdc =  `mri_info --rdc $dwidir/$dwiname.nii.gz | awk '{print -$1, $3, $2}'`
+    set sdc =  `mri_info --sdc $dwidir/$dwiname.nii.gz | awk '{print -$1, $3, $2}'`
+    set cras = `mri_info --cras $dwidir/$dwiname.nii.gz | awk '{print -$1, $3, $2}'`
+    breaksw
+  default: #  case '0': #default
+    set cdc =  `mri_info --cdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
+    set rdc =  `mri_info --rdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
+    set sdc =  `mri_info --sdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
+    set cras = `mri_info --cras $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
+    breaksw
+  endsw
 
+  ## LZ: This has not been debugged together with the above! (5/11/22)
   if ($?hemi) then
     if ($hemi == lh) then
       #
@@ -317,6 +461,40 @@ if ($doorient) then
   set cmd = ($cmd $dwidir/dwi_las.nii.gz)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
+
+  echo The orientation of the dwi_las.nii.gz file is: `mri_info $dwidir/dwi_las.nii.gz | grep Orientation`
+
+  if ($dogradcheck) then 
+  ## 
+  ## Finalize checking the orientations -- 04/21/2022 (per consult with C. Maffei)
+  ## NOTE: CM applies this later in the hemi pipeline...
+  ##
+
+    # change bvecs to row format
+    awk -F " " '{for (f = 1; f <= NF; f++) a[NR, f] = $f} NF > nf { nf = NF } END { for (f = 1; f <= nf; f++) for (r = 1; r <= NR; r++) printf a[r, f] (r==NR ? RS : FS) }' $dwidir/dwi_las.bvecs >> $dwidir/dwi_las.bvecs_rows
+    awk -F " " '{for (f = 1; f <= NF; f++) a[NR, f] = $f} NF > nf { nf = NF } END { for (f = 1; f <= nf; f++) for (r = 1; r <= NR; r++) printf a[r, f] (r==NR ? RS : FS) }' $dwidir/dwi_las.bvals >> $dwidir/dwi_las.bvals_rows
+
+    set cmd = $mrtrix/dwigradcheck
+    set cmd = ($cmd $dwidir/dwi_las.nii.gz)
+    set cmd = ($cmd -fslgrad $dwidir/dwi_las.bvecs_rows)
+    set cmd = ($cmd $dwidir/dwi_las.bvals_rows)
+    set cmd = ($cmd -export_grad_fsl $dwidir/dwi_las.bvecs_checked $dwidir/dwi_las.bvals_checked)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+
+    # change bvecs_checked to col format
+    awk -F " " '{for (f = 1; f <= NF; f++) a[NR, f] = $f} NF > nf { nf = NF } END { for (f = 1; f <= nf; f++) for (r = 1; r <= NR; r++) printf a[r, f] (r==NR ? RS : FS) }' $dwidir/dwi_las.bvecs_checked >> $dwidir/dwi_las.bvecs_checked_cols 
+    awk -F " " '{for (f = 1; f <= NF; f++) a[NR, f] = $f} NF > nf { nf = NF } END { for (f = 1; f <= nf; f++) for (r = 1; r <= NR; r++) printf a[r, f] (r==NR ? RS : FS) }' $dwidir/dwi_las.bvals_checked >> $dwidir/dwi_las.bvals_checked_cols
+
+   ## To make sure the below works
+   mv $dwidir/dwi_las.bvals $dwidir/dwi_las.bvals.precheck 
+   ln -s $dwidir/dwi_las.bvals_checked_cols $dwidir/dwi_las.bvals
+   mv $dwidir/dwi_las.bvecs $dwidir/dwi_las.bvecs.precheck
+   ln -s $dwidir/dwi_las.bvecs_checked_cols $dwidir/dwi_las.bvecs
+ ##
+ ##
+ endif
+
 endif
 
 
@@ -412,7 +590,8 @@ if ($doeddy) then
   set bvals = `cat $dwidir/dwi_las.bvals`
   echo `printf "%d\n" $bvals | awk '{print 1}'` > $dwidir/index.txt
 
-  set cmd = eddy
+  #set cmd = eddy
+  set cmd = /usr/pubsw/packages/fsl/6.0.4/bin/eddy # 05/17/2022
   set cmd = ($cmd --imain=$dwidir/dwi_las.nii.gz)
   set cmd = ($cmd --mask=$dwidir/${mask}_las_brain_mask.nii.gz)
   set cmd = ($cmd --acqp=$dwidir/acqp.txt)
@@ -420,20 +599,25 @@ if ($doeddy) then
   set cmd = ($cmd --bvecs=$dwidir/dwi_las.bvecs)
   set cmd = ($cmd --bvals=$dwidir/dwi_las.bvals)
   set cmd = ($cmd --out=$dwidir/dwi)
+  set cmd = ($cmd --dont_peas) #Do NOT perform post-eddy alignment of shells
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
 
   #
   # Apply rotations from eddy-current compensation to gradient vectors
-  #
-  set cmd = xfmrot
-  set cmd = ($cmd $dwidir/dwi.eddy_parameters)
-  set cmd = ($cmd $dwidir/dwi_las.bvecs)
-  set cmd = ($cmd $dwidir/dwi.bvecs)
+  # Note: from 5.0.9 eddy will apply the rotation to the bvecs # 5/17/2022
+  #set cmd = xfmrot
+  #set cmd = ($cmd $dwidir/dwi.eddy_parameters)
+  #set cmd = ($cmd $dwidir/dwi_las.bvecs)
+  #set cmd = ($cmd $dwidir/dwi.bvecs)
+  #echo $cmd |& tee -a $LF
+  #$cmd |& tee -a $LF
+
+  set cmd = (cp $dwidir/dwi_las.bvals $dwidir/dwi.bvals)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
 
-  set cmd = (cp $dwidir/dwi_las.bvals $dwidir/dwi.bvals)
+  set cmd = (cp $dwidir/dwi.eddy_rotated_bvecs $dwidir/dwi.bvecs)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
 
@@ -479,11 +663,18 @@ if ($doeddy) then
   $cmd |& tee -a $LF
 endif
 
+# 5/17/2022
+if ($dobiascor) then 
+  echo "Bias correction..."
+  echo "-------------------------------" >> $LF
+  echo "------B1 Bias Correction-------" >> $LF
+  #
+  # Apply bias correction ANTS
+  #
 
-if ($dotensor) then
-  #
-  # Fit tensors
-  #
+  setenv ANTSPATH /autofs/cluster/pubsw/2/pubsw/Linux2-2.3-x86_64/packages/ANTS/2.3.5/bin/
+  setenv PATH ${PATH}:${ANTSPATH}
+
   if (-e $dwidir/dwi.nii.gz) then
     set dwiname = dwi
     set maskname = $mask
@@ -491,29 +682,91 @@ if ($dotensor) then
     set dwiname = dwi_las
     set maskname = ${mask}_las
   endif
+  echo DWI $dwiname 
+  echo MASK $maskname
+  
+#  if ($?ants_spline) then
+#    set antsb = $ants_spline
+#  else
+#    set antsb = "[100,3]"
+#  endif
+#  echo ANTSB "$antsb"
+
+  set cmd = $mrtrix/dwibiascorrect
+  set cmd = ($cmd ants)
+  set cmd = ($cmd $dwidir/$dwiname.nii.gz)
+  set cmd = ($cmd $dwidir/dwi_biascorr.nii.gz)
+  set cmd = ($cmd -bias $dwidir/bias_est.nii.gz)
+  #set cmd = ($cmd -ants)
+  set cmd = ($cmd -fslgrad $dwidir/$dwiname.bvecs $dwidir/$dwiname.bvals)
+  #set cmd = ($cmd -ants.b "$antsb")
+  set cmd = ($cmd -force)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+endif
+
+if ($dotensor) then
+  
+  echo "Tensor fitting..."
+  echo "-------------------------------" >> $LF
+  echo "----------- DTIFIT-------------" >> $LF
+
+  #
+  # Fit tensors
+  #
+  if (-e $dwidir/dwi_biascorr.nii.gz) then
+    set dwiname = dwi_biascorr
+    set maskname = $mask
+    if (-e $dwidir/dwi.bvecs) then 
+    set bname = dwi
+    else 
+    set bname = dwi_las
+    endif
+  else if (-e $dwidir/dwi.nii.gz) then
+    set dwiname = dwi
+    set bname = dwi
+    set maskname = $mask
+  else
+    set dwiname = dwi_las
+    set bname = dwi_las
+    set maskname = ${mask}_las
+  endif
 
   set cmd = dtifit
   set cmd = ($cmd -k $dwidir/$dwiname.nii.gz)
   set cmd = ($cmd -o $dwidir/dtifit)
   set cmd = ($cmd -m $dwidir/${maskname}_brain_mask.nii.gz)
-  set cmd = ($cmd -r $dwidir/$dwiname.bvecs)
-  set cmd = ($cmd -b $dwidir/$dwiname.bvals)
+  set cmd = ($cmd -r $dwidir/$bname.bvecs)
+  set cmd = ($cmd -b $dwidir/$bname.bvals)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
 endif
 
 set dtkdir = /usr/pubsw/packages/dtk/0.6.4.1_patched
 
+# 5/17/2022: Why not using dwi_biascorr.nii.gz here?
 if ($doodf) then
   #
   # Fit ODFs
   #
-  if (-e $dwidir/dwi.nii.gz) then
+  echo "ODF fitting..."
+  echo "-------------------------------" >> $LF
+  echo "----------- ODFFIT-------------" >> $LF
+
+  if (-e $dwidir/dwi_biascorr.nii.gz) then
+    set dwiname = dwi_biascorr
+    if (-e $dwidir/dwi.bvecs) then 
+      #ln -s $dwidir/dwi.bvecs $dwidir/dwi_biascorr.bvecs
+      awk -F " " '{for (f = 1; f <= NF; f++) a[NR, f] = $f} NF > nf { nf = NF } END { for (f = 1; f <= nf; f++) for (r = 1; r <= NR; r++) printf a[r, f] (r==NR ? RS : FS) }' $dwidir/dwi.bvecs >> $dwidir/dwi_biascorr.bvecs
+      ln -s $dwidir/dwi.bvals $dwidir/dwi_biascorr.bvals
+    else 
+      set bname = dwi_las
+    endif
+  else if (-e $dwidir/dwi.nii.gz) then
     set dwiname = dwi
   else
     set dwiname = dwi_las
   endif
-
 
   # Move low-b images to the beginning of the series (for dtk)
   set cmd = mri_convert
@@ -524,7 +777,6 @@ if ($doodf) then
   $cmd |& tee -a $LF
 
   cp /dev/null $dwidir/gradients.txt
-
 
   foreach k ($highblist)
     set k1 = `echo "$k+1" | bc`
@@ -613,7 +865,7 @@ if ($dotrk) then
   end
 endif
 
-
+# 5/17/2022: Why not using dwi_biascorr.nii.gz here?
 if ($doprebed) then
   #
   # Do bedpostx pre-processing
