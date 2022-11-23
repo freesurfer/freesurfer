@@ -11,12 +11,11 @@ if(BUILD_GUIS AND Qt5_FOUND)
   add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare
                       -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-deprecated-declarations)
                       
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--copy-dt-needed-entries")
                       
   if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework IOKit -framework Accelerate")
   else()
-    set(QT_LIBRARIES ${QT_LIBRARIES} Qt5::X11Extras)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--copy-dt-needed-entries")
   endif()
 
   include_directories(${CMAKE_CURRENT_SOURCE_DIR})
