@@ -2,6 +2,7 @@
 #include "kvlMatlabObjectArray.h"
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
+#include "kvlAtlasMeshToIntensityImageLogDomainCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToWishartGaussMixtureCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator.h"
@@ -852,6 +853,16 @@ public:
         std::cout << "AtlasMeshToIntensityImage" << std::endl;
         AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  myCalculator 
                           = AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+        myCalculator->SetImages( images );
+        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
+        calculator = myCalculator;
+        break;
+        } 
+      case 'L': 
+        {
+        std::cout << "AtlasMeshToIntensityImageLogDomain" << std::endl;
+        AtlasMeshToIntensityImageLogDomainCostAndGradientCalculator::Pointer  myCalculator 
+                          = AtlasMeshToIntensityImageLogDomainCostAndGradientCalculator::New();
         myCalculator->SetImages( images );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
         calculator = myCalculator;

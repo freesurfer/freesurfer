@@ -131,7 +131,11 @@ if($?SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT) then
   echo "NOT using Block Coordinate Descent" | tee -a $LF
 else
   echo "Using Block Coordinate Descent" | tee -a $LF
-
+endif
+if($?SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR) then
+  echo "Using Log Domain Cost And Gradient Calculator" | tee -a $LF
+else
+  echo "NOT using Log Domain Cost And Gradient Calculator" | tee -a $LF
 endif
 
 if($DoCharm) then
@@ -707,6 +711,13 @@ while( $#argv != 0 )
       setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1
       breaksw
 
+    case "--logdomain-costandgradient-calculator":
+      setenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1
+      breaksw
+    case "--no-logdomain-costandgradient-calculator":
+      unsetenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if($#argv < 1) goto arg1err;
@@ -867,6 +878,7 @@ usage_exit:
   echo "  --atlas SAMSEG_DATA_DIR"
   echo "  --gmm gmmfile"
   echo "  --no-block-coordinate-descent (or --no-bcd) :  sets SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1"
+  echo "  --logdomain-costandgradient-calculator : sets SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1 (--no- to turn off)" 
   echo ""
   echo "  --recon : run recon-all "
   echo "  --fill : use samseg to create filled.mgz instead of recon-all"
