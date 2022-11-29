@@ -67,6 +67,7 @@ public:
                    unsigned int numberOfClasses, unsigned int numberOfMeshes);
     void Transform(const KvlTransform &transform);
     void Smooth(double sigma);
+    void GenerateFromSingleMesh(const KvlMesh &singleMesh, unsigned int numberOfMeshes, double K);
 
     // C++ use only
     KvlMeshCollection();

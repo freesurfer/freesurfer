@@ -28,6 +28,7 @@ public:
     std::vector<int> GetNonCroppedImageSize();
     py::tuple GetCropSlices();
     void Write(std::string, KvlTransform &);
+    void WriteImage(std::string);
     static py::array_t<float> smoothImageBuffer(const py::array_t<float>& imageBuffer, std::vector<double> sigmas);
 
 private:
