@@ -861,7 +861,7 @@ public:
       case 'L': 
         {
         std::cout << "AtlasMeshToIntensityImageLogDomain" << std::endl;
-        AtlasMeshToIntensityImageLogDomainCostAndGradientCalculator::Pointer  myCalculator 
+        AtlasMeshToIntensityImageLogDomainCostAndGradientCalculator::Pointer  myCalculator
                           = AtlasMeshToIntensityImageLogDomainCostAndGradientCalculator::New();
         myCalculator->SetImages( images );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
@@ -905,8 +905,8 @@ public:
         //myCalculator->SetWishartImages( DTIimages );
         myCalculator->SetDiffusionImages( DTIimages );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
-                                     degreesOfFreedom, scaleMatrices, wmmMixtureWeights, numberOfWishartsPerClass,
-                                     voxratio);
+                                     wmmMixtureWeights, numberOfWishartsPerClass, voxratio, degreesOfFreedom,
+                                     scaleMatrices);
         calculator = myCalculator;
         break;
         }
@@ -920,8 +920,8 @@ public:
         //myCalculator->SetFrobeniusImages( DTIimages );
         myCalculator->SetDiffusionImages( DTIimages );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
-                                     frobVariance, frobMeans, wmmMixtureWeights, numberOfWishartsPerClass,
-                                     voxratio);
+                                     wmmMixtureWeights, numberOfWishartsPerClass, voxratio, frobVariance,
+                                     frobMeans);
 
         std::cout<<"frobMixtureWeights size = "<<wmmMixtureWeights.size()<<std::endl;
 
@@ -938,10 +938,9 @@ public:
         //myCalculator->SetDSWbetaImages( DTIimages );
         myCalculator->SetDiffusionImages( DTIimages );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
-                                     DSWbetaAlpha, DSWbetaBeta, DSWbetaConcentration, DSWbetaMeans,
-                                     logKummerSamples, negLogKummerIncrement, wmmMixtureWeights,
-                                     numberOfWishartsPerClass,
-                                     voxratio);
+                                     wmmMixtureWeights, numberOfWishartsPerClass, voxratio, DSWbetaAlpha,
+                                     DSWbetaMeans, DSWbetaBeta, DSWbetaConcentration,
+                                     logKummerSamples, negLogKummerIncrement);
                                    //frobVariance, frobMeans, wmmMixtureWeights, numberOfWishartsPerClass);
 
         std::cout<<"DSWbMixtureWeights size = "<<wmmMixtureWeights.size()<<std::endl;

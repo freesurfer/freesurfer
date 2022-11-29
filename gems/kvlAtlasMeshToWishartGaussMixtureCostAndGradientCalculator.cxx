@@ -97,11 +97,11 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
                  const std::vector< vnl_matrix< double > >& variances,
                  const std::vector< double >&  mixtureWeights,
                  const std::vector< int >&  numberOfGaussiansPerClass,
-                 const std::vector< double >& degreesOfFreedom,
-                 const std::vector< vnl_matrix< double > >& scaleMatrices,
                  const std::vector< double >&  wmmMixtureWeights,
                  const std::vector< int >&  numberOfWishartsPerClass,
-                 const double& voxratio)
+                 const double& voxratio,
+                 const std::vector< double >& degreesOfFreedom,
+                 const std::vector< vnl_matrix< double > >& scaleMatrices)
 {
     dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
             ->SetParameters( means,
