@@ -3159,6 +3159,31 @@ if($DoFill && ! $longitudinal) then
   echo $cmd > $touchdir/fill.touch
 endif
 
+if($longitudinal) then
+  # This is a bit of a hack to transfer filled edits from base to
+  # long. In the long, the filled is not actually used for creating
+  # the orig surface in the way that it is in cross or base; the orig
+  # surface comes from the base. However, the filled may be edited in
+  # the base to create a better orig AND to create a stopmask. The
+  # long may still need the stopmask, so need to copy over the the
+  # filled. Comparison of the filled with the base filled.auto
+  # indicates which voxels were edited (at either the base or long
+  # stage) allowing creation and (implicit) editing of the stopmask at
+  # the long stage. Could have just copied over the stopmask, but then
+  # would have to have edited the stopmask rather than the more
+  # familiar filled. It is all very confusing.
+  set lfilled = $mdir/filled.mgz
+  if(! -e $lfilled) then
+    set bfilled = $SUBJECTS_DIR/$longbaseid/mri/filled.mgz
+    set cmd = "cp -p $bfilled $lfilled"
+    if($RunIt) then 
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+  #set bfilledauto = $longbaseid/mri/filled.auto.mgz
+endif
 
 #########################################################
 #                  Per-Hemisphere                       #
@@ -3556,6 +3581,36 @@ if($DoAutoDetGWStats) then
   end # hemi
 endif
 
+set stopmaskscm = ()
+if($UseStopMaskSCM && ($DoWhitePreAparc || $DoWhiteSurfs)) then
+  set stopmaskscm = $mdir/stopmask.scm.mgz
+  echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# StopMaskSCM `date`" |& tee -a $LF |& tee -a $CF
+  if(! $longitudinal) then
+    set filledauto = $mdir/filled.auto.mgz
+  else
+    set filledauto = $SUBJECTS_DIR/$longbaseid/mri/filled.auto.mgz
+  endif
+  set filled = $mdir/filled.mgz
+  set wmpath = $mdir/wm.mgz
+  set bfspath = $mdir/brain.finalsurfs.mgz
+  set asegpspath = $mdir/aseg.presurf.mgz
+  set ud = (`UpdateNeeded $stopmaskscm $filledauto $filled $wmpath $bfspath $asegpspath`)
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts StopMaskSCM $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_stopmask --o $stopmaskscm --aseg $asegpspath \
+      --filled $filledauto $filled --wm $wmpath --bfs $bfspath \
+      --lv --wmsa 1 $xopts)
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/stopmask.scm.txt
+      endif
+    endif
+    echo "  StopMaskSCM update not needed" | tee -a $LF |& tee -a $CF
+  endif
+endif
+
 if($DoWhitePreAparc) then
   cd $mdir
   set bfs  = brain.finalsurfs.mgz 
@@ -3575,13 +3630,14 @@ if($DoWhitePreAparc) then
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+    if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
     set xopts = `fsr-getxopts WhitePreAparc $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set tmp = ()
     if($UseAseg) set tmp = ($aseg)
-    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig $tmp`
+    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig $tmp $stopmaskscm`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -4106,6 +4162,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+    if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
     if($UseHighMyelin) then
       set hml = $ldir/$hemi.high-myelin.label
       set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
@@ -4118,7 +4175,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.white.json
     if(! -e $repos) set repos = ()
-    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos $aseg`
+    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos $aseg $stopmaskscm`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF

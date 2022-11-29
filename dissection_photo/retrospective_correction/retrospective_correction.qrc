@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="func_retrospective_correction.py">../py_scripts/func_retrospective_correction.py</file>
+        <file alias="horizontal.png">../py_scripts/horizontal.png</file>
+        <file alias="vertical.png">../py_scripts/vertical.png</file>
+    </qresource>
+</RCC>

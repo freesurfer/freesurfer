@@ -297,7 +297,7 @@ public:
   // Could find places in aseg that have been edited to be part of the SCM and then force
   // them into the stopmask
   MRI *getmask(void);
-  int nhitslist[5]; // to keep track of number of voxels hit
+  int nhitslist[6]; // to keep track of number of voxels hit
 };
 
 

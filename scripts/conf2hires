@@ -365,6 +365,8 @@ endif
 set bfs  = rawavg.brain.finalsurfs.mgz
 set wm   = rawavg.wm.mgz
 set aseg = rawavg.aseg.presurf.mgz
+set stopmaskscm = ()
+if($UseStopMaskSCM) set stopmaskscm = $SUBJECTS_DIR/$subject/mri/stopmask.scm.mgz
 foreach hemi ($hemilist)
   echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# c2hWhiteSurfs $hemi `date`" |& tee -a $LF |& tee -a $CF
@@ -381,6 +383,7 @@ foreach hemi ($hemilist)
   if($CBVfindFirstPeakD2) set cmd = ($cmd --first-peak-d2)
   if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
   if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+  if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
   if($UseHighMyelin) then
     set hml = $ldir/$hemi.high-myelin.label
     set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)

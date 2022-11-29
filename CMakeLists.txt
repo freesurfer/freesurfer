@@ -571,6 +571,7 @@ if(NOT MINIMAL)
     attic
     BrainstemSS
     diffusion_tool
+    dissection_photo
     dummy
     exvivo
     freeview
