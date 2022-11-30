@@ -237,6 +237,25 @@ void RenderView2D::UpdateMouseRASPosition( int posX, int posY )
   MousePositionToRAS( posX, posY, pos );
 
   lc->SetCurrentRASPosition( pos );
+
+  QList<Layer*> list = MainWindow::GetMainWindow()->GetLayers("PointSet");
+  bool bFound = false;
+  foreach (Layer* l, list)
+  {
+    LayerPointSet* ps = qobject_cast<LayerPointSet*>(l);
+    if (ps && ps->IsVisible())
+    {
+      int n = ps->FindPoint(pos);
+      if (n >= 0)
+      {
+        setToolTip(QString("%1 #%2").arg(ps->GetName()).arg(n+1));
+        bFound = true;
+        break;
+      }
+    }
+  }
+  if (!bFound)
+    setToolTip("");
 }
 
 void RenderView2D::UpdateCursorRASPosition( int posX, int posY, bool bSnapToVertex )
