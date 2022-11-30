@@ -10,7 +10,6 @@
 #include<iomanip>
 #include<stdint.h>
 #include<stdexcept>
-#include <regex>
 
 char cnpy::BigEndianTest() {
     int x = 1;
@@ -75,15 +74,15 @@ void cnpy::parse_npy_header(unsigned char* buffer,size_t& word_size, std::vector
     //shape
     loc1 = header.find("(");
     loc2 = header.find(")");
-
-    std::regex num_regex("[0-9][0-9]*");
-    std::smatch sm;
-    shape.clear();
-
     std::string str_shape = header.substr(loc1+1,loc2-loc1-1);
-    while(std::regex_search(str_shape, sm, num_regex)) {
-        shape.push_back(std::stoi(sm[0].str()));
-        str_shape = sm.suffix().str();
+    size_t ndims;
+    if(str_shape[str_shape.size()-1] == ',') ndims = 1;
+    else ndims = std::count(str_shape.begin(),str_shape.end(),',')+1;
+    shape.resize(ndims);
+    for(size_t i = 0;i < ndims;i++) {
+        loc1 = str_shape.find(",");
+        shape[i] = atoi(str_shape.substr(0,loc1).c_str());
+        str_shape = str_shape.substr(loc1+1);
     }
 
     //endian, word size, data type
@@ -123,15 +122,16 @@ void cnpy::parse_npy_header(FILE* fp, size_t& word_size, std::vector<size_t>& sh
     loc2 = header.find(")");
     if (loc1 == std::string::npos || loc2 == std::string::npos)
         throw std::runtime_error("parse_npy_header: failed to find header keyword: '(' or ')'");
-
-    std::regex num_regex("[0-9][0-9]*");
-    std::smatch sm;
-    shape.clear();
-
+    
     std::string str_shape = header.substr(loc1+1,loc2-loc1-1);
-    while(std::regex_search(str_shape, sm, num_regex)) {
-        shape.push_back(std::stoi(sm[0].str()));
-        str_shape = sm.suffix().str();
+    size_t ndims;
+    if(str_shape[str_shape.size()-1] == ',') ndims = 1;
+    else ndims = std::count(str_shape.begin(),str_shape.end(),',')+1;
+    shape.resize(ndims);
+    for(size_t i = 0;i < ndims;i++) {
+        loc1 = str_shape.find(",");
+        shape[i] = atoi(str_shape.substr(0,loc1).c_str());
+        str_shape = str_shape.substr(loc1+1);
     }
 
     //endian, word size, data type

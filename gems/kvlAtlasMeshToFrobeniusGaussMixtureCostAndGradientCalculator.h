@@ -37,11 +37,11 @@ public:
                         const std::vector< vnl_matrix< double > >& variances,
                         const std::vector< double >&  mixtureWeights,
                         const std::vector< int >&  numberOfGaussiansPerClass,
-                        const std::vector< double >& frobVariance,
-                        const std::vector< vnl_vector< double > >& frobMeans,
                         const std::vector< double >&  frobMixtureWeights,
                         const std::vector< int >&  numberOfFrobeniusPerClass,
-                        const double& voxratio);
+                        const double& voxratio,
+                        const std::vector< double >& frobVariance,
+                        const std::vector< vnl_vector< double > >& frobMeans);
 
     //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 

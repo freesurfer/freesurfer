@@ -105,6 +105,7 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
   connect( layer, SIGNAL(PointAdded(int)), this, SLOT(SetCurrentPoint(int)), Qt::QueuedConnection);
   connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(SetCurrentPoint(int)), Qt::QueuedConnection);
+  connect( layer, SIGNAL(PointSelected(int)), this, SLOT(SetCurrentPoint(int)), Qt::QueuedConnection);
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxShowSpline, SIGNAL(toggled(bool)), p, SLOT(SetShowSpline(bool)) );
   connect( ui->checkBoxSnapToCenter, SIGNAL(toggled(bool)), p, SLOT(SetSnapToVoxelCenter(bool)));
@@ -417,10 +418,13 @@ void PanelPointSet::SetCurrentPoint(int nIndex)
       nIndex = layer->GetNumberOfPoints()-1;
     if (nIndex+1 > ui->spinBoxGoToPoint->maximum())
       ui->spinBoxGoToPoint->setMaximum(nIndex+1);
-    ui->spinBoxGoToPoint->blockSignals(true);
-    ui->spinBoxGoToPoint->setValue(nIndex+1);
-    ui->spinBoxGoToPoint->blockSignals(false);
-    DoUpdateWidgets();
+    if (ui->spinBoxGoToPoint->value() != nIndex+1)
+    {
+      ui->spinBoxGoToPoint->blockSignals(true);
+      ui->spinBoxGoToPoint->setValue(nIndex+1);
+      ui->spinBoxGoToPoint->blockSignals(false);
+      DoUpdateWidgets();
+    }
   }
 }
 
@@ -748,4 +752,5 @@ void PanelPointSet::OnSpinBoxSecondQA(int val)
   if (layer)
     layer->SetEnhancedData("qa_level", val);
 }
+
 

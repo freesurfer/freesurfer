@@ -134,6 +134,7 @@ protected slots:
 signals:
   void PointAdded(int nIndex);
   void PointRemoved(int nIndex);
+  void PointSelected(int nIndex);
 
 protected:
   virtual void OnSlicePositionChanged( int nPlane );

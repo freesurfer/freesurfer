@@ -180,6 +180,21 @@ void KvlImage::Write(std::string fileName, KvlTransform &transform) {
 
 }
 
+void KvlImage::WriteImage(std::string fileName) {
+
+    // If transform is given, retrieve and apply it
+    ImagePointer image = m_image;
+
+    // Write it out
+    typedef itk::ImageFileWriter< ImageType >  WriterType;
+    WriterType::Pointer  writer = WriterType::New();
+    writer->SetFileName( fileName.c_str() );
+    writer->SetInput( image );
+    writer->Update();
+    std::cout << "Wrote image to file " << fileName << std::endl;
+
+}
+
 py::array_t<float> KvlImage::smoothImageBuffer(const py::array_t<float>& imageBuffer, std::vector<double> sigmas)
 {
     ImagePointer image = numpy_to_image(imageBuffer);

@@ -3,6 +3,7 @@
 
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
+#include "kvlAtlasMeshToIntensityImageLogDomainCostAndGradientCalculator.h"
 #include "kvlConditionalGaussianEntropyCostAndGradientCalculator.h"
 #include "kvlMutualInformationCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToPointSetCostAndGradientCalculator.h"
@@ -29,7 +30,7 @@ public:
                                  py::array_t<int> numberOfGaussiansPerClass=py::array_t<int>(),
                                  py::array_t<double> targetPoints=py::array_t<double>()
     ){
-        if (typeName == "AtlasMeshToIntensityImage") {
+        if (typeName == "AtlasMeshToIntensityImage" || typeName == "AtlasMeshToIntensityImageLogDomain") {
 
             py::buffer_info means_info  = means.request();
 
@@ -70,8 +71,16 @@ public:
                 numberOfGaussiansPerClass_converted[ classNumber ] = numberOfGaussiansPerClass.at(classNumber);
             }
 
-            kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer myCalculator
-                    = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+            kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer myCalculator;
+	    if (typeName == "AtlasMeshToIntensityImage")
+            {
+              myCalculator = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+            }
+            else
+	    {
+              myCalculator = kvl::AtlasMeshToIntensityImageLogDomainCostAndGradientCalculator::New();
+            }
+
             std::vector< ImageType::ConstPointer> images_converted;
             for(auto image: images){
                 ImageType::ConstPointer constImage = static_cast< const ImageType* >( image.m_image.GetPointer() );

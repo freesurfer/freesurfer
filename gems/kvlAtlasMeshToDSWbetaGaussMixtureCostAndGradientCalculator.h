@@ -37,15 +37,15 @@ public:
                         const std::vector< vnl_matrix< double > >& variances,
                         const std::vector< double >&  mixtureWeights,
                         const std::vector< int >&  numberOfGaussiansPerClass,
-                        const std::vector< double >& DSWbetaAlpha,
-                        const std::vector< double >& DSWbetaBeta,
-                        const std::vector< double >& DSWbetaConcentration,
-                        const std::vector< vnl_vector< double > >& DSWbetaMeans,
-                        const std::vector< double >& logKummerSamples,
-                        const double& logKummerIncrement,
                         const std::vector< double >&  DSWbetaMixtureWeights,
                         const std::vector< int >&  numberOfDSWbetaePerClass,
-                        const double& voxratio);
+                        const double& voxratio,
+                        const std::vector< double >& DSWbetaAlpha,
+                        const std::vector< vnl_vector< double > >& DSWbetaMeans,
+                        const std::vector< double >& DSWbetaBeta,
+                        const std::vector< double >& DSWbetaConcentration,
+                        const std::vector< double >& logKummerSamples,
+                        const double& logKummerIncrement);
 
     //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 

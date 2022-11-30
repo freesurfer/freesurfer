@@ -25,7 +25,7 @@ public:
     itkNewMacro( Self );
 
     /** Run-time type information (and related methods). */
-    itkTypeMacro( AtlasMeshToIntensityImageCostAndGradientCalculator, AtlasMeshPositionCostAndGradientCalculator );
+    itkTypeMacro( AtlasMeshToIntensityImageCostAndGradientCalculatorBase, AtlasMeshPositionCostAndGradientCalculator );
 
     /** Some typedefs */
     typedef itk::Image< float, 3 >  ImageType;
