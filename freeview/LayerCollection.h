@@ -73,7 +73,6 @@ public:
   void GetSlicePosition( double* slicePos );
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );
   bool OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundToGrid = true );
-  bool SetSlicePosition( int nPlane, int nSliceNumber );
   bool SetSlicePosition( double* slicePos );
 
   double* GetCurrentRASPosition();

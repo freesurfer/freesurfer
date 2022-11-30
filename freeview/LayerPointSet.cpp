@@ -448,6 +448,11 @@ void LayerPointSet::OnSlicePositionChanged( int nPlane )
 {
   Q_UNUSED(nPlane);
   RebuildActors( false );   // no need to rebuild 3D points
+
+  // check if a point is at the current position
+  int n = FindPoint(m_dSlicePosition);
+  if (n >= 0)
+    emit PointSelected(n);
 }
 
 void LayerPointSet::RebuildActors( bool bRebuild3D )
