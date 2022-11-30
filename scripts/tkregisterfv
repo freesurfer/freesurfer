@@ -389,13 +389,17 @@ while( $#argv != 0 )
       set surfcolor = (yellow yellow);
       breaksw
 
+    case "--lh-white":
     case "--lh-only":
+    case "--lh":
       set DoSurfs = 1;
       set surflist0 = (lh.white)
       set surfcolor = (yellow)
       breaksw
 
+    case "--rh-white":
     case "--rh-only":
+    case "--rh":
       set DoSurfs = 1;
       set surflist0 = (rh.white)
       set surfcolor = (yellow)
@@ -522,6 +526,18 @@ if($DoTal) then
   set movvol = $SUBJECTS_DIR/$subject/mri/orig.mgz
 endif
 
+if($#movvol == 0 && $#targ == 0 && $#reg != 0) then
+  set tmp = (`grep filename $reg | awk '{print $3}'`)
+  if($#tmp != 2) then
+    echo "ERROR: cannot get filenames from $reg"
+    exit 1
+  endif
+  set movvol = $tmp[1];
+  set targ   = $tmp[2];
+  echo "Setting mov  to $movvol"
+  echo "Setting targ to $targ"
+endif
+
 if($#movvol == 0) then
   echo "ERROR: must spec a moveable volume"
   exit 1;
@@ -632,6 +648,9 @@ usage_exit:
   echo ""
   echo "tkregisterfv --mov mov --targ targ --reg reg.lta --s subject "
   echo "  --aux vol1 reg1 --aux vol2 reg2 ..."
+  echo "  Note: you can run it like "
+  echo "   tkregisterfv --reg reg.lta "
+  echo "   and it will rad the mov and targ volumes from the lta"
   echo ""
   echo "  --fstarg volume : spec volume instead of $fstarg"
   echo "  --sd SUBJECTS_DIR"  
