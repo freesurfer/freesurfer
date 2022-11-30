@@ -46,10 +46,7 @@ WMMLikelihoodImageFilter< TInputImage >
 template< typename TInputImage >
 void
 WMMLikelihoodImageFilter< TInputImage >
-::SetParameters( const std::vector< vnl_vector< double > >& means,
-                 const std::vector< vnl_matrix< double > >& variances,
-                 const std::vector< double >&  mixtureWeights,
-                 const std::vector< int >&  numberOfGaussiansPerClass,
+::SetParameters( const int numberOfContrasts,
                  const std::vector< double >& degreesOfFreedom,
                  const std::vector< vnl_matrix< double > >& scaleMatrices,
                  const std::vector< double >&  wmmMixtureWeights,
@@ -77,7 +74,7 @@ WMMLikelihoodImageFilter< TInputImage >
     itkExceptionMacro(<< "Empty degreesOfFreedom provided" );
     }
 
-  const size_t  numberOfContrasts = means[ 0 ].size();
+  //const size_t  numberOfContrasts = means[ 0 ].size();
   if ( numberOfContrasts == 0 )
     {
     itkExceptionMacro(<< "Empty means provided" );

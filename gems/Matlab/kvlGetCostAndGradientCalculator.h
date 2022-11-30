@@ -904,9 +904,10 @@ public:
         myCalculator->SetImages( images );
         //myCalculator->SetWishartImages( DTIimages );
         myCalculator->SetDiffusionImages( DTIimages );
-        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
-                                     wmmMixtureWeights, numberOfWishartsPerClass, voxratio, degreesOfFreedom,
-                                     scaleMatrices);
+        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
+        myCalculator->SetDiffusionParameters( means.size(), 
+                                              wmmMixtureWeights, numberOfWishartsPerClass, voxratio, degreesOfFreedom,
+                                              scaleMatrices);
         calculator = myCalculator;
         break;
         }
@@ -919,9 +920,10 @@ public:
         myCalculator->SetImages( images );
         //myCalculator->SetFrobeniusImages( DTIimages );
         myCalculator->SetDiffusionImages( DTIimages );
-        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
-                                     wmmMixtureWeights, numberOfWishartsPerClass, voxratio, frobVariance,
-                                     frobMeans);
+        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
+        myCalculator->SetDiffusionParameters( means.size(),
+                                              wmmMixtureWeights, numberOfWishartsPerClass, voxratio, frobVariance,
+                                              frobMeans);
 
         std::cout<<"frobMixtureWeights size = "<<wmmMixtureWeights.size()<<std::endl;
 
@@ -937,10 +939,11 @@ public:
         myCalculator->SetImages( images );
         //myCalculator->SetDSWbetaImages( DTIimages );
         myCalculator->SetDiffusionImages( DTIimages );
-        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
-                                     wmmMixtureWeights, numberOfWishartsPerClass, voxratio, DSWbetaAlpha,
-                                     DSWbetaMeans, DSWbetaBeta, DSWbetaConcentration,
-                                     logKummerSamples, negLogKummerIncrement);
+        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
+        myCalculator->SetDiffusionParameters( means.size(),
+                                              wmmMixtureWeights, numberOfWishartsPerClass, voxratio, DSWbetaAlpha,
+                                              DSWbetaMeans, DSWbetaBeta, DSWbetaConcentration,
+                                              logKummerSamples, negLogKummerIncrement);
                                    //frobVariance, frobMeans, wmmMixtureWeights, numberOfWishartsPerClass);
 
         std::cout<<"DSWbMixtureWeights size = "<<wmmMixtureWeights.size()<<std::endl;

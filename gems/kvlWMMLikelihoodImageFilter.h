@@ -56,10 +56,7 @@ public:
     typedef itk::Image< float, 3 >  ImageType;
 
     /** */
-    void SetParameters( const std::vector< vnl_vector< double > >& means,
-                        const std::vector< vnl_matrix< double > >& variances,
-                        const std::vector< double >&  mixtureWeights,
-                        const std::vector< int >&  numberOfGaussiansPerClass,
+    void SetParameters( const int numberOfContrasts,
                         const std::vector< double >& degreesOfFreedom,
                         const std::vector< vnl_matrix< double > >& scaleMatrices,
                         const std::vector< double >&  wmmMixtureWeights,

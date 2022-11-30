@@ -96,29 +96,31 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
 ::SetParameters( const std::vector< vnl_vector< double > >& means,
                  const std::vector< vnl_matrix< double > >& variances,
                  const std::vector< double >&  mixtureWeights,
-                 const std::vector< int >&  numberOfGaussiansPerClass,
-                 const std::vector< double >&  DSWbetaMixtureWeights,
-                 const std::vector< int >&  numberOfDSWbetaePerClass,
-                 const double& voxratio,
-                 const std::vector< double >& DSWbetaAlpha,
-                 const std::vector< vnl_vector< double > >& DSWbetaMeans,
-                 const std::vector< double >& DSWbetaBeta,
-                 const std::vector< double >& DSWbetaConcentration,
-                 const std::vector< double >& logKummerSamples,
-                 const double& logKummerIncrement)
+                 const std::vector< int >&  numberOfGaussiansPerClass )
 {
     dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
             ->SetParameters( means,
                              variances,
                              mixtureWeights,
-                             numberOfGaussiansPerClass);
+                             numberOfGaussiansPerClass );
+}
 
-
+//
+void
+AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
+::SetDiffusionParameters( const int numberOfContrasts,
+                          const std::vector< double >&  DSWbetaMixtureWeights,
+                          const std::vector< int >&  numberOfDSWbetaePerClass,
+                          const double& voxratio,
+                          const std::vector< double >& DSWbetaAlpha,
+                          const std::vector< vnl_vector< double > >& DSWbetaMeans,
+                          const std::vector< double >& DSWbetaBeta,
+                          const std::vector< double >& DSWbetaConcentration,
+                          const std::vector< double >& logKummerSamples,
+                          const double& logKummerIncrement )
+{
     dynamic_cast<dswbetammLikelihoodFilterType*>(m_DiffusionLikelihoodFilter.GetPointer())
-            ->SetParameters( means,
-                             variances,
-                             mixtureWeights,
-                             numberOfGaussiansPerClass,
+            ->SetParameters( numberOfContrasts,
                              DSWbetaAlpha,
                              DSWbetaBeta,
                              DSWbetaConcentration,

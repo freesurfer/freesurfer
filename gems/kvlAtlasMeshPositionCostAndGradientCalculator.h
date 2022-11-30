@@ -97,6 +97,40 @@ protected:
                              AtlasMesh::CellIdentifier tetrahedronId,
                              int threadNumber );
   
+  // for AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
+  virtual void SetDiffusionParameters( const int numberOfContrasts,
+                                       const std::vector< double >&  wmmMixtureWeights,
+                                       const std::vector< int >&  numberOfWishartsPerClass,
+                                       const double& voxratio,
+                                       const std::vector< double >& degreesOfFreedom,
+                                       const std::vector< vnl_matrix< double > >& scaleMatrices )
+  {
+  }
+
+  // for AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
+  virtual void SetDiffusionParameters( const int numberOfContrasts,
+                                       const std::vector< double >&  frobMixtureWeights,
+                                       const std::vector< int >&  numberOfFrobeniusPerClass,
+                                       const double& voxratio,
+                                       const std::vector< double >& frobVariance,
+                                       const std::vector< vnl_vector< double > >& frobMeans )
+  {
+  }
+
+  // for AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
+  virtual void SetDiffusionParameters( const int numberOfContrasts,
+                                       const std::vector< double >&  DSWbetaMixtureWeights,
+                                       const std::vector< int >&  numberOfDSWbetaePerClass,
+                                       const double& voxratio,
+                                       const std::vector< double >& DSWbetaAlpha,
+                                       const std::vector< vnl_vector< double > >& DSWbetaMeans,
+                                       const std::vector< double >& DSWbetaBeta,
+                                       const std::vector< double >& DSWbetaConcentration,
+                                       const std::vector< double >& logKummerSamples,
+                                       const double& logKummerIncrement )
+  {
+  }
+
   virtual void AddDataContributionOfTetrahedron( const AtlasMesh::PointType& p0,
                                                  const AtlasMesh::PointType& p1,
                                                  const AtlasMesh::PointType& p2,

@@ -96,25 +96,31 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
 ::SetParameters( const std::vector< vnl_vector< double > >& means,
                  const std::vector< vnl_matrix< double > >& variances,
                  const std::vector< double >&  mixtureWeights,
-                 const std::vector< int >&  numberOfGaussiansPerClass,
-                 const std::vector< double >&  frobMixtureWeights,
-                 const std::vector< int >&  numberOfFrobeniusPerClass,
-                 const double& voxratio,
-                 const std::vector< double >& frobVariance,
-                 const std::vector< vnl_vector< double > >& frobMeans)
-
+                 const std::vector< int >&  numberOfGaussiansPerClass )
 {
     dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
             ->SetParameters( means,
                              variances,
                              mixtureWeights,
-                             numberOfGaussiansPerClass);
+                             numberOfGaussiansPerClass );
+}
 
+
+//
+//
+//
+void
+AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
+::SetDiffusionParameters( const int numberOfContrasts,
+                           const std::vector< double >&  frobMixtureWeights,
+                           const std::vector< int >&  numberOfFrobeniusPerClass,
+                           const double& voxratio,
+                           const std::vector< double >& frobVariance,
+                           const std::vector< vnl_vector< double > >& frobMeans )
+
+{
     dynamic_cast<frobmmLikelihoodFilterType*>(m_DiffusionLikelihoodFilter.GetPointer())
-            ->SetParameters( means,
-                             variances,
-                             mixtureWeights,
-                             numberOfGaussiansPerClass,
+            ->SetParameters( numberOfContrasts,
                              frobVariance,
                              frobMeans,
                              frobMixtureWeights,
