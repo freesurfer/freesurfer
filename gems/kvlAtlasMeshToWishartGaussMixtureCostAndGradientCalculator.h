@@ -36,12 +36,15 @@ public:
     void SetParameters( const std::vector< vnl_vector< double > >& means,
                         const std::vector< vnl_matrix< double > >& variances,
                         const std::vector< double >&  mixtureWeights,
-                        const std::vector< int >&  numberOfGaussiansPerClass,
-                        const std::vector< double >&  wmmMixtureWeights,
-                        const std::vector< int >&  numberOfWishartsPerClass,
-                        const double& voxratio,
-                        const std::vector< double >& degreesOfFreedom,
-                        const std::vector< vnl_matrix< double > >& scaleMatrices);
+                        const std::vector< int >&  numberOfGaussiansPerClass );
+
+    /** */
+    void SetDiffusionParameters( const int numberOfContrasts,
+                                 const std::vector< double >&  wmmMixtureWeights,
+                                 const std::vector< int >&  numberOfWishartsPerClass,
+                                 const double& voxratio,
+                                 const std::vector< double >& degreesOfFreedom,
+                                 const std::vector< vnl_matrix< double > >& scaleMatrices ) override;
 
     //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 

@@ -34,7 +34,6 @@
      <property name="font">
       <font>
        <pointsize>15</pointsize>
-       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -65,7 +64,7 @@
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>&lt;p&gt;1. Select the directory where the input images are. &lt;/p&gt;&lt;p&gt;2. Select the directory where the input mask are. &lt;/p&gt;&lt;p&gt;3. Select the directory where you want the output masks saved. &lt;/p&gt;&lt;p&gt;4. For each image, select slices in order.&lt;/p&gt;</string>
+      <string>&lt;p&gt;1. Select the directory where the input images are. &lt;/p&gt;&lt;p&gt;2. Select the directory where the input mask are. &lt;/p&gt;&lt;p&gt;3. Select the directory where you want the output files saved. &lt;/p&gt;&lt;p&gt;4. For each image, select slices in order.&lt;/p&gt;</string>
      </property>
     </widget>
    </item>

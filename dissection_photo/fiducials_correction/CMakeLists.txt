@@ -16,6 +16,11 @@ if(BUILD_GUIS AND Qt5_FOUND)
 
   target_link_libraries(fiducials_correction ${QT_LIBRARIES})
 
-  install(TARGETS fiducials_correction DESTINATION bin)
+  if(APPLE)
+    mac_deploy_qt(TARGET fiducials_correction BUNDLE fiducials_correction.app PLIST Info.plist)
+    install(PROGRAMS mac_wrapper DESTINATION bin RENAME fiducials_correction)
+  else()
+    install(TARGETS fiducials_correction DESTINATION bin)
+  endif()
 
 endif()

@@ -46,10 +46,7 @@ FrobMMLikelihoodImageFilter< TInputImage >
 template< typename TInputImage >
 void
 FrobMMLikelihoodImageFilter< TInputImage >
-::SetParameters( const std::vector< vnl_vector< double > >& means,
-                 const std::vector< vnl_matrix< double > >& variances,
-                 const std::vector< double >&  mixtureWeights,
-                 const std::vector< int >&  numberOfGaussiansPerClass,
+::SetParameters( const int numberOfContrasts,
                  const std::vector< double >& frobVariance,
                  const std::vector< vnl_vector< double > >& frobMeans,
                  const std::vector< double >&  frobMixtureWeights,
@@ -77,7 +74,7 @@ FrobMMLikelihoodImageFilter< TInputImage >
     itkExceptionMacro(<< "Empty variances provided" );
     }
 
-  const size_t  numberOfContrasts = means[ 0 ].size();
+  //const size_t  numberOfContrasts = means[ 0 ].size();
   if ( numberOfContrasts == 0 )
     {
     itkExceptionMacro(<< "Empty means provided" );

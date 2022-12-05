@@ -758,6 +758,7 @@ if(NOT MINIMAL)
     mri_synthstrip
     mri_synthseg
     mri_synthsr
+    mri_3d_photo_recon
     swi_processing
     template
     test_makevol

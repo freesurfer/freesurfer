@@ -46,10 +46,7 @@ DSWbetaMMLikelihoodImageFilter< TInputImage >
 template< typename TInputImage >
 void
 DSWbetaMMLikelihoodImageFilter< TInputImage >
-::SetParameters( const std::vector< vnl_vector< double > >& means,
-                 const std::vector< vnl_matrix< double > >& variances,
-                 const std::vector< double >&  mixtureWeights,
-                 const std::vector< int >&  numberOfGaussiansPerClass,
+::SetParameters( const int numberOfContrasts,
                  const std::vector< double >& dswbetaAlpha,
                  const std::vector< double >& dswbetaBeta,
                  const std::vector< double >& dswbetaConcentration,
@@ -81,7 +78,7 @@ DSWbetaMMLikelihoodImageFilter< TInputImage >
     itkExceptionMacro(<< "Empty Concentrations provided" );
     }
 
-  const size_t  numberOfContrasts = means[ 0 ].size();
+  //const size_t  numberOfContrasts = means[ 0 ].size();
   if ( numberOfContrasts == 0 )
     {
     itkExceptionMacro(<< "Empty means provided" );
