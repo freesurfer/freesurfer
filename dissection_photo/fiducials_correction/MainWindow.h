@@ -27,6 +27,7 @@ public slots:
 
   void OnProcessOutputMessage();
   void OnProcessErrorMessage();
+  void OnProcessFinished();
 
 public:
   QString m_strPythonCmd;
