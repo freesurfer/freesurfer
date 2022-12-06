@@ -36,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(m_proc, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(UpdateWidgets()));
   connect(m_proc, SIGNAL(readyReadStandardOutput()), SLOT(OnProcessOutputMessage()));
   connect(m_proc, SIGNAL(readyReadStandardError()), SLOT(OnProcessErrorMessage()));
+  connect(m_proc, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(OnProcessFinished()));
 
   UpdateWidgets();
 }
@@ -179,3 +180,10 @@ void MainWindow::OnProcessErrorMessage()
     }
 }
 
+void MainWindow::OnProcessFinished()
+{
+  QMessageBox dlg(QMessageBox::Information, "Calibration", "Calibration finished. Click Exit to quit.", QMessageBox::Ok, this);
+  dlg.setButtonText(QMessageBox::Ok, "Exit");
+  dlg.exec();
+  QTimer::singleShot(0, qApp, SLOT(quit()));
+}

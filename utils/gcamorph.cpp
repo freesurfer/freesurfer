@@ -5440,7 +5440,7 @@ int GCAMsampleInverseMorphRAS(
     GCA_MORPH *gcam, float xAnat, float yAnat, float zAnat, float *xMorph, float *yMorph, float *zMorph)
 {
   static int init_needed = 1, err;
-  static MATRIX *ras = NULL, *crs = NULL, *vox2ras = NULL, *ras2vox = NULL;
+  static MATRIX *ras = NULL, *crs = NULL, *vox2ras = NULL, *ras2vox = NULL, *vox2rasTarg=NULL;
   float cMorph = 0., rMorph = 0., sMorph = 0.;
   float cAnat, rAnat, sAnat;
 
@@ -5457,12 +5457,14 @@ int GCAMsampleInverseMorphRAS(
       printf("ERROR: GCAsampleMorphRAS(): gcam not inverted\n");
       return (1);
     }
+    // mri_xind same geom as gcam->image = source
     vox2ras = MRIxfmCRS2XYZtkreg(gcam->mri_xind);
     ras2vox = MatrixInverse(vox2ras, ras2vox);
     ras = MatrixAlloc(4, 1, MATRIX_REAL);
     ras->rptr[4][1] = 1;
     crs = MatrixAlloc(4, 1, MATRIX_REAL);
     crs->rptr[4][1] = 1;
+    vox2rasTarg = TkrVox2RASfromVolGeom(&gcam->atlas);
     init_needed = 0;
   }
 
@@ -5479,10 +5481,14 @@ int GCAMsampleInverseMorphRAS(
     return (1);
   }
 
+  // Prior to 12/5/2022, this use vox2ras, but this only works if the
+  // tkreg vox2ras of the source is the same as the target. For
+  // typical usage, this is the case, but not always. The change to use
+  // vox2rasTarg makes it more general.
   crs->rptr[1][1] = cMorph;
   crs->rptr[2][1] = rMorph;
   crs->rptr[3][1] = sMorph;
-  ras = MatrixMultiply(vox2ras, crs, ras);
+  ras = MatrixMultiply(vox2rasTarg, crs, ras);
 
   *xMorph = ras->rptr[1][1];
   *yMorph = ras->rptr[2][1];

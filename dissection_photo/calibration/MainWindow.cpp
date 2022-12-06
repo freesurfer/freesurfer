@@ -120,6 +120,11 @@ void MainWindow::OnProcessFinished()
 {
   ui->widgetImageView->setEnabled(true);
   ui->widgetImageView->HideMessage();
+
+  QMessageBox dlg(QMessageBox::Information, "Calibration", "Calibration finished. Click Exit to quit.", QMessageBox::Ok, this);
+  dlg.setButtonText(QMessageBox::Ok, "Exit");
+  dlg.exec();
+  QTimer::singleShot(0, qApp, SLOT(quit()));
 }
 
 void MainWindow::OnProcessOutputMessage()

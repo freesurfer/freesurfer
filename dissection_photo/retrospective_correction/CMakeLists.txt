@@ -18,6 +18,11 @@ if(BUILD_GUIS AND Qt5_FOUND)
 
   target_link_libraries(retrospective_correction ${QT_LIBRARIES})
 
-  install(TARGETS retrospective_correction DESTINATION bin)
+  if(APPLE)
+    mac_deploy_qt(TARGET retrospective_correction BUNDLE retrospective_correction.app PLIST Info.plist)
+    install(PROGRAMS mac_wrapper DESTINATION bin RENAME retrospective_correction)
+  else()
+    install(TARGETS retrospective_correction DESTINATION bin)
+  endif()
 
 endif()

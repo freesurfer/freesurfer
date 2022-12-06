@@ -19,6 +19,11 @@ if(BUILD_GUIS AND Qt5_FOUND)
 
   target_link_libraries(connected_components ${QT_LIBRARIES})
 
-  install(TARGETS connected_components DESTINATION bin)
+  if(APPLE)
+    mac_deploy_qt(TARGET connected_components BUNDLE connected_components.app PLIST Info.plist)
+    install(PROGRAMS mac_wrapper DESTINATION bin RENAME connected_components)
+  else()
+    install(TARGETS connected_components DESTINATION bin)
+  endif()
 
 endif()

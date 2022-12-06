@@ -140,7 +140,7 @@
      <item>
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Select the directory to save output masks</string>
+        <string>Select the directory to save output</string>
        </property>
       </widget>
      </item>
