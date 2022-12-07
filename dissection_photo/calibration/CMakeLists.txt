@@ -13,15 +13,15 @@ if(BUILD_GUIS AND Qt5_FOUND)
     calibration.qrc
   )
 
-  add_executable(calibration_with_fiducials ${SOURCES})
+  add_executable(fiducials_calibration ${SOURCES})
 
-  target_link_libraries(calibration_with_fiducials ${QT_LIBRARIES})
+  target_link_libraries(fiducials_calibration ${QT_LIBRARIES})
 
   if(APPLE)
-    mac_deploy_qt(TARGET calibration_with_fiducials BUNDLE calibration_with_fiducials.app PLIST Info.plist)
-    install(PROGRAMS mac_wrapper DESTINATION bin RENAME calibration_with_fiducials)
+    mac_deploy_qt(TARGET fiducials_calibration BUNDLE fiducials_calibration.app PLIST Info.plist)
+    install(PROGRAMS mac_wrapper DESTINATION bin RENAME fiducials_calibration)
   else()
-    install(TARGETS calibration_with_fiducials DESTINATION bin)
+    install(TARGETS fiducials_calibration DESTINATION bin)
   endif()
 
 endif()
