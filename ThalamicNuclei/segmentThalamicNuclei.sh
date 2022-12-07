@@ -103,7 +103,7 @@ if ($#argv == 1) then
 endif
 
 # If SUBJECTS_DIR is provided, just set it
-if ($#argv == 2) then
+if ($#argv > 1) then
   set SUBJECTS_DIR = `getfullpath  $2`
 endif
 
