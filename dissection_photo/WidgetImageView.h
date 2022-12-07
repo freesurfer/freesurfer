@@ -47,6 +47,8 @@ public:
     return m_sMaskFilename;
   }
 
+  QImage ReadImageWithExifAwareness(const QString& filename);
+
   enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION };
 
 signals:

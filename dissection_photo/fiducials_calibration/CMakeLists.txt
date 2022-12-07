@@ -1,4 +1,4 @@
-project(calibration)
+project(fiducials_calibration)
 
 if(BUILD_GUIS AND Qt5_FOUND)
 
@@ -7,10 +7,11 @@ if(BUILD_GUIS AND Qt5_FOUND)
   set(SOURCES
     ../WidgetImageView.cpp
     ../cnpy.cpp
+    ../exif.cpp
     DialogWelcome.cpp
     MainWindow.cpp
     main.cpp
-    calibration.qrc
+    fiducials_calibration.qrc
   )
 
   add_executable(fiducials_calibration ${SOURCES})

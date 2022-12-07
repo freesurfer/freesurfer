@@ -3,6 +3,7 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include "math.h"
+#include "exif.h"
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
@@ -29,6 +30,32 @@ bool WidgetImageView::eventFilter(QObject *watched, QEvent *event)
   return QWidget::eventFilter(watched, event);
 }
 
+QImage WidgetImageView::ReadImageWithExifAwareness(const QString& filename)
+{
+  QImage image(filename);
+  if (!image.isNull())
+  {
+    QFile file(filename);
+    if (file.open(QIODevice::ReadOnly))
+    {
+      Exif exif;
+      int orientation = 0;
+      exif.getExifOrientation(file, &orientation);
+      file.close();
+      QTransform t;
+      if (orientation == 7 || orientation == 8)
+        t.rotate(-90);
+      else if (orientation == 3 || orientation == 4)
+        t.rotate(180);
+      else if (orientation == 5 || orientation == 6)
+        t.rotate(90);
+      if (orientation > 1)
+        image = image.transformed(t, Qt::SmoothTransformation);
+    }
+  }
+  return image;
+}
+
 bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, const QList<QPoint>& points, const QList<RECT_REGION>& regions)
 {
   m_sMessage.clear();
@@ -51,13 +78,13 @@ bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, co
 
 void WidgetImageView::PrepareImage()
 {
-  QImage image(m_sFilename);
+  QImage image = ReadImageWithExifAwareness(m_sFilename);
   if (!image.isNull())
   {
     m_image = image;
     if (!m_sMaskFilename.isEmpty())
     {
-      QImage mask_image(m_sMaskFilename);
+      QImage mask_image = ReadImageWithExifAwareness(m_sMaskFilename);
       QPainter p(&m_image);
       p.setCompositionMode(QPainter::CompositionMode_Multiply);
       p.drawImage(0, 0, mask_image);
@@ -78,7 +105,6 @@ void WidgetImageView::SetEditMode(int n)
   if (n == EM_CALIBRATION)
     m_nNumberOfExpectedPoints = 8;
 }
-
 
 void WidgetImageView::SetOverlay(const QImage& overlay_image)
 {
