@@ -70,9 +70,9 @@
       </size>
      </property>
      <property name="text">
-      <string>&lt;p&gt;1. Upload the template using the &quot;Load Image&quot; button below. You will see 4 card suits surrounded by circles.&lt;/p&gt;
-&lt;p&gt;2. Ctrl + Click on the center of the suit  immediately followed by another click on the circle.&lt;/p&gt;
-&lt;p&gt;3. Enter width and height (in mm) in the entry fields.&lt;/p&gt;
+      <string>&lt;p&gt;1. Upload the template without the issues using the &quot;Load Image&quot; button below. You will see 4 circles at the corner areas of the image.&lt;/p&gt;
+&lt;p&gt;2. Ctrl + Click on the center of the circle immediately followed by another click on the edge of the circle.&lt;/p&gt;
+&lt;p&gt;3. Enter width and height (in mm) of the rectangle in the entry fields.&lt;/p&gt;
 &lt;p&gt;4. Click on Perform Calibration to select the output calibration filename and wait until the program quits automatically.&lt;/p&gt;</string>
      </property>
      <property name="wordWrap">

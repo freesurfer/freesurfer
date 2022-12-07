@@ -21,7 +21,7 @@ if(BUILD_GUIS AND Qt5_FOUND)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR})
   add_subdirectory(retrospective_correction)
   add_subdirectory(connected_components)
-  add_subdirectory(calibration)
+  add_subdirectory(fiducials_calibration)
   add_subdirectory(fiducials_correction)
 
 endif()

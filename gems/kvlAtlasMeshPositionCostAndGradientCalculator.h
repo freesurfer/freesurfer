@@ -87,16 +87,6 @@ public :
     return m_BoundaryCondition;  
     }  
   
-  
-protected:
-  AtlasMeshPositionCostAndGradientCalculator();
-  virtual ~AtlasMeshPositionCostAndGradientCalculator();
-  
-  //
-  bool RasterizeTetrahedron( const AtlasMesh* mesh, 
-                             AtlasMesh::CellIdentifier tetrahedronId,
-                             int threadNumber );
-  
   // for AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
   virtual void SetDiffusionParameters( const int numberOfContrasts,
                                        const std::vector< double >&  wmmMixtureWeights,
@@ -131,6 +121,16 @@ protected:
   {
   }
 
+  
+protected:
+  AtlasMeshPositionCostAndGradientCalculator();
+  virtual ~AtlasMeshPositionCostAndGradientCalculator();
+  
+  //
+  bool RasterizeTetrahedron( const AtlasMesh* mesh, 
+                             AtlasMesh::CellIdentifier tetrahedronId,
+                             int threadNumber );
+  
   virtual void AddDataContributionOfTetrahedron( const AtlasMesh::PointType& p0,
                                                  const AtlasMesh::PointType& p1,
                                                  const AtlasMesh::PointType& p2,

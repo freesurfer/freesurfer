@@ -14,6 +14,6 @@ FORMS += \
     MainWindow.ui
 
 RESOURCES += \
-  calibration.qrc
+  fiducials_calibration.qrc
 
-TARGET = calibration_with_fiducials
+TARGET = fiducials_calibration

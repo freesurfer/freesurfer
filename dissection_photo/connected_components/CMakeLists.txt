@@ -7,6 +7,7 @@ if(BUILD_GUIS AND Qt5_FOUND)
   set(SOURCES
     ../WidgetImageView.cpp
     ../cnpy.cpp
+    ../exif.cpp
     DialogSelectFolder.cpp
     DialogWelcome.cpp
     MainWindow.cpp
