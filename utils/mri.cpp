@@ -11637,7 +11637,8 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
   if (src->type == MRI_UCHAR &&
       (dest_type == MRI_SHORT || dest_type == MRI_INT || dest_type == MRI_LONG || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
-  else if (src->type == MRI_SHORT && (dest_type == MRI_INT || dest_type == MRI_LONG || dest_type == MRI_FLOAT))
+  else if ((src->type == MRI_SHORT || src->type == MRI_USHRT ) && 
+           (dest_type == MRI_INT || dest_type == MRI_LONG || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
   else if (src->type == MRI_LONG && (dest_type == MRI_INT || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
