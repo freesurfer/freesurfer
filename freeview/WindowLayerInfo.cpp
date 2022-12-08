@@ -36,14 +36,16 @@ void WindowLayerInfo::Clear()
   }
 }
 
-void WindowLayerInfo::AddLine(const QString &name, const QString &value)
+void WindowLayerInfo::AddLine(const QString &name, const QString &value, bool word_wrap)
 {
   QLabel* l = new QLabel(name);
-  l->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  l->setAlignment(Qt::AlignRight | (word_wrap?Qt::AlignTop:Qt::AlignVCenter));
   int nRow = ui->gridLayout->rowCount();
   ui->gridLayout->addWidget(l, nRow, 0);
   l = new QLabel(value);
   l->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  if (word_wrap)
+    l->setWordWrap(true);
   ui->gridLayout->addWidget(l, nRow, 1);
 }
 
@@ -67,7 +69,8 @@ void WindowLayerInfo::UpdateInfo(Layer* layer)
     MRI* mri = layer_mri->GetSourceVolume()->GetMRI();
     Clear();
     setWindowTitle("Volume Information");
-    SetCaption(QString("Volume information for %1").arg(layer_mri->GetFileName()));
+//    SetCaption(QString("Volume information for %1").arg(layer_mri->GetFileName()));
+    AddLine("file name:", layer_mri->GetFileName(), true);
     QString val;
     val = QString("%1 x %2 x %3").arg(mri->width).arg(mri->height).arg(mri->depth);
     if (mri->nframes > 1)
@@ -81,6 +84,7 @@ void WindowLayerInfo::UpdateInfo(Layer* layer)
     AddLine("type:", QString("%1 (%2)").arg(
                             mri->type == MRI_UCHAR   ? "UCHAR" :
                             mri->type == MRI_SHORT   ? "SHORT" :
+                            mri->type == MRI_USHRT   ? "USHORT" :
                             mri->type == MRI_INT     ? "INT" :
                             mri->type == MRI_LONG    ? "LONG" :
                             mri->type == MRI_BITMAP  ? "BITMAP" :
@@ -97,7 +101,8 @@ void WindowLayerInfo::UpdateInfo(Layer* layer)
     MRIS* mris = surf->GetSourceSurface()->GetMRIS();
     Clear();
     setWindowTitle("Surface Information");
-    SetCaption(QString("Surface information for %1").arg(surf->GetFileName()));
+//    SetCaption(QString("Surface information for %1").arg(surf->GetFileName()));
+    AddLine("file name:", surf->GetFileName(), true);
     AddLine("num vertices:", QString::number(mris->nvertices));
     AddLine("num faces:", QString::number(mris->nfaces));
     AddLine("num strips:", QString::number(mris->nstrips));

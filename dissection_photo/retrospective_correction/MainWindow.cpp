@@ -82,6 +82,7 @@ void MainWindow::ShowDialog()
   ui->labelHeight->setVisible(m_nNumberOfExpectedPoints == 4);
   ui->lineEditRulerHeight->setVisible(m_nNumberOfExpectedPoints == 4);
   ui->widgetImageView->SetNumberOfExpectedPoints(m_nNumberOfExpectedPoints);
+  ui->labelWidth->setText(m_nNumberOfExpectedPoints == 2? "Ruler Length (mm):":"Ruler Width (mm):");
 
   QString input_path = dlgSelect.GetInputPath();
   m_listInputFiles = QDir(input_path).entryInfoList(QDir::Files, QDir::Name);
