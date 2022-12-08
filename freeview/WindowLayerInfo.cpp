@@ -81,6 +81,7 @@ void WindowLayerInfo::UpdateInfo(Layer* layer)
     AddLine("type:", QString("%1 (%2)").arg(
                             mri->type == MRI_UCHAR   ? "UCHAR" :
                             mri->type == MRI_SHORT   ? "SHORT" :
+                            mri->type == MRI_USHRT   ? "USHORT" :
                             mri->type == MRI_INT     ? "INT" :
                             mri->type == MRI_LONG    ? "LONG" :
                             mri->type == MRI_BITMAP  ? "BITMAP" :
