@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+$FREESURFER_HOME/bin/fiducials_calibration.app/Contents/MacOS/fiducials_calibration "$@"
+exit $?

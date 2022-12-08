@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+$FREESURFER_HOME/bin/connected_components.app/Contents/MacOS/connected_components "$@"
+exit $?
