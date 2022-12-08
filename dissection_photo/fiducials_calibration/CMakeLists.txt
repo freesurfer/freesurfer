@@ -19,7 +19,7 @@ if(BUILD_GUIS AND Qt5_FOUND)
   target_link_libraries(fiducials_calibration ${QT_LIBRARIES})
 
   if(APPLE)
-    mac_deploy_qt(TARGET fiducials_calibration BUNDLE fiducials_calibration.app PLIST Info.plist)
+    mac_deploy_qt(TARGET fiducials_calibration BUNDLE bin/fiducials_calibration.app PLIST Info.plist)
     install(PROGRAMS mac_wrapper DESTINATION bin RENAME fiducials_calibration)
   else()
     install(TARGETS fiducials_calibration DESTINATION bin)
