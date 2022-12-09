@@ -13,7 +13,7 @@ pyyaml
 scikit-learn
 scipy
 six
-surfa
+### surfa
 tensorboard
 Werkzeug
 
