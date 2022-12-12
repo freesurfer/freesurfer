@@ -5380,7 +5380,7 @@ int GCAMsampleMorphRAS(
     GCA_MORPH *gcam, float xMorph, float yMorph, float zMorph, float *xAnat, float *yAnat, float *zAnat)
 {
   static int init_needed = 1, err;
-  static MATRIX *ras = NULL, *crs = NULL, *vox2ras = NULL, *ras2vox = NULL;
+  static MATRIX *ras = NULL, *crs = NULL, *vox2ras = NULL, *ras2vox = NULL, *vox2rasSrc=NULL;
   float cMorph, rMorph, sMorph;
   float cAnat, rAnat, sAnat;
 
@@ -5392,18 +5392,19 @@ int GCAMsampleMorphRAS(
     // two different volume sizes (eg, 1mm^3 res and a high
     // res). Multiple calls with different subjects is not a problem
     // as long as they are the same voxel size as the tkreg vox2ras
-    // does not use individual information.
-    if (gcam->mri_xind == NULL) {
-      printf("ERROR: GCAsampleMorphRAS(): gcam not inverted\n");
-      return (1);
-    }
-    vox2ras = MRIxfmCRS2XYZtkreg(gcam->mri_xind);
+    // does not use individual information. There was a bug here
+    // 12/12/22 where it was getting the vox2ras from gcam->mri_xind
+    // which is that of the source=image. It did not matter as long as
+    // everything was conformed. More generally, this should be the
+    // vox2ras of the atlas.
+    vox2ras = TkrVox2RASfromVolGeom(&gcam->atlas);
     ras2vox = MatrixInverse(vox2ras, ras2vox);
     ras = MatrixAlloc(4, 1, MATRIX_REAL);
     ras->rptr[4][1] = 1;
     crs = MatrixAlloc(4, 1, MATRIX_REAL);
     crs->rptr[4][1] = 1;
     init_needed = 0;
+    vox2rasSrc = TkrVox2RASfromVolGeom(&gcam->image);
   }
 
   ras->rptr[1][1] = xMorph;
@@ -5419,10 +5420,14 @@ int GCAMsampleMorphRAS(
     return (1);
   }
 
+  // Prior to 12/12/2022, this used vox2ras, but this only works if the
+  // tkreg vox2ras of the source is the same as the target. For
+  // typical usage, this is the case, but not always. The change to
+  // use vox2rasSrc makes it more general.
   crs->rptr[1][1] = cAnat;
   crs->rptr[2][1] = rAnat;
   crs->rptr[3][1] = sAnat;
-  ras = MatrixMultiply(vox2ras, crs, ras);
+  ras = MatrixMultiply(vox2rasSrc, crs, ras);
 
   *xAnat = ras->rptr[1][1];
   *yAnat = ras->rptr[2][1];
@@ -5497,31 +5502,50 @@ int GCAMsampleInverseMorphRAS(
   return (0);
 }
 /*-----------------------------------------------------------------------
-  GCAMmorphSurf() - compute the vertex xyz in the morph space. Replaces
-  vertex xyz. Does not recompute the metric properties of the surface.
+  GCAMmorphSurf() - compute the vertex xyz in the morph
+  space. Replaces vertex xyz. Does not recompute the metric properties
+  of the surface.  The gca will be a 3d array in atlas/output/target
+  space the value of which indicates the corresponding CRS in the
+  image/source/native/anat space.  Prior to 12/12/22, this function is
+  set up to convert the surface from the anat space to the output
+  space. This actually requires that the morph be inverted because we
+  will start with a coorindate in native anat space (the vertex xyz)
+  and need to find the corresponding xyz in the atlas space. On
+  12/12/22, the function was modified to be able to go in the opposite
+  direction (which ironically does not require inverting the gca). The
+  sampleInverse option handles specifying which direction to go. When
+  sampleInverse=1, it reverts to its pre-12/12/22 behavior (ie, maps
+  from native anat to atlas). If sampleInverst=0, it will map from
+  atlas to native native anat.
   ---------------------------------------------------------------------*/
-int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam, int sampleInverse)
 {
-  // printf("Applying Inverse Morph \n");
+  printf("GCAMorphSurf sampleInverse=%d\n",sampleInverse);
 
   MRISfreeDistsButNotOrig(mris);
-    // MRISsetXYZ will invalidate all of these,
-    // so make sure they are recomputed before being used again!
+  // MRISsetXYZ will invalidate all of these,
+  // so make sure they are recomputed before being used again!
 
   int vtxno;
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++) {
     VERTEX *v = &mris->vertices[vtxno];
     float Mx = 0, My = 0, Mz = 0;
-    int err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
-    if (err) {
+    int err=0;
+    if(sampleInverse)
+      err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
+    else
+      err = GCAMsampleMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
+    if(err) {
       printf("WARNING: GCAMmorphSurf(): error converting vertex %d\n", vtxno);
       printf("  Avxyz = (%g,%g,%g), Mvxyz = (%g,%g,%g), \n", v->x, v->y, v->z, Mx, My, Mz);
+      return(1);
       printf(" ... Continuing\n");
     }
     MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
-  // Copy the volume geometry of the destination volume
-  copyVolGeom(&(gcam->atlas), &(mris->vg));
+  // Copy the volume geometry of the destination=atlas or input=image volume to surf
+  if(sampleInvert) copyVolGeom(&(gcam->atlas), &(mris->vg));
+  else             copyVolGeom(&(gcam->image), &(mris->vg));
 
   return (0);
 }

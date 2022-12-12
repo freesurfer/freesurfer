@@ -473,7 +473,7 @@ static int parse_commandline(int argc, char **argv) {
       printf("mris_apply_reg done\n");
       exit(0);
     }
-    else if (!strcasecmp(option, "--m3z")) {
+    else if (!strcasecmp(option, "--m3z") || !strcasecmp(option, "--inv-m3z") ) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
       MRIS *m3zsurf = MRISread(pargv[0]);
@@ -482,16 +482,22 @@ static int parse_commandline(int argc, char **argv) {
       GCA_MORPH *gcam;
       gcam = GCAMread(pargv[1]);
       if(gcam==NULL) exit(1);
-      printf("Inverting GCAM\n");
-      MRI *mri_tmp ;
-      mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT) ;
-      useVolGeomToMRI(&gcam->image, mri_tmp);
-      GCAMinvert(gcam, mri_tmp) ;
-      MRIfree(&mri_tmp) ;
-      int err = GCAMmorphSurf(m3zsurf, gcam);
+      int DoInv;
+      if(!strcasecmp(option, "--m3z")){
+	// Ironically, mapping the surface from source to target requires that the gca be invertex
+	MRI *mri_tmp ;
+	mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT) ;
+	useVolGeomToMRI(&gcam->image, mri_tmp);
+	printf("Inverting GCAM\n");
+	GCAMinvert(gcam, mri_tmp) ;
+	MRIfree(&mri_tmp) ;
+	DoInv=1;
+      } 
+      else DoInv=0;
+      printf("DoInv %d\n",DoInv);
+      int err = GCAMmorphSurf(m3zsurf, gcam, DoInv);
       if(err) exit(1);
-      if (center_surface)
-	MRIScenter(m3zsurf, m3zsurf);
+      if(center_surface) MRIScenter(m3zsurf, m3zsurf);
       printf("Writing surf to %s\n",pargv[2]);
       err = MRISwrite(m3zsurf,pargv[2]);
       if(err) exit(1);
@@ -546,7 +552,8 @@ static void print_usage(void) {
   printf("   --stvpair stvpairfile : save srcvtxno srcx srcy srcz trgvtxno trgx trgy trgz from first and last surfs \n");
   printf("\n");
   printf("   --m3z source-surf m3zfile output-surf : apply m3z transform\n");
-  printf("     other options do not apply to --m3z\n");
+  printf("   --inv-m3z source-surf m3zfile output-surf : apply inverse m3z transform\n");
+  printf("     except for --center, other options do not apply to --m3z or --inv-m3z\n");
   printf("\n");
   printf("   --src-reg-scale Scale : Scale the coords of the first surface\n");
   printf("   --trg-reg-scale Scale : Scale the coords of the last surface\n");

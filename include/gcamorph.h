@@ -519,7 +519,7 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam,
 int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma);
 
 #include "mrisurf.h"
-int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam, int sampleInverse);
 
 MRI *GCAMMScomputeOptimalScale(GCAM_MS *gcam_ms,
                                TRANSFORM *transform,
