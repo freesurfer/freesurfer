@@ -175,7 +175,7 @@ def registration(
 
         image_with_ruler[
             0 : deformed_image.shape[0], 0 : deformed_image.shape[1], :
-        ] = cv2.cvtColor(deformed_image, cv2.COLOR_RGB2BGR)
+        ] = cv2.cvtColor(deformed_image)
         image_with_ruler[
             deformed_image.shape[0] :, 0 : -vertical_ruler.shape[1], :
         ] = horizontal_ruler[:, 0 : deformed_image.shape[1], :]
