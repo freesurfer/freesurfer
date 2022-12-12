@@ -11,7 +11,7 @@
 #include "DialogWelcome.h"
 #include <QTimer>
 
-#define WND_TITLE "Fiducials Calibration"
+#define WND_TITLE "Calibration with Fiducials"
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
