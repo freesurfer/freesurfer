@@ -5544,8 +5544,8 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam, int sampleInverse)
     MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
   // Copy the volume geometry of the destination=atlas or input=image volume to surf
-  if(sampleInvert) copyVolGeom(&(gcam->atlas), &(mris->vg));
-  else             copyVolGeom(&(gcam->image), &(mris->vg));
+  if(sampleInverse) copyVolGeom(&(gcam->atlas), &(mris->vg));
+  else              copyVolGeom(&(gcam->image), &(mris->vg));
 
   return (0);
 }
