@@ -182,7 +182,7 @@ void MainWindow::OnProcessErrorMessage()
 
 void MainWindow::OnProcessFinished()
 {
-  QMessageBox dlg(QMessageBox::Information, "Calibration", "Calibration finished. Click Exit to quit.", QMessageBox::Ok, this);
+  QMessageBox dlg(QMessageBox::Information, "Correction", "Correction finished. Click Exit to quit.", QMessageBox::Ok, this);
   dlg.setButtonText(QMessageBox::Ok, "Exit");
   dlg.exec();
   QTimer::singleShot(0, qApp, SLOT(quit()));
