@@ -35,4 +35,19 @@ if(INSTALL_PYTHON_DEPENDENCIES)
       message(FATAL_ERROR \"Could not remove pip-installed scripts\")
     endif()"
   )
+
+  if(PATCH_FSPYTHON)
+     # Use to workaround a python module not installing, e.g., problem with setup.py.
+     # Enable with -DPATCH_FSPYTHON=ON as arg to cmake command to copy install from previous build.
+     # The path to the previous build must be available/mounted in the build container.
+     set(FSPYTHON_PREVIOUS_BUILD_BASE "/space/freesurfer/build/garnet/sandboxes/utility/freesurfer/dev.20221207")
+     install(CODE "
+       message(STATUS \"patching fspython distribution\")
+       execute_process(COMMAND bash -c \" ( cd ${FSPYTHON_PREVIOUS_BUILD_BASE}/python/lib/python3.8/site-packages && tar cpf - surfa* xxhash* ) | ( cd ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages && tar xpf - ) \" RESULT_VARIABLE patch)
+       if(NOT \${patch} STREQUAL 0)
+         message(FATAL_ERROR \"Could not patch fspython\")
+       endif()"
+     )
+  endif()
+
 endif()
