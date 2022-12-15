@@ -4,8 +4,11 @@
 #include "itkImageFileWriter.h"
 #include "kvlCompressionLookupTable.h"
 #include "itkMGHImageIOFactory.h"
-
-
+#include "mri.h"
+#include "utils.h"
+#include "argparse.h"
+#include "fio.h"
+#include "samseg-atlas.help.xml.h"
 
 namespace kvl
 {
@@ -41,6 +44,9 @@ public:
          ( typeid( event ) == typeid( itk::EndEvent ) ) )
       {
       kvl::AtlasMeshBuilder::ConstPointer  builder = static_cast< const kvl::AtlasMeshBuilder* >(  caller );
+
+      printf("Writing out the current mesh collection\n");
+      PrintMemUsage(stdout);
 
       // Write out the current mesh collection
       std::ostringstream  fileNameStream;
@@ -111,28 +117,6 @@ private:
 
 int main( int argc, char** argv )
 {
-
-  // Sanity check on input
-  if ( argc < 8 )
-    {
-    std::cerr << "Usage: " << argv[ 0 ] << " numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness numberOfIterations edgeCollapseFactor logDirectory fileName1 [ fileName2 ... ]" << std::endl;
-
-    return -1;
-    }
-  printf("\n\n\n\n\n\n\n\nConsider using samseg-atlas instead ... continuing after 2 sec\n\n\n\n\n\n\n\n\n");
-  sleep(2);
-    
-  // Add support for MGH file format to ITK. An alternative way to add this by default would be
-  // to edit ITK's itkImageIOFactory.cxx and explicitly adding it in the code there.
-  itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() );
-
-  // Retrieve the input parameters
-  std::ostringstream  inputParserStream;
-  for ( int argumentNumber = 1; argumentNumber < 9; argumentNumber++ ) 
-    {
-    inputParserStream << argv[ argumentNumber ] << " ";
-    }
-  std::istringstream  inputStream( inputParserStream.str().c_str() );
   int  numberOfUpsamplingSteps;
   unsigned int  meshSizeX;
   unsigned int  meshSizeY;
@@ -140,16 +124,44 @@ int main( int argc, char** argv )
   double  stiffness;
   unsigned int  numberOfIterations;
   double  edgeCollapseEncouragmentFactor;
-  std::string  logDirectory;
-  inputStream >> \
-    numberOfUpsamplingSteps >> \
-    meshSizeX >> meshSizeY >> meshSizeZ >> \
-    stiffness >> \
-    numberOfIterations >> \
-    edgeCollapseEncouragmentFactor >> \
-    logDirectory;
+  std::string  OutDir; // outdir
+  std::string  initMeshFile; // outdir
+  int nthreads = 1;
 
-  std::cout << "kvlBuildAtlasMesh Command line params:" << std::endl;
+  ArgumentParser parser;
+  parser.addHelp(samseg_atlas_help_xml, samseg_atlas_help_xml_len);
+  parser.addArgument("--nup", 1, Int);
+  parser.addArgument("--iters", 1, Int);
+  parser.addArgument("--threads", 1, Int);
+  parser.addArgument("--meshsize", 3, Int);
+  parser.addArgument("--edgecollapse", 1, Float);
+  parser.addArgument("--stiffness", 1, Float);
+  parser.addArgument("-o","--outputdir", 1, String, true);
+  parser.addArgument("--init", 1, String, false);
+  parser.addArgument("-i","--inputs", '+', String, true);
+  parser.parse(argc, argv);
+
+  OutDir = parser.retrieve<std::string>("outputdir");
+  initMeshFile = parser.retrieve<std::string>("init");
+  numberOfUpsamplingSteps = parser.retrieve<int>("nup");
+  numberOfIterations = parser.retrieve<int>("iters");
+  edgeCollapseEncouragmentFactor = parser.retrieve<float>("edgecollapse");
+  stiffness = parser.retrieve<float>("stiffness");
+  std::vector<int> meshSize = parser.retrieve<std::vector<int>>("meshsize");
+  meshSizeX = meshSize[0];
+  meshSizeY = meshSize[1];
+  meshSizeZ = meshSize[2];
+  std::vector<std::string> inputList = parser.retrieve<std::vector<std::string>>("inputs");
+
+  // nthreads starts as 1. If ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS exists, then it takes that. If 
+  // the user explicitly specifies --threads, then it takes that
+  if(getenv("ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS") != NULL) sscanf(getenv("ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"),"%d",&nthreads);
+  if(parser.exists("threads")) nthreads = parser.retrieve<int>("threads");
+  char tmpstr[2000];
+  sprintf(tmpstr,"%d",nthreads);
+  setenv("ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS",tmpstr,1);
+
+  std::cout << "samseg-atlas Command line params:" << std::endl;
   std::cout << "  numberOfUpsamplingSteps:        " << numberOfUpsamplingSteps << std::endl;
   std::cout << "  meshSizeX:                      " << meshSizeX << std::endl;
   std::cout << "  meshSizeY:                      " << meshSizeY << std::endl;
@@ -157,38 +169,96 @@ int main( int argc, char** argv )
   std::cout << "  stiffness:                      " << stiffness << std::endl;
   std::cout << "  numberOfIterations:             " << numberOfIterations << std::endl;
   std::cout << "  edgeCollapseEncouragmentFactor: " << edgeCollapseEncouragmentFactor << std::endl;
-  std::cout << "  logDirectory:                   " << logDirectory << std::endl;
-  
+  std::cout << "  OutDir:                   " << OutDir << std::endl;
+  printf("threads %s\n",getenv("ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"));
+
+  PrintMemUsage(stdout);
+
+  // Check whether the output dir exists
+  if(fio_FileExistsReadable(OutDir.c_str())){
+    printf("ERROR: output folder %s exists, delete to rerun\n",OutDir.c_str());
+    exit(1);
+  }
+
+  // Add support for MGH file format to ITK. An alternative way to add this by default would be
+  // to edit ITK's itkImageIOFactory.cxx and explicitly adding it in the code there.
+  itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() );
+
   // Read the input images
   typedef kvl::CompressionLookupTable::ImageType  LabelImageType;
   std::vector< LabelImageType::ConstPointer >  labelImages;
-  for ( int argumentNumber = 9; argumentNumber < argc; argumentNumber++ )
-    {
-    std::cout << "Reading input image: " << argv[ argumentNumber ] << std::endl;
+  for(int nthinput; nthinput < inputList.size(); nthinput++ ){
+    std::cout << "Reading input image: " << inputList[nthinput] << std::endl;
     // Read the input image
     typedef itk::ImageFileReader< LabelImageType >  ReaderType;
     ReaderType::Pointer  reader = ReaderType::New();
-    reader->SetFileName( argv[ argumentNumber ] );
+    reader->SetFileName(inputList[nthinput]);
     reader->Update();
     LabelImageType::ConstPointer  labelImage = reader->GetOutput();
-
-    // Over-ride the spacing and origin since at this point we can't deal with that
+    // Override the spacing and origin since at this point we can't deal with that
+    // Or throw an error?
     const double spacing[] = { 1, 1, 1 };
     const double origin[] = { 0, 0, 0 };
     const_cast< LabelImageType* >( labelImage.GetPointer() )->SetSpacing( spacing );
     const_cast< LabelImageType* >( labelImage.GetPointer() )->SetOrigin( origin );
-
     // Remember this image
     labelImages.push_back( labelImage );
-    }
+  }
+
+  // Create outdir
+  if(!(itksys::SystemTools::MakeDirectory( OutDir.c_str()))){
+    std::cerr << "Couldn't create log directory" << std::endl;
+    exit(1);
+  }
+  // Start the logging file
+  std::string  logFileName = OutDir + "/logFile.txt";
+  std::ofstream  out( logFileName.c_str(), std::ios::out );
+  if (out.bad()){
+    std::cerr << "Couldn't write to log file" << std::endl;
+    exit(1);
+  }
 
   // Build a lookup table that maps the original intensities onto class numbers starting
   // at 0 and densely packed
   kvl::CompressionLookupTable::Pointer  lookupTable = kvl::CompressionLookupTable::New();
   lookupTable->Construct( labelImages );
-  //lookupTable->Write( "compressionLookupTable.txt" );
 
+  // Write the label images
+  typedef itk::ImageFileWriter< LabelImageType >  WriterType;
+  for ( int labelImageNumber = 0; labelImageNumber < labelImages.size();labelImageNumber++ ) {
+    std::ostringstream  fileNameStream;
+    fileNameStream << OutDir << "/labelImage";
+    if(labelImageNumber < 10) fileNameStream << "0";
+    fileNameStream << labelImageNumber << ".mhd";
+    WriterType::Pointer  writer = WriterType::New();
+    writer->SetInput( labelImages[ labelImageNumber ] );
+    writer->SetFileName( fileNameStream.str().c_str() ); 
+    writer->Write();
+  }
+  // Write the lookup table
+  std::ostringstream  fileNameStream;
+  fileNameStream << OutDir << "/compressionLookupTable.txt";
+  lookupTable->Write( fileNameStream.str().c_str() );
 
+  out << "iterationNumber     dataCost     alphasCost     positionCost    totalCost"
+      << std::endl;
+  out << "------------------------------------------------------------------------------" << std::endl;
+
+  // Check for explicit start mesh
+  kvl::AtlasMeshCollection::Pointer explicitStartCollection = 0;
+  if(!initMeshFile.empty()){
+    explicitStartCollection = kvl::AtlasMeshCollection::New();
+    if(!explicitStartCollection->Read( initMeshFile.c_str())){
+      std::cerr << "Couldn't read mesh from file " << initMeshFile << std::endl;
+      exit(1);
+    } 
+    else{
+      std::cout << "explicitStartCollection found; reading from: " << initMeshFile << std::endl;
+    }
+  }
+
+  PrintMemUsage(stdout);
+    
   // Set up the builder
   kvl::AtlasMeshBuilder::Pointer  builder = kvl::AtlasMeshBuilder::New();
   const itk::Size< 3 >  initialSize = { meshSizeX,  meshSizeY, meshSizeZ };
@@ -198,121 +268,16 @@ int main( int argc, char** argv )
 
   // Add some observers/callbacks
   kvl::BuilderCommand::Pointer  builderCommand = kvl::BuilderCommand::New();
-  builderCommand->SetLogDirectory( logDirectory );
+  builderCommand->SetLogDirectory( OutDir );
   builder->AddObserver( itk::StartEvent(), builderCommand );
   builder->AddObserver( itk::IterationEvent(), builderCommand );
   builder->AddObserver( itk::EndEvent(), builderCommand );
   builder->AddObserver( kvl::EdgeAnalysisProgressEvent(), builderCommand );
-
-  // Make sure the log directory exists and is empty
-  if ( itksys::SystemTools::FileIsDirectory( logDirectory.c_str() ) )
-    {
-    // Logging directory exists already. Remove
-    if ( !( itksys::SystemTools::RemoveADirectory( logDirectory.c_str() ) ) )
-      {
-      std::cerr << "Couldn't remove existing log directory" << std::endl;
-      return -1;
-      }
-    }
-
-  if ( !( itksys::SystemTools::MakeDirectory( logDirectory.c_str() ) ) )
-    {
-    std::cerr << "Couldn't create log directory" << std::endl;
-    return -1;
-    }
-
-  // Write the lookup table
-  std::ostringstream  fileNameStream;
-  fileNameStream << logDirectory << "/compressionLookupTable.txt";
-  lookupTable->Write( fileNameStream.str().c_str() );
-
-    
-  // Write the label images
-  typedef itk::ImageFileWriter< LabelImageType >  WriterType;
-  for ( int labelImageNumber = 0; 
-        labelImageNumber < labelImages.size();
-        labelImageNumber++ )
-    {
-    std::ostringstream  fileNameStream;
-    fileNameStream << logDirectory << "/labelImage";
-    if ( labelImageNumber < 10 )
-      {
-      fileNameStream << "0";
-      }
-    fileNameStream << labelImageNumber << ".mhd";
-    WriterType::Pointer  writer = WriterType::New();
-    writer->SetInput( labelImages[ labelImageNumber ] );
-    writer->SetFileName( fileNameStream.str().c_str() ); 
-    writer->Write();
-    }
-
-
-  // Also start the loggin file
-  std::string  logFileName = logDirectory;
-  logFileName += "/logFile.txt";
-  std::ofstream  out( logFileName.c_str(), std::ios::out );
-  if ( out.bad() )
-    {
-    std::cerr << "Couldn't write to log file" << std::endl;
-    return -1;
-    }
-  out << "iterationNumber     dataCost     alphasCost     positionCost    totalCost"
-      << std::endl;
-  out << "------------------------------------------------------------------------------" << std::endl;
-
-
-  // If explicitStartCollection exists in the current directory, use it
-  kvl::AtlasMeshCollection::Pointer  explicitStartCollection = 0;
-  const std::string  explicitStartCollectionFileName = "explicitStartCollection.gz";
-  if ( itksys::SystemTools::FileExists( explicitStartCollectionFileName.c_str(), true ) )
-    {
-    explicitStartCollection = kvl::AtlasMeshCollection::New();
-    if ( !explicitStartCollection->Read( explicitStartCollectionFileName.c_str() ) )
-      {
-      std::cerr << "Couldn't read mesh from file " << explicitStartCollectionFileName << std::endl;
-      return -1;
-      } 
-    else
-      {
-      std::cout << "explicitStartCollection found; reading from: " << explicitStartCollectionFileName << std::endl;
-      }
-    }
-
-  // If edgeCollapseEncouragmentFactor.txt exists in the current directory, read it's content
-  //double  edgeCollapseEncouragmentFactor = 1.0;
-  const std::string  edgeCollapseEncouragmentFactorFileName = "edgeCollapseEncouragmentFactor.txt";
-  //if ( itksys::SystemTools::FileExists( edgeCollapseEncouragmentFactorFileName.c_str(), true ) )
-  //  {
-    std::ifstream  fs( edgeCollapseEncouragmentFactorFileName.c_str() );
-    if ( !( fs.fail() ) )
-      {
-      std::cout << "Reading " << edgeCollapseEncouragmentFactorFileName << std::endl;
-
-      std::string line;
-      if ( std::getline( fs, line ) )
-        {
-        //std::ostringstream  inputParserStream;
-        //inputParserStream << line;
-        //std::istringstream  inputStream( inputParserStream.str().c_str() );
-        std::istringstream  inputStream( line.c_str() );
-        inputStream >> edgeCollapseEncouragmentFactor;
-        std::cout << "Using edgeCollapseEncouragmentFactor: " << edgeCollapseEncouragmentFactor << std::endl;
-        }
-      else
-        {
-        std::cerr << "Couldn't read edgeCollapseEncouragmentFactor from file: " 
-                  << edgeCollapseEncouragmentFactorFileName << std::endl;
-        return -1;
-        }
-        
-      }  
-   
-  //  }
-    
     
   // Let the beast go
-  builder->Build( explicitStartCollection, edgeCollapseEncouragmentFactor );
+  builder->Build(explicitStartCollection, edgeCollapseEncouragmentFactor);
 
+  PrintMemUsage(stdout);
   
   return 0;
 };

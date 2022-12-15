@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>samseg-atlas</name>
+	<description>This program builds an atlas mesh that can be used by samseg. This replaces kvlBuildAtlasMesh.
+        </description>
+  <arguments>
+    <required>
+      <argument>--o output folder</argument>
+      <explanation>Output folder. This cannot exist</explanation>
+      <argument>--inputs labelvol1 labelvol2 ...</argument>
+      <explanation>List of all the label volumes (in a common space)</explanation>
+      <argument>--nup nup</argument>
+      <explanation>Number of upsampling steps</explanation>
+      <argument>--iters iters</argument>
+      <explanation>Number of iterations</explanation>
+      <argument>--threads nthreads</argument>
+      <explanation>Sets ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS to this number.</explanation>
+      <argument>--meshsize nx ny nz</argument>
+      <explanation>Mesh size (ints)</explanation>
+      <argument>--edgecollapse factor</argument>
+      <explanation>Edge collapse encouragment factor</explanation>
+      <argument>--stiffness K</argument>
+      <explanation>Mesh stiffness</explanation>
+    </required>
+
+    <optional>
+      <argument>--init initMesh</argument>
+      <explanation>Initialize using this mesh</explanation>
+    </optional>
+  </arguments>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
+
