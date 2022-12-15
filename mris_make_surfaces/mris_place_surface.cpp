@@ -233,10 +233,55 @@ int mm_contrast_type = -1;
 char *mmvolpath = NULL;
 MRI *mmvol = NULL;
 std::map<int, MRI*> mmvols;
-float T2_min_inside = 110 ;
-float T2_max_inside = 300 ;
-double T2_min_outside = 130;
-double T2_max_outside = 300 ;
+
+/* The thresholds belowares for placing the pial on MM volumes (T2 or
+   FLAIR). "Inside" means between the (fixed) white surface and the
+   current pial surface, where as "outside" means beyond the pial. The
+   intensity of cortex is expected to be between
+   min_{indside,outside}. Beyond pial, the intensity is expected to be
+   between max_{indside,outside}.  The MM volume will be intensity
+   normalized so the WM will be about 110; one expects cortex to be
+   brighter. Beyond cortex, the expected intensities depend on the
+   mode. For FLAIR, the outside is expected to be darker than
+   pial. For T2, it may be brighter (CSF) or darker (vessel).  It is
+   important to note that these are limits; the actual thresholds at a
+   vertex may be different. For this reason, they are often set quite
+   liberally.  
+
+   For FLAIR:
+      max_inside>=WM (WM=110 so 200?)
+      min_inside=50-60 (can have a big effect on pial placement)
+      max_outside=min_inside (or less)
+      min_outside=0?
+
+      Programatically, the outside limits have little if any effect on
+      FLAIR. The min_inside can have a big effect on pial
+      placement. If too low then too much dura/vessels will be
+      included. If too high, then makes pial retract too much. 50 was
+      a good compromise on a single subject.
+
+   For T2:
+      max_inside=110 or greater since WM=110 and GM>WM, default is 300)
+      min_inside=110 or greater since CSF>GM>110 
+      max_outside >= CSF (default 300)
+      min_outside >= min_inside (default 130)
+
+   FLAIR bug. On May 9, 2017 commit
+   1fe83cd1a42c1f08b42e2f8f82521bb80d3466b3, major changes to the MM
+   stream were checked in to mris_make_surfaces. These changes
+   included a bug for the FLAIR which caused it to place the pial much
+   too far into cortex. The problem was that the limits for FLAIR were
+   copied from the limits for T2 making min_iside 110 instead of 60
+   (the default at the top of the program). This error was copied into
+   mris_place_surfaces and so exists in v 7.{0,1,2,3}.
+
+*/
+// See above for interpretation of these values. They are set with --mmvol
+float T2_min_inside;
+float T2_max_inside;
+double T2_min_outside;
+double T2_max_outside;
+
 double max_outward_dist = 1 ; // for normal cases, for pathology might be much larger
 double wm_weight = 3 ;    // threshold for finding gm outliers: thresh = (wt*wm + gm )/(wt+1)
 double Ghisto_left_inside_peak_pct = 0.1; //0.01 for flair. typo?
@@ -981,7 +1026,7 @@ static int parse_commandline(int argc, char **argv) {
       involpath = pargv[0];
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--stop")){
+    else if(!strcasecmp(option, "--stopmask")){
       if(nargc < 1) CMDargNErr(option,1);
       stopmask = MRIread(pargv[0]);
       if(!stopmask) exit(1);
@@ -990,8 +1035,22 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--mmvol")){
       if(nargc < 2) CMDargNErr(option,2);
       mmvolpath = pargv[0];
-      if(!stricmp(pargv[1],"t2"))         mm_contrast_type = CONTRAST_T2;
-      else if(!stricmp(pargv[1],"flair")) mm_contrast_type = CONTRAST_FLAIR;
+      // See above for a discussion on these limits. If you change these defaults,
+      // then change the values in mris_make_surfaces for completeness
+      if(!stricmp(pargv[1],"t2")){
+	mm_contrast_type = CONTRAST_T2;
+	T2_min_inside = 110 ;
+	T2_max_inside = 300 ;
+	T2_min_outside = 130;
+	T2_max_outside = 300 ;
+      }
+      else if(!stricmp(pargv[1],"flair")) {
+	mm_contrast_type = CONTRAST_FLAIR;
+	T2_min_inside =  50;
+	T2_max_inside = 200;
+	T2_min_outside = 10; // outside not so important for FLAIR
+	T2_max_outside = 50;
+      }
       else {
 	printf("ERROR: mmvol must be either t2 or flair weighted\n");
 	exit(1);

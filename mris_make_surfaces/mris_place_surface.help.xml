@@ -141,7 +141,7 @@
       <explanation>Stop mask to stop search along normal for max gradient</explanation>
 
       <argument>--mm_{min,max}_{inside,outside} </argument>
-      <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR)</explanation>
+      <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR). Specifying --mm will set these values to defaults. If you want to change using this option, then put the option AFTER --mm</explanation>
 
       <argument>--cover-seg SegVol </argument>
       <explanation>Force surface to cover the segmentation (or --cover_seg)</explanation>
