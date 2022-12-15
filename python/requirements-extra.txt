@@ -32,6 +32,7 @@ pystrum
 # neurite has a dev branch and pip will install using the latest commit and list the hash in the build log
 # FOR RELEASE, set this to git hash from the nightly build (log) that has been tested
 ### git+https://github.com/adalca/neurite.git@dev
+git+https://github.com/avnishks/neurite.git@dev
 
 # voxelmorph
 #
@@ -39,6 +40,7 @@ pystrum
 # voxelmorph has a dev branch and pip will install using the latest commit and list the hash in the build log
 # FOR RELEASE, set this to git hash from nightly the build (log) that has been tested
 ### git+https://github.com/voxelmorph/voxelmorph.git@dev
+git+https://github.com/avnishks/voxelmorph.git@dev
 
 # extra packages required for QA tools
 pandas
