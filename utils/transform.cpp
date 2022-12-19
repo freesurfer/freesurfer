@@ -2918,8 +2918,12 @@ void mincGetVolInfo(const char *infoline, const char *infoline2, VOL_GEOM *vgSrc
       vgDst->valid = 1;
     }
   }
-  free(psrcVol);
-  free(pdstVol);
+
+  // check if they need to be freed
+  if (psrcVol)
+    free(psrcVol);
+  if (pdstVol)
+    free(pdstVol);
 }
 
 LTA *ltaMNIreadEx(const char *fname)
