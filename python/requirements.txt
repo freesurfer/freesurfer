@@ -13,8 +13,7 @@ pyyaml
 scikit-learn
 scipy
 six
-surfa
-### git+https://github.com/freesurfer/surfa.git@master
+surfa @ git+https://github.com/freesurfer/surfa.git@master
 tensorboard
 Werkzeug
 

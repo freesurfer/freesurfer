@@ -4,11 +4,9 @@ h5py
 torch
 opencv-python
 trimesh
-# neurite
 # FOR RELEASE set this to version 0.2 (10/29/2022)
 # pystrum==0.2
 pystrum
-# voxelmorph
 
 # these are also required for FS DL utilities, but we need some features
 # that haven't quite made it into the stable releases yet - this should be
@@ -26,21 +24,15 @@ pystrum
 # version on GitHub with empty "pystrum" above.  Also note pystrum currently
 # has no dev branch so git+https://github.com/adalca/pystrum.git@dev does not work.
 
-# neurite
-#
 # git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
 # neurite has a dev branch and pip will install using the latest commit and list the hash in the build log
 # FOR RELEASE, set this to git hash from the nightly build (log) that has been tested
-git+https://github.com/adalca/neurite.git@dev
-### git+https://github.com/avnishks/neurite.git@dev
+neurite @ git+https://github.com/adalca/neurite.git@dev
 
-# voxelmorph
-#
 # git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
 # voxelmorph has a dev branch and pip will install using the latest commit and list the hash in the build log
 # FOR RELEASE, set this to git hash from nightly the build (log) that has been tested
-git+https://github.com/voxelmorph/voxelmorph.git@dev
-### git+https://github.com/avnishks/voxelmorph.git@dev
+voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
 
 # extra packages required for QA tools
 pandas
