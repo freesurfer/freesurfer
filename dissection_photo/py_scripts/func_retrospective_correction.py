@@ -126,14 +126,17 @@ def retrospective_correction(args):
     ref_coords[3, 0, 0] = np.round(true_width / reference_pixel_size) - 1
     ref_coords[3, 0, 1] = np.round(true_height / reference_pixel_size) - 1
 
+    PAD = 10.0 / reference_pixel_size  # pad 10mm (in pixels)
+    ref_coords = ref_coords + PAD
+
     # We compute the final perspective transform
     M2, _ = cv2.findHomography(centers_target_reordered, ref_coords)
     args.deformed_image = cv2.warpPerspective(
         np.asarray(args.img_fullres),
         M2,
         (
-            ref_coords[1, 0, 0].astype(int) + 1,
-            ref_coords[2, 0, 1].astype(int) + 1,
+            (PAD + ref_coords[1, 0, 0]).astype(int) + 1,
+            (PAD + ref_coords[2, 0, 1]).astype(int) + 1,
         ),
     )
 
