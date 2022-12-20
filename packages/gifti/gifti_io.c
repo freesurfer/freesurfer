@@ -130,7 +130,9 @@ static char *gifti_history[] = {
     "     - the most significant dimension cannot be 1 (req by N Schmansky)\n"
     "1.10 19 October, 2011: \n",
     "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
-    "       (requested by H Breman, J Mulders, N Schmansky)\n"};
+    "       (requested by H Breman, J Mulders, N Schmansky)\n"
+    "1.?? 20 December, 2022: \n",
+    "     - update gifti_add_empty_CS() to handle multiple <CoordinateSystemTransformMatrix>\n"};
 
 static char gifti_version[] = "gifti library version 1.09, 28 June, 2010";
 
@@ -1152,31 +1154,35 @@ int gifti_add_empty_CS(giiDataArray *da)
 {
   if (!da) return 1;
 
+  int numCS = da->numCS;
+
   /* be safe, if anything looks bad, start clean */
-  if (da->numCS <= 0 || !da->coordsys) {
-    da->numCS = 0;
+  if (numCS <= 0 || !da->coordsys) {
+    if (numCS <= 0)
+      numCS = 1;  // at least one  
     da->coordsys = NULL;
   }
 
-  if (G.verb > 3) fprintf(stderr, "++ adding empty CS[%d]\n", da->numCS);
+  if (G.verb > 3) fprintf(stderr, "++ adding empty CS[%d]\n", numCS);
 
   /* realloc coordsys pointer array, and add an empty structure */
-  da->coordsys = (giiCoordSystem **)realloc(da->coordsys, (da->numCS + 1) * sizeof(giiCoordSystem *));
+  da->coordsys = (giiCoordSystem **)realloc(da->coordsys, (numCS) * sizeof(giiCoordSystem *));
   if (!da->coordsys) {
-    fprintf(stderr, "** AECS: failed to alloc %d CoordSys pointers\n", da->numCS + 1);
+    fprintf(stderr, "** AECS: failed to alloc %d CoordSys pointers\n", numCS);
     da->numCS = 0;
     return 1;
   }
 
-  da->coordsys[da->numCS] = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
-  if (!da->coordsys[da->numCS]) {
-    fprintf(stderr, "** push_cstm: failed to alloc new CoordSystem\n");
-    return 1;
+  for (da->numCS = 0; da->numCS < numCS; da->numCS++)
+  {
+    da->coordsys[da->numCS] = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
+    if (!da->coordsys[da->numCS]) {
+      fprintf(stderr, "** push_cstm: failed to alloc new CoordSystem\n");
+      return 1;
+    }
+
+    gifti_clear_CoordSystem(da->coordsys[da->numCS]);
   }
-
-  gifti_clear_CoordSystem(da->coordsys[da->numCS]);
-
-  da->numCS++;
 
   return 0;
 }
