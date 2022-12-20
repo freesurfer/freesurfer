@@ -22,6 +22,8 @@
 
 #include "mrisurf_base.h"
 
+#include "mrisutils.h"
+
 
 #define QUAD_FILE_MAGIC_NUMBER (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER (-2 & 0x00ffffff)
@@ -4304,6 +4306,12 @@ MRIS * MRISread(const char *fname)
 {
   MRIS *mris = MRISreadOverAlloc(fname, 1.0);
   if (mris == NULL) return (NULL);
+
+  // convert surface xyz coordinates scanner space to tkregister space 
+  // (ie, the native space that the surface xyz coords are generated in)
+  if (mris->useRealRAS)
+    MRISscanner2Tkr(mris);
+
   MRISsetNeighborhoodSizeAndDist(mris, 3);  // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1);       // reset current size to 1-nbrs
   return (mris);
@@ -4720,6 +4728,7 @@ MATRIX *getSRASToTalSRAS(LT *lt)
 }
 
 
+// this function assumes mris_fname is a surface under recon-all output directory structure
 int mrisReadTransform(MRIS *mris, const char *mris_fname)
 {
   char transform_fname[STRLEN], fpref[300];
