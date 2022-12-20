@@ -314,6 +314,17 @@ main(int argc, char *argv[])
     mris->ncmds = 0;
   }
 
+  if(userealras_flag)
+  {
+    printf("Setting useRealRAS to 1\n");
+    mris->useRealRAS = 1;
+  }
+  if(usesurfras_flag)
+  {
+    printf("Setting useRealRAS to 0\n");
+    mris->useRealRAS = 0;
+  }
+
   if(cras_add){
     printf("Adding scanner CRAS to surface xyz\n");
     MRISshiftCRAS(mris, 1);
@@ -327,39 +338,13 @@ main(int argc, char *argv[])
     int err = MRIScopyCoords(mris,SurfCoords);
     if(err) exit(1);
   }
-
   if(ToScanner){
-    if (mris->useRealRAS)
-      printf("Surface XYZ coordinates are already in scanner space. No conversion needed.\n");
-    else
-    {
-      printf("Converting from tkr to scanner coordinates\n");
-      MRIStkr2Scanner(mris);
-    }
+    printf("Converting from tkr to scanner coordinates\n");
+    MRIStkr2Scanner(mris);
   }
-
   if(ToTkr){
-    if (!mris->useRealRAS)
-      printf("Surface XYZ coordinates are already in tkr space. No conversion needed.\n");
-    else
-    {
-      printf("Converting from scanner to tkr coordinates\n");
-      MRISscanner2Tkr(mris);
-    }
-  }
-
-  // not sure just setting mris->useRealRAS will do anything
-  // maybe we should treat --userealras the same as --to-scanner,
-  // --usesurfras the same as --to-tkr
-  if(userealras_flag)
-  {
-    printf("Setting useRealRAS to 1\n");
-    mris->useRealRAS = 1;
-  }
-  if(usesurfras_flag)
-  {
-    printf("Setting useRealRAS to 0\n");
-    mris->useRealRAS = 0;
+    printf("Converting from scanner to tkr coordinates\n");
+    MRISscanner2Tkr(mris);
   }
 
   if (talxfmsubject)

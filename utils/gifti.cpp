@@ -566,9 +566,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
 
     /* gifti uses real RAS by default */
-    // This is not correct. As of 12/19/2022, the default surface XYZ is in tkregister space.
-    // mris->useRealRAS will be set accordingly based on the value in <dataspace> tag later.
-    mris->useRealRAS = 0;
+    mris->useRealRAS = 1;
 
     /* retrieve volume geometry info */
     {
@@ -721,10 +719,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     if (coords->coordsys && (coords->numCS > 0)) {
       int idx;
       for (idx = 0; idx < coords->numCS; idx++) {
-        if (0 == strcmp(coords->coordsys[idx]->dataspace, "NIFTI_XFORM_SCANNER_ANAT")) {
-          mris->useRealRAS = 1;
-	}
-        else if (0 == strcmp(coords->coordsys[idx]->dataspace, "NIFTI_XFORM_UNKNOWN")) {
+        if (0 == strcmp(coords->coordsys[idx]->dataspace, "NIFTI_XFORM_UNKNOWN")) {
           if (0 == strcmp(coords->coordsys[idx]->xformspace, "NIFTI_XFORM_TALAIRACH")) {
             int r, c;
             mris->SRASToTalSRAS_ = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -1322,82 +1317,22 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
     coords->endian = GIFTI_ENDIAN_BIG;
 #endif
 
-    /* The implementation as of 12/19/2022 set
-     * <DataSpace> = NIFTI_XFORM_UNKNOWN
-     * <MatrixData> = mris->SRASToTalSRAS_
-     * <TransformedSpace> = NIFTI_XFORM_TALAIRACH
-     */
     coords->coordsys = NULL;             // empty, unless we find something here...
-    coords->numCS = (mris->useRealRAS) ? 1 : 2;
-    int ret = gifti_add_empty_CS(coords);
-    if (ret)
-    {
-      fprintf(stderr,
-              "MRISwriteGIFTI: : couldn't allocate giiCoordSystem");
-      gifti_free_DataArray_list(image->darray, image->numDA);
-      gifti_free_image(image);
-      return ERROR_NOMEMORY;
-    }
-
-    MATRIX *S = vg_i_to_r(&mris->vg);
-    MATRIX *T = TkrVox2RASfromVolGeom(&mris->vg);
-
-    if (mris->useRealRAS)
-    {
-      // surface XYZ coordinates are in scanner space
-      //  <DataSpace> = NIFTI_XFORM_SCANNER_ANAT
-      //  <MatrixData> = transform matrix go from scanner space to Freesurfer tkregister space
-      //  <TransformedSpace> = NIFTI_XFORM_UNKNOWN (Freesurfer tkregister space)
-      int idx = 0;
-      coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_SCANNER_ANAT");
-      coords->coordsys[idx]->xformspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-      
-      MATRIX *Sinv = MatrixInverse(S, NULL);
-      MATRIX *xform = MatrixMultiply(T, Sinv, NULL);
-
-      for (int r = 1; r <= 4; r++)
-        for (int c = 1; c <= 4; c++)
-          coords->coordsys[idx]->xform[r - 1][c - 1] = xform->rptr[r][c];
-
-      MatrixFree(&Sinv);
-      MatrixFree(&xform);
-    }
-    else
-    {
-      // surface XYZ coordinates are in tkregister space, output two transform matrix:
-      //  <DataSpace> = NIFTI_XFORM_UNKNOWN (Freesurfer tkregister space)
-      //  <MatrixData> = transform matrix go from Freesurfer tkregister space to scanner space
-      //  <TransformedSpace> = NIFTI_XFORM_SCANNER_ANAT
-      int idx = 0;
+    MRISreadTransform(mris, out_fname);  // tries to get xform from out_fname
+    if (mris->SRASToTalSRAS_ && mris->SRASToTalSRAS_->rows == 4 && mris->SRASToTalSRAS_->cols == 4) {
+      int idx;
+      // found a valid xform, so use it...
+      gifti_add_empty_CS(coords);
+      idx = coords->numCS - 1;
       coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-      coords->coordsys[idx]->xformspace = strcpyalloc("NIFTI_XFORM_SCANNER_ANAT");
-
-      MATRIX *Tinv = MatrixInverse(T, NULL);
-      MATRIX *xform = MatrixMultiply(S, Tinv, NULL);
-
-      for (int r = 1; r <= 4; r++)
-        for (int c = 1; c <= 4; c++)
+      coords->coordsys[idx]->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
+      MATRIX *xform = mris->SRASToTalSRAS_;
+      int r, c;
+      for (r = 1; r <= 4; r++)
+        for (c = 1; c <= 4; c++) {
           coords->coordsys[idx]->xform[r - 1][c - 1] = xform->rptr[r][c];
-
-      MatrixFree(&Tinv);
-      MatrixFree(&xform);
-
-      //  <DataSpace> = NIFTI_XFORM_UNKNOWN (Freesurfer tkregister space)
-      //  <MatrixData> = transform matrix go from Freesurfer tkregister space to talairach space
-      //  <TransformedSpace> = NIFTI_XFORM_TALAIRACH
-      idx++;
-      if (idx < coords->numCS && mris->SRASToTalSRAS_ && mris->SRASToTalSRAS_->rows == 4 && mris->SRASToTalSRAS_->cols == 4) { 
-        coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-        coords->coordsys[idx]->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
-        MATRIX *xform = mris->SRASToTalSRAS_;
-        for (int r = 1; r <= 4; r++) 
-          for (int c = 1; c <= 4; c++) {
-            coords->coordsys[idx]->xform[r - 1][c - 1] = xform->rptr[r][c];
-          }
-      }    
+        }
     }
-    MatrixFree(&S);
-    MatrixFree(&T);
 
     coords->nvals = gifti_darray_nvals(coords);
     gifti_datatype_sizes(coords->datatype, &coords->nbyper, NULL);
