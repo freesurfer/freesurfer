@@ -333,8 +333,16 @@ main(int argc, char *argv[])
       printf("Surface XYZ coordinates are already in scanner space. No conversion needed.\n");
     else
     {
-      printf("Converting from tkr to scanner coordinates\n");
-      MRIStkr2Scanner(mris);
+      if (mris->vg.valid)
+      {
+        printf("Converting surface XYZ coordinates from tkr to scanner space.\n");
+        MRIStkr2Scanner(mris);
+      }
+      else
+      {
+        printf("Invalid volume geometry. Cannot convert surface XYZ coordinates from tkr to scanner space.\n"); 
+        mris->useRealRAS = 0;
+      }
     }
   }
 
@@ -343,8 +351,16 @@ main(int argc, char *argv[])
       printf("Surface XYZ coordinates are already in tkr space. No conversion needed.\n");
     else
     {
-      printf("Converting from scanner to tkr coordinates\n");
-      MRISscanner2Tkr(mris);
+      if (mris->vg.valid)
+      {
+        printf("Converting surface XYZ coordinates from scanner to tkr space.\n");
+        MRISscanner2Tkr(mris);
+      }
+      else
+      {
+        printf("Invalid volume geometry. Cannot convert surface XYZ coordinates from scanner to tkr space.\n");
+        mris->useRealRAS = 1;
+      }
     }
   }
 
