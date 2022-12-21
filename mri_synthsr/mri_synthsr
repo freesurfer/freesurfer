@@ -43,6 +43,7 @@ def main():
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
+    parser.add_argument("--model", default=None, help="(optional) Use a different model file.")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -61,8 +62,10 @@ def main():
     if not os.environ.get('FREESURFER_HOME'):
         path_model = None
         sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+    elif args.model is None:
+        path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v10_210712.h5')        
     else:
-        path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v10_210712.h5')
+        path_model = args.model
 
     # run prediction
     predict(
