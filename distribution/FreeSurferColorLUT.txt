@@ -77,6 +77,9 @@
 73  Left-Interior                           122 135 50  0
 74  Right-Interior                          122 135 50  0
 # 75/76 removed. duplicates of 4/43
+# new 75/76 added 
+75  Left-Locus-Coeruleus                    91  97  255 0
+76  Right-Locus-Coeruleus                   0   7   218 0  
 77  WM-hypointensities                      200 70  255 0
 78  Left-WM-hypointensities                 255 148 10  0
 79  Right-WM-hypointensities                255 148 10  0
