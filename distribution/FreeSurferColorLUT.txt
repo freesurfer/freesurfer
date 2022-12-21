@@ -1184,14 +1184,16 @@
 7203  PAG                                               153 153 255 0
 7204  VTA                                               255 0   255 0
 
-7301  Left-LC                                           0   0   255 0
+# replaced by 75
+#7301  Left-LC                                          0   0   255 0
 7302  Left-LDTg                                         255 127 0   0
 7303  Left-mRt                                          255 0   0   0
 7304  Left-PBC                                          255 255 0   0
 7305  Left-PnO                                          0   127 255 0
 7306  Left-PTg                                          127 0   255 0
 
-7401  Right-LC                                          0   0   255 0
+# replaced by 76
+#7401  Right-LC                                         0   0   255 0
 7402  Right-LDTg                                        255 127 0   0
 7403  Right-mRt                                         255 0   0   0
 7404  Right-PBC                                         255 255 0   0
