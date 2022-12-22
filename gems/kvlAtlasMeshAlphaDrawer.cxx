@@ -68,10 +68,16 @@ AtlasMeshAlphaDrawer
   
   // Loop over all voxels within the tetrahedron and do The Right Thing  
   TetrahedronInteriorIterator< ImageType::PixelType >  it( m_Image, p0, p1, p2, p3 );
-  it.AddExtraLoading( alphaInVertex0, alphaInVertex1, alphaInVertex2, alphaInVertex3 );
+
+  if (alphaInVertex0 != 0 || alphaInVertex1 != 0 || alphaInVertex2 != 0 || alphaInVertex3 != 0)
+    it.AddExtraLoading( alphaInVertex0, alphaInVertex1, alphaInVertex2, alphaInVertex3 );
+
   for ( ; !it.IsAtEnd(); ++it )
     {
-    it.Value() = it.GetExtraLoadingInterpolatedValue( 0 );
+    if (alphaInVertex0 != 0 || alphaInVertex1 != 0 || alphaInVertex2 != 0 || alphaInVertex3 != 0)
+      it.Value() = it.GetExtraLoadingInterpolatedValue( 0 );
+    else
+      it.Value() = 0;
     }
     
   return true;

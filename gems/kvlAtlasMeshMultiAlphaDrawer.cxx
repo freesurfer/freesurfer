@@ -87,17 +87,26 @@ AtlasMeshMultiAlphaDrawer
   const int  numberOfClasses = alphasInVertex0.Size();
   for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
-    it.AddExtraLoading( alphasInVertex0[ classNumber ], 
-                        alphasInVertex1[ classNumber ], 
-                        alphasInVertex2[ classNumber ], 
-                        alphasInVertex3[ classNumber ] );
+    if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0) 
+      it.AddExtraLoading( alphasInVertex0[ classNumber ], 
+                          alphasInVertex1[ classNumber ], 
+                          alphasInVertex2[ classNumber ], 
+                          alphasInVertex3[ classNumber ] );
     }
+
   for ( ; !it.IsAtEnd(); ++it )
     {
-    it.Value() = AtlasAlphasType( numberOfClasses );  
+      it.Value() = AtlasAlphasType( numberOfClasses );
+      int classIdx = 0;
     for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
-      it.Value()[ classNumber ] = it.GetExtraLoadingInterpolatedValue( classNumber );
+      if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+	{
+        it.Value()[ classNumber ] = it.GetExtraLoadingInterpolatedValue( classIdx );
+        classIdx++;
+	}
+      else
+        it.Value()[ classNumber ] = 0;
       }
     }
     

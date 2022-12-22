@@ -82,10 +82,11 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
-    it.AddExtraLoading( alphasInVertex0[ classNumber ], 
-                        alphasInVertex1[ classNumber ], 
-                        alphasInVertex2[ classNumber ], 
-                        alphasInVertex3[ classNumber ] );
+      if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+        it.AddExtraLoading( alphasInVertex0[ classNumber ], 
+                            alphasInVertex1[ classNumber ], 
+                            alphasInVertex2[ classNumber ], 
+                            alphasInVertex3[ classNumber ] );
     }  
     
   for ( ; !it.IsAtEnd(); ++it )
@@ -102,18 +103,24 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     double  xGradientBasis = 0.0;
     double  yGradientBasis = 0.0;
     double  zGradientBasis = 0.0;
+    int classIdx = 0; 
     for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
-      // Get the Gaussian mixture model likelihood of this class at the intensity of this pixel
-      const double mixture = it.Value()[ classNumber ];
+      if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+	{
+        // Get the Gaussian mixture model likelihood of this class at the intensity of this pixel
+        const double mixture = it.Value()[ classNumber ];
         
-      // Add contribution of the likelihood
-      likelihood += mixture * it.GetExtraLoadingInterpolatedValue( classNumber );
+        // Add contribution of the likelihood
+        likelihood += mixture * it.GetExtraLoadingInterpolatedValue( classIdx );
       
-      //
-      xGradientBasis += mixture * it.GetExtraLoadingNextRowAddition( classNumber );
-      yGradientBasis += mixture * it.GetExtraLoadingNextColumnAddition( classNumber );
-      zGradientBasis += mixture * it.GetExtraLoadingNextSliceAddition( classNumber );
+        //
+        xGradientBasis += mixture * it.GetExtraLoadingNextRowAddition( classIdx );
+        yGradientBasis += mixture * it.GetExtraLoadingNextColumnAddition( classIdx );
+        zGradientBasis += mixture * it.GetExtraLoadingNextSliceAddition( classIdx );
+
+        classIdx++;
+	}
       } // End loop over all classes
       
       

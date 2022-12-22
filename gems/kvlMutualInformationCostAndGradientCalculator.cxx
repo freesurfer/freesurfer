@@ -211,10 +211,11 @@ MutualInformationCostAndGradientCalculator
                                                 it( m_Histogrammer->GetBinnedImage(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
-    it.AddExtraLoading( alphasInVertex0[ classNumber ], 
-                        alphasInVertex1[ classNumber ], 
-                        alphasInVertex2[ classNumber ], 
-                        alphasInVertex3[ classNumber ] );
+    if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+      it.AddExtraLoading( alphasInVertex0[ classNumber ], 
+                          alphasInVertex1[ classNumber ], 
+                          alphasInVertex2[ classNumber ], 
+                          alphasInVertex3[ classNumber ] );
     }  
     
   for ( ; !it.IsAtEnd(); ++it )
@@ -234,19 +235,25 @@ MutualInformationCostAndGradientCalculator
     double  yGradientBasis = 0.0;
     double  zGradientBasis = 0.0;
 #if 1    
+    int classIdx = 0;
     for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
-      // Get the class-conditional likelihood of this class at the intensity of this pixel
-      const double classConditionalLikelihood = 
-                     m_Histogrammer->GetConditionalIntensityDistributions()[ classNumber ][ binNumber ];
+      if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+	{
+        // Get the class-conditional likelihood of this class at the intensity of this pixel
+        const double classConditionalLikelihood = 
+                       m_Histogrammer->GetConditionalIntensityDistributions()[ classNumber ][ binNumber ];
         
-      // Add contribution of the likelihood
-      likelihood += classConditionalLikelihood * it.GetExtraLoadingInterpolatedValue( classNumber );
+        // Add contribution of the likelihood
+        likelihood += classConditionalLikelihood * it.GetExtraLoadingInterpolatedValue( classIdx );
       
-      //
-      xGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextRowAddition( classNumber );
-      yGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextColumnAddition( classNumber );
-      zGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextSliceAddition( classNumber );
+        //
+        xGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextRowAddition( classIdx );
+        yGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextColumnAddition( classIdx );
+        zGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextSliceAddition( classIdx );
+
+        classIdx++;
+	}
       } // End loop over all classes
       
       
