@@ -1532,7 +1532,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     if var is None:
         return None
     var = load_array_if_path(var, load_as_numpy=load_as_numpy)
-    if isinstance(var, (int, float, np.int, np.int32, np.int64, np.float, np.float32, np.float64)):
+    if isinstance(var, (int, float, np.int8, np.int16, np.int32, np.int64, np.float16, np.float32, np.float64, np.float128)):
         var = [var]
     elif isinstance(var, tuple):
         var = list(var)
