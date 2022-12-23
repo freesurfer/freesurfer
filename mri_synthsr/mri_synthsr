@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--ct", action="store_true", help="(optional) Use this flag for CT scans in Hounsfield scale, "
                                                           "it clips intensities to [0,80].")
     parser.add_argument("--disable_sharpening", action="store_true", help="(optional) Use this flag to disable unsharp masking.")
+    parser.add_argument("--disable_flipping", action="store_true", help="(optional) Use this flag to disable flipping augmentation at test time.")
 
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
@@ -74,6 +75,7 @@ def main():
         path_model=path_model,
         ct_mode=args.ct,
         disable_sharpening=args.disable_sharpening,
+        disable_flipping=args.disable_flipping,
         threads=args.threads
     )
 
@@ -88,6 +90,7 @@ def predict(path_images,
             path_model,
             ct_mode,
             disable_sharpening,
+            disable_flipping,
             threads=1):
     '''
     Prediction pipeline.
@@ -125,7 +128,14 @@ def predict(path_images,
 
         # prediction
         try:
-            pred = np.squeeze(net.predict(image))
+            if disable_flipping:
+                pred = np.clip(255 * np.squeeze(net.predict(image)), 0, 128)
+            else:
+                print('Prediction without flipping')
+                pred1 = np.squeeze(net.predict(image))
+                print('Prediction with flipping')
+                pred2 = np.flip(np.squeeze(net.predict(np.flip(image, axis=1))), axis=0)
+                pred = 0.5 * np.clip(255 * pred1, 0, 128) + 0.5 * np.clip(255 * pred2, 0, 128)
         except Exception as e:
             print('\nthe following problem occured when predicting output for image %s :' % path_image)
             print(e)
@@ -297,8 +307,6 @@ def build_model(model_file):
 
 def postprocess(pred, pad_idx, aff, disable_sharpening):
 
-    # rescale output between [0, 255]
-    pred = np.clip(255 * pred, 0, 128)
     pred = crop_volume_with_idx(pred, pad_idx, n_dims=3)
 
     # unsharp masking
