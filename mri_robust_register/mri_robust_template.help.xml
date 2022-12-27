@@ -109,6 +109,8 @@ Important Note: For best performance the input images should all have the same i
       <explanation>Center template at average CRAS, instead of average barycenter (default)</explanation>
       <argument>--res-thresh</argument>
       <explanation>volume resolution threshold (default is 0.01 mm)</explanation>
+      <argument>--frobnorm-thresh</argument>
+      <explanation>Matrix frobenius norm threshold (default is 0.0001)</explanation>
       <argument>--debug</argument>
       <explanation>show debug output (default no debug output)</explanation>
     </optional-flagged>

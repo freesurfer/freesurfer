@@ -50,7 +50,7 @@ public:
           satit(false), debug(0), iscale(false), iscaleonly(false),
           nomulti(false), subsamplesize(-1), highit(-1), fixvoxel(false),
           keeptype(false), average(1), doubleprec(false), backupweights(false),
-	sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), resthresh(0.01), mri_mean(NULL)
+	sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), resthresh(0.01), frobnormthresh(0.0001), mri_mean(NULL)
   {
   }
 
@@ -59,7 +59,7 @@ public:
           satit(false), debug(0), iscale(false), iscaleonly(false),
           nomulti(false), subsamplesize(-1), highit(-1), fixvoxel(false),
           keeptype(false), average(1), doubleprec(false), backupweights(false),
-          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), resthresh(0.01), mri_mean(NULL)
+          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), resthresh(0.01), frobnormthresh(0.0001), mri_mean(NULL)
   {
     loadMovables(mov);
   }
@@ -95,6 +95,7 @@ public:
     std::cout << " SampleType:    " << sampletype<< std::endl;
     std::cout << " CRASCenter:    " << crascenter<< std::endl;
     std::cout << " Resthresh:     " << resthresh << std::endl;
+    std::cout << " Frobnormthresh:     " << frobnormthresh << std::endl; 
     std::cout << " Debug:         " << debug << std::endl;
     std::cout <<  std::noboolalpha << std::endl;
   
@@ -246,6 +247,12 @@ public:
     resthresh = thresh;
   }
 
+  //! Specify frobenius norm threshold, default is 0.0001
+  void SetFrobnormthresh(double thresh)
+  {
+    frobnormthresh = thresh;
+  }
+
   //! Sample type when creating averages
   void setSampleType(int st)
   {
@@ -324,6 +331,7 @@ private:
   int sampletype;
   bool crascenter;
   float resthresh;
+  double frobnormthresh;
 
   // DATA
   std::vector<MRI*> mri_mov;

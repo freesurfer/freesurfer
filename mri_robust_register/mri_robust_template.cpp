@@ -119,6 +119,7 @@ struct Parameters
   int pairiterate;
   double pairepsit;
   float  resthresh;
+  double frobnormthresh;
 };
 
 // Initializations:
@@ -126,7 +127,7 @@ static struct Parameters P =
 { vector<string>(0), vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
     0), vector<string>(0), false, false, false, false, false, false, false, false, false,
     5, -1.0, SAT, vector<string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false,
-    true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01, 0.01};
+    true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01, 0.01, 0.0001};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -222,6 +223,7 @@ int main(int argc, char *argv[])
       MR.setBackupWeights(true);
     MR.useCRAS(P.crascenter);
     MR.setResthresh(P.resthresh);
+    MR.SetFrobnormthresh(P.frobnormthresh);
     
     // init MultiRegistration and load movables
     //int nnin = (int) P.mov.size();
@@ -804,6 +806,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.resthresh = atof(argv[1]);
     nargs = 1;
     cout << "--res-thresh: Voxsize threshold " << P.resthresh << endl;
+  }
+  else if (!strcmp(option, "FROBNORM-THRESH"))
+  {
+    P.frobnormthresh = atof(argv[1]);
+    nargs = 1;
+    cout << "--frobnorm-thresh: Matrix frobenius norm threshold " << P.frobnormthresh << endl;
   }
   else
   {

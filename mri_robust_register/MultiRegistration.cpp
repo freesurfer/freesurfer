@@ -1531,7 +1531,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   // find mean rotation or linear map (in RAS coordinates)
   vnl_matrix_fixed<double, 3, 3> meanr;
   if (rigid)
-    meanr = MyMatrix::RotationMean(mras3);
+    meanr = MyMatrix::RotationMean(mras3, frobnormthresh);
   else
     meanr = MyMatrix::GeometricMean(mras3);
   
