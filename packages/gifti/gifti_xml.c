@@ -176,289 +176,66 @@ static int g_first_zlib_err_msg = 1;
 
 /*--- Base64 binary encoding and decoding tables ---*/
 
-// clang-format off
 /* encoding: converting values 0-63 to characters */
-static unsigned char b64_encode_table[64]
-    = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', /* 26 upper case */
-        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-        'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', /* 26 lower case */
-        'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-        'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', /* 10 digits */
-        '+', '/' };
+static unsigned char b64_encode_table[64] = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',             /* 26 upper case */
+    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',             /* 26 lower case */
+    'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',   /* 10 digits */
+    '+', '/'
+};
 
 /* decoding: converting characters A-Z, a-z, 0-9, +, /, to integers 0-63
  * (other characters are considered invalid, though '=' is mapped to 0,
  * to account for the end of input (didn't Arnold make a movie about that?))
  */
 static unsigned char b64_decode_table[256] = {
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /*   0 -   7 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /*   8 -  15 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /*  16 -  23 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /*  24 -  31 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /*  32 -  39 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /*   0 -   7 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /*   8 -  15 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /*  16 -  23 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /*  24 -  31 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /*  32 -  39 */
 
-  /* d['+'] = d[43] = 62,   d['/'] = d[47] = 63          */
-  128,
-  128,
-  128,
-  62,
-  128,
-  128,
-  128,
-  63, /*  40 -  47 */
+    /* d['+'] = d[43] = 62,   d['/'] = d[47] = 63          */
+    128, 128, 128,  62, 128, 128, 128,  63,   /*  40 -  47 */
 
-  /* d['0'] = d[48] = 52,  ...   d['9'] = 61, d['='] = 0 */
-  52,
-  53,
-  54,
-  55,
-  56,
-  57,
-  58,
-  59, /*  48 -  55 */
-  60,
-  61,
-  128,
-  128,
-  128,
-  0,
-  128,
-  128, /*  56 -  63 */
+    /* d['0'] = d[48] = 52,  ...   d['9'] = 61, d['='] = 0 */
+     52,  53,  54,  55,  56,  57,  58,  59,   /*  48 -  55 */
+     60,  61, 128, 128, 128,   0, 128, 128,   /*  56 -  63 */
 
-  /* d['A'] = d[65] =  0,   ...   d['Z'] = 25            */
-  128,
-  0,
-  1,
-  2,
-  3,
-  4,
-  5,
-  6, /*  64 -  71 */
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14, /*  72 -  79 */
-  15,
-  16,
-  17,
-  18,
-  19,
-  20,
-  21,
-  22, /*  80 -  87 */
-  23,
-  24,
-  25,
-  128,
-  128,
-  128,
-  128,
-  128, /*  88 -  95 */
+    /* d['A'] = d[65] =  0,   ...   d['Z'] = 25            */
+    128,   0,   1,   2,   3,   4,   5,   6,   /*  64 -  71 */
+      7,   8,   9,  10,  11,  12,  13,  14,   /*  72 -  79 */
+     15,  16,  17,  18,  19,  20,  21,  22,   /*  80 -  87 */
+     23,  24,  25, 128, 128, 128, 128, 128,   /*  88 -  95 */
 
-  /* d['a'] = d[97] = 26,   ...   d['a'] = 51            */
-  128,
-  26,
-  27,
-  28,
-  29,
-  30,
-  31,
-  32, /*  96 - 103 */
-  33,
-  34,
-  35,
-  36,
-  37,
-  38,
-  39,
-  40, /* 104 - 111 */
-  41,
-  42,
-  43,
-  44,
-  45,
-  46,
-  47,
-  48, /* 112 - 119 */
-  49,
-  50,
-  51,
-  128,
-  128,
-  128,
-  128,
-  128, /* 120 - 127 */
+    /* d['a'] = d[97] = 26,   ...   d['a'] = 51            */
+    128,  26,  27,  28,  29,  30,  31,  32,   /*  96 - 103 */
+     33,  34,  35,  36,  37,  38,  39,  40,   /* 104 - 111 */
+     41,  42,  43,  44,  45,  46,  47,  48,   /* 112 - 119 */
+     49,  50,  51, 128, 128, 128, 128, 128,   /* 120 - 127 */
 
-  /* ... and the rest, are heeere in deecode liiiiiist!  poor Mary Ann :( */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 128 - 135 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 136 - 143 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 144 - 151 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 152 - 159 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 160 - 167 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 168 - 175 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 176 - 183 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 184 - 191 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 192 - 199 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 200 - 207 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 208 - 215 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 216 - 223 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 224 - 231 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 232 - 239 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128, /* 240 - 247 */
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128,
-  128 /* 248 - 255 */
+    /* ... and the rest, are heeere in deecode liiiiiist!  poor Mary Ann :( */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 128 - 135 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 136 - 143 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 144 - 151 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 152 - 159 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 160 - 167 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 168 - 175 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 176 - 183 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 184 - 191 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 192 - 199 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 200 - 207 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 208 - 215 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 216 - 223 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 224 - 231 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 232 - 239 */
+    128, 128, 128, 128, 128, 128, 128, 128,   /* 240 - 247 */
+    128, 128, 128, 128, 128, 128, 128, 128    /* 248 - 255 */
 };
-// clang-format on
 
 /* note: the buffer needs to be large enough to contain any contiguous
          piece of (CDATA?) text, o.w. it will require parsing in pieces */
@@ -1045,6 +822,9 @@ static int push_gifti(gxml_data *xd, const char **attr)
     if (gifti_str2attr_gifti(gim, attr[c], attr[c + 1]))
       if (gifti_add_to_nvpairs(&gim->ex_atrs, attr[c], attr[c + 1])) return 1;
 
+  /* NITRC online version dated Oct 19, 2011
+   * if (xd->verb > 1) fprintf(stderr, " ++ set %d GIFTI attr(s)\n", c / 2);
+   */
   if (xd->verb > 1) fprintf(stderr, "++ set %d GIFTI attr(s)\n", c / 2);
   if (xd->verb > 3) gifti_disp_gifti_image("push:", gim, 0);
 
@@ -1052,6 +832,10 @@ static int push_gifti(gxml_data *xd, const char **attr)
   if (gim->numDA >= 0) {
     xd->expDA = gim->numDA;
     gim->numDA = 0; /* clear for counting */
+
+    /* NITRC online version dated Oct 19, 2011
+     * if (xd->verb > 1) fprintf(stderr, " -- expecting %d DA elements\n", xd->expDA);
+     */
     if (xd->verb > 1) fprintf(stderr, "-- expecting %d DA elements\n", xd->expDA);
   }
 
@@ -1401,6 +1185,9 @@ static int pop_darray(gxml_data *xd)
 
     if (xd->verb > 2) fprintf(stderr, "-- uncompressing %lld bytes into %lld\n", xd->dind, (long long)outlen);
 
+    /* NITRC online version dated Oct 19, 2011
+     * rv = uncompress(da->data, &outlen, (Bytef *)xd->zdata, xd->dind);
+     */
     rv = uncompress((Bytef *)da->data, &outlen, (Bytef *)xd->zdata, xd->dind);
     olen = outlen;
 
@@ -2292,6 +2079,10 @@ static int decode_b64(gxml_data *xd, char *cdata, int cdlen, char *dptr, long lo
 
   /* if we didn't finish, try to fill a partial block */
   if (ind < blocks) { /* so *needed < 3 */
+    /* NITRC online version dated Oct 19, 2011
+     * unsigned char a, b, c;
+     * GII_B64_decode4(din[0], din[1], din[2], din[3], a, b, c);
+     */
     unsigned char a, b;
     // unsigned char c;
     // GII_B64_decode4(din[0], din[1], din[2], din[3], a, b, c);
@@ -2981,6 +2772,9 @@ static int ewrite_data(gxml_data *xd, giiDataArray *da, FILE *fp)
       int rv = 0;
       if (update_partial_buffer(&xd->zdata, &xd->zlen, blen, 1)) return 1;
 
+      /* NITRC online version dated Oct 19, 2011
+       * rv = compress2((Bytef *)xd->zdata, &blen, da->data, da->nvals * da->nbyper, xd->zlevel);
+       */
       rv = compress2((Bytef *)xd->zdata, &blen, (Bytef *)da->data, da->nvals * da->nbyper, xd->zlevel);
       if (xd->verb > 2)
         fprintf(stderr,
