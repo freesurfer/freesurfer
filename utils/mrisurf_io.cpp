@@ -4307,6 +4307,9 @@ MRIS * MRISread(const char *fname)
   MRIS *mris = MRISreadOverAlloc(fname, 1.0);
   if (mris == NULL) return (NULL);
 
+  // save xyz coordinates space because mris->useRealRAS is changed after conversion
+  mris->orig_xyzspace = mris->useRealRAS;
+
   // convert surface xyz coordinates scanner space to tkregister space 
   // (ie, the native space that the surface xyz coords are generated in)
   if (mris->useRealRAS)
