@@ -4,35 +4,21 @@ h5py
 torch
 opencv-python
 trimesh
-# FOR RELEASE set this to version 0.2 (10/29/2022)
-# pystrum==0.2
-pystrum
 
-# these are also required for FS DL utilities, but we need some features
-# that haven't quite made it into the stable releases yet - this should be
-# updated once they do
 
-# pystrum
-#
-# git+https://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c
-#
-# Update to newest commit that works with pip (10/29/2022)
-# git+https://github.com/adalca/pystrum.git@8cd5c483195971c0c51e9809f33aa04777aa35c8
-#
-# But pip will not be able to satisfy the requirement that neurite needs pystrum
-# version 0.2 or greater at runtime, so go back to allowing pip to find latest
-# version on GitHub with empty "pystrum" above.  Also note pystrum currently
-# has no dev branch so git+https://github.com/adalca/pystrum.git@dev does not work.
+# Extra packages required for DL utilities which need features that have not
+# made it into the releases yet. Install these based on their latest commits.
+# FOR RELEASE: set this to the git hash in the log of the nightly build tested!
+
+# git+https://github.com/adalca/pystrum.git@85524897a10a4a995fb7bf985dada35a5dba17d3
+pystrum @ git+https://github.com/adalca/pystrum.git@master
 
 # git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
-# neurite has a dev branch and pip will install using the latest commit and list the hash in the build log
-# FOR RELEASE, set this to git hash from the nightly build (log) that has been tested
 neurite @ git+https://github.com/adalca/neurite.git@dev
 
 # git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
-# voxelmorph has a dev branch and pip will install using the latest commit and list the hash in the build log
-# FOR RELEASE, set this to git hash from nightly the build (log) that has been tested
 voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
+
 
 # extra packages required for QA tools
 pandas
