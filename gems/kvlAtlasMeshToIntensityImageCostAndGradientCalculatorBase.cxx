@@ -14,6 +14,10 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 ::AtlasMeshToIntensityImageCostAndGradientCalculatorBase()
 {
 
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    m_Iterations = 0;
+    m_RasterizeCalls = 0;
+#endif
     m_LikelihoodFilter = 0;
     m_DiffusionLikelihoodFilter = 0;
 
@@ -72,6 +76,9 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 ::Rasterize( const AtlasMesh* mesh )
 {
 
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_RasterizeCalls++;
+#endif
   // Make sure the likelihoods are up-to-date
   //m_LikelihoodFilter->SetNumberOfThreads( 1 );
   m_LikelihoodFilter->Update();

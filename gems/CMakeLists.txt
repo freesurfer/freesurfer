@@ -34,6 +34,14 @@ set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 
 add_compile_options(-Wno-inconsistent-missing-override -Wno-self-assign-field)
 
+# to set additional debug cxxflags:
+#   export GEMS_DEBUG_CXXFLAG="-DGEMS_DEBUG_RASTERIZE_VOXEL_COUNT"
+#   touch CMakeLists.txt to trigger re-configuration
+if(DEFINED ENV{GEMS_DEBUG_CXXFLAG})
+  message(WARNING "additional gems debug cxxflags: $ENV{GEMS_DEBUG_CXXFLAG}")
+  add_compile_options($ENV{GEMS_DEBUG_CXXFLAG})
+endif()
+
 if(GEMS_USE_STATIC_ARRAY)
   message(WARNING "compiling kvlGEMSCommon libraries with options -DUSING_STATIC_ARRAY -DMAX_LOADINGS=100")
   add_definitions(-DUSING_STATIC_ARRAY -DMAX_LOADINGS=100)

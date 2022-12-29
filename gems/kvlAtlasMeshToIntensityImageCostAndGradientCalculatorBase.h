@@ -15,6 +15,12 @@ class AtlasMeshToIntensityImageCostAndGradientCalculatorBase:
 {
 public:
 
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    //
+    int m_RasterizeCalls;
+    int m_Iterations;
+#endif
+
     /** Standard class typedefs */
     typedef AtlasMeshToIntensityImageCostAndGradientCalculatorBase  Self;
     typedef AtlasMeshPositionCostAndGradientCalculator Superclass;

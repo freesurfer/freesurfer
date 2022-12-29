@@ -30,6 +30,11 @@ TetrahedronInteriorConstIterator< TPixel >
 #endif
 {
   
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_totalVoxel = 0;
+  m_totalVoxelInTetrahedron = 0;
+#endif
+
   // ============================================================================================
   //
   // Part I: Compute a valid bounding box around the tethradron specified by vertices (p0,p1,p2,p3). 
@@ -374,6 +379,10 @@ TetrahedronInteriorConstIterator< TPixel >
 ::MoveOnePixel()
 {
   
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_totalVoxel++;
+#endif
+
   // In principle, all we need to do is to do 
   //
   //   y = this->GetIndex()

@@ -249,18 +249,48 @@ int main( int argc, char** argv )
 
   std::cout << "[DEBUG] Done setup AtlasMeshDeformationLBFGSOptimizer and AtlasMeshToIntensityImageCostAndGradientCalculator" << std::endl;
   std::cout << std::endl;
-  int count = 0;
-  while (count < maxIteration)
+  int iter = 0, totalRasterizeCalls = 0, totalTet = 0, totalZeroVoxelTet = 0, totalVoxel = 0, totalVoxelInTetrahedron = 0;
+  while (iter < maxIteration)
   {
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    calculator->m_Iterations++; 
+#endif
+
     const double  maximalDeformation = optimizer->Step();
     const double  minLogLikelihoodTimesPrior = optimizer->GetMinLogLikelihoodTimesPrior();
-    std::cout << "[DEBUG] iter. #" << count+1 << ", maximalDeformation=" << maximalDeformation << ", minLogLikelihoodTimesPrior=" << minLogLikelihoodTimesPrior << std::endl;
+    std::cout << "[DEBUG] iter. #" << iter+1 << ", maximalDeformation = " << maximalDeformation << ", minLogLikelihoodTimesPrior = " << minLogLikelihoodTimesPrior << std::endl;
     std::cout << std::endl;
+
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    printf("[DEBUG] %3d Rasterize() calls, total tetrahedron = %8d, zero voxel tetrahedron     = %8d, %6.2f\%\n"
+           "                               total voxel       = %8d, total voxel in tetrahedron = %8d, %6.2f\%\n\n", 
+           calculator->m_RasterizeCalls, calculator->m_tetrahedronCnt, calculator->m_zeroVoxel_tetrahedronCnt, 
+           (calculator->m_tetrahedronCnt == 0) ? 0.0 : (double)calculator->m_zeroVoxel_tetrahedronCnt/calculator->m_tetrahedronCnt*100,
+           calculator->m_totalVoxel, calculator->m_totalVoxelInTetrahedron, 
+           (calculator->m_totalVoxel == 0) ? 0.0 : (double)calculator->m_totalVoxelInTetrahedron/calculator->m_totalVoxel*100);
+
+    totalRasterizeCalls += calculator->m_RasterizeCalls;
+    calculator->m_RasterizeCalls = 0; 
+
+    totalTet += calculator->m_tetrahedronCnt; totalZeroVoxelTet += calculator->m_zeroVoxel_tetrahedronCnt;
+    calculator->m_tetrahedronCnt = 0; calculator->m_zeroVoxel_tetrahedronCnt = 0;
+
+    totalVoxel += calculator->m_totalVoxel; totalVoxelInTetrahedron += calculator->m_totalVoxelInTetrahedron;
+    calculator->m_totalVoxel = 0, calculator->m_totalVoxelInTetrahedron = 0;
+#endif
+
     if (maximalDeformation == 0)
       break;
 
-    count++;
+    iter++;
   }
+
+  printf("[DEBUG] Summary: Total %3d Rasterize() calls, total tetrahedron = %12d, zero voxel tetrahedron     = %12d, %6.2f\%\n"
+         "                                              total voxel       = %12d, total voxel in tetrahedron = %12d, %6.2f\%\n\n", 
+         totalRasterizeCalls, totalTet, totalZeroVoxelTet, 
+         (totalTet == 0) ? 0.0 : (double)totalZeroVoxelTet/totalTet*100,
+         totalVoxel, totalVoxelInTetrahedron, 
+         (totalVoxel == 0) ? 0.0 : (double)totalVoxelInTetrahedron/totalVoxel*100);
 
   // output the deformed mesh 
   kvl::AtlasMeshCollection::Pointer  deformedMeshCollection = kvl::AtlasMeshCollection::New();

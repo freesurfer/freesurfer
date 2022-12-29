@@ -15,6 +15,13 @@ namespace kvl
 AtlasMeshToIntensityImageCostAndGradientCalculator
 ::AtlasMeshToIntensityImageCostAndGradientCalculator()
 {
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_tetrahedronCnt = 0;
+  m_zeroVoxel_tetrahedronCnt = 0;
+
+  m_totalVoxel = 0;
+  m_totalVoxelInTetrahedron = 0;
+#endif
   /* 
    * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
    * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
@@ -77,6 +84,10 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
                                     AtlasPositionGradientThreadAccumType&  gradientInVertex3 )
 {
   
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  int voxelCnt = 0;
+  m_tetrahedronCnt++;
+#endif
   // Loop over all voxels within the tetrahedron and do The Right Thing  
   const int  numberOfClasses = alphasInVertex0.Size();
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
@@ -91,6 +102,11 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     
   for ( ; !it.IsAtEnd(); ++it )
     {
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    voxelCnt++;
+    it.m_totalVoxelInTetrahedron++;
+#endif
+
     // Skip voxels for which nothing is known
     if ( it.Value().Size() == 0 )
       {
@@ -157,7 +173,34 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     
     } // End loop over all voxels within the tetrahedron
 
-  
+
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  if (voxelCnt == 0)
+    m_zeroVoxel_tetrahedronCnt++;
+
+  printf("[DEBUG] Iter #%2d, Rasterize #%2d, Tetrahedron #%8d: totalVoxel = %4d, InTetrahedron = %4d, %6.2f\%\n",
+         m_Iterations, m_RasterizeCalls,
+         m_tetrahedronCnt, it.m_totalVoxel, it.m_totalVoxelInTetrahedron, 
+         (it.m_totalVoxel == 0) ? 0.0 : (double)it.m_totalVoxelInTetrahedron/it.m_totalVoxel*100);
+
+  if (it.m_totalVoxel < it.m_totalVoxelInTetrahedron)
+    printf("[DEBUG] ###### In Tetrahedron Voxel Count Error: Iter #%2d, Rasterize #%2d, Tetrahedron #%8d: totalVoxel = %4d, InTetrahedron = %4d, %6.2f\%\n",
+           m_Iterations, m_RasterizeCalls,
+           m_tetrahedronCnt, it.m_totalVoxel, it.m_totalVoxelInTetrahedron, 
+           (it.m_totalVoxel == 0) ? 0.0 : (double)it.m_totalVoxelInTetrahedron/it.m_totalVoxel*100);
+
+  if (voxelCnt == 0 && !(it.m_totalVoxel == 0 || it.m_totalVoxelInTetrahedron == 0))
+  {
+    printf("[DEBUG] ###### Voxel Zero Count Error: Iter #%2d, Rasterize #%2d, Tetrahedron #%8d: totalVoxel = %4d, InTetrahedron = %4d\n",
+           m_Iterations, m_RasterizeCalls,
+           m_tetrahedronCnt, it.m_totalVoxel, it.m_totalVoxelInTetrahedron); 
+  }
+
+  m_totalVoxel += it.m_totalVoxel;
+  m_totalVoxelInTetrahedron += it.m_totalVoxelInTetrahedron;
+  it.m_totalVoxel = 0;
+  it.m_totalVoxelInTetrahedron = 0;
+#endif  
 }
 
 } // end namespace kvl

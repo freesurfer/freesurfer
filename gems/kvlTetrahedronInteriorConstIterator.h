@@ -102,6 +102,11 @@ template< typename TPixel >
 class TetrahedronInteriorConstIterator : private itk::ImageConstIteratorWithIndex< typename itk::Image< TPixel, 3 > >
 {
 public:
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  int m_totalVoxel;
+  int m_totalVoxelInTetrahedron;
+#endif
+
   /** Standard class typedefs. */
   typedef TetrahedronInteriorConstIterator Self;
   typedef itk::ImageConstIteratorWithIndex< itk::Image< TPixel, 3 > > Superclass;
