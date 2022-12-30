@@ -356,13 +356,14 @@ int main(int argc, char *argv[]) {
   if (mris->group_avg_surface_area > 0) {
     cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
   }
-  cout << "ctr                   : (" << mris->xctr 
+  cout << "ctr                     : (" << mris->xctr 
        << ", " << mris->yctr 
        << ", " << mris->zctr 
        << ")" << endl;
-  cout << "original vertex space : " 
+  cout << "original vertex space   : " 
        << (mris->orig_xyzspace ? "scannerRAS" : "surfaceRAS") << endl;
-  cout << "vertex locs           : " 
+  cout << "vertex locs " 
+       << ((mris->useRealRAS != mris->orig_xyzspace) ? "(converted) : " : "            : ")
        << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
   if (mris->lta) {
     cout << "talairch.xfm: " << endl;
