@@ -127,7 +127,7 @@ int main( int argc, char** argv )
   bool  verbose = false;
   float maximalDeformationStopCriterion = 0.001;
   float lineSearchMaximalDeformationIntervalStopCriterion = 0.001;
-  int   maximumNumberOfIterations = 20;
+  int   maximumNumberOfIterations = maxIteration;  //20;
   int   maximumMemoryLength = 12;
   kvl::AtlasMeshDeformationLBFGSOptimizer::Pointer  optimizer
     = kvl::AtlasMeshDeformationLBFGSOptimizer::New();
@@ -250,7 +250,7 @@ int main( int argc, char** argv )
   std::cout << "[DEBUG] Done setup AtlasMeshDeformationLBFGSOptimizer and AtlasMeshToIntensityImageCostAndGradientCalculator" << std::endl;
   std::cout << std::endl;
   int iter = 0, totalRasterizeCalls = 0, totalTet = 0, totalZeroVoxelTet = 0, totalVoxel = 0, totalVoxelInTetrahedron = 0;
-  while (iter < maxIteration)
+  while (true)      //while (iter < maxIteration)
   {
 #ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
     calculator->m_Iterations++; 
@@ -285,12 +285,14 @@ int main( int argc, char** argv )
     iter++;
   }
 
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
   printf("[DEBUG] Summary: Total %3d Rasterize() calls, total tetrahedron = %12d, zero voxel tetrahedron     = %12d, %6.2f\%\n"
          "                                              total voxel       = %12d, total voxel in tetrahedron = %12d, %6.2f\%\n\n", 
          totalRasterizeCalls, totalTet, totalZeroVoxelTet, 
          (totalTet == 0) ? 0.0 : (double)totalZeroVoxelTet/totalTet*100,
          totalVoxel, totalVoxelInTetrahedron, 
          (totalVoxel == 0) ? 0.0 : (double)totalVoxelInTetrahedron/totalVoxel*100);
+#endif
 
   // output the deformed mesh 
   kvl::AtlasMeshCollection::Pointer  deformedMeshCollection = kvl::AtlasMeshCollection::New();
