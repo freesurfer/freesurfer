@@ -1,176 +1,111 @@
 #!/usr/bin/env python3
 
-# SynthMorph registration script using TensorFlow. To be used for affine and
-# deformable registration and distributed with Docker.
+# SynthMorph registration script using TensorFlow.
 
 import os
 import sys
-import time
+import shutil
+import textwrap
 import argparse
-import numpy as np
-import nibabel as nib
-import tensorflow as tf
-import neurite as ne
-import voxelmorph as vxm
-
-# Defaults.
-in_shape = (256, 256, 256)
-
-if os.getenv("FREESURFER_HOME") is not None:
-   # use freesurfer install paths
-   base_path = os.environ['FREESURFER_HOME'] + '/' + 'models'
-   weights = {
-       'rigid': base_path + '/' + 'mu40-crazy/seg_feat_neck_rigid_3d_256f/10000.h5',
-       'affine': base_path + '/' + 'mu40-crazy/seg_feat_neck_noise_3_3d_256f/10000.h5',
-       'deform': base_path + '/' + 'mu40-crazy/weights_def_half.h5',
-   }
-else:
-   # use your own local paths
-   weights = {
-       'rigid': '/autofs/cluster/fssubjects/test/mu40-crazy/models/seg_feat_neck_rigid_3d_256f/10000.h5',
-       'affine': '/autofs/cluster/fssubjects/test/mu40-crazy/models/seg_feat_neck_noise_3_3d_256f/10000.h5',
-       'deform': '/autofs/cluster/fssubjects/test/mu40-crazy/weights_def_half.h5',
-   }
 
 
-# References.
-ref = '''If our work is useful to you, please consider citing:
-        M Hoffmann, B Billot, DN Greve, JE Iglesias, B Fischl, AV Dalca.
-        SynthMorph: learning contrast-invariant registration without acquired
-        images. IEEE Transactions on Medical Imaging (TMI), 41 (3), 543-558,
-        2022. https://doi.org/10.1109/TMI.2021.3116879
-'''
-
-desc = f'''Register unprocessed brain images with SynthMorph.'''
-
-prog = os.path.basename(sys.argv[0])
-epilog = f'''
-IMAGE FORMAT
-    The registration network expects input images of shape {in_shape} with
-    isotropic 1-mm voxels min-max normalized into the interval [0, 1]. It also
-    assumes the axes of the image-data array have approximate LIA orientation
-    (left-inferior-anterior).
-
-    These requirements will be handled internally, and need a correctly set
-    image-to-world matrix as part of the image header. Accepted image formats
-    are those supported by NiBabel and include: MGH format (.mgz) and NIfTI
-    (.nii.gz, .nii).
-    
-    
-TRANSFORMS
-    The output transforms of this script are defined in RAS space, transforming
-    world coordinates of the fixed image to the moving image. Likewise, we will
-    assume that any linear transform passed to initialze the registration
-    operates in RAS space. We save linear transforms as a 4-by-4 matrix in text
-    format and non-linear displacements fields as an image. See IMAGE FORMAT.
-
-    For converting, concatenating, and applying transforms to other images,
-    consider the FreeSurfer tools: lta_convert/mri_warp_convert,
-    mri_concatenate_lta/mri_concatenate_gcam, and mri_convert, respectively.
-    
-    
-EXAMPLES
-    Affine registration:
-        {prog} --affine --trans affine.txt moving.mgz target.mgz
-
-    Affine registration updating the moved image header:
-        {prog} --affine --header-only --moved moved.mgz moving.mgz target.mgz
-
-    Initialize deformable registration with an affine transform:
-        {prog} --init affine.txt --trans deform.nii.gz moving.mgz target.mgz
-
-    Apply a linear transform to another image using FreeSurfer tools:
-        lta_convert --src moving.mgz --trg fixed.nii.gz
-            --inras affine.txt --outlta affine.lta
-        mri_convert -at affine.lta in.mgz out.mgz
-
-    Apply a deformable transform to another image using FreeSurfer tools:
-        mri_warp_convert -g --inras deform.nii.gz --outm3z deform.m3z
-        mri_convert -at deform.m3z in.nii.gz out.nii.gz
-    
-    
-CONTACT
-    Report bugs to <freesurfer@nmr.mgh.harvard.edu>.
-    
-    
-REFERENCES
-    {ref}
-'''
+# Settings.
+default = {
+    'model': 'deform',
+    'smooth': 1,
+    'extent': 256,
+}
+choices = {
+    'model': ('deform', 'affine', 'rigid'),
+    'smooth': (1,),
+    'extent': (192, 256),
+}
+weights = {
+    'deform': 'synthmorph_deform{smooth}.h5',
+    'affine': 'synthmorph_affine.h5',
+    'rigid': 'synthmorph_rigid.h5',
+}
 
 
-class indent_formatter(argparse.HelpFormatter):
-    def __init__(self, **kwargs):
-        super().__init__(indent_increment=4, **kwargs)
-        self._width += 2
-        self._max_help_position = 2 * self._indent_increment
+def rewrap(text, width=None, hard='\t\n', hard_indent=0):
+    """Rewrap text so that lines fill the available horizontal space.
 
-    def _split_lines(self, text, width):
-        lines = super()._split_lines(text, width)
-        return (*lines, '')
+    Reformats individual paragraphs of a text body, considering as a paragraph
+    subsequent lines with identical indentation. For unspecified width, the
+    function will attempt to determine the extent of the current terminal.
 
-    def _format_usage(self, *args):
-        return super()._format_usage(*args[:-1], 'USAGE: ')
+    Parameters
+    ----------
+    text : str
+        Input text to rewrap.
+    width : int, optional
+        Maximum line width. None means the width of the terminal as determined
+        by `textwrap`, defaulting to 80 characters for background processes.
+    hard : str, optional
+        String interpreted as a hard break when terminating a line. Useful for
+        inserting a line break without changing the indentation level. Must end
+        with a line break and will be removed from the output text.
+    hard_indent : int, optional
+        Number of additional whitespace characters by which to indent the lines
+        following a hard break. See `hard`.
 
+    Returns
+    -------
+    out : str
+        Reformatted text.
 
-# Command-line arguments.
-bases = (
-    argparse.RawDescriptionHelpFormatter,
-    indent_formatter,
-)
-p = argparse.ArgumentParser(
-    formatter_class=type('formatter', bases, {}),
-    description=desc,
-    add_help=False,
-    epilog=epilog,
-)
-p.add_argument('source', metavar='SOURCE', type=str, help='''
-    Input source image. See IMAGE FORMAT.
-''')
-p.add_argument('target', metavar='TARGET', type=str, help='''
-    Input target image. See IMAGE FORMAT.
-''')
-p.add_argument('--moved', type=str, help='''
-    Output moved image path. See IMAGE FORMAT.
-''')
-p.add_argument('--trans', type=str, help='''
-    Output transform path. Save a text file for linear or an image file for
-    deformable registration. Will include any initialization. See TRANSFORMS.
-''')
-p.add_argument('--header-only', action='store_true', help='''
-    Update the header of moved output image instead of resampling. Applies to
-    linear registration only.
-''')
-p.add_argument('-a', '--affine', action='store_true', help='''
-    Predict affine instead of deformable transform.
-''')
-p.add_argument('-r', '--rigid', action='store_true', help='''
-    Predict rigid instead of deformable transform (experimental).
-''')
-p.add_argument('-i', '--init', type=str, help='''
-    Linear transform to initialize with. See TRANSFORMS.
-''')
-p.add_argument('-t', '--threads', type=int, help='''
-    Number of parallel threads. Defaults to the number of CPU cores.
-''')
-p.add_argument('-g', '--gpu', action='store_true', help='''Use the GPU.''')
-p.add_argument('--model', type=str, help=''' Alternative model weights.''')
-p.add_argument('-h', '--help', action='help', help='''
-    Display this help text and exit.
-''')
-p._positionals.title = 'POSITIONAL ARGUMENTS'
-p._optionals.title = 'OPTIONAL ARGUMENTS'
-arg = p.parse_args()
+    """
+    # Inputs.
+    if width is None:
+        width = shutil.get_terminal_size().columns
+    lines = text.splitlines(keepends=True)
 
-# Todo:
-# [ ] Fail on multi-frame images.
-# [ ] Support single-slice images.
-# [ ] Compare index matrix in model vs later.
-# [ ] Refactor.
-# [ ] Optimize regularization.
+    # Merge lines to paragraphs.
+    pad = []
+    pad_hard = []
+    par = []
+    for i, line in enumerate(lines):
+        ind = len(line) - len(line.lstrip())
+        if i == 0 or ind != pad[-1] or lines[i - 1].endswith(hard):
+            par.append('')
+            pad.append(ind)
+            pad_hard.append(ind)
+
+        if line.endswith(hard):
+            line = line.replace(hard, '\n')
+            pad_hard[-1] += hard_indent
+        par[-1] += line[ind:]
+
+    # Reformat paragraphs.
+    for i, _ in enumerate(par):
+        par[i] = textwrap.fill(
+            par[i], width,
+            initial_indent=' ' * pad[i], subsequent_indent=' ' * pad_hard[i],
+        )
+
+    return '\n'.join(par)
 
 
 def save(path, dat, affine, dtype=None):
-    # Usi NiBabel's caching functionality to avoid re-reading from disk.
+    """Save image file.
+
+    Helper function for saving a spatial image using NiBabel. Removes singleton
+    dimensions and sets the data type, world matrix, and header units.
+
+    Parameters
+    ----------
+    path : str
+        File system path to write the image to.
+    dat : NiBabel image or NumPy array or TensorFlow tensor.
+        Image data to save. Except for the data type, the header information of
+        a NiBabel image object will be ignored.
+    affine : (4, 4) array-like
+        World matrix of the image, describing the voxel-to-RAS transform.
+    dtype : None or dtype, optional
+        Output data type. None means the original type of the image buffer.
+
+    """
+    # Use NiBabel's caching functionality to avoid re-reading from disk.
     if isinstance(dat, nib.filebasedimages.FileBasedImage):
         if dtype is None:
             dtype = dat.dataobj.dtype
@@ -179,18 +114,41 @@ def save(path, dat, affine, dtype=None):
     dat = np.squeeze(dat)
     dat = np.asarray(dat, dtype)
 
-    # Avoid warning about missing units when reading with FS.
+    # Use Nifti1Image instead of MGHImage for FP64 support. Set units to avoid
+    # warnings when reading with FreeSurfer.
     out = nib.Nifti1Image(dat, affine)
     out.header.set_xyzt_units(xyz='mm', t='sec')
     nib.save(out, filename=path)
 
 
 def ori_to_ori(old, new='LIA', old_shape=None, zero_center=False):
-    '''Construct matrix transforming coordinates from a voxel space with a new
-    predominant anatomical axis orientation to an old orientation, by swapping
-    and flipping axes. Operates in zero-based index space unless the space is
-    to be zero-centered. The old shape must be specified if the old image is
-    not a NiBabel object.'''
+    """Construct transform between canonical image orientations.
+
+    Constructs a matrix transforming coordinates from a voxel space with a new
+    predominant anatomical axis orientation to an old orientation by swapping
+    and flipping axes. The transform operates in zero-based index space unless
+    the space is specified to be zero-centered.
+
+    Parameters
+    ----------
+    old : str or NiBabel image or (4, 4) array-like
+        Old canonical image orientation as a three-letter string (see
+        `orientation`), a NiBabel image object, or a voxel-to-RAS matrix.
+    new : str, optional
+        New canonical image orientation. See `old`.
+    old_shape : (3,) array-like, optional
+        Spatial shape of the old image. The old shape must be specified if the
+        old orientation is not a NiBabel image, ignored otherwise.
+    zero_center : bool, optional
+        Return a transform operating in zero-centered index space. If False,
+        the transform will operate in zero-based index space.
+
+    Returns
+    -------
+    mat : (4, 4) NumPy array
+        Transform from the new to the old canonical voxel space.
+
+    """
     def extract_ori(x):
         if isinstance(x, nib.filebasedimages.FileBasedImage):
             x = x.affine
@@ -205,24 +163,41 @@ def ori_to_ori(old, new='LIA', old_shape=None, zero_center=False):
     if old_shape is None:
         old_shape = old.shape
 
-    # Transform from new to old index coordinates.
+    # Transform from new to old coordinates.
     old = extract_ori(old)
     new = extract_ori(new)
     new_to_old = nib.orientations.ornt_transform(old, new)
     return nib.orientations.inv_ornt_aff(new_to_old, old_shape)
 
 
-def net_to_vox(im, out_shape=in_shape):
-    '''Construct coordinate transform from isotropic 1-mm voxel space with
-    gross LIA orentiation centered on the FOV - to the original image index
-    space. The target space is a scaled and shifted voxel space, not world
-    space.'''
+def net_to_vox(im, shape=None):
+    """Construct transform from network space to the voxel space of an image.
+
+    Construct a coordinate transform from the space the network will operate in
+    to the original zero-based image index space. This network space will have
+    isotropic 1-mm voxels, gross LIA (left-inferior-anterior) orientation, and
+    be centered on the field of view. It thus is a scaled and shifted voxel
+    space, not world space.
+
+    Parameters
+    ----------
+    im : str or NiBabel image
+        Input image to construct the transform for.
+    shape : (3,) array-like
+        Desired spatial shape of the network space to construct.
+
+    Returns
+    -------
+    mat : (4, 4) NumPy array
+        Transform from network to indexed input-image space.
+
+    """
     if isinstance(im, str):
         im = nib.load(im)
 
     # Gross LIA to predominant anatomical orientation of input image.
     assert isinstance(im, nib.filebasedimages.FileBasedImage) 
-    lia_to_ori = ori_to_ori(im, new='LIA', old_shape=out_shape)
+    lia_to_ori = ori_to_ori(im, new='LIA', old_shape=shape)
 
     # Scaling from millimeter to input voxels.
     vox_size = np.sqrt(np.sum(im.affine[:-1, :-1] ** 2, axis=0))
@@ -230,15 +205,39 @@ def net_to_vox(im, out_shape=in_shape):
 
     # Shift from cen
     shift = np.eye(4)
-    shift[:-1, -1] = 0.5 * (im.shape - out_shape / vox_size)
+    shift[:-1, -1] = 0.5 * (im.shape - shape / vox_size)
 
-    # Total transform.
+    # Composite transform.
     return shift @ scale @ lia_to_ori
 
 
-def transform(im, trans, shape=in_shape, normalize=False):
-    '''Apply transformation matrix or field operating in zero-based index space
-    to an image.'''
+def transform(im, trans, shape=None, normalize=False):
+    """Apply a spatial transform to image voxel data in N dimensions.
+
+    Apply a transformation matrix operating in zero-based index space or a
+    displacement field to an image buffer.
+
+    Parameters
+    ----------
+    im : NiBabel image or NumPy array or TensorFlow tensor
+        Input image to transform.
+    trans : array-like
+        Transformation to apply to the image. A matrix of shape ``(N, N + 1)``,
+        a matrix of shape ``(N + 1, N + 1)``, or a displacement field of shape
+        ``(*space, N)``, that is, without batch dimension.
+    shape : (N,) array-like, optional
+        Output shape used for converting matrices to dense transforms. None
+        means the shape of the input image will be used.
+    normalize : bool, optional
+        Min-max normalize the image data into the interval [0, 1].
+
+    Returns
+    -------
+    out : (1, ...) float TensorFlow tensor
+        Transformed image with a leading singleton batch and a trailing
+        feature dimension.
+
+    """
     if isinstance(im, nib.filebasedimages.FileBasedImage):
         im = im.get_fdata(dtype=np.float32)
 
@@ -260,19 +259,16 @@ def transform(im, trans, shape=in_shape, normalize=False):
     return out[tf.newaxis, ...]
 
 
-def vm_key_weighted(
+def vm_affine(
     in_shape=None,
     in_model=None,
     num_key=64,
-    enc_nf=[256] * 4,
-    dec_nf=[256] * 0,
-    add_nf=[256] * 4,
+    enc_nf=(256,) * 4,
+    dec_nf=(256,) * 0,
+    add_nf=(256,) * 4,
     half_res=True,
     rigid=False,
 ):
-    '''Find landmarks in images using a single-image detector and fit affine
-    transform. Take mean as translation instead of fitting, and fit the
-    transform in a centered frame.'''
     # Inputs.
     if in_model is None:
         source = tf.keras.Input(shape=(*in_shape, 1))
@@ -346,14 +342,13 @@ def vm_key_weighted(
 def vm_dense(
     in_shape=None,
     input_model=None,
-    enc_nf=[256] * 4,
-    dec_nf=[256] * 4,
-    add_nf=[256] * 4,
-    int_steps=5,
+    enc_nf=(256,) * 4,
+    dec_nf=(256,) * 4,
+    add_nf=(256,) * 4,
+    int_steps=7,
     upsample=True,
     half_res=True,
 ):
-    '''Deformable registration network.'''
     if input_model is None:
         source = tf.keras.Input(shape=(*in_shape, 1))
         target = tf.keras.Input(shape=(*in_shape, 1))
@@ -405,25 +400,213 @@ def vm_dense(
     return tf.keras.Model(input_model.inputs, outputs=x)
 
 
+# Documentation.
+prog = os.path.basename(sys.argv[0])
+doc = f'''{prog}
+
+NAME
+        {prog} - register a landscape of unprocessed 3D brain images
+
+SYNOPSIS
+        {prog} [OPTIONS] MOVING FIXED
+
+DESCRIPTION
+        SynthMorph is an easy-to-use deep-learning (DL) tool for brain-specific
+        registration of images without preprocessing right off the MRI scanner.
+        In contrast to registration methods which are agnostic to the anatomy,
+        SynthMorph can distinguish between anatomy of interest and irrelevant
+        structures, removing the need for preprocessing to exclude content that
+        would otherwise reduce the accuracy of anatomy-specific registration. 
+
+ARGUMENTS
+        MOVING
+                Moving input image. See IMAGE FORMAT.
+
+        FIXED
+                Fixed input image. See IMAGE FORMAT.
+
+OPTIONS
+        -o, --moved MOVED
+                Moved output image. See IMAGE FORMAT.
+
+        -t, --trans TRANS
+                Output transform. A text file for linear or an image file for
+                deformable registration, including any initialization. See
+                TRANSFORMS.
+
+        -H, --header-only
+                Set the output image orientation by adapting the voxel-to-world
+                matrix instead of resampling. For linear registration only.
+
+        -m, --model MODEL
+                Transformation model {choices['model']}. Defaults to
+                '{default['model']}'. Rigid is experimental.
+
+        -i, --init INIT
+                Linear transform to initialize with. See TRANSFORMS.
+
+        -j, --threads THREADS
+                Number of TensorFlow threads. Defaults to the number of cores.
+
+        -g, --gpu
+                Instead of the CPU, use the GPU specified by environment
+                variable CUDA_VISIBLE_DEVICES or GPU 0 if unset or empty.
+
+        -s, --smooth SMOOTH
+                Regularization parameter for deformable registration
+                {choices['smooth']}. Higher values mean smoother displacement
+                fields. Defaults to {default['smooth']}.
+
+        -e, --extent EXTENT
+                Isotropic extent of the registration space in unit voxels
+                {choices['extent']}. Lower values can improve speed and memory
+                usage but may crop the anatomy of interest. Defaults to
+                {default['extent']}.
+
+        -w, --weights WEIGHTS
+                Alternative model weights as an H5 file. The weights have to
+                match the architecture of the specified registration model.
+
+        --inspect DIR
+                Save model inputs resampled into network space for inspection.
+                Files existing in the folder may be overwritten.
+
+        -h, --help
+                Print this help text and exit.
+
+IMAGE FORMAT
+        The registration networks expect input images of cubic shape with
+        isotropic 1-mm voxels min-max normalized into the interval [0, 1]. They
+        also assume that the axes of the image-data array have approximate LIA
+        orientation (left-inferior-anterior).
+
+        Internally, the model converts images to LIA orientation based on the
+        image-to-world matrices in their headers. This conversion assumes HFS
+        (head-first-supine) subject positioning in the scanner. In other words,
+        the brain must show the correct anatomical orientation in FreeView.
+
+        Acceptable image formats are those supported by NiBabel and include:
+        MGH format (.mgz) and NIfTI (.nii.gz, .nii). The model supports
+        three-dimensional images with a single frame.
+
+TRANSFORMS
+        The output transforms of this script are defined in physical RAS space,
+        transforming world coordinates of the fixed image to the moving image.
+        Likewise, we will assume that any linear transform passed to initialize
+        the registration operates in RAS space. We save linear transforms as a
+        4-by-4 matrix in text format and non-linear displacements fields as a
+        vector image. See IMAGE FORMAT.
+
+        For converting, concatenating, and applying transforms to other images,
+        consider the FreeSurfer tools listed under SEE ALSO.
+
+EXAMPLES
+        Deformable registration:
+                {prog} -t def.mgz mov.nii.gz fix.nii
+
+        Rigid registration:
+                {prog} -m rigid -t rig.txt mov.mgz fix.mgz
+
+        Affine registration updating only the output image header:
+                {prog} -m affine --header-only -o out.mgz mov.mgz fix.mgz
+
+        Initialize deformable registration with an affine transform:
+                {prog} -i aff.txt -t def.nii.gz mov.mgz fix.mgz
+
+SEE ALSO
+        Useful FreeSurfer tools for applying and manipulating transforms
+        include: mri_concatenate_lta, mri_concatenate_gcam, mri_warp_convert,
+        lta_convert, mri_convert, mri_info.
+
+        Convert a linear transform to FreeSurfer's LTA format:
+                lta_convert --src mov.mgz --trg fix.nii.gz --inras aff.txt
+                --outlta aff.lta
+
+        Apply an LTA to another image:
+                mri_convert -at aff.lta in.mgz out.mgz
+
+        Convert a deformable transform to FreeSurfer's GCAM format (.m3z):
+                mri_warp_convert -g mov.mgz --inras def.mgz --outm3z def.m3z
+
+        Apply a GCAM (.m3z) to another image:
+                mri_convert -at def.m3z in.nii.gz out.nii.gz
+
+BUGS
+        Report bugs to freesurfer@nmr.mgh.harvard.edu or at
+        https://github.com/freesurfer/freesurfer/issues.
+
+REFERENCES
+        If you use SynthMorph in a publication, please cite:
+'''
+
+
+# References.
+ref = '''
+Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
+SynthMorph: learning contrast-invariant registration without acquired images\t
+IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022\t
+https://doi.org/10.1109/TMI.2021.3116879
+
+Website: https://w3id.org/synthmorph
+'''
+doc += textwrap.indent(ref, prefix=' ' * 8)
+
+
+# Command-line arguments.
+p = argparse.ArgumentParser()
+p.add_argument('moving', type=str, metavar='MOVING')
+p.add_argument('fixed', type=str, metavar='FIXED')
+p.add_argument('-o', '--moved', type=str)
+p.add_argument('-t', '--trans', type=str)
+p.add_argument('-H', '--header-only', action='store_true')
+p.add_argument('-i', '--init', type=str, metavar='TRANS')
+p.add_argument('-j', '--threads', type=int)
+p.add_argument('-g', '--gpu', action='store_true')
+p.add_argument('-s', '--smooth', choices=choices['smooth'], default=default['smooth'])
+p.add_argument('-e', '--extent', choices=choices['extent'], default=default['extent'])
+p.add_argument('-m', '--model', choices=choices['model'], default=default['model'])
+p.add_argument('-w', '--weights', type=str)
+p.add_argument('--inspect', type=str, metavar='OUT_DIR')
+
+if len(sys.argv) == 1 or '-h' in sys.argv or '--help' in sys.argv:
+    print(rewrap(doc), end='\n\n')
+    exit(1)
+arg = p.parse_args()
+
+in_shape = (arg.extent,) * 3
+is_linear = arg.model in ('affine', 'rigid')
+assert arg.moved or arg.trans, 'no output specified with --moved or --trans'
+
+
+# Third-party imports. Avoid waiting for TensorFlow just for documentation.
+import numpy as np
+import nibabel as nib
+import tensorflow as tf
+import neurite as ne
+import voxelmorph as vxm
+
+
 # Setup.
-os.environ['CUDA_VISIBLE_DEVICES'] = '0' if arg.gpu else ''
+gpu = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
+os.environ['CUDA_VISIBLE_DEVICES'] = gpu if arg.gpu else ''
 if arg.threads:
     tf.config.threading.set_inter_op_parallelism_threads(arg.threads)
     tf.config.threading.set_intra_op_parallelism_threads(arg.threads)
 
 
 # Input data.
-mov = nib.load(arg.source)
-fix = nib.load(arg.target)
+mov = nib.load(arg.moving)
+fix = nib.load(arg.fixed)
+assert len(mov.shape) == len(fix.shape) == 3, 'input images not single volumes'
 
 
 # Coordinate transforms. We will need these to take the images from their
 # native voxel spaces to network space. Voxel and network spaces are different
-# for each image. Network space is an isotropic 1-mm space centered on the
-# original image. Its axes are aligned with the original voxel data but flipped
-# and swapped to gross LIA orientation, which the network will expect.
-net_to_mov = net_to_vox(mov)
-net_to_fix = net_to_vox(fix)
+# for each image. We register in isotropic 1-mm spaces centered on the original
+# images. Their axes are aligned with the original voxel data but flipped and
+# swapped to gross LIA orientation, which the network will expect.
+net_to_mov = net_to_vox(mov, shape=in_shape)
+net_to_fix = net_to_vox(fix, shape=in_shape)
 mov_to_net = np.linalg.inv(net_to_mov)
 fix_to_net = np.linalg.inv(net_to_fix)
 
@@ -454,27 +637,30 @@ inputs = (
     transform(mov, net_to_mov, shape=in_shape, normalize=True),
     transform(fix, net_to_fix, shape=in_shape, normalize=True),
 )
-#save('0.nii.gz', dat=inputs[0], affine=mov.affine @ net_to_mov)
-#save('1.nii.gz', dat=inputs[1], affine=fix.affine @ net_to_fix)
+if arg.inspect:
+    os.makedirs(arg.inspect, exist_ok=True)
+    input_1 = os.path.join(arg.inspect, 'input_1.mgz')
+    input_2 = os.path.join(arg.inspect, 'input_2.mgz')
+    save(path=input_1, dat=inputs[0], affine=mov.affine @ net_to_mov)
+    save(path=input_2, dat=inputs[1], affine=fix.affine @ net_to_fix)
 
 
 # Model.
-assert not (arg.affine and arg.rigid), '--affine, --rigid mutually exclusive'
-is_linear = arg.affine or arg.rigid
 if is_linear:
-    model = vm_key_weighted(in_shape, rigid=arg.rigid)
-
+    model = vm_affine(in_shape, rigid=arg.model == 'rigid')
 else:
     model = vm_dense(in_shape)
 
-if not arg.model:
-    if arg.rigid:
-        arg.model = weights['rigid']
-    elif arg.affine:
-        arg.model = weights['affine']
-    else:
-        arg.model = weights['deform']
-model.load_weights(arg.model)
+if not arg.weights:
+    fs = os.environ.get('FREESURFER_HOME')
+    assert fs, 'set environment variable FREESURFER_HOME or specify weights'
+
+    f = weights[arg.model]
+    if arg.model == 'deform':
+        f = f.format(smooth=arg.smooth)
+    arg.weights = os.path.join(fs, 'models', f)
+
+model.load_weights(arg.weights)
 trans = model(inputs)
 
 
@@ -524,6 +710,7 @@ else:
 if arg.trans:
     if is_linear:
         np.savetxt(fname=arg.trans, X=trans_ras, fmt='%.8f %.8f %.8f %.8f')
+
     else:
         save(arg.trans, dat=trans_ras, affine=fix.affine)
 
@@ -531,12 +718,14 @@ if arg.trans:
 # Output moved image. Keep same data type as the input.
 if arg.moved:
     if arg.header_only:
-        assert is_linear, '--header-only requires --affine or --rigid'
+        assert is_linear, '--header-only applies only to linear registration'
         mov_to_fix = np.linalg.inv(trans_ras)
         save(arg.moved, dat=mov, affine=mov_to_fix @ mov.affine)
+
     else:
         out = transform(mov, trans=trans_vox, shape=fix.shape)
         save(arg.moved, dat=out, affine=fix.affine, dtype=mov.dataobj.dtype)
 
 
-print(f'\nThank you for using SynthMorph. {ref}')
+print('Thank you for using SynthMorph. Please cite:')
+print(rewrap(ref))
