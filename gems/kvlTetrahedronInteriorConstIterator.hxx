@@ -17,6 +17,7 @@ TetrahedronInteriorConstIterator< TPixel >
                                     const PointType& p1, 
                                     const PointType& p2, 
                                     const PointType& p3 )
+#ifndef USING_STATIC_ARRAY
 : Superclass( ptr, RegionType() ), 
   m_InterpolatedValues( 4 ), 
   m_NextRowAdditions( 4 ), 
@@ -24,8 +25,16 @@ TetrahedronInteriorConstIterator< TPixel >
   m_NextSliceAdditions( 4 ),
   m_ColumnBeginInterpolatedValues( 4 ),
   m_SliceBeginInterpolatedValues( 4 )
+#else
+: Superclass()  //Superclass( ptr, RegionType() )
+#endif
 {
   
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_totalVoxel = 0;
+  m_totalVoxelInTetrahedron = 0;
+#endif
+
   // ============================================================================================
   //
   // Part I: Compute a valid bounding box around the tethradron specified by vertices (p0,p1,p2,p3). 
@@ -222,6 +231,10 @@ TetrahedronInteriorConstIterator< TPixel >
   m_InterpolatedValues[ 2 ] = pi2;
   m_InterpolatedValues[ 3 ] = pi3;
  
+#ifdef USING_STATIC_ARRAY
+  m_NumberOfLoadings = 4;
+#endif
+
   //
   for ( int loadingNumber = 0; loadingNumber < 4; loadingNumber++ ) 
     {
@@ -230,18 +243,23 @@ TetrahedronInteriorConstIterator< TPixel >
     }
     
   //
+  // m_NextRowAdditions, m_NextColumnAdditions, m_NextSliceAdditions are constants.
+  // they are used to increment m_InterpolatedValues
+  // [ -1 -1 -1; 1 0 0; 0 1 0; 0 0 1 ] * M * [1 0 0]' 
   m_NextRowAdditions[ 0 ] = -( m11 + m21 + m31 );
   m_NextRowAdditions[ 1 ] = m11;
   m_NextRowAdditions[ 2 ] = m21;
   m_NextRowAdditions[ 3 ] = m31;
 
   //
+  // [ -1 -1 -1; 1 0 0; 0 1 0; 0 0 1 ] * M * [0 1 0]'
   m_NextColumnAdditions[ 0 ] = -( m12 + m22 + m32 );
   m_NextColumnAdditions[ 1 ] = m12;
   m_NextColumnAdditions[ 2 ] = m22;
   m_NextColumnAdditions[ 3 ] = m32;
 
   //
+  // [ -1 -1 -1; 1 0 0; 0 1 0; 0 0 1 ] * M * [0 0 1]'
   m_NextSliceAdditions[ 0 ] = -( m13 + m23 + m33 );
   m_NextSliceAdditions[ 1 ] = m13;
   m_NextSliceAdditions[ 2 ] = m23;
@@ -271,6 +289,7 @@ TetrahedronInteriorConstIterator< TPixel >
 ::AddExtraLoading( const double& alpha0, const double& alpha1, const double& alpha2, const double& alpha3 )
 {
   
+#ifndef USING_STATIC_ARRAY
   //
   m_InterpolatedValues.push_back( alpha0 * m_InterpolatedValues[ 0 ] + 
                                   alpha1 * m_InterpolatedValues[ 1 ] + 
@@ -297,6 +316,35 @@ TetrahedronInteriorConstIterator< TPixel >
                                   alpha1 * m_NextSliceAdditions[ 1 ] + 
                                   alpha2 * m_NextSliceAdditions[ 2 ] +
                                   alpha3 * m_NextSliceAdditions[ 3 ] );
+#else
+  //
+  m_InterpolatedValues[m_NumberOfLoadings] = alpha0 * m_InterpolatedValues[ 0 ] + 
+                                             alpha1 * m_InterpolatedValues[ 1 ] + 
+                                             alpha2 * m_InterpolatedValues[ 2 ] +
+                                             alpha3 * m_InterpolatedValues[ 3 ];
+  m_ColumnBeginInterpolatedValues[m_NumberOfLoadings] = alpha0 * m_ColumnBeginInterpolatedValues[ 0 ] + 
+                                                        alpha1 * m_ColumnBeginInterpolatedValues[ 1 ] + 
+                                                        alpha2 * m_ColumnBeginInterpolatedValues[ 2 ] +
+                                                        alpha3 * m_ColumnBeginInterpolatedValues[ 3 ];
+  m_SliceBeginInterpolatedValues[m_NumberOfLoadings] = alpha0 * m_SliceBeginInterpolatedValues[ 0 ] + 
+                                                       alpha1 * m_SliceBeginInterpolatedValues[ 1 ] + 
+                                                       alpha2 * m_SliceBeginInterpolatedValues[ 2 ] +
+                                                       alpha3 * m_SliceBeginInterpolatedValues[ 3 ];
+
+  m_NextRowAdditions[m_NumberOfLoadings] = alpha0 * m_NextRowAdditions[ 0 ] + 
+                                           alpha1 * m_NextRowAdditions[ 1 ] + 
+                                           alpha2 * m_NextRowAdditions[ 2 ] +
+                                           alpha3 * m_NextRowAdditions[ 3 ]; 
+  m_NextColumnAdditions[m_NumberOfLoadings] = alpha0 * m_NextColumnAdditions[ 0 ] + 
+                                              alpha1 * m_NextColumnAdditions[ 1 ] + 
+                                              alpha2 * m_NextColumnAdditions[ 2 ] +
+                                              alpha3 * m_NextColumnAdditions[ 3 ]; 
+  m_NextSliceAdditions[m_NumberOfLoadings] = alpha0 * m_NextSliceAdditions[ 0 ] + 
+                                             alpha1 * m_NextSliceAdditions[ 1 ] + 
+                                             alpha2 * m_NextSliceAdditions[ 2 ] +
+                                             alpha3 * m_NextSliceAdditions[ 3 ];
+  m_NumberOfLoadings++;
+#endif
   
  
 }  
@@ -331,6 +379,10 @@ TetrahedronInteriorConstIterator< TPixel >
 ::MoveOnePixel()
 {
   
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_totalVoxel++;
+#endif
+
   // In principle, all we need to do is to do 
   //
   //   y = this->GetIndex()
@@ -348,7 +400,11 @@ TetrahedronInteriorConstIterator< TPixel >
   // although sometimes (when we're at the end of our span) it will be (0,1,0) (second column of M),
   // and even more less frequently (0,0,1) (third column of M)
 
+#ifndef USING_STATIC_ARRAY
   const int  numberOfLoadings = m_InterpolatedValues.size();
+#else
+  const int  numberOfLoadings = m_NumberOfLoadings;
+#endif
   if ( this->m_PositionIndex[ 0 ] < ( this->m_EndIndex[ 0 ] - 1 ) )
     {
     // We can simply walk to the next row
@@ -386,6 +442,7 @@ TetrahedronInteriorConstIterator< TPixel >
     //  Update the baricentric coordinates
     for ( int loadingNumber = 0; loadingNumber < numberOfLoadings; loadingNumber++ )
       {
+      // m_ColumnBeginInterpolatedValues is the new base 
       m_ColumnBeginInterpolatedValues[ loadingNumber ] += m_NextColumnAdditions[ loadingNumber ];  
       m_InterpolatedValues[ loadingNumber ] = m_ColumnBeginInterpolatedValues[ loadingNumber ];
       }  
@@ -410,6 +467,8 @@ TetrahedronInteriorConstIterator< TPixel >
     //  Update the baricentric coordinates
     for ( int loadingNumber = 0; loadingNumber < numberOfLoadings; loadingNumber++ )
       {
+      // m_SliceBeginInterpolatedValues is the new base 
+      // update m_ColumnBeginInterpolatedValues for next column calculation
       m_SliceBeginInterpolatedValues[ loadingNumber ] += m_NextSliceAdditions[ loadingNumber ];
       m_ColumnBeginInterpolatedValues[ loadingNumber ] = m_SliceBeginInterpolatedValues[ loadingNumber ];  
       m_InterpolatedValues[ loadingNumber ] = m_SliceBeginInterpolatedValues[ loadingNumber ];
@@ -462,13 +521,14 @@ TetrahedronInteriorConstIterator< TPixel >
   // For a thorough exaplanation of the art of rasterizing triangles, see
   //   https://fgiesen.wordpress.com/2013/02/08/triangle-rasterization-in-practice/
   
-  const double&  pi0 = this->GetPi0();
-  const double&  pi1 = this->GetPi1();
-  const double&  pi2 = this->GetPi2();
-  const double&  pi3 = this->GetPi3();
+  //const double&  pi0 = this->GetPi0();
+  //const double&  pi1 = this->GetPi1();
+  //const double&  pi2 = this->GetPi2();
+  //const double&  pi3 = this->GetPi3();
   
   // Obvious culling first
-  if ( ( pi0 < 0 ) || ( pi1 < 0 ) || ( pi2 < 0 ) || ( pi3 < 0 ) )
+  //if ( ( pi0 < 0 ) || ( pi1 < 0 ) || ( pi2 < 0 ) || ( pi3 < 0 ) )
+  if ( ( m_InterpolatedValues[ 0 ] < 0 ) || ( m_InterpolatedValues[ 1 ] < 0 ) || ( m_InterpolatedValues[ 2 ] < 0 ) || ( m_InterpolatedValues[ 3 ] < 0 ) )
     {
     //std::cout << "pix < 0 kill" << std::endl;
     return true;

@@ -322,7 +322,7 @@ foreach hemi ($hemilist)
          if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --$FSF_OUTPUT_FORMAT)
          set cmd = ($cmd --mask $maskvol --wls $yffxvar --kurtosis)
-         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi); #  --cortex)
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -333,7 +333,7 @@ foreach hemi ($hemilist)
          if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --$FSF_OUTPUT_FORMAT --kurtosis)
-         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi) #  --cortex)
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -345,7 +345,7 @@ foreach hemi ($hemilist)
          if($DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
          set cmd = (mri_glmfit --fsgd $fsgd --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --$FSF_OUTPUT_FORMAT --kurtosis --no-contrasts-ok)
-         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi) # --cortex
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -357,7 +357,7 @@ foreach hemi ($hemilist)
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
          set cmd = ($cmd --ffxdofdat $ffxdofdat --$FSF_OUTPUT_FORMAT)
-         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi) # --cortex
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;

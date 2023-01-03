@@ -75,6 +75,7 @@ static const COLOR_TABLE miniColorTable =
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
+static void check_options(void);
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
@@ -166,6 +167,8 @@ main(int argc, char *argv[])
     //printf("argc:%d, argv[1]:%s, argv[2]:%s, argv[3]:%s\n",
     //     argc,argv[1],argv[2],argv[3]);
   }
+
+  check_options();
 
   // confirm that all options were eaten (this catches the case where options
   // were included at the end of the command string)
@@ -314,17 +317,6 @@ main(int argc, char *argv[])
     mris->ncmds = 0;
   }
 
-  if(userealras_flag)
-  {
-    printf("Setting useRealRAS to 1\n");
-    mris->useRealRAS = 1;
-  }
-  if(usesurfras_flag)
-  {
-    printf("Setting useRealRAS to 0\n");
-    mris->useRealRAS = 0;
-  }
-
   if(cras_add){
     printf("Adding scanner CRAS to surface xyz\n");
     MRISshiftCRAS(mris, 1);
@@ -338,13 +330,41 @@ main(int argc, char *argv[])
     int err = MRIScopyCoords(mris,SurfCoords);
     if(err) exit(1);
   }
-  if(ToScanner){
-    printf("Converting from tkr to scanner coordinates\n");
-    MRIStkr2Scanner(mris);
+
+  if(ToScanner || userealras_flag){
+    if (mris->useRealRAS)
+      printf("Surface XYZ coordinates are already in scanner space. No conversion needed.\n");
+    else
+    {
+      if (mris->vg.valid)
+      {
+        printf("Converting surface XYZ coordinates from tkr to scanner space.\n");
+        MRIStkr2Scanner(mris);
+      }
+      else
+      {
+        printf("Invalid volume geometry. Cannot convert surface XYZ coordinates from tkr to scanner space.\n"); 
+        mris->useRealRAS = 0;
+      }
+    }
   }
-  if(ToTkr){
-    printf("Converting from scanner to tkr coordinates\n");
-    MRISscanner2Tkr(mris);
+
+  if(ToTkr || usesurfras_flag){
+    if (!mris->useRealRAS)
+      printf("Surface XYZ coordinates are already in tkr space. No conversion needed.\n");
+    else
+    {
+      if (mris->vg.valid)
+      {
+        printf("Converting surface XYZ coordinates from scanner to tkr space.\n");
+        MRISscanner2Tkr(mris);
+      }
+      else
+      {
+        printf("Invalid volume geometry. Cannot convert surface XYZ coordinates from scanner to tkr space.\n");
+        mris->useRealRAS = 1;
+      }
+    }
   }
 
   if (talxfmsubject)
@@ -784,11 +804,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-userealras"))
   {
     userealras_flag = 1;
-    usesurfras_flag = 0;
+    //usesurfras_flag = 0;
   }
   else if (!stricmp(option, "-usesurfras"))
   {
-    userealras_flag = 0;
+    //userealras_flag = 0;
     usesurfras_flag = 1;
   }
   else if (!stricmp(option, "-cras_correction") || !stricmp(option, "-cras_add")) {
@@ -805,12 +825,12 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "-to-scanner")) {
     ToScanner = 1;
-    ToTkr = 0;
+    //ToTkr = 0;
     cras_add = 0;
     cras_subtract = 0;
   }
   else if (!stricmp(option, "-to-tkr")) {
-    ToScanner = 0;
+    //ToScanner = 0;
     ToTkr = 1;
     cras_add = 0;
     cras_subtract = 0;
@@ -897,6 +917,17 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 
+static void check_options(void)
+{
+  // --to-scanner/--userealras and --to-tkr/--usesurfras are mutually exclusive
+  if ( (ToScanner || userealras_flag) && 
+       (ToTkr     || usesurfras_flag) )
+  {
+    printf("ERROR: --to-scanner/--userealras and --to-tkr/--usesurfras are mutually exclusive. \n");
+    exit(1);
+  }
+}
+
 static void
 usage_exit(void)
 {
@@ -951,8 +982,8 @@ print_help(void)
   printf( "  --combinesurfs <infile> <in2file> <outfile>\n") ;
   printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "  --center : put center of surface at (0,0,0)\n") ;
-  printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
-  printf( "  --usesurfras : set the useRealRAS flag in the surface file to 0 \n") ;
+  printf( "  --userealras : same as --to-scanner\n") ;
+  printf( "  --usesurfras : same as --to-tkr\n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
   printf( "  --remove-vol-geom : sets the valid flag in vg to 0\n") ;
   printf( "  --to-surf surfcoords : copy coordinates from surfcoords to output (good for patches)\n") ;

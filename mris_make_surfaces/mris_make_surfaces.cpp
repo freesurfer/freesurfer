@@ -80,10 +80,10 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
 static int T2_min_set = 0 ;
 static int T2_max_set = 0 ;
 static int T2_max_inside_set = 0 ;
-static float T2_max_inside = 300 ;
-static float T2_min_inside = 60 ;
-static double T2_min_outside = 90 ;  
-static double T2_max_outside = 300 ;
+static float T2_max_inside;
+static float T2_min_inside;
+static double T2_min_outside;
+static double T2_max_outside;
 static double max_outward_dist = 1 ; // for normal cases, for pathology might be much larger
 
 // 0 disables use of max_gray in setting outside_hi in white surfacee deformation
@@ -2532,8 +2532,10 @@ get_option(int argc, char *argv[])
     parms.l_curv = 0.5 ;
     parms.check_tol = 1 ;
     wm_weight = 3 ;
-    if (T2_max_inside_set == 0)
-      T2_max_inside = 300 ;
+    // See mris_place_surface.cpp for a discussion on these limits. If
+    // you change these defaults, then change the values in
+    // mris_place_surface for completeness
+    if (T2_max_inside_set == 0) T2_max_inside = 300 ;
     T2_min_inside = 110 ;
     T2_min_outside = 130 ;  
     T2_max_outside = 300 ;
@@ -2580,11 +2582,15 @@ get_option(int argc, char *argv[])
     fprintf(stderr,
             "deforming surfaces based on FLAIR volume %s\n", flair_or_T2_name) ;
     nargs = 1 ;
-    if (T2_max_inside_set == 0)
-      T2_max_inside = 300 ;
-    T2_min_inside = 110 ;   
-    T2_min_outside = 130 ;  
-    T2_max_outside = 300 ;
+
+    // See mris_place_surface.cpp for a discussion on these limits. If
+    // you change these defaults, then change the values in
+    // mris_place_surface for completeness
+    if(T2_max_inside_set == 0) T2_max_inside = 200;
+    T2_min_inside =  50;
+    T2_min_outside = 10; // outside not so important for FLAIR
+    T2_max_outside = 50;
+
     max_pial_averages = 4 ;
     max_outward_dist = 3 ;
     Ghisto_left_inside_peak_pct = 0.01 ;

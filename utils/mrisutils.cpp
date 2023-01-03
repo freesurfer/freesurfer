@@ -3281,7 +3281,7 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 	printf("   reading %s\n",tmpstr);
 	gcam = GCAMreadAndInvert(tmpstr);
 	if(gcam == NULL) return(NULL);
-	GCAMmorphSurf(surf, gcam);
+	GCAMmorphSurf(surf, gcam, 1); //1=map from anat to atlas
 	GCAMfree(&gcam);
       } 
       else {

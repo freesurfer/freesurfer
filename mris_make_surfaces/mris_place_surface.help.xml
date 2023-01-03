@@ -47,6 +47,15 @@
       <argument>--wm wm.mgz</argument>
       <explanation>White matter "segmentation"</explanation>
 
+      <argument>--outvol outvol.mgz</argument>
+      <explanation>Save input volume after preprocessing</explanation>
+
+      <argument>--outvol-only outvol.mgz</argument>
+      <explanation>Save input volume after preprocessing and then exit</explanation>
+
+      <argument>--restore-255</argument>
+      <explanation>After all volume preprocessing, set voxels in the input volume that start off as 255 to 110 (white surf only).</explanation>
+
       <argument>--seg seg.mgz</argument>
       <explanation>Whole-brain segmentation (usually aseg.presurf.mgz)</explanation>
 
@@ -65,10 +74,10 @@
       <argument>--rip-label cortexlabel</argument>
       <explanation>Do not move vertices that are NOT in the cortex label</explanation>
 
-      <argument>--rip-midline</argument>
+      <argument>--rip-midline (--no-rip-midline)</argument>
       <explanation>Do not move vertices that are in the midline as indicated by the seg</explanation>
 
-      <argument>--rip-bg</argument>
+      <argument>--rip-bg (--no-rip-bg)</argument>
       <explanation>Do not move vertices near basal ganglia (as defined by seg)</explanation>
 
       <argument>--rip-bg-no-annot</argument>
@@ -77,11 +86,14 @@
       <argument>--no-rip-freeze</argument>
       <explanation>Do NOT move vertices in/near freeze voxels (247 as defined in seg)</explanation>
 
-      <argument>--rip-wmsa</argument>
+      <argument>--rip-wmsa (--no-rip-wmsa)</argument>
       <explanation>Do not move vertices in/near white-matter signal abnormalities (77,78,79 as defined in seg)</explanation>
 
-      <argument>--rip-lesion</argument>
+      <argument>--rip-lesion  (--no-rip-lesion)</argument>
       <explanation>Do not move vertices in/near lesions (25 and 57 as defined in seg)</explanation>
+
+      <argument>--no-rip</argument>
+      <explanation>Turn off all ripping</explanation>
 
       <argument>--rip-overlay surfaceoverlayfile</argument>
       <explanation>Rip vertices > 0.5 in the surface overlay file</explanation>
@@ -125,8 +137,11 @@
       <argument>--target TargetSurf </argument>
       <explanation>Save CBV target surface</explanation>
 
+      <argument>--stop </argument>
+      <explanation>Stop mask to stop search along normal for max gradient</explanation>
+
       <argument>--mm_{min,max}_{inside,outside} </argument>
-      <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR)</explanation>
+      <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR). Specifying --mm will set these values to defaults. If you want to change using this option, then put the option AFTER --mm</explanation>
 
       <argument>--cover-seg SegVol </argument>
       <explanation>Force surface to cover the segmentation (or --cover_seg)</explanation>
@@ -138,6 +153,9 @@
 
       <argument>--white_border_low_factor f</argument>
       <explanation>white_border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;</explanation>
+
+      <argument>--fill-lat-vents DillMM Topo Nnbrs</argument>
+      <explanation>Fill lateral ventricles with 110</explanation>
 
     </optional>
     <cost-function>
@@ -152,7 +170,20 @@
       <argument>--shrink factor</argument>
       <argument>--repluse weight</argument>
       <argument>--surf-repluse weight</argument>
-      <explanation> For pushing the suface away from the repulse-surf (eg, to move pial away from white)</explanation>
+      <argument>--tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh</argument>
+      <explanation> Target point set to locally influence where surface goes</explanation>
+      <argument>--tps-debug</argument>
+      <explanation> turn on target point set debugging</explanation>
+      <argument>--tps-targetpointset</argument>
+      <explanation> output final target point set</explanation>
+      <argument>--tps-vertexpointset</argument>
+      <explanation> output vertices targeted</explanation>
+      <argument>--tps-mask</argument>
+      <explanation> outpout surface mask of targeted vertices (mgz)</explanation>
+      <argument>--tps-vector</argument>
+      <explanation> freeview/trackviz tract file connecting the target points to vertices (file.trk)</explanation>
+      <argument>--tps-patch</argument>
+      <explanation> surface patch of targeted vertices vertices</explanation>
       <argument>--location-mov-len LOCATION_MOVE_LEN</argument>
       <explanation> Used in mrisComputeTargetLocationTerm() </explanation>
     </cost-function>

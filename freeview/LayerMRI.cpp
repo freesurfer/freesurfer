@@ -84,6 +84,8 @@
 #include "vtkImageResliceMapper.h"
 #include "vtkSTLWriter.h"
 #include "vtkImageMathematics.h"
+#include "vtkImageExtractComponents.h"
+#include "vtkImageAppendComponents.h"
 #include "Region3D.h"
 #include "LayerPointSet.h"
 #include <QTimer>
@@ -3741,22 +3743,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
       m_imageDataBackup = vtkSmartPointer<vtkImageData>::New();
       m_imageDataBackup->DeepCopy(source);
     }
-    /*
-    double *origin = source->GetOrigin();
-    double *spacing = source->GetSpacing();
-    int *ext = source->GetExtent();
-    qDebug() << origin[0] << origin[1] << origin[2] << spacing[0] << spacing[1] << spacing[2]
-                << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
-    origin = mask->GetOrigin();
-    spacing = mask->GetSpacing();
-    ext = mask->GetExtent();
-    qDebug() << origin[0] << origin[1] << origin[2] << spacing[0] << spacing[1] << spacing[2]
-                << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
-    */
-    
-    vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
-    vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
-    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+
     double range[2];
     mask->GetScalarRange(range);
     if (range[1] <= 0)
@@ -3770,42 +3757,94 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     double s1[3], s2[3];
     source->GetSpacing(s1);
     mask->GetSpacing(s2);
-#if VTK_MAJOR_VERSION > 5
-    resampler->SetInputData(mask);
-#else
-    resampler->SetInput(mask);
-#endif
-    //    for (int i = 0; i < 3; i++)
-    //      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
-    resampler->SetOutputSpacing(s1);
-    resampler->SetInterpolationModeToNearestNeighbor();
-    threshold->ThresholdByUpper(m_dMaskThreshold);
-    threshold->SetInputConnection(resampler->GetOutputPort());
-    threshold->ReplaceInOn();
-    threshold->ReplaceOutOn();
-    threshold->SetInValue(1);
-    threshold->SetOutValue(0);
-    threshold->SetOutputScalarType(VTK_UNSIGNED_CHAR);
-    threshold->Update();
-#if VTK_MAJOR_VERSION > 5
-    if (m_imageDataBackup->GetScalarType() == VTK_UNSIGNED_CHAR)
+    if (mask->GetNumberOfScalarComponents() > 1)
     {
-      vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
-      cast->SetOutputScalarType(VTK_SHORT);
-      cast->SetInputData(m_imageDataBackup);
-      cast->Update();
-      mask_filter->SetImageInputData(cast->GetOutput());
+      vtkSmartPointer<vtkImageAppendComponents> append = vtkSmartPointer<vtkImageAppendComponents>::New();
+      for (int i = 0; i < GetNumberOfFrames(); i++)
+      {
+        int nFrame = i;
+        if (nFrame >= mask->GetNumberOfScalarComponents())
+          nFrame = mask->GetNumberOfScalarComponents()-1;
+        vtkSmartPointer<vtkImageExtractComponents> extractor = vtkSmartPointer<vtkImageExtractComponents>::New();
+        extractor->SetInputData(mask);
+        extractor->SetComponents(nFrame);
+        vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
+        vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+        vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
+        resampler->SetInputConnection(extractor->GetOutputPort());
+        resampler->SetOutputSpacing(s1);
+        resampler->SetInterpolationModeToNearestNeighbor();
+        threshold->ThresholdByUpper(m_dMaskThreshold+1e-12);
+        threshold->SetInputConnection(resampler->GetOutputPort());
+        threshold->ReplaceInOn();
+        threshold->ReplaceOutOn();
+        threshold->SetInValue(1);
+        threshold->SetOutValue(0);
+        threshold->SetOutputScalarType(VTK_UNSIGNED_CHAR);
+        threshold->Update();
+        extractor = vtkSmartPointer<vtkImageExtractComponents>::New();
+        extractor->SetInputData(m_imageDataBackup);
+        extractor->SetComponents(i);
+        if (m_imageDataBackup->GetScalarType() == VTK_UNSIGNED_CHAR)
+        {
+          vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+          cast->SetOutputScalarType(VTK_SHORT);
+          cast->SetInputConnection(extractor->GetOutputPort());
+          cast->Update();
+          mask_filter->SetImageInputData(cast->GetOutput());
+        }
+        else
+        {
+          extractor->Update();
+          mask_filter->SetImageInputData(extractor->GetOutput());
+        }
+        mask_filter->SetMaskInputData(threshold->GetOutput());
+        mask_filter->SetMaskedOutputValue(VTK_SHORT_MIN);
+        append->AddInputConnection(0, mask_filter->GetOutputPort());
+      }
+      append->Update();
+      source->DeepCopy(append->GetOutput());
     }
     else
-      mask_filter->SetImageInputData(m_imageDataBackup);
-    mask_filter->SetMaskInputData(threshold->GetOutput());
+    {
+      vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
+      vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
+      vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+#if VTK_MAJOR_VERSION > 5
+      resampler->SetInputData(mask);
 #else
-    mask_filter->SetImageInputData(m_imageDataBackup);
-    mask_filter->SetMaskInputData(threshold->GetOutput());
+      resampler->SetInput(mask);
 #endif
-    mask_filter->SetMaskedOutputValue(VTK_SHORT_MIN);
-    mask_filter->Update();
-    source->DeepCopy(mask_filter->GetOutput());
+      resampler->SetOutputSpacing(s1);
+      resampler->SetInterpolationModeToNearestNeighbor();
+      threshold->ThresholdByUpper(m_dMaskThreshold);
+      threshold->SetInputConnection(resampler->GetOutputPort());
+      threshold->ReplaceInOn();
+      threshold->ReplaceOutOn();
+      threshold->SetInValue(1);
+      threshold->SetOutValue(0);
+      threshold->SetOutputScalarType(VTK_UNSIGNED_CHAR);
+      threshold->Update();
+#if VTK_MAJOR_VERSION > 5
+      if (m_imageDataBackup->GetScalarType() == VTK_UNSIGNED_CHAR)
+      {
+        vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+        cast->SetOutputScalarType(VTK_SHORT);
+        cast->SetInputData(m_imageDataBackup);
+        cast->Update();
+        mask_filter->SetImageInputData(cast->GetOutput());
+      }
+      else
+        mask_filter->SetImageInputData(m_imageDataBackup);
+      mask_filter->SetMaskInputData(threshold->GetOutput());
+#else
+      mask_filter->SetImageInputData(m_imageDataBackup);
+      mask_filter->SetMaskInputData(threshold->GetOutput());
+#endif
+      mask_filter->SetMaskedOutputValue(VTK_SHORT_MIN);
+      mask_filter->Update();
+      source->DeepCopy(mask_filter->GetOutput());
+    }
   }
   GetProperty()->OnColorMapChanged();
   emit ActorUpdated();

@@ -1,0 +1,679 @@
+#!/bin/tcsh -f
+# post-recon-all 
+# stuff to run after running recon-all
+# Do CVS separately because it requires so many resources
+# Need to add:
+#  - mri_synthmorph
+#  - yeo atlas
+#  - fsfast?
+#  - dti?
+#  - lGI?
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+# I have run into memory errors with subfields if nthreads=1
+if($?FS_OMP_NUM_THREADS == 0) setenv FS_OMP_NUM_THREADS 1
+
+set cos7run = /cluster/batch/IMAGES/centos7run
+set nthreads = $FS_OMP_NUM_THREADS 
+set subject = ()
+@ ExitStatus = 0
+set ExitOnError = 0
+set ForceUpdate = 0
+set DoSubfields = 1
+set DoSegmentSubregions = 1
+set DoQCache = 1
+set DoSCLimbic = 1
+set DoHThSU = 1
+set DoSynthSeg = 1
+set DoSynthStrip = 1
+set DoXhemi = 1
+set DoSamseg = 1
+set DoGTMSeg = 1
+set DoQAStats = 1
+set DoCVS = 0
+set threads = 1
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+setenv OMP_NUM_THREADS $FS_OMP_NUM_THREADS
+
+set sd = $SUBJECTS_DIR/$subject
+
+# Delete any hard failure touch files
+set flist = (`find -L "$sd/scripts" -iname "post-recon-all.*.hardfailure.txt" -print`)
+if($#flist) rm -f $flist
+
+set LF = $sd/scripts/post-recon-all.log
+if(-e $LF) mv $LF $LF.bak
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "Starting post-recon-all" | tee -a $LF
+date |& tee -a $LF
+
+echo "pwd `pwd`" | tee -a $LF
+echo "FS_OMP_NUM_THREADS $FS_OMP_NUM_THREADS " | tee -a $LF
+echo "SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+if(! -e $SUBJECTS_DIR/fsaverage_sym) then
+  echo "Creating link to fsaverage_sym" |& tee -a $LF
+  pushd $SUBJECTS_DIR
+  ln -sf $FREESURFER_HOME/subjects/fsaverage_sym
+  popd
+endif
+
+set StartDate = `date`
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+set sdir = $SUBJECTS_DIR/$subject/surf
+set statsdir = $SUBJECTS_DIR/$subject/stats
+set origvol = $mdir/orig.mgz
+set nu = $mdir/nu.mgz
+set norm = $mdir/norm.mgz
+set aseg = $mdir/aseg.mgz
+set wmparc = $mdir/wmparc.mgz
+set apas = $mdir/aparc+aseg.mgz
+
+set donefile  = $SUBJECTS_DIR/$subject/scripts/recon-all.done
+echo "donefile $donefile" | tee -a $LF
+while(! -e $donefile) 
+  echo "Waiting for done file `date`" | tee -a $LF
+  sleep 600  
+end
+
+if($DoQAStats) then
+  set qastats = $statsdir/qa.stats
+  set ud = `UpdateNeeded $qastats $apas`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_segstats --qa-stats $subject $qastats)
+    echo $cmd | tee -a $LF
+    fs_time $cos7run $cmd | tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "$cmd failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.qastats.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+# This can be done as part of recon-all with -subfields
+if($DoSubfields) then
+  set scrlist = (segmentHA_T1.sh segmentThalamicNuclei.sh segmentBS.sh)
+  foreach scr ($scrlist)
+    # Make sure subfield version matches 
+    if($scr == segmentHA_T1.sh)          set outfile = $mdir/rh.amygNucVolumes-T1.v22.txt
+    if($scr == segmentThalamicNuclei.sh) set outfile = $mdir/ThalamicNuclei.v13.T1.volumes.txt
+    if($scr == segmentBS.sh)             set outfile = $mdir/brainstemSsVolumes.v13.txt
+    set ud = (`UpdateNeeded $outfile $norm $aseg $wmparc`)
+    if($ud || $ForceUpdate) then
+      set cmd = ($scr $subject)
+      echo $cmd | tee -a $LF
+      fs_time $cos7run $cmd | tee -a $LF
+      if($status) then
+        if($ExitOnError) then
+          echo "$cmd failed" | tee -a $LF
+          exit 1
+        endif
+        echo "$cmd failed, but continuing" | tee -a $LF
+        echo $cmd > $sd/scripts/post-recon-all.$scr.hardfailure.txt
+        @ ExitStatus = $ExitStatus + 1
+      endif
+    endif
+  end
+endif
+
+if($DoSegmentSubregions) then
+  foreach subregion (thalamus hippo-amygdala brainstem)
+    echo "subregion $subregion"
+    set outfile = ()
+    if($subregion == thalamus)       set outfile = $mdir/ThalamicNuclei.segsub.volumes.txt
+    if($subregion == hippo-amygdala) set outfile = $mdir/rh.amygNucVolumes.segsub.txt
+    if($subregion == brainstem)      set outfile = $mdir/brainstemSsLabels.segsub.volumes.txt
+    set ud = (`UpdateNeeded $outfile $norm $aseg $wmparc`)
+    if($ud || $ForceUpdate) then
+      set cmd = (segment_subregions $subregion --cross $subject --threads $threads --suffix .segsub)
+      echo $cmd | tee -a $LF
+      fs_time $cos7run $cmd | tee -a $LF
+      if($status) then
+        if($ExitOnError) then
+          echo "$cmd failed" | tee -a $LF
+          exit 1
+        endif
+        echo "$cmd failed, but continuing" | tee -a $LF
+        echo $cmd > $sd/scripts/post-recon-all.$subregion.hardfailure.txt
+        @ ExitStatus = $ExitStatus + 1
+      endif
+    endif
+  end
+endif
+
+if($DoSynthStrip) then
+  set synthstrip = $mdir/synthstrip.mgz
+  set ud = `UpdateNeeded $synthstrip $origvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_synthstrip -i $origvol -o $synthstrip)
+    echo $cmd | tee -a $LF
+    fs_time $cos7run $cmd | tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "$cmd failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.synthstrip.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+if($DoSynthSeg) then
+  set synthseg = $mdir/synthseg.mgz
+  set ud = `UpdateNeeded $synthseg $origvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_synthseg --i $origvol --o $synthseg --cpu --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cos7run $cmd | tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "$cmd failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.synthseg.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+  endif
+endif
+
+if($DoSCLimbic) then
+  set sclimbic = $mdir/sclimbic.mgz
+  set ud = (`UpdateNeeded $sclimbic $nu`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_sclimbic_seg --s $subject --percentile 99.9 --conform \
+     --write_qa_stats --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cos7run $cmd | tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "$cmd failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.sclimbic.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+if($DoHThSU) then
+  set hthsu = $mdir/hypothalamic_subunits_nu_resampled_1mm.v1.mgz
+  set ud = (`UpdateNeeded $sclimbic $nu`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_segment_hypothalamic_subunits --s $subject --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cos7run $cmd | tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "$cmd failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.hthsu.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+# Samseg
+if($DoSamseg) then
+  set samsegvol = $sd/mri/samseg/seg.mgz
+  set ud = (`UpdateNeeded $samsegvol $origvol`)
+  if($ud || $ForceUpdate) then
+    set cmd = (samseg --i $origvol --o $sd/mri/samseg --threads $FS_OMP_NUM_THREADS)
+    echo $cmd |& tee -a $LF
+    fs_time $cos7run $cmd |& tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "samseg failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.samseg.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+# GTMSeg
+if($DoGTMSeg) then
+  set gtmseg = $sd/mri/gtmseg.mgz
+  set ud = (`UpdateNeeded $gtmseg $apas`) # may not be exactly right
+  if($ud || $ForceUpdate) then
+    set cmd = (gtmseg --s $subject --xcerseg)
+    echo $cmd |& tee -a $LF
+    fs_time $cos7run $cmd |& tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "gtmseg failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.gtmseg.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+if($DoXhemi) then
+  set sphere   = $sdir/lh.sphere
+  set xsurfreg = $sdir/lh.fsaverage_sym.sphere.reg
+  set ud = (`UpdateNeeded $xsurfreg $sphere`) # may not be exactly right
+  if($ud || $ForceUpdate) then
+    set cmd = (surfreg --s $subject --t fsaverage_sym --lh)
+    set cmd = ($cmd --aparc) # to be conistent with previous version
+    echo $cmd |& tee -a $LF
+    fs_time $cos7run $cmd |& tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "xhemi1 failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.xhemi1.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+  set sphere   = $SUBJECTS_DIR/$subject/xhemi/surf/lh.sphere
+  set xsurfreg = $SUBJECTS_DIR/$subject/xhemi/surf/lh.fsaverage_sym.sphere.reg
+  set ud = (`UpdateNeeded $xsurfreg $sphere`) # may not be exactly right
+  if($ud || $ForceUpdate) then
+    set cmd = (surfreg --s $subject --t fsaverage_sym --lh --xhemi )
+    set cmd = ($cmd --aparc) # to be conistent with previous version
+    echo $cmd |& tee -a $LF
+    fs_time $cos7run $cmd |& tee -a $LF
+    if($status) then
+      if($ExitOnError) then
+        echo "$cmd failed" | tee -a $LF
+        exit 1
+      endif
+      echo "xhemi2 failed, but continuing" | tee -a $LF
+      echo $cmd > $sd/scripts/post-recon-all.xhemi2.hardfailure.txt
+      @ ExitStatus = $ExitStatus + 1
+    endif
+  endif
+endif
+
+# qcache
+if($DoQCache) then
+  echo "\n\n" |& tee -a $LF
+  date |& tee -a $LF
+  pwd |& tee -a $LF
+  set cmd = (recon-all -s $subject -qcache)
+  echo $cmd |& tee -a $LF
+  fs_time $cos7run $cmd |& tee -a $LF
+  if($status) then
+    if($ExitOnError) then
+      echo "$cmd failed" | tee -a $LF
+      exit 1
+    endif
+    echo "qcache failed, but continuing" | tee -a $LF
+    echo $cmd > $sd/scripts/post-recon-all.qcache.hardfailure.txt
+    @ ExitStatus = $ExitStatus + 1
+  endif
+endif
+
+if($DoCVS) then
+  echo "\n\n" |& tee -a $LF
+  date |& tee -a $LF
+  pwd |& tee -a $LF
+  set cmd = (mri_cvs_register --mov $subject --mni --openmp $FS_OMP_NUM_THREADS)
+  echo $cmd |& tee -a $LF
+  fs_time $cos7run $cmd |& tee -a $LF
+  if($status) then
+    if($ExitOnError) then
+      echo "$cmd failed" | tee -a $LF
+      exit 1
+    endif
+    echo "CVS failed, but continuing" | tee -a $LF
+    echo $cmd > $sd/scripts/post-recon-all.cvs.hardfailure.txt
+    @ ExitStatus = $ExitStatus + 1
+  endif
+endif
+
+if($ExitStatus != 0) then
+  echo "" | tee -a $LF
+  echo "ERROR: there were $ExitStatus hard failures" | tee -a $LF
+  echo "See $LF" | tee -a $LF
+  echo "" | tee -a $LF
+else
+  echo "" | tee -a $LF
+  echo "There were no hard failures" | tee -a $LF
+  echo "" | tee -a $LF
+endif
+
+echo "Started at $StartDate"
+echo "Ended   at `date`"
+echo "post-recon-all done" |& tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+exit $ExitStatus
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      setenv FS_OMP_NUM_THREADS $argv[1]; shift;
+      set threads = $FS_OMP_NUM_THREADS
+      breaksw
+
+    case "--subfields":
+      set DoSubfields = 1
+      breaksw
+    case "--no-subfields":
+      set DoSubfields = 0
+      breaksw
+
+    case "--subregions":
+      set DoSegmentSubregions = 1
+      breaksw
+    case "--no-subregions":
+      set DoSegmentSubregions = 0
+      breaksw
+
+    case "--synthseg":
+      set DoSynthSeg = 1
+      breaksw
+    case "--no-synthseg":
+      set DoSynthSeg = 0
+      breaksw
+
+    case "--synthstrip":
+      set DoSynthStrip = 1
+      breaksw
+    case "--no-synthstrip":
+      set DoSynthStrip = 0
+      breaksw
+
+    case "--sclimbic":
+      set DoSCLimbic = 1
+      breaksw
+    case "--no-sclimbic":
+      set DoSCLimbic = 0
+      breaksw
+
+    case "--hthsu":
+      set DoHThSU = 1
+      breaksw
+    case "--no-hthsu":
+      set DoHThSU = 0
+      breaksw
+
+    case "--samseg":
+      set DoSamseg = 1
+      breaksw
+    case "--no-samseg":
+      set DoSamseg = 0
+      breaksw
+
+    case "--gtmseg":
+      set DoGTMSeg = 1
+      breaksw
+    case "--no-gtmseg":
+      set DoGTMSeg = 0
+      breaksw
+
+    case "--xhemi":
+      set DoXhemi = 1
+      breaksw
+    case "--no-xhemi":
+      set DoXhemi = 0
+      breaksw
+
+    case "--cvs":
+      set DoCVS = 1
+      breaksw
+    case "--no-cvs":
+      set DoCVS = 0
+      breaksw
+
+    case "--qa-stats":
+      set DoQAStats = 1
+      breaksw
+    case "--no-qa-stats":
+      set DoQAStats = 1
+      breaksw
+
+    case "--qcache":
+      set DoQCache = 1
+      breaksw
+    case "--no-qcache":
+      set DoQCache = 0
+      breaksw
+
+    case "--cos7":
+      set cos7run = /cluster/batch/IMAGES/centos7run
+      breaksw
+    case "--no-cos7":
+      set cos7run = ()
+      breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--exit-on-error":
+     set ExitOnError = 1
+     breaksw
+    case "--no-exit-on-error":
+     set ExitOnError = 0
+     breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      # The subject does not have a flag
+      if($#subject) then
+        echo ERROR: Flag $flag unrecognized. 
+        echo $cmdline
+        exit 1
+      endif
+      set subject = $flag;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+set errorfile = $SUBJECTS_DIR/$subject/scripts/recon-all.error
+if(-e $errorfile) then
+  echo "ERROR: subject $subject exited with an error from recon-all"
+  echo "SUBJECTS_DIR $SUBJECTS_DIR"
+  exit 1;
+endif
+
+echo ""
+echo "Checking version"
+set checkfile = `fs_temp_file`
+set cmd = (fs-check-version --s $subject --o $checkfile)
+echo $cmd
+$cmd
+set ok = `cat $checkfile`
+rm -f $checkfile
+if(! $ok) then
+  echo $cmd
+  echo "ERROR: Version check failed, see above"
+  echo ""
+  exit 1
+endif
+
+if($#cos7run) then
+  if(! -e $cos7run) then
+    echo "ERROR: cannot find $cos7run"
+    echo "If you do not want to run using CentOS7, then add --no-cos7"
+    exit 1;
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "post-recon-all subject"
+  echo " --no-subfields, --subfields (default is to do them)"
+  echo " --no-subregions, --subregions (default is to do them)"
+  echo " --cvs, --no-cvs : run CVS. Default is NOT to run CVS"
+  echo " --no-qcache, --qcache : run qcache (default is to run)"
+  echo "   qcache will fail for longitudinal "
+  echo " --no-sclimbic : do not run sclimbic"
+  echo " --no-hthsu : do not run hypothalamic subunits"
+  echo " --no-synthstrip : do not run synthstrip"
+  echo " --no-synthseg : do not run synthseg"
+  echo " --no-qastats : do not run qastats"
+  echo " --no-samseg : do not run samseg"
+  echo " --no-xhemi : do not run xhemi"
+  echo " --threads nthreads (or setenv FS_OMP_NUM_THREADS)"
+  echo " --force : force rerunning even if output is newer tha input"
+  echo " --exit-on-error : exit immediately if an error occurs"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This script runs programs that are (usually) not part of recon-all or
+are typically run after recon-all has completely finished (including
+editing). Originally, this script was meant for testing these other
+modules, but it can be used for production too.  It runs several
+programs, including subfield segs (hippo/amyg, thalamus, brainstem),
+GTM seg, samseg, xhemi, qcache, synthseg, synthstrip, sclimbic,
+hypothalamic subfield segmentation. CVS is not run by default because
+it requires so many resources for so long; but it can be run by adding
+--cvs.
+
+subfields vs subregions. subregions runs the python script
+segment_subregions whereas subfields runs the (old) matlab-based
+routines. Both run thalamus, hippo/amyg, and brainstem.
+
+The number of threads is set with --threads or by setting the
+FS_OMP_NUM_THREADS env var OMP_NUM_THREADS is set to the value of
+FS_OMP_NUM_THREADS.
+
+By default, it will not rerun a command if the output is newer than
+the input; this can be turned off with --force. The exception is
+qcache which will be run regardless (unless --no-qcache), although
+qcache itself will not rerun some items if the output is newer than
+the input.
+
+If a module exits with error, the script does not exit right away. It
+continues and runs all spcified modules. But once all modules are
+finished, it will exit with non-zero status if one or more of the
+modules had an error. A file called
+subjects/scripts/post-recon-all.$module.hardfailure.txt will be
+created for each hard failure.
+
+If --exit-on-error is specified, then it will exit immediately if a 
+module has an error.
+
+By default, all commands are run from a CentOS7 container at
+/cluster/batch/IMAGES/centos7run. This is unique to the Martinos
+Center and will fail on outside computers. To turn this off and
+use the native os, add --no-cos7.
+
+This script can be run by itself or it can be run inside recon-all by
+adding "-termscript post-recon-all" to the recon-all command
+line. Note that no post-recon-all arguments can be specified when
+running inside recon-all (eg, no way to turn off cos7)
+
+

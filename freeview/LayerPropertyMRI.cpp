@@ -648,7 +648,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
       MaxGenericThreshold = map["MaxGenericThreshold"].toDouble();
   }
 
-  double tiny_fraction = ( mMaxVoxelValue - mMinVoxelValue ) * 1e-12;
+  double tiny_fraction = qMin(1e-12, ( mMaxVoxelValue - mMinVoxelValue ) * 1e-12);
   bool has_mask = (((LayerMRI*)parent())->GetMaskLayer());
   switch ( mColorMapType )
   {
@@ -709,13 +709,13 @@ void LayerPropertyMRI::OnColorMapChanged ()
       }
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset, 1, 1, 0, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMidThreshold + HeatScaleOffset, 1, 0, 0, 1 );
-      mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset, 1, 0, 0, 0 );
+      mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset + ((HeatScaleMinThreshold == HeatScaleMidThreshold)?tiny_fraction:0), 1, 0, 0, 0 );
 //      mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
     }
     else if ( m_bHeatScaleTruncate )
     {
 //      mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
-      mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset, 1, 0, 0, 0 );
+      mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset - ((HeatScaleMinThreshold == HeatScaleMidThreshold)?tiny_fraction:0), 1, 0, 0, 0 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMidThreshold + HeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMaxThreshold + HeatScaleOffset, 1, 1, 0, 1 );
       if ( m_bHeatScaleClearHigh )
@@ -727,9 +727,9 @@ void LayerPropertyMRI::OnColorMapChanged ()
     {
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset, 1, 1, 0, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMidThreshold + HeatScaleOffset, 1, 0, 0, 1 );
-      mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset, 1, 0, 0, 0 );
+      mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset + ((HeatScaleMinThreshold == HeatScaleMidThreshold)?tiny_fraction:0), 1, 0, 0, 0 );
       mHeatScaleTable->AddRGBAPoint(  0 + mHeatScaleOffset, 0, 0, 0, 0 );
-      mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset, 0, 0, 1, 0 );
+      mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset - ((HeatScaleMinThreshold == HeatScaleMidThreshold)?tiny_fraction:0), 0, 0, 1, 0 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMidThreshold + HeatScaleOffset, 0, 0, 1, 1 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMaxThreshold + HeatScaleOffset, 0, 1, 1, 1 );
       if ( m_bHeatScaleClearHigh )
@@ -741,13 +741,13 @@ void LayerPropertyMRI::OnColorMapChanged ()
     {
       if ( has_mask )
       {
-        mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset - tiny_fraction, 0, 0, 0, 0 );
+        mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold - qAbs(HeatScaleOffset) - tiny_fraction, 0, 0, 0, 0 );
       }
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset, 0, 1, 1, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMidThreshold + HeatScaleOffset, 0, 0, 1, 1 );
-      mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset, 0, 0, 1, 0 );
+      mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset + ((HeatScaleMinThreshold == HeatScaleMidThreshold)?tiny_fraction:0), 0, 0, 1, 0 );
       mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
-      mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset, 1, 0, 0, 0 );
+      mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset - ((HeatScaleMinThreshold == HeatScaleMidThreshold)?tiny_fraction:0), 1, 0, 0, 0 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMidThreshold + HeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMaxThreshold + HeatScaleOffset, 1, 1, 0, 1 );
       if ( m_bHeatScaleClearHigh )
@@ -1132,8 +1132,8 @@ void LayerPropertyMRI::SetHeatScaleAutoMid(bool bAutoMid)
   if (bAutoMid != m_bHeatScaleAutoMid)
   {
     m_bHeatScaleAutoMid = bAutoMid;
-    if (!bAutoMid)
-      m_bHeatScaleSetMidToMin = false;
+//    if (!bAutoMid)
+//      m_bHeatScaleSetMidToMin = false;
     if (bAutoMid)
     {
       if (m_bHeatScaleSetMidToMin)
@@ -1177,13 +1177,10 @@ void LayerPropertyMRI::SetHeatScaleMinThreshold( double iValue)
       mHeatScaleMinThreshold = iValue;
     }
   }
-  if (m_bHeatScaleAutoMid)
-  {
-    if (m_bHeatScaleSetMidToMin)
+  if (m_bHeatScaleSetMidToMin)
       mHeatScaleMidThreshold = mHeatScaleMinThreshold;
-    else
+  else if (m_bHeatScaleAutoMid)
       mHeatScaleMidThreshold = (mHeatScaleMinThreshold + mHeatScaleMaxThreshold)/2;
-  }
   this->OnColorMapChanged();
 }
 

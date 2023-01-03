@@ -463,7 +463,7 @@ int main(int argc, char *argv[]) {
 	    if( (ZeroColEdges &&   (c == 0 || c == InVol->width-1))  ||
 		(ZeroRowEdges &&   (r == 0 || r == InVol->height-1)) ||
 		(ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
-	      MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
 	      continue;
 	    }
 	    

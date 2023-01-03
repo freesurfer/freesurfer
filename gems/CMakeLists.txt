@@ -22,6 +22,7 @@ option(GEMS_BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF)
 option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
 option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
 option(GEMS_CROSS_THREAD_REPRODUCIBLE "Enable complete reproducibility" OFF)
+option(GEMS_USE_STATIC_ARRAY "Use array in TetrahedronInteriorConstIterator class" ON)
 
 set(GEMS_RUNTIME_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
@@ -32,6 +33,19 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 
 add_compile_options(-Wno-inconsistent-missing-override -Wno-self-assign-field)
+
+# to set additional debug cxxflags:
+#   export GEMS_DEBUG_CXXFLAG="-DGEMS_DEBUG_RASTERIZE_VOXEL_COUNT"
+#   touch CMakeLists.txt to trigger re-configuration
+if(DEFINED ENV{GEMS_DEBUG_CXXFLAG})
+  message(WARNING "additional gems debug cxxflags: $ENV{GEMS_DEBUG_CXXFLAG}")
+  add_compile_options($ENV{GEMS_DEBUG_CXXFLAG})
+endif()
+
+if(GEMS_USE_STATIC_ARRAY)
+  message(WARNING "compiling kvlGEMSCommon libraries with options -DUSING_STATIC_ARRAY -DMAX_LOADINGS=100")
+  add_definitions(-DUSING_STATIC_ARRAY -DMAX_LOADINGS=100)
+endif()
 
 # PW 2022/02/25: No longer nessesary since we are now building 2 versions of 
 #                the library:
@@ -81,7 +95,12 @@ set(SOURCES
   kvlAtlasMeshSmoother.cxx
   kvlAtlasMeshStatisticsCollector.cxx
   kvlAtlasMeshSummaryDrawer.cxx
+  kvlAtlasMeshToIntensityImageCostAndGradientCalculatorBase.cxx
   kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToIntensityImageLogDomainCostAndGradientCalculator.cxx
+  kvlAtlasMeshToWishartGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator.cxx
   kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
   kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
   kvlAtlasMeshVisitCounter.cxx
@@ -118,7 +137,12 @@ set(SOURCES_DYN
   kvlAtlasMeshSmoother.cxx
   kvlAtlasMeshStatisticsCollector.cxx
   kvlAtlasMeshSummaryDrawer.cxx
+  kvlAtlasMeshToIntensityImageCostAndGradientCalculatorBase.cxx
+  kvlAtlasMeshToWishartGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator.cxx
   kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToIntensityImageLogDomainCostAndGradientCalculator.cxx
   kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
   kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
   kvlAtlasMeshVisitCounter.cxx

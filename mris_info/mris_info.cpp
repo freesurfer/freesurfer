@@ -84,6 +84,7 @@ int  edgenox = -1;
 int CountIntersections = 0;
 char *patchname=NULL;
 const char *mtxfmt = NULL;
+int gifti_disp_image = 1;
 
 int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf);
 int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname);
@@ -138,7 +139,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Check whether it's a Gifti file. If so, just dump gifti struct
-  if (!stricmp(FileNameExtension(surffile, ext), (char*)"gii")) {
+  if (!stricmp(FileNameExtension(surffile, ext), (char*)"gii") && gifti_disp_image) {
 
     gifti_image* image = gifti_read_image (surffile, 1);
     if (NULL == image)
@@ -355,11 +356,14 @@ int main(int argc, char *argv[]) {
   if (mris->group_avg_surface_area > 0) {
     cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
   }
-  cout << "ctr         : (" << mris->xctr 
+  cout << "ctr                     : (" << mris->xctr 
        << ", " << mris->yctr 
        << ", " << mris->zctr 
        << ")" << endl;
-  cout << "vertex locs : " 
+  cout << "original vertex space   : " 
+       << (mris->orig_xyzspace ? "scannerRAS" : "surfaceRAS") << endl;
+  cout << "vertex locs " 
+       << ((mris->useRealRAS != mris->orig_xyzspace) ? "(converted) : " : "            : ")
        << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
   if (mris->lta) {
     cout << "talairch.xfm: " << endl;
@@ -457,6 +461,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--tal"))   talairach_flag = 1;
     else if (!strcasecmp(option, "--t"))   talairach_flag = 1;
     else if (!strcasecmp(option, "--r"))   rescale = 1;
+    else if (!strcasecmp(option, "--nogifti-disp-image")) gifti_disp_image = 0;
     else if ( !strcmp(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
@@ -633,6 +638,7 @@ static void print_usage(void) {
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
+  printf("  --nogifti-disp-image: no dump of GIFTI struct, read .gii as surface instead\n");
   printf("\n");
 }
 

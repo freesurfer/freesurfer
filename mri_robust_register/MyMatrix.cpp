@@ -1801,7 +1801,7 @@ void MyMatrix::SchurComplex(const vnl_matrix<double> & M,
 /**
   Computes mean of rotation matrices 
   */
-vnl_matrix_fixed < double, 3, 3> MyMatrix::RotationMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm)
+vnl_matrix_fixed < double, 3, 3> MyMatrix::RotationMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm, double frobnormthresh)
 {
   assert(vm.size() > 0);
 
@@ -1816,9 +1816,10 @@ vnl_matrix_fixed < double, 3, 3> MyMatrix::RotationMean(const std::vector < vnl_
     if ( fn > maxnorm) maxnorm = fn;
   }
   std::cout << "Input rotation's max deviation from rotation is: " << maxnorm << std::endl;
-  if (maxnorm > 0.0001) 
+  if (maxnorm > frobnormthresh)
   {
     std::cerr << " MyMatrix::RotationMean input(s) not rotation" << std::endl;
+    std::cout << " The threshold is: " << frobnormthresh << ". This can be adjusted using --frobnorm-thresh <>." << std::endl;
     exit(1);
   }
 

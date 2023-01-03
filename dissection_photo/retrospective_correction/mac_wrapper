@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+$FREESURFER_HOME/bin/retrospective_correction.app/Contents/MacOS/retrospective_correction "$@"
+exit $?

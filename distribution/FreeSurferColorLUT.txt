@@ -34,7 +34,7 @@
 30  Left-vessel                             160 32  240 0
 31  Left-choroid-plexus                     0   200 200 0
 32  Left-F3orb                              100 50  100 0
-33  Left-lOg                                135 50  74  0
+33  Left-WMCrowns                           135 50  74  0
 34  Left-aOg                                122 135 50  0
 35  Left-mOg                                51  50  135 0
 36  Left-pOg                                74  155 60  0
@@ -67,7 +67,7 @@
 63  Right-choroid-plexus                    0   200 221 0
 64  Right-F3orb                             100 50  100 0
 65  Right-lOg                               135 50  74  0
-66  Right-aOg                               122 135 50  0
+66  Right-WMCrowns                          122 135 50  0
 67  Right-mOg                               51  50  135 0
 68  Right-pOg                               74  155 60  0
 69  Right-Stellate                          120 62  43  0
@@ -77,6 +77,9 @@
 73  Left-Interior                           122 135 50  0
 74  Right-Interior                          122 135 50  0
 # 75/76 removed. duplicates of 4/43
+# new 75/76 added 
+75  Left-Locus-Coeruleus                    91  97  255 0
+76  Right-Locus-Coeruleus                   0   7   218 0  
 77  WM-hypointensities                      200 70  255 0
 78  Left-WM-hypointensities                 255 148 10  0
 79  Right-WM-hypointensities                255 148 10  0
@@ -229,6 +232,7 @@
 227 Polymorphic-Layer                       128 255 128 0
 228 Intracellular-Space                     204 153 204 0
 229 molecular_layer_DG                      168 0   0   0
+230 Prosubiculum                            252 132 8   0
 
 231 HP_body                                 0 255 0 0
 232 HP_head                                 255 0 0 0
@@ -461,6 +465,23 @@
 808 R_hypothalamus_posterior                255 160 0   0
 809 R_hypothalamus_tubular_inferior         255 160 200 0
 810 R_hypothalamus_tubular_superior         20  180 130 0
+
+# SAMSEG-CHARM + 400
+901       Air-Internal                     0 170 0 0 
+902       Artery                           204 0 0 255 
+906       EyeBalls                         230 189 66 255 
+907       Other-Tissues                    250 250 51 255 
+908       Rectus-Muscles                   190 50 73 255
+909       Mucosa                           255 160 188 255 
+911       Skin                             190 156 120 255
+912       Charm-Spinal-Cord                  0 187 169 255 
+914       Vein                             0 84 255 255 
+915       Bone-Cortical                    238 215 150 255 
+916       Bone-Cancellous                  237 199 154 255  
+917       Charm-Background                 0 168 255 255 
+920       Cortical-CSF                     120 133 217 255 
+930       Optic-Nerve                      0 191 122 255 
+
 
 999 SUSPICIOUS                              255 100 100 0
 
@@ -1163,14 +1184,16 @@
 7203  PAG                                               153 153 255 0
 7204  VTA                                               255 0   255 0
 
-7301  Left-LC                                           0   0   255 0
+# replaced by 75
+#7301  Left-LC                                          0   0   255 0
 7302  Left-LDTg                                         255 127 0   0
 7303  Left-mRt                                          255 0   0   0
 7304  Left-PBC                                          255 255 0   0
 7305  Left-PnO                                          0   127 255 0
 7306  Left-PTg                                          127 0   255 0
 
-7401  Right-LC                                          0   0   255 0
+# replaced by 76
+#7401  Right-LC                                         0   0   255 0
 7402  Right-LDTg                                        255 127 0   0
 7403  Right-mRt                                         255 0   0   0
 7404  Right-PBC                                         255 255 0   0

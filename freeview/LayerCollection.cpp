@@ -635,13 +635,6 @@ bool LayerCollection::SetSlicePosition( double* slicePos )
   return true;
 }
 
-bool LayerCollection::SetSlicePosition( int nPlane, int nSliceNumber )
-{
-  Q_UNUSED(nPlane);
-  Q_UNUSED(nSliceNumber);
-  return true;
-}
-
 double* LayerCollection::GetSlicePosition()
 {
   return m_dSlicePosition;

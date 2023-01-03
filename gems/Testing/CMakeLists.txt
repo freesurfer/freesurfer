@@ -10,8 +10,12 @@ target_link_libraries(kvlAtlasMeshRasterizorTestGPU kvlGEMSCommon)
 
 #
 add_executable(testdeformMeshPython testdeformMeshPython.cxx)
-add_definitions(-DUSE_DYNAMIC_MESH)
-target_link_libraries(testdeformMeshPython kvlGEMSCommon_dynmesh)
+target_link_libraries(testdeformMeshPython kvlGEMSCommon)
+
+#
+add_executable(testdeformMeshPython.dynmesh testdeformMeshPython.cxx)
+target_compile_definitions(testdeformMeshPython.dynmesh PRIVATE -DUSE_DYNAMIC_MESH)
+target_link_libraries(testdeformMeshPython.dynmesh kvlGEMSCommon_dynmesh)
 
 # boost tests
 if(Boost_FOUND)
@@ -22,7 +26,6 @@ if(Boost_FOUND)
   list(APPEND testsrcs atlasmeshalphadrawercpuwrapper.cpp)
   list(APPEND testsrcs testatlasmeshvisitcounter.cpp)
   list(APPEND testsrcs testatlasmeshalphadrawer.cpp)
-  list(APPEND testsrcs testdimensioncuda.cpp)
   list(APPEND testsrcs teststopwatch.cpp)
 
   list(APPEND testsrcs imageutils.cpp)
@@ -32,6 +35,7 @@ if(Boost_FOUND)
     list(APPEND testsrcs cudaglobalfixture.cpp)
     list(APPEND testsrcs cudaimagetests.cu)
     list(APPEND testsrcs testcudatetrahedralmesh.cpp)
+    list(APPEND testsrcs testdimensioncuda.cpp)
     list(APPEND GEMS2libs kvlGEMSCUDA)
     cuda_add_executable( TestGEMS2 ${testsrcs} ${cudatestsrcs})
   else()

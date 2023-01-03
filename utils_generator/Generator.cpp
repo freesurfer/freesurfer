@@ -2022,6 +2022,7 @@ namespace Representations {
 		addProp(t_PR_float,					"dz2");
 			howPop();
 		addProp(t_PCOLOR_TABLE,				"ct");
+		addProp(t_int,						"orig_xyzspace",       "xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space");
 		addProp(t_int,						"useRealRAS",					"if 0 (default), vertex position is a conformed volume RAS with c_(r,\"a\",\"s\")=0.  "
 																				"else is a real RAS (volume stored RAS)");
 		addProp(t_VOL_GEOM,					"vg",							"volume info from which this surface is created. valid iff vg.valid = 1");

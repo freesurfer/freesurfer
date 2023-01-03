@@ -1069,6 +1069,50 @@ color: gray;</string>
    </slots>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>comboBoxOverlayList</tabstop>
+  <tabstop>sliderFrame</tabstop>
+  <tabstop>spinBoxFrame</tabstop>
+  <tabstop>checkBoxAutoFrame</tabstop>
+  <tabstop>checkBoxComputeCorrelation</tabstop>
+  <tabstop>comboBoxVolumes</tabstop>
+  <tabstop>sliderOpacity</tabstop>
+  <tabstop>doubleSpinBoxOpacity</tabstop>
+  <tabstop>checkBoxEnableSmooth</tabstop>
+  <tabstop>spinBoxSmoothSteps</tabstop>
+  <tabstop>radioButtonHeat</tabstop>
+  <tabstop>radioButtonColorWheel</tabstop>
+  <tabstop>radioButtonCustom</tabstop>
+  <tabstop>checkBoxTruncate</tabstop>
+  <tabstop>checkBoxInverse</tabstop>
+  <tabstop>checkBoxClearLower</tabstop>
+  <tabstop>checkBoxClearHigher</tabstop>
+  <tabstop>pushButtonFlip</tabstop>
+  <tabstop>pushButtonSaveCustom</tabstop>
+  <tabstop>pushButtonLoadCustom</tabstop>
+  <tabstop>comboBoxMask</tabstop>
+  <tabstop>checkBoxMaskInverse</tabstop>
+  <tabstop>lineEditMin</tabstop>
+  <tabstop>lineEditMid</tabstop>
+  <tabstop>lineEditMax</tabstop>
+  <tabstop>lineEditOffset</tabstop>
+  <tabstop>lineEditNewPoint</tabstop>
+  <tabstop>pushButtonAdd</tabstop>
+  <tabstop>checkBoxUsePercentile</tabstop>
+  <tabstop>checkBoxUseNonZeroVertices</tabstop>
+  <tabstop>checkBoxFixedXAxis</tabstop>
+  <tabstop>checkBoxFixedYAxis</tabstop>
+  <tabstop>radioButtonLinear</tabstop>
+  <tabstop>radioButtonLinearOpaque</tabstop>
+  <tabstop>radioButtonPiecewise</tabstop>
+  <tabstop>checkBoxMidToMin</tabstop>
+  <tabstop>checkBoxApplyToAll</tabstop>
+  <tabstop>checkBoxAutoApply</tabstop>
+  <tabstop>pushButtonHelp</tabstop>
+  <tabstop>pushButtonScreenshot</tabstop>
+  <tabstop>pushButtonApply</tabstop>
+  <tabstop>pushButtonCancel</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
@@ -1078,8 +1122,8 @@ color: gray;</string>
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>238</x>
-     <y>264</y>
+     <x>260</x>
+     <y>259</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1110,8 +1154,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>103</x>
-     <y>374</y>
+     <x>106</x>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1126,8 +1170,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>374</y>
+     <x>221</x>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1142,8 +1186,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>94</x>
-     <y>344</y>
+     <x>106</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1158,8 +1202,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>197</x>
-     <y>344</y>
+     <x>221</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1174,8 +1218,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1190,12 +1234,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>197</x>
-     <y>344</y>
+     <x>221</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>103</x>
-     <y>374</y>
+     <x>106</x>
+     <y>371</y>
     </hint>
    </hints>
   </connection>
@@ -1206,12 +1250,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>103</x>
-     <y>374</y>
+     <x>106</x>
+     <y>371</y>
     </hint>
    </hints>
   </connection>
@@ -1222,8 +1266,8 @@ color: gray;</string>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>197</x>
-     <y>344</y>
+     <x>221</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1238,8 +1282,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>101</x>
-     <y>778</y>
+     <x>100</x>
+     <y>795</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -1286,8 +1330,8 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>197</x>
-     <y>344</y>
+     <x>221</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>114</x>
@@ -1302,8 +1346,8 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>485</x>
@@ -1318,8 +1362,8 @@ color: gray;</string>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1334,8 +1378,8 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>596</x>
@@ -1350,8 +1394,8 @@ color: gray;</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>476</x>
@@ -1382,12 +1426,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>206</x>
-     <y>374</y>
+     <x>221</x>
+     <y>371</y>
     </hint>
    </hints>
   </connection>
@@ -1398,12 +1442,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>258</x>
-     <y>374</y>
+     <x>333</x>
+     <y>371</y>
     </hint>
    </hints>
   </connection>
@@ -1414,12 +1458,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>524</x>
-     <y>374</y>
+     <x>531</x>
+     <y>371</y>
     </hint>
    </hints>
   </connection>
@@ -1430,8 +1474,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>258</x>
-     <y>374</y>
+     <x>333</x>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1446,8 +1490,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>524</x>
-     <y>374</y>
+     <x>531</x>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1462,12 +1506,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>366</x>
-     <y>351</y>
+     <x>399</x>
+     <y>342</y>
     </hint>
    </hints>
   </connection>
@@ -1478,8 +1522,8 @@ color: gray;</string>
    <slot>FlipMarkers()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>366</x>
-     <y>351</y>
+     <x>399</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>376</x>
@@ -1558,8 +1602,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>252</x>
-     <y>607</y>
+     <x>257</x>
+     <y>632</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1574,8 +1618,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>408</x>
-     <y>607</y>
+     <x>410</x>
+     <y>632</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1590,8 +1634,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>553</x>
-     <y>607</y>
+     <x>547</x>
+     <y>632</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1610,8 +1654,8 @@ color: gray;</string>
      <y>778</y>
     </hint>
     <hint type="destinationlabel">
-     <x>408</x>
-     <y>607</y>
+     <x>410</x>
+     <y>632</y>
     </hint>
    </hints>
   </connection>
@@ -1674,8 +1718,8 @@ color: gray;</string>
      <y>179</y>
     </hint>
     <hint type="destinationlabel">
-     <x>486</x>
-     <y>197</y>
+     <x>511</x>
+     <y>189</y>
     </hint>
    </hints>
   </connection>
@@ -1702,8 +1746,8 @@ color: gray;</string>
    <slot>OnComboCorrelationVolume(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>486</x>
-     <y>197</y>
+     <x>511</x>
+     <y>189</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1718,8 +1762,8 @@ color: gray;</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>237</x>
-     <y>723</y>
+     <x>215</x>
+     <y>733</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1734,8 +1778,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>408</x>
-     <y>638</y>
+     <x>410</x>
+     <y>663</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -1750,8 +1794,8 @@ color: gray;</string>
    <slot>OnCustomColorScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -1766,8 +1810,8 @@ color: gray;</string>
    <slot>OnComboMask(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>668</x>
-     <y>353</y>
+     <x>671</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>590</x>
@@ -1782,8 +1826,8 @@ color: gray;</string>
    <slot>OnCheckInverseMask(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>674</x>
-     <y>376</y>
+     <x>671</x>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>590</x>
@@ -1798,8 +1842,8 @@ color: gray;</string>
    <slot>OnCheckUseNonZeroVertices(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>382</x>
-     <y>723</y>
+     <x>381</x>
+     <y>733</y>
     </hint>
     <hint type="destinationlabel">
      <x>595</x>
@@ -1830,12 +1874,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>344</y>
+     <x>333</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
-     <x>440</x>
-     <y>351</y>
+     <x>465</x>
+     <y>342</y>
     </hint>
    </hints>
   </connection>
@@ -1862,12 +1906,12 @@ color: gray;</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>277</x>
-     <y>768</y>
+     <x>330</x>
+     <y>795</y>
     </hint>
     <hint type="destinationlabel">
-     <x>384</x>
-     <y>770</y>
+     <x>491</x>
+     <y>795</y>
     </hint>
    </hints>
   </connection>

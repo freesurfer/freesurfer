@@ -1065,7 +1065,7 @@
     <string>Show Cursor</string>
    </property>
    <property name="shortcut">
-    <string>Alt+U</string>
+    <string>Alt+1</string>
    </property>
   </action>
   <action name="actionToggleVoxelCoordinateDisplay">
@@ -1855,6 +1855,14 @@
    </property>
    <property name="text">
     <string>Neurological View</string>
+   </property>
+  </action>
+  <action name="actionLockOthers">
+   <property name="text">
+    <string>Lock Others</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+O</string>
    </property>
   </action>
  </widget>

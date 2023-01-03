@@ -1,7 +1,11 @@
 # ANN Find Module
 
 if(NOT ANN_DIR)
-  set(ANN_DIR ${FS_PACKAGES_DIR}/ann/1.1.2)
+  if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+    set(ANN_DIR ${FS_PACKAGES_DIR}/ann/1.1.2_ubuntu20)
+  else()
+    set(ANN_DIR ${FS_PACKAGES_DIR}/ann/1.1.2)
+  endif()
 endif()
 
 find_path(ANN_INCLUDE_DIR HINTS ${ANN_DIR} NAMES ANN PATH_SUFFIXES include)

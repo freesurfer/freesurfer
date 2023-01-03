@@ -15,9 +15,20 @@ namespace kvl
 AtlasMeshToIntensityImageCostAndGradientCalculator
 ::AtlasMeshToIntensityImageCostAndGradientCalculator()
 {
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  m_tetrahedronCnt = 0;
+  m_zeroVoxel_tetrahedronCnt = 0;
 
-  m_LikelihoodFilter = LikelihoodFilterType::New();  
-  
+  m_totalVoxel = 0;
+  m_totalVoxelInTetrahedron = 0;
+#endif
+  /* 
+   * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
+   * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
+   */ 
+
+  m_LikelihoodFilter = gmmLikelihoodFilterType::New();
+
 }
 
 
@@ -27,23 +38,6 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
 AtlasMeshToIntensityImageCostAndGradientCalculator
 ::~AtlasMeshToIntensityImageCostAndGradientCalculator()
 {
-}
-
-
-
-//
-//
-//
-void 
-AtlasMeshToIntensityImageCostAndGradientCalculator
-::SetImages( const std::vector< ImageType::ConstPointer >& images )
-{
-  // 
-  for ( int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
-    {
-    m_LikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ] );
-    }
-
 }
 
 
@@ -57,30 +51,18 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
                  const std::vector< double >&  mixtureWeights,
                  const std::vector< int >&  numberOfGaussiansPerClass )
 {
-  m_LikelihoodFilter->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
+   /* 
+    * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
+    * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
+    * 3. dynamic_case m_LikelihoodFilter to GMMLikelihoodImageFilter, so it can call derived class method SetParameters()
+    */ 
+    dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
+            ->SetParameters( means,
+                             variances,
+                             mixtureWeights,
+                             numberOfGaussiansPerClass );
 }
 
-
-//
-//
-//
-void
-AtlasMeshToIntensityImageCostAndGradientCalculator
-::Rasterize( const AtlasMesh* mesh )
-{
-
-  // Make sure the likelihoods are up-to-date
-  //m_LikelihoodFilter->SetNumberOfThreads( 1 );
-  m_LikelihoodFilter->Update();
-  
-  // Now rasterize
-  Superclass::Rasterize( mesh );
-  
-}    
-  
-    
-  
- 
 
 //
 //
@@ -102,19 +84,29 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
                                     AtlasPositionGradientThreadAccumType&  gradientInVertex3 )
 {
   
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  int voxelCnt = 0;
+  m_tetrahedronCnt++;
+#endif
   // Loop over all voxels within the tetrahedron and do The Right Thing  
   const int  numberOfClasses = alphasInVertex0.Size();
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
-    it.AddExtraLoading( alphasInVertex0[ classNumber ], 
-                        alphasInVertex1[ classNumber ], 
-                        alphasInVertex2[ classNumber ], 
-                        alphasInVertex3[ classNumber ] );
+      if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+        it.AddExtraLoading( alphasInVertex0[ classNumber ], 
+                            alphasInVertex1[ classNumber ], 
+                            alphasInVertex2[ classNumber ], 
+                            alphasInVertex3[ classNumber ] );
     }  
     
   for ( ; !it.IsAtEnd(); ++it )
     {
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    voxelCnt++;
+    it.m_totalVoxelInTetrahedron++;
+#endif
+
     // Skip voxels for which nothing is known
     if ( it.Value().Size() == 0 )
       {
@@ -127,18 +119,24 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     double  xGradientBasis = 0.0;
     double  yGradientBasis = 0.0;
     double  zGradientBasis = 0.0;
+    int classIdx = 0; 
     for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
-      // Get the Gaussian mixture model likelihood of this class at the intensity of this pixel
-      const double mixture = it.Value()[ classNumber ];
+      if (alphasInVertex0[ classNumber ] != 0 || alphasInVertex1[ classNumber ] != 0 || alphasInVertex2[ classNumber ] != 0 || alphasInVertex3[ classNumber ] != 0)
+	{
+        // Get the Gaussian mixture model likelihood of this class at the intensity of this pixel
+        const double mixture = it.Value()[ classNumber ];
         
-      // Add contribution of the likelihood
-      likelihood += mixture * it.GetExtraLoadingInterpolatedValue( classNumber );
+        // Add contribution of the likelihood
+        likelihood += mixture * it.GetExtraLoadingInterpolatedValue( classIdx );
       
-      //
-      xGradientBasis += mixture * it.GetExtraLoadingNextRowAddition( classNumber );
-      yGradientBasis += mixture * it.GetExtraLoadingNextColumnAddition( classNumber );
-      zGradientBasis += mixture * it.GetExtraLoadingNextSliceAddition( classNumber );
+        //
+        xGradientBasis += mixture * it.GetExtraLoadingNextRowAddition( classIdx );
+        yGradientBasis += mixture * it.GetExtraLoadingNextColumnAddition( classIdx );
+        zGradientBasis += mixture * it.GetExtraLoadingNextSliceAddition( classIdx );
+
+        classIdx++;
+	}
       } // End loop over all classes
       
       
@@ -175,9 +173,34 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     
     } // End loop over all voxels within the tetrahedron
 
-  
+
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  if (voxelCnt == 0)
+    m_zeroVoxel_tetrahedronCnt++;
+
+  printf("[DEBUG] Iter #%2d, Rasterize #%2d, Tetrahedron #%8d: totalVoxel = %4d, InTetrahedron = %4d, %6.2f\%\n",
+         m_Iterations, m_RasterizeCalls,
+         m_tetrahedronCnt, it.m_totalVoxel, it.m_totalVoxelInTetrahedron, 
+         (it.m_totalVoxel == 0) ? 0.0 : (double)it.m_totalVoxelInTetrahedron/it.m_totalVoxel*100);
+
+  if (it.m_totalVoxel < it.m_totalVoxelInTetrahedron)
+    printf("[DEBUG] ###### In Tetrahedron Voxel Count Error: Iter #%2d, Rasterize #%2d, Tetrahedron #%8d: totalVoxel = %4d, InTetrahedron = %4d, %6.2f\%\n",
+           m_Iterations, m_RasterizeCalls,
+           m_tetrahedronCnt, it.m_totalVoxel, it.m_totalVoxelInTetrahedron, 
+           (it.m_totalVoxel == 0) ? 0.0 : (double)it.m_totalVoxelInTetrahedron/it.m_totalVoxel*100);
+
+  if (voxelCnt == 0 && !(it.m_totalVoxel == 0 || it.m_totalVoxelInTetrahedron == 0))
+  {
+    printf("[DEBUG] ###### Voxel Zero Count Error: Iter #%2d, Rasterize #%2d, Tetrahedron #%8d: totalVoxel = %4d, InTetrahedron = %4d\n",
+           m_Iterations, m_RasterizeCalls,
+           m_tetrahedronCnt, it.m_totalVoxel, it.m_totalVoxelInTetrahedron); 
+  }
+
+  m_totalVoxel += it.m_totalVoxel;
+  m_totalVoxelInTetrahedron += it.m_totalVoxelInTetrahedron;
+  it.m_totalVoxel = 0;
+  it.m_totalVoxelInTetrahedron = 0;
+#endif  
 }
-
-
 
 } // end namespace kvl

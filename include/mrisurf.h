@@ -20,13 +20,15 @@
  *
  */
 
-
+/* To find the VERTEX and FACE classes, see mrisurf_FACE_VERTEX_MRIS_generated.h*/
 
 #include "mrisurf_aaa.h"
 
 #include "minc_volume_io.h"
 #include "label.h"
 #include "mrishash.h"
+#include "json.h"
+using json = nlohmann::json;
 
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
@@ -255,6 +257,43 @@ MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 /* VECTORIAL_REGISTRATION */
 #include "field_code.h"
 
+
+#include "dtk.fs.h"
+class SurfacePointSet {
+public:
+  MRIS *surf;
+  json *pPointSet;
+  int m_nhops=2;
+  int m_fill_holes = 1;
+  int m_prune_by_angle = 1;
+  double AngleDegThresh = 60; // prune points where vector relative to normal is more than this (abs)
+  int m_prune_by_dist = 1;
+  double DistMmThresh = 1; // prune points when vertex is within this dist of the target
+  int m_debug = 0;
+  FILE *m_debug_fp = stdout;
+  MRI *mri = NULL; // template from surf
+  std::vector<SURFHOPLIST *> m_shl;
+  std::vector<int> m_shl_vtxlist;
+  std::vector<int> psvtxlist; // vertices that map from the point set
+  std::vector<int> vtxlist; // all vertices
+  std::vector<int> npervtxlist; // number of target points that map to each vertex
+  std::vector<std::vector<double>> txyzlist; // target coords for all vertices
+  std::vector<std::vector<double>> dxyz; // delta from vertex to target
+  std::vector<double> angle; // angle between surface normal and vector to target
+  std::vector<double> dist; // dist from vertex to its target
+  int MapPointSet(void);
+  fsPointSet ConvertToPointSet(void); // for debugging, per-vertex, tkreg
+  fsPointSet VerticesToPointSet(void); // for debugging, per-vertex, tkreg
+  int Print(FILE *fp);
+  MRI *MakeMask(void);
+  double CostAndGrad(double weight, int ComputeGradient);
+  DTK_TRACK_SET *ConvertToTrack(int nsteps);
+  int WriteAsPatch(const char *fname,int ndil);
+  int PruneByAngle(void);
+  int PruneByDistance(void);
+  ~SurfacePointSet();
+};
+
 class INTEGRATION_PARMS {
  public:
   double  tol ;               /* tolerance for terminating a step */
@@ -293,6 +332,7 @@ class INTEGRATION_PARMS {
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
   float   l_location ;        // target location term
+  float   l_targetpointset ;  // target pointset location term
   float   l_neg ;
   float   l_intensity ;       /* for settling surface at a specified val */
   float   l_sphere ;          /* for expanding the surface to a sphere */
@@ -444,6 +484,7 @@ class INTEGRATION_PARMS {
   double       target_intensity ;
   double       stressthresh ;
   int          explode_flag ;
+  SurfacePointSet  *TargetPointSet;
   
   /*
     Introduce all initializers in an effort to avoid some memset() calls
@@ -460,7 +501,7 @@ class INTEGRATION_PARMS {
       l_link(0), l_spring(0), l_nlspring(0), l_max_spring(0),
       l_spring_norm(0), l_tspring(0), l_nltspring(0), l_nspring(0),
       l_spring_nzr(0), l_spring_nzr_len(0), l_hinge(0), l_repulse(0),
-      l_repulse_ratio(0), l_boundary(0), l_dist(0), l_location(0),
+      l_repulse_ratio(0), l_boundary(0), l_dist(0), l_location(0), l_targetpointset(0),
       l_neg(0), l_intensity(0), l_sphere(0), l_expand(0), l_grad(0),
       l_convex(0), l_tsmooth(0), l_surf_repulse(0), l_osurf_repulse(0),
       l_external(0), l_thick_parallel(0), l_thick_min(0), l_shrinkwrap(0),
@@ -2539,3 +2580,4 @@ public:
   int Read(char *fname); // from file name
   int ReadStream(FILE *fp); // read from stream
 };
+

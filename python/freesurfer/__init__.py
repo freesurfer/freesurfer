@@ -13,8 +13,8 @@
 
 # Let's only allow import on the martinos network, otherwise throw an error.
 import os
-if not os.path.exists('/autofs/space/freesurfer/python'):
-    raise ImportError('The freesurfer package has been deprecated in favor of surfa')
+#if not os.path.exists('/autofs/space/freesurfer/python'):
+#    raise ImportError('The freesurfer package has been deprecated in favor of surfa')
 
 import warnings
 

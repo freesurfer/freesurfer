@@ -344,7 +344,7 @@ def predict(path_images,
     else:
         print('\nIf you use this tool in a publication, please cite:')
         print('SynthSeg: domain randomisation for segmentation of brain MRI scans of any contrast and resolution')
-        print('B. Billot, D.N. Greeve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
+        print('B. Billot, D.N. Greve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
 
     if len(list_errors) > 0:
         print('\nERROR: some problems occured for the following inputs (see corresponding errors above):')
@@ -1532,7 +1532,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     if var is None:
         return None
     var = load_array_if_path(var, load_as_numpy=load_as_numpy)
-    if isinstance(var, (int, float, np.int, np.int32, np.int64, np.float, np.float32, np.float64)):
+    if isinstance(var, (int, float, np.int8, np.int16, np.int32, np.int64, np.float16, np.float32, np.float64, np.float128)):
         var = [var]
     elif isinstance(var, tuple):
         var = list(var)

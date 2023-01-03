@@ -201,6 +201,7 @@ add_library(utils STATIC
   svm.cpp
   tags.cpp
   talairachex.cpp
+  targetpointset.cpp
   timer.cpp
   transform.cpp
   tritri.cpp

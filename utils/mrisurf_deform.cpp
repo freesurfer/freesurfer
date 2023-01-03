@@ -1890,6 +1890,8 @@ int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 
   mrisComputeTargetLocationTerm(mris, parms->l_location, parms);
+  //MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet,1);
+  parms->TargetPointSet->CostAndGrad(parms->l_targetpointset,1);
   mrisComputeIntensityTerm(mris, parms->l_intensity, mri_brain, mri_brain, parms->sigma, parms);
   mrisComputeDuraTerm(mris, parms->l_dura, parms->mri_dura, parms->dura_thresh);
   mrisComputeIntensityGradientTerm(mris, parms->l_grad, mri_brain, mri_brain);

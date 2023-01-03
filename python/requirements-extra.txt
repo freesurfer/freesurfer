@@ -2,16 +2,27 @@
 tensorflow
 h5py
 torch
+opencv-python
+trimesh
 
-# these are also required for FS DL utilities, but we need some features
-# that haven't quite made it into the stable releases yet - this should be
-# updated once they do
-git+https://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c
-git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
-git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
+
+# Extra packages required for DL utilities which need features that have not
+# made it into the releases yet. Install these based on their latest commits.
+# FOR RELEASE: set this to the git hash in the log of the nightly build tested!
+
+# git+https://github.com/adalca/pystrum.git@85524897a10a4a995fb7bf985dada35a5dba17d3
+pystrum @ git+https://github.com/adalca/pystrum.git@master
+
+# git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
+neurite @ git+https://github.com/adalca/neurite.git@dev
+
+# git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
+voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
+
 
 # extra packages required for QA tools
 pandas
 matplotlib
 transforms3d
 scikit-image
+

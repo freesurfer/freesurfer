@@ -40,12 +40,26 @@ bool AtlasMeshValueDrawer::RasterizeTetrahedron(const AtlasMesh* mesh, AtlasMesh
 
   // ----
   TetrahedronInteriorIterator<ImageType::PixelType> it(m_Image, p0, p1, p2, p3);
-  for (int f = 0; f < m_NumFrames; f++) it.AddExtraLoading(valuesInVertex0[f], valuesInVertex1[f], valuesInVertex2[f], valuesInVertex3[f]);
+  for (int f = 0; f < m_NumFrames; f++) 
+    {
+    if (valuesInVertex0[ f ] != 0 || valuesInVertex1[ f ] != 0 || valuesInVertex2[ f ] != 0 || valuesInVertex3[ f ] != 0)
+      it.AddExtraLoading(valuesInVertex0[f], valuesInVertex1[f], valuesInVertex2[f], valuesInVertex3[f]);
+    }
   
   // ----
   for ( ; !it.IsAtEnd(); ++it ) {
-    it.Value() = AtlasAlphasType(m_NumFrames);  
-    for (int f = 0; f < m_NumFrames; f++) it.Value()[f] = it.GetExtraLoadingInterpolatedValue(f);
+    it.Value() = AtlasAlphasType(m_NumFrames);
+    int fIdx = 0;
+    for (int f = 0; f < m_NumFrames; f++)
+      { 
+      if (valuesInVertex0[ f ] != 0 || valuesInVertex1[ f ] != 0 || valuesInVertex2[ f ] != 0 || valuesInVertex3[ f ] != 0)
+	{
+        it.Value()[f] = it.GetExtraLoadingInterpolatedValue(fIdx);
+        fIdx++;
+	}
+      else
+        it.Value()[f] = 0;
+      }
   }
     
   return true;

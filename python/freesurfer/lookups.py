@@ -1923,7 +1923,8 @@ def nonlateral_aseg_recoder(include_lesions=False):
         "CSF",
         "Left-Lesion",
         "Left-Accumbens-area",
-        "Left-VentralDC"
+        "Left-VentralDC",
+        "Left-Choroid-Plexus"
     ]        
     rlut = RecodingLookupTable()
     source_lut = default()
@@ -1942,7 +1943,7 @@ def nonlateral_aseg_recoder(include_lesions=False):
             name = source_lut[key].name
             if name.startswith('Right-'):
                 name = name.replace('Right-', 'Left-')
-            if (name.find('Vent') >= 0 and name.find('entral') < 0) or name.find('horoid') >= 0:
+            if (name.find('Vent') >= 0 and name.find('entral') < 0):
                 name = 'CSF'
             if name.find('ypoint') >= 0 or name.find('esion') >= 0 or \
                name.find('wmsa') >= 0:
@@ -1955,10 +1956,10 @@ def nonlateral_aseg_recoder(include_lesions=False):
 
         source_key = key
         target_list = rlut.target_lut.search(name)
+
         if len(target_list) == 0:  # not already
             target_key = len(rlut.target_lut)
             rlut.target_lut.add(target_key, name, source_lut[key].color)
-            # print(f'adding key {target_key} : {name}, len now {len(rlut.target_lut)}')
         else:
             target_key = target_list[0]
 

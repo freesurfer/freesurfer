@@ -1903,22 +1903,13 @@ int MRISbbrSurfs(char *subject)
       if(DoGMProjFrac) ProjNormFracThick(&fx, &fy, &fz, lhctx,  n, +GMProjFrac);
       MRISsetXYZ(lhctx,n,fx,fy,fz);
     }
-    if (UseLabel)
-    {
+    if(UseLabel){
       int         vno ;
       MRI_SURFACE *mris ;
       VERTEX      *v ;
       MRI         *mri ;
-
-      if(UseRH) {
-        mris = rhwm ;
-        mri = rhlabel = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
-      }
-      else {
-        mris = lhwm ;
-        mri = lhlabel = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
-      }
-      
+      mris = lhwm ;
+      mri = lhlabel = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
       printf("Setting label mask %d\n",mask_label->n_points);
       MRISclearMarks(mris) ;
       LabelMark(mask_label, mris) ;
@@ -1995,6 +1986,23 @@ int MRISbbrSurfs(char *subject)
       if(DoGMProjFrac) ProjNormFracThick(&fx, &fy, &fz, rhctx,  n, +GMProjFrac);
       MRISsetXYZ(rhctx,n,fx,fy,fz);
     }
+
+    if(UseLabel) {
+      int         vno ;
+      MRI_SURFACE *mris ;
+      VERTEX      *v ;
+      MRI         *mri ;
+      mris = rhwm ;
+      mri = rhlabel = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
+      printf("Setting label mask %d\n",mask_label->n_points);
+      MRISclearMarks(mris) ;
+      LabelMark(mask_label, mris) ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++){
+        v = &mris->vertices[vno] ;
+        MRIsetVoxVal(mri,vno,0,0,0, v->marked);
+      }
+    }
+
     if(UseMask && rhsegmask==NULL){
       sprintf(tmpstr,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
       printf("Reading %s\n",tmpstr);

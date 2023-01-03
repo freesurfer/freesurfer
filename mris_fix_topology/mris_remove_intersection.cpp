@@ -136,6 +136,17 @@ get_option(int argc, char *argv[])
   {
     MRIS *surf = MRISread(argv[2]);
     if(surf==NULL) exit(1);
+    if(argc > 4) {
+      double projdistmm = 0;
+      sscanf(argv[4],"%lf",&projdistmm);
+      printf("Projecting surface %g mm\n",projdistmm);
+      for(int n=0; n < surf->nvertices; n++){
+	VERTEX *v = &(surf->vertices[n]);
+	v->x += projdistmm*v->nx;
+	v->y += projdistmm*v->ny;
+	v->z += projdistmm*v->nz;
+      }
+    }
     mrisMarkIntersections(surf,FillHoles);
     int n, nintersections=0;
     for(n=0; n < surf->nvertices; n++){

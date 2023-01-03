@@ -32,6 +32,9 @@ option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
+option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
+option(PATCH_FSPYTHON "Build subdirs with source using gfortran" OFF)
+
 #  Modern compilers on new platforms often provide many more warnings than older compilers
 #  for example the gcc 7.5.0 compiler warnings about falling through switch statements
 #  without explicit breaks on every case.  This desired fallthrough behavior causes false
@@ -119,13 +122,16 @@ endif()
 # all custom find-modules are stored in the cmake subdir
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+# Use host_os() to get HOST_OS to reference the correct 3rd party package build
+host_os()
+
 # -------- zlib --------
 find_package(ZLIB REQUIRED)
 add_definitions(-DHAVE_ZLIB)
 
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
-  if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu222")
+  if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
      # assume gcc8 tools distribution on Ubuntu 20 which contains its own libquadmath and libgfortran
      find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
@@ -142,15 +148,27 @@ if(NOT APPLE)
   endif()
 endif()
 
+# commented out on 10/2022
 # -------- armadillo --------
-find_package(ARMADILLO)
+# find_package(ARMADILLO)
 
 # -------- petsc --------
 find_package(PETSC)
 
 # -------- itk --------
-set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
+if(NOT ITK_DIR)
+   if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0_centos8_stream CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0_ubuntu20 CACHE PATH "ITK install directory")
+   else()
+      # default for CentOS7, ubuntu18
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
+   endif()
+endif()
+
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
+message(STATUS "For HOST_OS=${HOST_OS} ITK_DIR=${ITK_DIR}")
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -165,6 +183,14 @@ if(APPLE)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
   find_package(OpenMP)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_LIBRARY_SUFFIXES})
+
+  # With added security in MacOS 12.X (Monterey)
+  # and 13.X (Ventura), permissions may be broken under
+  # /usr/local for accessing gfortran/libs via Homebrew. So for
+  # now, turn off build/install of subdirs using gfortran.
+  if(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
+     set(BUILD_FORTRAN OFF)
+  endif()
 else()
   find_package(OpenMP)
 endif()
@@ -201,19 +227,51 @@ if(BUILD_GUIS)
     # in the nvidia drivers, so as a temporary fix, link directly to the nvidia GL library
     list(APPEND CMAKE_PREFIX_PATH "/usr/lib64/nvidia")
   endif()
+
+  # Output from ...
+  # $ cmake --help-policy CMP0072
+  # 
+  # CMake 3.11 and above prefer to choose GLVND libraries.  This policy provides
+  # compatibility with projects that expect the legacy GL library to be used.
+  # The ``OLD`` behavior for this policy is to set ``OpenGL_GL_PREFERENCE`` to
+  # ``LEGACY``.  The ``NEW`` behavior for this policy is to set
+  # ``OpenGL_GL_PREFERENCE`` to ``GLVND``.
+
+  set(OpenGL_GL_PREFERENCE "LEGACY")
+  # set(OpenGL_GL_PREFERENCE "GLVND")
+
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
   endif()
 
   # -------- qt --------
+
+  if(NOT Qt5_DIR)
+     if(HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
+        set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
+     elseif(HOST_OS MATCHES "Ubuntu18" OR HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+        set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_ub18/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
+     else()
+        # default
+        set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
+     endif()
+  endif()
+
   find_package(QT)
+  message(STATUS "For HOST_OS=${HOST_OS} Qt5_DIR=${Qt5_DIR}")
 
 endif()
 
 # -------- vtk --------
-set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
+
+if(NOT VTK_DIR)
+   set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
+endif()
+
 find_package(VTK HINTS ${VTK_DIR})
+message(STATUS "For HOST_OS=${HOST_OS} VTK_DIR=${VTK_DIR}")
+
 if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
   # locate all shared vtk libraries
   if(${VTK_VERSION} LESS 7)
@@ -304,16 +362,22 @@ endif()
 
 add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cmake_install.cmake)
 
+# cmake apparently generates incorrect dependencies/paths
+if(APPLE)
+   if(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
+      add_custom_target(check_macos_depends ALL COMMAND bash ${CMAKE_SOURCE_DIR}/cmake/macos_depends.sh ${CMAKE_SOURCE_DIR})
+   endif()
+endif()
+
 # --------------------------------------------------
 #             freesurfer build settings
 # --------------------------------------------------
 
-host_os()
 # warnings
 if(NOT NO_CXX_WARN)
   if(WARNING_AS_ERROR)
     set(WARN_AS_ERROR_FLAG "-Werror")
-    if(HOST_OS MATCHES "CentOS8")
+    if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
        # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
        # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
        # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
@@ -321,6 +385,8 @@ if(NOT NO_CXX_WARN)
     elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
        # uses gcc8 as well
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    elseif(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-non-c-typedef-for-linkage")
     else ()
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
     endif()
@@ -356,6 +422,9 @@ if(PROFILING)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 endif()
+
+message(STATUS "For HOST_OS=${HOST_OS} CMAKE_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "For HOST_OS=${HOST_OS} CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 # --------------------------------------------------
 #                 build freesurfer
@@ -483,11 +552,17 @@ add_subdirectories(
   mrisp_paint
   python
   samseg
-  scripts
   talairach_afd
-  talairach_avi
+  scripts
   tkregister2
 )
+if(BUILD_FORTRAN)
+  add_subdirectories(
+    talairach_avi
+  )
+else()
+  message(STATUS "For HOST_OS=${HOST_OS} NOT BUILDING talairach subdirs requiring gfortran.")
+endif()
 
 # the following program subdirectories aren't required in the standard recon-all stream.
 # they will be built by default, but not if a minimal build is configured
@@ -497,6 +572,7 @@ if(NOT MINIMAL)
     attic
     BrainstemSS
     diffusion_tool
+    dissection_photo
     dummy
     exvivo
     freeview
@@ -583,6 +659,7 @@ if(NOT MINIMAL)
     mri_strip_subject_info
     mri_surfacemask
     mri_synthesize
+    mri_synthmorph
     mri_threshold
     mri_topologycorrection
     mri_train
@@ -682,6 +759,7 @@ if(NOT MINIMAL)
     mri_synthstrip
     mri_synthseg
     mri_synthsr
+    mri_3d_photo_recon
     swi_processing
     template
     test_makevol
@@ -707,10 +785,6 @@ endif()
 #       endif()
 #    endif()
 # endif()
-
-# host_os()
-# message(STATUS "FROM top level CMakeLists.txt HOST_OS=${HOST_OS}")
-message(STATUS "Building on host OS ${HOST_OS}")
 
 # Only build some old subdirectories if they exist
 # AND the build host is a certain version of Cent/Redhat OS
@@ -752,3 +826,4 @@ endif()
 if(BUILD_DNG)
   add_subdirectory(dngtester)
 endif()
+

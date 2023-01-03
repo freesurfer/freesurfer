@@ -1903,6 +1903,87 @@ double SseTerms_MRIS::IntensityError( INTEGRATION_PARMS *parms)
   return (sse);
 }
 
+/*!
+  \fn double MRISpointSetLocationError(MRIS *surf, double weight, json *pPointSet, int ComputeGradient)
+  \brief Computes the SSError based on the distance between the set of
+  points (as saved by freeview) and the surface. For each point, the
+  closest vertex is found. This algorithm leaves a lot to be
+  desired. The same vertex can be mapped to multiple points. A vertex
+  may be very close to a point, but it is not included because it is
+  slightly further away than another vertex. Could/should operate over
+  a neighborhood.
+ */
+double MRISpointSetLocationError(MRIS *surf, double weight, json *pPointSet, int ComputeGradient)
+{
+  if(weight==0) return(0);
+  json PointSet = *pPointSet;
+  double max_spacing,sse=0;
+  int max_vno;
+
+  bool bTkReg = (PointSet["vox2ras"].get<std::string>() == std::string("tkreg"));
+  json js_pts = PointSet["points"];
+  printf("MRISpointSetLocationError(): TkReg=%d point set has %d points w=%g grad=%d\n",
+    bTkReg,(int)js_pts.size(),weight,ComputeGradient);
+
+  // The computation of the hash may be inefficient here as the same
+  // hash may have been computed as some other point in the surface placement process
+  MRIScomputeVertexSpacingStats(surf, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
+  MRIS_HASH_TABLE *hash = MHTcreateVertexTable_Resolution(surf, CURRENT_VERTICES, max_spacing);
+
+  // The conversion to TkReg could/should be done when it is read in,
+  // but there are generally only a few points, so not too costly, and I
+  // have not figured out how to change the vox2ras string
+  MRI *mri = NULL;
+  if(!bTkReg) mri = MRIallocFromVolGeom(&(surf->vg), MRI_UCHAR, 1,1);
+
+  for(int i = 0; i < PointSet["points"].size(); i++) {
+    double x,y,z,dx,dy,dz,mag;
+    float distance;
+    x = js_pts[i]["coordinates"]["x"].get<float>();
+    y = js_pts[i]["coordinates"]["y"].get<float>();
+    z = js_pts[i]["coordinates"]["z"].get<float>();
+    if(!bTkReg){ // convert to TkReg
+      double sx, sy, sz;
+      MRIRASToSurfaceRAS(mri, x, y, z, &sx, &sy, &sz);
+      x = sx; y = sy; z = sz;
+    }
+    // Find the closest vertex to this point
+    int vno = MHTfindClosestVertexNoXYZ(hash, surf, x, y, z, &distance);
+    if (vno < 0){
+      //printf("Failed to find closest vertex in hash, using brute force\n");
+      vno = MRISfindClosestVertex(surf, x, y, z, &distance, CURRENT_VERTICES);
+    }
+    VERTEX *v = &(surf->vertices[vno]);
+    // Distance between the current location and the target
+    dx = v->x - x;
+    dy = v->y - y;
+    dz = v->z - z;
+    mag = dx * dx + dy * dy + dz * dz;
+    sse += mag;
+    if(ComputeGradient) {
+      // cf mrisComputeTargetLocationTerm() (also note LOCATION_MOVE_LEN not use here)
+      // negative is used below because dx here is -dx in mrisCompute...()
+      double norm = sqrt(mag);
+      v->dx -= weight * dx / norm;
+      v->dy -= weight * dy / norm;
+      v->dz -= weight * dz / norm;
+    }
+    //printf("%3d %6d (%6.3f %6.3f %6.3f) (%6.3f %6.3f %6.3f) %6.4lf %6.4lf\n",
+    //	   i,vno,x,y,z,v->x,v->y,v->z,mag,sse);
+  }
+  MHTfree(&hash);
+  if(mri) MRIfree(&mri);
+  printf(" targetpointset sse = %g\n",sse);
+  return(sse);
+}
+
+double SseTerms_MRIS::TargetPointSetError( INTEGRATION_PARMS *parms)
+{
+  if(FZERO(parms->l_targetpointset)) return (0.0f);
+  //double sse = MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet, 0);
+  double sse = parms->TargetPointSet->CostAndGrad(parms->l_targetpointset,0);
+  return(sse);
+}
 
 double SseTerms_MRIS::TargetLocationError( INTEGRATION_PARMS *parms)
 {
@@ -2710,6 +2791,7 @@ double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, 
       ELTM(sse_corr                  , l_corr,                 !DZERO(l_corr),             mrisComputeCorrelationError(mris, parms, 1)                                     ) \
       ELTM(sse_val                   , parms->l_intensity,     !DZERO(parms->l_intensity), mrisComputeIntensityError(mris, parms)                                          ) \
       ELTM(sse_loc                   , parms->l_location,      !DZERO(parms->l_location),  mrisComputeTargetLocationError(mris, parms)                                     ) \
+      ELTM(sse_tps                   , parms->l_targetpointset,!DZERO(parms->l_targetpointset),  parms->TargetPointSet->CostAndGrad(parms->l_targetpointset, 0)            ) \
       ELTM(sse_dura                  , parms->l_dura,          !DZERO(parms->l_dura),      mrisComputeDuraError(mris, parms)                                               ) \
       ELTM(sse_histo                 , parms->l_histo,         !DZERO(parms->l_histo),     mrisComputeHistoNegativeLikelihood(mris, parms)                                 ) \
       ELTM(sse_map                   , parms->l_map,           !DZERO(parms->l_map),       mrisComputeNegativeLogPosterior(mris, parms, NULL)                              ) \

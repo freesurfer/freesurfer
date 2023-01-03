@@ -93,7 +93,7 @@ public:
   static vnl_matrix_fixed<double, 4, 4> getRot(int i);
   
   //! Mean Rotation
-  static vnl_matrix_fixed < double, 3, 3> RotationMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm);
+  static vnl_matrix_fixed < double, 3, 3> RotationMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm, double frobnormthresh = 0.0001);
 
   //! Geometric mean
   static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);

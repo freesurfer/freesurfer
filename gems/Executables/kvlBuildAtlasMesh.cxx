@@ -119,6 +119,8 @@ int main( int argc, char** argv )
 
     return -1;
     }
+  printf("\n\n\n\n\n\n\n\nConsider using samseg-atlas instead ... continuing after 2 sec\n\n\n\n\n\n\n\n\n");
+  sleep(2);
     
   // Add support for MGH file format to ITK. An alternative way to add this by default would be
   // to edit ITK's itkImageIOFactory.cxx and explicitly adding it in the code there.

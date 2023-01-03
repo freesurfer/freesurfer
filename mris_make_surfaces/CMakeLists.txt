@@ -5,7 +5,7 @@ add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-inconsistent-mi
 include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/resurf/Code)
 
 add_executable(mris_make_surfaces mris_make_surfaces.cpp)
-add_help(mris_make_surfaces mris_make_surfaces.help.xml)
+add_help(mris_make_surfaces mris_make_surfaces.help.xml mri_stopmask.help.xml)
 target_link_libraries(mris_make_surfaces utils)
 install(TARGETS mris_make_surfaces DESTINATION bin)
 
@@ -34,6 +34,11 @@ install(TARGETS mris_place_surface DESTINATION bin)
 add_executable(mris_target_pos mris_target_pos.cpp)
 target_link_libraries(mris_target_pos utils)
 install(TARGETS mris_target_pos DESTINATION bin)
+
+add_executable(mri_stopmask mri_stopmask.cpp)
+add_help(mri_stopmask mri_stopmask.help.xml)
+target_link_libraries(mri_stopmask utils)
+install(TARGETS mri_stopmask DESTINATION bin)
 
 add_executable(mris_autodet_gwstats mris_autodet_gwstats.cpp)
 target_link_libraries(mris_autodet_gwstats utils)

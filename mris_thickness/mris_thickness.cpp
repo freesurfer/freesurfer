@@ -550,7 +550,7 @@ get_option(int argc, char *argv[]) {
     signed_dist = 0 ;
     fprintf(stderr,  "measuring distance between input surface and %s\n", osurf_fname) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "new") || !stricmp(option, "fmin") || !stricmp(option, "variational")) {
+  } else if (!stricmp(option, "new") || !stricmp(option, "fmin") || !stricmp(option, "variational")  || !stricmp(option, "vector")) {
     fmin_thick = 1 ;
     fprintf(stderr,  "using variational thickness measurement\n") ;
   } else if (!stricmp(option, "laplace") || !stricmp(option, "laplacian")) {
@@ -650,6 +650,8 @@ print_help(void) {
   printf("  The calculations are limited to the label. The output is a surface overlay with the values\n");
   printf("  of the thickness at each vertex in the label. dmax is the maximum distance searched.\n");
   printf("  ddelta is the step size.\n");
+  printf("\n\n") ;
+  printf("-vector  compute the thickness using a variationally derived vector field instead of shortest distance\n") ;
 
   exit(1) ;
 }

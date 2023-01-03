@@ -10,13 +10,17 @@ from gems.utilities import requireNumpyArray
 
 class ProbabilisticAtlas:
     def __init__(self):
-        self.useWarmDeformationOptimizers = False
-        self.useBlocksForDeformation = False # Use "grouped coordinate-descent (GCD)" 
+        self.useWarmDeformationOptimizers = True
+        self.useBlocksForDeformation = True  # Use "grouped coordinate-descent (GCD)" 
                                              # aka "block coordinate-descent" (Fessler)
 
-        if os.environ.get('SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT') is not None: 
-            self.useWarmDeformationOptimizers = True
-            self.useBlocksForDeformation = True
+        if os.environ.get('SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT') is not None: 
+            self.useWarmDeformationOptimizers = False
+            self.useBlocksForDeformation = False
+
+        self.useLogDomainCostAndGradientCalculator = False
+        if os.environ.get('SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR') is not None:
+            self.useLogDomainCostAndGradientCalculator = True
 
         self.previousDeformationMesh = None
 
@@ -125,8 +129,19 @@ class ProbabilisticAtlas:
             images.append(gems.KvlImage(requireNumpyArray(tmp)))
 
         # Set up cost calculator
-        calculator = gems.KvlCostAndGradientCalculator(
+        if not self.useLogDomainCostAndGradientCalculator:
+            calculator = gems.KvlCostAndGradientCalculator(
             typeName='AtlasMeshToIntensityImage',
+            images=images,
+            boundaryCondition='Sliding',
+            transform=transform,
+            means=means,
+            variances=variances,
+            mixtureWeights=mixtureWeights,
+            numberOfGaussiansPerClass=numberOfGaussiansPerClass)
+        else:
+            calculator = gems.KvlCostAndGradientCalculator(
+            typeName='AtlasMeshToIntensityImageLogDomain',
             images=images,
             boundaryCondition='Sliding',
             transform=transform,
@@ -252,7 +267,7 @@ class ProbabilisticAtlas:
                 masks = self.masks
                 for optimizer in optimizers:
                     optimizer.update_calculator( calculator )
-                
+            # end of get optimizers
 
             # Run deformation optimization for the specified number of steps (unless it stops moving
             # properly earlier)
@@ -306,7 +321,7 @@ class ProbabilisticAtlas:
 
                     maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
                     
-                    # End loop over blocks
+                # End loop over blocks
                     
                 historyOfMaximalDeformation.append(maximalDeformation)
 
@@ -329,7 +344,8 @@ class ProbabilisticAtlas:
                 # Check early convergence    
                 if maximalDeformation == 0:
                     break
-                  
+            # end of while
+          
             #      
             mesh.points = currentNodePositions
             minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )

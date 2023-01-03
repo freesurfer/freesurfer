@@ -1582,7 +1582,9 @@ if($UseSamseg) then
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts samseg $XOptsFile`;
     set cmd = (samseg --t1w $origvol --refmode t1w --o $samsegdir \
-      --save-probabilities --threads $OMP_NUM_THREADS $xopts)
+      --save-probabilities --threads $OMP_NUM_THREADS --hires $xopts)
+    # always use hires here to prevent conforming as input will be desired 
+    # shape regardless
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -1590,7 +1592,7 @@ if($UseSamseg) then
     endif
   endif
   # Need to add fix for hypos and vents
-  set cmd = (samseg2recon --s $subjid --samseg $samsegdir) # no update option
+  set cmd = (samseg2recon --s $subjid --samseg $samsegdir --from-recon-all) # no update option
   set xopts = `fsr-getxopts samseg2recon $XOptsFile`;
   if(-e $synthstrip) set cmd =($cmd --m $synthstrip)
   set cmd = ($cmd $xopts)
@@ -2913,8 +2915,8 @@ endif
 ##-------------         -maskbfs       ---------------#
 #--------------                        ---------------#
 if($DoMaskBFS) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF  |& tee -a $CF
+  # This logic has become a mess
+  echo "#--------------------------------------------" |& tee -a $LF  |& tee -a $CF
   echo "#@# Mask BFS `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_mask $XOptsFile $GlobXOptsFile`;
@@ -2924,24 +2926,32 @@ if($DoMaskBFS) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-  # if they exist, transfer finalsurfs edits (voxels=255 and voxels=1)
+  # If edits exist in local folder, transfer finalsurfs edits (voxels=255 and voxels=1).
+  # Note that if cross or base edits exist, they should be transferred on the first 
+  # round. If a manedit in long is created later, that will be incorporated on top
+  # of the existing man edits from cross/base; the manedit from cross/base will no
+  # longer be consdidered (but that's ok because the edits were already incorporated;
+  # in theory, one should not change the manedit from cross or base once the long
+  # is created).
   if( -e brain.finalsurfs.manedit.mgz ) then
     set cmd = (mri_mask -transfer 255)
     set cmd = ($cmd -keep_mask_deletion_edits)
-    set cmd = ($cmd brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz \
-        brain.finalsurfs.mgz)
+    set cmd = ($cmd brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz brain.finalsurfs.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
     set bfmanedit = ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz
+    if($longitudinal && $LongTransferBaseBFS) then
+      set bfmanedit = ${SUBJECTS_DIR}/${longbaseid}/mri/brain.finalsurfs.manedit.mgz
+    endif
     if ( $longitudinal && -e $bfmanedit && ! $LongSamseg) then
       # transfer edits from cross
       set cmd = (mri_mask -transfer 255)
       set cmd = ($cmd -keep_mask_deletion_edits)
-      set cmd = ($cmd -xform $tpNtobase_regfile)
+      if(! $LongTransferBaseBFS) set cmd = ($cmd -xform $tpNtobase_regfile)
       set cmd = ($cmd brain.finalsurfs.mgz)
-      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz)
+      set cmd = ($cmd $bfmanedit)
       set cmd = ($cmd brain.finalsurfs.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3149,6 +3159,31 @@ if($DoFill && ! $longitudinal) then
   echo $cmd > $touchdir/fill.touch
 endif
 
+if($longitudinal) then
+  # This is a bit of a hack to transfer filled edits from base to
+  # long. In the long, the filled is not actually used for creating
+  # the orig surface in the way that it is in cross or base; the orig
+  # surface comes from the base. However, the filled may be edited in
+  # the base to create a better orig AND to create a stopmask. The
+  # long may still need the stopmask, so need to copy over the the
+  # filled. Comparison of the filled with the base filled.auto
+  # indicates which voxels were edited (at either the base or long
+  # stage) allowing creation and (implicit) editing of the stopmask at
+  # the long stage. Could have just copied over the stopmask, but then
+  # would have to have edited the stopmask rather than the more
+  # familiar filled. It is all very confusing.
+  set lfilled = $mdir/filled.mgz
+  if(! -e $lfilled) then
+    set bfilled = $SUBJECTS_DIR/$longbaseid/mri/filled.mgz
+    set cmd = "cp -p $bfilled $lfilled"
+    if($RunIt) then 
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+  #set bfilledauto = $longbaseid/mri/filled.auto.mgz
+endif
 
 #########################################################
 #                  Per-Hemisphere                       #
@@ -3546,6 +3581,36 @@ if($DoAutoDetGWStats) then
   end # hemi
 endif
 
+set stopmaskscm = ()
+if($UseStopMaskSCM && ($DoWhitePreAparc || $DoWhiteSurfs)) then
+  set stopmaskscm = $mdir/stopmask.scm.mgz
+  echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# StopMaskSCM `date`" |& tee -a $LF |& tee -a $CF
+  if(! $longitudinal) then
+    set filledauto = $mdir/filled.auto.mgz
+  else
+    set filledauto = $SUBJECTS_DIR/$longbaseid/mri/filled.auto.mgz
+  endif
+  set filled = $mdir/filled.mgz
+  set wmpath = $mdir/wm.mgz
+  set bfspath = $mdir/brain.finalsurfs.mgz
+  set asegpspath = $mdir/aseg.presurf.mgz
+  set ud = (`UpdateNeeded $stopmaskscm $filledauto $filled $wmpath $bfspath $asegpspath`)
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts StopMaskSCM $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_stopmask --o $stopmaskscm --aseg $asegpspath \
+      --filled $filledauto $filled --wm $wmpath --bfs $bfspath \
+      --lv --wmsa 1 $xopts)
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/stopmask.scm.txt
+      endif
+    endif
+    echo "  StopMaskSCM update not needed" | tee -a $LF |& tee -a $CF
+  endif
+endif
+
 if($DoWhitePreAparc) then
   cd $mdir
   set bfs  = brain.finalsurfs.mgz 
@@ -3565,13 +3630,14 @@ if($DoWhitePreAparc) then
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+    if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
     set xopts = `fsr-getxopts WhitePreAparc $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set tmp = ()
     if($UseAseg) set tmp = ($aseg)
-    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig $tmp`
+    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig $tmp $stopmaskscm`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -4096,6 +4162,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+    if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
     if($UseHighMyelin) then
       set hml = $ldir/$hemi.high-myelin.label
       set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
@@ -4108,7 +4175,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.white.json
     if(! -e $repos) set repos = ()
-    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos $aseg`
+    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos $aseg $stopmaskscm`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -5779,7 +5846,6 @@ while( $#argv != 0 )
       set DoT2pial         = 1; 
       breaksw
 
-#VIVI
     case "-T2_max_inside"
       if( $#argv < 1) goto arg1err;
       set T2_max_inside = "$argv[1]"; shift;
@@ -5808,8 +5874,6 @@ while( $#argv != 0 )
       if( $#argv < 1) goto arg1err;
       set nsigma_above = "$argv[1]"; shift;
       breaksw
-
-#ENDVIVI
 
     case "-FLAIR"
     case "-flair"
@@ -6913,6 +6977,7 @@ while( $#argv != 0 )
       set DoSegStats       = 0;
       set DoCANormalize    = 1;
       set DoGCAReg         = 1;
+      set DoCAReg          = 1;
       set DoCALabel        = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;

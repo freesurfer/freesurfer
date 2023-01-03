@@ -212,6 +212,13 @@ void KvlMeshCollection::Write(const std::string &meshCollectionFileName) {
     std::cout << "Wrote mesh collection: " << meshCollectionFileName << std::endl;
 }
 
+void KvlMeshCollection::GenerateFromSingleMesh(const KvlMesh &singleMesh, unsigned int numberOfMeshes, double K)
+{
+  kvl::AtlasMesh::ConstPointer constMesh = singleMesh.mesh;
+  kvl::AtlasMesh::Pointer mutableMesh = const_cast< kvl::AtlasMesh* >( constMesh.GetPointer() );
+  meshCollection->GenerateFromSingleMesh(mutableMesh, numberOfMeshes, K);
+}
+
 void KvlMeshCollection::SetK(double k) {
     meshCollection->SetK(k);
 }

@@ -59,6 +59,7 @@ set DoCharm = 0
 set WMCortexPriorsSigma = 0
 set stiffness = ()
 set Profile = ()
+set biasFieldSmoothingKernelSize = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -126,10 +127,15 @@ uname -a  | tee -a $LF
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
-if($?SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT) then
-  echo "Using Block Coordinate Descent" | tee -a $LF
-else
+if($?SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT) then
   echo "NOT using Block Coordinate Descent" | tee -a $LF
+else
+  echo "Using Block Coordinate Descent" | tee -a $LF
+endif
+if($?SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR) then
+  echo "Using Log Domain Cost And Gradient Calculator" | tee -a $LF
+else
+  echo "NOT using Log Domain Cost And Gradient Calculator" | tee -a $LF
 endif
 
 if($DoCharm) then
@@ -204,6 +210,7 @@ if($ShowMovie) set cmd0 = ($cmd0 --movie)
 if($IgnoreUnkown) set cmd0 = ($cmd0 --ignore-unknown)
 if($WMCortexPriorsSigma != 0) set cmd0 = ($cmd0 --smooth-wm-cortex-priors $WMCortexPriorsSigma)
 if($#stiffness) set cmd0 = ($cmd0 --mesh-stiffness $stiffness)
+if($#biasFieldSmoothingKernelSize) set cmd0 = ($cmd0 --bias-field-smoothing-kernel $biasFieldSmoothingKernelSize)
 
 # specify input list
 foreach input ($inputlist)
@@ -525,6 +532,11 @@ while( $#argv != 0 )
       set stiffness = $argv[1]; shift;
       breaksw
 
+    case "--bias-field-smoothing-kernel":
+      if($#argv < 1) goto arg1err;
+      set biasFieldSmoothingKernelSize = $argv[1]; shift;
+      breaksw
+
     case "--regonly":
     case "--reg-only":
       set regonly = 1;
@@ -693,14 +705,17 @@ while( $#argv != 0 )
     case "--no-charm":
       set DoCharm = 0
       breaksw
-
-    case "--block-coordinate-descent":
-    case "--bcd":
-      setenv SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT 1
-      breaksw
+  
     case "--no-block-coordinate-descent":
     case "--no-bcd":
-      unsetenv SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT
+      setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1
+      breaksw
+
+    case "--logdomain-costandgradient-calculator":
+      setenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1
+      breaksw
+    case "--no-logdomain-costandgradient-calculator":
+      unsetenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR
       breaksw
 
     case "--tmp":
@@ -862,7 +877,8 @@ usage_exit:
   echo "  --threads nthreads : set the number of CPUs to use"
   echo "  --atlas SAMSEG_DATA_DIR"
   echo "  --gmm gmmfile"
-  echo "  --block-coordinate-descent (or --bcd) :  sets SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT 1 (--no- to turn off)"
+  echo "  --no-block-coordinate-descent (or --no-bcd) :  sets SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1"
+  echo "  --logdomain-costandgradient-calculator : sets SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1 (--no- to turn off)" 
   echo ""
   echo "  --recon : run recon-all "
   echo "  --fill : use samseg to create filled.mgz instead of recon-all"
@@ -877,6 +893,7 @@ usage_exit:
   echo " --stiffness K : mesh stiffness"
   echo " --lesion : Turn on lesion segmentation"
   echo " --lesion-mask-pattern A B : Needed when using T2 (eg, 0 1)"
+  echo " --bias-field-smoothing-kernel widthMM : width of bias field smoothness"
   echo " --reg reg.{lta,mat} : registration file (LTA or  as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --regmat reg.{lta.mat} same as --reg"

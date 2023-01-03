@@ -126,6 +126,11 @@ double round(double x);
 #include "romp_support.h"
 #include "mris_multimodal_refinement.h"
 #include "mrisurf_compute_dxyz.h"
+#include <string>
+#include <iostream>
+#include <fstream>
+#include "json.h"
+using json = nlohmann::json;
 
 extern int CBVfindFirstPeakD1;
 extern int CBVfindFirstPeakD2;
@@ -156,6 +161,8 @@ public:
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const double dmin, const double dmax, const double dstep);
 int MRISripSegs(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
+int MRIsetCRS(MRI *invol, std::vector<std::vector<int>> crslist, int frame, double val);
+std::vector<std::vector<int>> MRItrack255(MRI *invol);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -226,10 +233,55 @@ int mm_contrast_type = -1;
 char *mmvolpath = NULL;
 MRI *mmvol = NULL;
 std::map<int, MRI*> mmvols;
-float T2_min_inside = 110 ;
-float T2_max_inside = 300 ;
-double T2_min_outside = 130;
-double T2_max_outside = 300 ;
+
+/* The thresholds belowares for placing the pial on MM volumes (T2 or
+   FLAIR). "Inside" means between the (fixed) white surface and the
+   current pial surface, where as "outside" means beyond the pial. The
+   intensity of cortex is expected to be between
+   min_{indside,outside}. Beyond pial, the intensity is expected to be
+   between max_{indside,outside}.  The MM volume will be intensity
+   normalized so the WM will be about 110; one expects cortex to be
+   brighter. Beyond cortex, the expected intensities depend on the
+   mode. For FLAIR, the outside is expected to be darker than
+   pial. For T2, it may be brighter (CSF) or darker (vessel).  It is
+   important to note that these are limits; the actual thresholds at a
+   vertex may be different. For this reason, they are often set quite
+   liberally.  
+
+   For FLAIR:
+      max_inside>=WM (WM=110 so 200?)
+      min_inside=50-60 (can have a big effect on pial placement)
+      max_outside=min_inside (or less)
+      min_outside=0?
+
+      Programatically, the outside limits have little if any effect on
+      FLAIR. The min_inside can have a big effect on pial
+      placement. If too low then too much dura/vessels will be
+      included. If too high, then makes pial retract too much. 50 was
+      a good compromise on a single subject.
+
+   For T2:
+      max_inside=110 or greater since WM=110 and GM>WM, default is 300)
+      min_inside=110 or greater since CSF>GM>110 
+      max_outside >= CSF (default 300)
+      min_outside >= min_inside (default 130)
+
+   FLAIR bug. On May 9, 2017 commit
+   1fe83cd1a42c1f08b42e2f8f82521bb80d3466b3, major changes to the MM
+   stream were checked in to mris_make_surfaces. These changes
+   included a bug for the FLAIR which caused it to place the pial much
+   too far into cortex. The problem was that the limits for FLAIR were
+   copied from the limits for T2 making min_iside 110 instead of 60
+   (the default at the top of the program). This error was copied into
+   mris_place_surfaces and so exists in v 7.{0,1,2,3}.
+
+*/
+// See above for interpretation of these values. They are set with --mmvol
+float T2_min_inside;
+float T2_max_inside;
+double T2_min_outside;
+double T2_max_outside;
+
 double max_outward_dist = 1 ; // for normal cases, for pathology might be much larger
 double wm_weight = 3 ;    // threshold for finding gm outliers: thresh = (wt*wm + gm )/(wt+1)
 double Ghisto_left_inside_peak_pct = 0.1; //0.01 for flair. typo?
@@ -248,6 +300,23 @@ char *TargetSurfaceFile = NULL;
 int SmoothAfterRip = 0;
 int CBVzero=0;
 int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval);
+int TargetPointSetFlag = 0;
+SurfacePointSet TargetPointSet;
+json jsonTargetPointSet;
+char *tps_targetpointsetfile = NULL;
+char *tps_vertexpointsetfile = NULL;
+char *tps_maskfile = NULL;
+char *tps_vectorfile = NULL;
+char *tps_patchfile = NULL;
+char *outvolpath=NULL; // save preprocessed volume
+int Restore255=0;
+int outvolonly = 0;
+int DoFillLatVents = 0;
+double DilLatVentsMM = 0;
+int DilLatVentsTopo=1;
+int DilLatVentsNnbrs=1;
+int FillLatVents(MRI *invol, MRI *aseg, double dilmm, int topo, int nnbrsthresh, double val);
+MRI *stopmask=NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -421,14 +490,32 @@ int main(int argc, char **argv)
   invol = MRIread(involpath);
   if(invol==NULL) exit(1);
 
+  if(segvolpath){
+    printf("Reading in seg volume %s\n",segvolpath);
+    seg = MRIread(segvolpath);
+    if(seg==NULL) exit(1);
+    // Check dims
+  }
+
   if(DoIntensityProc){
     // =========== intensity volume preprocessing ==============
     // It would be nice to do this externally
     printf("Reading in wm volume %s\n",wmvolpath);
     wm = MRIread(wmvolpath);
     if(wm==NULL) exit(1);
+
+    // Special for when invol=255. 255 means that someone edited the
+    // brain.finalsurfs. Clipping will set them to 110, and then, if
+    // the 255 (now 110) are outside of the wm.mgz mask and
+    // surf=white, they will be set to 0, which is not what we want
+    // because someone specifically edited them to be in the SCM. So
+    // this keeps track of which voxels are 255 so that they can be
+    // restored to 110 below.
+    std::vector<std::vector<int>> crs255;
+    if(surftype == GRAY_WHITE && Restore255) crs255 = MRItrack255(invol);
+      
     // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
-    MRIclipBrightWM(invol, wm) ;
+    MRIclipBrightWM(invol, wm);
     
     MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
     MRIfree(&wm);
@@ -438,6 +525,10 @@ int main(int argc, char **argv)
       // Can this be done for pial as well?
       MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
       MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
+      if(Restore255) {
+	printf("Restoring 255->110 %d\n",(int)crs255.size());
+	MRIsetCRS(invol, crs255, 0, 110);
+      }
     }
     
     if(surftype == GRAY_CSF){
@@ -470,18 +561,23 @@ int main(int argc, char **argv)
       involPS  = invol;
     }
     MRIfree(&mri_labeled);
+    if(DoFillLatVents){
+      printf("Filling lateral ventricles\n");
+      FillLatVents(invol, seg, DilLatVentsMM, DilLatVentsTopo, DilLatVentsNnbrs, 110);
+    }
+    if(outvolpath) {
+      err = MRIwrite(invol,outvolpath);
+      if(err) exit(err);
+      if(outvolonly){
+	printf("output volume only requested so exiting now\n");
+	exit(0);
+      }
+    }
     // ========= End intensity volume preproc ===================
   }
   else {
     involCBV = invol;
     involPS  = invol;
-  }
-
-  if(segvolpath){
-    printf("Reading in seg volume %s\n",segvolpath);
-    seg = MRIread(segvolpath);
-    if(seg==NULL) exit(1);
-    // Check dims
   }
 
   // Manage ripping of vertices
@@ -572,6 +668,8 @@ int main(int argc, char **argv)
     printf("AltBorderLowFactor = %g, AltBorderLow = %g\n",CBVO.AltBorderLowFactor,CBVO.AltBorderLow);
   }
 
+  if(parms.l_targetpointset > 0) TargetPointSet.surf = surf;
+
   timer.reset() ;
   printf("n_averages %d\n",n_averages);
   for (i = 0 ;  n_averages >= n_min_averages ; n_averages /= 2, current_sigma /= 2, i++) {
@@ -618,7 +716,7 @@ int main(int argc, char **argv)
 	//   v->marked = 1;         // vertex has good data
 	//   v->targx = v->x + v->nx * v->d; // same for y and z
 	MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-				current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+				current_sigma, 2*max_cbv_dist, parms.fp, surftype, stopmask, 0.5, parms.flags,seg,-1,-1) ;
 	// Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
 	// this was always a copy of the input (mri_T1 or invol); it is not used in CBV
 	
@@ -723,7 +821,6 @@ int main(int argc, char **argv)
 	 }		
     }
 
-
     // This appears to adjust the cost weights based on the iteration but in
     // practice, they never change because spring scale is 1
     parms.l_nspring *= spring_scale ; 
@@ -745,11 +842,11 @@ int main(int argc, char **argv)
     printf("l_repulse = %g, l_surf_repulse = %g, checktol = %d\n",parms.l_repulse,
 	   parms.l_surf_repulse,parms.check_tol);fflush(stdout);
 
-    printf("Positioning pial surface\n");fflush(stdout);
+    printf("Positioning surface\n");fflush(stdout);
     // Note: 3rd input (invol) was "mri_smooth" in mris_make_surfaces, but
     // this was always a copy of the input (mri_T1 or invol)
     MRISpositionSurface(surf, involPS, involPS, &parms);
-
+    printf("  done positioning surface\n");fflush(stdout);
     //sprintf(tmpstr,"lh.place.postpos%02d",i);
     //MRISwrite(surf, tmpstr);
 
@@ -769,7 +866,11 @@ int main(int argc, char **argv)
   }
 
   // This can move things around, even for ripped vertices
+  printf("Removing intersections\n");fflush(stdout);    
   MRISremoveIntersections(surf,0); //matches mris_make_surface
+
+  msec = timer.milliseconds() ;
+  printf("#ET# mris_place_surface %5.2f minutes\n", (float)msec/(60*1000.0f));
 
   printf("\n\n");
   printf("Writing output to %s\n",outsurfpath);
@@ -796,8 +897,28 @@ int main(int argc, char **argv)
     MRISrestoreVertexPositions(surf, TMP_VERTICES) ;
   }
 
-  msec = timer.milliseconds() ;
-  printf("#ET# mris_place_surface %5.2f minutes\n", (float)msec/(60*1000.0f));
+  if(tps_targetpointsetfile && TargetPointSetFlag){
+    fsPointSet ps = TargetPointSet.ConvertToPointSet();
+    ps.save(tps_targetpointsetfile);
+  }
+  if(tps_vertexpointsetfile && TargetPointSetFlag){
+    fsPointSet vps = TargetPointSet.VerticesToPointSet();
+    vps.save(tps_vertexpointsetfile);
+  }
+  if(tps_maskfile && TargetPointSetFlag){
+    MRI *tpsmask = TargetPointSet.MakeMask();
+    MRIwrite(tpsmask,tps_maskfile);
+    MRIfree(&tpsmask);
+  }
+  if(tps_vectorfile && TargetPointSetFlag){
+    DTK_TRACK_SET *dtkset = TargetPointSet.ConvertToTrack(10); //10=?
+    DTKwriteTrackSet(tps_vectorfile, dtkset);
+    // Free?
+  }
+  if(tps_patchfile && TargetPointSetFlag){
+    TargetPointSet.WriteAsPatch(tps_patchfile,3); // 3=?
+  }
+
   printf("#VMPC# mris_place_surfaces VmPeak  %d\n",GetVmPeak());
   printf("mris_place_surface done\n");
 
@@ -846,6 +967,13 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-rip-bg"))       ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
     else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
+    else if(!strcmp(option, "--no-rip")){
+      ripmngr.RipWMSA = 0;
+      ripmngr.RipFreeze = 0;
+      ripmngr.RipLesion = 0;
+      ripmngr.RipBG = 0;
+      ripmngr.RipMidline = 0;
+    }
     else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
     else if(!strcmp(option, "--first-peak-d1"))    CBVfindFirstPeakD1 = 1;
     else if(!strcmp(option, "--no-first-peak-d1")) CBVfindFirstPeakD1 = 0;
@@ -856,12 +984,20 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))  hemi = "rh";
     else if(!strcmp(option, "--smooth-after-rip"))  SmoothAfterRip = 1;
-
+    else if(!strcmp(option, "--restore-255"))  Restore255=1;
     else if(!strcmp(option, "--rip-projection")){
       if(nargc < 3) CMDargNErr(option,3);
       sscanf(pargv[0],"%lf",&ripmngr.dmin);
       sscanf(pargv[1],"%lf",&ripmngr.dmax);
       sscanf(pargv[2],"%lf",&ripmngr.dstep);
+      nargsused = 3;
+    }
+    else if(!strcmp(option, "--fill-lat-vents")){
+      if(nargc < 3) CMDargNErr(option,3);
+      DoFillLatVents = 1;
+      sscanf(pargv[0],"%lf",&DilLatVentsMM);
+      sscanf(pargv[1],"%d",&DilLatVentsTopo);
+      sscanf(pargv[2],"%d",&DilLatVentsNnbrs);
       nargsused = 3;
     }
     else if(!strcmp(option, "--pin-medial-wall")){
@@ -890,11 +1026,31 @@ static int parse_commandline(int argc, char **argv) {
       involpath = pargv[0];
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--stopmask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      stopmask = MRIread(pargv[0]);
+      if(!stopmask) exit(1);
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--mmvol")){
       if(nargc < 2) CMDargNErr(option,2);
       mmvolpath = pargv[0];
-      if(!stricmp(pargv[1],"t2"))         mm_contrast_type = CONTRAST_T2;
-      else if(!stricmp(pargv[1],"flair")) mm_contrast_type = CONTRAST_FLAIR;
+      // See above for a discussion on these limits. If you change these defaults,
+      // then change the values in mris_make_surfaces for completeness
+      if(!stricmp(pargv[1],"t2")){
+	mm_contrast_type = CONTRAST_T2;
+	T2_min_inside = 110 ;
+	T2_max_inside = 300 ;
+	T2_min_outside = 130;
+	T2_max_outside = 300 ;
+      }
+      else if(!stricmp(pargv[1],"flair")) {
+	mm_contrast_type = CONTRAST_FLAIR;
+	T2_min_inside =  50;
+	T2_max_inside = 200;
+	T2_min_outside = 10; // outside not so important for FLAIR
+	T2_max_outside = 50;
+      }
       else {
 	printf("ERROR: mmvol must be either t2 or flair weighted\n");
 	exit(1);
@@ -910,44 +1066,50 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--mm-min-p-grey")){
 	MMRefineMinPGrey=atof(pargv[0]);
 	nargsused=1;
-    }else if(!strcasecmp(option, "--mm-weights")){
-		
+    }
+    else if(!strcasecmp(option, "--mm-weights")){
 	UseMMRefineWeights=1;
-    } else if(!strcasecmp(option, "--mm-refine")){
-	    UseMMRefine = 1;
-	    int numImages  =atoi(pargv[0]);
-	    
-	for(int i=0;i<numImages;i++)
-	    {		
-		if(!stricmp(pargv[i*2+1],"t2"))
-		{
-			std::cout << CONTRAST_T2 << " T2 " << pargv[i*2+2]<< std::endl;	
-		   	mmvols[CONTRAST_T2]=MRIread(pargv[i*2+2]);
-		}
-		else if(!stricmp(pargv[i*2+1],"flair"))
-		{
-			std::cout << CONTRAST_FLAIR << " FLAIR " << pargv[i*2+2]<< std::endl;	
-			 mmvols[ CONTRAST_FLAIR]=MRIread(pargv[i*2+2]);
-		}
-		else if(!stricmp(pargv[i*2+1],"t1"))
-		{
-			std::cout << CONTRAST_T1 << " T1 " << pargv[i*2+2]<< std::endl;	
-			 mmvols[ CONTRAST_T1]=MRIread(pargv[i*2+2]);
-		}
-		else 
-		{
-			printf("ERROR: mmvol must be either t2 or flair weighted\n");
-			exit(1);
-		}
-	    }
+    } 
+    else if(!strcasecmp(option, "--mm-refine")){
+      UseMMRefine = 1;
+      int numImages  =atoi(pargv[0]);
+      for(int i=0;i<numImages;i++){		
+	if(!stricmp(pargv[i*2+1],"t2"))	    {
+	  std::cout << CONTRAST_T2 << " T2 " << pargv[i*2+2]<< std::endl;	
+	  mmvols[CONTRAST_T2]=MRIread(pargv[i*2+2]);
+	}
+	else if(!stricmp(pargv[i*2+1],"flair"))	    {
+	  std::cout << CONTRAST_FLAIR << " FLAIR " << pargv[i*2+2]<< std::endl;	
+	  mmvols[ CONTRAST_FLAIR]=MRIread(pargv[i*2+2]);
+	}
+	else if(!stricmp(pargv[i*2+1],"t1"))	    {
+	  std::cout << CONTRAST_T1 << " T1 " << pargv[i*2+2]<< std::endl;	
+	  mmvols[ CONTRAST_T1]=MRIread(pargv[i*2+2]);
+	}
+	else 	    {
+	  printf("ERROR: mmvol must be either t2 or flair weighted\n");
+	  exit(1);
+	}
+      }
       surftype = GRAY_CSF;
       nargsused = numImages*2+1;
-
-    }else if(!strcmp(option, "--i")){
+    }
+    else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       insurfpath = pargv[0];
       parms.l_tspring = 0.3;
       parms.l_nspring = 0.3;
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--outvol")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outvolpath = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--outvol-only")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outvolpath = pargv[0];
+      outvolonly = 1;
       nargsused = 1;
     }
     else if(!strcmp(option, "--blend-surf")){
@@ -1109,49 +1271,117 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if (!stricmp(option, "--hinge")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_hinge = atof(pargv[0]) ;
       printf("l_hinge = %2.3f\n", parms.l_hinge);
       nargsused = 1;
     }
     else if (!stricmp(option, "--spring_nzr")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_spring_nzr = atof(pargv[0]) ;
       printf("l_spring_nzr = %2.3f\n", parms.l_spring_nzr) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--spring")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_spring = atof(pargv[0]) ;
       printf("l_spring = %2.3f\n", parms.l_spring) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--tspring")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_tspring = atof(pargv[0]) ;
       printf("l_tspring = %2.3f\n", parms.l_tspring) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--nspring")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_nspring = atof(pargv[0]) ;
       printf("l_nspring = %2.3f\n", parms.l_nspring) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--curv")){
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_curv = atof(pargv[0]) ;
       printf("l_curv = %2.3f\n", parms.l_curv) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--surf-repulse")){
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_surf_repulse);
       printf("l_surf_repulse = %2.3f\n", parms.l_surf_repulse);
       nargsused = 1;
     }
     else if (!stricmp(option, "--repulse")){
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_repulse);
       printf("l_repulse = %2.3f\n", parms.l_repulse) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--location")){
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_location);
       printf("l_location = %2.3f\n", parms.l_location) ;
       nargsused = 1;
+    }
+    else if (!stricmp(option, "--tps")){
+      // --tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh 
+      if(nargc < 8) {
+	printf("--tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh\n");
+	printf("  also --tps-debug --tps-targetpoinset --tps-vertexpointset --tps-mask --tps-vector --tps-patch\n");
+	CMDargNErr(option,8);
+      }
+      TargetPointSetFlag = 1;
+      sscanf(pargv[0],"%f",&parms.l_targetpointset);
+      printf("loading point set %s\n",pargv[1]);
+      if(!fio_FileExistsReadable(pargv[1])){
+	printf("ERROR: %s does not exist or is not readable\n",pargv[1]);
+	exit(1);
+      }
+      std::ifstream istream(pargv[1]);
+      istream >> jsonTargetPointSet;
+      int npoints = (int)jsonTargetPointSet["points"].size();
+      if(npoints < 1) fs::fatal() << "could not read point set";
+      TargetPointSet.pPointSet = &(jsonTargetPointSet);
+      sscanf(pargv[2],"%d",&(TargetPointSet.m_nhops));
+      sscanf(pargv[3],"%d",&(TargetPointSet.m_fill_holes));
+      sscanf(pargv[4],"%d",&(TargetPointSet.m_prune_by_angle));
+      sscanf(pargv[5],"%lf",&(TargetPointSet.AngleDegThresh));
+      sscanf(pargv[6],"%d",&(TargetPointSet.m_prune_by_dist));
+      sscanf(pargv[7],"%lf",&(TargetPointSet.DistMmThresh));
+      // have to do it with a pointer because of INTEGRATIONPARMS_copy()
+      parms.TargetPointSet = &(TargetPointSet);
+      printf("TargetPointSet w=%g, npoints=%d, nhops=%d, fill=%d angle=%d angleth=%lf dist=%d distth=%lf\n",
+	     parms.l_targetpointset,npoints,TargetPointSet.m_nhops,TargetPointSet.m_fill_holes,
+	     TargetPointSet.m_prune_by_angle,TargetPointSet.AngleDegThresh,
+	     TargetPointSet.m_prune_by_dist,TargetPointSet.DistMmThresh);
+      nargsused = 8;
+    }
+    else if (!stricmp(option, "--tps-debug")) TargetPointSet.m_debug = 1;
+    else if (!stricmp(option, "--tps-targetpointset")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_targetpointsetfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-vertexpointset")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_vertexpointsetfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_maskfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-vector")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_vectorfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-patch")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_patchfile = pargv[0];
+      nargsused=1;
     }
     // ======== End Cost function weights ================
     else if (!stricmp(option, "--location-mov-len")){
@@ -1468,6 +1698,12 @@ static void check_options(void) {
     if(!mri_cover_seg) exit(1);
   }
   if(CBVzero) DoIntensityProc=0;
+
+  if(DoFillLatVents && segvolpath == NULL){
+    printf("ERROR: --fill-lat-vents requires a segmentation\n");
+    exit(1);
+  }
+
   return;
 }
 
@@ -1816,6 +2052,97 @@ int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, 
 
   return(0);
 }
+
+std::vector<std::vector<int>> MRItrack255(MRI *invol)
+{
+  std::vector<std::vector<int>> crs255;
+
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	double val = MRIgetVoxVal(invol,c,r,s,0);
+	if(val != 255) continue;
+	std::vector<int> crs = {c,r,s};
+	crs255.push_back(crs);
+      }
+    }
+  }
+  printf("MRItrack255() nhits = %d\n",(int)crs255.size());
+  return(crs255);
+}
+
+int MRIsetCRS(MRI *invol, std::vector<std::vector<int>> crslist, int frame, double val)
+{
+  for(int n=0; n < crslist.size(); n++){
+    int c = crslist[n][0];
+    int r = crslist[n][1];
+    int s = crslist[n][2];
+    // should check if out of bounds
+    MRIsetVoxVal(invol,c,r,s,frame,val);
+  }
+  return(0);
+}
+
+int FillLatVents(MRI *invol, MRI *aseg, double dilmm, int topo, int nnbrsthresh, double val)
+{
+  double voxsize = (invol->xsize+invol->ysize+invol->zsize)/3;
+  int ndil = round(dilmm/voxsize);
+  printf("FillLatVents: dilmm=%g, vosize=%g, ndil=%d, val=%g\n",dilmm,voxsize,ndil,val);
+
+  MRI *bin = MRIalloc(invol->width, invol->height, invol->depth, MRI_UCHAR);
+  MRIcopyHeader(invol, bin);
+  MRIcopyPulseParameters(invol, bin);
+
+  int nvents=0, nwm=0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nvents)
+  #endif
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	int segid = MRIgetVoxVal(aseg,c,r,s,0);
+	if(segid != 4 && segid != 43) continue;
+	MRIsetVoxVal(bin,c,r,s,0,1);
+	MRIsetVoxVal(invol,c,r,s,0,val);
+	nvents++;
+      }
+    }
+  }
+  MRIwrite(bin,"bin0.mgz");
+  if(ndil > 0) {
+    DEMorphBinVol mbv;
+    mbv.morphtype = 1;
+    mbv.nmorph = ndil;
+    mbv.nnbrsthresh = nnbrsthresh;
+    mbv.mm_debug = 1;
+    MRI *mritmp = mbv.morph(bin);
+    if(mritmp==NULL) return(1);
+    MRIfree(&bin);
+    bin = mritmp;
+    MRIwrite(bin,"bin.mgz");
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for reduction(+ : nvents)
+    #endif
+    for(int c=0; c < invol->width; c++){
+      for(int r=0; r < invol->height; r++){
+        for(int s=0; s < invol->depth; s++){
+    	  int vbin = MRIgetVoxVal(bin,c,r,s,0);
+  	  if(vbin < 0.5) continue;
+  	  int segid = MRIgetVoxVal(aseg,c,r,s,0);
+  	  if(segid != 2 && segid != 41) continue;
+  	  MRIsetVoxVal(invol,c,r,s,0,val);
+	  nwm++;
+        }
+      }
+    }
+  }
+  MRIfree(&bin);
+  printf("   nvents=%d  nwm=%d\n",nvents,nwm);
+
+  return(0);
+}
+
+
 
 
 

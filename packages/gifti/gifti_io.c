@@ -130,9 +130,11 @@ static char *gifti_history[] = {
     "     - the most significant dimension cannot be 1 (req by N Schmansky)\n"
     "1.10 19 October, 2011: \n",
     "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
-    "       (requested by H Breman, J Mulders, N Schmansky)\n"};
+    "       (requested by H Breman, J Mulders, N Schmansky)\n"
+    "1.11 07 March, 2012: fixed sizeof in memset of gim (noted by B Cox)\n",
+    "1.12 15 June, 2012: make num_dim violation a warning, because of mris_convert\n"};
 
-static char gifti_version[] = "gifti library version 1.09, 28 June, 2010";
+static char gifti_version[] = "gifti library version 1.12, 15 June, 2012";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -145,22 +147,22 @@ char *gifti_index_order_list[] = {"Undefined", "RowMajorOrder", "ColumnMajorOrde
     (these type values are defined in nifti1.h) */
 static gifti_type_ele gifti_type_list[] = {
     /* type                    nbyper  swapsize   name  */
-    {DT_UNKNOWN, 0, 0, "Undefined"},
-    {NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"},
-    {NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"},
-    {NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"},
-    {NIFTI_TYPE_FLOAT32, 4, 4, "NIFTI_TYPE_FLOAT32"},
-    {NIFTI_TYPE_COMPLEX64, 8, 4, "NIFTI_TYPE_COMPLEX64"},
-    {NIFTI_TYPE_FLOAT64, 8, 8, "NIFTI_TYPE_FLOAT64"},
-    {NIFTI_TYPE_RGB24, 3, 0, "NIFTI_TYPE_RGB24"},
-    {NIFTI_TYPE_INT8, 1, 0, "NIFTI_TYPE_INT8"},
-    {NIFTI_TYPE_UINT16, 2, 2, "NIFTI_TYPE_UINT16"},
-    {NIFTI_TYPE_UINT32, 4, 4, "NIFTI_TYPE_UINT32"},
-    {NIFTI_TYPE_INT64, 8, 8, "NIFTI_TYPE_INT64"},
-    {NIFTI_TYPE_UINT64, 8, 8, "NIFTI_TYPE_UINT64"},
-    {NIFTI_TYPE_FLOAT128, 6, 16, "NIFTI_TYPE_FLOAT128"},
-    {NIFTI_TYPE_COMPLEX128, 16, 8, "NIFTI_TYPE_COMPLEX128"},
-    {NIFTI_TYPE_COMPLEX256, 32, 16, "NIFTI_TYPE_COMPLEX256"}};
+    { DT_UNKNOWN,                 0,      0,      "Undefined"             },
+    { NIFTI_TYPE_UINT8,           1,      0,      "NIFTI_TYPE_UINT8"      },
+    { NIFTI_TYPE_INT16,           2,      2,      "NIFTI_TYPE_INT16"      },
+    { NIFTI_TYPE_INT32,           4,      4,      "NIFTI_TYPE_INT32"      },
+    { NIFTI_TYPE_FLOAT32,         4,      4,      "NIFTI_TYPE_FLOAT32"    },
+    { NIFTI_TYPE_COMPLEX64,       8,      4,      "NIFTI_TYPE_COMPLEX64"  },
+    { NIFTI_TYPE_FLOAT64,         8,      8,      "NIFTI_TYPE_FLOAT64"    },
+    { NIFTI_TYPE_RGB24,           3,      0,      "NIFTI_TYPE_RGB24"      },
+    { NIFTI_TYPE_INT8,            1,      0,      "NIFTI_TYPE_INT8"       },
+    { NIFTI_TYPE_UINT16,          2,      2,      "NIFTI_TYPE_UINT16"     },
+    { NIFTI_TYPE_UINT32,          4,      4,      "NIFTI_TYPE_UINT32"     },
+    { NIFTI_TYPE_INT64,           8,      8,      "NIFTI_TYPE_INT64"      },
+    { NIFTI_TYPE_UINT64,          8,      8,      "NIFTI_TYPE_UINT64"     },
+    { NIFTI_TYPE_FLOAT128,        6,     16,      "NIFTI_TYPE_FLOAT128"   },
+    { NIFTI_TYPE_COMPLEX128,     16,      8,      "NIFTI_TYPE_COMPLEX128" },
+    { NIFTI_TYPE_COMPLEX256,     32,     16,      "NIFTI_TYPE_COMPLEX256" }};
 
 /*! this list provides a link between intent codes and their name strings */
 typedef struct
@@ -168,46 +170,47 @@ typedef struct
   int code;
   char *name;
 } gifti_intent_ele;
-static gifti_intent_ele gifti_intent_list[] = {{NIFTI_INTENT_NONE, "NIFTI_INTENT_NONE"},
-                                               {NIFTI_INTENT_CORREL, "NIFTI_INTENT_CORREL"},
-                                               {NIFTI_INTENT_TTEST, "NIFTI_INTENT_TTEST"},
-                                               {NIFTI_INTENT_FTEST, "NIFTI_INTENT_FTEST"},
-                                               {NIFTI_INTENT_ZSCORE, "NIFTI_INTENT_ZSCORE"},
-                                               {NIFTI_INTENT_CHISQ, "NIFTI_INTENT_CHISQ"},
-                                               {NIFTI_INTENT_BETA, "NIFTI_INTENT_BETA"},
-                                               {NIFTI_INTENT_BINOM, "NIFTI_INTENT_BINOM"},
-                                               {NIFTI_INTENT_GAMMA, "NIFTI_INTENT_GAMMA"},
-                                               {NIFTI_INTENT_POISSON, "NIFTI_INTENT_POISSON"},
-                                               {NIFTI_INTENT_NORMAL, "NIFTI_INTENT_NORMAL"},
-                                               {NIFTI_INTENT_FTEST_NONC, "NIFTI_INTENT_FTEST_NONC"},
-                                               {NIFTI_INTENT_CHISQ_NONC, "NIFTI_INTENT_CHISQ_NONC"},
-                                               {NIFTI_INTENT_LOGISTIC, "NIFTI_INTENT_LOGISTIC"},
-                                               {NIFTI_INTENT_LAPLACE, "NIFTI_INTENT_LAPLACE"},
-                                               {NIFTI_INTENT_UNIFORM, "NIFTI_INTENT_UNIFORM"},
-                                               {NIFTI_INTENT_TTEST_NONC, "NIFTI_INTENT_TTEST_NONC"},
-                                               {NIFTI_INTENT_WEIBULL, "NIFTI_INTENT_WEIBULL"},
-                                               {NIFTI_INTENT_CHI, "NIFTI_INTENT_CHI"},
-                                               {NIFTI_INTENT_INVGAUSS, "NIFTI_INTENT_INVGAUSS"},
-                                               {NIFTI_INTENT_EXTVAL, "NIFTI_INTENT_EXTVAL"},
-                                               {NIFTI_INTENT_PVAL, "NIFTI_INTENT_PVAL"},
-                                               {NIFTI_INTENT_LOGPVAL, "NIFTI_INTENT_LOGPVAL"},
-                                               {NIFTI_INTENT_LOG10PVAL, "NIFTI_INTENT_LOG10PVAL"},
-                                               {NIFTI_INTENT_ESTIMATE, "NIFTI_INTENT_ESTIMATE"},
-                                               {NIFTI_INTENT_LABEL, "NIFTI_INTENT_LABEL"},
-                                               {NIFTI_INTENT_NEURONAME, "NIFTI_INTENT_NEURONAME"},
-                                               {NIFTI_INTENT_GENMATRIX, "NIFTI_INTENT_GENMATRIX"},
-                                               {NIFTI_INTENT_SYMMATRIX, "NIFTI_INTENT_SYMMATRIX"},
-                                               {NIFTI_INTENT_DISPVECT, "NIFTI_INTENT_DISPVECT"},
-                                               {NIFTI_INTENT_VECTOR, "NIFTI_INTENT_VECTOR"},
-                                               {NIFTI_INTENT_POINTSET, "NIFTI_INTENT_POINTSET"},
-                                               {NIFTI_INTENT_TRIANGLE, "NIFTI_INTENT_TRIANGLE"},
-                                               {NIFTI_INTENT_QUATERNION, "NIFTI_INTENT_QUATERNION"},
-                                               {NIFTI_INTENT_DIMLESS, "NIFTI_INTENT_DIMLESS"},
-                                               {NIFTI_INTENT_TIME_SERIES, "NIFTI_INTENT_TIME_SERIES"},
-                                               {NIFTI_INTENT_NODE_INDEX, "NIFTI_INTENT_NODE_INDEX"},
-                                               {NIFTI_INTENT_RGB_VECTOR, "NIFTI_INTENT_RGB_VECTOR"},
-                                               {NIFTI_INTENT_RGBA_VECTOR, "NIFTI_INTENT_RGBA_VECTOR"},
-                                               {NIFTI_INTENT_SHAPE, "NIFTI_INTENT_SHAPE"}};
+static gifti_intent_ele gifti_intent_list[] = {
+  { NIFTI_INTENT_NONE,             "NIFTI_INTENT_NONE"        },
+  { NIFTI_INTENT_CORREL,           "NIFTI_INTENT_CORREL"      },
+  { NIFTI_INTENT_TTEST,            "NIFTI_INTENT_TTEST"       },
+  { NIFTI_INTENT_FTEST,            "NIFTI_INTENT_FTEST"       },
+  { NIFTI_INTENT_ZSCORE,           "NIFTI_INTENT_ZSCORE"      },
+  { NIFTI_INTENT_CHISQ,            "NIFTI_INTENT_CHISQ"       },
+  { NIFTI_INTENT_BETA,             "NIFTI_INTENT_BETA"        },
+  { NIFTI_INTENT_BINOM,            "NIFTI_INTENT_BINOM"       },
+  { NIFTI_INTENT_GAMMA,            "NIFTI_INTENT_GAMMA"       },
+  { NIFTI_INTENT_POISSON,          "NIFTI_INTENT_POISSON"     },
+  { NIFTI_INTENT_NORMAL,           "NIFTI_INTENT_NORMAL"      },
+  { NIFTI_INTENT_FTEST_NONC,       "NIFTI_INTENT_FTEST_NONC"  },
+  { NIFTI_INTENT_CHISQ_NONC,       "NIFTI_INTENT_CHISQ_NONC"  },
+  { NIFTI_INTENT_LOGISTIC,         "NIFTI_INTENT_LOGISTIC"    },
+  { NIFTI_INTENT_LAPLACE,          "NIFTI_INTENT_LAPLACE"     },
+  { NIFTI_INTENT_UNIFORM,          "NIFTI_INTENT_UNIFORM"     },
+  { NIFTI_INTENT_TTEST_NONC,       "NIFTI_INTENT_TTEST_NONC"  },
+  { NIFTI_INTENT_WEIBULL,          "NIFTI_INTENT_WEIBULL"     },
+  { NIFTI_INTENT_CHI,              "NIFTI_INTENT_CHI"         },
+  { NIFTI_INTENT_INVGAUSS,         "NIFTI_INTENT_INVGAUSS"    },
+  { NIFTI_INTENT_EXTVAL,           "NIFTI_INTENT_EXTVAL"      },
+  { NIFTI_INTENT_PVAL,             "NIFTI_INTENT_PVAL"        },
+  { NIFTI_INTENT_LOGPVAL,          "NIFTI_INTENT_LOGPVAL"     },
+  { NIFTI_INTENT_LOG10PVAL,        "NIFTI_INTENT_LOG10PVAL"   },
+  { NIFTI_INTENT_ESTIMATE,         "NIFTI_INTENT_ESTIMATE"    },
+  { NIFTI_INTENT_LABEL,            "NIFTI_INTENT_LABEL"       },
+  { NIFTI_INTENT_NEURONAME,        "NIFTI_INTENT_NEURONAME"   },
+  { NIFTI_INTENT_GENMATRIX,        "NIFTI_INTENT_GENMATRIX"   },
+  { NIFTI_INTENT_SYMMATRIX,        "NIFTI_INTENT_SYMMATRIX"   },
+  { NIFTI_INTENT_DISPVECT,         "NIFTI_INTENT_DISPVECT"    },
+  { NIFTI_INTENT_VECTOR,           "NIFTI_INTENT_VECTOR"      },
+  { NIFTI_INTENT_POINTSET,         "NIFTI_INTENT_POINTSET"    },
+  { NIFTI_INTENT_TRIANGLE,         "NIFTI_INTENT_TRIANGLE"    },
+  { NIFTI_INTENT_QUATERNION,       "NIFTI_INTENT_QUATERNION"  },
+  { NIFTI_INTENT_DIMLESS,          "NIFTI_INTENT_DIMLESS"     },
+  { NIFTI_INTENT_TIME_SERIES,      "NIFTI_INTENT_TIME_SERIES" },
+  { NIFTI_INTENT_NODE_INDEX,       "NIFTI_INTENT_NODE_INDEX"  },
+  { NIFTI_INTENT_RGB_VECTOR,       "NIFTI_INTENT_RGB_VECTOR"  },
+  { NIFTI_INTENT_RGBA_VECTOR,      "NIFTI_INTENT_RGBA_VECTOR" },
+  { NIFTI_INTENT_SHAPE,            "NIFTI_INTENT_SHAPE"       }};
 
 /*! this should match GIFTI_ENCODING_* */
 char *gifti_encoding_list[] = {"Undefined", "ASCII", "Base64Binary", "GZipBase64Binary", "ExternalFileBinary"};
@@ -225,26 +228,26 @@ static int str2list_index(char *list[], int max, const char *str);
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
-static gifti_globals G = {1};
+static gifti_globals G = { 1 };
 
 /* ====================================================================== */
 
 /* ---------------------------------------------------------------------- */
 /*! user variable accessor functions - basically use gxml interface       */
 
-int gifti_get_verb(void) { return G.verb; }
+int gifti_get_verb(void)          { return G.verb; }
 int gifti_set_verb(int level)
 {
   G.verb = level;
   return 1;
 }
-int gifti_get_indent(void) { return gxml_get_indent(); }
-int gifti_set_indent(int level) { return gxml_set_indent(level); }
-int gifti_get_b64_check(void) { return gxml_get_b64_check(); }
-int gifti_set_b64_check(int level) { return gxml_set_b64_check(level); }
-int gifti_get_update_ok(void) { return gxml_get_update_ok(); }
-int gifti_set_update_ok(int level) { return gxml_set_update_ok(level); }
-int gifti_get_zlevel(void) { return gxml_get_zlevel(); }
+int gifti_get_indent(void)        { return gxml_get_indent(); }
+int gifti_set_indent(int level)   { return gxml_set_indent(level); }
+int gifti_get_b64_check(void)     { return gxml_get_b64_check(); }
+int gifti_set_b64_check(int level){ return gxml_set_b64_check(level); }
+int gifti_get_update_ok(void)     { return gxml_get_update_ok(); }
+int gifti_set_update_ok(int level){ return gxml_set_update_ok(level); }
+int gifti_get_zlevel(void)        { return gxml_get_zlevel(); }
 int gifti_set_zlevel(int level)
 {
   /* note that the default currently results in 6 */
@@ -255,7 +258,7 @@ int gifti_set_zlevel(int level)
   return gxml_set_zlevel(level);
 }
 
-int gifti_get_xml_buf_size(void) { return gxml_get_buf_size(); }
+int gifti_get_xml_buf_size(void)         { return gxml_get_buf_size(); }
 int gifti_set_xml_buf_size(int buf_size) { return gxml_set_buf_size(buf_size); }
 
 /*! reset user variables to their defaults(via set to -1) */
@@ -931,13 +934,14 @@ int gifti_valid_dims(const giiDataArray *da, int whine)
   /* verify that num_dim is not too big, the most significant dimension
    * is not allowed to be 1
    * (requested by N Schmansky)                       11 Mar 2010 */
-  if (da->num_dim > 1 && da->dims[da->num_dim - 1] < 2) {
+  if (da->num_dim > 1 && da->dims[da->num_dim - 1] < 2 && whine) {
     fprintf(stderr,
             "** num_dim violation: num_dim = %d, yet dim[%d] = %d\n",
             da->num_dim,
             da->num_dim - 1,
             da->dims[da->num_dim - 1]);
-    return 0;
+    /* now FS is writing these in mris_convert, grrrr...  15 Jun 2012 */
+    /* return 0; */
   }
 
   return 1;
@@ -4053,7 +4057,6 @@ int gifti_clear_gifti_image(gifti_image *gim)
   if (G.verb > 5) fprintf(stderr, "-- clearing gifti_image\n");
 
   /* set the version and clear all pointers */
-  // memset(gim, 0, sizeof(gim)); // original
   memset(gim, 0, sizeof(*gim));  // changed by dng
 
   gim->version = NULL;
@@ -4213,7 +4216,6 @@ int gifti_add_to_meta(giiMetaData *md, const char *name, const char *value, int 
 int gifti_valid_gifti_image(gifti_image *gim, int whine)
 {
   int c, errs = 0;
-  float gim_version = 0.0f, gifti_xml_version = 0.0f;
 
   if (!gim) {
     if (whine) fprintf(stderr, "** invalid: gifti_image ptr is NULL\n");
@@ -4227,6 +4229,13 @@ int gifti_valid_gifti_image(gifti_image *gim, int whine)
     errs++;
   }
 
+  /* NITRC online version dated Jul 5, 2013
+   * if (!gim->version || strcmp(gim->version, GIFTI_XML_VERSION)) {
+   *   if (whine) fprintf(stderr, "** invalid: gim version = %s\n", G_CHECK_NULL_STR(gim->version));
+   *   errs++;
+   * }
+   */
+  float gim_version = 0.0f, gifti_xml_version = 0.0f;
   if (gim->version) {
     sscanf(gim->version, "%f", &gim_version);
     sscanf(GIFTI_XML_VERSION, "%f", &gifti_xml_version);

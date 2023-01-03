@@ -1077,17 +1077,22 @@ void LayerSurface::DoSlicePositionChanged( int nPlane, bool bUpdatePosOnly )
   dLen = dMinVS/5;
   if (GetProperty()->GetShowVertices())
   {
-      vtkPoints* all_pts = m_surfaceSource->GetPolyData()->GetPoints();
+      vtkPoints* all_pts = m_surfaceSource->GetVertexPolyData()->GetPoints();
+      vtkCellArray* all_verts = m_surfaceSource->GetVertexPolyData()->GetVerts();
       vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
       double pt[3];
-      for (vtkIdType i = 0; i < all_pts->GetNumberOfPoints(); i++)
+      vtkIdType npt;
+      vtkIdType* pn;
+      all_verts->InitTraversal();
+      while (all_verts->GetNextCell(npt, pn))
       {
-          all_pts->GetPoint(i, pt);
-          if (qAbs(m_dSlicePosition[nPlane]-pt[nPlane]) < dLen)
-          {
-              pts->InsertNextPoint(pt);
-          }
+        all_pts->GetPoint(pn[0], pt);
+        if (qAbs(m_dSlicePosition[nPlane]-pt[nPlane]) < dLen)
+        {
+            pts->InsertNextPoint(pt);
+        }
       }
+
       vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
       verts->Allocate( pts->GetNumberOfPoints() );
       for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )

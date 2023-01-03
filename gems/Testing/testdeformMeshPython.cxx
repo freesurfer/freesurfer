@@ -10,9 +10,9 @@
 #include "kvlCroppedImageReader.h"
 
 // Usage: 
-//   deformMesh <maxIter> <numThreads> <input-mesh-collection> <input-mgz>
+//   testdeformMeshPython <maxIter> <numThreads> <input-mesh-collection>  <output-deformed-mesh-collection> <input-mgz>
 // examples:
-//   deformMesh 30 1 atlas_level1_deformmesh.txt.gz inp_image_deformmesh.mgz
+//   testdeformMeshPython 30 1 atlas_level1_deformmesh.txt.gz  deformedmesh_out.txt.gz inp_image_deformmesh.mgz
 int main( int argc, char** argv )
 {
   // Add support for MGH file format to ITK. An alternative way to add this by default would be
@@ -21,7 +21,7 @@ int main( int argc, char** argv )
 
   // Retrieve the input parameters
   std::ostringstream  inputParserStream;
-  for ( int argumentNumber = 1; argumentNumber < 4; argumentNumber++ ) 
+  for ( int argumentNumber = 1; argumentNumber < 5; argumentNumber++ ) 
     {
     inputParserStream << argv[ argumentNumber ] << " ";
     }
@@ -29,12 +29,14 @@ int main( int argc, char** argv )
   int maxIteration;
   int numThreads;
   std::string  meshCollectionFile;
-  inputStream >> maxIteration >> numThreads >> meshCollectionFile;
+  std::string  deformedMeshCollectionFile;
+  inputStream >> maxIteration >> numThreads >> meshCollectionFile >> deformedMeshCollectionFile;
 
   std::cout << "deformMesh Command line params:" << std::endl;
   std::cout << "  maxIteration:                         " << maxIteration << std::endl;
   std::cout << "  numThreads:                           " << numThreads   << std::endl;
   std::cout << "  meshCollectionFile:                   " << meshCollectionFile << std::endl;
+  std::cout << "  output deformedMeshCollectionFile:    " << deformedMeshCollectionFile << std::endl;
 
   // set ITK number of threads  
   std::cout << "[DEBUG] itk::MultiThreader::SetGlobalDefaultNumberOfThreads(" << numThreads << ")" << std::endl;
@@ -67,7 +69,7 @@ int main( int argc, char** argv )
   //typedef kvl::CompressionLookupTable::ImageType  LabelImageType;     // typedef itk::Image< unsigned short, 3 >  ImageType;
   typedef itk::Image< float, 3 > ImageType;
   std::vector< ImageType::ConstPointer >  images;
-  for ( int argumentNumber = 4; argumentNumber < argc; argumentNumber++ )
+  for ( int argumentNumber = 5; argumentNumber < argc; argumentNumber++ )
   {
     std::string imageFileName = argv[ argumentNumber ];
 
@@ -125,7 +127,7 @@ int main( int argc, char** argv )
   bool  verbose = false;
   float maximalDeformationStopCriterion = 0.001;
   float lineSearchMaximalDeformationIntervalStopCriterion = 0.001;
-  int   maximumNumberOfIterations = 20;
+  int   maximumNumberOfIterations = maxIteration;  //20;
   int   maximumMemoryLength = 12;
   kvl::AtlasMeshDeformationLBFGSOptimizer::Pointer  optimizer
     = kvl::AtlasMeshDeformationLBFGSOptimizer::New();
@@ -247,19 +249,56 @@ int main( int argc, char** argv )
 
   std::cout << "[DEBUG] Done setup AtlasMeshDeformationLBFGSOptimizer and AtlasMeshToIntensityImageCostAndGradientCalculator" << std::endl;
   std::cout << std::endl;
-  int count = 0;
-  while (count < maxIteration)
+  int iter = 0, totalRasterizeCalls = 0, totalTet = 0, totalZeroVoxelTet = 0, totalVoxel = 0, totalVoxelInTetrahedron = 0;
+  while (true)      //while (iter < maxIteration)
   {
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    calculator->m_Iterations++; 
+#endif
+
     const double  maximalDeformation = optimizer->Step();
     const double  minLogLikelihoodTimesPrior = optimizer->GetMinLogLikelihoodTimesPrior();
-    std::cout << "[DEBUG] iter. #" << count+1 << ", maximalDeformation=" << maximalDeformation << ", minLogLikelihoodTimesPrior=" << minLogLikelihoodTimesPrior << std::endl;
+    std::cout << "[DEBUG] iter. #" << iter+1 << ", maximalDeformation = " << maximalDeformation << ", minLogLikelihoodTimesPrior = " << minLogLikelihoodTimesPrior << std::endl;
     std::cout << std::endl;
+
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+    printf("[DEBUG] %3d Rasterize() calls, total tetrahedron = %8d, zero voxel tetrahedron     = %8d, %6.2f\%\n"
+           "                               total voxel       = %8d, total voxel in tetrahedron = %8d, %6.2f\%\n\n", 
+           calculator->m_RasterizeCalls, calculator->m_tetrahedronCnt, calculator->m_zeroVoxel_tetrahedronCnt, 
+           (calculator->m_tetrahedronCnt == 0) ? 0.0 : (double)calculator->m_zeroVoxel_tetrahedronCnt/calculator->m_tetrahedronCnt*100,
+           calculator->m_totalVoxel, calculator->m_totalVoxelInTetrahedron, 
+           (calculator->m_totalVoxel == 0) ? 0.0 : (double)calculator->m_totalVoxelInTetrahedron/calculator->m_totalVoxel*100);
+
+    totalRasterizeCalls += calculator->m_RasterizeCalls;
+    calculator->m_RasterizeCalls = 0; 
+
+    totalTet += calculator->m_tetrahedronCnt; totalZeroVoxelTet += calculator->m_zeroVoxel_tetrahedronCnt;
+    calculator->m_tetrahedronCnt = 0; calculator->m_zeroVoxel_tetrahedronCnt = 0;
+
+    totalVoxel += calculator->m_totalVoxel; totalVoxelInTetrahedron += calculator->m_totalVoxelInTetrahedron;
+    calculator->m_totalVoxel = 0, calculator->m_totalVoxelInTetrahedron = 0;
+#endif
+
     if (maximalDeformation == 0)
       break;
 
-    count++;
+    iter++;
   }
-  
+
+#ifdef GEMS_DEBUG_RASTERIZE_VOXEL_COUNT
+  printf("[DEBUG] Summary: Total %3d Rasterize() calls, total tetrahedron = %12d, zero voxel tetrahedron     = %12d, %6.2f\%\n"
+         "                                              total voxel       = %12d, total voxel in tetrahedron = %12d, %6.2f\%\n\n", 
+         totalRasterizeCalls, totalTet, totalZeroVoxelTet, 
+         (totalTet == 0) ? 0.0 : (double)totalZeroVoxelTet/totalTet*100,
+         totalVoxel, totalVoxelInTetrahedron, 
+         (totalVoxel == 0) ? 0.0 : (double)totalVoxelInTetrahedron/totalVoxel*100);
+#endif
+
+  // output the deformed mesh 
+  kvl::AtlasMeshCollection::Pointer  deformedMeshCollection = kvl::AtlasMeshCollection::New();
+  deformedMeshCollection->GenerateFromSingleMesh(mutableMesh, 1, 0.1);
+  deformedMeshCollection->Write(deformedMeshCollectionFile.c_str());
+
   return 0;
 };
 

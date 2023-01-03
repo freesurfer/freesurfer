@@ -22,7 +22,7 @@ public slots:
 
 private:
   void Clear();
-  void AddLine(const QString& name, const QString& value);
+  void AddLine(const QString& name, const QString& value, bool word_wrap = false);
   void SetCaption(const QString& text);
 
   Ui::WindowLayerInfo *ui;

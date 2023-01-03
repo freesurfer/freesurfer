@@ -246,6 +246,7 @@ struct MRIS {
     pSeveralFloat                 dy2                      ;
     pSeveralFloat                 dz2                      ;
     PCOLOR_TABLE                  ct                       ;
+  int                             orig_xyzspace            ;  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
     int                           useRealRAS               ;  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
     VOL_GEOM                      vg                       ;  //  volume info from which this surface is created. valid iff vg.valid = 1
     MRIS_cmdlines_t               cmdlines                 ;
@@ -515,6 +516,7 @@ struct MRIS {
     ELTP(float,dy2)  SEP \
     ELTP(float,dz2)  SEP \
     ELTP(COLOR_TABLE,ct)  SEP \
+    ELTT(int,orig_xyzspace)  SEP \
     ELTT(int,useRealRAS)  SEP \
     ELTT(VOL_GEOM,vg)  SEP \
     ELTX(MRIS_cmdlines_t,cmdlines)  SEP \
