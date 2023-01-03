@@ -19,3 +19,5 @@ from .logging import RedirectingLogger
 from .logging import Table
 
 from .parser import ArgumentParser
+
+from . import fhs
