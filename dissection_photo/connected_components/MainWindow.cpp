@@ -141,7 +141,7 @@ void MainWindow::OnButtonCreateMask()
     m_listData << list;
 
   QString fn = QFileInfo(ui->widgetImageView->GetFilename()).fileName();
-  fn.replace(".jpg", "_mask.npy", Qt::CaseInsensitive);
+  fn.replace(QString(".")+QFileInfo(fn).suffix(), "_mask.npy", Qt::CaseInsensitive);
   m_maskProcessor.SaveToNpy(QFileInfo(m_strOutputFolder, fn).absoluteFilePath());
   ui->pushButtonNext->setEnabled(true);
 }
@@ -174,7 +174,7 @@ void MainWindow::LoadImage(int n)
   ui->widgetImageView->LoadImage(m_listInputFiles[n].absoluteFilePath(), m_listMaskFiles[n].absoluteFilePath(),
                                  QList<QPoint>(), rects);
   QString mask_fn = m_listMaskFiles[n].fileName();
-  mask_fn.replace(".png", ".npz");
+  mask_fn.replace(QString(".")+QFileInfo(mask_fn).suffix(), ".npz");
   if (!m_maskProcessor.Load(QFileInfo(m_strTempFolder, mask_fn).absoluteFilePath()))
   {
     QMessageBox::warning(this, "Error", "Failed to load processed npy files");
