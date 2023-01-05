@@ -345,6 +345,12 @@ def main():
             save_volume(registered, Faff, Fh, args.ref_reg)
 
     print('All done')
+    print(' ')
+    print('If you use EasyReg in your analysis, please cite:')
+    print('EasyReg: A ready-to-use deep learning tool for symmetric affine and nonlinear brain MRI registration.')
+    print('JE Iglesias. Under revision.')
+    print('https://doi.org/10.21203/rs.3.rs-2444602/v1')
+    print(' ')
 
 
 #######################
