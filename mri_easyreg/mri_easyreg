@@ -2,16 +2,19 @@ import os
 import argparse
 import numpy as np
 import voxelmorph as vxm
+import torch
+import surfa as sf
+import nibabel as nib
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+import tensorflow as tf
 import keras
 import keras.backend as K
 import keras.layers as KL
-import torch
-import surfa as sf
-import tensorflow as tf
-import nibabel as nib
+
 
 # set tensorflow logging
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.get_logger().setLevel('ERROR')
 K.set_image_data_format('channels_last')
 
@@ -54,7 +57,6 @@ def main():
         sf.system.fatal('Please provide at least one of: registered reference, registered floating, forward field, or backward field')
 
     # limit the number of threads to be used if running on CPU
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     if args.threads == 1:
         print('using 1 thread')
     elif args.threads<0:
