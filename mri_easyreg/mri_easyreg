@@ -5,7 +5,8 @@ import voxelmorph as vxm
 import torch
 import surfa as sf
 import nibabel as nib
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, distance_transform_edt, binary_fill_holes
+from scipy.ndimage import label as scipy_label
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
