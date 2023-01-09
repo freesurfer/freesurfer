@@ -532,7 +532,6 @@ int main(int argc, char **argv) {
 
   printf("Done mapping volume to surface\n");
   fflush(stdout);
-  MRIfree(&SrcVol);
 
   /* Count the number of source voxels hit */
   nsrchits = 0;
@@ -702,7 +701,8 @@ int main(int argc, char **argv) {
       SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,0) ;
     if(mask_label_name) LabelMaskSurface(area, Surf) ;
     MRISwriteValues(SurfOut, outfile) ;
-  } else {
+  } 
+  else {
     if (reshape) {
       if (reshapefactor == 0) {
         if (outtype == MRI_ANALYZE4D_FILE || outtype == MRI_ANALYZE_FILE ||
@@ -745,14 +745,20 @@ int main(int argc, char **argv) {
     }
 
     printf("Writing to %s\n",outfile);
-    printf("Dim: %d %d %d\n",
-           SurfVals2->width,SurfVals2->height,SurfVals2->depth);
+    printf("Dim: %d %d %d\n",SurfVals2->width,SurfVals2->height,SurfVals2->depth);
+    if(SrcVol->ct) {
+      printf("Copying color table to the output\n");
+      SurfVals2->ct = CTABdeepCopy(SrcVol->ct);
+    }
+
     err = MRIwriteType(SurfVals2,outfile,outtype);
     if(err){
       printf("ERROR: saving %s\n",outfile);
       exit(1);
     }
   }
+  MRIfree(&SrcVol);
+  printf("mri_vol2surf done\n");
 
   return(0);
 }
