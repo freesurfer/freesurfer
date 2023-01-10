@@ -710,6 +710,10 @@ while( $#argv != 0 )
     case "--no-bcd":
       setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1
       breaksw
+    case "--block-coordinate-descent":
+    case "--bcd":
+      setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 0
+      breaksw
 
     case "--logdomain-costandgradient-calculator":
       setenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1
