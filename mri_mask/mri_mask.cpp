@@ -336,7 +336,11 @@ int main(int argc, char *argv[])
       MRIdilate(mri_mask, mri_mask);
   }
 
+  printf("maskval=%d, outval=%g\n",mask,out_val);
   mri_out = MRImask(mri_in, mri_mask, NULL, mask, out_val) ;
+  //MRIwrite(mri_in,"mri_in.mgz");
+  //MRIwrite(mri_mask,"mri_mask.mgz");
+  //MRIwrite(mri_out,"mri_out.mgz");
   if (!mri_out)  {
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
   }
@@ -368,7 +372,8 @@ int main(int argc, char *argv[])
   }
 
   printf("Writing masked volume to %s...", argv[3]) ;
-  MRIwrite(mri_out, argv[3]);
+  int err = MRIwrite(mri_out, argv[3]);
+  if(err) exit(1);
   printf("done.\n") ;
 
   MRIfree(&mri_in);
