@@ -726,7 +726,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
       voxel_size = m_layerRef->GetWorldVoxelSize();
     else
       voxel_size = m_surfaceRef->GetWorldVoxelSize();
-    dt = GetProperty()->GetRadius() * qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
+    dt = GetProperty()->GetRadius() * qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) )*2;
     dt = dt * dt;
   }
   for ( int i = 0; i < m_points.size(); i++ )
@@ -740,7 +740,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 }
 
 // returns index of the point
-int LayerPointSet::AddPoint( double* ras_in, double value, bool bNotToVoxelCenter )
+int LayerPointSet::AddPoint( double* ras_in, double value, bool bNotToVoxelCenter, int n_insert_after )
 {
   int nRet;
   int dim[3];
@@ -763,15 +763,23 @@ int LayerPointSet::AddPoint( double* ras_in, double value, bool bNotToVoxelCente
     ras[2] = ras_in[2];
   }
 
-  if ( m_points.size() < 2 || !GetProperty()->GetShowSpline())
+  if ( m_points.size() < 2 || !GetProperty()->GetShowSpline() || n_insert_after >= 0)
   {
     ControlPoint p;
     p.pt[0] = ras[0];
     p.pt[1] = ras[1];
     p.pt[2] = ras[2];
     p.value = value;
-    m_points.push_back( p );
-    nRet = m_points.size() - 1;
+    if (n_insert_after < 0)
+    {
+      m_points.push_back( p );
+      nRet = m_points.size() - 1;
+    }
+    else
+    {
+      m_points.insert(m_points.begin()+n_insert_after+1, p);
+      nRet = n_insert_after+1;
+    }
   }
   else
   {

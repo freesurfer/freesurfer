@@ -145,6 +145,7 @@ public slots:
   void OnMovePointToLocalMaximumDefault();
   void OnMoveAllPointsToLocalMaximum();
   void SetNeurologicalView(bool b);
+  void OnInsertPointAfter();
 
 signals:
   void RegionSelected( Region2D* );

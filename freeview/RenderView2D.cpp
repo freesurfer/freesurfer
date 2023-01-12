@@ -664,7 +664,7 @@ LayerPointSet* RenderView2D::PickPointSetAtCursor(int nX, int nY)
   foreach (Layer* layer, wp_layers)
   {
     LayerPointSet* wp = qobject_cast<LayerPointSet*>(layer);
-    if (wp && wp->IsVisible() && wp->GetProperty()->GetShowSpline())
+    if (wp && wp->IsVisible()) // && wp->GetProperty()->GetShowSpline())
     {
       int nIndex = wp->FindPoint( ras );
       if ( nIndex >= 0 )
@@ -695,17 +695,25 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       if ( nIndex >= 0 )
       {
         mainwnd->GetLayerCollection("PointSet")->SetActiveLayer(wp);
-        QAction* act = new QAction("Move to Local Maximum Derivative", this);
+        QAction* act;
+        act = new QAction(QString("Insert after this point (#%1)").arg(nIndex+1), this);
         act->setData(nIndex);
-        connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximum()));
+        connect(act, SIGNAL(triggered()), this, SLOT(OnInsertPointAfter()));
         menu.addAction(act);
-        act = new QAction("Move to Local Maximum Derivative Using Last Settings", this);
-        act->setData(nIndex);
-        connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximumDefault()));
-        menu.addAction(act);
-        act = new QAction("Move All Points to Local Maximum Derivative", this);
-        connect(act, SIGNAL(triggered()), this, SLOT(OnMoveAllPointsToLocalMaximum()));
-        menu.addAction(act);
+        if (false)
+        {
+          act = new QAction("Move to Local Maximum Derivative", this);
+          act->setData(nIndex);
+          connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximum()));
+          menu.addAction(act);
+          act = new QAction("Move to Local Maximum Derivative Using Last Settings", this);
+          act->setData(nIndex);
+          connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximumDefault()));
+          menu.addAction(act);
+          act = new QAction("Move All Points to Local Maximum Derivative", this);
+          connect(act, SIGNAL(triggered()), this, SLOT(OnMoveAllPointsToLocalMaximum()));
+          menu.addAction(act);
+        }
         menu.exec(event->globalPos());
         return;
       }
@@ -893,6 +901,16 @@ void RenderView2D::OnCopyLabelVolume()
   if (act)
   {
     QApplication::clipboard()->setText(QString::number(act->data().toDouble()));
+  }
+}
+
+void RenderView2D::OnInsertPointAfter()
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (act)
+  {
+    int nIndex = act->data().toInt();
+    m_interactorPointSetEdit->setProperty("insert_after", nIndex+1);
   }
 }
 
