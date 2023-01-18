@@ -5,6 +5,8 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
 
 if [ "$host_os" == "macos12" ]; then
    TESTDATA_SUFFIX=".clang13"
+   # ensure TERM defined to known to be good value
+   export TERM=linux
 fi
 
 test_command samseg --i input.mgz --o output --threads 1 --options config.json
