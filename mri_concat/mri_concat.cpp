@@ -323,7 +323,7 @@ int main(int argc, char **argv)
     if(nthin == 0)
     {
       MRIcopyHeader(mritmp, mriout);
-      //mriout->nframes = nframestot;
+      if(mritmp->ct) mriout->ct = CTABdeepCopy(mritmp->ct);
     }
     if(DoAbs)
     {
