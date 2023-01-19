@@ -3285,8 +3285,15 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 	GCAMfree(&gcam);
       } 
       else {
-	printf("ERROR: don't know what to do with %s\n",asp->xform_name);
-	return(NULL);
+	sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
+	printf("  Applying linear transform %s\n",tmpstr);
+	LTA *lta = LTAread(tmpstr);
+	if(lta==NULL) exit(1);
+	int err = MRISltaMultiply(surf, lta);
+	if(err) return(NULL);
+	//sprintf(tmpstr, "./%s.%s", asp->hemi, subject);
+	//MRISwrite(surf,tmpstr);
+	LTAfree(&lta);
       }
     }
 

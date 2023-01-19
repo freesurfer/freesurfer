@@ -129,6 +129,8 @@ int UseSurf2Surf = 1; // use surf2surf instead of parametric surface
 const char *Progname ;
 static char *sdir = NULL, *sdirout = NULL;
 
+char *TargTempVolPath = NULL;
+
 int
 main(int argc, char *argv[]) {
   char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN],
@@ -198,7 +200,10 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
-  sprintf(fname, "%s/average/mni305.cor.mgz", mdir);
+  if(TargTempVolPath == NULL)
+    sprintf(fname, "%s/average/mni305.cor.mgz", mdir);
+  else
+    sprintf(fname, "%s",TargTempVolPath);
   printf("Adding volume geometry from %s\n",fname);
   mritemplate = MRIread(fname);
 
@@ -503,6 +508,11 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       printf("using xform %s...\n", xform_name) ;
       break ;
+    case 'T':
+      TargTempVolPath = argv[2] ;
+      nargs = 1 ;
+      printf("using xform %s...\n", xform_name) ;
+      break ;
     case '?':
     case 'U':
       print_usage() ;
@@ -600,6 +610,10 @@ print_help(void) {
   printf("  -x xfmname\n");
   printf("\n");
   printf("  Use transforms/xfmname instead of talairach.xfm\n");
+  printf("\n");
+  printf("  -t templatename\n");
+  printf("\n");
+  printf("  Volume to use as geometry template for output surfaces\n");
   printf("\n");
   printf("  -s surfname\n");
   printf("  Use surfname instead of orig\n");
