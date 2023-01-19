@@ -44,7 +44,13 @@ static int tr_specified = 0 ;
 static int te_specified = 0 ;
 static int ti_specified = 0 ;
 static int fa_specified = 0 ;
+static int xras_specified = 0 ;
+static int yras_specified = 0 ;
+static int zras_specified = 0 ;
 static int cras_specified = 0 ;
+static int xsize_specified = 0;
+static int ysize_specified = 0;
+static int zsize_specified = 0;
 
 void print_usage() {
   cout << "Usage: mri_modify <-xras xr xa xs> <-yras yr ya ys> <-zras zr za zs> <-cras cr ca cs> \\ " << endl;
@@ -65,16 +71,19 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg) {
     vg.x_r = atof(argv[2]);
     vg.x_a = atof(argv[3]);
     vg.x_s = atof(argv[4]);
+    xras_specified = 1;
     nargs=3;
   } else if (!stricmp(option, (char*)"yras")) {
     vg.y_r = atof(argv[2]);
     vg.y_a = atof(argv[3]);
     vg.y_s = atof(argv[4]);
+    yras_specified = 1;
     nargs=3;
   } else if (!stricmp(option, (char*)"zras")) {
     vg.z_r = atof(argv[2]);
     vg.z_a = atof(argv[3]);
     vg.z_s = atof(argv[4]);
+    zras_specified = 1;
     nargs=3;
   } else if (!stricmp(option, (char*)"cras")) {
     vg.c_r = atof(argv[2]);
@@ -84,12 +93,15 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg) {
     nargs=3;
   } else if (!stricmp(option, (char*)"xsize")) {
     vg.xsize = atof(argv[2]);
+    xsize_specified = 1;
     nargs=1;
   } else if (!stricmp(option, (char*)"ysize")) {
     vg.ysize = atof(argv[2]);
+    ysize_specified = 1;
     nargs=1;
   } else if (!stricmp(option, (char*)"zsize")) {
     vg.zsize = atof(argv[2]);
+    zsize_specified = 1;
     nargs=1;
   } else if (!stricmp(option, (char*)"tr")) {
     gtr=atof(argv[2]);
@@ -165,9 +177,12 @@ int main(int argc, char *argv[]) {
   getVolGeom(mri, &vgIn);
   VOL_GEOM vgOut;
   copyVolGeom(&vgIn, &vgOut);
-  // modify only those which are non-zero in the options
+
+  int reinit = 0;
+
+  // modify only those specified in the command line
   // x_ras
-  if (!FZERO(vg.x_r) || !FZERO(vg.x_a) || !FZERO(vg.x_s)) {
+  if (xras_specified) {
     // check consistency
     if (!FZERO(vg.x_r*vg.x_r+vg.x_a*vg.x_a+vg.x_s*vg.x_s - 1)) {
       cerr << "x_(ras) must have the unit length" << endl;
@@ -176,9 +191,10 @@ int main(int argc, char *argv[]) {
     vgOut.x_r = vg.x_r;
     vgOut.x_a = vg.x_a;
     vgOut.x_s = vg.x_s;
+    reinit = 1;
   }
   // y_ras
-  if (!FZERO(vg.y_r) || !FZERO(vg.y_a) || !FZERO(vg.y_s)) {
+  if (yras_specified) {
     // check consistency
     if (!FZERO(vg.y_r*vg.y_r+vg.y_a*vg.y_a+vg.y_s*vg.y_s - 1)) {
       cerr << "y_(ras) must have the unit length" << endl;
@@ -187,9 +203,10 @@ int main(int argc, char *argv[]) {
     vgOut.y_r = vg.y_r;
     vgOut.y_a = vg.y_a;
     vgOut.y_s = vg.y_s;
+    reinit = 1;
   }
   // z_ras
-  if (!FZERO(vg.z_r) || !FZERO(vg.z_a) || !FZERO(vg.z_s)) {
+  if (zras_specified) {
     // check consistency
     if (!FZERO(vg.z_r*vg.z_r+vg.z_a*vg.z_a+vg.z_s*vg.z_s - 1)) {
       cerr << "z_(ras) must have the unit length" << endl;
@@ -198,24 +215,35 @@ int main(int argc, char *argv[]) {
     vgOut.z_r = vg.z_r;
     vgOut.z_a = vg.z_a;
     vgOut.z_s = vg.z_s;
+    reinit = 1;
   }
   // c_ras
   if (cras_specified){
     vgOut.c_r = vg.c_r;
     vgOut.c_a = vg.c_a;
     vgOut.c_s = vg.c_s;
+    reinit = 1;
   }
   // xsize
-  if (!FZERO(vg.xsize))
+  if (xsize_specified) {
     vgOut.xsize = vg.xsize;
+    reinit = 1;
+  }
   // ysize
-  if (!FZERO(vg.ysize))
+  if (ysize_specified) {
     vgOut.ysize = vg.ysize;
+    reinit = 1;
+  }
   // zsize
-  if (!FZERO(vg.zsize))
+  if (zsize_specified) {
     vgOut.zsize = vg.zsize;
+    reinit = 1;
+  }
 
-  useVolGeomToMRI(&vgOut,mri);
+  if (reinit) {
+    printf("setting VOL_GEOM ...\n");
+    useVolGeomToMRI(&vgOut,mri);
+  }
 
   // now TR, TE, TI, flip_angle
   if (tr_specified)
@@ -223,12 +251,18 @@ int main(int argc, char *argv[]) {
     printf("setting tr to %2.1f ms\n", gtr) ;
     mri->tr = gtr;
   }
-  if (te_specified)
+  if (te_specified) {
+    printf("setting te to %2.1f ms\n", gte) ;
     mri->te = gte;
-  if (ti_specified)
+  }
+  if (ti_specified) {
+    printf("setting ti to %2.1f ms\n", gti) ;
     mri->ti = gti;
-  if (fa_specified)
+  }
+  if (fa_specified) {
+    printf("setting flip angle to %2.1f degrees\n", DEGREES(gflip_angle)) ;
     mri->flip_angle = gflip_angle;
+  }
 
   // stuff-in the new transform filename, if one was grabbed from command-line
   if (new_transform_fname[0])

@@ -77,7 +77,7 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
         m_nCurrentIndex = wp->FindPoint( ras );
         if ( m_nCurrentIndex < 0 )
         {
-          m_nCurrentIndex = wp->AddPoint( ras );
+          m_nCurrentIndex = wp->AddPoint( ras, 1, false, property("insert_after").toInt()-1 );
           m_bEditing = false;
         }
       }
@@ -88,6 +88,7 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
       }
     }
 
+    setProperty("insert_after", 0);
     return false;
   }
   else

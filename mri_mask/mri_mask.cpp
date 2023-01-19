@@ -338,19 +338,18 @@ int main(int argc, char *argv[])
 
   printf("maskval=%d, outval=%g\n",mask,out_val);
   mri_out = MRImask(mri_in, mri_mask, NULL, mask, out_val) ;
-  //MRIwrite(mri_in,"mri_in.mgz");
-  //MRIwrite(mri_mask,"mri_mask.mgz");
-  //MRIwrite(mri_out,"mri_out.mgz");
   if (!mri_out)  {
-    ErrorExit(Gerror, "%s: stripping failed", Progname) ;
+    printf("%s: stripping failed\n", Progname) ;
+    exit(1);
   }
 
   if (keep_mask_deletion_edits)  {
     MRI *mri_tmp ;
     mri_tmp = MRImask(mri_out, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
-    if (!mri_tmp)
-      ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits",
-                Progname) ;
+    if (!mri_tmp) {
+      printf("%s: stripping failed on keep_mask_deletion_edits\n", Progname) ;
+      exit(1);
+    }
     MRIfree(&mri_out) ; mri_out = mri_tmp ;
   }
 

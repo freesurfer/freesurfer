@@ -67,7 +67,7 @@ public:
 
   int FindPoint( double* ras, double tolerance = -1 );
 
-  int AddPoint( double* ras, double value = 1, bool bNotToVoxelCenter = false );
+  int AddPoint( double* ras, double value = 1, bool bNotToVoxelCenter = false, int n_insert_after = -1 );
 
   bool RemovePoint( double* ras, double tolerance = -1 );
 
