@@ -680,12 +680,21 @@ while( $#argv != 0 )
       breaksw
 
     # These are flags passed to make_average_subject, but dont apply here
+    case "--ctab":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      shift;
+      breaksw
     case "--no-surf":
     case "--no-vol":
     case "--force":
     case "--link":
     case "--keep-all-orig":
     case "--no-ribbon":
+    case "--ctab-default":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

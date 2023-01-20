@@ -34,6 +34,7 @@ set sdout = ();
 set DoASeg = 1;
 set cleanup = 1;
 set DoXHemi = 0;
+set ctab = ()
 
 set cmdargs = ($argv);
 if($#argv == 0) then
@@ -235,6 +236,7 @@ if($DoASeg) then
     # Extract Seg
     set aseg = $outdir/mri/$seg.mgz
     set cmd = (mri_convert $tmpdir/vote.mgz $aseg --frame 0)
+    if($#ctab) set cmd = ($cmd --ctab $ctab)
     echo $cmd | tee -a $LF
     $cmd  | tee -a $LF
     if($status) exit 1;
@@ -372,6 +374,24 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set transform_fname = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--ctab-default":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      set ctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
       breaksw
 
     case "--sd":
@@ -569,6 +589,8 @@ usage_exit:
   echo "   --force   : overwrite existing average subject data"
   echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
   echo "   --no-aseg : do not create 'average' aseg"
+  echo "   --ctab colortable : embed into segmentations"
+  echo "   --ctab-default : embed $FREESURFER_HOME/FreeSurferColorLUT.txt into segmentations"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
