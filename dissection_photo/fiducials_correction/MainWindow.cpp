@@ -159,9 +159,9 @@ void MainWindow::OnButtonProcess()
 {
   QStringList cmd;
   cmd << m_strPythonCmd << m_strPyScriptPath
-      << "--in_dir" << ui->lineEditInputFolder->text().trimmed()
-      << "--calibration_file" << ui->lineEditCalibrationFile->text().trimmed()
-      << "--out_dir" << ui->lineEditOutputFolder->text().trimmed();
+      << "--in_dir" << QString("\"%1\"").arg(ui->lineEditInputFolder->text().trimmed())
+      << "--calibration_file" << QString("\"%1\"").arg(ui->lineEditCalibrationFile->text().trimmed())
+      << "--out_dir" << QString("\"%1\"").arg(ui->lineEditOutputFolder->text().trimmed());
 //  qDebug() << cmd.join(" ");
   m_proc->start(cmd.join(" "));
 }
