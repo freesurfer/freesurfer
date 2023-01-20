@@ -68,7 +68,6 @@ if($DoXHemi) then
 endif
 
 # This will put the data under $sdout (SUBJECTS_DIR by default)
-set outdir = $sdout/${average_subject}
 mkdir -p $outdir
 if($status) then
   echo "ERROR: could not make $outdir"
@@ -96,7 +95,7 @@ set tmpdir = $outdir/tmp/make_average_vol-tmp-$$
 mkdir -p $tmpdir
 
 #----------------------------------------------------------
-foreach volid (orig T1 brain)
+foreach volid (orig nu T1 brain)
   set invollist = ();
 
   foreach subject ($SUBJECTS)
@@ -109,13 +108,9 @@ foreach volid (orig T1 brain)
 
     set invol = $SUBJECTS_DIR/$subject/mri/$volid.mgz
     if(! -e $invol) then
-      set invol = $SUBJECTS_DIR/$subject/mri/$volid
-      if(! -e $invol/COR-.info) then
-        echo "ERROR: cannot find $volid for $subject" | tee -a $LF
-        exit 1;
-      endif
+      echo "ERROR: cannot find $volid for $subject" | tee -a $LF
+      exit 1;
     endif
-
 
     set thisXHemi = `basename $subject`
     if( "$thisXHemi" != "xhemi") then
@@ -125,9 +120,8 @@ foreach volid (orig T1 brain)
       set xfmvol = $tmpdir/$volid-$tmp-xhemi.mgh
     endif
 
-    set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm)
-    set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
-    #if($transform_fname == talairach.xfm) set cmd = ($cmd --devolvexfm $subject);
+    set cmd = (mri_convert $invol $xfmvol --apply_transform $xfm)
+    if($transform_fname == talairach.xfm)  set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
     echo $cmd | tee -a $LF
     $cmd  |& tee -a $LF
     if($status) then
@@ -199,20 +193,23 @@ if($DoASeg) then
         echo "ERROR: cannot find $volid for $subject" | tee -a $LF
         exit 1;
       endif
-
       # Reslice, use nearest neighbor, use mgh format
-      set xfmvol = $tmpdir/seg-$subject.mgh
-      set cmd = (mri_vol2vol --mov $invol \
-           --targ $FREESURFER_HOME/average/mni305.cor.mgz \
-           --o $xfmvol --interp nearest)
       echo "xfm $xfm" | tee -a $LF
-      set bn0 = `basename $xfm`
-      set bn = `basename $xfm .xfm`
-      echo "bn = $bn"  | tee -a $LF
-      if($bn0 == $bn.xfm) set cmd = ($cmd --xfm $xfm)
-      set bn = `basename $xfm .m3z`
-      echo "bn = $bn"  | tee -a $LF
-      if($bn0 == $bn.m3z) set cmd = ($cmd --m3z $bn0 --s $subject)
+      set xfmvol = $tmpdir/seg-$subject.mgh
+      if($transform_fname != talairach.xfm) then
+        set cmd = (mri_convert $invol $xfmvol --apply_transform $xfm \
+           --resample_type nearest)
+      else
+        set templatevol = $FREESURFER_HOME/average/mni305.cor.mgz
+        set cmd = (mri_vol2vol --mov $invol --targ $templatevol --o $xfmvol --interp nearest)
+        set bn0 = `basename $xfm`
+        set bn = `basename $xfm .xfm`
+        echo "bn = $bn"  | tee -a $LF
+        if($bn0 == $bn.xfm) set cmd = ($cmd --xfm $xfm)
+        set bn = `basename $xfm .m3z`
+        echo "bn = $bn"  | tee -a $LF
+        if($bn0 == $bn.m3z) set cmd = ($cmd --m3z $bn0 --s $subject)
+      endif
       echo $cmd | tee -a $LF
       $cmd  |& tee -a $LF
       if($status) then
@@ -537,6 +534,7 @@ check_params:
     exit 1;
   endif
   if($#sdout == 0) set sdout = $SUBJECTS_DIR;
+  set outdir = $sdout/${average_subject}
 goto check_params_return;
 ############--------------##################
 
