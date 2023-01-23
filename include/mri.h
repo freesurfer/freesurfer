@@ -1203,8 +1203,7 @@ int  MRIneighborhoodBlackCpolv(MRI *mri_src, int xv, int yv, int zv,
 MRI *MRIorderSegment(MRI *mri_src, MRI *mri_labeled, float thresh, int wsize);
 MRI *MRIthresholdLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
                        int wm_low) ;
-MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
-                              float wm_low, float wm_hi, float gray_hi) ;
+MRI *MRIintensitySegmentation(MRI *mri_src, MRI *MinWMMask, MRI *mri_labeled, float wm_low, float wm_hi, float gray_hi);
 MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
 int MRIvoxelsInLabel(MRI *mri, int label) ;
 int MRItotalVoxelsOn(MRI *mri, int thresh) ;

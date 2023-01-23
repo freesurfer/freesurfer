@@ -3595,28 +3595,36 @@ MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int wsize)
   return (mri_dst);
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Remove small inconsistincies in the labeling of a volume.
+Description
+  Remove small inconsistincies in the labeling of a volume.
+  MinWMMask is a minimal WM Mask. If there is a voxel set in the MinWMMask
+  it will be set as MRI_WHITE in the output.
 ------------------------------------------------------*/
-MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled, float wm_low, float wm_hi, float gray_hi)
+MRI *MRIintensitySegmentation(MRI *mri_src, MRI *MinWMMask, MRI *mri_labeled, float wm_low, float wm_hi, float gray_hi)
 {
-  int width, height, depth, x, y, z, nwhite, nblack, nambiguous;
+  int width, height, depth, x, y, z, nwhite, nblack, nambiguous, nmask;
   float val;
+
+  printf("MRIintensitySegmentation() wm_low=%g, wm_hi=%g, gray_hi=%g\n", wm_low,wm_hi,gray_hi);
 
   width = mri_src->width;
   height = mri_src->height;
   depth = mri_src->depth;
   if (!mri_labeled) mri_labeled = MRIclone(mri_src, NULL);
 
-  nwhite = nblack = nambiguous = 0;
+  nwhite = nblack = nambiguous = nmask = 0 ;
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
-        if (x == 105 && y == 75 && z == 127) DiagBreak();
+	if(MinWMMask){
+	  double m = MRIgetVoxVal(MinWMMask,x,y,z,0);
+	  if(m>0.5){
+	    MRIsetVoxVal(mri_labeled, x, y, z, 0, MRI_WHITE);
+	    nmask++;
+	    nwhite++;
+	  }
+	  continue;
+	}
         val = MRIgetVoxVal(mri_src, x, y, z, 0);
         if (val < wm_low || val > wm_hi) {
           val = MRI_NOT_WHITE;
@@ -3634,20 +3642,7 @@ MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled, float wm_low, floa
       }
     }
   }
-  if (Gdiag & DIAG_SHOW) {
-    fprintf(stderr,
-            "              %8d voxel white     (%.2f%%)\n",
-            nwhite,
-            100.0f * (float)nwhite / (float)(width * height * depth));
-    fprintf(stderr,
-            "              %8d voxel non white (%.2f%%)\n",
-            nblack,
-            100.0f * (float)nblack / (float)(width * height * depth));
-    fprintf(stderr,
-            "              %8d voxel ambiguous (%.2f%%)\n",
-            nambiguous,
-            100.0f * (float)nambiguous / (float)(width * height * depth));
-  }
+  printf("white = %d, nonwhite = %d, ambig = %d, nmask = %d\n",nwhite,nblack,nambiguous,nmask);
   return (mri_labeled);
 }
 /*-----------------------------------------------------
@@ -3951,11 +3946,7 @@ int MRIcpolvMedianCurveVoxel(
       max_val, min_val, max_val_dist, min_val_dist;
   float medians[200], dists[200];
 
-#if 0
-  vertex = MRIneighborhoodCpolv(mri_labeled,x0, y0, z0, 3, wsize, NULL) ;
-#else
   vertex = MRIcentralPlaneOfLeastVarianceNormalVoxel(mri, wsize, x0, y0, z0);
-#endif
   nx = ic_x_vertices[vertex]; /* normal vector */
   ny = ic_y_vertices[vertex];
   nz = ic_z_vertices[vertex];
@@ -3998,28 +3989,14 @@ int MRIcpolvMedianCurveVoxel(
     {
       val = median;
       if (median >= gray_hi) {
-        /*        fprintf(stderr, "median=%2.2f --> WHITE\n", median) ;*/
         what = MRI_WHITE;
       }
       else if (median <= wm_low) {
         what = MRI_NOT_WHITE;
-        /*        fprintf(stderr, "median=%2.2f --> NOT WHITE\n", median) ;*/
       }
       if (!((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON) && what != MRI_AMBIGUOUS) return (what);
     }
-  }
-#if 0
-  if (white_val < 0)
-  {
-    white_dist  = max_val_dist ;
-    white_val = max_val ;
-  }
-  if (gray_val < 0)
-  {
-    gray_dist = min_val_dist ;
-    gray_val = min_val ;
-  }
-#endif
+  }// end loop over distance
 
   if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON) {
     fp = fopen("med.plt", "w");
@@ -4055,7 +4032,7 @@ int MRIcpolvMedianCurveVoxel(
 
   /* check to see if one distance is substantially bigger than the other */
   if (what == MRI_AMBIGUOUS) {
-#define MAX_DIST_DIFF .75
+    #define MAX_DIST_DIFF .75
     if (white_dist < (gray_dist - MAX_DIST_DIFF))
       what = MRI_WHITE;
     else if (gray_dist < (white_dist - MAX_DIST_DIFF))
@@ -4069,13 +4046,8 @@ int MRIcpolvMedianCurveVoxel(
     if (white_dist > 2.0) what = MRI_NOT_WHITE;
 #if 1
     else {
-#if 0
-      white_grad = fabs(white_val-val) / white_dist ;
-      gray_grad = fabs(gray_val-val) / gray_dist ;
-#else
       white_grad = fabs(white_val - val);
       gray_grad = fabs(gray_val - val);
-#endif
       if (white_grad > gray_grad)
         what = MRI_NOT_WHITE;
       else

@@ -80,6 +80,8 @@ static float blur_sigma = BLUR_SIGMA ;
 
 const char *Progname ;
 
+MRI *MinWMMask=NULL;
+
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 MRI *MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
@@ -171,7 +173,7 @@ int main(int argc, char *argv[])
     printf("wsizemm = %g, voxres = %g, wsize = %d\n",wsizemm,voxres,wsize);
   }
 
-  if (thicken > 1)  {
+  if (thicken > 1)  { // not done by default
     mri_dst = MRIcopy(mri_src, NULL) ;
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
     if (no1d_remove == 0)    {
@@ -185,7 +187,7 @@ int main(int argc, char *argv[])
     exit(0) ;
   }
 
-  if(segfilename==NULL){
+  if(segfilename==NULL){ // default
     // This is the old code that tries to do the initial segmentation purely based on
     // thresholding without reference to the aseg
     mri_labels = MRIclone(mri_src, NULL) ;
@@ -212,16 +214,14 @@ int main(int argc, char *argv[])
     // MRI_AMBIGUOUS:  less than gray high (eg, 99) but greater than wm_low (eg, 79)
     // MRI_WHITE:      otherwise
     printf("Doing initial trinary intensity segmentation \n");
-    mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
-    
-    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.int.1.mgz") ;
+    mri_tmp = MRIintensitySegmentation(mri_src, NULL, MinWMMask, wm_low, wm_hi, gray_hi);
+    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.int.1.mgz");
     
     printf("Using local statistics to label ambiguous voxels\n");  fflush(stdout);fflush(stderr);
     MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
     if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.histo.1.mgz") ;
     
-    
-    if(auto_detect_stats) {
+    if(auto_detect_stats) {// done by default
       printf("Autodetecting stats\n");
       printf("Computing class statistics for intensity windows...\n") ;fflush(stdout);fflush(stderr);
       //  The mri_tmp is first reduced to boundary voxels that are either WM or NOT WM. 
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 	  wm_low = (white_mean+gray_mean) / 2 ;
 	}
 	else {
-	  if(wm_low_factor == 0){
+	  if(wm_low_factor == 0){//default
 	    // Set wm_low to one stddev above GM mean
 	    wm_low = gray_mean + gray_sigma ;
 	  }
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
       }
       
       printf("Redoing initial intensity segmentation...\n") ;fflush(stdout);
-      mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
+      mri_tmp = MRIintensitySegmentation(mri_src, NULL, MinWMMask, wm_low, wm_hi, gray_hi);
       if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.int.2.mgz") ;
       
       printf("Recomputing local statistics to label ambiguous voxels...\n") ;fflush(stdout);
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
     printf(" gray_low %g\n",gray_low);
     printf(" gray_hi  %g\n",gray_hi);
   }  
-  else{
+  else{ // not default
     // This is new code that does the initial thresholding based on the aseg
     printf("Reading %s\n",segfilename);
     MRI *seg = MRIread("aseg.presurf.mgz");
@@ -353,6 +353,7 @@ int main(int argc, char *argv[])
   /* now use the gray and white matter border voxels to build a Gaussian
     classifier at each point in space and reclassify all voxels in the
     range [wm_low-5,gray_hi].    */
+  // Need to protect voxels in the MinWMMask
   printf("\nReclassifying voxels using Gaussian border classifier niter=%d\n",niter) ;
   fflush(stdout);fflush(stderr);
   for (i = 0 ; i < niter ; i++)
@@ -375,7 +376,7 @@ int main(int argc, char *argv[])
 #endif
 
   printf("thicken = %d\n",thicken);
-  if(thicken)  {
+  if(thicken)  { // done by default
     // MRIfilterMorphology(mri_dst, mri_dst);
     if(no1d_remove == 0) {
       printf("removing 1-dimensional structures...\n") ;fflush(stdout);fflush(stderr);
@@ -403,17 +404,14 @@ int main(int argc, char *argv[])
   MRIfilterMorphology(mri_dst, mri_dst) ;
   if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.filter.mgz") ;
 
-  if (fill_bg)
-  {
+  if (fill_bg) { // not done by default
     fprintf(stderr, "filling basal ganglia....\n") ;
     MRIfillBasalGanglia(mri_src, mri_dst) ;
   }
-  if (fill_ventricles)
-  {
+  if (fill_ventricles){ // not done by default
     fprintf(stderr, "filling ventricles....\n") ;
     MRIfillVentricles(mri_dst, mri_dst) ;
   }
-
 
   MRIfree(&mri_src) ;
   msec = then.milliseconds() ;
@@ -618,6 +616,21 @@ get_option(int argc, char *argv[])
   }
   else if (strcmp(option, "polvwsize")==0){
     sscanf(argv[2],"%d",&polvwsize);
+    nargs = 1 ;
+  }
+  else if (strcmp(option, "min-wm-mask")==0){
+    // -min-wm-mask pathtomri 
+    MinWMMask = MRIread(argv[2]);
+    if(MinWMMask == NULL) exit(1);
+    for(int c=0; c < MinWMMask->width; c++){
+      for(int r=0; r < MinWMMask->height; r++){
+	for(int s=0; s < MinWMMask->depth; s++){
+	  int m = MRIgetVoxVal(MinWMMask,c,r,s,0);
+	  if(IS_WM(m) || IS_HYPO(m)) MRIsetVoxVal(MinWMMask,c,r,s,0, 1);
+	  else                       MRIsetVoxVal(MinWMMask,c,r,s,0, 1);
+	}
+      }
+    }
     nargs = 1 ;
   }
   else if (strcmp(option, "polvlen")==0){
