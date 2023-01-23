@@ -375,7 +375,7 @@ main(int argc, char *argv[])
       int req = snprintf(fname, STRLEN, "%s/%s%s.K%s", path,name, suffix, output_type) ;
       if( req >= STRLEN ) {
 	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-    }
+      }
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
       {
@@ -395,12 +395,19 @@ main(int argc, char *argv[])
       req = snprintf(fname, STRLEN, "%s/%s%s.H%s", path,name, suffix,output_type) ;
       if( req >= STRLEN ) {
 	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-    }
+      }
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
-      fprintf(stderr, "done.\n") ;
+
+      // write k1 and k2
+      //MRI *mritmp = MRIcopyMRIS(NULL, mris, 0, "k1");
+      //MRIwrite(mritmp,"k1.mgz");
+      //mritmp = MRIcopyMRIS(mritmp, mris, 0, "k2");
+      //MRIwrite(mritmp,"k2.mgz");
+
     }
   }
+  printf("mris_curvature done.\n") ;
   exit(0) ;
   return(0) ;  /* for ansi */
 }
