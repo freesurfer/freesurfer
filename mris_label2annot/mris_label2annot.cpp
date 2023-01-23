@@ -249,6 +249,7 @@ int main(int argc, char *argv[]) {
   // Set up color table
   set_atable_from_ctable(ctab);
   mris->ct = ctab;
+  //CTABwriteFileASCII(mris->ct, "new2.ctab");
 
   // Set up something to keep track of nhits
   nhits = MRIalloc(mris->nvertices,1,1,MRI_INT);
@@ -257,7 +258,9 @@ int main(int argc, char *argv[]) {
   if (maxstatwinner) maxstat = MRIalloc(mris->nvertices,1,1,MRI_FLOAT);
 
   // Go thru each label
+  printf("Index Offset %d\n",IndexOffset);
   for (nthlabel = 0; nthlabel < nlabels; nthlabel ++) {
+    printf("%d reading %s\n",nthlabel,LabelFiles[nthlabel]);    
     label = LabelRead(subject,LabelFiles[nthlabel]);
     if (label == NULL) {
       printf("ERROR: reading %s\n",LabelFiles[nthlabel]);
