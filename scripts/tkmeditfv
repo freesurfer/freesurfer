@@ -29,6 +29,7 @@ set overlay = ();
 set overlayreg = ();
 set twfvol = ();
 set twfreg = ();
+set interp = nearest
 set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set auxsegcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set ctabset = 0
@@ -123,12 +124,12 @@ if(! $UseTkMedit) then
     #set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
     set fmid = $fthresh;
     set fvopt = ($ov":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
-    if($#overlayreg) set fvopt = ($fvopt":"reg=$overlayreg)
+    if($#overlayreg) set fvopt = ($fvopt":"reg=${overlayreg}:resample=$interp)
     set cmd = ($cmd -v $fvopt)
   end
   if($#twfvol) then
     set fvopt = ($twfvol)
-    if($#twfreg) set fvopt = ($fvopt":"reg=$twfreg)
+    if($#twfreg) set fvopt = ($fvopt":"reg=${twfreg}:resample=$interp)
     set cmd = ($cmd -v $fvopt)
   endif
   foreach vol ($vollist)
@@ -381,6 +382,10 @@ while( $#argv != 0 )
         exit 1;
       endif
       set overlay = ($overlay $ov)
+      breaksw
+
+    case "-trilin":
+      set interp = trilin
       breaksw
 
     case "-timecourse":
@@ -826,6 +831,7 @@ usage_exit:
   echo "-main-minmax min max : set intensity min max on fist volume"
   echo "-defects : load info needed to evaluate defects"
   echo "-defectps : load defect pointset (also loaded with -defects)"
+  echo "-trilin : use trilinear interpolation for volume overlays"
   echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
