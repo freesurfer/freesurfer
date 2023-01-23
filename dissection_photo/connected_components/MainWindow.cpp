@@ -104,8 +104,8 @@ void MainWindow::ShowDialog()
 
   QStringList cmd;
   cmd << m_strPythonCmd << m_strPyScriptPath
-       << "--in_dir" << dlgSelect.GetMaskPath()
-       << "--out_dir" << m_strTempFolder;
+       << "--in_dir" << QString("\"%1\"").arg(dlgSelect.GetMaskPath())
+       << "--out_dir" << QString("\"%1\"").arg(m_strTempFolder);
   m_proc->start(cmd.join(" "));
 
   UpdateIndex();

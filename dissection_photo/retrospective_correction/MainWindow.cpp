@@ -172,11 +172,11 @@ void MainWindow::OnButtonRegister()
       strList << QString::number(pt.x()) << QString::number(pt.y());
     QStringList cmd;
     cmd << m_strPythonCmd << m_strPyScriptPath
-        << "--in_img" << ui->widgetImageView->GetFilename()
+        << "--in_img" << QString("\"%1\"").arg(ui->widgetImageView->GetFilename())
         << "--points" << strList.join(" ")
         << "--width" << QString::number(dWidth)
         << "--height" << QString::number(dHeight)
-        << "--out_dir" << m_strOutputFolder;
+        << "--out_dir" << QString("\"%1\"").arg(m_strOutputFolder);
     m_proc->start(cmd.join(" "));
   }
 }

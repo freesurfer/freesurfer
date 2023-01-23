@@ -180,11 +180,11 @@ void MainWindow::OnButtonGo()
     foreach (QPoint pt, m_listPoints)
       list << QString::number(pt.x()) << QString::number(pt.y());
     cmd << m_strPythonCmd << m_strPyScriptPath
-        << "--in_img" << ui->widgetImageView->GetFilename()
+        << "--in_img" << QString("\"%1\"").arg(ui->widgetImageView->GetFilename())
         << "--points" << list.join(" ")
         << "--width" << QString::number(w)
         << "--height" << QString::number(h)
-        << "--out_file" << fn;
+        << "--out_file" << QString("\"%1\"").arg(fn);
     m_proc->start(cmd.join(" "));
     ui->widgetImageView->ShowMessage("Processing...");
   }
