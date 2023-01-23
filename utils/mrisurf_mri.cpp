@@ -8281,7 +8281,6 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 	  printf("vno %d, ipeak=%d, vpeak=%g, thresh=%g,  bin=%d resetting min gray outside to be %2.3f (peak was at %2.1f)\n", 
 		 vno,peak,hs->counts[peak],thresh,bin,min_gray_outside, hs->bins[bin]) ;
 	  printf("T2mo = %g, left_outside_peak_pct %g\n",T2_min_outside,left_outside_peak_pct );
-	  exit(1);
 	}
       }
       else
