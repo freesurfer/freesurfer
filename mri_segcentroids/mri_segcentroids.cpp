@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
   }
 
   // load colortable
-  COLOR_TABLE *ctab = NULL;
+  COLOR_TABLE *ctab = seg->ct; // set up to use default if not null and notheing else spec
   if (!input.ctabfile.empty()) {
     ctab = CTABreadASCII(input.ctabfile.c_str());
     if (!ctab) {
