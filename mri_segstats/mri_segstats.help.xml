@@ -95,7 +95,7 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <argument>--accumulate</argument>
       <explanation>save mean*nvoxels instead of mean</explanation>
       <argument>--ctab ctabfile</argument>
-      <explanation>FreeSurfer color table file. This is a file used by FreeSurfer to specify how each segmentation index is mapped to a segmentation name and color. See $FREESURFER_HOME/FreeSurferColorLUT.txt for example. The ctab can be used to specify the segmentations to report on or simply to supply human-readable names to segmentations chosen with --id. See SPECIFYING SEGMENTATION IDS below.</explanation>
+      <explanation>FreeSurfer color table file. This is a file used by FreeSurfer to specify how each segmentation index is mapped to a segmentation name and color. See $FREESURFER_HOME/FreeSurferColorLUT.txt for example. The ctab can be used to specify the segmentations to report on or simply to supply human-readable names to segmentations chosen with --id. Note: if no color table is specified and one is embedded in the segmentation, then it will use that one. See SPECIFYING SEGMENTATION IDS below.</explanation>
       <argument>--ctab-default</argument>
       <explanation>Same as --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt</explanation>
       <argument>--ctab-gca gcafile</argument>
