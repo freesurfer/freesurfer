@@ -749,25 +749,38 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, std::vector<std::string> parcna
 */
 MRI *MRISannot2seg(MRIS *surf, int base)
 {
-  int k, annot, annotid;
+  int k, annot, segid;
   MRI *seg;
 
   seg = MRIalloc(surf->nvertices, 1, 1, MRI_INT);
-
+  if(surf->ct) seg->ct = CTABdeepCopy(surf->ct);
+  // this geom stuff not needed, but try to make consistent
+  seg->xsize = surf->vg.xsize;
+  seg->ysize = surf->vg.ysize;
+  seg->zsize = surf->vg.zsize;
+  seg->x_r = surf->vg.x_r;
+  seg->x_a = surf->vg.x_a;
+  seg->x_s = surf->vg.x_s;
+  seg->y_r = surf->vg.y_r;
+  seg->y_a = surf->vg.y_a;
+  seg->y_s = surf->vg.y_s;
+  seg->z_r = surf->vg.z_r;
+  seg->z_a = surf->vg.z_a;
+  seg->z_s = surf->vg.z_s;
+  seg->c_r = surf->vg.c_r;
+  seg->c_a = surf->vg.c_a;
+  seg->c_s = surf->vg.c_s;
+  int nhits = 0;
   for (k = 0; k < surf->nvertices; k++) {
     annot = surf->vertices[k].annotation;
-    if (surf->ct) {
-      CTABfindAnnotation(surf->ct, annot, &annotid);
-    }
-    else {
-      annotid = annotation_to_index(annot);
-    }
-    if (annotid == -1) {
-      annotid = 0;  // Assume base is unknown
-    }
-    MRIsetVoxVal(seg, k, 0, 0, 0, annotid + base);
+    if(annot != 0) nhits++;
+    if(surf->ct) CTABfindAnnotation(surf->ct, annot, &segid);
+    else         segid = annotation_to_index(annot);
+    if(segid == -1) segid = 0;  // Assume base is unknown
+    MRIsetVoxVal(seg, k, 0, 0, 0, segid + base);
   }
-  return (seg);
+  printf("MRISannot2seg(): nhits = %d\n",nhits);
+  return(seg);
 }
 /*---------------------------------------------------------------*/
 /*!

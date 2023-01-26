@@ -1289,24 +1289,28 @@ int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab)
 {
   int vtxno, segid, ano;
 
-  if (ctab == NULL) {
-    if (mris->ct == NULL) {
+  if(ctab == NULL) {
+    if(mris->ct == NULL) {
       printf("ERROR: MRISseg2annot: both ctab and mris->ct are NULL\n");
       return (1);
     }
   }
-  else
-    mris->ct = ctab;
+  else mris->ct = ctab;
   set_atable_from_ctable(mris->ct);
 
+  int nhits = 0, nmisses=0;
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++) {
     segid = MRIgetVoxVal(surfseg, vtxno, 0, 0, 0);
     ano = index_to_annotation(segid);
-    if (ano == -1) ano = 0;
+    if(ano != -1 && segid != 0) nhits ++;
+    if(ano == -1 && segid != 0) nmisses ++;
+    if(ano == -1) ano = 0;
     mris->vertices[vtxno].annotation = ano;
     if (vtxno == Gdiag_no)
       printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
   }
+  if(nhits == 0) printf("WARNING: MRISseg2annot: no voxels matching ctab\n");
+  if(nmisses>0)  printf("WARNING: MRISseg2annot: found %d voxels with no entry in ctab\n",nmisses);
 
   return (0);
 }

@@ -1425,6 +1425,33 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   }
   // else fall-thru with default .annot processing...
 
+  // This will read a segmentation on the surface into an annot
+  int type = mri_identify(sname);
+  if(type != MRI_VOLUME_TYPE_UNKNOWN) {
+    printf("MRISreadAnnotation(): reading %s as a surface seg\n",sname);
+    MRI *surfseg = MRIread(sname);
+    if(surfseg == NULL) return(1);
+    if(surfseg->ct == NULL){
+      printf("ERROR: MRISreadAnnotation(): %s does not have a colortable\n",sname);
+      MRIfree(&surfseg);
+      return(1);
+    }
+    if(surfseg->width != mris->nvertices){
+      printf("ERROR: MRISreadAnnotation(): dimension mismatch %s=%d, surf=%d\n",sname,surfseg->width,mris->nvertices);
+      MRIfree(&surfseg);
+      return(1);
+    }
+    int err = MRISseg2annot(mris, surfseg, surfseg->ct);
+    if(err){
+      printf("ERROR: MRISreadAnnotation(): could not convert %s to an annotation\n",sname);
+      MRIfree(&surfseg);
+      return(1);
+    }
+    mris->ct = CTABdeepCopy(surfseg->ct);
+    MRIfree(&surfseg);
+    return(0);
+  }
+
   cp = strchr(sname, '/');
   if (!cp) {
     /* no path - use same one as mris was read from */
@@ -1716,6 +1743,16 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   FILE *fp;
   const char *cp;
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
+
+  int type = mri_identify(sname);
+  if(type != MRI_VOLUME_TYPE_UNKNOWN) {
+    printf("MRISwritingAnnotation(): writing %s as a surface seg\n",sname);
+    MRI *surfseg = MRISannot2seg(mris,0);
+    if(surfseg == NULL) return(1);
+    int err = MRIwrite(surfseg,sname);
+    MRIfree(&surfseg);
+    return(err);
+  }
 
   cp = strchr(sname, '/');
   if (!cp) /* no path - use same one as mris was read from */
