@@ -72,7 +72,7 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-mkdir -p $outdir/mri/transforms $outdir/surf $outdir/scripts/log $outdir/label
+mkdir -p $outdir/mri/transforms $outdir/surf $outdir/scripts/log $outdir/label $outdir/tmp
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
@@ -139,6 +139,21 @@ if(! -e talairach.xfm) then
 endif
 popd
 
+pushd $outdir/mri > /dev/null
+set xfm = transforms/talairach.xfm 
+set lta = transforms/talairach.xfm.lta
+set ud = `UpdateNeeded $lta $xfm`
+if($ud) then
+  set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+  set cmd = (lta_convert --src orig.mgz --trg $mni305 --inxfm $xfm \
+      --outlta $lta --subject fsaverage --ltavox2vox)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+popd
+
+
 # Create a brain mask by binarizing everything outside of the brain,
 # inverting it, then dilating by 2 voxel
 set aseg = $outdir/mri/aseg.presurf.mgz
@@ -154,7 +169,25 @@ else
 endif
 
 set scm = $outdir/mri/SubCortMass.mgz
-set cm  = $outdir/mri/CortMass.mgz
+set scmauto = $outdir/mri/SubCortMass.auto.mgz
+set scmautoold = $outdir/mri/SubCortMass.old.auto.mgz
+if(-e $scmauto) then
+  set cmd = (cp -p $scmauto $scmautoold)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+set cm = $outdir/mri/CortMass.mgz
+set cmauto = $outdir/mri/CortMass.auto.mgz
+set cmautoold = $outdir/mri/CortMass.old.auto.mgz
+if(-e $cmauto) then
+  set cmd = (cp -p $cmauto $cmautoold)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
 if($UseProbs == -1) then
   # Use Posteriors
   set flist = ()
@@ -162,36 +195,65 @@ if($UseProbs == -1) then
     set f = $samsegdir/posteriors/$label.mgz
     set flist = ($f $flist)
   end
-  set cmd = (mri_concat --o $scm --sum $flist --mul 110 --no-check)
-  set ud = `UpdateNeeded $scm $flist`
+  set cmd = (mri_concat --o $scmauto --sum $flist --mul 110 --no-check)
+  set ud = `UpdateNeeded $scmauto $flist`
   if($ud || $ForceUpdate) then
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$scmauto does not need updating" | tee -a $LF
+  endif
+  set ud = `UpdateNeeded $scm $scmauto`
+  if($ud || $ForceUpdate) then
+    if(! -e $scm) then
+      set cmd = (cp $scmauto $scm)
+    else
+      set cmd = (mri_diff --merge-edits $scmauto $scmautoold $scm $scm)
+    endif
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
   else
     echo "$scm does not need updating" | tee -a $LF
   endif
+  rm -f $scmautoold
+  
   set flist = ()
   foreach label (Left-Cerebral-Cortex Right-Cerebral-Cortex)
     set f = $samsegdir/posteriors/$label.mgz
     set flist = ($f $flist)
   end
   # First sum the label posteriors for cortex
-  set cmd = (mri_concat --o $cm --sum $flist --mul 110 --no-check)
-  set ud = `UpdateNeeded $cm $flist $scm`
+  set ud = `UpdateNeeded $cmauto $flist $scm`
   if($ud || $ForceUpdate) then
+    set cmd = (mri_concat --o $cmauto --sum $flist --mul 110 --no-check)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
     # now add cm and scm to get the final cm
-    set cmd = (mri_concat $scm $cm --sum --o $cm)
+    set cmd = (mri_concat $scm $cmauto --sum --o $cmauto)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
   else
     echo "$cm does not need updating" | tee -a $LF
   endif
-else # Use Probs (liklihood)
+  set ud = `UpdateNeeded $cm $cmauto`
+  if($ud || $ForceUpdate) then
+    if(! -e $cm) then
+      set cmd = (cp $cmauto $cm)
+    else
+      set cmd = (mri_diff --merge-edits $cmauto $cmautoold $cm $cm)
+    endif
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$cm does not need updating" | tee -a $LF
+  endif
+  rm -f $cmautoold
+else # Use Probs (likelihood)
   set globwm0 = $samsegdir/probabilities/GlobalWM.mgz
   set globwm = $outdir/mri/GlobalWM.prob.mgz
   set ud = `UpdateNeeded $globwm $globwm0`
@@ -228,19 +290,33 @@ else # Use Probs (liklihood)
   echo "scale = $scale" | tee -a $LF
   if($#WMSeg_whi == 0) set WMSeg_whi = `echo "$scale*$wmmax" | bc -l`
 
-  set ud = `UpdateNeeded $scm $globwm $wmsumfile $mask`
+  set ud = `UpdateNeeded $scmauto $globwm $wmsumfile $mask`
   if($ud || $ForceUpdate) then
-    set cmd = (mri_convert --scale $scale $globwm $scm)
+    set cmd = (mri_convert --scale $scale $globwm $scmauto)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
-    set cmd = (fscalc $scm mul $mask --o $scm)
+    set cmd = (fscalc $scmauto mul $mask --o $scmauto)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
   else
     echo "$scm does not need updating" | tee -a $LF
   endif
+  set ud = `UpdateNeeded $scm $scmauto`
+  if($ud || $ForceUpdate) then
+    if(! -e $scm) then
+      set cmd = (cp $scmauto $scm)
+    else
+      set cmd = (mri_diff --merge-edits $scmauto $scmautoold $scm $scm)
+    endif
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$scm does not need updating" | tee -a $LF
+  endif
+  rm -f $scmautoold
   
   # It may be the case that GM has multiple gaussians
   set flist = ($samsegdir/probabilities/GlobalGM*.mgz)
@@ -263,30 +339,47 @@ else # Use Probs (liklihood)
   endif
 
   # Now compute the cortical mass
-  set ud = `UpdateNeeded $cm $globgm0 $scm $mask`
+  set ud = `UpdateNeeded $cmauto $globgm0 $scm $mask`
   if($ud || $ForceUpdate) then
-    set cmd = (mri_convert $globgm0 --frame $UseProbs --scale $scale $cm)
+    set cmd = (mri_convert $globgm0 --frame $UseProbs --scale $scale $cmauto)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
-    set cmd = (mri_concat $scm $cm --sum --o $cm)
+    set cmd = (mri_concat $scm $cmauto --sum --o $cmauto)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
-    set cmd = (fscalc $cm mul $mask --o $cm)
+    set cmd = (fscalc $cmauto mul $mask --o $cmauto)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$cmauto does not need updating" | tee -a $LF
+  endif
+  set ud = `UpdateNeeded $cm $cmauto`
+  if($ud || $ForceUpdate) then
+    if(! -e $cm) then
+      set cmd = (cp $cmauto $cm)
+    else
+      set cmd = (mri_diff --merge-edits $cmauto $cmautoold $cm $cm)
+    endif
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
   else
     echo "$cm does not need updating" | tee -a $LF
   endif
+  rm -f $cmautoold
 endif
 
 pushd $outdir/mri
 if(! -e brain.mgz) then
   ln -sf SubCortMass.mgz brain.mgz
 endif
-foreach f (brainmask.mgz brainmask.finalsurfs.mgz)
+# Note "brainmask.finalsurfs.mgz" is only there because earlier
+# versions of mmppsp used that instead of brain.finalsurfs.mgz, which
+# it should be
+foreach f (brainmask.mgz brain.finalsurfs.mgz brainmask.finalsurfs.mgz)
   if(! -e $f) ln -sf CortMass.mgz $f
 end
 popd
@@ -364,8 +457,8 @@ if($ud || $ForceUpdate) then
   set cmd = (mri_fill -ctab $FREESURFER/SubCorticalMassLUT.txt)
   if($#hemilist == 1) set cmd = ($cmd -$hemilist"only")
   if(-e $filledauto && -e $filled) then
-    set fillededits = ../tmp/filled.edits.txt
-    set cmd = ($cmd -auto-man $filledauto $filledman $fillededits)
+    set fillededits = $outdir/tmp/filled.edits.txt
+    set cmd = ($cmd -auto-man $filledauto $filled $fillededits)
   endif
   set cmd = ($cmd -xform $tallta -segmentation $seg $wm $filled)
   echo $cmd | tee -a $LF
