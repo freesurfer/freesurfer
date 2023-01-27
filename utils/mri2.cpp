@@ -6654,3 +6654,56 @@ MRI *SCMstopMask::getmask(void)
   nhitslist[5]=nwmsaexcluded;
   return(bin);
 }
+
+
+/*!
+\fn MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol)
+\brief Copys newauto to outvol but keeping voxels manedit voxels when
+they disagree with oldauto. The basic stream assumed here is that the
+first pass of a process with create an auto volume and copy it to the
+man volume (eg, filled.auto.mgz and filled.mgz) then, if need be, the
+man volume is edited. Now the auto and man differ. The next time the
+stream is run, several things could happen. (1) the auto is not
+regenerated because its dependencies have not changed in which case
+nothing needs to change and this function is not run. (2) The program
+that generates the auto is rerun because its dependencies have changed
+but the auto itself does not change. In this case it generates
+"newauto" the same as "oldauto", this function is run, and voxels that
+were manually changed are then inserted into the new/oldauto again
+resulting in the same man volume as before. However, if upstream
+processing does force the newauto to change, then this function will
+be able to figure out which voxels need to be copied from manedit to
+the newauto by looking at the difference between the oldauto and the
+manedit. Can be run in-place.
+*/
+MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol)
+{
+  int c;
+  if(outvol==NULL){
+    outvol = MRIallocSequence(oldauto->width, oldauto->height, oldauto->depth, oldauto->type, oldauto->nframes);
+    if(outvol==NULL) return(NULL);
+    MRIcopyHeader(oldauto,outvol);
+    MRIcopyPulseParameters(oldauto,outvol);
+  }
+  int nhits = 0;
+  #pragma omp parallel for reduction(+ : nhits)
+  for(c=0; c < oldauto->width; c++){
+    for(int r=0; r < oldauto->height; r++){
+      for(int s=0; s < oldauto->depth; s++){
+	for(int f=0; f < oldauto->nframes; f++){
+	  double vnew = MRIgetVoxVal(newauto,c,r,s,f);
+	  double vold = MRIgetVoxVal(oldauto,c,r,s,f);
+	  double vman = MRIgetVoxVal(manedit,c,r,s,f);
+	  if(vold==vman) MRIsetVoxVal(outvol,c,r,s,f,vnew);
+	  else{
+	    MRIsetVoxVal(outvol,c,r,s,f,vman);
+	    nhits++;
+	  }
+	}
+      }
+    }
+  }
+  printf("MRIapplyEdits(): copying %d from man to new\n",nhits);
+  return(outvol);
+}
+

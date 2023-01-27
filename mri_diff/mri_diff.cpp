@@ -741,11 +741,29 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       AvgDiffFile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--diff_label_suspicious")) {
+    } 
+    else if (!strcasecmp(option, "--diff_label_suspicious")) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffLabelVolFile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--segdiff")) {
+    } 
+    else if (!strcasecmp(option, "--merge-edits")) {
+      // newauto oldauto manedits mergedvol
+      if(nargc < 4) CMDargNErr(option,4);
+      MRI *newauto, *oldauto, *manedit, *mergedvol;
+      newauto = MRIread(pargv[0]);
+      if(newauto==NULL) exit(1);
+      oldauto = MRIread(pargv[1]);
+      if(oldauto==NULL) exit(1);
+      manedit = MRIread(pargv[2]);
+      if(manedit==NULL) exit(1);
+      mergedvol = MRIapplyEdits(newauto, oldauto, manedit, NULL);
+      if(mergedvol==NULL) exit(1);
+      int err = MRIwrite(mergedvol,pargv[3]);
+      exit(err);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--segdiff")) {
       if (nargc < 2) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SegDiff);
       SegDiffFile = pargv[1];
@@ -864,9 +882,10 @@ static void print_usage(void) {
   printf("                                 output image: 0 not in both,\n");
   printf("                                 1 only in 1st, 2 only in 2nd\n");
   printf("                                 3 in both (for aseg.mgz)\n");
-	printf("                                 if labelIDX==-1 diff on all labels:\n");
-	printf("                                  show labels from vol1 at voxels\n");
-	printf("                                  that differ in vol2\n\n");
+  printf("                                 if labelIDX==-1 diff on all labels:\n");
+  printf("                                  show labels from vol1 at voxels\n");
+  printf("                                  that differ in vol2\n\n");
+  printf("   --merge-edits newauto oldauto manedits mergedvol\n");
   printf("   --avg-diff avgdiff.txt : save average difference \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
