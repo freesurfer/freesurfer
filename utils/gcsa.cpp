@@ -54,8 +54,6 @@ static int MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices);
 static int GCSAupdateNodeMeans(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs);
 static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris, int vno);
 static int GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs);
-static int GCSANclassify(
-    GCSA_NODE *gcsa_node, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exlude_list, int nexcluded);
 static double gcsaNbhdGibbsLogLikelihood(
     GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef, int label);
 static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double const *v_inputs, int vno, double gibbs_coef);
@@ -225,8 +223,16 @@ int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
-    if (vno == Gdiag_no) DiagBreak();
+    if (vno == Gdiag_no){
+      DiagBreak();
+    }
     load_inputs(v, v_inputs, gcsa->ninputs);
+    if (vno == Gdiag_no){
+      DiagBreak();
+      printf("vno = %d annot=%d ",vno,v->annotation);
+      for(int n=0; n < gcsa->ninputs; n++) printf("%6.4f ",v_inputs[n]);
+      printf("\n");
+    }
     if (vno == Gdiag_no && v->annotation == 1336341) DiagBreak();
     if (v->annotation == 0) /* not labeled */
       continue;
@@ -806,38 +812,27 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     cpn = &gcsa->cp_nodes[vno_prior];
     label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, NULL, 0);
     v->annotation = label;
-    // O.Hinds needs this for vertex probability feature (mris_ca_label -p) but it breaks mris_ca_label    v->val = p ;
-    if (vno == Gdiag_no) {
-      int n;
-      // CP *cp;
-      GCS *gcs;
+    v->val2 = p ; // posterior prob in val2
 
+    if(vno == Gdiag_no) {
+      int n;
+      GCS *gcs;
       if (gcsa->ninputs == 2)
-        printf("v %d: inputs (%2.2f, %2.2f), label=%s (%d, %d)\n",
-               vno,
-               v->val,
-               v->val2,
-               annotation_to_name(label, NULL),
-               annotation_to_index(label),
-               label);
+        printf("v %d: inputs (%2.2f, %2.2f), label=%s (%d, %d)\n",vno,v->val,v->val2,
+	       annotation_to_name(label, NULL), annotation_to_index(label),label);
       for (n = 0; n < cpn->nlabels; n++) {
-        // cp = &cpn->cps[n];
         gcs = getGC(gcsan, cpn->labels[n], NULL);
-        printf("label %s (%d) [%d], p=%2.4f, means:\n",
-               annotation_to_name(cpn->labels[n], NULL),
-               n,
-               cpn->labels[n],
-               cpn->cps[n].prior);
+        printf("label %s (%d) [%d], p=%2.4f, means:\n",annotation_to_name(cpn->labels[n], NULL),
+               n,cpn->labels[n],cpn->cps[n].prior);
         MatrixPrint(stdout, gcs->v_means);
       }
-    }
-  }
+    } // diag
+  } //vertex
 
   return (NO_ERROR);
 }
 
-static int GCSANclassify(
-    GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded)
+int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded)
 {
   int n, best_label, i, j, skip;
   double p, ptotal, max_p, det;
@@ -2170,4 +2165,104 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
 
   printf("%d labels changed in reclassification.\n", changed);
   return (NO_ERROR);
+}
+
+
+/*!
+  \fn MRI *GCSApriors2MRI(GCSA *gcsa)
+  \brief Creates an MRI structure filled with the prior probabilities. Each
+  voxel/vertex will have a value for each label even if it is 0. The order
+  will correspond to the order of the non-zero entries in the colortable
+  (I think).
+ */
+MRI *GCSApriors2MRI(GCSA *gcsa)
+{
+  int nlabels;
+  CTABgetNumberOfValidEntries(gcsa->ct, &nlabels);
+  printf("GCSApriors2MRI(): nvertices = %d, nlabels = %d\n",gcsa->mris_priors->nvertices,nlabels);
+  // print out valid entries
+  int m=0;
+  for(int k=0; k < gcsa->ct->nentries; k++){
+    if(!gcsa->ct->entries[k]) continue;
+    printf("%2d %5d %s\n",m,k,gcsa->ct->entries[k]->name);
+    m++;
+  }
+  MRI* priors = MRIallocSequence(gcsa->mris_priors->nvertices, 1, 1, MRI_FLOAT, nlabels) ;
+  int mmax=0;
+  // Go through each vertex in the prior surface
+  for(int vno = 0; vno < gcsa->mris_priors->nvertices; vno++) {
+    CP_NODE *cpn = &gcsa->cp_nodes[vno];
+    // Go through each label in the node
+    for(int nthlab = 0; nthlab < cpn->nlabels; nthlab++){
+      // The prior prob is stored in cps[nthlab].prior, but
+      // we have to figure out which frame this corresponds to
+      int annotation = cpn->labels[nthlab];
+      int index;
+      // Get the ctab index that corresponds to this annot
+      CTABfindAnnotation(gcsa->ct, annotation, &index);
+      // Now have to figure out the frame based on how far down
+      // the valid entries we have to go to find this annot
+      int k,m=0;
+      for(k=0; k < gcsa->ct->nentries; k++){
+	if(!gcsa->ct->entries[k]) continue;
+	if(k==index) break;
+	m++;
+      }
+      // Now set the value
+      MRIsetVoxVal(priors,vno,0,0,m,cpn->cps[nthlab].prior);
+      if(mmax < m) mmax = m;
+    } // labels
+  } //vertices
+  printf("nlabels = %d, m=%d\n",nlabels,mmax);
+  return(priors);
+}
+
+/*!
+  \fn MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno)
+  \brief Creates an MRI structure filled with the means of the given
+  inputno. Each voxel/vertex will have a value for each label even if
+  it is 0. The order will correspond to the order of the non-zero
+  entries in the colortable (I think).
+ */
+MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno)
+{
+  int nlabels;
+  CTABgetNumberOfValidEntries(gcsa->ct, &nlabels);
+  printf("GCSAlikelihoodMeans2MRI(): nvertices = %d, nlabels = %d, ninputs = %d, inputno=%d\n",
+	 gcsa->mris_priors->nvertices,nlabels,gcsa->ninputs,inputno);
+  // print out valid color table entries
+  int m=0;
+  for(int k=0; k < gcsa->ct->nentries; k++){
+    if(!gcsa->ct->entries[k]) continue;
+    printf("%2d %5d %s\n",m,k,gcsa->ct->entries[k]->name);
+    m++;
+  }
+  MRI *means = MRIallocSequence(gcsa->mris_classifiers->nvertices, 1, 1, MRI_FLOAT, nlabels) ;
+  int mmax=0;
+  // Go through each vertex in the classification surface
+  for(int vno = 0; vno < gcsa->mris_classifiers->nvertices; vno++) {
+    GCSA_NODE *gcsan = &gcsa->gc_nodes[vno];
+    // Go through each label in the node
+    for(int nthlab = 0; nthlab < gcsan->nlabels; nthlab++){
+      // The mean is stored in gcsan[nthlab].v_mean[inputno], but
+      // we have to figure out which frame this corresponds to
+      int annotation = gcsan->labels[nthlab];
+      int index;
+      // Get the ctab index that corresponds to this annot
+      CTABfindAnnotation(gcsa->ct, annotation, &index);
+      // Now have to figure out the frame based on how far down
+      // the valid entries we have to go to find this annot
+      int k,m=0;
+      for(k=0; k < gcsa->ct->nentries; k++){
+	if(!gcsa->ct->entries[k]) continue;
+	if(k==index) break;
+	m++;
+      }
+      // Now set the value
+      MRIsetVoxVal(means,vno,0,0,m,gcsan->gcs[nthlab].v_means->rptr[inputno+1][1]);
+      if(mmax < m) mmax = m;
+    } // labels
+  } //vertices
+  printf("nlabels = %d, m=%d\n",nlabels,mmax);
+  return(means);
 }

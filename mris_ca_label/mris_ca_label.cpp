@@ -255,14 +255,8 @@ main(int argc, char *argv[])
   {
     printf("labeling surface...\n") ;
     GCSAlabel(gcsa, mris) ;
-    if (Gdiag_no >= 0)
-      printf("vertex %d: label %s\n",
-             Gdiag_no,
-             annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-    if (mri_aseg)
-    {
-      GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
-    }
+    if(Gdiag_no >= 0) printf("vertex %d: label %s\n", Gdiag_no,annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    if(mri_aseg) GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
     printf("relabeling using gibbs priors...\n") ;
     GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
     if (Gdiag_no >= 0)
@@ -327,14 +321,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not write annot file %s for %s",
               Progname, out_fname, subject_name) ;
 
-  if (NULL != prob_fname)
-  {
+  if (NULL != prob_fname){
     MRI* prob_image = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
     for (i = 0 ; i < mris->nvertices ; i++)
-    {
-      MRIsetVoxVal(prob_image, i, 0, 0, 0, mris->vertices[i].val) ;
-    }
-
+      MRIsetVoxVal(prob_image, i, 0, 0, 0, mris->vertices[i].val2) ;
     printf("writing vertex label probabilities to %s...\n", prob_fname) ;
     MRIwrite(prob_image, prob_fname) ;
     MRIfree(&prob_image) ;
