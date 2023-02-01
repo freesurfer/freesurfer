@@ -183,11 +183,28 @@ def predict(path_images,
         print('\npredictions saved in: ' + os.path.dirname(path_predictions[0]))
 
     print('\nIf you use this tool in a publication, please cite:')
+    print('\n')
     print('Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical ')
     print('MRI exams with scans of different orientation, resolution and contrast')
     print('JE Iglesias, B Billot, Y Balbastre, A Tabari, J Conklin, RG Gonzalez, DC Alexander,')
     print('P Golland, BL Edlow, B Fischl, for the ADNI')
-    print('NeuroImage 2021\n')
+    print('NeuroImage, 118206 (2021)\n')
+    print('\n')
+    print('SynthSR: a public AI tool to turn heterogeneous clinical brain scans into ')
+    print('high-resolution T1-weighted images for 3D morphometry')
+    print('JE Iglesias, B Billot, Y Balbastre, C Magdamo, S Arnold, S Das, B Edlow, D Alexander,')
+    print('P Golland, B Fischl')
+    print('Science Advances, 9(5), eadd3607 (2023)\n')
+    print('\n')
+    print('If you use the low-field (Hyperfine) version, please cite also:\n')
+    print('\n')
+    print('Quantitative Brain Morphometry of Portable Low-Field-Strength MRI Using ')
+    print('Super-Resolution Machine Learning')
+    print('JE Iglesias, R Schleicher, S Laguna, B Billot, P Schaefer, B McKaig, JN Goldstein, ')
+    print('KN Sheth, MS Rosen, WT Kimberly')
+    print('Radiology, 220522 (2022)\n')
+    print('\n')
+
 
 
 def prepare_output_files(path_images, path_predictions):
