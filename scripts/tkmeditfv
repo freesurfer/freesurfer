@@ -48,7 +48,7 @@ set DoDefectsPS = 0;
 set SegOutline = 0;
 set mainmin = ()
 set mainmax = ()
-set annot = ()
+set annotlist = ()
 set DoManCheck = 0
 set DoCDMRI = 0;
 
@@ -155,15 +155,17 @@ if(! $UseTkMedit) then
       if($surflist0[$nth] == rh.smoothwm.nofix) set ov = ":overlay=$sdir/rh.defect_labels:edgecolor=overlay:lock=1:visible=0"
     endif
     set annotarg = ()
-    set surfname = `basename $surf`
-    if($#annot && $surfname != lh.orig.nofix && $surfname != rh.orig.nofix && \
-       $surfname != lh.smoothwm.nofix && $surfname != rh.smoothwm.nofix) then
-      set hemi = `echo $surfname | cut -c1-2`
-      if($hemi == lh || $hemi == rh) then
-        set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
-        set annotarg = ":annot=$annotfile":"annot_outline=0"
+    foreach annot ($annotlist)
+      set surfname = `basename $surf`
+      if($#annot && $surfname != lh.orig.nofix && $surfname != rh.orig.nofix && \
+         $surfname != lh.smoothwm.nofix && $surfname != rh.smoothwm.nofix) then
+        set hemi = `echo $surfname | cut -c1-2`
+        if($hemi == lh || $hemi == rh) then
+          set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
+          set annotarg = $annotarg":annot=$annotfile":"annot_outline=0"
+        endif
       endif
-    endif
+    end
     set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth]$ov$annotarg)
   end
   if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
@@ -339,6 +341,7 @@ while( $#argv != 0 )
     case "-annot":
       if($#argv < 1) goto arg1err;
       set annot = $argv[1]; shift;
+      set annotlist = ($annotlist $annot)
       breaksw
 
     case "-aparc":
