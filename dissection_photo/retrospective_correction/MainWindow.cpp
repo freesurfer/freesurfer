@@ -78,9 +78,9 @@ void MainWindow::ShowDialog()
   }
 
   show();
-  m_nNumberOfExpectedPoints = dlgSelect.IsFourPoint()?4:2;
-  ui->labelHeight->setVisible(m_nNumberOfExpectedPoints == 4);
-  ui->lineEditRulerHeight->setVisible(m_nNumberOfExpectedPoints == 4);
+  m_nNumberOfExpectedPoints = dlgSelect.GetNumberOfPoints();
+  ui->labelHeight->setVisible(m_nNumberOfExpectedPoints > 2);
+  ui->lineEditRulerHeight->setVisible(m_nNumberOfExpectedPoints > 2);
   ui->widgetImageView->SetNumberOfExpectedPoints(m_nNumberOfExpectedPoints);
   ui->labelWidth->setText(m_nNumberOfExpectedPoints == 2? "Ruler Length (mm):":"Ruler Width (mm):");
 
@@ -148,7 +148,7 @@ void MainWindow::OnButtonRegister()
   bool bOK;
   double dWidth = ui->lineEditRulerWidth->text().trimmed().toDouble(&bOK);
   double dHeight = 1;
-  if (m_nNumberOfExpectedPoints == 4)
+  if (m_nNumberOfExpectedPoints > 2)
   {
     dHeight = ui->lineEditRulerHeight->text().trimmed().toDouble(&bOK);
     if (!bOK)
