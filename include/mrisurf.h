@@ -619,6 +619,8 @@ double MRISfindMinDistanceVertexWithDotCheckXYZ(MRI_SURFACE *mris, double xs, do
 						MRI *mri, double dot_dir, int *pvtxno);
 double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, 
 					     MRI *mri, double dot_dir, int *pvtxno);                              
+
+
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;
@@ -2581,3 +2583,37 @@ public:
   int ReadStream(FILE *fp); // read from stream
 };
 
+/*!
+  \fn class ClosestVertex 
+  \brief Manages finding closest vertex
+ */
+class ClosestVertex 
+{
+public:
+  MRIS *surf=NULL;
+  LTA *lta=NULL; // can be in either direction, and it will figure it out
+  MHT *hash=NULL;
+  int hashres=16;
+  int which_vertices = CURRENT_VERTICES;
+  int m_debug=0;
+  MATRIX *scanner2tkreg=NULL;
+  MATRIX *tkreg2tkreg=NULL;
+  int InitMatrices(void);
+  int PrintMatrices(FILE *fp);
+  int InitHash(void){ 
+    if(m_debug) printf("Using hash %d\n",hashres);
+    hash = MHTcreateVertexTable_Resolution(surf, which_vertices, hashres);
+    return(0);
+  }
+  int ReadLTA(char *ltafile){ // can pass it "nofile" to ignore, good for cmdargs
+    if(strcmp(ltafile,"nofile")!=0) {
+      lta = LTAread(ltafile);
+      if(lta == NULL) return(1);
+      else            return(0);
+    }
+    return(0);
+  }
+  int ClosestTkReg(double x, double y, double z, double *dist);
+  int ClosestScanner(double x, double y, double z, double *dist);
+  int Closest(double x, double y, double z, double *dist, MATRIX *M);
+};

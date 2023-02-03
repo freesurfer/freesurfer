@@ -4553,13 +4553,142 @@ int MRISsampleFaceNormal(MRIS *mris, int fno, double x, double y, double z, floa
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
+/*!
+\fn int ClosestVertex::Closest(double x, double y, double z, double *dist, MATRIX *M)
+\brief Finds the closest vertex to xyz. If M is non-null, then applies
+M to xyz before searching. The search is done against the
+tkreg/surface coords of the surface, so M must always go into that
+space (also see InitMatrices()). If the hash is set, it will use the
+hash; if the hash does not exist or the hash search fails, then it
+uses brute force. Returns the distance to the closest vertex as dist.
+*/
+int ClosestVertex::Closest(double x, double y, double z, double *dist, MATRIX *M)
+{
+  int vno;
+  if(m_debug) printf("Closest(): Input: %6.2f %6.2f %6.2f\n",x,y,z);
+  if(M){
+    MATRIX *vsrc = MatrixAlloc(4,1,MATRIX_REAL);
+    MATRIX *vtrg=NULL;
+    vsrc->rptr[1][1] = x;
+    vsrc->rptr[2][1] = y;
+    vsrc->rptr[3][1] = z;
+    vsrc->rptr[4][1] = 1;
+    vtrg = MatrixMultiplyD(M,vsrc,vtrg);
+    x = vtrg->rptr[1][1];
+    y = vtrg->rptr[2][1];
+    z = vtrg->rptr[3][1];
+    MatrixFree(&vsrc);
+    MatrixFree(&vtrg);
+  }
+  if(m_debug) printf("Closest(): Xformed: %6.2f %6.2f %6.2f\n",x,y,z);
+  float fdist;
+  if(hash) {
+    vno = MHTfindClosestVertexNoXYZ(hash,surf,x,y,z,&fdist);
+    if(vno < 0){
+      if(m_debug) printf("Closest(): hash failed, using brute force\n");
+      vno = MRISfindClosestVertex(surf,x,y,z,&fdist, which_vertices);
+    }
+  }
+  else vno = MRISfindClosestVertex(surf,x,y,z,&fdist, which_vertices);
+  *dist = fdist;
+  return(vno);
+}
 
-  Returns value:
+/*!
+\fn int ClosestVertex::ClosestTkReg(double x, double y, double z, double *dist){
+\brief Get closest vertex assuming xyz are in tkreg space (before
+ applying any transform); uses the tkreg2tkreg matrix as created by
+ InitMatrices().
+ */
+int ClosestVertex::ClosestTkReg(double x, double y, double z, double *dist){
+  int vno = Closest(x,y,z,dist,tkreg2tkreg);
+  return(vno);
+}
+/*!
+\fn int ClosestVertex::ClosestScanner(double x, double y, double z, double *dist)
+\brief Get closest vertex assuming xyz are in scanner space (before
+ applying any transform); uses the tkreg2tkreg matrix as created by
+ InitMatrices().
+ */
+int ClosestVertex::ClosestScanner(double x, double y, double z, double *dist)
+{
+  int vno = Closest(x,y,z,dist,scanner2tkreg);
+  return(vno);
+}
 
-  Description
-  ------------------------------------------------------*/
+int ClosestVertex::PrintMatrices(FILE *fp){
+  fprintf(fp,"Closest Vertex\n");
+  if(lta){
+    fprintf(fp,"LTA -----------------------------\n");
+    LTAprint(fp, lta);
+  } else fprintf(fp,"LTA is NULL\n");
+  if(tkreg2tkreg){
+    fprintf(fp,"Tkreg2Tkreg -----------------------------\n");
+    MatrixPrint(fp,tkreg2tkreg);
+  } else fprintf(fp,"Tkreg2Tkreg is NULL\n");
+  if(scanner2tkreg){
+    fprintf(fp,"Scanner2Tkreg -----------------------------\n");
+    MatrixPrint(fp,scanner2tkreg);
+  } else fprintf(fp,"Scanner2Tkreg is NULL\n");
+  return(0);
+}
+/*!
+\fn int ClosestVertex::InitMatrices(void)
+
+\brief Create matrices to convert coordinates. If no lta is supplied,
+then just the matrix to convert from scannerRAS to tkrRAS is created
+from the volume geometry in the surface; the tkr2tkr is not needed
+because it is just the identity. If an lta is supplied, then matrices
+are created that map from the lta source space (tkr or scanner) to the
+surface tkr. One of either lta source or destination geometries must
+match that of the surface, otherwise the matrices are set to NULL and
+1 is returned and an error printed. If the surface volgeom matches the
+source of the lta, then the lta is inverted, meaning that the lta can
+point in either direction. These matrices are used in ClosestScanner()
+and ClosestTkReg(). 
+*/
+int ClosestVertex::InitMatrices(void)
+{
+  if(lta){
+    LTA *lta2 = LTAcopy(lta,NULL);
+    // Check that vg of the target is the same as that of the surface, invert if necessary
+    if(!vg_isEqual(&surf->vg, &(lta2->xforms[0].dst))){
+      if(!vg_isEqual(&surf->vg, &(lta2->xforms[0].src))){
+	scanner2tkreg = NULL;
+	tkreg2tkreg = NULL;
+	printf("ERROR: ClosestVertex::InitMatrices(): surf volgeom does not match either LTA src or dst\n");
+	return(1);
+      }
+      else {
+	if(m_debug) printf("ClosestVertex::InitMatrices(): inverting LTA\n");
+	LTAinvert(lta2,lta2);
+      }
+    }
+    // Make sure lta is ras2ras
+    LTAchangeType(lta2, LINEAR_RAS_TO_RAS);
+    // Make a matrix that converts from src scanner 
+    // space to the target tkreg surface space
+    MATRIX *T = VGras2tkreg(&lta2->xforms[0].dst, NULL);
+    scanner2tkreg = MatrixMultiplyD(T,lta2->xforms[0].m_L,NULL);
+    MatrixFree(&T);
+    LTAchangeType(lta2, REGISTER_DAT);
+    // Hokey regdat format inverts, so have to re/uninvert. Make a
+    // matrix that converts from src tkreg surface space to the target
+    // tkreg surface space
+    tkreg2tkreg = MatrixInverse(lta2->xforms[0].m_L,NULL);
+    LTAfree(&lta2);
+  }
+  else{
+    // If there is no LTA, just use the surf vol geom to get the scanner2tkreg
+    scanner2tkreg = VGras2tkreg(&surf->vg, NULL);
+    // This can be null because it would just be the identity
+    tkreg2tkreg = NULL;
+  }
+
+  return(0);
+}
+
+/*-----------------------------------------------------*/
 int MRISfindClosestVertex(MRIS *mris, float x, float y, float z, float *dmin, int which_vertices)
 {
   int vno, min_v = -1;
