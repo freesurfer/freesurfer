@@ -80,7 +80,12 @@ QString DialogSelectFolder::GetOutputPath()
   return ui->lineEditPathOutput->text().trimmed();
 }
 
-bool DialogSelectFolder::IsFourPoint()
+int DialogSelectFolder::GetNumberOfPoints()
 {
-  return ui->radioButton4Points->isChecked();
+  if (ui->radioButton4Points->isChecked())
+    return 4;
+  else if (ui->radioButton3Points->isChecked())
+    return 3;
+  else
+    return 2;
 }

@@ -17,7 +17,7 @@ public:
 
   QString GetInputPath();
   QString GetOutputPath();
-  bool IsFourPoint();
+  int GetNumberOfPoints();
 
 public slots:
   void OnButtonInputPath();

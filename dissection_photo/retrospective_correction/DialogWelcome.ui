@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>641</width>
+    <width>706</width>
     <height>287</height>
    </rect>
   </property>
@@ -64,10 +64,10 @@
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>&lt;p&gt;1. Select the directory where the input images are. &lt;/p&gt;&lt;p&gt;2. Select the directory where you want the output images saved.&lt;/p&gt;&lt;p&gt;3. Click on 2 points on the ruler or 4 corners of a rectangle for every image and provide the dimensions in mm. &lt;/p&gt;&lt;p&gt;4. Click on 'Process' button and wait until the program loads the next image.&lt;/p&gt;</string>
+      <string>&lt;p&gt;1. Select the directory where the input images are. &lt;/p&gt;&lt;p&gt;2. Select the directory where you want the output images saved.&lt;/p&gt;&lt;p&gt;3. Click on 2 points on the ruler or 3 or 4 corners of a rectangle for every image and provide the dimensions in mm. &lt;/p&gt;&lt;p&gt;4. Click on 'Process' button and wait until the program loads the next image.&lt;/p&gt;</string>
      </property>
      <property name="wordWrap">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
     </widget>
    </item>
