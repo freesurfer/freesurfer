@@ -488,6 +488,18 @@ MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
   MRIfree(&mri);
   return(tkreg2ras);
 }
+/*
+ \fn MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg)
+ \brief Returns a matrix that converts from ras coords to tkreg coords
+*/
+MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg)
+{
+  MATRIX *M = VGtkreg2RAS(vg, NULL);
+  MATRIX *P = MatrixInverse(M,NULL);
+  MatrixFree(&M);
+  return(P);
+}
+
 int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
 {
   int rt;

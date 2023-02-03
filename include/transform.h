@@ -212,6 +212,7 @@ MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg);
 MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
 MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras);
+MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
