@@ -1710,6 +1710,7 @@ int MRISopenMarked(MRI_SURFACE *mris, int order) ;
 int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
 int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
+MRI *MRISdilateVertexToSum(int vno, MRIS *surf, MRI *measure, double targetSum);
 int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;
 MRI *MRISdilateConfined(MRIS *surf,
@@ -2600,6 +2601,9 @@ public:
   MATRIX *tkreg2tkreg=NULL;
   int InitMatrices(void);
   int PrintMatrices(FILE *fp);
+  int ClosestTkReg(double x, double y, double z, double *dist);
+  int ClosestScanner(double x, double y, double z, double *dist);
+  int Closest(double x, double y, double z, double *dist, MATRIX *M);
   int InitHash(void){ 
     if(m_debug) printf("Using hash %d\n",hashres);
     hash = MHTcreateVertexTable_Resolution(surf, which_vertices, hashres);
@@ -2613,7 +2617,26 @@ public:
     }
     return(0);
   }
-  int ClosestTkReg(double x, double y, double z, double *dist);
-  int ClosestScanner(double x, double y, double z, double *dist);
-  int Closest(double x, double y, double z, double *dist, MATRIX *M);
+  int WriteVertexDist(char *outfile, int vno, double dist)
+  { // can pass it "nofile" to ignore, good for cmdargs
+    double vx=0,vy=0,vz=0;
+    if(vno >=0 && vno < surf->nvertices){
+      // should take into account which_vertices
+      vx = surf->vertices[vno].x;
+      vy = surf->vertices[vno].y;
+      vz = surf->vertices[vno].z;
+    }
+    printf("%8d  %8.4f  %8.4f %8.4f %8.4f\n",vno,dist,vx,vy,vz);fflush(stdout);
+    if(outfile != NULL && strcmp(outfile,"nofile")!=0) {
+      FILE *fp = stdout;
+      fp = fopen(outfile,"w");
+      if(fp==NULL){
+	printf("ERROR: could not open %s for writing\n",outfile);
+	return(1);
+      }
+      fprintf(fp,"%8d  %8.4f  %8.4f %8.4f %8.4f\n",vno,dist,vx,vy,vz);
+      fclose(fp);
+    }
+    return(0);
+  }
 };

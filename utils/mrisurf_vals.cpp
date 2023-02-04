@@ -4072,3 +4072,79 @@ void MRISclearWhichAndVal2(MRIS *mris, int which)
     v->val2 = 0;            // surprise!
   }
 }
+
+/*!
+\fn MRI *MRISdilateVertexToSum(int vno, MRIS *surf, MRI *measure, double targetSum)
+\brief Create a mask by dilating the vno vertex until the measure sum of the vertices
+exceeds targetSum. If measure==NULL, then uses surf->area. The idea here is to 
+create a uniform disk of a certain size (for area) or such that the sum of the measure
+in the mask is a given value.
+ */
+MRI *MRISdilateVertexToSum(int vno, MRIS *surf, MRI *measure, double targetSum)
+{
+  printf("MRISdilateVertexToSum(): vno=%d, targetSum = %g\n",vno,targetSum);
+  if(surf == NULL){
+    printf("ERROR: MRISdilateVertexToSum(): surf is NULL\n");
+    return(NULL);
+  }
+  if(vno < 0 || vno >= surf->nvertices){
+    printf("ERROR: MRISdilateVertexToSum(): vno=%d out of range 0 to %d\n",vno,surf->nvertices);
+    return(NULL);
+  }
+  if(measure != NULL){
+    if(measure->width != surf->nvertices){
+      printf("ERROR: MRISdilateVertexToSum(): measure->width=%d != nvertices = %d\n",measure->width,surf->nvertices);
+      return(NULL);
+    }
+  }
+  else {
+    MRIScomputeMetricProperties(surf) ;
+    if(targetSum <= 0){
+      printf("ERROR: MRISdilateVertexToSum(): targetSum = %g, must be > 0 with area\n",targetSum);
+      return(NULL);
+    }
+  }
+
+  // Keep dilating this vertex until the target measure is exceeded
+  double measuresum=0;
+  int nhops = 1;
+  int nvertices = 0;
+  while(measuresum < targetSum){
+    SURFHOPLIST *shl = SetSurfHopList(vno, surf, nhops);
+    if(!shl){
+      printf("ERROR: MRISdilateVertexToSum(): could not alloc hoplist\n");
+      return(NULL);
+    }
+    measuresum = 0;
+    for(int n=0; n < nhops; n++){
+      for(int m=0; m < shl->nperhop[n]; m++){
+	int hvno = shl->vtxlist[n][m];
+	double val;
+	if(measure) val = MRIgetVoxVal(measure,hvno,0,0,0);
+	else        val = surf->vertices[hvno].area;
+	measuresum += val;
+	nvertices++;
+	if(nvertices >= surf->nvertices){
+	  // run out of vertices to sum up
+	  printf("ERROR: MRISdilateVertexToSum(): not possible to achieve target sum %g\n",targetSum);
+	  return(NULL);
+	}
+      }
+    }
+    SurfHopListFree(&shl);
+    printf("hop %3d %8.3f %6d\n",nhops,measuresum,nvertices);
+    nhops++;
+  }
+  nhops--; // back it up
+  // Now create the mask
+  MRI *mask = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
+  SURFHOPLIST *shl = SetSurfHopList(vno, surf, nhops);
+  for(int n=0; n < nhops; n++){
+    for(int m=0; m < shl->nperhop[n]; m++){
+      int hvno = shl->vtxlist[n][m];
+      MRIsetVoxVal(mask,hvno,0,0,0,1);
+    }
+  }
+
+  return(mask);
+}
