@@ -473,6 +473,39 @@ static int parse_commandline(int argc, char **argv) {
       printf("mris_apply_reg done\n");
       exit(0);
     }
+    else if (!strcasecmp(option, "--map-vertex")) {
+      // vertexno srcsurf trgsurf outfile
+      if(nargc < 4) CMDargNErr(option,4);
+      int srcvno,trgvno;
+      sscanf(pargv[0],"%d",&srcvno);
+      MRIS *srcsurf = MRISread(pargv[1]);
+      if(!srcsurf) exit(1);
+      MRIS *trgsurf = MRISread(pargv[2]);
+      if(!trgsurf) exit(1);
+      if(srcvno < 0 || srcvno >= srcsurf->nvertices){
+	printf("srcvno=%d, out of range 0,%d\n",srcvno,srcsurf->nvertices);
+	exit(1);
+      }
+      VERTEX *v = &(srcsurf->vertices[srcvno]);
+      float dist;
+      trgvno = MRISfindClosestVertex(trgsurf,v->x,v->y,v->z,&dist, CURRENT_VERTICES);
+      VERTEX *v2 = &(srcsurf->vertices[trgvno]);
+      printf("%d %8.4f %8.4f %8.4f  %8.4f  %d %8.4f %8.4f %8.4f\n",
+	     trgvno,v2->x,v2->y,v2->z,dist,srcvno,v->x,v->y,v->z);
+      if(strcmp(pargv[3],"nofile")!=0) {
+	FILE *fp = fopen(pargv[3],"w");
+	if(!fp){
+	  printf("ERROR: could not open %s\n",pargv[3]);
+	  exit(1);
+	}
+	fprintf(fp,"%d %8.4f %8.4f %8.4f  %8.4f  %d %8.4f %8.4f %8.4f\n",
+		trgvno,v2->x,v2->y,v2->z,dist,srcvno,v->x,v->y,v->z);
+	fclose(fp);
+      }
+      MRISfree(&srcsurf);
+      MRISfree(&trgsurf);
+      exit(0);
+    }
     else if (!strcasecmp(option, "--m3z") || !strcasecmp(option, "--inv-m3z") ) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);

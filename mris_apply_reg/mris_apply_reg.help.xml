@@ -46,6 +46,8 @@
       <explanation> source-target registration pair</explanation>
       <argument>--curv</argument>
       <explanation> Save output in curv format</explanation>
+      <argument>--map-vertex vertexno srcsurf trgsurf outfile</argument>
+      <explanation> Map vertex from source to target (stand-alone)</explanation>
     </optional-flagged>
   </arguments>
   <example>
