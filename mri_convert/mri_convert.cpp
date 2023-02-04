@@ -197,6 +197,7 @@ int main(int argc, char *argv[])
   char devxfm_subject[STRLEN];
   MATRIX *T;
   float scale_factor, out_scale_factor, rescale_factor ;
+  int rescale_voxel=0,rescale_voxel_c,rescale_voxel_r,rescale_voxel_s;
   int nthframe=-1;
   int reduce = 0 ;
   float fwhm, gstd;
@@ -1113,6 +1114,13 @@ int main(int argc, char *argv[])
     {
       out_scale_factor = atof(argv[i+1]) ;
       i++ ;
+    }
+    else if(strcmp(argv[i], "--rescale-voxel") == 0){
+      rescale_voxel=1;
+      sscanf(argv[i+1],"%d",&rescale_voxel_c);i++;
+      sscanf(argv[i+1],"%d",&rescale_voxel_r);i++;
+      sscanf(argv[i+1],"%d",&rescale_voxel_s);i++;
+      printf("rescale voxel %d %d %d\n",rescale_voxel_c,rescale_voxel_r,rescale_voxel_s);
     }
     else if(strcmp(argv[i], "-rt") == 0 ||
             strcmp(argv[i], "--resample_type") == 0)
@@ -3531,6 +3539,17 @@ int main(int argc, char *argv[])
                          crop_size[1], crop_size[2]) ;
     MRIfree(&mri) ;
     mri = mri_tmp ;
+  }
+
+  if(rescale_voxel){
+    printf("rescale voxel %d %d %d\n",rescale_voxel_c,rescale_voxel_r,rescale_voxel_s);
+    double val = MRIgetVoxVal(mri,rescale_voxel_c,rescale_voxel_r,rescale_voxel_s,0);
+    if(val == 0) {
+      printf("Rescale voxel has a value of 0\n");
+      exit(1);
+    }
+    out_scale_factor /= val;;
+    printf("Voxel val = %g, scaling by %g\n",val,out_scale_factor);
   }
 
   if (!FEQUAL(out_scale_factor,1.0))

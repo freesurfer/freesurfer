@@ -283,6 +283,8 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
       <explanation>output intensity scale factor</explanation> 
       <argument>--rescale rescalefactor </argument>
       <explanation>Rescale input so that the global mean is rescalefactor</explanation> 
+      <argument>--rescale-voxel col row slice </argument>
+      <explanation>Divide volume by value at col,row,slice (can be combined with --rescale)</explanation> 
       <argument>-il, --in_like</argument>
       <argument>-roi</argument>
       <argument>-fp, --fill_parcellation</argument>
