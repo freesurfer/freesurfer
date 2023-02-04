@@ -1237,6 +1237,36 @@ static int parse_commandline(int argc, char **argv) {
       printf("mri_vol2surf --norm-pointset done\n");
       exit(0);
     }
+    else if (!strcmp(option, "--closest-vertex")) {
+      // x y z coords (1=scanner,2=tkreg) ltafile surf outfile
+      if(nargc < 7){
+	printf("ERROR: --closest-vertex requires  7 args (%d)\n",nargc);
+	printf("USAGE: --closest-vertex x y z coords ltafile surf outfile\n");
+	printf("  coords: 1=scanner,2=tkreg, ltafile=nofile for not using lta, outfile can be nofile too\n");
+	exit(1);
+      }
+      ClosestVertex cv;
+      double x,y,z,dist; int coordtype, vno=0, err;
+      sscanf(pargv[0],"%lf",&x);
+      sscanf(pargv[1],"%lf",&y);
+      sscanf(pargv[2],"%lf",&z);
+      sscanf(pargv[3],"%d",&coordtype); // should check 1 or 2
+      cv.m_debug = 1;
+      err = cv.ReadLTA(pargv[4]);
+      if(err) exit(1);
+      cv.surf = MRISread(pargv[5]);
+      if(cv.surf==NULL) exit(1);
+      cv.InitMatrices();
+      cv.PrintMatrices(stdout);
+      if(coordtype == 1)      vno = cv.ClosestScanner(x, y, z, &dist);
+      else if(coordtype == 2) vno = cv.ClosestTkReg(x, y, z, &dist);
+      else {
+	printf("ERROR: coordtype = %d, must be 1 or 2\n",coordtype);
+	exit(1);
+      }
+      err = cv.WriteVertexDist(pargv[6],vno,dist);
+      exit(err);
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -1340,7 +1370,11 @@ static void print_usage(void) {
   printf("      reg : LTA registration file (or 'regheader', surf must have vol geom) \n");
   printf("        LTA files can go in either direction if surf has a valid vol geom\n");
   printf("      vsm : voxel shift map for B0 correction (or 'novsm')\n");
+  printf("\n");
   printf("      interp 0=nearest, 1=trilin, 5=cubicbspline\n");
+  printf("   --closest-vertex x y z coords ltafile surf outfile (stand-alone)\n");
+  printf("    Stand-alone option to get the closest vertex to a given point");
+  printf("    coords: 1=scanner,2=tkreg, ltafile=nofile for not using lta, outfile can be nofile too\n");
   printf("\n");
   std::cout << getVersion() << std::endl;
   printf("\n");
