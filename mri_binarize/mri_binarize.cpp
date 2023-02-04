@@ -1062,12 +1062,51 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErode2d);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--count")) {
+    } 
+    else if (!strcasecmp(option, "--count")) {
       if (nargc < 1) CMDargNErr(option,1);
       CountFile = pargv[0];
       DoCount = 1;
       nargsused = 1;
-    } else {
+    } 
+    else if(!strcasecmp(option, "--dilate-vertex-sum") || !strcasecmp(option, "--dilate-vertex")){
+      int doradius = 0;
+      if(!strcasecmp(option, "--dilate-vertex-sum") && nargc < 5) {
+	// vno surf area target outfile
+	printf("USAGE: --dilate-vertex-sum vno surf measure target outmask\n");
+	exit(1);
+      }
+      if(!strcasecmp(option, "--dilate-vertex")){
+	if(nargc < 4) {
+	  // vno surf radius outfile
+	  printf("USAGE: --dilate-vertex-sum vno surf radius outmask\n");
+	  exit(1);
+	}
+	doradius = 1;
+      }
+      int vno; double targetSum;
+      sscanf(pargv[0],"%d",&vno);
+      MRIS *surf = MRISread(pargv[1]);
+      if(!surf) exit(1);
+      MRI *measure=NULL;
+      if(!doradius && strcmp(pargv[2],"nofile")!=0 && strcmp(pargv[2],"area")!=0) {
+	measure = MRIread(pargv[2]);
+	if(!measure) exit(1);
+      }
+      if(doradius) {
+	double radius;
+	sscanf(pargv[2],"%lf",&radius);
+	targetSum = M_PI*radius*radius;
+      }
+      else         sscanf(pargv[3],"%lf",&targetSum);
+      MRI *tmpmri = MRISdilateVertexToSum(vno, surf, measure, targetSum);
+      if(!tmpmri) exit(1);
+      int err;
+      if(doradius) err = MRIwrite(tmpmri,pargv[3]);
+      else         err = MRIwrite(tmpmri,pargv[4]);
+      exit(err);
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -1137,6 +1176,7 @@ static void print_usage(void) {
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
   printf("   --threads nthreads (won't apply to replace)\n");
   printf("   --noverbose (default *verbose*) \n");
+  printf("   --dilate-vertex vno surf radius outmask : dilate vertex to a target area =pi*R^2 (stand-alone option)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
