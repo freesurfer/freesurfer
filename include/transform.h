@@ -205,14 +205,6 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg);
 void getVolGeom(const MRI *src, VOL_GEOM *vg);
 void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst);
 MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly);
-MATRIX *vg_i_to_r(const VOL_GEOM *vg);
-MATRIX *vg_r_to_i(const VOL_GEOM *vg);
-#define vg_getRasToVoxelXform vg_r_to_i
-#define vg_getVoxelToRasXform vg_i_to_r
-MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg);
-MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
-MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras);
-MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
