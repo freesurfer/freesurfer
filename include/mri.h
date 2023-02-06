@@ -173,6 +173,9 @@ typedef struct
   float z_r =  0, z_a = 1, z_s =  0;
   float c_r =  0, c_a = 0, c_s =  0;
   char          fname[STRLEN];  // volume filename
+  AffineMatrix *i_to_r__ = nullptr;  // cached i->r transform
+  MATRIX *r_to_i__ = nullptr;        // cached r->i transform
+  MATRIX *register_mat = nullptr;
 }
 VOL_GEOM, VG;
 
@@ -248,9 +251,6 @@ public:
   Transform *linear_transform = nullptr;
   Transform *inverse_linear_transform = nullptr;
   int free_transform = 0;
-  AffineMatrix *i_to_r__ = nullptr;  // cached i->r transform
-  MATRIX *r_to_i__ = nullptr;        // cached r->i transform
-  MATRIX *register_mat = nullptr;
   MATRIX *AutoAlign = nullptr;       // for Andre
 
   // ---- volume metadata ----
@@ -328,33 +328,26 @@ MB2D *MB2Dcopy(MB2D *src, int CopyMRI, MB2D *copy);
 MRI *MB2Dgrid(MRI *mbtemplate, int skip, MRI *outvol);
 
 MATRIX *MRIcopyFramesToMatrixRows(MRI *mri, MATRIX *m_dst, int start_frame, int nframes, int dst_row) ;
-MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base ); /* Native Vox2RAS Matrix
+MATRIX *MRIxfmCRS2XYZ( const VOL_GEOM *mri, int base ); /* Native Vox2RAS Matrix
                                               (scanner and xfm too) */
-int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras);
+int MRIsetVox2RASFromMatrix(VOL_GEOM *mri, MATRIX *m_vox2ras);
 int MRIsetVox2RASFromMatrixUnitTest(MRI *mri);
-MATRIX *MRIxfmCRS2XYZtkreg( const MRI *mri );      // TkReg  Vox2RAS Matrix
-MATRIX *MRIxfmCRS2XYZfsl(MRI *mri);        // FSL/FLIRT  Vox2RAS Matrix
-MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref,
-                               MRI *mov,
-                               MATRIX *vox2vox); //ras2ras from vox2vox
-
-MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R); /* tkreg2native
-                                                           (scanner and
-                                                           xfm too) */
-MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D);     /* native2tkreg
-                                                           (scanner and
-                                                           xfm too) */
-MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat); // fsl2tkreg
-MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat);  // tkreg2fsl
-
+MATRIX *MRIxfmCRS2XYZtkreg( const VOL_GEOM *mri );      // TkReg  Vox2RAS Matrix
+MATRIX *MRIxfmCRS2XYZfsl(VOL_GEOM *mri);        // FSL/FLIRT  Vox2RAS Matrix
+MATRIX *MRItkRegMtxFromVox2Vox(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *vox2vox);//ras2ras from vox2vox
+MATRIX *MRItkReg2Native(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *R); /* tkreg2native (scanner and xfm too) */
+MATRIX *MRItkRegMtx(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *D); /* native2tkreg (scanner and xfm too) */
+MATRIX *MRIvoxToVoxFromTkRegMtx(VOL_GEOM *mov, VOL_GEOM *targ, MATRIX *tkR);
+MATRIX *MRIfsl2TkReg(VOL_GEOM *ref, VOL_GEOM  *mov, MATRIX *FSLRegMat);
+MATRIX *MRItkreg2FSL(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *tkRegMat);
 MATRIX *MtxCRS1toCRS0(MATRIX *Q);
-int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0);
-MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
-MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc);
-MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D);
-MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0);
+int MRIp0ToCRAS(VOL_GEOM *mri, double r0, double a0, double s0);
+MATRIX *MRIfixTkReg(VOL_GEOM *mov, MATRIX *R);
+MATRIX *MRImatrixOfDirectionCosines(VOL_GEOM *mri, MATRIX *Mdc);
+MATRIX *MRImatrixOfVoxelSizes(VOL_GEOM *mri, MATRIX *D);
+MATRIX *MRImatrixOfTranslations(VOL_GEOM *mri, MATRIX *P0);
 
-int MRIhfs2Sphinx(MRI *mri);
+int MRIhfs2Sphinx(VOL_GEOM *mri);
 
 float  MRIgetVoxDx(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
@@ -1021,6 +1014,7 @@ extern float ic_z_vertices[]  ;
 #define MGH_AUTOENCODER               30
 #define ITK_MORPH                     31 // ITK (e.g., ANTs synWarp)
 #define MGH_LABEL_FILE                32
+#define MGH_ANNOT                     33 // surface annotation file
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
@@ -1404,8 +1398,8 @@ MRI *MRIreadOtl(const char *fname, int width, int height, int slices,
 
 int list_labels_in_otl_file(FILE *fp);
 
-MATRIX *extract_i_to_r(const MRI *mri);
-int apply_i_to_r(MRI *mri, MATRIX *m);
+MATRIX *extract_i_to_r(const VOL_GEOM *mri);
+int apply_i_to_r(VOL_GEOM *mri, MATRIX *m);
 
 int stuff_four_by_four(MATRIX *m,
                        float m11, float m12, float m13, float m14,
@@ -1413,7 +1407,7 @@ int stuff_four_by_four(MATRIX *m,
                        float m31, float m32, float m33, float m34,
                        float m41, float m42, float m43, float m44);
 
-MATRIX *extract_r_to_i(const MRI *mri) ;
+MATRIX *extract_r_to_i(const VOL_GEOM *mri) ;
 #define MRIgetVoxelToRasXform   extract_i_to_r
 #define MRIgetRasToVoxelXform   extract_r_to_i
 int    MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras) ;
@@ -1487,7 +1481,6 @@ MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias,
                                         MRI *mri_out, float target_val) ;
 MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
-MATRIX *MRIvoxToVoxFromTkRegMtx(MRI *mov, MRI *targ, MATRIX *tkR);
 
 /* extract the RASToVoxeMatrix from an MRI */
 MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);

@@ -467,7 +467,7 @@ MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZ(const MRI *mri, int base)
+MATRIX *MRIxfmCRS2XYZ(const VOL_GEOM *mri, int base)
 {
   MATRIX *m;
   MATRIX *Pcrs, *PxyzOffset;
@@ -532,7 +532,7 @@ MATRIX *MRIxfmCRS2XYZ(const MRI *mri, int base)
   \fn MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
   \brief Fills Mdc with direction cosines
 */
-MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+MATRIX *MRImatrixOfDirectionCosines(VOL_GEOM *mri, MATRIX *Mdc)
 {
   if (Mdc == NULL) Mdc = MatrixZero(4, 4, NULL);
   Mdc->rptr[1][1] = mri->x_r;
@@ -551,7 +551,7 @@ MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
   \fn MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
   \brief Creaetes diagonal matrix D with voxel sizes on diagonal
 */
-MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+MATRIX *MRImatrixOfVoxelSizes(VOL_GEOM *mri, MATRIX *D)
 {
   if (D == NULL) D = MatrixZero(4, 4, NULL);
   D->rptr[1][1] = mri->xsize;
@@ -564,7 +564,7 @@ MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
   \fn MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
   \brief Creates 4x4 matrix which implements the translation
 */
-MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+MATRIX *MRImatrixOfTranslations(VOL_GEOM *mri, MATRIX *P0)
 {
   MATRIX *Vox2ScannerRAS;
   int k;
@@ -584,7 +584,7 @@ MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
   non-zero voxels base correctly (eg, SPM expects vox2ras to be 1-based).
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ---------------------------------------------------------------------------*/
-MATRIX *extract_i_to_r(const MRI *mri)
+MATRIX *extract_i_to_r(const VOL_GEOM *mri)
 {
   MATRIX *m;
   m = MRIxfmCRS2XYZ(mri, 0);
@@ -594,7 +594,7 @@ MATRIX *extract_i_to_r(const MRI *mri)
   extract_r_to_i() - computes scanner ras2vox. See also extract_i_to_r()
   and MRIxfmCRS2XYZ()
   ---------------------------------------------------------------------*/
-MATRIX *extract_r_to_i(const MRI *mri)
+MATRIX *extract_r_to_i(const VOL_GEOM *mri)
 {
   MATRIX *m_ras_to_voxel, *m_voxel_to_ras;
   m_voxel_to_ras = extract_i_to_r(mri);
@@ -612,7 +612,7 @@ MATRIX *extract_r_to_i(const MRI *mri)
   MRIsetVox2RASFromMatrixUnitTest(). See also niftiSformToMri()
   int mriio.c.
 */
-int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras)
+int MRIsetVox2RASFromMatrix(VOL_GEOM *mri, MATRIX *m_vox2ras)
 {
   double rx, ax, sx, ry, ay, sy, rz, az, sz;
   double P0r, P0a, P0s;
@@ -661,7 +661,7 @@ int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras)
   \brief Unit test for MRIsetVox2RASFromMatrix(). Note
   the geometry params of the mri struct might be changed.
 */
-int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
+int MRIsetVox2RASFromMatrixUnitTest(VOL_GEOM *mri)
 {
   MATRIX *Vox2RAS, *Vox2RASb;
   int c, r;
@@ -700,12 +700,12 @@ int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
   arbitrary, they must be applied consistently. See also:
   surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
   -------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZtkreg(const MRI *mri)
+MATRIX *MRIxfmCRS2XYZtkreg(const VOL_GEOM *mri)
 {
   MRI *tmp;
   MATRIX *K;
 
-  tmp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type, 1);
+  tmp = MRIallocHeader(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
 
   /* Set tkregister defaults */
   /* column         row           slice          center      */
@@ -738,7 +738,7 @@ MATRIX *MRIxfmCRS2XYZtkreg(const MRI *mri)
   transform between the column, row, and slice of a voxel and the x,
   y, z of that voxel as expected by FSL/FLIRT.
   -------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZfsl(MRI *mri)
+MATRIX *MRIxfmCRS2XYZfsl(VOL_GEOM *mri)
 {
   MATRIX *vox2ras;
   vox2ras = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -759,7 +759,7 @@ MATRIX *MRIxfmCRS2XYZfsl(MRI *mri)
 
   See also: MRItkRegMtx, MRIxfmCRS2XYZtkreg, MRIxfmCRS2XYZ
   -------------------------------------------------------------------*/
-MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
+MATRIX *MRItkReg2Native(VOL_GEOM *ref, VOL_GEOM  *mov, MATRIX *R)
 {
   MATRIX *Kref, *Kmov;
   MATRIX *Tref, *Tmov, *D;
@@ -816,7 +816,7 @@ MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
   the identity. This function could have been called
   MRInative2TkReg().
   ---------------------------------------------------------------*/
-MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
+MATRIX *MRItkRegMtx(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *D)
 {
   MATRIX *Kref, *Kmov;
   MATRIX *Tref, *Tmov, *R;
@@ -860,7 +860,7 @@ MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
   is assumed to be the identity (which will return the same thing as
   MRItkRegMtx()). See also MRIvoxToVoxFromTkRegMtx().
 */
-MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox)
+MATRIX *MRItkRegMtxFromVox2Vox(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *vox2vox)
 {
   MATRIX *Kref, *Kmov;
   MATRIX *R, *invKref;
@@ -890,7 +890,7 @@ MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox)
   mov volume. If tkR is NULL, it is assumed to be the identity.
   See also MRItkRegMtxFromVox2Vox().
 */
-MATRIX *MRIvoxToVoxFromTkRegMtx(MRI *mov, MRI *targ, MATRIX *tkR)
+MATRIX *MRIvoxToVoxFromTkRegMtx(VOL_GEOM *mov, VOL_GEOM *targ, MATRIX *tkR)
 {
   MATRIX *ras2vox_mov, *vox2ras_mov, *vox2ras_targ, *vox2vox;
   vox2ras_mov = MRIxfmCRS2XYZtkreg(mov);
@@ -958,7 +958,7 @@ MATRIX *MRIvoxToVoxFromTkRegMtx(MRI *mov, MRI *targ, MATRIX *tkR)
   type of matrix in the float2int variable. It will be either
   FLT2INT_TKREG or FLT2INT_ROUND (constants defined in resample.h).
   ---------------------------------------------------------------*/
-MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
+MATRIX *MRIfixTkReg(VOL_GEOM *mov, MATRIX *R)
 {
   int n, ntest = 1000;
   MATRIX *Pxyz, *Pcrs, *PcrsTkReg;
@@ -1027,7 +1027,7 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
   from the mov to the ref whereas the tkreg matrix maps from the ref
   to the mov.
   -------------------------------------------------------------------*/
-MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
+MATRIX *MRIfsl2TkReg(VOL_GEOM *ref, VOL_GEOM  *mov, MATRIX *FSLRegMat)
 {
   MATRIX *RegMat = NULL, *invDmov, *Tmov, *Dref;
   MATRIX *invFSLRegMat, *invTref, *Tref;
@@ -1117,7 +1117,7 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   mov to the ref whereas the tkreg matrix maps from the ref to the
   mov.
   -------------------------------------------------------------------*/
-MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
+MATRIX *MRItkreg2FSL(VOL_GEOM *ref, VOL_GEOM *mov, MATRIX *tkRegMat)
 {
   MATRIX *FSLRegMat = NULL, *Dmov, *Tmov, *invTmov, *Tref, *Dref, *invDref;
   MATRIX *Qmov, *Qref;
@@ -1248,7 +1248,7 @@ MATRIX *MtxCRS1toCRS0(MATRIX *Q)
   voxel (ie, col,row,slice=0). Typically, P0 is known from some
   source (eg, dicom header) and the c_{ras} needs to be computed.
   -----------------------------------------------------------------*/
-int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0)
+int MRIp0ToCRAS(VOL_GEOM *mri, double r0, double a0, double s0)
 {
   MATRIX *vox2ras, *CRScenter, *RAScenter;
 
@@ -1302,7 +1302,7 @@ int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0)
   with the bore) instead of head-first-supine (HFS). This is often the
   case with monkeys.
   ---------------------------------------------------------------*/
-int MRIhfs2Sphinx(MRI *mri)
+int MRIhfs2Sphinx(VOL_GEOM *mri)
 {
   double tmpxa, tmpya, tmpza, tmpca;
 
