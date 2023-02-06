@@ -81,6 +81,11 @@
 #define MB_RADIAL 0
 #define MB_TANGENTIAL 1
 
+#define FS_COORDS_UNKNOWN      0
+#define FS_COORDS_TKREG_RAS    1 // same as surfaceRAS
+#define FS_COORDS_SCANNER_RAS  2 // same as surface "RealRAS"
+#define FS_COORDS_VOXEL        3
+
 // standard itk image type
 typedef itk::Image<float, 3> ITKImageType;
 
@@ -177,8 +182,8 @@ typedef struct
   MATRIX *r_to_i__ = nullptr;        // cached r->i transform
   MATRIX *register_mat = nullptr;
   // The functions below compute these matrices on-the-fly
-  // RAS = scanner RAS
-  // TkregRAS = RAS used by tkregister; surface coords are by default in this RAS
+  // RAS = scanner RAS (sometimes known as "real" RAS in surface contexts)
+  // TkregRAS = RAS used by tkregister; surface coords are by default in this TkregRAS space
   MATRIX *get_Vox2RAS(void); // not cached
   MATRIX *get_RAS2Vox(void); // not cached
   MATRIX *get_Vox2TkregRAS(void); // not cached
