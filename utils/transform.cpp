@@ -62,6 +62,96 @@ static LTA *ltaReadFile(const char *fname);
 static LTA *ltaMNIreadEx(const char *fname);
 static LTA *ltaReadFileEx(const char *fname);
 
+/*!
+\fn MATRIX *LTA::get_matrix(int InputCoords, int OutputCoords, MATRIX *M)
+\brief Gets matrix from the LTA that will convert the given type of
+input coordinate to the given type of output coordinate. If the
+coordinates are of the same type, the it just runs LTAchangeType() and
+returns that matrix.  Recomputes the matrix each time, ie, does not
+use cached matrices. Does not change the LTA itself. The Coords must
+be one of FS_COORDS_TKREG_RAS (1), FS_COORDS_SCANNER_RAS (2), and/or
+FS_COORDS_VOXEL(3).
+*/
+MATRIX *LINEAR_TRANSFORM_ARRAY::get_matrix(int InputCoords, int OutputCoords, MATRIX *M)
+{
+  LTA *lta = LTAcopy(this,NULL); // so that the change types don't affect the LTA
+  if(lta==NULL){
+    printf("ERROR: LTA::GetMatrix: LTA is NULL\n");
+    return(NULL);
+  }
+  if(lta->num_xforms > 1){
+    printf("ERROR: LTA::GetMatrix: num_xforms > 1\n");
+    return(NULL);
+  }
+  printf("LTA::GetMatrix: %d %d\n",InputCoords,OutputCoords);
+  if(InputCoords == FS_COORDS_SCANNER_RAS && OutputCoords == FS_COORDS_SCANNER_RAS) {
+    // scannerRAS to scannerRAS
+    LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    M = MatrixCopy(lta->xforms[0].m_L,M);
+  }
+  else if(InputCoords == FS_COORDS_SCANNER_RAS && OutputCoords == FS_COORDS_VOXEL) {
+    // scannerRAS to Vox
+    LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    MATRIX *dst_ras2vox = lta->xforms[0].dst.get_RAS2Vox();
+    M = MatrixMultiplyD(dst_ras2vox,lta->xforms[0].m_L,NULL);
+    MatrixPrint(stdout,dst_ras2vox);
+    MatrixPrint(stdout,lta->xforms[0].m_L);
+    MatrixFree(&dst_ras2vox);
+  }
+  else if(InputCoords == FS_COORDS_SCANNER_RAS && OutputCoords == FS_COORDS_TKREG_RAS) {
+    // scannerRAS to tkRAS
+    LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    MATRIX *dst_ras2tkras = lta->xforms[0].dst.get_RAS2TkregRAS();
+    M = MatrixMultiplyD(dst_ras2tkras,lta->xforms[0].m_L,NULL);
+    MatrixFree(&dst_ras2tkras);
+  }
+  else if(InputCoords == FS_COORDS_VOXEL && OutputCoords == FS_COORDS_SCANNER_RAS) {
+    // Vox to scannerRAS
+    LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    MATRIX *src_vox2ras = lta->xforms[0].src.get_Vox2RAS();
+    M = MatrixMultiplyD(lta->xforms[0].m_L,src_vox2ras,NULL);
+    MatrixFree(&src_vox2ras);
+  }
+  else if(InputCoords == FS_COORDS_VOXEL && OutputCoords == FS_COORDS_VOXEL){
+    // Vox to Vox
+    LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+    M = MatrixCopy(lta->xforms[0].m_L,M);
+  }
+  else if(InputCoords == FS_COORDS_VOXEL && OutputCoords == FS_COORDS_TKREG_RAS){
+    // Vox to tkRAS
+    LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+    MATRIX *dst_vox2tkras = lta->xforms[0].dst.get_Vox2TkregRAS();
+    M = MatrixMultiplyD(dst_vox2tkras,lta->xforms[0].m_L,NULL);
+    MatrixFree(&dst_vox2tkras);
+  }
+  else if(InputCoords == FS_COORDS_TKREG_RAS && OutputCoords == FS_COORDS_SCANNER_RAS){
+    // tkRAS to scannerRAS
+    LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    MATRIX *src_tkras2ras = lta->xforms[0].src.get_TkregRAS2RAS();
+    M = MatrixMultiplyD(lta->xforms[0].m_L,src_tkras2ras,NULL);
+    MatrixFree(&src_tkras2ras);
+  }
+  else if(InputCoords == FS_COORDS_TKREG_RAS && OutputCoords == FS_COORDS_VOXEL){
+    // tkRAS to Vox
+    LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+    MATRIX *src_tkras2vox = lta->xforms[0].src.get_TkregRAS2Vox();
+    M = MatrixMultiplyD(lta->xforms[0].m_L,src_tkras2vox,NULL);
+    MatrixFree(&src_tkras2vox);
+  }
+  else if(InputCoords == FS_COORDS_TKREG_RAS && OutputCoords == FS_COORDS_TKREG_RAS) {
+    // tkRAS to tkRAS
+    LTAchangeType(lta,REGISTER_DAT);
+    M = MatrixInverse(lta->xforms[0].m_L,M); // have to invert
+  }
+  else {
+    printf("ERROR: LTA::GetMatrix: intype=%d, outtype=%d not recognized\n",InputCoords,OutputCoords);
+    LTAfree(&lta);
+    return(NULL);
+  }
+  LTAfree(&lta);
+  return(M);
+}
+
 /*
   \fn LTA *LTAcopy(LTA *lta, LTA *ltacp);
   \brief Copys lta to ltacp. If ltacp is NULL, allocs a new lta.
@@ -5539,3 +5629,4 @@ fsPointSet RegLandmarks::Coords2PointSet(const LTA *lta)
   }
   return(ps);
 }
+

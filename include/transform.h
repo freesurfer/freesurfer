@@ -44,15 +44,20 @@ typedef struct
 }
 LINEAR_TRANSFORM, LT ;
 
-typedef struct
+class LINEAR_TRANSFORM_ARRAY
 {
+ public:
   int               num_xforms ;      /* number linear transforms */
   LINEAR_TRANSFORM  *xforms ;         /* transforms */
   LINEAR_TRANSFORM  *inv_xforms ;     /* inverse transforms */
   int               type ;
   float             fscale ;        // for tkregister2
   char              subject[STRLEN];// for tkregister2
-} LINEAR_TRANSFORM_ARRAY, LTA ;
+  /*Gets matrix from the LTA that will convert the given type of
+    input coordinate to the given type of output coordinate.*/
+  MATRIX *get_matrix(int InputCoords, int OutputCoords, MATRIX *M);
+};
+typedef LINEAR_TRANSFORM_ARRAY LTA;
 
 typedef struct
 {
