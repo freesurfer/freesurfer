@@ -94,7 +94,6 @@ if(! $UseTkMedit) then
   if($#segvol) then
     set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
     set hasctab = `mri_info --ctab $segvol | wc -l`
- echo main hasctab $hasctab
     if($ctabset || ! $hasctab) then
       if($#segcolor) set cmd = ($cmd":lut=$segcolor")
     endif
@@ -345,7 +344,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-aparc":
-      set annot = aparc.annot
+      set annotlist = ($annotlist aparc.annot)
       breaksw
 
     case "-op":
@@ -735,8 +734,8 @@ if($#subject) then
         exit 1;
       endif
       set label = $l0
-      set labellist2 = ($labellist2 $label)
     endif
+    set labellist2 = ($labellist2 $label)
   end
   set labellist = ($labellist2)
 else
