@@ -322,6 +322,9 @@ main(int argc, char *argv[])
               Progname, out_fname, subject_name) ;
 
   if (NULL != prob_fname){
+    printf("WARNING: Saving probabilities does not work\n");
+    // The posteriors need to be cached somewhere in the GCSAlabel() function. 
+    // Using val2 breaks the labeling so this is no longer valid
     MRI* prob_image = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
     for (i = 0 ; i < mris->nvertices ; i++)
       MRIsetVoxVal(prob_image, i, 0, 0, 0, mris->vertices[i].val2) ;
@@ -532,6 +535,8 @@ get_option(int argc, char *argv[])
       prob_fname = argv[2] ;
       nargs = 1 ;
       printf("saving vertex label probability to %s...\n", prob_fname) ;
+      printf("ERROR: saving posteriors does not work\n");
+      exit(1);
       break ;
     case 'H':
     case 'U':

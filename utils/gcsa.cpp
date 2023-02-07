@@ -812,7 +812,7 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     cpn = &gcsa->cp_nodes[vno_prior];
     label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, NULL, 0);
     v->annotation = label;
-    v->val2 = p ; // posterior prob in val2
+    //v->val2 = p ; // posterior prob in val2
 
     if(vno == Gdiag_no) {
       int n;
@@ -955,8 +955,8 @@ int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp)
   CP_NODE   * cpn   = &gcsa->cp_nodes[vno_prior];
   
   fprintf(fp, "v %d --> vclassifier %d, vprior %d\n", vno, vno_classifier, vno_prior);
-  dump_gcsan(gcsan, cpn, fp, 0);
-  
+  dump_gcsan(gcsan, cpn, fp, 0); 
+ 
   return (NO_ERROR);
 }
 
@@ -2200,6 +2200,7 @@ MRI *GCSApriors2MRI(GCSA *gcsa)
       int index;
       // Get the ctab index that corresponds to this annot
       CTABfindAnnotation(gcsa->ct, annotation, &index);
+      if(index == -1) index = 0;
       // Now have to figure out the frame based on how far down
       // the valid entries we have to go to find this annot
       int k,m=0;
@@ -2207,6 +2208,9 @@ MRI *GCSApriors2MRI(GCSA *gcsa)
 	if(!gcsa->ct->entries[k]) continue;
 	if(k==index) break;
 	m++;
+      }
+      if(m >= nlabels){
+	printf("ERROR: GCSApriors2MRI(): vno=%d m=%d >= nlabels=%d, k=%d, index=%d, annot=%d\n",vno,m,nlabels,k,index,annotation);
       }
       // Now set the value
       MRIsetVoxVal(priors,vno,0,0,m,cpn->cps[nthlab].prior);
@@ -2250,6 +2254,7 @@ MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno)
       int index;
       // Get the ctab index that corresponds to this annot
       CTABfindAnnotation(gcsa->ct, annotation, &index);
+      if(index == -1) index = 0;
       // Now have to figure out the frame based on how far down
       // the valid entries we have to go to find this annot
       int k,m=0;
@@ -2257,6 +2262,10 @@ MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno)
 	if(!gcsa->ct->entries[k]) continue;
 	if(k==index) break;
 	m++;
+      }
+      if(m >= nlabels){
+	printf("ERROR: GCSAlikelihoodMeans2MRI(): vno=%d m=%d >= nlabels=%d, k=%d, index=%d, annot=%d\n",
+	       vno,m,nlabels,k,index,annotation);
       }
       // Now set the value
       MRIsetVoxVal(means,vno,0,0,m,gcsan->gcs[nthlab].v_means->rptr[inputno+1][1]);
