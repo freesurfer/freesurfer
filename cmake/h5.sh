@@ -5,6 +5,8 @@ if [ "$h5_files" == "" ]; then
    # echo "Nothing to do"
    exit 0
 fi
+# set locale for annex unlock
+export LC_ALL=C
 for file in $h5_files
 do
    if [ -L "$file" ]; then
