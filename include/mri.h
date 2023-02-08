@@ -163,7 +163,13 @@ typedef struct
 MRI_REGION ;
 
 
-typedef struct
+struct VOL_GEOM;
+MATRIX *MRIxfmCRS2XYZ( const VOL_GEOM *mri, int base ); /* Native Vox2RAS Matrix (scanner and xfm too) */
+MATRIX *MRIxfmCRS2XYZtkreg( const VOL_GEOM *mri );      // TkReg  Vox2RAS Matrix
+MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg);
+MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras);
+
+struct VOL_GEOM
 {
   // NOTE: VOL_GEOM is subclassed by MRI, so take that into account when changing
   int           valid;   /* whether this is a valid info or not (1 valid, 0 not valid) */
@@ -184,14 +190,15 @@ typedef struct
   // The functions below compute these matrices on-the-fly
   // RAS = scanner RAS (sometimes known as "real" RAS in surface contexts)
   // TkregRAS = RAS used by tkregister; surface coords are by default in this TkregRAS space
-  MATRIX *get_Vox2RAS(void); // not cached
-  MATRIX *get_RAS2Vox(void); // not cached
-  MATRIX *get_Vox2TkregRAS(void); // not cached
-  MATRIX *get_TkregRAS2Vox(void); // not cached
-  MATRIX *get_RAS2TkregRAS(void); // not cached
-  MATRIX *get_TkregRAS2RAS(void); // not cached
-}
-VOL_GEOM, VG;
+  MATRIX *get_Vox2RAS(void){       return(MRIxfmCRS2XYZ(this,0));}
+  MATRIX *get_RAS2Vox(void){       return(MatrixInverse(get_Vox2RAS(),NULL));}
+  MATRIX *get_Vox2TkregRAS(void){  return(MRIxfmCRS2XYZtkreg(this));}
+  MATRIX *get_TkregRAS2Vox(void){  return(MatrixInverse(get_Vox2TkregRAS(),NULL));}
+  MATRIX *get_RAS2TkregRAS(void){  return(VGras2tkreg(this, NULL));}
+  MATRIX *get_TkregRAS2RAS(void){  return(VGtkreg2RAS(this, NULL));}
+};
+
+typedef VOL_GEOM VG;
 
 class MRI : public VOL_GEOM
 {
@@ -342,16 +349,16 @@ MB2D *MB2Dcopy(MB2D *src, int CopyMRI, MB2D *copy);
 MRI *MB2Dgrid(MRI *mbtemplate, int skip, MRI *outvol);
 
 MATRIX *MRIcopyFramesToMatrixRows(MRI *mri, MATRIX *m_dst, int start_frame, int nframes, int dst_row) ;
-MATRIX *MRIxfmCRS2XYZ( const VOL_GEOM *mri, int base ); /* Native Vox2RAS Matrix (scanner and xfm too) */
+
 MATRIX *vg_i_to_r(const VOL_GEOM *vg);
 MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 #define vg_getRasToVoxelXform vg_r_to_i
 #define vg_getVoxelToRasXform vg_i_to_r
 MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg);
 MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
-MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras);
-MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg);
-MATRIX *MRIxfmCRS2XYZtkreg( const VOL_GEOM *mri );      // TkReg  Vox2RAS Matrix
+
+
+
 MATRIX *MRIxfmCRS2XYZfsl(VOL_GEOM *mri);        // FSL/FLIRT  Vox2RAS Matrix
 
 int MRIsetVox2RASFromMatrix(VOL_GEOM *mri, MATRIX *m_vox2ras);
@@ -1649,11 +1656,7 @@ int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm);
 std::vector<std::vector<double>> *MRIdiff2Vect(const MRI *mri1, const MRI *mri2, const double thresh, const MRI *mask);
 MRI *MRIapplyDiffVect(MRI *mri1, const MRI *mask, std::vector<std::vector<double>> diffvec, int *napply, MRI *mri2);
 
-MATRIX *VOL_GEOM::get_Vox2RAS(void){       return(MRIxfmCRS2XYZ(this,0));}
-MATRIX *VOL_GEOM::get_RAS2Vox(void){       return(MatrixInverse(get_Vox2RAS(),NULL));}
-MATRIX *VOL_GEOM::get_Vox2TkregRAS(void){  return(MRIxfmCRS2XYZtkreg(this));}
-MATRIX *VOL_GEOM::get_TkregRAS2Vox(void){  return(MatrixInverse(get_Vox2TkregRAS(),NULL));}
-MATRIX *VOL_GEOM::get_RAS2TkregRAS(void){  return(VGras2tkreg(this, NULL));}
-MATRIX *VOL_GEOM::get_TkregRAS2RAS(void){  return(VGtkreg2RAS(this, NULL));}
-
 #endif
+
+
+
