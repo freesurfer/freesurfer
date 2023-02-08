@@ -35,6 +35,7 @@
 #include "version.h"
 #include "mrisegment.h"
 #include "cma.h"
+#include "colortab.h"
 #include "gca.h"
 #include "cmdargs.h"
 #ifdef _OPENMP
@@ -48,6 +49,7 @@ public:
   MRI *outvolseg=NULL;
   MRI *involseg=NULL;
   MRI *ribbon=NULL;
+  int SrcSpecified = 0;
   int DoLH=1, DoRH=1, FixPresurf=0, LabelCortex=0, LabelWM=0;
   std::string involsegpath, ribbonpath, lhwhitepath, 
     rhwhitepath, lhpialpath, rhpialpath;
@@ -65,6 +67,7 @@ public:
   float hashres = 16;
   MHT *lhwhite_hash=NULL, *lhpial_hash=NULL;
   MHT *rhwhite_hash=NULL, *rhpial_hash=NULL;
+  COLOR_TABLE *ctab=NULL;
   Surf2VolSeg(void){};
   Surf2VolSeg(char *subject, char *SD){
     printf("Starting Surf2VolSeg constructor\n");
@@ -282,6 +285,19 @@ static int parse_commandline(int argc, char **argv)
       OutSegFile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--src")){
+      if(nargc < 1) CMDargNErr(option,1);
+      s2vseg.outvolseg = MRIread(pargv[0]);
+      if(!s2vseg.outvolseg) exit(1);
+      s2vseg.SrcSpecified = 1;
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--ctab")){
+      if(nargc < 1) CMDargNErr(option,1);
+      s2vseg.ctab = CTABreadASCII(pargv[0]);
+      if(!s2vseg.ctab) exit(1);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--sd"))    {
       if (nargc < 1)  CMDargNErr(option,1);
       SUBJECTS_DIR = pargv[0];
@@ -448,9 +464,8 @@ MRI *Surf2VolSeg::RelabelSegVol(void)
       for (s=0; s < involseg->depth; s++)      {
         volsegid = MRIgetVoxVal(involseg,c,r,s,0);
 	newsegid = RelabelSegVox(c, r, s, &ndotcheck,&hemi, &surftype, &dmin);
-	MRIsetVoxVal(outvolseg,c,r,s,0,newsegid);
-	if(volsegid != newsegid) nrelabled++;
-	ndotchecktot += ndotcheck;
+	if(!s2vseg.SrcSpecified || volsegid != newsegid) MRIsetVoxVal(outvolseg,c,r,s,0,newsegid);
+	if(volsegid != newsegid) ndotchecktot += ndotcheck;
       }
     }
   }
@@ -916,8 +931,9 @@ int Surf2VolSeg::LoadData(void){
   if(outvolseg == NULL){
     outvolseg = MRIalloc(involseg->width, involseg->height, involseg->depth, MRI_INT);
     MRIcopyHeader(involseg, outvolseg);
-    outvolseg->ct = CTABreadDefault(); // not sure this will be right always (coult cmd spec)
+    outvolseg->ct = CTABreadDefault(); // this will not always be right
   }
+  if(ctab) outvolseg->ct = ctab;
   if(involseg==NULL) exit(1);
   Vox2RAS = MRIxfmCRS2XYZtkreg(involseg);
   if(ribbonpath.length()){

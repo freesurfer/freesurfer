@@ -40,6 +40,8 @@
       <explanation>Full path of input segmentation.</explanation>
       <argument>--o output </argument>
       <explanation>Output segmentation file.</explanation>
+      <argument>--src sourceseg </argument>
+      <explanation>Source subcortical volume segmentation file (instead of using subcortical segs in inseg).</explanation>
 
       <argument>--lh-white lhwhitesurf</argument>
       <explanation>White surface for left hemisphere</explanation>
@@ -70,7 +72,6 @@
       <argument>--rh-annot rhannotation rhbaseoffset</argument>
       <explanation>rh annotation for --label-cortex and --label-wm</explanation>
 
-
       <argument>--wmparc-dmax dmax</argument>
       <explanation>max dist (mm) from cortex to be labeld as gyral WM (5mm)</explanation>
       <argument>--rip-unknown</argument>
@@ -87,6 +88,8 @@
       <explanation>print out version and exit</explanation>
       <argument>--crs-test col row slice</argument>
       <explanation>test labeling of only the voxel given by col row slice (debuggin)</explanation>
+      <argument>--ctab colortable</argument>
+      <explanation>Embed color table in the output</explanation>
       <argument>--threads nthreads</argument>
       <explanation>Run in parallel with nthreads</explanation>
     </optional-flagged>
