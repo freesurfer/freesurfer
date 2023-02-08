@@ -108,6 +108,7 @@ MRI_REGION boundingbox;
 double ValueA = 1;
 double ValueB = 0;
 double voxradius = -1;
+double mmradius = -1;
 
 int UseFFT = 0;
 int SpikeTP = -1;
@@ -230,6 +231,7 @@ int main(int argc, char **argv)
   else if (strcmp(pdfname,"const")==0)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, NULL);
   else if (strcmp(pdfname,"sphere")==0) {
+    if(mmradius > 0)  voxradius = mmradius/((res[0]+res[1]+res[2])/3);
     if(voxradius < 0) voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
     printf("voxradius = %lf\n",voxradius);
     if(!spherecenterset){
@@ -792,9 +794,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&ValueB);
       nargsused = 1;
     } 
-    else if (!strcmp(option, "--radius")) {
+    else if (!strcmp(option, "--radius") || !strcmp(option, "--vox-radius")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&voxradius);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--mm-radius")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&mmradius);
       nargsused = 1;
     } 
     else if (!strcmp(option, "--sphere-center")) {
@@ -927,7 +934,8 @@ static void print_usage(void) {
   printf("   --rescale : rescale z, t, F, or chi2 after smoothing\n");
   printf("   --val-a value : set ValA (default 1)\n");
   printf("   --val-b value : set ValB (default 0)\n");
-  printf("   --radius voxradius : radius (in voxels) for sphere\n");
+  printf("   --vox-radius voxradius : radius (in voxels) for sphere\n");
+  printf("   --mm-radius  radius : radius (in mm) for sphere, will be iso in voxels\n");
   printf("   --sphere-center col row slice\n");
   printf("   --hsc min max : multiply each frame by a random number bet min and max\n");
   printf("   --abs : compute absolute value\n");
