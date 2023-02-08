@@ -1552,6 +1552,45 @@ static int parse_commandline(int argc, char **argv) {
       exit(0);
       nargsused = 7;
     } 
+    else if(istringnmatch(option, "--map-point",0) || istringnmatch(option, "--map-point-inv-lta",0)) {
+      // --map-point a b c incoords lta outcoords outfile
+      if(nargc < 7){
+	printf("  --map-point a b c incoords lta outcoords outfile\n");
+	printf("  coords: 1=tkras, 2=scannerras, 3=vox\n");
+	argnerr(option,7);
+      }
+      double a,b,c;
+      int incoords, outcoords;
+      LTA *lta;
+      sscanf(pargv[0],"%lf",&a);
+      sscanf(pargv[1],"%lf",&b);
+      sscanf(pargv[2],"%lf",&c);
+      sscanf(pargv[3],"%d",&incoords);
+      lta = LTAread(pargv[4]);
+      if(!lta) exit(1);
+      if(istringnmatch(option, "--map-point-inv-lta",0)) LTAinvert(lta,lta);
+      sscanf(pargv[5],"%d",&outcoords);
+      MATRIX *M = lta->get_matrix(incoords,outcoords,NULL);
+      if(!M) exit(1);
+      MATRIX *src = MatrixAlloc(4,1,MATRIX_REAL);
+      src->rptr[1][1] = a;
+      src->rptr[2][1] = b;
+      src->rptr[3][1] = c;
+      src->rptr[4][1] = 1;
+      MATRIX *trg = MatrixMultiplyD(M,src,NULL);
+      printf("%8.4f %8.4f %8.4f \n",trg->rptr[1][1],trg->rptr[2][1],trg->rptr[3][1]);
+      if(strcmp(pargv[6],"nofile")!=0) {
+	FILE *fp = fopen(pargv[6],"w");
+	if(!fp){
+	  printf("ERROR: could not open %s\n",pargv[6]);
+	  exit(1);
+	}
+	printf("writing to %s\n",pargv[6]);
+	fprintf(fp,"%8.4f %8.4f %8.4f \n",trg->rptr[1][1],trg->rptr[2][1],trg->rptr[3][1]);
+	fclose(fp);
+      }
+      exit(0);
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -1633,6 +1672,12 @@ printf("     movlta maps mov to the vbm input space (use 0 to ignore)\n");
 printf("       if movlta=0, then input is anything that shares a RAS space with the VBM input\n");
 printf("     warp is typically y_rinput.nii\n");
 printf("     interp 0=nearest, 1=trilin\n");
+printf("\n");
+printf("  --map-point a b c incoords lta outcoords outfile : stand-alone option to map a point to another space\n");
+printf("     coords: 1=tkras, 2=scannerras, 3=vox; outfile can be nofile\n");
+printf("  --map-point-inv-lta a b c incoords lta outcoords outfile\n");
+printf("      same as --map-point but inverts the lta\n");
+printf("\n");
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");
