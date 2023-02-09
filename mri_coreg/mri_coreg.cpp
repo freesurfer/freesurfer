@@ -114,6 +114,7 @@ typedef struct {
   char *movoutfile=NULL;
   char *InitRegSave=NULL;
   int InitRegSaveOnly = 0;
+  int ltatype =  LINEAR_VOX_TO_VOX;
 } CMDARGS;
 CMDARGS *cmdargs;
 
@@ -494,7 +495,7 @@ int main(int argc, char *argv[]) {
 
   MATRIX *invV2V;
   invV2V = MatrixInverse(coreg->V2V,NULL);
-  lta = LTAcreate(coreg->mov, coreg->ref, invV2V, LINEAR_VOX_TO_VOX);
+  lta = LTAcreate(coreg->mov, coreg->ref, invV2V,cmdargs->ltatype);
   if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
   else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
   lta->subject[sizeof(lta->subject)-1] = 0;
@@ -582,6 +583,7 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->cras0 = 0;
     }
     else if (!strcasecmp(option, "--no-cras0"))  cmdargs->cras0 = 0;
+    else if (!strcasecmp(option, "--ras2ras"))  cmdargs->ltatype =  LINEAR_RAS_TO_RAS;
     else if (!strcasecmp(option, "--regheader")) cmdargs->cras0 = 0;
     else if (!strcasecmp(option, "--conf-ref"))  cmdargs->refconf = 1;
     else if (!strcasecmp(option, "--bf"))  cmdargs->DoBF = 1;
@@ -1026,6 +1028,7 @@ static void print_usage(void) {
   printf("   --no-cras0 : do not set translation parameters to align centers of mov and ref\n");
   printf("   --centroid : intialize by aligning centeroids of mov and ref\n");
   printf("   --regheader : same as no-cras0\n");
+  printf("   --ras2ras : save output LTA as RAS2RAS (default is VOX2VOX)\n");
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
