@@ -481,5 +481,5 @@ class Affine:
 
         # Save the coregistered template
         xform = sf.Affine(imageToImageTransformMatrix, space='voxel', source=templateImage, target=inputImage)
-        coregistered = templateImage.transform(affine=xform)
+        coregistered = templateImage.transform(xform)
         coregistered.save(os.path.join(savePath, 'template_coregistered.mgz'))
