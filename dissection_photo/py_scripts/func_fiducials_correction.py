@@ -37,13 +37,13 @@ def fiducials_correction(args):
     kp_template = []
     for point in kp_template_tmp:
         temp = cv2.KeyPoint(
-            x=point[0][0],
-            y=point[0][1],
-            size=point[1],
-            angle=point[2],
-            response=point[3],
-            octave=point[4],
-            class_id=point[5],
+            x=point[0],
+            y=point[1],
+            size=point[2],
+            angle=point[3],
+            response=point[4],
+            octave=point[5],
+            class_id=point[6],
         )
         kp_template.append(temp)
 

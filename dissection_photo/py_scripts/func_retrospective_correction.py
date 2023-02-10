@@ -5,8 +5,9 @@ from argparse import ArgumentParser
 
 import cv2
 import numpy as np
-from PIL import Image
-from PIL import ImageOps
+from PIL import Image, ImageOps
+from scipy.optimize import linear_sum_assignment
+
 
 class SplitArgs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -40,9 +41,7 @@ def retrospective_correction(args):
     _, input_name = os.path.split(input_path)
 
     # set the output path
-    args.out_img = os.path.join(
-        args.out_dir, input_name + "_deformed" + input_ext
-    )
+    args.out_img = os.path.join(args.out_dir, input_name + "_deformed" + input_ext)
 
     # Read the image
     args.img_fullres = Image.open(args.in_img)
@@ -52,6 +51,9 @@ def retrospective_correction(args):
 
     if len(args.pos_tuple) == 4:
         true_width, true_height = args.e1, args.e2
+    elif len(args.pos_tuple) == 3:
+        true_width, true_height = args.e1, args.e2
+        n_points = 3
     elif len(args.pos_tuple) == 2:
         # We pretend the user clicked on the 4 corners of the image
         # and make the true_width and true_height proportional to the provided length
@@ -86,51 +88,58 @@ def retrospective_correction(args):
 
     # Now we only have to compute the final transform. The only caveat is the ordering of the corners...
     # We reorder then to NW, NE, SW, SE
-    centers_target_reordered = np.zeros_like(centers_target)
 
-    cost = centers_target[:, 0, 0] + centers_target[:, 0, 1]
-    idx = np.argmin(cost)
-    centers_target_reordered[0, 0, :] = centers_target[idx, 0, :]
-    centers_target[idx, 0, :] = 0
+    # Compute cost matrix
+    costNW = centers_target[:, 0, 0] + centers_target[:, 0, 1]
+    costNW -= np.min(costNW)
+    costNE = -centers_target[:, 0, 0] + centers_target[:, 0, 1]
+    costNE -= np.min(costNE)
+    costSW = centers_target[:, 0, 0] - centers_target[:, 0, 1]
+    costSW -= np.min(costSW)
+    costSE = -centers_target[:, 0, 0] - centers_target[:, 0, 1]
+    costSE -= np.min(costSE)
 
-    cost = -centers_target[:, 0, 0] + centers_target[:, 0, 1]
-    cost[cost == 0] = 1e10
-    idx = np.argmin(cost)
-    centers_target_reordered[1, 0, :] = centers_target[idx, 0, :]
-    centers_target[idx, 0, :] = 0
+    C = np.stack([costNW, costNE, costSW, costSE], axis=-1)
+    if n_points == 3:
+        C = np.concatenate([C, -1000 * np.ones([1, 4])], axis=0)
 
-    cost = centers_target[:, 0, 0] - centers_target[:, 0, 1]
-    cost[cost == 0] = 1e10
-    idx = np.argmin(cost)
-    centers_target_reordered[2, 0, :] = centers_target[idx, 0, :]
-    centers_target[idx, 0, :] = 0
+    # Hungarian algorithm
+    _, idx = linear_sum_assignment(C)
 
-    cost = -centers_target[:, 0, 0] - centers_target[:, 0, 1]
-    cost[cost == 0] = 1e10
-    idx = np.argmin(cost)
-    centers_target_reordered[3, 0, :] = centers_target[idx, 0, :]
-    centers_target[idx, 0, :] = 0
+    # We now define the target coordinates using the reference resolution
+    # List of target points (before reordering)
+    ref_coords_before_reordering = np.zeros([4, 1, 2])
 
-    # We now define the target coordinates using the reerence resolution
-    ref_coords = np.zeros_like(centers_target)
+    ref_coords_before_reordering[0, 0, 0] = 0
+    ref_coords_before_reordering[0, 0, 1] = 0
 
-    ref_coords[0, 0, 0] = 0
-    ref_coords[0, 0, 1] = 0
+    ref_coords_before_reordering[1, 0, 0] = (
+        np.round(true_width / reference_pixel_size) - 1
+    )
+    ref_coords_before_reordering[1, 0, 1] = 0
 
-    ref_coords[1, 0, 0] = np.round(true_width / reference_pixel_size) - 1
-    ref_coords[1, 0, 1] = 0
+    ref_coords_before_reordering[2, 0, 0] = 0
+    ref_coords_before_reordering[2, 0, 1] = (
+        np.round(true_height / reference_pixel_size) - 1
+    )
 
-    ref_coords[2, 0, 0] = 0
-    ref_coords[2, 0, 1] = np.round(true_height / reference_pixel_size) - 1
+    ref_coords_before_reordering[3, 0, 0] = (
+        np.round(true_width / reference_pixel_size) - 1
+    )
+    ref_coords_before_reordering[3, 0, 1] = (
+        np.round(true_height / reference_pixel_size) - 1
+    )
 
-    ref_coords[3, 0, 0] = np.round(true_width / reference_pixel_size) - 1
-    ref_coords[3, 0, 1] = np.round(true_height / reference_pixel_size) - 1
+    # reorder!
+    if n_points == 3:
+        ref_coords = ref_coords_before_reordering[idx[:n_points], :, :]
 
+    # Pad
     PAD = 10.0 / reference_pixel_size  # pad 10mm (in pixels)
     ref_coords = ref_coords + PAD
 
     # We compute the final perspective transform
-    M2, _ = cv2.findHomography(centers_target_reordered, ref_coords)
+    M2, _ = cv2.findHomography(centers_target, ref_coords)
     args.deformed_image = cv2.warpPerspective(
         np.asarray(args.img_fullres),
         M2,
@@ -166,15 +175,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("--in_img", type=str, dest="in_img", default=None)
-    parser.add_argument(
-        "--points", nargs="+", dest="pos_tuple", action=SplitArgs
-    )
-    parser.add_argument(
-        "--width", nargs="?", type=float, dest="e1", default=None
-    )
-    parser.add_argument(
-        "--height", nargs="?", type=float, dest="e2", default=None
-    )
+    parser.add_argument("--points", nargs="+", dest="pos_tuple", action=SplitArgs)
+    parser.add_argument("--width", nargs="?", type=float, dest="e1", default=None)
+    parser.add_argument("--height", nargs="?", type=float, dest="e2", default=None)
     parser.add_argument("--out_dir", type=str, dest="out_dir", default=None)
 
     # If running the code in debug mode
