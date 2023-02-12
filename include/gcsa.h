@@ -162,5 +162,7 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_li
 int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded);
 MRI *GCSApriors2MRI(GCSA *gcsa);
 MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno);
+int GCSAfill_cpn_holes(GCSA *gcsa, int nitersmax);
+int GCSAfill_gcsan_holes(GCSA *gcsa, int nitersmax);
 
 #endif

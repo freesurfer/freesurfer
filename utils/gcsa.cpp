@@ -66,8 +66,6 @@ static GCSA_NODE *findClosestNode(GCSA *gcsa, int vno, int label) ;
 /*static CP *getCP(CP_NODE *cpn, int label) ;*/
 static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn);
 static int load_inputs(VERTEX *v, double *v_inputs, int ninputs);
-static int fill_cpn_holes(GCSA *gcsa);
-static int fill_gcsan_holes(GCSA *gcsa);
 
 GCSA *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
 {
@@ -529,8 +527,9 @@ int GCSAnormalizeCovariances(GCSA *gcsa)
     }
   }
 
-  fill_cpn_holes(gcsa);
-  fill_gcsan_holes(gcsa);
+  // Now done outside
+  //fill_cpn_holes(gcsa);
+  //fill_gcsan_holes(gcsa);
 
   return (NO_ERROR);
 }
@@ -1416,7 +1415,7 @@ static int load_inputs(VERTEX *v, double *v_inputs, int ninputs)
 }
 
 #if 1
-static int fill_cpn_holes(GCSA *gcsa)
+int GCSAfill_cpn_holes(GCSA *gcsa,int nitersmax)
 {
   int min_n, vno, n, i, nholes, nfilled, vno_classifier;
   double dist, min_dist;
@@ -1426,9 +1425,11 @@ static int fill_cpn_holes(GCSA *gcsa)
   CP *cp, *cp_nbr;
   GCSA_NODE *gcsan;
   GCS *gcs;
+  int niters=0;
 
   nholes = 0;
   do {
+    if(nitersmax > 0 && niters>nitersmax) break;
     nfilled = 0;
     for (vno = 0; vno < gcsa->mris_priors->nvertices; vno++) {
       if (vno == Gdiag_no) DiagBreak();
@@ -1521,7 +1522,7 @@ static int fill_cpn_holes(GCSA *gcsa)
   return (NO_ERROR);
 }
 
-static int fill_gcsan_holes(GCSA *gcsa)
+int GCSAfill_gcsan_holes(GCSA *gcsa,int nitersmax)
 {
   int min_n, vno, n, nholes, nfilled;
   double dist, min_dist;
@@ -1529,9 +1530,11 @@ static int fill_gcsan_holes(GCSA *gcsa)
   VERTEX *v, *vn;
   GCSA_NODE *gcsan, *gcsan_nbr;
   GCS *gcs, *gcs_nbr;
+  int niters = 0;
 
   nholes = 0;
   do {
+    if(nitersmax > 0 && niters>nitersmax) break;
     nfilled = 0;
     for (vno = 0; vno < gcsa->mris_classifiers->nvertices; vno++) {
       if (vno == Gdiag_no) DiagBreak();

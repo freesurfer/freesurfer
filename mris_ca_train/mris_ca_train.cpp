@@ -97,6 +97,8 @@ static const char *sulc_name = "sulc" ;
 static int sulconly = 0 ;
 
 static char subjects_dir[STRLEN] ;
+int nfillmax = -1;
+int DoFill = 1;
 
 int
 main(int argc, char *argv[])
@@ -181,6 +183,7 @@ main(int argc, char *argv[])
     input2_flags |= GCSA_NORMALIZE ;
   if (normalize3_flag)
     input3_flags |= GCSA_NORMALIZE ;
+  if(ctab) gcsa->ct = ctab;
 
   if (sulconly)
   {
@@ -276,12 +279,14 @@ main(int argc, char *argv[])
         }
         LabelFree(&area) ;
       }
-      else
-      {
+      else{// use annotation
+	printf("Reading annotation %s\n",annot_name);
         if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
           ErrorExit(ERROR_NOFILE,
                     "%s: could not read annot file %s for %s",
                     Progname, annot_name, subject_name) ;
+	//if(ctab) mris->ct = CTABdeepCopy(ctab);
+	//CTABprintASCII(mris->ct, stdout);
       }
       if (ptable)
         nparcs = add_to_ptable(mris, ptable, nparcs) ;
@@ -341,6 +346,13 @@ main(int argc, char *argv[])
       GCSAnormalizeMeans(gcsa) ;
     else
       GCSAnormalizeCovariances(gcsa) ;
+  }
+
+  if(DoFill){
+    if(nfillmax > 0)printf("Filling with a maximum of %d iterations\n",nfillmax);
+    else             printf("Filling without a limit of  iterations\n");
+    GCSAfill_cpn_holes(gcsa,nfillmax);
+    GCSAfill_gcsan_holes(gcsa,nfillmax);
   }
 
 #if 0
@@ -423,6 +435,42 @@ get_option(int argc, char *argv[])
     printf("using sulc as only input...\n") ;
     sulconly = 1 ;
   }
+  else if (!stricmp(option, "gcs-means")){
+    // gcsa inputno out.mgz
+    GCSA *gcsa = GCSAread(argv[2]);
+    if(!gcsa) exit(1);
+    int inputno=0;
+    sscanf(argv[3],"%d",&inputno);
+    printf("inputno %d\n",inputno);
+    MRI *mri = GCSAlikelihoodMeans2MRI(gcsa, inputno);
+    if(mri==NULL) exit(1);
+    printf("Writing to %s\n",argv[4]);
+    int err = MRIwrite(mri,argv[4]);
+    exit(err);
+  }
+  else if(!stricmp(option, "gcs-priors")){
+    // gcsa out.mgz
+    GCSA *gcsa = GCSAread(argv[2]);
+    if(!gcsa) exit(1);
+    MRI *mri = GCSApriors2MRI(gcsa);
+    if(mri==NULL) exit(1);
+    int err = MRIwrite(mri,argv[3]);
+    exit(err);
+  }
+  else if(!strcmp(option, "debug-vertex")){
+    Gdiag_no = atoi(argv[2]) ;
+    printf("Gdiag_no set to %d\n",Gdiag_no);
+    nargs = 1;
+  }
+  else if(!strcmp(option, "nfill")){
+    nfillmax = atoi(argv[2]) ;
+    printf("Setting fill iterations to %d\n",nfillmax);
+    nargs = 1;
+  }
+  else if(!strcmp(option, "no-fill")){
+    DoFill = 0;
+    printf("Turning off fill\n");
+  }
   else switch (toupper(*option))
     {
     case 'L':
@@ -469,12 +517,7 @@ get_option(int argc, char *argv[])
 static void
 print_usage(void)
 {
-  fprintf(stderr,
-          "Usage:\n"
-          "------\n"
-          "\n%s [options] <hemi> <canon surf> "
-          "<annot file> <subject 1> <subject 2> ... <output file>\n",
-          Progname) ;
+  printf("mris_ca_train [options] <hemi> <canonsurf> <annot file> <subject 1> <subject 2> ... <output file>\n");
 }
 
 static void
@@ -503,70 +546,42 @@ print_help(void)
           "and curvature), and neuroanatomical convention, as found in the \n"
           "training set. The result of mris_ca_train and mris_ca_label is \n"
           "a complete labeling of cortical sulci and gyri.\n\n");
-  fprintf(stderr,
-          "Required args:\n"
-          "--------------\n\n") ;
-  fprintf(stderr,
-          "  <hemi>               hemisphere: rh or lh\n\n");
-  fprintf(stderr,
-          "  <canon surf>         canonical surface filename\n\n");
-  fprintf(stderr,
-          "  <annot file>         annotation filename\n\n");
-  fprintf(stderr,
-          "  <subject 1> <subject 2> ...  the subject id(s)\n\n");
-  fprintf(stderr,
-          "  <outputfile>         classifier array output file\n\n");
-  fprintf(stderr,
-          "Optional args:\n"
-          "--------------\n\n");
-  fprintf(stderr,
-          "  -sdir <directory>    use <directory> as subjects directory \n"
-          "                       (default: $SUBJECTS_DIR)\n\n");
-  fprintf(stderr,
-          "  -nbrs <number>       neighborhood size (default=2)\n\n");
-  fprintf(stderr,
-          "  -orig <filename>     specify filename of original surface \n"
-          "                       (default=smoothwm)\n\n");
-  fprintf(stderr,
-          "  -norm1               GCSA normalize input #1 after reading \n"
-          "                       (default: disabled)\n\n");
-  fprintf(stderr,
-          "  -norm2               GCSA normalize input #2 after reading \n"
-          "                       (default: disabled)\n\n");
-  fprintf(stderr,
-          "  -norm3               GCSA normalize input #3 after reading \n"
-          "                       (default: disabled)\n\n");
-  fprintf(stderr,
-          "  -ic <number_priors> <number_classifiers>   parameters passed \n"
-          "                                             to the classifier \n"
-          "                                             routine \n"
-          "                                             (default: -ic 7 4)"
-          "\n\n");
-  fprintf(stderr,
-          "  -sulc                 specify sulc as only input \n"
-          "                        (default: sulcus and curvature)\n\n");
-  fprintf(stderr,
-          "  -sulconly             same as -sulc\n\n");
-  fprintf(stderr,
-          "  -a <number>           number of averages (default=5)\n\n");
-  fprintf(stderr,
-          "  -t <filename>         specify parcellation table input file \n"
-          "                        (default: none)\n\n");
-  fprintf(stderr,
-          "  -v <number>           diagnostic level (default=0)\n\n");
-  fprintf(stderr,
-          "  -n <number>           number of inputs (default=1)\n\n");
-  fprintf(stderr,
-          "  --help                print help info\n\n");
-  fprintf(stderr,
-          "  --version             print version info\n");
+  printf("Required args:\n") ;
+  printf("  <hemi>               hemisphere: rh or lh\n");
+  printf("  <canon surf>         canonical surface filename\n");
+  printf("  <annot file>         annotation filename\n");
+  printf("  <subject 1> <subject 2> ...  the subject id(s)\n");
+  printf("  <outputfile>         classifier array output file\n");
+  printf("Optional args:-------------\n");
+  printf("  -sdir <directory>    use <directory> as subjects directory (default: $SUBJECTS_DIR)\n");
+  printf("  -nbrs <number>       neighborhood size (default=2)\n");
+  printf("  -orig <filename>     specify filename of original surface   (default=smoothwm)\n");
+  printf("  -norm1               GCSA normalize input #1 after reading   (default: disabled)\n");
+  printf("  -norm2               GCSA normalize input #2 after reading   (default: disabled)\n");
+  printf("  -norm3               GCSA normalize input #3 after reading   (default: disabled)\n");
+  printf("  -ic <number_priors> <number_classifiers>   parameters passed to the classifier routine (default: -ic 7 4)""\n");
+  printf("  -sulc                 specify sulc as only input    (default: sulcus and curvature)\n");
+  printf("  -sulconly             same as -sulc\n");
+  printf("  -a <number>           number of averages (default=5)\n");
+  printf("  -t <filename>         specify parcellation table input file  (default: none)\n");
+  printf("   -n <number>           number of inputs (default=1)\n");
+  printf("   -v <number>            diagnostic level (default=0)\n");
+  printf("   -debug-vertex <number> diagnostic level (default=0)\n");
+  printf("   -gcs-means gcsa inputno means.mgz : stand-alone to extract\n");
+  printf("      likelihood means for all classes for given input\n");
+  printf("   -gcs-priors gcsa priors.mgz : stand-alone to extract\n");
+  printf("      priors for all classes for given input\n");
+  printf("   -nfill nfill : set the max number of iterations for filling empty vertices\n");
+  printf("   -no-fill : do not fill at all\n");
+  printf("   --help                print help info\n");
+  printf("   --version             print version info\n");
   exit(1) ;
 }
 
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", getVersion().c_str()) ;
+  printf( "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 
