@@ -144,7 +144,7 @@ int   GCSAnormalizeMeans(GCSA *gcsa) ;
 int   GCSAnormalizeCovariances(GCSA *gcsa) ;
 int   GCSAwrite(GCSA *gcsa, char *fname) ;
 GCSA  *GCSAread(char *fname) ;
-int   GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) ;
+MRI   *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) ;
 int   GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) ;
 int   GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) ;
 int   GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area) ;

@@ -85,9 +85,9 @@ static LABEL *cortex_label = NULL ;
 static int relabel_unknowns_with_cortex_label(GCSA *gcsa,
     MRI_SURFACE *mris,
     LABEL *cortex_label);
+MRI *probs = NULL;
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
                *canon_surf_name ;
@@ -254,7 +254,7 @@ main(int argc, char *argv[])
   if (!read_fname)
   {
     printf("labeling surface...\n") ;
-    GCSAlabel(gcsa, mris) ;
+    probs = GCSAlabel(gcsa, mris) ;
     if(Gdiag_no >= 0) printf("vertex %d: label %s\n", Gdiag_no,annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     if(mri_aseg) GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
     printf("relabeling using gibbs priors...\n") ;
@@ -322,15 +322,8 @@ main(int argc, char *argv[])
               Progname, out_fname, subject_name) ;
 
   if (NULL != prob_fname){
-    printf("WARNING: Saving probabilities does not work\n");
-    // The posteriors need to be cached somewhere in the GCSAlabel() function. 
-    // Using val2 breaks the labeling so this is no longer valid
-    MRI* prob_image = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
-    for (i = 0 ; i < mris->nvertices ; i++)
-      MRIsetVoxVal(prob_image, i, 0, 0, 0, mris->vertices[i].val2) ;
-    printf("writing vertex label probabilities to %s...\n", prob_fname) ;
-    MRIwrite(prob_image, prob_fname) ;
-    MRIfree(&prob_image) ;
+    printf("Writing probs to %s\n",prob_fname);
+    MRIwrite(probs, prob_fname) ;
   }
 
   MRISfree(&mris) ;
@@ -535,8 +528,8 @@ get_option(int argc, char *argv[])
       prob_fname = argv[2] ;
       nargs = 1 ;
       printf("saving vertex label probability to %s...\n", prob_fname) ;
-      printf("ERROR: saving posteriors does not work\n");
-      exit(1);
+      //printf("ERROR: saving posteriors does not work\n");
+      //exit(1);
       break ;
     case 'H':
     case 'U':

@@ -786,13 +786,15 @@ int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris)
 }
 
 static int Gvno = -1;
-int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
+MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
 {
   int vno, vno_classifier, label, vno_prior;
   VERTEX *v, *v_classifier, *v_prior;
   GCSA_NODE *gcsan;
   CP_NODE *cpn;
-  double v_inputs[100], p;
+  double v_inputs[100], p[3];
+
+  MRI *probabilities = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,3);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -809,9 +811,10 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     gcsan = &gcsa->gc_nodes[vno_classifier];
 
     cpn = &gcsa->cp_nodes[vno_prior];
-    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, NULL, 0);
+    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, p, NULL, 0);
     v->annotation = label;
     //v->val2 = p ; // posterior prob in val2
+    for(int k=0; k < 3; k++) MRIsetVoxVal(probabilities,vno,0,0,k,p[k]);
 
     if(vno == Gdiag_no) {
       int n;
@@ -828,13 +831,18 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     } // diag
   } //vertex
 
-  return (NO_ERROR);
+  //MRIwrite(probabilities,"probabilities.mgz");
+
+  return(probabilities);
 }
 
+// Classify a single vertex
 int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded)
 {
   int n, best_label, i, j, skip;
   double p, ptotal, max_p, det;
+  double best_prior=0, best_plike=0;
+
   CP *cp;
   GCS *gcs;
   static MATRIX *m_cov_inv = NULL;
@@ -849,14 +857,18 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
   ptotal = 0.0;
   max_p = -10000;
   best_label = -1;
+  double sumpl = 0;
+  // Go through each label and find the best one
   for (n = 0; n < cpn->nlabels; n++) {
+
+    // exclude list generally NULL, so this usually does not apply
     for (skip = j = 0; j < nexcluded; j++) {
       if (cpn->labels[n] == exclude_list[j]) {
         skip = 1;
         break;
       }
     }
-    if (skip) continue;
+    if(skip) continue;
 
     cp = &cpn->cps[n];
     gcs = getGC(gcsan, cpn->labels[n], NULL);
@@ -864,36 +876,48 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
       ErrorPrintf(ERROR_BADPARM, "GCSANclassify: could not find GCS for node %d!", n);
       continue;
     }
+    // Copy likelihood means into vx
     v_x = VectorCopy(gcs->v_means, v_x);
+    // subtract the input value from the mean to create a delta
     for (i = 0; i < ninputs; i++) VECTOR_ELT(v_x, i + 1) -= v_inputs[i];
+    // Compute the inverse of the likeliihood cov matrix Sigma
     m_cov_inv = MatrixInverse(gcs->m_cov, m_cov_inv);
     if (!m_cov_inv) {
       MATRIX *m_tmp;
       fprintf(stderr, "Singular matrix in GCSAclassify,vno=%d,n=%d:\n", Gvno, n);
       MatrixPrint(stderr, gcs->m_cov);
-#if 0
-      ErrorExit(ERROR_BADPARM, "") ;
-#else
       m_tmp = MatrixIdentity(ninputs, NULL);
       MatrixScalarMul(m_tmp, 0.1, m_tmp);
       MatrixAdd(m_tmp, gcs->m_cov, m_tmp);
       m_cov_inv = MatrixInverse(m_tmp, NULL);
-      if (!m_cov_inv) {
-        ErrorExit(ERROR_BADPARM, "GCSANclassify: could not regularize matrix");
-      }
-#endif
+      if(!m_cov_inv) ErrorExit(ERROR_BADPARM, "GCSANclassify: could not regularize matrix");
     }
+    // Compute delta*inv(Sigma)*delta'
     v_tmp = MatrixMultiply(m_cov_inv, v_x, v_tmp);
-    p = VectorDot(v_x, v_tmp);
+    double proj = VectorDot(v_x, v_tmp);
+    // Determinant of Sigma
     det = MatrixDeterminant(gcs->m_cov);
-    p = cp->prior * exp(-0.5 * p) * 1.0 / (sqrt(det));
+    double plikelihood = exp(-0.5*proj)/(sqrt(det));
+    //p = VectorDot(v_x, v_tmp);
+    //p = cp->prior * exp(-0.5 * p) * 1.0 / (sqrt(det));
+    p = cp->prior*plikelihood;
     ptotal += p;
+    sumpl += plikelihood;
+    //printf("#@# mu=%8.4f; cvar=%8.4f;  d=%8.4lf; det=%8.4lf; proj=%8.4f; pl=%8.4f;\n",gcs->v_means->rptr[1][1],gcs->m_cov->rptr[1][1],v_x->rptr[1][1],
+    //det,proj,plikelihood);
+    fflush(stdout);
     if (p > max_p) {
       max_p = p;
       best_label = cpn->labels[n];
+      best_prior = cp->prior;
+      best_plike = plikelihood;
     }
   }
-  if (pprob) *pprob = max_p / ptotal;
+  if(pprob){
+    pprob[0] = max_p / ptotal; // posterior
+    pprob[1] = best_plike/sumpl;
+    pprob[2] = best_prior;
+  }
 
   return (best_label);
 }
