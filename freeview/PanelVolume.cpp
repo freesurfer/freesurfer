@@ -145,13 +145,13 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistFrame << ui->sliderFrame
                     << ui->spinBoxFrame
                     << ui->labelFrame
-                    << ui->checkBoxAutoAdjustFrameLevel;
-  //       << ui->checkBoxRememberFrame
-  //       << ui->labelRememberFrame
+                    << ui->checkBoxAutoAdjustFrameLevel
+                    << ui->checkBoxRememberFrame
+                    << ui->labelRememberFrame;
   //       << ui->labelCorrelationSurface
   //       << ui->comboBoxCorrelationSurface;
-  ui->labelRememberFrame->hide();
-  ui->checkBoxRememberFrame->hide();
+//  ui->labelRememberFrame->hide();
+//  ui->checkBoxRememberFrame->hide();
   ui->labelCorrelationSurface->hide();
   ui->comboBoxCorrelationSurface->hide();
 
