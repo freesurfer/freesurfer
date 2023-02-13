@@ -462,6 +462,45 @@
 809 R_hypothalamus_tubular_inferior         255 160 200 0
 810 R_hypothalamus_tubular_superior         20  180 130 0
 
+# Below is the color table for the hypothalamic subregions and
+# adjancent structures on High-Resolutional T1w and T2w images. 
+#See : TBD
+
+901  R-N.opticus                            70  130 180 0
+902  L-N.opticus                            130 180 70  0
+903  R-C.mammilare                          205 62  78  0
+904  R-Optic-tract                          80  120 134 0
+905  L-Optic-tract                          196 58  250 0
+906  L-C.mammilare                          0   148 0   0
+907  R-Chiasma-Opticum                      220 248 164 0
+908  L-Chiasma-Opticum                      230 148 34  0
+909  Ant-Commisure                          10  180 225 0
+910  3rd-Ventricle                          118 0   100 0
+911  R-Fornix                               122 200 120 0
+912  L-Fornix                               236 13  176 0
+914  Epiphysis                              204 182 142 0
+916  Hypophysis                             119 159 176 0
+917  Infundibulum                           220 216 20  0
+922  Tuberal-Region                         120 60  110 0
+926  L-Med-Hypothalamus                     165 255 0   0
+927  L-Lat-Hypothalamus                     0   255 127 0
+928  L-Ant-Hypothalamus                     165 42  42  0
+929  L-Post-Hypothalamus                    255 215 0   0
+936  R-Med-Hypothalamus                     115 255 0   0
+937  R-Lat-Hypothalamus                     60  255 127 0
+938  R-Ant-Hypothalamus                     165 142 42  0
+939  R-Post-Hypothalamus                    255 170 20  0
+
+# Below is the color table for olfactory bulb structures. 
+# See : Automated Olfactory Bulb Segmentation on High Resolutional T2-Weighted MRI
+# Estrada et al. Neuroimage 2021. 
+# https://doi.org/10.1016/j.neuroimage.2021.118464
+  
+951  L-olfactory-bulb                       0   0   255 0
+952  R-olfactory-bulb                       255 0   0   0
+
+
+
 999 SUSPICIOUS                              255 100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
