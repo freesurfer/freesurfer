@@ -2295,9 +2295,10 @@ MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno)
   return(means);
 }
 
-// Relabels small islands that are smaller than min_area_frac of the biggest island.
-// Note this function was // postprocess() in mris_ca_label.cpp.
-// In mris_ca_label, min_area_frac is set by default to 0.1 and max_iter=5
+// Relabels small annotation islands that are smaller than
+// min_area_frac of the biggest island.  Note this function was
+// postprocess() in mris_ca_label.cpp.  In mris_ca_label,
+// min_area_frac is set by default to 0.1 and max_iter=5
 int GCSArelabelIslands(GCSA *gcsa, MRI_SURFACE *mris, int max_iter, float min_area_frac)
 {
   LABEL       **larray, *area ;
