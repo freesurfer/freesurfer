@@ -114,6 +114,7 @@ def options_parse():
     h_tr = 'transpose the table ( default is subjects in rows and ROIs in cols)' 
     h_v = 'increase verbosity'
     h_etiv = 'report volume as percent estimated total intracranial volume' 
+    h_scale = 'scale factor for all values written to outputfile, default value=1'
 
     # Add the options
     parser.add_option('--subjects', dest='subjects' ,action='callback',
@@ -152,6 +153,7 @@ def options_parse():
                       default=False, help=h_v)
     parser.add_option('', '--etiv', action='store_true', dest='etivflag',
                       default=False, help=h_etiv)
+    parser.add_option('','--scale', action='store', dest='scale', type='float', help=h_scale)
     (options, args) = parser.parse_args()
    
     # error check
@@ -429,6 +431,12 @@ if __name__=="__main__":
             print("ERROR: --etiv, cannot find eTIV in measure list")
             sys.exit(1)
                     
+    # Scale table values
+    if options.scale:
+        for row in rows:
+            for col in columns:
+                table[row][col] = table[row][col]*options.scale
+
     # Write this table ( in memory ) to disk.. function uses TableWriter class
     print('Writing the table to %s' % options.outputfile)
     write_table(options, rows, columns, table)
