@@ -60,7 +60,7 @@
       <argument>-t &lt;filename&gt;</argument>
       <explanation>specify parcellation table input file (default: none)</explanation>
       <argument>-p &lt;filename&gt;</argument>
-      <explanation>output a file containing label probability (post,likelihood, prior)for each vertex./explanation>
+      <explanation>output a file containing label probability (post,likelihood, prior)for each vertex.</explanation>
       <argument>-v &lt;number&gt;</argument>
       <explanation>diagnostic level (default=0)</explanation>
       <argument>-w &lt;number&gt; &lt;filename&gt;</argument>
