@@ -158,12 +158,16 @@ find_package(PETSC)
 # -------- itk --------
 if(NOT ITK_DIR)
    if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0_centos8_stream CACHE PATH "ITK install directory")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos8 CACHE PATH "ITK install directory")
    elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0_ubuntu20 CACHE PATH "ITK install directory")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu20 CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "CentOS7")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos7 CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "Ubuntu18")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu18 CACHE PATH "ITK install directory")
    else()
-      # default for CentOS7, ubuntu18
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
+      # default
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2 CACHE PATH "ITK install directory")
    endif()
 endif()
 
