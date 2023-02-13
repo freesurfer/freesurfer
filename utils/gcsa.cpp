@@ -58,14 +58,6 @@ static double gcsaNbhdGibbsLogLikelihood(
     GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef, int label);
 static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double const *v_inputs, int vno, double gibbs_coef);
 static int add_gc_to_gcsan(GCSA_NODE *gcsan_src, int nsrc, GCSA_NODE *gcsan_dst);
-#if 0
-static int add_cp_to_cpn(CP_NODE *cpn_src, int nsrc, CP_NODE *cpn_dst) ;
-static GCSA_NODE *findClosestNode(GCSA *gcsa, int vno, int label) ;
-#endif
-
-/*static CP *getCP(CP_NODE *cpn, int label) ;*/
-static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn);
-static int load_inputs(VERTEX *v, double *v_inputs, int ninputs);
 
 GCSA *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
 {
@@ -224,7 +216,7 @@ int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
     if (vno == Gdiag_no){
       DiagBreak();
     }
-    load_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
     if (vno == Gdiag_no){
       DiagBreak();
       printf("vno = %d annot=%d ",vno,v->annotation);
@@ -272,7 +264,7 @@ int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
-    load_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
     if (vno == Gdiag_no && v->annotation == 1336341) DiagBreak();
     if (v->annotation == 0) /* not labeled */
       continue;
@@ -800,7 +792,7 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
-    load_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
 
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
@@ -823,7 +815,7 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
         printf("v %d: inputs (%2.2f, %2.2f), label=%s (%d, %d)\n",vno,v->val,v->val2,
 	       annotation_to_name(label, NULL), annotation_to_index(label),label);
       for (n = 0; n < cpn->nlabels; n++) {
-        gcs = getGC(gcsan, cpn->labels[n], NULL);
+        gcs = GCSAgetGC(gcsan, cpn->labels[n], NULL);
         printf("label %s (%d) [%d], p=%2.4f, means:\n",annotation_to_name(cpn->labels[n], NULL),
                n,cpn->labels[n],cpn->cps[n].prior);
         MatrixPrint(stdout, gcs->v_means);
@@ -871,7 +863,7 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
     if(skip) continue;
 
     cp = &cpn->cps[n];
-    gcs = getGC(gcsan, cpn->labels[n], NULL);
+    gcs = GCSAgetGC(gcsan, cpn->labels[n], NULL);
     if (!gcs) {
       ErrorPrintf(ERROR_BADPARM, "GCSANclassify: could not find GCS for node %d!", n);
       continue;
@@ -935,7 +927,7 @@ int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose)
     cp = &cpn->cps[n];
     const char *name = annotation_to_name(cpn->labels[n], &index);
     fprintf(fp, "  %d: label %s (%d, %d)\n", n, name, index, cpn->labels[n]);
-    gcs = getGC(gcsan, cpn->labels[n], NULL);
+    gcs = GCSAgetGC(gcsan, cpn->labels[n], NULL);
     if (!gcs) ErrorPrintf(ERROR_BADPARM, "dump_gcsan: could not find GCS for node %d!", n);
 
     fprintf(fp, "\tprior %2.1f\n", cp->prior);
@@ -1161,7 +1153,7 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
 
       if (vno == Gdiag_no) DiagBreak();
 
-      load_inputs(v, v_inputs, gcsa->ninputs);
+      GCSAload_inputs(v, v_inputs, gcsa->ninputs);
 
       VERTEX const * const v_prior = GCSAsourceToPriorVertex(gcsa, v);
       vno_prior = v_prior - gcsa->mris_priors->vertices;
@@ -1371,7 +1363,7 @@ getCP(CP_NODE *cpn, int label)
 }
 #endif
 
-static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn)
+GCS *GCSAgetGC(GCSA_NODE *gcsan, int label, int *pn)
 {
   int n;
 
@@ -1401,7 +1393,7 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 
       if (v->ripflag || v->marked) continue;
 
-      load_inputs(v, v_inputs, gcsa->ninputs);
+      GCSAload_inputs(v, v_inputs, gcsa->ninputs);
       max_ll = 10 * BIG_AND_NEGATIVE;
       best_label = v->annotation;
       for (n = 0; n < vt->vnum; n++) {
@@ -1430,7 +1422,7 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
   return (total);
 }
 
-static int load_inputs(VERTEX *v, double *v_inputs, int ninputs)
+int GCSAload_inputs(VERTEX *v, double *v_inputs, int ninputs)
 {
   v_inputs[0] = v->val;
   if (ninputs > 1) v_inputs[1] = v->val2;
@@ -1518,7 +1510,7 @@ int GCSAfill_cpn_holes(GCSA *gcsa,int nitersmax)
             memmove(cp->labels[i], cp_nbr->labels[i], cp->nlabels[i] * sizeof(int));
           }
         }
-        gcs = getGC(gcsan, cpn->labels[n], NULL);
+        gcs = GCSAgetGC(gcsan, cpn->labels[n], NULL);
         if (!gcs) /* couldn't find one for this label - fix */
         {
           GCSA_NODE *gcsan_nbr;
@@ -1531,7 +1523,7 @@ int GCSAfill_cpn_holes(GCSA *gcsa,int nitersmax)
           if (vno_nbr_classifier == Gdiag_no) DiagBreak();
 
           gcsan_nbr = &gcsa->gc_nodes[vno_nbr_classifier];
-          gcs = getGC(gcsan_nbr, cpn->labels[n], &i);
+          gcs = GCSAgetGC(gcsan_nbr, cpn->labels[n], &i);
           if (!gcs)
             ErrorPrintf(ERROR_BADPARM, "fill_cpn_holes: could not find cp!\n");
           else
@@ -1912,7 +1904,7 @@ findClosestNode(GCSA *gcsa, int vno, int label)
   for (n = 0 ; n < v->vtotal ; n++)
   {
     gcsan_nbr = &gcsa->gc_nodes[v->v[n]] ;
-    if (getGC(gcsan_nbr, label, NULL) == NULL)
+    if (GCSAgetGC(gcsan_nbr, label, NULL) == NULL)
       continue ;
     vn = &gcsa->mris_priors->vertices[v->v[n]] ;
     dist = sqrt(SQR(vn->x-x)+SQR(vn->y-y)+SQR(vn->z-z)) ;
@@ -1928,7 +1920,7 @@ findClosestNode(GCSA *gcsa, int vno, int label)
     for (n = 0 ; n < gcsa->mris_classifiers->nvertices ; n++)
     {
       gcsan_nbr = &gcsa->gc_nodes[n] ;
-      if (getGC(gcsan_nbr, label, NULL) == NULL)
+      if (GCSAgetGC(gcsan_nbr, label, NULL) == NULL)
         continue ;
       vn = &gcsa->mris_classifiers->vertices[n] ;
       dist = sqrt(SQR(vn->x-x)+SQR(vn->y-y)+SQR(vn->z-z)) ;
@@ -2092,7 +2084,7 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     MRISorigVertexToVoxel(mris, v, mri_aseg, &x, &y, &z);
     label = (int)MRIgetVoxVal(mri_aseg, nint(x), nint(y), nint(z), 0);
 
-    load_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
     if (vno_prior == Gdiag_no) DiagBreak();
@@ -2146,7 +2138,7 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
     if (v->ripflag || v->marked != mark) continue;
     if (vno == Gdiag_no) DiagBreak();
 
-    load_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
     if (vno_prior == Gdiag_no) DiagBreak();
@@ -2301,4 +2293,56 @@ MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno)
   } //vertices
   printf("nlabels = %d, m=%d\n",nlabels,mmax);
   return(means);
+}
+
+// Relabels small islands that are smaller than min_area_frac of the biggest island.
+// Note this function was // postprocess() in mris_ca_label.cpp.
+// In mris_ca_label, min_area_frac is set by default to 0.1 and max_iter=5
+int GCSArelabelIslands(GCSA *gcsa, MRI_SURFACE *mris, int max_iter, float min_area_frac)
+{
+  LABEL       **larray, *area ;
+  int         nlabels, i, j, annotation, n, nchanged, niter = 0, deleted ;
+  double      max_area, label_area ;
+
+  do{
+    deleted = nchanged  = 0 ;
+    // break up annotation into individual labels, some annots might be spread over multiple labels
+    MRISsegmentAnnotated(mris, &larray, &nlabels, 0) ;
+    /* printf("%d total segments in Gibbs annotation\n", nlabels) ;*/
+    MRISclearMarks(mris) ;
+    // Go through all labels
+    for (i = 0 ; i < nlabels ; i++){
+      area = larray[i] ;
+      if(!area)  continue ;
+
+      // Get annotation for this label
+      annotation = mris->vertices[area->lv[0].vno].annotation ;
+      /* find label with this annotation with max area */
+      max_area = LabelArea(area, mris) ;
+      n = 1;
+      for(j = i+1 ; j < nlabels ; j++) {
+        if(!larray[j]) continue ;
+	// if this label does not match the annotation, then skip
+        if(annotation !=mris->vertices[larray[j]->lv[0].vno].annotation) continue ;
+        n++ ;
+        label_area = LabelArea(larray[j], mris) ;
+        if(label_area > max_area) max_area = label_area ;
+      }// end 1st loop over secondary labels
+      for (j = i ; j < nlabels ; j++) {
+        if(!larray[j]) continue ;
+        if(annotation != mris->vertices[larray[j]->lv[0].vno].annotation) continue ;
+        label_area = LabelArea(larray[j], mris) ;
+        if(label_area < min_area_frac*max_area) { // by default, min_area_frac=0.1
+          /*printf("relabeling annot %2.1f mm area...\n", label_area) ;*/
+          nchanged += GCSAreclassifyLabel(gcsa, mris, larray[j]) ;
+          deleted++ ;
+        }
+        LabelFree(&larray[j]) ;
+      }// 2nd loop over seconary labels
+    }// end primary label loop
+    free(larray) ;
+    printf("%03d: %d total segments, %d labels (%d vertices) changed\n", niter, nlabels, deleted, nchanged) ;
+  }
+  while (nchanged > 0 && niter++ < max_iter) ;
+  return(NO_ERROR) ;
 }

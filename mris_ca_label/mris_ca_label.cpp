@@ -49,7 +49,7 @@
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
-static int postprocess(GCSA *gcsa, MRI_SURFACE *mris) ;
+//static int postprocess(GCSA *gcsa, MRI_SURFACE *mris) ;
 
 const char *Progname ;
 static void usage_exit(int code) ;
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     {
       GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
     }
-    postprocess(gcsa, mris) ;
+    GCSArelabelIslands(gcsa, mris, 5, MIN_AREA_PCT);
     if (Gdiag_no >= 0)
       printf("vertex %d: label %s\n",
              Gdiag_no,
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
         printf("vertex %d: label %s\n",
                Gdiag_no,
                annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-      postprocess(gcsa, mris) ;
+      GCSArelabelIslands(gcsa, mris, 5, MIN_AREA_PCT);
       if (Gdiag_no >= 0)
         printf("vertex %d: label %s\n",
                Gdiag_no,
@@ -533,6 +533,7 @@ print_version(void)
   exit(1) ;
 }
 
+#if 0
 // Relabels small islands that are smaller than MIN_AREA_PCT=0.1 of the biggest island
 int postprocess(GCSA *gcsa, MRI_SURFACE *mris)
 {
@@ -583,6 +584,7 @@ int postprocess(GCSA *gcsa, MRI_SURFACE *mris)
   while (nchanged > 0 && niter++ < max_iter) ;
   return(NO_ERROR) ;
 }
+#endif
 
 #define MARK_RELABEL 2
 #define MAX_EXCLUDED 100

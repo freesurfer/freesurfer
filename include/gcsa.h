@@ -164,5 +164,7 @@ MRI *GCSApriors2MRI(GCSA *gcsa);
 MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno);
 int GCSAfill_cpn_holes(GCSA *gcsa, int nitersmax);
 int GCSAfill_gcsan_holes(GCSA *gcsa, int nitersmax);
-
+int GCSAload_inputs(VERTEX *v, double *v_inputs, int ninputs);
+GCS *GCSAgetGC(GCSA_NODE *gcsan, int label, int *pn);
+int GCSArelabelIslands(GCSA *gcsa, MRI_SURFACE *mris, int max_iter, float min_area_frac);
 #endif
