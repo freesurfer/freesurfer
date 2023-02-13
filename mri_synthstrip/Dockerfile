@@ -1,4 +1,4 @@
-FROM centos:7
+FROM ubuntu:18.04
 
 # copy local data
 COPY . /external
@@ -7,13 +7,13 @@ COPY . /external
 WORKDIR /freesurfer
 
 # install utils
-RUN yum -y update
-RUN yum -y install libgomp gcc python3 python3-devel
-RUN yum clean all
+RUN apt-get update && \
+    apt-get install -y build-essential python3 python3-pip python3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # python packages
-RUN python3 -m pip install -U pip
-RUN python3 -m pip install scipy torch==1.10.2
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install numpy torch==1.10.2
 RUN python3 -m pip install surfa
 RUN python3 -m pip install cache purge
 
