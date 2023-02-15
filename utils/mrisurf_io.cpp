@@ -1730,13 +1730,7 @@ int MRISisCTABPresentInAnnotation(const char *fname, int *present)
   return ERROR_NONE;
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*-----------------------------------------------------*/
 int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
 {
   int i, vno, need_hemi;
@@ -1745,7 +1739,7 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
 
   int type = mri_identify(sname);
-  if(type != MRI_VOLUME_TYPE_UNKNOWN) {
+  if(type != MGH_ANNOT && type != MRI_UNKNOWN) {
     printf("MRISwritingAnnotation(): writing %s as a surface seg\n",sname);
     MRI *surfseg = MRISannot2seg(mris,0);
     if(surfseg == NULL) return(1);
