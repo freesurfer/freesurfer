@@ -159,7 +159,7 @@ int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) ;
 int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) ;
 int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, int nexcluded) ;
-int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded);
+int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded, int vno);
 MRI *GCSApriors2MRI(GCSA *gcsa);
 MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno);
 int GCSAfill_cpn_holes(GCSA *gcsa, int nitersmax);

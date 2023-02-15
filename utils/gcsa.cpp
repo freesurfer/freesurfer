@@ -803,7 +803,7 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     gcsan = &gcsa->gc_nodes[vno_classifier];
 
     cpn = &gcsa->cp_nodes[vno_prior];
-    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, p, NULL, 0);
+    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, p, NULL, 0, vno);
     v->annotation = label;
     //v->val2 = p ; // posterior prob in val2
     for(int k=0; k < 3; k++) MRIsetVoxVal(probabilities,vno,0,0,k,p[k]);
@@ -829,7 +829,7 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
 }
 
 // Classify a single vertex
-int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded)
+int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded, int vno)
 {
   int n, best_label, i, j, skip;
   double p, ptotal, max_p, det;
@@ -895,8 +895,11 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
     p = cp->prior*plikelihood;
     ptotal += p;
     sumpl += plikelihood;
-    //printf("#@# mu=%8.4f; cvar=%8.4f;  d=%8.4lf; det=%8.4lf; proj=%8.4f; pl=%8.4f;\n",gcs->v_means->rptr[1][1],gcs->m_cov->rptr[1][1],v_x->rptr[1][1],
-    //det,proj,plikelihood);
+    if(vno == Gdiag_no){
+      printf("#@# vno=%d n=%d annot=%d in=%8.4f mu=%8.4f; cvar=%8.4f;  d=%8.4lf; det=%8.4lf; proj=%8.4f; pl=%8.4f; ppost=%8.4f; prior=%8.4f\n",
+	     vno,n,cpn->labels[n],v_inputs[0],gcs->v_means->rptr[1][1],gcs->m_cov->rptr[1][1],v_x->rptr[1][1],det,proj,plikelihood,p,cp->prior);
+      fflush(stdout);
+    }
     fflush(stdout);
     if (p > max_p) {
       max_p = p;
@@ -1532,8 +1535,9 @@ int GCSAfill_cpn_holes(GCSA *gcsa,int nitersmax)
       }
     }
     nholes += nfilled;
+    niters ++;
   } while (nfilled > 0);
-  printf("%d holes filled in class prior array\n", nholes);
+  printf("GCSAfill_cpn_holes: %d holes filled in class prior array with %d iters\n", nholes, niters);
 
   return (NO_ERROR);
 }
@@ -1601,8 +1605,9 @@ int GCSAfill_gcsan_holes(GCSA *gcsa,int nitersmax)
       }
     }
     nholes += nfilled;
+    niters++;
   } while (nfilled > 0);
-  printf("%d holes filled in gcsan array\n", nholes);
+  printf("GCSAfill_gcsan_holes(): %d holes filled in gcsan array with %d iters\n", nholes,niters);
 
   return (NO_ERROR);
 }
@@ -2115,7 +2120,7 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     else if (old_index >= 0 && mris->ct && !stricmp(mris->ct->entries[old_index]->name, "corpuscallosum")) {
       // find 2nd most likely label that isn't callosum
       CTABannotationAtIndex(mris->ct, old_index, &cc_annotation);
-      label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, &cc_annotation, 1);
+      label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, &cc_annotation, 1, vno);
       if (label != v->annotation) {
         changed++;
         v->annotation = label;
@@ -2150,7 +2155,7 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
     CTABfindAnnotation(mris->ct, v->annotation, &old_index);
 
     cpn = &gcsa->cp_nodes[vno_prior];
-    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, exclude_list, nexcluded);
+    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, exclude_list, nexcluded, vno);
     if (label >= 0 && label != v->annotation) {
       changed++;
       v->annotation = label;
