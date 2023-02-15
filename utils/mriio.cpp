@@ -683,7 +683,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     mri = gdfRead(fname_copy, volume_flag);
   }
   else if (type == DICOM_FILE) {  
-    if (UseDICOMRead3) {
+    if (UseDCM2NIIX) {
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 
 	return NULL;
@@ -705,7 +705,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     }
   }
   else if (type == SIEMENS_DICOM_FILE) {
-    if (UseDICOMRead3) {
+    if (UseDCM2NIIX) {
       printf("mriio.cpp: starting DICOMRead3()\n");
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 

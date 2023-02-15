@@ -31,7 +31,7 @@ set RunNoSkip = ()
 set iid = ()
 set ijd = ()
 set ikd = ()
-set DCR3 = 0
+set UseDCM2NIIX = 0
 set DoPhase = 0;
 set DoSiemensAscii = 1;
 set ForceUpdate = 0;
@@ -417,7 +417,7 @@ foreach run ($RunNos)
   endif
 
   set outdir = $TargetDir/$SubDir/$rundir
-  mkdir -p $outdir
+  mkdir -p $outdir/log
 
   if($DoConvert) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
@@ -436,7 +436,8 @@ foreach run ($RunNos)
       if($#ijd) set cmd = ($cmd -ijd $ijd);
       if($#ikd) set cmd = ($cmd -ikd $ikd);
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
-      if($DCR3) set cmd = ($cmd -dcm2niix)
+      if($UseDCM2NIIX)   set cmd = ($cmd -dcm2niix)
+      if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
       if($siemensBVecsCross)   set cmd = ($cmd -siemensBVecsCross)
       if(! $siemensBVecsCross) set cmd = ($cmd -no-siemensBVecsCross)
       echo $cmd |& tee -a $LF
@@ -745,10 +746,17 @@ while( $#argv != 0 )
       set DoCopy = 1;
       breaksw
 
+    case "--dcm2niix":
     case "-dcm2niix":
     case "-dcr3":
-      set DCR3 = 1;
+      set UseDCM2NIIX = 1;
       set DoSiemensAscii = 0; # Newer dicoms do not have ascii
+      breaksw
+
+    case "--no-dcm2niix":
+    case "-no-dcm2niix":
+    case "-no-dcr3":
+      set UseDCM2NIIX = 1;
       breaksw
 
     case "-siemensBVecsCross"
@@ -1027,7 +1035,11 @@ usage_exit:
   echo "   -extra-info : add session info to each line of the info file (pat, date, man, scan, field, serno)"
   echo "   -first-dicom : copy first dicom file into output folder. This was implemented to "
   echo "      be able to have the pixel data from a dicom file with little or no tissue in it"
-  echo "   -dcm2niix : use internal version of dcm2niix to convert (output still user spec)"
+  if($UseDCM2NIIX) then
+    echo "   -no-dcm2niix : Turn it off"
+  else
+    echo "   -dcm2niix : use internal version of dcm2niix to convert (output still user spec)"
+  endif
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""
   echo "   -fips project site birnid visit"

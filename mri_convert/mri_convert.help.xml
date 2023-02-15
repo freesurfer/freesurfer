@@ -166,6 +166,8 @@ The main and aux volumes should overlap very closely. If they do not, use tkregi
       <explanation>Use this number of slices when converting DICOM mosaics</explanation> 
       <argument>--mosaic-fix-noascii</argument>
       <explanation>fix the center of DICOM mosaics without using the ASCII header</explanation>
+      <argument>--dcm2niix, --no-dcm2niix</argument>
+      <explanation>Use or do not use dcm2niix inside of mri_convert</explanation>
       <argument>--slice-bias alpha </argument>
       <explanation>apply half-cosine bias field</explanation> 
       <argument>--fwhm fwhm </argument>

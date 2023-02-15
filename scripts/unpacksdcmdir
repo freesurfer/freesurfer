@@ -14,6 +14,8 @@ proc PrintUsage { } {
   puts "  -fsfast  : unpack to fsfast  directory structure"
   puts "  -generic : unpack to generic directory structure"
   puts "  -noinfodump : do not create infodump file"
+  puts "  -dcm2niix : use dcm2niix inside mri_convert"
+  puts "  -no-dcm2niix : do not use dcm2niix inside mri_convert"
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
   puts "  -log file : explicitly set log file"
@@ -362,7 +364,7 @@ exit 1;
 
 #------------------------------------------------------------------#
 proc ParseCommandLine { argc argv } {
-  global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly;
+  global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly UseDCM2NIIX;
   global scanfile nspmzeropad seqcfgfile unpackerr DoInfoDump;
   global LogFile, SkipMoCo DoFIPS fipsProj fipsSite fipsBIRNID fipsVisit;
 
@@ -482,6 +484,8 @@ proc ParseCommandLine { argc argv } {
       -unpackerr    { set unpackerr 1; }
       -no-unpackerr { set unpackerr 0; }
       -noexec     { set noexec 1; }
+      -dcm2niix   { set UseDCM2NIIX 1; }
+      -no-dcm2niix   { set UseDCM2NIIX 0; }
       -help       { HelpExit;} 
 
       default { 
@@ -494,7 +498,7 @@ proc ParseCommandLine { argc argv } {
 }
 #------------------------------------------------------------------#
 proc CheckArgs { } {
-  global dicomdir targdir sortmethod cfgfile unpackcfg scanonly;
+  global dicomdir targdir sortmethod cfgfile unpackcfg scanonly UseDCM2NIIX;
   global scanfile seqcfgfile;
   global DoFIPS fipsProj fipsSite fipsBIRNID fipsVisit;
 
@@ -875,6 +879,7 @@ set unpackerr 1
 set DoInfoDump 1
 set SkipMoCo 0
 set LogFile ""
+set UseDCM2NIIX 0;
 
 if { $argc == 0 } { PrintUsage; exit 1;}
 
@@ -882,7 +887,10 @@ ParseCommandLine $argc $argv;
 CheckArgs;
 if { $DoFIPS == 1 } { CheckFIPS; }
 
+
 set mriconvert mri_convert
+set dcm2niixflag "--dcm2niix"
+if { ! $UseDCM2NIIX} {set dcm2niixflag "--no-dcm2niix" }
 
 # Dump some info to the screen
 puts "";
@@ -1344,16 +1352,16 @@ foreach runcfg $unpackcfg {
     close $flfid
 
     puts $LF "------- mri_convert -------------"
-    set cnvcmd [list $mriconvert $DCMSource $OutFile --sdcmlist $flf \
+    set cnvcmd [list $mriconvert $dcm2niixflag $DCMSource $OutFile --sdcmlist $flf \
                -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom];
     puts $LF $cnvcmd
     puts $LF "-----------------------"
 
     if { ! $noexec } {
-      puts "$mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom"
-      puts $LF "$mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom"
+      puts "$mriconvert $dcm2niixflag $DCMSource $OutFile --sdcmlist $flf -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom"
+      puts $LF "$mriconvert $dcm2niixflag $DCMSource $OutFile --sdcmlist $flf -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom"
       set err [catch {exec -keepnewline \
-          $mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt \
+          $mriconvert $dcm2niixflag $DCMSource $OutFile --sdcmlist $flf -ot $Fmt \
                       --nspmzeropad $nspmzeropad --in_type siemens_dicom\
                        >&@ $LF } mriconvlog];
       puts $LF $mriconvlog;
