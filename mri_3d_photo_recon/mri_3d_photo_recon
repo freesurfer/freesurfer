@@ -978,7 +978,7 @@ def MRIread(filename, dtype=None, im_only=False):
         ('.nii', '.nii.gz', '.mgz')), 'Unknown data file: %s' % filename
 
     x = nib.load(filename)
-    volume = x.get_data()
+    volume = x.get_fdata()
     aff = x.affine
 
     if dtype is not None:
