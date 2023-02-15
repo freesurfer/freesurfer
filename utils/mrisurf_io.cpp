@@ -1416,18 +1416,14 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   int mritype = mri_identify(sname);
   if (mritype == GIFTI_FILE) {
     mris = mrisReadGIFTIfile(sname, mris);
-    if (mris) {
-      return (NO_ERROR);
-    }
-    else {
-      return (ERROR_BADFILE);
-    }
+    if(mris) return (NO_ERROR);
+    else     return (ERROR_BADFILE);
   }
   // else fall-thru with default .annot processing...
 
   // This will read a segmentation on the surface into an annot
   int type = mri_identify(sname);
-  if(type != MRI_VOLUME_TYPE_UNKNOWN) {
+  if(type != MRI_VOLUME_TYPE_UNKNOWN && type != MGH_ANNOT) {
     printf("MRISreadAnnotation(): reading %s as a surface seg\n",sname);
     MRI *surfseg = MRIread(sname);
     if(surfseg == NULL) return(1);
