@@ -126,6 +126,9 @@ char *type_to_string(int type)
     case GIFTI_FILE:
       tmpstr = "gii";
       break;
+    case MGH_ANNOT:
+      tmpstr = "annot";
+      break;
     default:
       tmpstr = "unknown";
       break;
@@ -184,6 +187,7 @@ int string_to_type(const char *string)
   if (strcmp(ls, "gii") == 0) type = GIFTI_FILE;
   if (strcmp(ls, "vtk") == 0) type = VTK_FILE;
   if (strcmp(ls, "label") == 0) type = MGH_LABEL_FILE;
+  if (strcmp(ls, "annot") == 0) type = MGH_ANNOT;
 
   return (type);
 
@@ -308,6 +312,9 @@ int mri_identify(const char *fname_passed)
             if (is_nrrd(fname)) return type;
             break;
           case GIFTI_FILE:
+            return type;
+            break;
+          case MGH_ANNOT:
             return type;
             break;
           case VTK_FILE:

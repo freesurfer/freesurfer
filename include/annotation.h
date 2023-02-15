@@ -27,7 +27,8 @@ char *annotation_table_file = NULL;
 extern char *annotation_table_file;
 #endif
 
-MRI *readAnnotationIntoSeg(const std::string& filename);
+MRI *ReadAnnotAsMRISeg(char *annotfname, int volume_flag); // reads index like a normal seg
+MRI *readAnnotationIntoSeg(const std::string& filename); // reads annot
 void writeAnnotationFromSeg(const MRI *annot, const std::string& filename);
 
 std::vector<int> readAnnotationIntoVector(const std::string& filename);

@@ -77,6 +77,7 @@
 #include "znzlib.h"
 #include "romp_support.h"
 #include "NrrdIO.h"
+#include "annotation.h"
 
 #include "nii_dicom.h"
 #include "nii_dicom_batch.h"
@@ -747,6 +748,9 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     I = ImageRead(fname_copy);
     mri = ImageToMRI(I);
     ImageFree(&I);
+  }
+  else if (type == MGH_ANNOT) {
+    mri = ReadAnnotAsMRISeg(fname_copy, volume_flag);
   }
   else {
     fprintf(stderr, "mri_read(): type = %d\n", type);
