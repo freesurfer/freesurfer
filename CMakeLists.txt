@@ -165,6 +165,8 @@ if(NOT ITK_DIR)
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos7 CACHE PATH "ITK install directory")
    elseif(HOST_OS MATCHES "Ubuntu18")
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu18 CACHE PATH "ITK install directory")
+   elseif(APPLE)
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_darwin CACHE PATH "ITK install directory")
    else()
       # default
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2 CACHE PATH "ITK install directory")
