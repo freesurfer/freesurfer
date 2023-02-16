@@ -18,6 +18,9 @@ fscnpy::fscnpy()
 
   __dtype = -1;
   __data = NULL;
+
+  __verbose = false;
+  __counter = 0;
 }
 
 
@@ -59,8 +62,13 @@ unsigned char *fscnpy::read(const char *npy)
 }
 
 
-MRI* fscnpy::npy2mri(const char *npy)
+MRI* fscnpy::npy2mri(const char *npy, bool verbose)
 {
+#if __FSCNPY_DEBUG
+  ++__counter;
+  printf("fscnpy::npy2mri() called: %d\n", __counter);
+#endif
+
   __npyfp = fopen(npy, "rb");
   if (!__npyfp)
   {
@@ -68,24 +76,27 @@ MRI* fscnpy::npy2mri(const char *npy)
     exit(1);
   }
 
+  __verbose = verbose;
   __parse_header_dictionary(npy);
 
   // create MRI structure
   __getmritype();
   MRI *mri = new MRI(__shape, __dtype);
-#if __FSCNPY_DEBUG
-  printf("MRI dimensions: %d x %d x %d x %d\n", mri->width, mri->height, mri->depth, mri->nframes);
-  printf("          type: %s (%d)\n",
-         mri->type == MRI_UCHAR   ? "UCHAR" :
-         mri->type == MRI_SHORT   ? "SHORT" :
-	 mri->type == MRI_USHRT   ? "USHRT" :
-         mri->type == MRI_INT     ? "INT" :
-         mri->type == MRI_LONG    ? "LONG" :
-         mri->type == MRI_BITMAP  ? "BITMAP" :
-         mri->type == MRI_TENSOR  ? "TENSOR" :
-         mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type);
-  fflush(stdout);
-#endif
+
+  if (__verbose)
+  {
+    printf("MRI dimensions: %d x %d x %d x %d\n", mri->width, mri->height, mri->depth, mri->nframes);
+    printf("          type: %s (%d)\n",
+           mri->type == MRI_UCHAR   ? "UCHAR" :
+           mri->type == MRI_SHORT   ? "SHORT" :
+           mri->type == MRI_USHRT   ? "USHRT" :
+           mri->type == MRI_INT     ? "INT" :
+           mri->type == MRI_LONG    ? "LONG" :
+           mri->type == MRI_BITMAP  ? "BITMAP" :
+           mri->type == MRI_TENSOR  ? "TENSOR" :
+           mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type);
+    fflush(stdout);
+  }
 
   size_t bytesread = 0;
 #if 1
@@ -138,8 +149,11 @@ MRI* fscnpy::npy2mri(const char *npy)
 
   fclose(__npyfp);
 
-  printf("%ld bytes read\n", bytesread);
-  fflush(stdout);
+  if (__verbose)
+  {
+    printf("%ld bytes read\n", bytesread);
+    fflush(stdout);
+  }
 
   // need to swap the bytes if numpy array is in C-order
   if (!__fortran_order)
@@ -294,24 +308,25 @@ void fscnpy::__parse_header_dictionary(const char *npy)
     } 
   } // for
 
-#if __FSCNPY_DEBUG
-  printf("archendian : %c (%s)\n", __archendian, (__archendian == '<') ? "little endian" : "big endian");
-  printf("NPY version: %d.%d\n", __major_version, __minor_version);
-  printf("NPY header_len: %ld\n", __header_len);
-  printf("NPY dict.descr : %c%c%d\n", __endian, __dtype_char, __dtype_len);
-  printf("NPY dict.fortran_order: %s\n", (__fortran_order) ? "True" : "False");
-  printf("NPY dict.shape: {");
-  for (int i = 0; i < __shape.size(); i++)
-    printf(" %d, ", __shape[i]);
-  printf("}\n");
+  if (__verbose)
+  {
+    printf("archendian : %c (%s)\n", __archendian, (__archendian == '<') ? "little endian" : "big endian");
+    printf("NPY version: %d.%d\n", __major_version, __minor_version);
+    printf("NPY header_len: %ld\n", __header_len);
+    printf("NPY dict.descr : %c%c%d\n", __endian, __dtype_char, __dtype_len);
+    printf("NPY dict.fortran_order: %s\n", (__fortran_order) ? "True" : "False");
+    printf("NPY dict.shape: {");
+    for (int i = 0; i < __shape.size(); i++)
+      printf(" %d, ", __shape[i]);
+    printf("}\n");
 
-  if (__archendian != __endian)
-    printf("Data is in different endian. Need to swap bytes\n");
-  else
-    printf("Data is in same endian\n");
+    if (__archendian != __endian)
+      printf("Data is in different endian. Need to swap bytes\n");
+    else
+      printf("Data is in same endian\n");
   
-  fflush(stdout);
-#endif
+    fflush(stdout);
+  }
 }
 
 
@@ -382,10 +397,11 @@ void fscnpy::__contiguousreorder(MRI *mri)
     return;
   }
 
-#if __FSCNPY_DEBUG
-  printf("array contiguous reordering ...\n");
-  fflush(stdout);
-#endif
+  if (__verbose)
+  {
+    printf("array contiguous reordering ...\n");
+    fflush(stdout);
+  }
 
   for (int s = 0; s < mri->depth; s++)
   {
@@ -396,7 +412,7 @@ void fscnpy::__contiguousreorder(MRI *mri)
         if (s <= c)
           continue;
 
-#if __FSCNPY_DEBUG2
+#if __FSCNPY_DEBUG
         printf("swap [%d, %d, %d] with [%d, %d, %d]\n", c, r, s, s, r, c);
 
         printf("(before) loc1 = %.7f\n", MRIFvox(mri, c, r, s));
@@ -441,7 +457,7 @@ void fscnpy::__contiguousreorder(MRI *mri)
           MRIFvox(mri, s, r, c) = tmp;
 	}
 
-#if __FSCNPY_DEBUG2
+#if __FSCNPY_DEBUG
         printf("(after) loc1 = %.7f\n", MRIFvox(mri, c, r, s));
         printf("(after) loc2 = %.7f\n", MRIFvox(mri, s, r, c));
         fflush(stdout);

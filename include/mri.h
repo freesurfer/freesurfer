@@ -1044,6 +1044,7 @@ extern float ic_z_vertices[]  ;
 #define ITK_MORPH                     31 // ITK (e.g., ANTs synWarp)
 #define MGH_LABEL_FILE                32
 #define MGH_ANNOT                     33 // surface annotation file
+#define NPY_FILE                      34 // numpy npy file
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;

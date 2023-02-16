@@ -6,7 +6,7 @@
 #include "mri.h"
 #include "bfileio.h"
 
-#define __FSCNPY_DEBUG 1
+#define __FSCNPY_DEBUG 0
 
 class fscnpy
 {
@@ -15,7 +15,7 @@ public:
   ~fscnpy();
 
   unsigned char *read(const char *npy);
-  MRI *npy2mri(const char *npy);
+  MRI *npy2mri(const char *npy, bool verbose=false);
   void write(const char *npy, unsigned char *data);
 
 private:
@@ -33,7 +33,7 @@ private:
 
   unsigned char __major_version;
   unsigned char __minor_version;
-  unsigned char __header_len_str;
+  //unsigned char __header_len_str;
   size_t __header_len;
 
   char __endian;
@@ -48,6 +48,9 @@ private:
 
   FILE *__npyfp;
   char __archendian;
+
+  bool __verbose;
+  int  __counter;
 };
 
 #endif
