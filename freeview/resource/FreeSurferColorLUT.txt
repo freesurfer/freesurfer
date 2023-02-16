@@ -371,36 +371,44 @@
 600 Tumor                                   254 254 254 0
 
 
-# Cerebellar parcellation labels from SUIT (matches labels in cma.h)
+# Cerebellar parcellation labels from SUIT (matches labels in cma.h), 
+# FastSurfer-CerebNet builds on top of these SUITS labels and expands them two aggregated labels (see below)
+# See https://doi.org/10.1016/j.neuroimage.2022.119703
 #No. Label Name:                            R   G   B   A
-601  Cbm_Left_I_IV                          70  130 180 0
-602  Cbm_Right_I_IV                         245 245 245 0
-603  Cbm_Left_V                             205 62  78  0
-604  Cbm_Right_V                            120 18  134 0
-605  Cbm_Left_VI                            196 58  250 0
-606  Cbm_Vermis_VI                          0   148 0   0
-607  Cbm_Right_VI                           220 248 164 0
-608  Cbm_Left_CrusI                         230 148 34  0
+601  Cbm_Left_I_IV                          239 96  14  0
+602  Cbm_Right_I_IV                         180 104 63  0
+603  Cbm_Left_V                             0   71  179 0
+604  Cbm_Right_V                            59  73  139 0
+605  Cbm_Left_VI                            179 146 11  0
+606  Cbm_Vermis_VI                          111 217 118 0
+607  Cbm_Right_VI                           171 147 79  0
+608  Cbm_Left_CrusI                         155 9   212 0
 609  Cbm_Vermis_CrusI                       0   118 14  0
-610  Cbm_Right_CrusI                        0   118 14  0
-611  Cbm_Left_CrusII                        122 186 220 0
+610  Cbm_Right_CrusI                        143 53  182 0
+611  Cbm_Left_CrusII                        93  152 91  0
 612  Cbm_Vermis_CrusII                      236 13  176 0
-613  Cbm_Right_CrusII 12                    48  255 0
-614  Cbm_Left_VIIb                          204 182 142 0
-615  Cbm_Vermis_VIIb                        42  204 164 0
-616  Cbm_Right_VIIb                         119 159 176 0
-617  Cbm_Left_VIIIa                         220 216 20  0
+613  Cbm_Right_CrusII                       124 144 121 0
+614  Cbm_Left_VIIb                          181 65  102 0
+615  Cbm_Vermis_VIIb                        99  127 193 0
+616  Cbm_Right_VIIb                         147 91  105 0
+617  Cbm_Left_VIIIa                         220 205 20  0
 618  Cbm_Vermis_VIIIa                       103 255 255 0
-619  Cbm_Right_VIIIa                        80  196 98  0
-620  Cbm_Left_VIIIb                         60  58  210 0
-621  Cbm_Vermis_VIIIb                       60  58  210 0
-622  Cbm_Right_VIIIb                        60  58  210 0
-623  Cbm_Left_IX                            60  58  210 0
-624  Cbm_Vermis_IX                          60  60  60  0
-625  Cbm_Right_IX                           255 165 0   0
-626  Cbm_Left_X                             255 165 0   0
-627  Cbm_Vermis_X                           0   255 127 0
-628  Cbm_Right_X                            165 42  42  0
+619  Cbm_Right_VIIIa                        218 204 98  0
+620  Cbm_Left_VIIIb                         65  0   179 0
+621  Cbm_Vermis_VIIIb                       0   239 47  0
+622  Cbm_Right_VIIIb                        70  28  145 0
+623  Cbm_Left_IX                            87  135 29  0
+624  Cbm_Vermis_IX                          225 60  160 0
+625  Cbm_Right_IX                           124 150 84  0
+626  Cbm_Left_X                             184 100 244 0
+627  Cbm_Vermis_X                           37  185 148 0
+628  Cbm_Right_X                            172 115 210 0
+
+# Cerebellar aggregated labels extended for FastSurfer-CerebNet
+# See https://doi.org/10.1016/j.neuroimage.2022.119703
+630  Cbm_Vermis_VII                         230 73  25  0
+631  Cbm_Vermis_VIII                        94  236 236 0
+
 
 # Cerebellar lobule parcellations
 640  Cbm_Right_I_V_med                      204  0  0   0
