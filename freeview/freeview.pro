@@ -26,6 +26,7 @@ SOURCES += \
     DialogNewPointSet.cpp \
     DialogNewVolume.cpp \
     DialogPreferences.cpp \
+    DialogSaveAllVolumes.cpp \
     DialogSavePointSet.cpp \
     DialogSaveScreenshot.cpp \
     DialogTransformSurface.cpp \
@@ -215,6 +216,7 @@ HEADERS  += \
     DialogNewPointSet.h \
     DialogNewROI.h \
     DialogNewVolume.h \
+    DialogSaveAllVolumes.h \
     DialogSavePointSet.h \
     DialogSaveScreenshot.h \
     DialogTransformSurface.h \
@@ -378,6 +380,7 @@ FORMS    += MainWindow.ui \
     DialogControlPointComment.ui \
     DialogMovePoint.ui \
     DialogNewAnnotation.ui \
+    DialogSaveAllVolumes.ui \
     DialogTransformSurface.ui \
     PanelODF.ui \
     PanelVolume.ui \
@@ -490,7 +493,7 @@ unix {
 
 
   LIBS += -L/usr/pubsw/packages/vtk/5.10.1/lib/vtk-5.10 -L/usr/X11R6/lib \
-      -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
+      -lX11 -lXext -lXt -lSM -lICE -lGLU -ldl \
       -L/usr/pubsw/packages/vxl/current/lib -L$$ITK_PATH/lib/InsightToolkit \
       $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
       $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
@@ -526,7 +529,7 @@ unix {
       /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
       -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
       -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
-      -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
+      -lpetscdm -lpetscmat -lpetscvec -lpetscpich -lfmpich \
       /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran -fopenmp
 
   TARGET = freeview.bin
@@ -566,7 +569,7 @@ INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 $$FREESURFER_DEV_
                "/usr/pubsw/packages/mni/current/include" \
                $$FREESURFER_DEV_DIR/lineprof
 
-LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl -lz -framework ApplicationServices \
+LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -ldl -lz -framework ApplicationServices \
     -framework CoreServices -framework cocoa -framework IOKit \
     -L/usr/pubsw/packages/vxl/current/lib -L$$ITK_PATH/lib/InsightToolkit \
     $$FREESURFER_DEV_DIR/lib/libutils.a $$FREESURFER_DEV_DIR/lib/libfsgdf.a \
@@ -587,7 +590,7 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     /usr/pubsw/packages/mni/current/lib/libminc.a /usr/pubsw/packages/mni/current/lib/libnetcdf.a \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
     -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
-    -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lpmpich \
+    -lpetscdm -lpetscmat -lpetscvec -lpetscpich -lpmpich \
     -framework Accelerate /usr/local/gfortran/lib/libgfortran.a
 
 #LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL

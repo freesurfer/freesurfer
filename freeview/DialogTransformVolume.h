@@ -54,6 +54,7 @@ protected slots:
   void OnApply();
   void OnRestore();
   void OnSaveReg();
+  void OnSaveAll();
 
   void OnSliderRotateX(int nVal);
   void OnSliderRotateY(int nVal);
