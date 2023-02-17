@@ -235,7 +235,7 @@ int mri_identify(const char *fname_passed)
       ///////////////////////////////////////////////
       // if type is found then verify
       // IMAGE file uses only extension
-      if (type == IMAGE_FILE || NPY_FILE) return type;
+      if (type == IMAGE_FILE || type == NPY_FILE) return type;
 
       if (type != MRI_VOLUME_TYPE_UNKNOWN) {
         switch (type) {
