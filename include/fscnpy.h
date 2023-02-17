@@ -45,6 +45,8 @@ private:
   unsigned char *__data;
 
   int __dtype; // this is converted to fs mri types
+  int __ndims;
+  bool __squeezed;
 
   FILE *__npyfp;
   char __archendian;
