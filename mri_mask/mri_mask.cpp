@@ -78,6 +78,7 @@ int DoBB = 0, nPadBB[6];
 double bgnoisescale = 0;
 int bgnoisesign=0;
 int InvertMask = 0;
+COLOR_TABLE *ctab=NULL;
 
 int main(int argc, char *argv[])
 {
@@ -118,6 +119,7 @@ int main(int argc, char *argv[])
   if (!mri_in)
     ErrorExit(ERROR_BADPARM, "%s: could not read source volume %s",
               Progname, argv[1]) ;
+  if(mri_in->ct) ctab = CTABdeepCopy(mri_in->ct);
   mri_mask = MRIread(argv[2]) ;
   if (!mri_mask)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
@@ -369,6 +371,8 @@ int main(int argc, char *argv[])
 
 
   }
+
+  if(ctab) mri_out->ct = CTABdeepCopy(ctab);				     
 
   printf("Writing masked volume to %s...", argv[3]) ;
   int err = MRIwrite(mri_out, argv[3]);
