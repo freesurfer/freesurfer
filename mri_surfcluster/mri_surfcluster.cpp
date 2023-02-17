@@ -673,6 +673,8 @@ int main(int argc, char **argv) {
       MRISwriteValues(srcsurf,ocnid);
     else {
       mritmp = MRIcopyMRIS(NULL,srcsurf,0,"undefval");
+      mritmp->ct = CTABalloc(NClusters+1);
+      CTABunique(mritmp->ct, 100);
       MRIwrite(mritmp,ocnid);
       MRIfree(&mritmp);
     }
