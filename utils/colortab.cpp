@@ -458,7 +458,7 @@ COLOR_TABLE *CTABalloc(int nentries)
     ct->entries[structure]->gi = nint(randomNumber(0, 255));
     ct->entries[structure]->bi = nint(randomNumber(0, 255));
     ct->entries[structure]->ai = 255;
-
+      
     /* Now calculate the float versions. */
     ct->entries[structure]->rf = (float)ct->entries[structure]->ri / 255.0;
     ct->entries[structure]->gf = (float)ct->entries[structure]->gi / 255.0;
@@ -477,8 +477,9 @@ COLOR_TABLE *CTABalloc(int nentries)
 /*!
   \fn int CTABunique(COLOR_TABLE *ct, int nmax)
   \brief Fill an already allocated color table with unique, random
-  entries.  This is just a brute force search over at most nmax tries
-  to find a set that are unique.
+  entries.  First entry set to unknown with RBG=0. This is just a
+  brute force search over at most nmax tries to find a set that are
+  unique.
 */
 int CTABunique(COLOR_TABLE *ct, int nmax)
 {
@@ -489,6 +490,16 @@ int CTABunique(COLOR_TABLE *ct, int nmax)
     CTABrandom(ct);
     if(CTABcountRepeats(ct,1)==0) break;
   }
+  // Set first entry to unknown with RBG=0
+  ct->entries[0]->ri = 0;
+  ct->entries[0]->gi = 0;
+  ct->entries[0]->bi = 0;
+  ct->entries[0]->ai = 0;
+  ct->entries[0]->rf = 0;
+  ct->entries[0]->gf = 0;
+  ct->entries[0]->bf = 0;
+  ct->entries[0]->af = 0;
+  sprintf(ct->entries[0]->name, "unknown");
   if (n == nmax) {
     printf("INFO: CTABunique() could not find a unique set in %d tries\n", nmax);
     return (-1);
