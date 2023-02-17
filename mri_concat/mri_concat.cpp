@@ -141,6 +141,7 @@ int main(int argc, char **argv)
   MATRIX *Upca=NULL,*Spca=NULL;
   MRI *Vpca=NULL;
   char *stem;
+  COLOR_TABLE *ctab=NULL;
 
   nargs = handleVersionOption(argc, argv, "mri_concat");
   if (nargs && argc - nargs == 1)
@@ -323,7 +324,7 @@ int main(int argc, char **argv)
     if(nthin == 0)
     {
       MRIcopyHeader(mritmp, mriout);
-      if(mritmp->ct) mriout->ct = CTABdeepCopy(mritmp->ct);
+      if(mritmp->ct) ctab = CTABdeepCopy(mritmp->ct);
     }
     if(DoAbs)
     {
@@ -735,6 +736,8 @@ int main(int argc, char **argv)
     MRIcopyHeader(mritmp, mriout);
     MRIrms(mritmp,mriout);
   }
+
+  if(ctab) mriout->ct = ctab;
 
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
