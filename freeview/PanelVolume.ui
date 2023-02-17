@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-86</y>
-     <width>352</width>
-     <height>1985</height>
+     <y>0</y>
+     <width>360</width>
+     <height>1913</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -709,7 +709,7 @@ of each frame</string>
            <bool>true</bool>
           </property>
           <property name="indent">
-           <number>21</number>
+           <number>20</number>
           </property>
          </widget>
         </item>

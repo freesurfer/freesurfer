@@ -70,6 +70,7 @@ add_library(utils STATIC
   fs_lbfgs_observer.cpp
   fs_lbfgs_subject.cpp
   fs_powell.cpp
+  fscnpy.cpp
   fsenv.cpp
   fsgdf.cpp
   fsglm.cpp

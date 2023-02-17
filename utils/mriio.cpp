@@ -82,6 +82,8 @@
 #include "nii_dicom.h"
 #include "nii_dicom_batch.h"
 
+#include "fscnpy.h"
+
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
 // unix director separator
@@ -751,6 +753,10 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   }
   else if (type == MGH_ANNOT) {
     mri = ReadAnnotAsMRISeg(fname_copy, volume_flag);
+  }
+  else if (type == NPY_FILE) {
+    fscnpy *cnpy = new fscnpy();
+    mri = cnpy->npy2mri(fname_copy);
   }
   else {
     fprintf(stderr, "mri_read(): type = %d\n", type);

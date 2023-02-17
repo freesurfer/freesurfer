@@ -204,6 +204,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     Region3D.cpp
     DialogMovePoint.cpp
     VolumeFilterOptimal.cpp
+    DialogSaveAllVolumes.cpp
     freeview.qrc
   )
 

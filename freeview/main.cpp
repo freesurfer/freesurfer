@@ -277,6 +277,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "view", "view", "<VIEW>", "Set the 3D view as given. Accepted views are 'left', 'right', 'lateral', 'medial', 'anterior', 'posterior', 'inferior' and 'superior'. 'lateral' and 'medial' will only work when there is visible surface.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewport", "viewport", "<NAME>", "Set the main viewport as given. Accepted names are 'sagittal' or 'x', 'coronal' or 'y', 'axial' or 'z' and '3d'.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewsize", "viewsize", "<width> <height>", "Set the size of the main viewport. The size of the whole window will be changed accordingly.", 2, 2 ),
+    CmdLineEntry( CMD_LINE_SWITCH, "neuro-view", "neurological-view", "", "Show slices in neurological view." ),
     CmdLineEntry( CMD_LINE_OPTION, "zoom", "zoom", "<FACTOR>", "Set zoom factor of the main viewport.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "cam", "camera", "<OPERATION1> <FACTOR1> <OPERATION2> <FACTOR2>...", "Set a series of camera operations for the 3D view. Valid operations are:\n\n"
     "'Azimuth' Rotate the camera about the view up vector centered at the focal point. The result is a horizontal rotation of the camera.\n\n"
