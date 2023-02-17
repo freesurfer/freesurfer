@@ -848,7 +848,7 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
 
   ptotal = 0.0;
   max_p = -10000;
-  best_label = -1;
+  best_label = -1; // must be something that is out of the ctab
   double sumpl = 0;
   // Go through each label and find the best one
   for (n = 0; n < cpn->nlabels; n++) {
@@ -907,8 +907,12 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
       best_prior = cp->prior;
       best_plike = plikelihood;
     }
-  }
+  } // loop over labels
+
   if(pprob){
+    if(ptotal == 0) ptotal = 10e10;
+    if(sumpl == 0) sumpl = 10e10;
+    if(max_p < 0) max_p = 0;
     pprob[0] = max_p / ptotal; // posterior
     pprob[1] = best_plike/sumpl;
     pprob[2] = best_prior;
