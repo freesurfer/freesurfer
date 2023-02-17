@@ -36,6 +36,8 @@ set irplist = ();
 set srcfmt  = ();
 set target = fsaverage
 set surfdir = surf
+set measuredir = ()
+set mapmethod = "--nnfr"
 set fwhmsrc  = ();
 set fwhmtarg = ();
 set niterssrc = ();
@@ -247,7 +249,17 @@ foreach subj ($subjlist)
     else
       # Source is already a surface
       if($#meas || $#sval) then
-        set srcsurfpath = $subjpath/$surfdir/$srchemi.$meas
+        set srcsurfpath = $subjpath/$measdir/$srchemi.$meas
+	if(! -e $srcsurfpath) then
+          if(-e $subjpath/$measdir/$srchemi.$meas.mgz) then
+            set srcsurfpath = $subjpath/$measdir/$srchemi.$meas.mgz
+          endif
+        endif
+	if(! -e $srcsurfpath) then
+          echo "ERROR: cannot find $srcsurfpath" |& tee -a $LF
+          exit 1;
+        endif
+        ls -l $srcsurfpath |& tee -a $LF
       else
         set srcsurfpath = $isplist[$nthsubj];
       endif
@@ -255,7 +267,7 @@ foreach subj ($subjlist)
     # Now srcsurfpath file exists, convert it to the target subject
     set subjtmp = `echo $subj | sed 's/\//./g'`; # Hack to handle xhemi subdirs
     set tval = $tmpdir/$subjtmp.$nthsubj.$format
-    set cmd = (mri_surf2surf)
+    set cmd = (mri_surf2surf $mapmethod)
     set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
     set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
     if($DualHemi) set cmd = ($cmd --dual-hemi)
@@ -448,6 +460,17 @@ while( $#argv != 0 )
       set MeasIn = 1;
       breaksw
 
+    case "--label":
+      if($#argv < 1) goto arg1err;
+      set meas = $argv[1]; shift;
+      set measdir = label;
+      set mapmethod = "--mapmethod nnf"
+      set jac = 0;
+      set srcsurf = 1;
+      set srcfmt = ()
+      set MeasIn = 1;
+      breaksw
+
     case "--cache-in":
       if($#argv < 1) goto arg1err;
       set meas = $argv[1]; shift;
@@ -503,6 +526,11 @@ while( $#argv != 0 )
     case "--surfdir":
       if($#argv < 1) goto arg1err;
       set surfdir = $argv[1]; shift;
+      breaksw
+
+    case "--measdir":
+      if($#argv < 1) goto arg1err;
+      set measdir = $argv[1]; shift;
       breaksw
 
     case "--isp": # Input surface path
@@ -926,6 +954,7 @@ if($#target == 0) then
   echo "ERROR: no target subject specified"
   exit 1;
 endif
+if($#measdir == 0) set measdir = $surfdir
 if(! -e $SUBJECTS_DIR) then
   echo "ERROR: cannot find $SUBJECTS_DIR"
   exit 1;
@@ -1006,8 +1035,8 @@ foreach subj ($subjlist)
     exit 1;
   endif
   if($#meas) then
-    if(! $CacheIn) set measpath = $subjpath/$surfdir/$srchemi.$meas
-    if($CacheIn)   set measpath = $subjpath/$surfdir/$srchemi.$meas.$format
+    if(! $CacheIn) set measpath = $subjpath/$measdir/$srchemi.$meas
+    if($CacheIn)   set measpath = $subjpath/$measdir/$srchemi.$meas.$format
     if(! -e $measpath) then
       echo "ERROR: cannot find $measpath"
       exit 1;
@@ -1084,6 +1113,8 @@ usage_exit:
   echo "  --hemi hemi "
   echo ""
   echo "  --meas surfmeas"
+  echo "  --label annotname : look in label/hemi.annotname.(annot,mgz) and use mapmethod nnf"
+  echo "  --measdir subdir : look in subdir instead of surf"
   echo ""
   echo "  --s subj1 <--s subj2 ... --s subjN>"
   echo "  --fsgd fsgdfile"
