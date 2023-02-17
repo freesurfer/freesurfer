@@ -724,9 +724,9 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
     if path_volume.endswith(('.nii', '.nii.gz', '.mgz')):
         x = nib.load(path_volume)
         if squeeze:
-            volume = np.squeeze(x.get_data())
+            volume = np.squeeze(x.get_fdata())
         else:
-            volume = x.get_data()
+            volume = x.get_fdata()
         aff = x.affine
         header = x.header
     else:  # npz
