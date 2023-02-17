@@ -1284,6 +1284,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("view") << sa[0]);
   }
 
+  if (parser->Found("neuro-view"))
+    SetNeurologicalView(true);
+
   if ( parser->Found("orthographic"))
     AddScript(QStringList("setorthographic"));
 
@@ -1731,6 +1734,8 @@ void MainWindow::OnIdle()
 
   if (!layerVolume)
     m_dlgTransformVolume->hide();
+
+  ui->actionNeurologicalView->setChecked(((RenderView2D*)m_views[0])->GetNeurologicalView());
 }
 
 bool MainWindow::IsBusy()
