@@ -19,6 +19,8 @@ fscnpy::fscnpy()
   __dtype = -1;
   __data = NULL;
 
+  __squeezed = false;
+
   __verbose = false;
   __counter = 0;
 }
@@ -78,6 +80,12 @@ MRI* fscnpy::npy2mri(const char *npy, bool verbose)
 
   __verbose = verbose;
   __parse_header_dictionary(npy);
+
+  if (__ndims > 4)
+  {
+    printf("numpy file contains %dD data. Cannot fit them in MRI structure.\n", __ndims);
+    exit(1);
+  }
 
   // create MRI structure
   __getmritype();
@@ -319,6 +327,32 @@ void fscnpy::__parse_header_dictionary(const char *npy)
     for (int i = 0; i < __shape.size(); i++)
       printf(" %d, ", __shape[i]);
     printf("}\n");
+  }
+
+
+  __ndims = __shape.size();
+  // remove the last dimensions of length 1
+  while (__shape[__ndims-1] == 1)
+  {
+    __squeezed = true;
+    __shape.pop_back();
+    __ndims--;
+  }
+
+  // remove the first dimensions of length 1
+  while (__shape[0] == 1)
+  {
+    __shape.erase(__shape.begin());
+    __ndims--;
+    __squeezed = true;
+  }
+
+  if (__verbose)
+  {
+    printf("NPY shape dimension: %d (%s) ( ", __ndims, (__squeezed) ? "squeezed" : "");
+    for (int n = 0; n < __shape.size(); n++)
+      printf("%d, ", __shape[n]);
+    printf(")\n");
 
     if (__archendian != __endian)
       printf("Data is in different endian. Need to swap bytes\n");
