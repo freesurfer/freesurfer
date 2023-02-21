@@ -1173,6 +1173,12 @@ int main(int argc, char *argv[])
     {
       UseDCM2NIIX = 0;
     }
+    else if (strcmp(argv[i], "-createBIDS") == 0 || strcmp(argv[i], "--createBIDS") == 0)
+    {
+     // set environment variable FS_DCM2NIIX_CREATEBIDS to 1,
+     // DICOMRead3() will pick up the variable, and pass it to dcm2niix_fswrapper::setOpts() 
+     setenv("FS_DCM2NIIX_CREATEBIDS", "1", 1);
+    }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {
       UseDICOMRead2 = 1;

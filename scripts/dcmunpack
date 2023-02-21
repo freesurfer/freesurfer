@@ -32,6 +32,7 @@ set iid = ()
 set ijd = ()
 set ikd = ()
 set UseDCM2NIIX = 0
+set CreateBIDS  = 0
 set DoPhase = 0;
 set DoSiemensAscii = 1;
 set ForceUpdate = 0;
@@ -436,7 +437,12 @@ foreach run ($RunNos)
       if($#ijd) set cmd = ($cmd -ijd $ijd);
       if($#ikd) set cmd = ($cmd -ikd $ikd);
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
-      if($UseDCM2NIIX)   set cmd = ($cmd -dcm2niix)
+      if($UseDCM2NIIX) then
+        set cmd = ($cmd -dcm2niix)
+        if($CreateBIDS) then
+          set cmd = ($cmd -createBIDS)
+        endif
+      endif
       if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
       if($siemensBVecsCross)   set cmd = ($cmd -siemensBVecsCross)
       if(! $siemensBVecsCross) set cmd = ($cmd -no-siemensBVecsCross)
@@ -759,6 +765,11 @@ while( $#argv != 0 )
       set UseDCM2NIIX = 1;
       breaksw
 
+    case "--createBIDS":
+    case "-createBIDS":
+      set CreateBIDS = 1;
+      breaksw
+
     case "-siemensBVecsCross"
       set siemensBVecsCross = 1;
       breaksw
@@ -1038,7 +1049,8 @@ usage_exit:
   if($UseDCM2NIIX) then
     echo "   -no-dcm2niix : Turn it off"
   else
-    echo "   -dcm2niix : use internal version of dcm2niix to convert (output still user spec)"
+    echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
+    echo "   -createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
   endif
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""
