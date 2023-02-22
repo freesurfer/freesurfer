@@ -438,6 +438,9 @@ foreach run ($RunNos)
       if($#ikd) set cmd = ($cmd -ikd $ikd);
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
       if($UseDCM2NIIX) then
+        # environment variable FS_DCM2NIIX_OUTDIR
+        # this will be picked up in DICOMRead3(), and passed to dcm2niix_fswrapper()
+        setenv FS_DCM2NIIX_OUTDIR $outdir 
         set cmd = ($cmd -dcm2niix)
         if($CreateBIDS) then
           set cmd = ($cmd -createBIDS)

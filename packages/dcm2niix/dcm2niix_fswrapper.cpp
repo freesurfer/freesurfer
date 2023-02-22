@@ -62,6 +62,8 @@ void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir, bo
   if (niioutdir != NULL)
     strcpy(tdcmOpts.outdir, niioutdir);
 
+  strcpy(tdcmOpts.filename, "%4s.%p");
+
   // set the options for freesurfer mgz orientation
   tdcmOpts.isRotate3DAcq = false;
   tdcmOpts.isFlipY = false;

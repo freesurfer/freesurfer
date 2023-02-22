@@ -5950,12 +5950,14 @@ MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume)
     exit(1);
   }
 
+  const char *niioutdir = getenv("FS_DCM2NIIX_OUTDIR");
+
   bool createBIDS = false;
   if (getenv("FS_DCM2NIIX_CREATEBIDS") != NULL && 
       strcmp(getenv("FS_DCM2NIIX_CREATEBIDS"), "1") ==0)
     createBIDS = true;
 
-  dcm2niix_fswrapper::setOpts(dcmdir, NULL, createBIDS);
+  dcm2niix_fswrapper::setOpts(dcmdir, niioutdir, createBIDS);
   int ret = dcm2niix_fswrapper::dcm2NiiOneSeries(dcmfile);
 
   MRIFSSTRUCT *mrifsStruct = NULL;
