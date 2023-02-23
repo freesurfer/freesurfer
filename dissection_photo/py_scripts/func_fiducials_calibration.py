@@ -18,9 +18,13 @@ class SplitArgs(argparse.Action):
         for i in range(0, len(lst), chunk_size):
             yield lst[i : i + chunk_size]
 
-    def split(self, input_string):
-        input_string = list(map(float, input_string))
-        coords = list(self.chunks(input_string, 2))
+    def split(self, s):
+        try:
+            s = list(map(float, s))
+        except:
+            s = list(map(float, s[0].split()))
+
+        coords = list(self.chunks(s, 2))
         if len(coords[-1]) != 2:
             print("Invalid coordinates")
             sys.exit()
@@ -105,7 +109,7 @@ def fiducials_calibration(args):
     new_im_width = int(width * scale_down_factor_sift)
     new_im_height = int(height * scale_down_factor_sift)
 
-    img_sift = img.resize((new_im_width, new_im_height), Image.ANTIALIAS)
+    img_sift = img.resize((new_im_width, new_im_height), Image.Resampling.LANCZOS)
 
     centers = centers * scale_down_factor_sift
     radii = (
@@ -189,15 +193,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--in_img", type=str, dest="in_img", default=None)
-    parser.add_argument(
-        "--points", nargs="+", dest="pos_tuple", action=SplitArgs
-    )
-    parser.add_argument(
-        "--width", nargs="?", type=float, dest="e1", default=None
-    )
-    parser.add_argument(
-        "--height", nargs="?", type=float, dest="e2", default=None
-    )
+    parser.add_argument("--points", nargs="+", dest="pos_tuple", action=SplitArgs)
+    parser.add_argument("--width", nargs="?", type=float, dest="e1", default=None)
+    parser.add_argument("--height", nargs="?", type=float, dest="e2", default=None)
     parser.add_argument("--out_file", type=str, dest="out_file", default=None)
 
     # If running the code in debug mode
@@ -208,7 +206,7 @@ if __name__ == "__main__":
         sys.argv = [
             "func_fiducials_calibration.py",
             "--in_img",
-            f"{PROJ_DIR}/misc/cal_input/prospective_without_tissue.jpg",
+            f"{PROJ_DIR}/misc/fiducials_calibration/prospective_without_tissue.jpg",
             "--points",
             "22 17 40 9 478 25 492 9 18 465 30 451 462 472 478 460",
             "--width",
@@ -216,16 +214,9 @@ if __name__ == "__main__":
             "--height",
             "272",
             "--out_file",
-            f"{PROJ_DIR}/misc/cal_output/test",
+            "/tmp/cal",
         ]
 
     args = parser.parse_args()
 
     fiducials_calibration(args)
-
-    # example call:
-    # fspython func_fiducials_calibration.py \
-    #   --in_img /space/calico/1/users/Harsha/photo-calibration-gui/misc/photos/2604.01.JPG \
-    #   --points 22 17 40 9 478 25 492 9 18 465 30 451 462 472 478 460 \
-    #   --width 272 --height 272 \
-    #   --out_file /space/calico/1/users/Harsha/photo-calibration-gui/misc/cal_output/test
