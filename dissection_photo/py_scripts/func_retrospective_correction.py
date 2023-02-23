@@ -209,10 +209,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     retrospective_correction(args)
-
-    # example call:
-    # fspython func_retrospective_correction.py \
-    #   --in_img /cluster/vive/MGH_photo_recon/2604_whole/photos/2604.01.JPG \
-    #   --points 431 621 481 621 \
-    #   --width 10 --height 15 \
-    #   --out_dir /tmp

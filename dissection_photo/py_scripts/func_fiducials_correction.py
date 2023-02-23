@@ -76,9 +76,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--in_dir", type=str, dest="in_dir", default=None)
-    parser.add_argument(
-        "--calibration_file", type=str, dest="npz_file", default=None
-    )
+    parser.add_argument("--calibration_file", type=str, dest="npz_file", default=None)
     parser.add_argument("--out_dir", type=str, dest="out_dir", default=None)
 
     # If running the code in debug mode
@@ -87,20 +85,14 @@ if __name__ == "__main__":
     if gettrace():
         sys.argv = [
             "func_fiducials_correction.py",
-            "--in_img",
+            "--in_dir",
             "/space/calico/1/users/Harsha/photo-calibration-gui/misc/fiducials_correction_input/",
             "--calibration_file",
-            "/space/calico/1/users/Harsha/photo-calibration-gui/misc/calibration.npz",
+            "/tmp/cal.npz",
             "--out_dir",
-            "/space/calico/1/users/Harsha/photo-calibration-gui/misc/fiducials_correction_output/",
+            "/tmp",
         ]
 
     args = parser.parse_args()
 
     fiducials_correction(args)
-
-    # example call:
-    # fspython func_fiducials_correction.py \
-    #   --in_img /space/calico/1/users/Harsha/photo-calibration-gui/misc/fiducials_correction_input/ \
-    #   --calibration_file /space/calico/1/users/Harsha/photo-calibration-gui/misc/cal_output/output_npz \
-    #   --out_dir /space/calico/1/users/Harsha/photo-calibration-gui/misc/fiducials_correction_output/
