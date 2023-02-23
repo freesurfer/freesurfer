@@ -140,12 +140,9 @@ def fiducials_calibration(args):
     des_template = des_tmp
 
     args.out_file = pathlib.Path(args.out_file)
-
-    if args.out_file.parent.is_dir():
-        model_file = args.out_file
-    else:
+    if not args.out_file.parent.is_dir():
         args.out_file.parent.mkdir(exist_ok=True)
-        model_file = args.out_file
+    model_file = args.out_file
 
     np.savez(
         model_file,
