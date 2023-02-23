@@ -162,7 +162,10 @@ def registration(
     deformed_image = cv2.warpPerspective(
         target,
         M2,
-        ( (PAD + ref_coords[1, 0, 0]).astype(int) + 1, (PAD + ref_coords[2, 0, 1]).astype(int) + 1),
+        (
+            (PAD + ref_coords[1, 0, 0]).astype(int) + 1,
+            (PAD + ref_coords[2, 0, 1]).astype(int) + 1,
+        ),
     )
 
     # Add rulers if needed
