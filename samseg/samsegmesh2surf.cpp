@@ -164,8 +164,6 @@ int __Mesh2Surf(const char *meshfile, const char *nii, const char *surfFile, con
   {
     if ( cellsIt.Value()->GetType() == kvl::AtlasMesh::CellType::TRIANGLE_CELL )
     {
-      kvl::AtlasMesh::CellIdentifier cellId = cellsIt.Index();                         
-
       kvl::AtlasMesh::CellType::PointIdIterator  pit = cellsIt.Value()->PointIdsBegin();
       kvl::AtlasMesh::PointIdentifier  pointId0 = *pit;
       pit++;
