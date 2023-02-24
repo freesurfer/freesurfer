@@ -292,7 +292,6 @@ int main(int argc, char **argv) {
       printf("Reshaping %d\n",reshapefactor);
       mritmp = mri_reshape(srcval, reshapefactor*srcval->width,
                            1, 1, srcval->nframes);
-      MRIfree(&srcval);
       srcval = mritmp;
       reshapefactor = 0; /* reset for output */
     }
@@ -313,7 +312,6 @@ int main(int argc, char **argv) {
 
     for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
       srcsurf->vertices[vtx].val = MRIgetVoxVal(srcval,vtx,0,0,srcframe);
-    MRIfree(&srcval);
   }
 
   // In case of mask, Fill undefval = 1
@@ -391,8 +389,8 @@ int main(int argc, char **argv) {
     printf("Computing voxel-wise significance\n");
     srcval = MRIcopyMRIS(NULL,srcsurf,0,"val");
     voxwisesig = CSDpvalMaxSigMap(srcval, csd, NULL, NULL, &maxmaxsig, Bonferroni);
+    MRIcopyHeader(srcval, voxwisesig);
     MRIwrite(voxwisesig,voxwisesigfile);
-    MRIfree(&srcval);
     MRIfree(&voxwisesig);
     if(maxvoxwisesigfile){
       fp = fopen(maxvoxwisesigfile,"w");
@@ -656,6 +654,7 @@ int main(int argc, char **argv) {
       MRISwriteValues(srcsurf,outid);
     else {
       mritmp = MRIcopyMRIS(NULL,srcsurf,0,"val");
+      MRIcopyHeader(srcval, mritmp);
       MRIwrite(mritmp,outid);
       MRIfree(&mritmp);
     }
@@ -673,6 +672,9 @@ int main(int argc, char **argv) {
       MRISwriteValues(srcsurf,ocnid);
     else {
       mritmp = MRIcopyMRIS(NULL,srcsurf,0,"undefval");
+      MRIcopyHeader(srcval, mritmp);
+      mritmp->ct = CTABalloc(NClusters+1);
+      CTABunique(mritmp->ct, 100);
       MRIwrite(mritmp,ocnid);
       MRIfree(&mritmp);
     }
@@ -682,6 +684,7 @@ int main(int argc, char **argv) {
   if (ocpvalid != NULL) {
     sclustSetSurfaceValToCWP(srcsurf,scs);
     MRIcopyMRIS(merged, srcsurf, 0, "val"); // cluster-wise -log10(pval)
+    MRIcopyHeader(srcval, mritmp);
     printf("Saving cluster pval %s\n",ocpvalid);
     MRIwrite(merged,ocpvalid);
   }
