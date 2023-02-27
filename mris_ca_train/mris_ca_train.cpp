@@ -177,49 +177,25 @@ main(int argc, char *argv[])
 
   gcsa = GCSAalloc(ninputs, icno_priors, icno_classifiers) ;
   input1_flags = input2_flags = input3_flags = 0 ;
-  if (normalize1_flag)
-    input1_flags |= GCSA_NORMALIZE ;
-  if (normalize2_flag)
-    input2_flags |= GCSA_NORMALIZE ;
-  if (normalize3_flag)
-    input3_flags |= GCSA_NORMALIZE ;
+  if (normalize1_flag)    input1_flags |= GCSA_NORMALIZE ;
+  if (normalize2_flag)    input2_flags |= GCSA_NORMALIZE ;
+  if (normalize3_flag)    input3_flags |= GCSA_NORMALIZE ;
   if(ctab) gcsa->ct = ctab;
 
-  if (sulconly)
-  {
-    GCSAputInputType(gcsa,
-                     GCSA_INPUT_CURV_FILE,
-                     sulc_name,
-                     0,
-                     0,
-                     input1_flags);
+  if (sulconly) { // not the default
+    GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,sulc_name,0,0,input1_flags);
   }
-  else
-  {
-    GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature",
-                     navgs, input1_flags, 0) ;
-    if (ninputs > 1)
-      GCSAputInputType(gcsa,
-                       GCSA_INPUT_CURV_FILE,
-                       sulc_name,
-                       0,
-                       input2_flags,
-                       1);
+  else{ // default
+    GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature",navgs, input1_flags, 0) ;
+    if(ninputs > 1)
+      GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,sulc_name,0,input2_flags,1);
     if (ninputs > 2)
-      GCSAputInputType(gcsa,
-                       GCSA_INPUT_CURV_FILE,
-                       thickness_name,
-                       0,
-                       input3_flags,
-                       2);
+      GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,thickness_name,0,input3_flags,2);
   }
 
-  for (train_type = 0 ; train_type <= 1 ; train_type++)
-  {
-    printf("computing %s for %d subject \n",
-           train_type ? "covariances" : "means", nsubjects) ;
-    for (i = 0 ; i < nsubjects ; i++)
-    {
+  for (train_type = 0 ; train_type <= 1 ; train_type++) {
+    printf("computing %s for %d subject \n",train_type ? "covariances" : "means", nsubjects) ;
+    for (i = 0 ; i < nsubjects ; i++)  {
       subject_name = argv[i+4] ;
       printf("processing subject %s, %d of %d...\n", subject_name,i+1,
              nsubjects);
@@ -231,73 +207,53 @@ main(int argc, char *argv[])
       if (DIAG_VERBOSE_ON)
         printf("reading surface from %s...\n", fname) ;
       mris = MRISread(fname) ;
-      if (!mris)
-        ErrorExit(ERROR_NOFILE,
-                  "%s: could not read surface file %s for %s",
-                  Progname, fname, subject_name) ;
+      if (!mris) ErrorExit(ERROR_NOFILE,"%s: could not read surface file %s for %s",
+			   Progname, fname, subject_name) ;
       MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      if (label_name)
-      {
+      if(label_name){ // not the default
         LABEL *area ;
         int   i ;
         VERTEX *v ;
-
-        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", 
-			   subjects_dir, subject_name, hemi, annot_name) ; 
-	if( req >= STRLEN ) {
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s",  subjects_dir, subject_name, hemi, annot_name) ; 
+	if( req >= STRLEN )
 	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-	
         area = LabelRead(subject_name, fname) ;
-        if (area == NULL)
-          ErrorExit
-            (ERROR_NOFILE,
-             "%s: could not read label file %s for %s",
-             Progname, fname, subject_name) ;
-        for (i = 0 ; i < area->n_points ; i++)
-        {
-          if (area->lv[i].vno < 0)
-            continue ;
+        if(area == NULL) ErrorExit(ERROR_NOFILE,"%s: could not read label file %s for %s",Progname, fname, subject_name) ;
+        for (i = 0 ; i < area->n_points ; i++) {
+          if (area->lv[i].vno < 0)            continue ;
           v = &mris->vertices[area->lv[i].vno] ;
           if (area->lv[i].vno == Gdiag_no)
             DiagBreak() ;
-          if (v->ripflag)
-            continue ;
+          if (v->ripflag)continue ;
           CTABannotationAtIndex(ctab, label_index, &v->annotation) ;
         }
         // mark rest of surface unknown
-        for (i = 0 ; i < mris->nvertices ; i++)
-        {
+        for (i = 0 ; i < mris->nvertices ; i++) {
           v = &mris->vertices[i] ;
           if (i == Gdiag_no)
             DiagBreak() ;
-          if (v->ripflag || v->annotation)
-            continue ;
+          if (v->ripflag || v->annotation) continue ;
           CTABannotationAtIndex(ctab, unknown_index, &v->annotation) ;
         }
         LabelFree(&area) ;
-      }
-      else{// use annotation
+      }// end of label
+      else{// use annotation (default)
 	printf("Reading annotation %s\n",annot_name);
         if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read annot file %s for %s",
-                    Progname, annot_name, subject_name) ;
+          ErrorExit(ERROR_NOFILE,"%s: could not read annot file %s for %s",Progname, annot_name, subject_name) ;
 	//if(ctab) mris->ct = CTABdeepCopy(ctab);
 	//CTABprintASCII(mris->ct, stdout);
       }
-      if (ptable)
+      if(ptable)
         nparcs = add_to_ptable(mris, ptable, nparcs) ;
 
       if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE,
-                  "%s: could not read spherical "
-                  "registration file %s for %s",
+        ErrorExit(ERROR_NOFILE, "%s: could not read spherical ""registration file %s for %s",
                   Progname, canon_surf_name, subject_name) ;
-      if (ninputs > 2)
-      {
+
+      if (ninputs > 2){ // not the default
         if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
           ErrorExit(ERROR_NOFILE,
                     "%s: could not read curv file %s for %s",
@@ -306,30 +262,20 @@ main(int argc, char *argv[])
           MRISnormalizeCurvature(mris, which_norm) ;
         MRIScopyCurvatureToImagValues(mris) ;
       }
-      if (ninputs > 1 || sulconly)
-      {
+
+      if (ninputs > 1 || sulconly) { // not the default
         if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read curv file %s for %s",
+          ErrorExit(ERROR_NOFILE,"%s: could not read curv file %s for %s",
                     Progname, sulc_name, subject_name) ;
-        if (normalize2_flag || (sulconly && normalize1_flag))
+        if(normalize2_flag || (sulconly && normalize1_flag))
           MRISnormalizeCurvature(mris, which_norm) ;
         MRIScopyCurvatureToValues(mris) ;
         MRIScopyValToVal2(mris) ;
       }
-      if (!sulconly)
-      {
-#if 0
-        if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read curv file %s for %s",
-                    Progname, curv_name, subject_name) ;
-#else
+      if(!sulconly){ // default
         MRISuseMeanCurvature(mris) ;
         MRISaverageCurvatures(mris, navgs) ;
-        if (normalize1_flag)
-          MRISnormalizeCurvature(mris, which_norm) ;
-#endif
+        if(normalize1_flag)  MRISnormalizeCurvature(mris, which_norm) ;
         MRIScopyCurvatureToValues(mris) ;
       }
 
@@ -349,16 +295,12 @@ main(int argc, char *argv[])
   }
 
   if(DoFill){
-    if(nfillmax > 0)printf("Filling with a maximum of %d iterations\n",nfillmax);
+    if(nfillmax > 0) printf("Filling with a maximum of %d iterations\n",nfillmax);
     else             printf("Filling without a limit of  iterations\n");
     GCSAfill_cpn_holes(gcsa,nfillmax);
     GCSAfill_gcsan_holes(gcsa,nfillmax);
   }
 
-#if 0
-  if (ptable)
-    write_ptable(fname, ptable, nparcs) ;
-#endif
   printf("writing classifier array to %s...\n", out_fname) ;
   gcsa->ptable_fname = ptable_fname ;
   GCSAwrite(gcsa, out_fname) ;
@@ -385,7 +327,7 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help") || !stricmp(option, "help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
