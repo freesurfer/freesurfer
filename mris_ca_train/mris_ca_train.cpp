@@ -126,48 +126,32 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (ptable_fname)
-  {
+  if (ptable_fname) {
     ctab = CTABreadASCII(ptable_fname) ;
-    if (label_name)
-    {
+    if(label_name){
       CTABfindName(ctab, label_name, &label_index) ;
-      if (label_index < 0)
-        ErrorExit(ERROR_BADPARM, 
-                  "%s: could not find index for label %s in table %s",
-                  Progname, label_name, ptable_fname) ;
+      if(label_index < 0) ErrorExit(ERROR_BADPARM,"%s: could not find index for label %s in table %s",
+				    Progname, label_name, ptable_fname) ;
 
       CTABfindName(ctab, "unknown", &unknown_index) ;
-      if (unknown_index < 0)
-        CTABfindName(ctab, "medial wall", &unknown_index) ;
-      printf("label index = %d, unknown index = %d\n", 
-             label_index, unknown_index) ;
+      if (unknown_index < 0) CTABfindName(ctab, "medial wall", &unknown_index) ;
+      printf("label index = %d, unknown index = %d\n", label_index, unknown_index) ;
     }
   }
-  else if (label_name)
-    ErrorExit
-      (ERROR_UNSUPPORTED, 
-       "%s: must specify colortable with -t <ctab> when specifying label",
-       Progname) ;
+  else if(label_name)ErrorExit(ERROR_UNSUPPORTED,"%s: must specify colortable with -t <ctab> when specifying label", Progname) ;
 
-  if (!strlen(subjects_dir)) /* hasn't been set on command line */
-  {
+  if(!strlen(subjects_dir)){ /* hasn't been set on command line */
     cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM,
-                "%s: SUBJECTS_DIR not defined in environment",
-                Progname);
+    if (!cp) ErrorExit(ERROR_BADPARM,"%s: SUBJECTS_DIR not defined in environment",Progname);
     strcpy(subjects_dir, cp) ;
   }
-  if (argc < 6)
-    usage_exit(1) ;
+  if(argc < 6) usage_exit(1) ;
 
   hemi = argv[1] ;
   canon_surf_name = argv[2] ;
@@ -181,6 +165,12 @@ main(int argc, char *argv[])
   if (normalize2_flag)    input2_flags |= GCSA_NORMALIZE ;
   if (normalize3_flag)    input3_flags |= GCSA_NORMALIZE ;
   if(ctab) gcsa->ct = ctab;
+
+  // Note on inputs. This function controls the inputs used for both
+  //training and labeling int GCSAload_inputs(VERTEX *v, double
+  //*v_inputs, int ninputs). It can handle up to 3 inputs which must
+  //be loaded into the vertex in the following vertex fields and will
+  //be taken in the following order: v->val, v->val2, v->imag_val;
 
   if (sulconly) { // not the default
     GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,sulc_name,0,0,input1_flags);
