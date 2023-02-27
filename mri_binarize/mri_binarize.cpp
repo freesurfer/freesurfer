@@ -275,6 +275,8 @@ int noverbose = 0;
 int DoBB = 0, nPadBB=0;
 int DoCount = 1;
 int ReverseFaceOrder = 0;
+int FillHoles = 0;
+int RemoveIslands = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -668,6 +670,19 @@ int main(int argc, char *argv[]) {
   // if we didn't binarize, copy any embedded color table from the input
   if (replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
 
+  if(RemoveIslands){
+    printf("Removing Volume Islands\n");fflush(stdout);
+    MRI *tmpvol = MRIremoveVolumeIslands(OutVol, BinVal-0.5, BinVal, NULL);
+    MRIfree(&OutVol);
+    OutVol = tmpvol;
+  }
+  if(FillHoles){
+    printf("Removing Volume Holes\n");fflush(stdout);
+    MRI *tmpvol = MRIremoveVolumeHoles(OutVol, BinVal-0.5, BinVal, BinVal, NULL);
+    MRIfree(&OutVol);
+    OutVol = tmpvol;
+  }
+
   // Save output
   if(OutVolFile) {
     printf("Writing output to %s\n",OutVolFile);
@@ -746,6 +761,10 @@ static int parse_commandline(int argc, char **argv) {
       ZeroSliceEdges = 1;
     }
     else if (!strcasecmp(option, "--zero-slice-edges")) ZeroSliceEdges = 1;
+    else if (!strcasecmp(option, "--fill-holes")) FillHoles = 1;
+    else if (!strcasecmp(option, "--no-fill-holes")) FillHoles = 0;
+    else if (!strcasecmp(option, "--remove-islands")) RemoveIslands = 1;
+    else if (!strcasecmp(option, "--no-remove-islands")) RemoveIslands = 0;
     else if (!strcasecmp(option, "--ctx-wm") || !strcasecmp(option, "--wm")){
       MatchValues[nMatch++] =  2;
       MatchValues[nMatch++] = 41;
@@ -833,7 +852,42 @@ static int parse_commandline(int argc, char **argv) {
       BinVal = 0;
       BinValNot = 1;
     }
-
+    else if (!strcasecmp(option, "--scm-lh")){
+      // Subcortical Mass
+      MatchValues[nMatch++] =  26; //Left-Accumbens-area
+      MatchValues[nMatch++] =  11; //Left-Caudate
+      MatchValues[nMatch++] =  2; //Left-Cerebral-White-Matter
+      MatchValues[nMatch++] =  4; //Left-Lateral-Ventricle
+      MatchValues[nMatch++] =  13; //Left-Pallidum
+      MatchValues[nMatch++] =  12; //Left-Putamen
+      MatchValues[nMatch++] =  10; //Left-Thalamus
+      MatchValues[nMatch++] =  28; //Left-VentralDC
+      MatchValues[nMatch++] =  30; //Left-vessel
+      MatchValues[nMatch++] =  34; //Left-WMCrowns
+      //MatchValues[nMatch++] =  77; //WM-hypointensities, hopefully fixed by removing holes
+      MatchValues[nMatch++] =  78; //Left-WM-hypointensities
+      RemoveIslands = 1;
+      FillHoles = 1;
+      DoMatch = 1;
+    }
+    else if (!strcasecmp(option, "--scm-rh")){
+      // Subcortical Mass
+      MatchValues[nMatch++] =  58; //Right-Accumbens-area
+      MatchValues[nMatch++] =  50; //Right-Caudate
+      MatchValues[nMatch++] =  41; //Right-Cerebral-White-Matter
+      MatchValues[nMatch++] =  43; //Right-Lateral-Ventricle
+      MatchValues[nMatch++] =  52; //Right-Pallidum
+      MatchValues[nMatch++] =  51; //Right-Putamen
+      MatchValues[nMatch++] =  49; //Right-Thalamus
+      MatchValues[nMatch++] =  60; //Right-VentralDC
+      MatchValues[nMatch++] =  62; //Right-vessel
+      MatchValues[nMatch++] =  66; //Right-WMCrowns
+      //MatchValues[nMatch++] =  77; //WM-hypointensities, hopefully fixed by removing holes
+      MatchValues[nMatch++] =  79; //Right-WM-hypointensities
+      RemoveIslands = 1;
+      FillHoles = 1;
+      DoMatch = 1;
+    }
     else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       InVolFile = pargv[0];
@@ -1147,6 +1201,7 @@ static void print_usage(void) {
   printf("   --wm+vcsf : WM and ventricular CSF, including choroid (not 4th)\n");
   printf("   --gm : match for all WM and VCSF and background, then invert\n");
   printf("   --subcort-gm : subcortical gray matter\n");
+  printf("   --scm-lh, --scm-rh : subcortical mass (includes filling holes and removing islands)\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
@@ -1171,6 +1226,8 @@ static void print_usage(void) {
   printf("   --erode-face   nerode: erode binarization using 'face' nearest neighbors\n");
   printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
+  printf("   --remove-islands, --no-remove-islands : remove islands in the mask\n");
+  printf("   --fill-holes, --no-fill-holes : remove holes in the mask (after removing islands if specified)\n");
   printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
