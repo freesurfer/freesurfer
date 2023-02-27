@@ -5,7 +5,6 @@ import argparse
 import surfa as sf
 import gems
 
-
 # ------ Parse Command Line Arguments ------
 
 parser = argparse.ArgumentParser()
@@ -32,6 +31,8 @@ parser.add_argument('--save-mesh', action='store_true', help='Save the final mes
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+parser.add_argument('--tp-to-base-transform', nargs='+', required=False, help='Transformation file for each time point to base.')
+parser.add_argument('--force-different-resolutions', action='store_true', default=False, help='Force run even if time points have different resolutions.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
@@ -48,6 +49,15 @@ if len(args.timepoint) == 1:
 # Make sure freesurfer has been sourced
 if not os.environ.get('FREESURFER_HOME'):
     sf.system.fatal('FREESURFER_HOME must be set')
+
+# Make sure that the resolution of each time point is below MAXRESDIFF
+MAXRESDIFF = 0.05
+# Load each time point and check their resolution differences
+voxel_sizes = np.zeros([len(args.timepoint), 3])
+for t, timepoint in enumerate(args.timepoint):
+    voxel_sizes[t, :] = sf.load_volume(timepoint[0]).geom.voxsize
+if np.min(np.diff(voxel_sizes, axis=0)) > MAXRESDIFF and not args.force_different_resolutions:
+    sf.system.fatal('Time points have resolution differences greater than %s. If you want to continue, include the flag --force-different-resolutions in your command' %str(MAXRESDIFF))
 
 # Create the output folder
 os.makedirs(args.output, exist_ok=True)
@@ -79,6 +89,16 @@ if args.save_posteriors is not None and len(args.save_posteriors) == 0:
 else:
     savePosteriors = args.save_posteriors
 
+tpToBaseTransforms = []
+if args.tp_to_base_transform:
+    for tpTobase in args.tp_to_base_transform:
+        tpToBaseTransforms.append(sf.load_affine(tpTobase))
+else:
+    print("Assuming an identity transformation between base and each time point")
+    for tp in args.timepoint:
+        tpToBaseTransforms.append(sf.Affine(np.eye(4)))
+
+
 # ------ Run Samsegment ------
 
 samseg_kwargs = dict(
@@ -94,7 +114,8 @@ samseg_kwargs = dict(
     savePosteriors=savePosteriors,
     saveMesh=args.save_mesh,
     saveHistory=args.history,
-    visualizer=visualizer
+    visualizer=visualizer,
+    tpToBaseTransforms=tpToBaseTransforms,
 )
 
 if args.lesion:
@@ -106,7 +127,7 @@ if args.lesion:
         print('Defaulting lesion mask pattern to %s' % str(lesion_mask_pattern))
 
     # Delay import until here so that tensorflow doesn't get loaded unless needed
-    from gems.SamsegLongitudinalLesion import SamsegLongitudinalLesion
+    from samseg.SamsegLongitudinalLesion import SamsegLongitudinalLesion
     samsegLongitudinal = SamsegLongitudinalLesion(**samseg_kwargs,
         intensityMaskingSearchString=args.lesion_mask_structure,
         intensityMaskingPattern=lesion_mask_pattern,
@@ -116,7 +137,7 @@ if args.lesion:
     )
 
 else:
-    samsegLongitudinal = gems.SamsegLongitudinal(**samseg_kwargs)
+    samsegLongitudinal = samseg.SamsegLongitudinal(**samseg_kwargs)
 
 samsegLongitudinal.segment(saveWarp=args.save_warp)
 

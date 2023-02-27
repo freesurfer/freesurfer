@@ -1,6 +1,6 @@
 import os
-from gems.SamsegLesion import SamsegLesion
-from gems.SamsegLongitudinal import SamsegLongitudinal
+from .SamsegLesion import SamsegLesion
+from .SamsegLongitudinal import SamsegLongitudinal
 from .SamsegUtility import *
 
 
@@ -36,7 +36,8 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
         numberOfPseudoSamplesVariance=500,
         rho=50,
         intensityMaskingPattern=None,
-        intensityMaskingSearchString='Cortex'
+        intensityMaskingSearchString='Cortex',
+        tpToBaseTransforms=None,
                  ):
         SamsegLongitudinal.__init__(self,
         imageFileNamesList=imageFileNamesList,
@@ -62,7 +63,8 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
         thresholdSearchString=thresholdSearchString,
         modeNames=modeNames,
         pallidumAsWM=pallidumAsWM,
-        savePosteriors=savePosteriors
+        savePosteriors=savePosteriors,
+        tpToBaseTransforms=tpToBaseTransforms
         )
 
         self.numberOfSamplingSteps = numberOfSamplingSteps
