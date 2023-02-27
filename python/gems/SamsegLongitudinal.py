@@ -118,9 +118,10 @@ class SamsegLongitudinal:
         # Check if all time point to base transforms are identity matrices.
         # If so, we can derive a combined 4D mask during preprocessing
         self.allIdentityTransforms = True
-        for tp, transform in enumerate(self.tpToBaseTransforms):
-            if not np.allclose(transform.matrix, np.eye(4)):
-                self.allIdentityTransforms = False
+        if tpToBaseTransforms is not None:
+            for tp, transform in enumerate(self.tpToBaseTransforms):
+                if not np.allclose(transform.matrix, np.eye(4)):
+                    self.allIdentityTransforms = False
 
 
         # Initialize some objects
