@@ -1,6 +1,6 @@
 import os
-from .SamsegLesion import SamsegLesion
-from .SamsegLongitudinal import SamsegLongitudinal
+from gems.SamsegLesion import SamsegLesion
+from gems.SamsegLongitudinal import SamsegLongitudinal
 from .SamsegUtility import *
 
 

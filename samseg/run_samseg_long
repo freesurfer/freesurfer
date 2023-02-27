@@ -127,7 +127,7 @@ if args.lesion:
         print('Defaulting lesion mask pattern to %s' % str(lesion_mask_pattern))
 
     # Delay import until here so that tensorflow doesn't get loaded unless needed
-    from samseg.SamsegLongitudinalLesion import SamsegLongitudinalLesion
+    from gems.SamsegLongitudinalLesion import SamsegLongitudinalLesion
     samsegLongitudinal = SamsegLongitudinalLesion(**samseg_kwargs,
         intensityMaskingSearchString=args.lesion_mask_structure,
         intensityMaskingPattern=lesion_mask_pattern,
@@ -137,7 +137,7 @@ if args.lesion:
     )
 
 else:
-    samsegLongitudinal = samseg.SamsegLongitudinal(**samseg_kwargs)
+    samsegLongitudinal = gems.SamsegLongitudinal(**samseg_kwargs)
 
 samsegLongitudinal.segment(saveWarp=args.save_warp)
 
