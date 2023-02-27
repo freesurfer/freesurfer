@@ -558,6 +558,7 @@ add_subdirectories(
   mrisp_paint
   python
   samseg
+  samsegmesh2surf
   talairach_afd
   scripts
   tkregister2
