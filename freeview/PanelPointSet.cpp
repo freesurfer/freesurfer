@@ -519,7 +519,7 @@ void PanelPointSet::UpdatePointInfo()
     // Update stats
     ui->treeWidgetStats->clear();
     QTreeWidgetItem* item = AddStatItem("legacy", p.value);
-    item->setTextColor(0, Qt::gray);
+    item->setForeground(0, Qt::gray);
     QVariantMap stats = p.info.value("statistics").toMap();
     QStringList keys = stats.keys();
     foreach (QString key, keys)
@@ -542,7 +542,7 @@ void PanelPointSet::OnButtonCommentAdd()
     QDateTime local = QDateTime::currentDateTime();
     QDateTime utc = local.toUTC();
     utc.setTimeSpec(Qt::LocalTime);
-    local.setUtcOffset(utc.secsTo(local));
+    local.setOffsetFromUtc(utc.secsTo(local));
     map["timestamp"] = local;
     map["user"] = m_self;
     QLabel* label = MakeCommentItem(map);
@@ -611,7 +611,7 @@ void PanelPointSet::OnCommentLabelClicked(const QString &link)
           QDateTime local = QDateTime::currentDateTime();
           QDateTime utc = local.toUTC();
           utc.setTimeSpec(Qt::LocalTime);
-          local.setUtcOffset(utc.secsTo(local));
+          local.setOffsetFromUtc(utc.secsTo(local));
           map["timestamp"] = local;
           comments[i] = map;
           MakeCommentItem(map, l);

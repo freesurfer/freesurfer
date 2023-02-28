@@ -109,7 +109,7 @@ void Interactor2DNavigate::UpdateCursor( QEvent* event, QWidget* wnd )
          event->type() == QEvent::MouseMove)
     {
       QMouseEvent* e = ( QMouseEvent* )event;
-      if ( e->button() == Qt::MidButton || e->button() == Qt::RightButton ||
+      if ( e->button() == Qt::MiddleButton || e->button() == Qt::RightButton ||
            ( ( e->modifiers() & CONTROL_MODIFIER) && (e->modifiers() & Qt::ShiftModifier) ) )
       {
         Interactor2D::UpdateCursor( event, wnd );

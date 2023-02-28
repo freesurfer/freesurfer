@@ -1,4 +1,5 @@
 #include "Region3D.h"
+#include <cstddef>
 #include "vtkRenderer.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkPolyData.h"

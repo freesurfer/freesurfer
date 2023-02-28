@@ -33,6 +33,7 @@
 #include <QTextStream>
 #include <QSettings>
 #include <QDebug>
+#include "MigrationDefs.h"
 
 //using namespace std;
 
@@ -393,7 +394,7 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
   std::vector<double> values;
   while (!in.atEnd())
   {
-    QStringList strgs = in.readLine().split( " ", QString::SkipEmptyParts );
+    QStringList strgs = in.readLine().split( " ", MD_SkipEmptyParts );
     for ( int i = 0; i < strgs.size(); i++ )
     {
       values.push_back( strgs[i].toDouble() );

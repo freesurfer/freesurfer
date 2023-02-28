@@ -81,7 +81,7 @@ class VTKGUISUPPORTQT_EXPORT QVTKWidget : public QWidget
 
 public:
   //! constructor
-  QVTKWidget(QWidget* parent = NULL, Qt::WindowFlags f = 0);
+  QVTKWidget(QWidget* parent = NULL, Qt::WindowFlags f = Qt::Widget);
   //! destructor
   virtual ~QVTKWidget();
 

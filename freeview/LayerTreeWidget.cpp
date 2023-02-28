@@ -98,7 +98,12 @@ void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
     QTreeWidgetItem* item = itemAt(event->pos());
     if (rectCheckbox.isEmpty() || rectCheckbox.width() <= 0)
     {
-      QStyleOptionViewItem option = viewOptions();
+      QStyleOptionViewItem option;
+#if QT_VERSION_MAJOR > 5
+      initViewItemOption(&option);
+#else
+      option = viewOptions();
+#endif
       if (item)
         rectCheckbox = m_itemDelegate->GetCheckBoxRect(indexFromItem(item), option);
     }

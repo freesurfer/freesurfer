@@ -48,7 +48,7 @@
 #include <omp.h>
 #endif
 #include <QElapsedTimer>
-
+#include "MigrationDefs.h"
 
 #include "registerio.h"
 #include "utils.h"
@@ -357,7 +357,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     QStringList values;
     while ( !line.isNull() )
     {
-      values += line.split( " ", QString::SkipEmptyParts );
+      values += line.split( " ", MD_SkipEmptyParts );
       line = in.readLine();
     }
     if ( values.size() < 16 )

@@ -27,9 +27,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-using namespace std;
-
-typedef vector<string> string_array;
+typedef std::vector<std::string> string_array;
 
 enum CmdLineEntryType
 {
@@ -74,7 +72,7 @@ struct CmdLineEntry
   void Print()
   {
     printf("-%s -%s ", shortName, longName);
-    foreach(string s, arguments)
+    foreach(std::string s, arguments)
     {
       printf("%s ", s.c_str());
     }
@@ -97,8 +95,8 @@ public:
                              int nMinArguments = 1,
                              int nMaxArguments = 1 );
 
-  void SetProgramName( string name );
-  void SetProgramDescription( string text );
+  void SetProgramName( std::string name );
+  void SetProgramDescription( std::string text );
 
   bool Parse( int argc, char* argv[] );
   bool Parse( const string_array& args );
@@ -115,14 +113,14 @@ public:
 
   int GetNumberOfArguments( const char* ch );
 
-  string GetArgument( const char* ch, int n, const char* chDefault = NULL );
+  std::string GetArgument( const char* ch, int n, const char* chDefault = NULL );
   string_array GetArguments( const char* ch, int nIndex = -1 );
 
   string_array GetFloatingArguments();
 
   void PrintHelp();
 
-  void PrintErrorMessage( string msg );
+  void PrintErrorMessage( std::string msg );
 
 protected:
   bool Found( const char* ch, CmdLineEntry* e, int nIndex = -1 );
@@ -133,12 +131,12 @@ protected:
     return ch <= '9' && ch >= '0';
   }
 
-  vector<CmdLineEntry> m_cmdLineEntries;
-  vector<CmdLineEntry> m_cmdLineEntriesValid;
+  std::vector<CmdLineEntry> m_cmdLineEntries;
+  std::vector<CmdLineEntry> m_cmdLineEntriesValid;
   string_array         m_cmdLineFloatingArguments;
   int       m_nNumberOfPureArguments;
-  string    m_strProgramName;
-  string    m_strProgramDescription;
+  std::string    m_strProgramName;
+  std::string    m_strProgramDescription;
 
   bool      m_bNewLineStyle;
 };

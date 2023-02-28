@@ -59,7 +59,11 @@ QVTKInteractorInternal::QVTKInteractorInternal(QVTKInteractor* p)
   : Parent(p)
 {
   this->SignalMapper = new QSignalMapper(this);
+#if (QT_VERSION < QT_VERSION_CHECK(5,15,0))
   QObject::connect(this->SignalMapper, SIGNAL(mapped(int)), this, SLOT(TimerEvent(int)) );
+#else
+  QObject::connect(this->SignalMapper, SIGNAL(mappedInt(int)), this, SLOT(TimerEvent(int)) );
+#endif
 }
 
 QVTKInteractorInternal::~QVTKInteractorInternal()

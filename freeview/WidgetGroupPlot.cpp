@@ -90,8 +90,8 @@ void WidgetGroupPlot::paintEvent(QPaintEvent *e)
 
   QFont fnt = font();
   fnt.setPixelSize(11);
-  int nTextLen = qMax(QFontMetrics(fnt).width(QString::number(m_fsgd->m_variables[0].range[0])),
-      QFontMetrics(fnt).width(QString::number(m_fsgd->m_variables[0].range[1])));
+  int nTextLen = qMax(QFontMetrics(fnt).horizontalAdvance(QString::number(m_fsgd->m_variables[0].range[0])),
+      QFontMetrics(fnt).horizontalAdvance(QString::number(m_fsgd->m_variables[0].range[1])));
   rc_plot.adjust(nTextLen+6, 0, 0, 0);
   p.fillRect(rc_plot.adjusted(-1, -1, 1, 1), Qt::white);
 

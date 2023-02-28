@@ -99,7 +99,8 @@ void QVTKPaintEngine::drawPixmap(const QRectF& r, const QPixmap& pm, const QRect
 
   // blend the pixels from QImage into the vtkRenderWindow's buffer
   vtkRenderWindow* renWin = this->Widget->GetRenderWindow();
-  renWin->SetRGBACharPixelData(ri.left(), this->Widget->height() - ri.top() - ri.height(),
+  if (renWin)
+    renWin->SetRGBACharPixelData(ri.left(), this->Widget->height() - ri.top() - ri.height(),
                                ri.left()+img.width() - 1,
                                this->Widget->height() - ri.top() - 1,
                                img.bits(),

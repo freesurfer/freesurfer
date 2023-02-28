@@ -1,5 +1,6 @@
 #include "PanelFCD.h"
 #include "ui_PanelFCD.h"
+#include <cstddef>
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
 #include "MainWindow.h"

@@ -3,10 +3,9 @@
 
 #include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
-
+#include <cstddef>
 #include "colortab.h"
 #include "fcd.h"
-
 
 class LayerPropertyFCD;
 class QThread;

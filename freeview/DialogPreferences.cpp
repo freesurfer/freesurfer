@@ -127,7 +127,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
       combo->addItem(tr("Pause"));
       combo->setCurrentIndex(0);
     }
-    connect(combo, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
+    connect(combo, SIGNAL(currentTextChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
   }
 }
 

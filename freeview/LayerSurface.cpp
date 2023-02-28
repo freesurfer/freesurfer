@@ -71,6 +71,7 @@
 #include "SurfacePath.h"
 #include <QSet>
 #include "vtkBoundingBox.h"
+#include "MigrationDefs.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -2363,9 +2364,9 @@ bool LayerSurface::LoadRGBFromFile(const QString &filename)
     while (!file.atEnd())
     {
       QString line = file.readLine();
-      QStringList list = line.split(",", QString::SkipEmptyParts);
+      QStringList list = line.split(",", MD_SkipEmptyParts);
       if (list.size() < 3)
-        list = line.split(" ", QString::SkipEmptyParts);
+        list = line.split(" ", MD_SkipEmptyParts);
       if (list.size() == 3)
       {
         for (int i = 0; i < 3; i++)

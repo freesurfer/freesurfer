@@ -11,7 +11,7 @@ static double TwoPi = 2.0 * Pi;
 BinaryTreeEdge::BinaryTreeEdge(BinaryTreeNode *sourceNode, BinaryTreeNode *destNode)
     : arrowSize(0), m_bHighlighted(false)
 {
-    setAcceptedMouseButtons(0);
+    setAcceptedMouseButtons(Qt::NoButton);
     source = sourceNode;
     dest = destNode;
     source->addEdge(this);

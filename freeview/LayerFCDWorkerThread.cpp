@@ -1,4 +1,5 @@
 #include "LayerFCDWorkerThread.h"
+#include <cstddef>
 #include "LayerFCD.h"
 #include <QMutexLocker>
 #include <QApplication>
