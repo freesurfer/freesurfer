@@ -1794,7 +1794,7 @@ int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
   projfrac fraction of the thickness at that point. Obviously, the
   thickness must have been loaded into the surface at this point.
   ------------------------------------------------------------------*/
-MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
+MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac, MRI *mask)
 {
   MRI *map, *dist2;
   int vtx, vtxmin, c, r, s;
@@ -1837,6 +1837,7 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
 
   /*----------- Loop through vertices --------------*/
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    if(mask && MRIgetVoxVal(mask,vtx,0,0,0)==0) continue;
     if (projfrac == 0) {
       xvtx = surf->vertices[vtx].x;
       yvtx = surf->vertices[vtx].y;
