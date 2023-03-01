@@ -43,6 +43,8 @@
 
 #include "compilerdefs.h"
 
+#define __COMBINESURFS_TAKE_INFILE2 0
+
 //------------------------------------------------------------------------
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -54,16 +56,17 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #endif
-static const COLOR_TABLE_ENTRY unknown =
-{"unknown", 0,0,0,0, 0,0,0,0};
+
+static const COLOR_TABLE_ENTRY unknown = {"unknown", 0,0,0,0, 0,0,0,0};
 static COLOR_TABLE_ENTRY userLabel =
-{
-  "user label name gets copied here                   ",
-  220,20,20,255, 0.8,0.08,0.08,1
-};
+    {
+      "user label name gets copied here                   ",
+      220,20,20,255, 0.8,0.08,0.08,1
+    };
 static const CTE *entries[2] = {&unknown, &userLabel};
 static const COLOR_TABLE miniColorTable =
-{(CTE**)entries, 2, "miniColorTable", 2};
+    {(CTE**)entries, 2, "miniColorTable", 2};
+
 #if defined(FS_COMP_GNUC)
 #pragma GCC diagnostic pop
 #elif defined(FS_COMP_CLANG)
@@ -73,6 +76,13 @@ static const COLOR_TABLE miniColorTable =
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
 int main(int argc, char *argv[]) ;
+
+static void __writeCurvatureFile(MRIS *mris, const char *curv, char *out_fname);
+static void __writeLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
+static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, const char *fcurv, char *out_fname);
+static void __writeFuncFile(const char *ffunc, char *out_fname);
+static void __writeNormals(MRIS *mris, char *out_fname);
+static void __writeMRISPatch(MRIS *mris, char *out_fname);
 
 static int  get_option(int argc, char *argv[]) ;
 static void check_options(void);
@@ -97,19 +107,19 @@ static int read_orig_positions = 0 ;
 static int w_file_dst_flag = 0 ;
 static int w_file_src_flag = 0 ;
 static int curv_file_flag = 0 ;
-static char *curv_fname ;
+static char *curv_fname = NULL;
 static int func_file_flag = 0 ;
-static char *func_fname ;
+static char *func_fname = NULL;
 static int annot_file_flag = 0 ;
-static char *annot_fname ;
+static char *annot_fname = NULL;
 static int gifti_da_num = -1;
 static int label_file_flag = 0 ;
-static char *label_fname ;
-static char *label_name ;
+static char *label_fname = NULL;
+static char *label_name = NULL;
 static int labelstats_file_flag = 0 ;
-static char *labelstats_fname ;
+static char *labelstats_fname = NULL ;
 static int parcstats_file_flag = 0 ;
-static char *parcstats_fname ;
+static char *parcstats_fname = NULL;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
@@ -131,7 +141,7 @@ MRIS *SurfCoords = NULL;
 int WriteArea = 0;
 int nUpsample = 0,UpsampleSortType=0;
 int DeleteCommands = 0;
-int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
+static int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -144,7 +154,6 @@ main(int argc, char *argv[])
   int ac, nargs,nthvtx,n;
   FILE *fp=NULL;
   char *in2_fname=NULL;
-  MRI_SURFACE *mris2=NULL;
 
   nargs = handleVersionOption(argc, argv, "mris_convert");
   if (nargs && argc - nargs == 1)
@@ -170,6 +179,7 @@ main(int argc, char *argv[])
 
   check_options();
 
+#if !__COMBINESURFS_TAKE_INFILE2
   // confirm that all options were eaten (this catches the case where options
   // were included at the end of the command string)
   if (combinesurfs_flag)
@@ -186,33 +196,23 @@ main(int argc, char *argv[])
       usage_exit() ;
     }
   }
+#else
+  if (argc != 3)
+  {
+    usage_exit() ;
+  }
+#endif
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
+#if !__COMBINESURFS_TAKE_INFILE2
   if (combinesurfs_flag)
   {
     in2_fname = argv[2];
     out_fname = argv[3];
   }
-
-  if (talxfmsubject && curv_file_flag)
-  {
-    printf("ERROR: cannot specify -t and -c\n");
-    exit(1);
-  }
-
-  if (labelstats_file_flag && ! label_file_flag)
-  {
-    printf("ERROR: cannot specify --labelstats without --label\n");
-    exit(1);
-  }
-
-  if (parcstats_file_flag && ! annot_file_flag)
-  {
-    printf("ERROR: cannot specify --parcstats without --annot\n");
-    exit(1);
-  }
+#endif
 
   // check whether output is a .w file
   dot = strrchr(out_fname, '.') ;
@@ -291,14 +291,8 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
     if (center_surface)
       MRIScenter(mris, mris) ;
-    if (combinesurfs_flag)
-    {
-      mris2 = MRISread(in2_fname) ;
-      if (!mris2)
-        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  Progname, in2_fname) ;
-    }
   }
+
   if(nUpsample > 0){
     printf("Upsampling %d times, SortType %d\n",nUpsample,UpsampleSortType);
     MRIS *tmpmris = MRISupsampleSplit(mris,nUpsample,UpsampleSortType);
@@ -321,10 +315,12 @@ main(int argc, char *argv[])
     printf("Adding scanner CRAS to surface xyz\n");
     MRISshiftCRAS(mris, 1);
   }
+
   if(cras_subtract){
     printf("Subtracting scanner CRAS from surface xyz\n");
     MRISshiftCRAS(mris, -1);
   }
+
   if(ToSurfCoords){
     printf("Converting to coords of --to-surf surface\n");
     int err = MRIScopyCoords(mris,SurfCoords);
@@ -397,261 +393,45 @@ main(int argc, char *argv[])
   }
 
   if (curv_file_flag)
-  {
-    int type ;
-
-    if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR)
-    {
-      exit(1);
-    }
-    type = MRISfileNameType(out_fname) ;
-    if (type == MRIS_ASCII_FILE)
-    {
-      writeAsciiCurvFile(mris, out_fname) ;
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, curv_fname);
-    }
-    else
-    {
-      MRISwriteCurvature(mris, out_fname) ;
-    }
-  }
+    __writeCurvatureFile(mris, curv_fname, out_fname);
   else if (annot_file_flag)
-  {
-    // first read the annotation/gifti label data...
-    int type = MRISfileNameType(annot_fname);
-    if (type == MRIS_ANNOT_FILE)
-    {
-      if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (NULL == mrisReadGIFTIdanum(annot_fname, mris, gifti_da_num))
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for --annot: "
-             "%s\n",annot_fname);
-      exit(1);
-    }
-    // read parcstats text file (pairs of parc labels and stat values) and
-    // save value associated with that parc label into the vertex with that
-    // parc (annot) label
-    if (parcstats_file_flag)
-    {
-      FILE* fp;
-      if ((fp = fopen(parcstats_fname, "r")) == NULL)
-      {
-        errno = 0;
-        ErrorExit(ERROR_BADFILE, "ERROR: can't open file %s", parcstats_fname);
-      }
-      char line[STRLEN];
-      while (fgets(line, STRLEN, fp) != NULL)
-      {
-        char label[STRLEN];
-        float val;
-        sscanf(line,"%s %f",label,&val);
-        // get the annotation value for this label from the colortable
-        int annot = CTABentryNameToAnnotation(label, mris->ct);
-        int vno;
-        int doprint=1;
-        for (vno=0; vno < mris->nvertices; vno++)
-        {
-          if (annot == mris->vertices[vno].annotation)
-          {
-            mris->vertices[vno].curv = val;
-            if (doprint)
-            {
-              printf("label: %s, val: %9.9f\n",label,val);
-              doprint = 0;
-            }
-          }
-        }
-      }
-      // now write the 'curv' data (the parc stats we just assigned) to file
-      type = MRISfileNameType(out_fname) ;
-      if (type == MRIS_ASCII_FILE)
-      {
-        writeAsciiCurvFile(mris, out_fname) ;
-      }
-      else if (type == MRIS_GIFTI_FILE)
-      {
-        MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, curv_fname);
-      }
-      else
-      {
-        MRISwriteCurvature(mris, out_fname) ;
-      }
-      exit(0);
-    }
-
-    // if fall through, then write annot file
-    type = MRISfileNameType(out_fname);
-    if (type == MRIS_ANNOT_FILE)
-    {
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for output: "
-             "%s\n",out_fname);
-      exit(1);
-    }
-  }
+    __writeAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, curv_fname, out_fname);
   else if (label_file_flag)
-  {
-    // first read the freesurfer .label file...
-    LABEL* label = LabelRead(NULL, label_fname);
-    if (NULL == label)
-    {
-      printf("ERROR: reading .label file specified for --label: "
-             "%s\n",label_fname);
-      exit(1);
-    }
-    // give this label its own colortable:
-    mris->ct = (CT*)&miniColorTable;
-    strcpy(userLabel.name,label_name);
-    // try to find this label in the FreeSurferColorLUT, so we have a unique
-    // color (annotation) for it (otherwise, just use default miniColorTable)
-    COLOR_TABLE *ct0;
-    char ctabfile[2000];
-    sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
-    ct0 = CTABreadASCII(ctabfile);
-    if (ct0)
-    {
-      int cno;
-      for (cno=0; cno < ct0->nentries; cno++) {
-        if ((ct0->entries[cno]) && (strcmp(label_name, ct0->entries[cno]->name) == 0)) {
-          // we found this label! so update local colortable with info
-          memcpy(miniColorTable.entries[1], ct0->entries[cno], sizeof(COLOR_TABLE_ENTRY));
-          break;
-        }
-      }
-    }
-    // assign annotation to each label vertex (and while we're at it, stats)
-    int annotation = CTABrgb2Annotation(miniColorTable.entries[1]->ri,
-                                        miniColorTable.entries[1]->gi,
-                                        miniColorTable.entries[1]->bi);
-    int lno;
-    for (lno=0; lno < label->n_points; lno++)
-    {
-      int vno = label->lv[lno].vno;
-      mris->vertices[vno].annotation = annotation;
-      mris->vertices[vno].stat = label->lv[lno].stat; // in case --labelstats
-    }
-
-    // now write the annot file (either in .annot format, or gifti LabelTable)
-    int type = MRISfileNameType(out_fname);
-    if (type == MRIS_ANNOT_FILE)
-    {
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for output: "
-             "%s\n",out_fname);
-      exit(1);
-    }
-
-    mris->ct = NULL; // to avoid calling CTABfree (our table is static memory)
-
-    // if --labelstats was given, then we want to write-out the stats values
-    // found in the .label file to a file
-    if (labelstats_file_flag)
-    {
-      int type = MRISfileNameType(labelstats_fname);
-      if (type == MRIS_GIFTI_FILE)
-      {
-        if (MRISwriteGIFTI(mris,NIFTI_INTENT_UNIFORM,labelstats_fname,NULL)
-            != NO_ERROR)
-        {
-          exit(1);
-        }
-      }
-      else
-      {
-        printf("ERROR: unknown file file type specified for --labelstats: "
-               "%s\n",labelstats_fname);
-        exit(1);
-      }
-    }
-  }
+    __writeLabelFile(mris, label_fname, label_name, labelstats_fname, out_fname);
   else if (func_file_flag)
   {
-    MRI* mri = MRIread( func_fname );
-    if (NULL == mri)
-    {
-      printf("ERROR: unable to to read %s\n",func_fname);
-      exit(1);
-    }
-    MRIwrite(mri, out_fname);
+    __writeFuncFile(func_fname, out_fname);
     exit(0);
   }
   else if (mris->patch)
-  {
-    int type = MRISfileNameType(out_fname) ;
-    if (type == MRIS_GIFTI_FILE)
-    {
-      MRISwrite(mris, out_fname);
-    }
-    else
-    {
-      MRISwritePatch(mris, out_fname) ;
-    }
-  }
+    __writeMRISPatch(mris, out_fname);
   else if (output_normals)
-  {
-    if (MRISfileNameType(out_fname) == MRIS_ASCII_TRIANGLE_FILE)
-      MRISwriteNormalsAscii(mris, out_fname) ;
-    else
-      MRISwriteNormals(mris, out_fname) ;
-  }
+    __writeNormals(mris, out_fname);
   else if (write_vertex_neighbors)
-  {
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
-  }
   else if(PrintXYZOnly)
   {
-    printf("Printing only XYZ to ascii file\n");
-    fp = fopen(out_fname,"w");
+    // ???create utility function MRISprintVertexCoords(FILE *fp, MRIS *mris)???
+    fp = fopen(out_fname, "w");
+    printf("Printing only XYZ to ascii file %s\n", out_fname);
+
     for(nthvtx = 0; nthvtx < mris->nvertices; nthvtx++)
     {
-      fprintf(fp,"%9.4f %9.4f %9.4f\n",mris->vertices[nthvtx].x,
-              mris->vertices[nthvtx].y,mris->vertices[nthvtx].z);
+      fprintf(fp, "%9.4f %9.4f %9.4f\n",
+                  mris->vertices[nthvtx].x,
+                  mris->vertices[nthvtx].y,
+                  mris->vertices[nthvtx].z);
     }
+
     fclose(fp);
   }
   else if (combinesurfs_flag)
   {
-    MRIS* mris3 = MRISunion(mris,mris2);
+    MRI_SURFACE *mris2 = MRISread(in2_fname) ;
+    if (!mris2)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, in2_fname) ;
+
+    MRIS* mris3 = MRISunion(mris, mris2);
     
     MRISwrite(mris3, out_fname);
     MRISfree(&mris2);
@@ -690,6 +470,266 @@ main(int argc, char *argv[])
 
   return(0) ;  /* for ansi */
 }
+
+
+static void __writeCurvatureFile(MRIS *mris, const char *fcurv, char *out_fname)
+{
+  if (MRISreadCurvatureFile(mris, fcurv) != NO_ERROR)
+  {
+    printf("ERROR reading curvature file %s\n", fcurv);
+    exit(1);
+  }
+
+  int type = MRISfileNameType(out_fname) ;
+  if (type == MRIS_ASCII_FILE)
+  {
+    writeAsciiCurvFile(mris, out_fname) ;
+  }
+  else if (type == MRIS_GIFTI_FILE)
+  {
+    MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, fcurv);
+  }
+  else
+  {
+    MRISwriteCurvature(mris, out_fname) ;
+  }
+}
+
+
+static void __writeLabelFile(MRIS *mris, const char *flabel, const char *labelname, const char *labelstats, char *out_fname)
+{
+#if 0  // for some reasons, defining the variables here doesn't work
+  const COLOR_TABLE_ENTRY unknown = {"unknown", 0,0,0,0, 0,0,0,0};
+  COLOR_TABLE_ENTRY userLabel =
+    {
+      "user label name gets copied here                   ",
+      220,20,20,255, 0.8,0.08,0.08,1
+    };
+  const CTE *entries[2] = {&unknown, &userLabel};
+  const COLOR_TABLE miniColorTable =
+    {(CTE**)entries, 2, "miniColorTable", 2};
+#endif
+
+  // first read the freesurfer .label file...
+  LABEL* label = LabelRead(NULL, flabel);
+  if (NULL == labelname)
+  {
+    printf("ERROR: reading .label file specified for --label: %s\n", flabel);
+    exit(1);
+  }
+
+  // give this label its own colortable:
+  mris->ct = (CT*)&miniColorTable;
+  strcpy(userLabel.name, labelname);
+  // try to find this label in the FreeSurferColorLUT, so we have a unique
+  // color (annotation) for it (otherwise, just use default miniColorTable)
+  COLOR_TABLE *ct0;
+  char ctabfile[2000];
+  sprintf(ctabfile,"%s/FreeSurferColorLUT.txt", getenv("FREESURFER_HOME"));
+  ct0 = CTABreadASCII(ctabfile);
+  if (ct0)
+  {
+    int cno;
+    for (cno=0; cno < ct0->nentries; cno++) {
+      if ((ct0->entries[cno]) && (strcmp(labelname, ct0->entries[cno]->name) == 0)) {
+        // we found this label! so update local colortable with info
+        memcpy(miniColorTable.entries[1], ct0->entries[cno], sizeof(COLOR_TABLE_ENTRY));
+        break;
+      }
+    }
+  }
+  // assign annotation to each label vertex (and while we're at it, stats)
+  int annotation = CTABrgb2Annotation(miniColorTable.entries[1]->ri,
+                                      miniColorTable.entries[1]->gi,
+                                      miniColorTable.entries[1]->bi);
+  int lno;
+  for (lno=0; lno < label->n_points; lno++)
+  {
+    int vno = label->lv[lno].vno;
+    mris->vertices[vno].annotation = annotation;
+    mris->vertices[vno].stat = label->lv[lno].stat; // in case --labelstats
+  }
+
+  // now write the annot file (either in .annot format, or gifti LabelTable)
+  int type = MRISfileNameType(out_fname);
+  if (type == MRIS_ANNOT_FILE)
+  {
+    if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+    {
+      exit(1);
+    }
+  }
+  else if (type == MRIS_GIFTI_FILE)
+  {
+    if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL, out_fname, NULL) != NO_ERROR)
+    {
+      exit(1);
+    }
+  }
+  else
+  {
+    printf("ERROR: unknown file annot file type specified for output: "
+           "%s\n", out_fname);
+    exit(1);
+  }
+
+  mris->ct = NULL; // to avoid calling CTABfree (our table is static memory)
+
+  // if --labelstats was given, then we want to write-out the stats values
+  // found in the .label file to a file
+  if (labelstats != NULL)
+  {
+    int type = MRISfileNameType(labelstats);
+    if (type == MRIS_GIFTI_FILE)
+    {
+      if (MRISwriteGIFTI(mris, NIFTI_INTENT_UNIFORM, labelstats, NULL) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else
+    {
+      printf("ERROR: unknown file file type specified for --labelstats: %s\n", labelstats);
+      exit(1);
+    }
+  }
+}
+
+
+static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, const char *fcurv, char *out_fname)
+{
+    // first read the annotation/gifti label data...
+    int type = MRISfileNameType(fannot);
+    if (type == MRIS_ANNOT_FILE)
+    {
+      if (MRISreadAnnotation(mris, fannot) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else if (type == MRIS_GIFTI_FILE)
+    {
+      if (NULL == mrisReadGIFTIdanum(fannot, mris, giftiDaNum))
+      {
+        exit(1);
+      }
+    }
+    else
+    {
+      printf("ERROR: unknown file annot file type specified for --annot: %s\n", fannot);
+      exit(1);
+    }
+    // read parcstats text file (pairs of parc labels and stat values) and
+    // save value associated with that parc label into the vertex with that
+    // parc (annot) label
+    if (parcstats != NULL)
+    {
+      FILE* fp;
+      if ((fp = fopen(parcstats, "r")) == NULL)
+      {
+        errno = 0;
+        ErrorExit(ERROR_BADFILE, "ERROR: can't open file %s", parcstats);
+      }
+      char line[STRLEN];
+      while (fgets(line, STRLEN, fp) != NULL)
+      {
+        char label[STRLEN];
+        float val;
+        sscanf(line,"%s %f", label, &val);
+        // get the annotation value for this label from the colortable
+        int annot = CTABentryNameToAnnotation(label, mris->ct);
+        int vno;
+        int doprint=1;
+        for (vno=0; vno < mris->nvertices; vno++)
+        {
+          if (annot == mris->vertices[vno].annotation)
+          {
+            mris->vertices[vno].curv = val;
+            if (doprint)
+            {
+              printf("label: %s, val: %9.9f\n", label, val);
+              doprint = 0;
+            }
+          }
+        }
+      }
+      // now write the 'curv' data (the parc stats we just assigned) to file
+      type = MRISfileNameType(out_fname) ;
+      if (type == MRIS_ASCII_FILE)
+      {
+        writeAsciiCurvFile(mris, out_fname) ;
+      }
+      else if (type == MRIS_GIFTI_FILE)
+      {
+        // ??? is curv_fname set for this code path ???
+        MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, fcurv);
+      }
+      else
+      {
+        MRISwriteCurvature(mris, out_fname) ;
+      }
+      exit(0);
+    }
+
+    // if fall through, then write annot file
+    type = MRISfileNameType(out_fname);
+    if (type == MRIS_ANNOT_FILE)
+    {
+      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else if (type == MRIS_GIFTI_FILE)
+    {
+      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else
+    {
+      printf("ERROR: unknown file annot file type specified for output: "
+             "%s\n",out_fname);
+      exit(1);
+    }
+}
+
+
+static void __writeFuncFile(const char *ffunc, char *out_fname)
+{
+    MRI* mri = MRIread( ffunc );
+    if (NULL == mri)
+    {
+      printf("ERROR: unable to to read %s\n", ffunc);
+      exit(1);
+    }
+    MRIwrite(mri, out_fname);
+}
+
+
+static void __writeNormals(MRIS *mris, char *out_fname)
+{
+    if (MRISfileNameType(out_fname) == MRIS_ASCII_TRIANGLE_FILE)
+      MRISwriteNormalsAscii(mris, out_fname) ;
+    else
+      MRISwriteNormals(mris, out_fname) ;
+}
+
+
+static void __writeMRISPatch(MRIS *mris, char *out_fname)
+{
+    int type = MRISfileNameType(out_fname) ;
+    if (type == MRIS_GIFTI_FILE)
+    {
+      MRISwrite(mris, out_fname);
+    }
+    else
+    {
+      MRISwritePatch(mris, out_fname) ;
+    }
+}
+
 
 /*----------------------------------------------------------------------
   Parameters:
@@ -796,6 +836,10 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-combinesurfs"))
   {
     combinesurfs_flag = 1;
+#if __COMBINESURFS_TAKE_INFILE2
+    in2_fname = argv[2];
+    nargs = 1 ;
+#endif
   }
   else if (!stricmp(option, "-delete-cmds"))
   {
@@ -926,6 +970,24 @@ static void check_options(void)
     printf("ERROR: --to-scanner/--userealras and --to-tkr/--usesurfras are mutually exclusive. \n");
     exit(1);
   }
+
+  if (talxfmsubject && curv_file_flag)
+  {
+    printf("ERROR: cannot specify -t and -c\n");
+    exit(1);
+  }
+
+  if (labelstats_file_flag && ! label_file_flag)
+  {
+    printf("ERROR: cannot specify --labelstats without --label\n");
+    exit(1);
+  }
+
+  if (parcstats_file_flag && ! annot_file_flag)
+  {
+    printf("ERROR: cannot specify --parcstats without --annot\n");
+    exit(1);
+  }
 }
 
 static void
@@ -935,117 +997,18 @@ usage_exit(void)
   exit(1) ;
 }
 
+
+#include "mris_convert.help.xml.h"
 static void
 print_usage(void)
 {
-  fprintf(stderr,
-          "Usage: %s [options] <input file> <output file>\n",
-          Progname) ;
+  outputHelpXml(mris_convert_help_xml, mris_convert_help_xml_len);
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
-  printf(
-    "\nThis program will convert MRI-surface data formats.\n") ;
-  printf( "\nValid options are:\n") ;
-  printf( "  -p                input is a patch, not a full surface\n") ;
-  printf( "  -c <scalar file>  input is scalar curv overlay file (must still\n"
-          "                    specify surface)\n") ;
-  printf( "  -f <scalar file>  input is functional time-series or other\n"
-          "                    multi-frame data (must specify surface)\n") ;
-  printf( "  --annot <annot file> input is annotation or gifti label data\n") ;
-  printf( "  --parcstats <infile>  infile is name of text file containing\n") ;
-  printf( "                    label/val pairs, where label is an annot name\n") ;
-  printf( "                    and val is a value associated with that label.\n") ;
-  printf( "                    The output file will be a scalar file.\n") ;
-  printf( "  --da_num <num>    if input is gifti, 'num' specifies which\n"
-          "                    data array to use\n");
-  printf( "  --label <infile> <label>  infile is .label file\n") ;
-  printf( "                    label is name of this label\n") ;
-  printf( "  --labelstats <outfile>  outfile is name of gifti file\n") ;
-  printf( "                    to which label stats will be written\n") ;
-  printf( "  -o origname       read orig positions\n") ;
-  printf( "  -s scale          scale vertex xyz by scale\n") ;
-  printf( "  -r                rescale vertex xyz so total area is\n"
-          "                    same as group average\n") ;
-  printf( "  -t subject        apply talairach xfm of subject to\n"
-          "                    vertex xyz\n");
-  printf( "  -n                output is an ascii file where vertex data\n") ;
-  printf( "                    is the surface normal vector\n") ;
-  printf( "  -v Writes out neighbors of a vertex in each row. The first\n");
-  printf( "     column is the vertex number, the 2nd col is the number of neighbors,\n");
-  printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
-  printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
-  printf( "  -a                Print only surface xyz to ascii file\n") ;
-  printf( "  --combinesurfs <infile> <in2file> <outfile>\n") ;
-  printf( "  --delete-cmds : delete command lines in surface\n") ;
-  printf( "  --center : put center of surface at (0,0,0)\n") ;
-  printf( "  --userealras : same as --to-scanner\n") ;
-  printf( "  --usesurfras : same as --to-tkr\n") ;
-  printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
-  printf( "  --remove-vol-geom : sets the valid flag in vg to 0\n") ;
-  printf( "  --to-surf surfcoords : copy coordinates from surfcoords to output (good for patches)\n") ;
-  printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
-  printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
-  printf( "  --upsample N SortType: upsample N times by spliting edges/faces\n") ;
-  printf( "     SortType=1 starts with longest edges, SortType=3 starts with biggest triangles\n") ;
-  printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;
-  printf( "  --area surface area.mgz : compute vertex-wise area (no other args needed); rescales group if needed\n") ;
-  printf( "  --angle surface angles.mgz : compute cortical orientation angles\n") ;
-  printf( "  --label2mask surface label mask.mgz : convert a surface-based label to a binary mask (no other args needed)\n") ;
-  printf( "  Note: --cras_add and --cras_subtract are depricated. They are included for backwards compatability\n") ;
-  printf( "    Use --to-tkr and --to-scanner instead\n") ;
-  printf( "  --cras_add : shift center to scanner coordinate center (was --cras_correction, which still works)\n") ;
-  printf( "  --cras_subtract : shift center from scanner coordinate center (reverses --cras_add)\n") ;
-  printf( "\n") ;
-  printf( "These file formats are supported:\n") ;
-  printf( "  ASCII:       .asc\n");
-  printf( "  ICO:         .ico, .tri\n");
-  printf( "  GEO:         .geo\n");
-  printf( "  STL:         .stl\n");
-  printf( "  VTK:         .vtk\n");
-  printf( "  GIFTI:       .gii\n");
-  printf( "  MGH surface-encoded 'volume': .mgh, .mgz\n");
-  printf( "Freesurfer binary format assumed for all other extensions.\n") ;
-  printf( "\n") ;
-  printf( "EXAMPLES:\n") ;
-  printf( "\n");
-  printf( "Convert a surface file to ascii:\n");
-  printf( "  mris_convert lh.white lh.white.asc\n") ;
-  printf( "\n");
-  printf( "Write vertex neighbors to ascii:\n");
-  printf( "  mris_convert -v lh.white lh.white.neighbors.asc\n") ;
-  printf( "\n");
-  printf( "Convert a surface file to ascii (vertices are surface normals):\n");
-  printf( "  mris_convert -n lh.white lh.white.normals.asc\n") ;
-  printf( "\n");
-  printf( "Apply talairach xfm to white surface, save as binary:\n");
-  printf( "  mris_convert -t bert lh.white lh.white.tal\n") ;
-  printf( "\n");
-  printf( "Convert a scalar overlay file in \"curv\" format to ascii:\n");
-  printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
-  printf( "\n") ;
-  printf( "Convert a .annot file to Gifti label file:\n");
-  printf( "  mris_convert --annot lh.aparc.annot lh.white lh.aparc.gii\n") ;
-  printf( "\n") ;
-  printf( "Convert a Gifti label file to .annot:\n");
-  printf( "  mris_convert --annot lh.aparc.gii lh.white.gii lh.aparc.annot\n");
-  printf( "\n") ;
-  printf( "Convert a Freesurfer .label file to Gifti label format:\n");
-  printf( "  mris_convert --label lh.V1.label V1 lh.white lh.V1.label.gii\n") ;
-  printf( "\n") ;
-  printf( "Create a scalar overlay file where each parcellation region\n") ;
-  printf( "contains a single value:\n") ;
-  printf( "  mris_convert --annot lh.aparc.annot --parcstats lh.parcstats.txt\\ \n") ;
-  printf( "               lh.white lh.parcstats\n") ;
-  printf( "\n") ;
-  printf( "Create a scalar overlay of surface orientation angles with regard\n") ;
-  printf( "to the scanner's B0 field and the image volume axes:\n") ;
-  printf( "  mris_convert --angle <surface> <angles.mgz>\n") ; 
-  printf( "\n") ;
-  printf( "See also mri_surf2surf\n") ;
   exit(1) ;
 }
 
@@ -1176,7 +1139,7 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
   the remaining cols are the vertex numbers of the neighbors.
 */
 
-int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
+static int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
 {
   int vno, nnbrs, nbrvno;
   FILE *fp;

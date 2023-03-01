@@ -38,6 +38,7 @@
 #include "DialogSurfaceLabelOperations.h"
 #include "WindowEditAnnotation.h"
 #include "DialogNewAnnotation.h"
+#include "MigrationDefs.h"
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -1019,7 +1020,7 @@ void PanelSurface::OnEditPositionOffset()
   QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
   foreach (LayerSurface* layer, layers)
   {
-    QStringList args = ui->lineEditPositionOffset->text().trimmed().split(" ", QString::SkipEmptyParts);
+    QStringList args = ui->lineEditPositionOffset->text().trimmed().split(" ", MD_SkipEmptyParts);
     args << "n/a" << "n/a" << "n/a";
     bool bOK;
     double pos[3];

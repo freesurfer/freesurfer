@@ -616,7 +616,7 @@ void WindowConfigureOverlay::OnHistogramMouseButtonPressed(int button, double va
   {
     ChangeLineEditNumber(ui->lineEditMin, value);
   }
-  else if (button == Qt::MidButton)
+  else if (button == Qt::MiddleButton)
   {
     ChangeLineEditNumber(ui->lineEditMid, value);
   }

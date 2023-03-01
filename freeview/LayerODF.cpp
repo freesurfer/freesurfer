@@ -21,6 +21,8 @@
 #include "vtkColorTransferFunction.h"
 #include <QSettings>
 #include "FSVolume.h"
+#include <QRegularExpression>
+#include "MigrationDefs.h"
 
 LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   m_mask(NULL)
@@ -126,7 +128,7 @@ bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& 
       QString line = file.readLine().trimmed();
       if (!line.isEmpty())
       {
-        QStringList list = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+        QStringList list = line.split(QRegularExpression("\\s+"), MD_SkipEmptyParts);
         if (list.size() == 3)
         {
           m_odfVector[n][0] = list[0].toDouble();
@@ -152,7 +154,7 @@ bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& 
       QString line = file.readLine().trimmed();
       if (!line.isEmpty())
       {
-        QStringList list = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+        QStringList list = line.split(QRegularExpression("\\s+"), MD_SkipEmptyParts);
         if (list.size() == 3)
         {
           m_odfMesh[n][0] = (int)list[0].toDouble();

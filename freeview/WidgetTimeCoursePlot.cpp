@@ -135,8 +135,8 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 
   QFont fnt = font();
   fnt.setPixelSize(11);
-  int nTextLen = qMax(QFontMetrics(fnt).width(QString::number(m_dMax)),
-                      QFontMetrics(fnt).width(QString::number(m_dMin)));
+  int nTextLen = qMax(QFontMetrics(fnt).horizontalAdvance(QString::number(m_dMax)),
+                      QFontMetrics(fnt).horizontalAdvance(QString::number(m_dMin)));
   rc_plot.adjust(nTextLen+6, 0, 0, 0);
   p.fillRect(rc_plot.adjusted(-1, -1, 1, 1), m_colorBackground);
 
@@ -283,12 +283,12 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       TimeCourseData& td = m_data[n];
       if (td.m_bShow)
       {
-        int nLen = fmt.width(td.m_strName+" :");
+        int nLen = fmt.horizontalAdvance(td.m_strName+" :");
         if (nLen > nMaxNameWidth)
           nMaxNameWidth = nLen;
         if (m_nCurrentFrame < td.m_points.size())
         {
-          nLen = fmt.width(QString::number(td.m_points[m_nCurrentFrame]));
+          nLen = fmt.horizontalAdvance(QString::number(td.m_points[m_nCurrentFrame]));
           if (nLen > nMaxValueWidth)
             nMaxValueWidth = nLen;
         }

@@ -4340,7 +4340,7 @@ bool LayerMRI::ExportLabelStats(const QString &fn)
   out << "Label,Name,Count,Volume (mm3)\n";
   double* vs = m_imageData->GetSpacing();
   QList<int> labels = m_nAvailableLabels;
-  qSort(labels);
+  std::sort(labels.begin(), labels.end());
   for (int i = 0; i < labels.size(); i++)
   {
     QVector<double> list = GetVoxelList(labels[i]);

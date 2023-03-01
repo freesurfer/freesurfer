@@ -32,6 +32,7 @@
 #include "FlowLayout.h"
 #include <QColorDialog>
 #include <QPointer>
+#include "MigrationDefs.h"
 
 ClickableLabel::ClickableLabel(QWidget* parent, Qt::WindowFlags f)
     : QLabel(parent)
@@ -223,7 +224,7 @@ QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& 
   QCheckBox* checkbox = new QCheckBox();
   checkbox->setChecked(td.m_bShow);
   checkbox->setProperty("data_id", td.m_nId);
-  checkbox->setProperty("data_obj", qVariantFromValue(obj));
+  checkbox->setProperty("data_obj", QVariant::fromValue(obj));
   connect(checkbox, SIGNAL(toggled(bool)), SLOT(OnCheckBoxShowData(bool)));
   checkbox->setCursor(Qt::PointingHandCursor);
   hbox->addWidget(checkbox);
@@ -233,7 +234,7 @@ QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& 
   hbox->addWidget(label);
   label->setStyleSheet(QString("color:rgb(%1,%2,%3)")
                           .arg(td.m_color.red()).arg(td.m_color.green()).arg(td.m_color.blue()));
-  label->setProperty("data_obj", qVariantFromValue(obj));
+  label->setProperty("data_obj", QVariant::fromValue(obj));
   label->setCursor(Qt::PointingHandCursor);
   connect(label, SIGNAL(clicked()), SLOT(OnLegendLabelClicked()));
 
@@ -308,9 +309,9 @@ void WindowTimeCourse::OnCheckMaxScale(bool bChecked)
 
 void WindowTimeCourse::OnLineEditScaleReturnPressed()
 {
-  QStringList list = ui->lineEditScale->text().trimmed().split(",", QString::SkipEmptyParts);
+  QStringList list = ui->lineEditScale->text().trimmed().split(",", MD_SkipEmptyParts);
   if (list.size() != 2)
-    list = ui->lineEditScale->text().trimmed().split(" ", QString::SkipEmptyParts);
+    list = ui->lineEditScale->text().trimmed().split(" ", MD_SkipEmptyParts);
   if (list.size() != 2)
     return;
 

@@ -70,6 +70,7 @@
 #include "vtkInteractorStyleMyTrackballCamera.h"
 #include <vtkCubeAxesActor.h>
 #include <QMessageBox>
+#include <QActionGroup>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 

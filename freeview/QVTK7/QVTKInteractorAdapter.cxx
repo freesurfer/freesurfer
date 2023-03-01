@@ -126,7 +126,7 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
           iren->InvokeEvent(vtkCommand::LeftButtonPressEvent, e2);
           break;
 
-        case Qt::MidButton:
+        case Qt::MiddleButton:
           iren->InvokeEvent(vtkCommand::MiddleButtonPressEvent, e2);
           break;
 
@@ -146,7 +146,7 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
           iren->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, e2);
           break;
 
-        case Qt::MidButton:
+        case Qt::MiddleButton:
           iren->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent, e2);
           break;
 
@@ -262,12 +262,12 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
   {
     QWheelEvent* e2 = static_cast<QWheelEvent*>(e);
 
-    iren->SetEventInformationFlipY(e2->x(), e2->y(),
+    iren->SetEventInformationFlipY(e2->pixelDelta().x(), e2->pixelDelta().y(),
                                (e2->modifiers() & Qt::ControlModifier) > 0 ? 1 : 0,
                                (e2->modifiers() & Qt::ShiftModifier ) > 0 ? 1 : 0);
     iren->SetAltKey((e2->modifiers() & Qt::AltModifier) > 0 ? 1 : 0);
 
-    this->AccumulatedDelta += e2->delta();
+    this->AccumulatedDelta += e2->angleDelta().y();
     const int threshold = 120;
 
     // invoke vtk event when accumulated delta passes the threshold

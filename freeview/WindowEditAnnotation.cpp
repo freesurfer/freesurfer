@@ -1,5 +1,6 @@
 #include "WindowEditAnnotation.h"
 #include "ui_WindowEditAnnotation.h"
+#include <cstddef>
 #include "LayerSurface.h"
 #include "SurfaceAnnotation.h"
 #include "LayerPropertySurface.h"
@@ -8,6 +9,7 @@
 #include <QTreeWidgetItem>
 #include <QSettings>
 #include <QFileDialog>
+#include "MigrationDefs.h"
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -333,7 +335,7 @@ int WindowEditAnnotation::GetCurrentIndex()
 
 void WindowEditAnnotation::OnEditColorTextChanged()
 {
-  QStringList list = ui->lineEditColor->text().split(" ", QString::SkipEmptyParts);
+  QStringList list = ui->lineEditColor->text().split(" ", MD_SkipEmptyParts);
   if (list.size() == 3)
   {
     int rgb[3];

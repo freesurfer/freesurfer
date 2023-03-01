@@ -19,6 +19,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include "MigrationDefs.h"
 
 DialogLoadPointSet::DialogLoadPointSet(QWidget *parent) :
   QDialog(parent),
@@ -81,7 +82,7 @@ int DialogLoadPointSet::GetPointSetType()
 
 QStringList DialogLoadPointSet::GetFileNames()
 {
-  QStringList fns = ui->lineEditFileName->text().trimmed().split(";", QString::SkipEmptyParts);
+  QStringList fns = ui->lineEditFileName->text().trimmed().split(";", MD_SkipEmptyParts);
   for (int i = 0; i < fns.size(); i++)
   {
     fns[i] = MyUtils::CygwinPathProof(fns[i]);

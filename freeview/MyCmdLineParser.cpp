@@ -28,6 +28,8 @@
 #include <vector>
 #include <iostream>
 #include <QDebug>
+#include <QRegularExpression>
+#include "MigrationDefs.h"
 
 #include <fstream>
 #include <stdarg.h>
@@ -359,7 +361,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
 bool MyCmdLineParser::Parse(const QString &cmd)
 {
   string_array args;
-  QStringList list = cmd.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+  QStringList list = cmd.split(QRegularExpression("\\s+"), MD_SkipEmptyParts);
   for (int i = 0; i < list.size(); i++)
   {
     args.push_back(list[i].toStdString());

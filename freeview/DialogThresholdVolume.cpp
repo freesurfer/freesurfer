@@ -53,10 +53,10 @@ void DialogThresholdVolume::UpdateVolumes()
   foreach (Layer* layer, layers)
   {
     LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
-    ui->comboBoxSourceVolume->addItem(mri->GetName(), qVariantFromValue<QObject*>(mri));
+    ui->comboBoxSourceVolume->addItem(mri->GetName(), QVariant::fromValue<QObject*>(mri));
     if (src == mri)
       ui->comboBoxSourceVolume->setCurrentIndex(ui->comboBoxSourceVolume->count()-1);
-    ui->comboBoxTargetVolume->addItem(mri->GetName(), qVariantFromValue<QObject*>(mri));
+    ui->comboBoxTargetVolume->addItem(mri->GetName(), QVariant::fromValue<QObject*>(mri));
     if (target == mri)
       ui->comboBoxTargetVolume->setCurrentIndex(ui->comboBoxTargetVolume->count()-1);
   }

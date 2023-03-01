@@ -41,7 +41,7 @@
 #endif
 
 #include "fsinit.h"
-#include "log.h"
+//#include "log.h"
 #include "chklc.h"
 #include "utils.h"
 
@@ -111,7 +111,7 @@ void myMessageOutput(QtMsgType type, const char *msg)
 int main(int argc, char *argv[])
 {
   Progname = argv[0];
-  throwExceptions(true);
+//  throwExceptions(true);
 
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 
   // global initialization
   CursorFactory::Initialize();
-  qsrand(QDateTime::currentDateTime().toTime_t());
+  srand(QDateTime::currentDateTime().toSecsSinceEpoch());
   vtkObject::GlobalWarningDisplayOff();
   // fesetround(FE_TONEAREST);
 #ifdef CYGWIN

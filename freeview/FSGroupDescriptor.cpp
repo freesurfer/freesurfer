@@ -26,6 +26,8 @@
 #include <QTextStream>
 #include <QDebug>
 #include <QStringList>
+#include <QRegularExpression>
+#include "MigrationDefs.h"
 
 FSGroupDescriptor::FSGroupDescriptor( QObject* parent ) : QObject( parent ),
   m_fsgd( NULL ),
@@ -55,7 +57,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
     QString line = file.readLine().trimmed();
     if (!line.isEmpty())
     {
-      QStringList list = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+      QStringList list = line.split(QRegularExpression("\\s+"), MD_SkipEmptyParts);
       if (list[0].toLower() == "xaxis" && list.size() == 3)
       {
         m_dXStart = list[1].toDouble(&bOK);

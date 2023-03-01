@@ -265,6 +265,7 @@ HEADERS  += \
     LivewireTool.h \
     LUTDataHolder.h \
     MainWindow.h \
+    MigrationDefs.h \
     MyCmdLineParser.h \
     MyUtils.h \
     PanelLayer.h \
