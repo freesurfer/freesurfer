@@ -134,16 +134,14 @@ def mkdir(path_dir):
 
 def fast_3D_interp_torch(X, II, JJ, KK, mode):
     if mode=='nearest':
-        IIr = torch.round(II).long()
-        JJr = torch.round(JJ).long()
-        KKr = torch.round(KK).long()
-        IIr[IIr < 0] = 0
-        JJr[JJr < 0] = 0
-        KKr[KKr < 0] = 0
-        IIr[IIr > (X.shape[0] - 1)] = (X.shape[0] - 1)
-        JJr[JJr > (X.shape[1] - 1)] = (X.shape[1] - 1)
-        KKr[KKr > (X.shape[2] - 1)] = (X.shape[2] - 1)
-        Y = X[IIr, JJr, KKr]
+        ok = (II>0) & (JJ>0) & (KK>0) & (II<=X.shape[0]-1) & (JJ<=X.shape[1]-1) & (KK<=X.shape[2]-1)
+        IIr = torch.round(II[ok]).long()
+        JJr = torch.round(JJ[ok]).long()
+        KKr = torch.round(KK[ok]).long()
+        c = X[IIr, JJr, KKr]
+        Y = torch.zeros(II.shape, device='cpu')
+        Y[ok] = c.float()
+        
     elif mode=='linear':
         ok = (II>0) & (JJ>0) & (KK>0) & (II<=X.shape[0]-1) & (JJ<=X.shape[1]-1) & (KK<=X.shape[2]-1)
         IIv = II[ok]
