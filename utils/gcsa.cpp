@@ -216,7 +216,7 @@ int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
     if (vno == Gdiag_no){
       DiagBreak();
     }
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs,gcsa->inputvals, vno);
     if (vno == Gdiag_no){
       DiagBreak();
       printf("vno = %d annot=%d ",vno,v->annotation);
@@ -264,7 +264,7 @@ int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs,gcsa->inputvals, vno);
     if (vno == Gdiag_no && v->annotation == 1336341) DiagBreak();
     if (v->annotation == 0) /* not labeled */
       continue;
@@ -620,6 +620,8 @@ int GCSAdiff(GCSA *gcsa1, GCSA *gcsa2, double thresh)
   CP_NODE *cpn1,*cpn2;
   CP *cp1,*cp2;
 
+  printf("GCSAdiff(): thresh=%g\n",thresh);
+
   if(gcsa1->ninputs != gcsa2->ninputs){
     printf("diff ninputs %d %d\n",gcsa1->ninputs,gcsa2->ninputs);
     return(1);
@@ -632,6 +634,7 @@ int GCSAdiff(GCSA *gcsa1, GCSA *gcsa2, double thresh)
     printf("diff icno_priors %d %d\n",gcsa1->icno_priors,gcsa2->icno_priors);
     return(3);
   }
+  printf("GCSAdiff(): ninputs=%d, class_ico=%d, prior_ico=%d\n",gcsa1->ninputs,gcsa1->icno_classifiers,gcsa1->icno_priors);
 
   for (i = 0; i < gcsa1->ninputs; i++) {
     if(gcsa1->inputs[i].type != gcsa2->inputs[i].type){
@@ -650,9 +653,11 @@ int GCSAdiff(GCSA *gcsa1, GCSA *gcsa2, double thresh)
       printf("diff inputs[%d].flags %d %d\n",i,gcsa1->inputs[i].flags,gcsa2->inputs[i].flags);
       return(7);
     }
+    printf("GCSAdiff(): input=%d, type=%d fname=%s navgs=%d flags=%d\n",i,gcsa1->inputs[i].type,
+	   gcsa1->inputs[i].fname,gcsa1->inputs[i].navgs,gcsa1->inputs[i].flags);
   }
 
-  /* write out class statistics first */
+  /* check class statistics first */
   for(vno = 0; vno < gcsa1->mris_classifiers->nvertices; vno++) {
     gcsan1 = &gcsa1->gc_nodes[vno];
     gcsan2 = &gcsa2->gc_nodes[vno];
@@ -957,7 +962,7 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
 
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
@@ -1325,7 +1330,7 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
 
       if (vno == Gdiag_no) DiagBreak();
 
-      GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+      GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
 
       VERTEX const * const v_prior = GCSAsourceToPriorVertex(gcsa, v);
       vno_prior = v_prior - gcsa->mris_priors->vertices;
@@ -1565,7 +1570,7 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 
       if (v->ripflag || v->marked) continue;
 
-      GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+      GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
       max_ll = 10 * BIG_AND_NEGATIVE;
       best_label = v->annotation;
       for (n = 0; n < vt->vnum; n++) {
@@ -1593,12 +1598,9 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 
   return (total);
 }
-
-int GCSAload_inputs(VERTEX *v, double *v_inputs, int ninputs)
+int GCSAload_inputs(double *v_inputs, MRI *inputs, int vno)
 {
-  v_inputs[0] = v->val;
-  if (ninputs > 1) v_inputs[1] = v->val2;
-  if (ninputs > 2) v_inputs[2] = v->imag_val;
+  for(int n=0; n < inputs->nframes; n++) v_inputs[n] = MRIgetVoxVal(inputs,vno,0,0,n);
   return (NO_ERROR);
 }
 
@@ -2258,7 +2260,7 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     MRISorigVertexToVoxel(mris, v, mri_aseg, &x, &y, &z);
     label = (int)MRIgetVoxVal(mri_aseg, nint(x), nint(y), nint(z), 0);
 
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
     if (vno_prior == Gdiag_no) DiagBreak();
@@ -2312,7 +2314,7 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
     if (v->ripflag || v->marked != mark) continue;
     if (vno == Gdiag_no) DiagBreak();
 
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
     if (vno_prior == Gdiag_no) DiagBreak();
@@ -2521,3 +2523,87 @@ int GCSArelabelIslands(GCSA *gcsa, MRI_SURFACE *mris, int max_iter, float min_ar
   while (nchanged > 0 && niter++ < max_iter) ;
   return(NO_ERROR) ;
 }
+
+/*!
+  \fn int GCSA::load_default_data(MRIS *surf, char *subject_name, int sulc_only, int which_norm)
+  \brief Load in the "default" data for GCSA. This function is used in
+  both mris_ca_{train,label}.  It provides a consistent interface. The
+  data are loaded both into the into the inputvals MRI structure and
+  into the non-longer-used vertex structure {val,val2,imag_val}. The
+  code is a little obscure, but basically it load the mean curv into
+  frame 0; if ninputs=2, it loads the sulc into frame 1; if ninputs=3,
+  it loads the thickness into frame 2. This is a refactorization of
+  code that was in both mris_ca_{train,label}. which_norm is usually
+  set to NORM_MEAN. The GCSA Input structure must be set in advance,
+  eg with GCSAputInputType(). Not sure that sulc_only will work.
+*/
+int GCSA::load_default_data(MRIS *surf, char *subject_name, int sulc_only, int which_norm)
+{
+  int err=0;
+  if(this->inputvals) MRIfree(&this->inputvals);
+
+  printf("GCSA::load_default_data(): ninputs=%d  sulc_only=%d which_norm=%d\n",this->ninputs,sulc_only,which_norm);
+  if(this->ninputs < 1 || this->ninputs > 3){
+    printf("GCSA::load_default_data(): ninputs=%d  must be 1,2,3\n",this->ninputs);
+    return(1);
+  }
+
+  // Allocate the MRI structure
+  this->inputvals = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,this->ninputs);
+
+  int normalize1_flag = this->inputs[0].flags & GCSA_NORMALIZE;
+  if(!sulc_only){ // default, compute mean curvature and load as 1st input (v->val)
+    MRISuseMeanCurvature(surf) ;
+    MRISaverageCurvatures(surf, this->inputs[0].navgs); // spatially smooth
+    if(normalize1_flag) {
+      printf("GCSA::load_default_data(): normalizing #1, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToValues(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 0, "val");
+  }
+
+  if(this->ninputs > 1 || sulc_only) { // not the default, load sulc and set as 2nd input (v->val2)
+    int k = 1;
+    if(sulc_only) k = 0;
+    if(this->inputs[1].navgs > 0) {
+      printf("GCSA::load_default_data(): input #2 or sulconly navg=%d > 0\n",this->inputs[1].navgs);
+      return(err);
+    }
+    err = MRISreadCurvature(surf, this->inputs[k].fname);
+    if(err) {
+      MRIfree(&this->inputvals);
+      return(err);
+    }
+    int normalize2_flag = this->inputs[k].flags & GCSA_NORMALIZE;
+    if(normalize2_flag || (sulc_only && normalize1_flag)) {
+      printf("GCSA::load_default_data(): normalizing #2, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToValues(surf) ;
+    MRIScopyValToVal2(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, k, "val2");
+  }
+
+  if(this->ninputs > 2){ // not the default, load in thickness and set as 3rd input (v->imag_val)
+    if(this->inputs[2].navgs > 0) {
+      printf("GCSA::load_default_data(): input #3 navg=%d > 0\n",this->inputs[2].navgs);
+      return(err);
+    }
+    err = MRISreadCurvature(surf, this->inputs[2].fname);
+    if(err) {
+      MRIfree(&this->inputvals);
+      return(err);
+    }
+    int normalize3_flag = this->inputs[2].flags & GCSA_NORMALIZE;
+    if(normalize3_flag)  {
+      printf("GCSA::load_default_data(): normalizing #3, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToImagValues(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 2, "imag_val");
+  }
+  
+  return(0);
+}
+
