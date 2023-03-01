@@ -336,21 +336,22 @@ def predict(path_images,
                 print('volumes saved in:          ' + path_volumes[0])
             if path_qc_scores[0] is not None:
                 print('QC scores saved in:        ' + path_qc_scores[0])
-
-    if robust:
-        print('\nIf you use the new robust version of SynthSeg in a publication, please cite:')
-        print('Robust Segmentation of Brain MRI in the Wild with Hierarchical CNNs and no Retraining')
-        print('B. Billot, M. Collin, S.E. Arnold, S. Das, J.E. Iglesias')
-    else:
-        print('\nIf you use this tool in a publication, please cite:')
-        print('SynthSeg: domain randomisation for segmentation of brain MRI scans of any contrast and resolution')
-        print('B. Billot, D.N. Greve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
+       
 
     if len(list_errors) > 0:
         print('\nERROR: some problems occured for the following inputs (see corresponding errors above):')
         for path_error_image in list_errors:
             print(path_error_image)
         sys.exit(1)
+    else:
+        print('\nIf you use this tool in a publication, please cite:')
+        print('SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining')
+        print('B. Billot, D.N. Greve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
+        print('Medical Image Analysis, accepted for publication.')
+        if robust:
+            print('\nRobust machine learning segmentation for large-scale analysis of heterogeneous clinical brain MRI datasets')
+            print('B. Billot, C. Magdamo, Y. Cheng, S.E. Arnold, S. Das, J.E. Iglesias')
+            print('PNAS, accepted for publication.')
 
 
 def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, out_volumes, out_qc):
