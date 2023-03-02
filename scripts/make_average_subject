@@ -83,23 +83,24 @@ if($DoLink) then
   popd > /dev/null
 endif
 
-if($DoSurfaces) then
-  set cmd = (make_average_surface $cmdargs)
-  echo $cmd
-  $cmd
-  if($status) then
-    echo "ERROR: make_average_surface"
-    exit 1;
-  endif
-endif
-
 if($DoVolumes) then
+  # Do volumes first so that there is a volgeom template for surfaces
   set cmd = (make_average_volume $cmdargs)
   if($KeepAllOrig) set cmd = ($cmd --keep-all-orig)
   echo $cmd
   $cmd
   if($status) then
     echo "ERROR: make_average_volume"
+    exit 1;
+  endif
+endif
+
+if($DoSurfaces) then
+  set cmd = (make_average_surface $cmdargs)
+  echo $cmd
+  $cmd
+  if($status) then
+    echo "ERROR: make_average_surface"
     exit 1;
   endif
 endif
