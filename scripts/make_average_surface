@@ -42,8 +42,8 @@ if ( $?SUBJECTS_DIR) then
 endif
 set average_subject=average
 set sphere_reg=sphere.reg
-set transform_fname=""
-set XFORM_FLAG=""
+set transform_fname = "talairach.xfm"
+set XFORM_FLAG="-X $transform_fname"
 set ico_no=7
 set DoXHemi = 0;
 set topdir = ();
@@ -122,21 +122,43 @@ echo $0 | tee -a $LF
 echo $inputargs | tee -a $LF
 echo input subjects: ${SUBJECTS}  | tee -a $LF
 echo output subject: ${average_subject}  | tee -a $LF
+echo transform_fname $transform_fname   | tee -a $LF
 
-# Copy MNI 305 to output mri dir
 set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
-if(! -e $mni305) then
-  echo "ERROR: cannot find $mni305"
-  exit 1;
+if($transform_fname == talairach.xfm) then
+  # Copy MNI 305 to output mri dir
+  if(! -e $mni305) then
+    echo "ERROR: cannot find $mni305"
+    exit 1;
+  endif
+  cp $mni305 $sdout/${average_subject}/mri
+  # Set the MNI305 xfm fname to 'auto'
+  set mnivol = $sdout/${average_subject}/mri/mni305.cor.mgz
+  set cmd = (mri_add_xform_to_header -c auto $mnivol $mnivol)
+  echo $cmd | tee -a $LF
+  $cmd  | tee -a $LF
+  if($status) exit 1;
+  set templatevol = $mni305
+else 
+  # Set the volume geometry template to the average subject orig. If that
+  # does not exist, create a template from the first subject's orig. The
+  # content does not matter, just the volume geom. In theory, should get
+  # this from the xform itself
+  set templatevol = $sdout/${average_subject}/mri/orig.mgz
+  if(! -e $templatevol) then
+    set templatevol = $sdout/${average_subject}/mri/volgeom.template.mgz
+    set src = $SUBJECTS_DIR/$SUBJECTS[1]/mri/orig.mgz
+    set xfm = $SUBJECTS_DIR/$SUBJECTS[1]/mri/transforms/$transform_fname
+    set ud = `UpdateNeeded $templatevol $xfm $src`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_convert $src -at $xfm $templatevol)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1
+    endif
+  endif
+  set XFORM_FLAG = "$XFORM_FLAG -t $templatevol"
 endif
-cp $mni305 $sdout/${average_subject}/mri
-
-# Set the MNI305 xfm fname to 'auto'
-set mnivol = $sdout/${average_subject}/mri/mni305.cor.mgz
-set cmd = (mri_add_xform_to_header -c auto $mnivol $mnivol)
-echo $cmd | tee -a $LF
-$cmd  | tee -a $LF
-if($status) exit 1;
 
 # Create a file with the list of subjects (will not include xhemi)
 set subjlistfile = `fs_temp_file`
@@ -192,13 +214,13 @@ foreach hemi ($hemilist)
   cd $sdout/$average_subject
 
   #--------------------------------------------------------------
-  foreach s ($surflist)
-    echo "#@# Making average $hemi.$s surface ---------------------"  | tee -a $LF
+  foreach surf ($surflist)
+    echo "#@# Making average $hemi.$surf surface ---------------------"  | tee -a $LF
     date  | tee -a $LF
     set cmd = (mris_make_average_surface $NoSurf2Surf $XFORM_FLAG \
-                -i $ico_no -o $s -sdir-out $sdout\
+                -i $ico_no -o $surf -sdir-out $sdout\
                 ${hemi} \
-                ${s} ${sphere_reg} \
+                ${surf} ${sphere_reg} \
                 ${average_subject} \
                 $SUBJECTS )
     pwd  | tee -a $LF
@@ -208,7 +230,6 @@ foreach hemi ($hemilist)
       echo "mris_average_surface failed"  | tee -a $LF
       exit 1;
     endif
-    echo ""  | tee -a $LF
     echo ""  | tee -a $LF
   end # loop over surfaces
 
@@ -223,11 +244,10 @@ foreach hemi ($hemilist)
   else
     set icoreg = ${FREESURFER_HOME}/average/surf/${hemi}.sphere.ico$ico_no.reg 
   endif
-  set mni305 = $FREESURFER/average/mni305.cor.mgz
-  set ud = (`UpdateNeeded surf/$hemi.sphere $mni305 $icoreg`)
-  if($ud || $ForceUpdate) then
-    set cmd = (mris_convert --vol-geom $mni305 $icoreg surf/$hemi.sphere)
-    echo $cmd  | tee -a $LF
+  set ud = (`UpdateNeeded surf/$hemi.sphere $templatevol $icoreg`)
+  set cmd = (mris_convert --vol-geom $templatevol $icoreg surf/$hemi.sphere)
+    if($ud || $ForceUpdate) then
+      echo $cmd  | tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
       echo "mris_convert failed"  | tee -a $LF
@@ -506,7 +526,7 @@ while( $#argv != 0 )
         set getting_subjects = 0;
         shift;
       endif
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set transform_fname = $argv[1]; shift;
       set XFORM_FLAG = "-X $transform_fname";
       breaksw
