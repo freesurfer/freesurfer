@@ -50,7 +50,9 @@ set hour   = `date +%H`
 set min    = `date +%M`
 
 # Set up log file
-if($#LF == 0) if($#LF == 0) set LF = `pwd`/make_folding_atlas.Y$year.M$month.D$day.H$hour.M$min.log
+set logdir = `pwd`/log/$base
+mkdir -p $logdir
+if($#LF == 0) if($#LF == 0) set LF = $logdir/make_folding_atlas.Y$year.M$month.D$day.H$hour.M$min.log
 if($LF != /dev/null) rm -f $LF
 echo "Log file for make_folding_atlas" >> $LF
 date  | tee -a $LF
@@ -63,6 +65,27 @@ cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
 echo $VERSION | tee -a $LF
 echo OMP_NUM_THREADS $OMP_NUM_THREADS | tee -a $LF
 uname -a  | tee -a $LF
+
+which squeue >& /dev/null
+if($status == 0) then
+  set SubmitType = "sbatch"
+  setenv FS_SBATCH_ACCOUNT fsm
+  if($?FS_SBATCH_ACCOUNT == 0) then
+    echo "ERROR: no account set, must set env var FS_SBATCH_ACCOUNT"
+    exit 1
+  endif
+  set submitcmd = (sbatch --partition=basic --nodes=1  \
+    --account=$FS_SBATCH_ACCOUNT --ntasks-per-node=1 \
+    --cpus-per-task=$OMP_NUM_THREADS --mem=7G --time=0-10:00)
+  set DashC = "--wrap="
+  set MASopts = "--cpus-per-task=2 --mem=14G"
+else
+  set SubmitType = "pbsubmit"
+  set submitcmd = "pbsubmit -n $OMP_NUM_THREADS"
+  set DashC = "-c "
+  set MASopts = "-l nodes=1:ppn=2,vmem=14gb"
+  set jb = ()
+endif
 
 #========================================================
 if($DoXHemi) then
@@ -83,7 +106,10 @@ if($DoXHemi) then
       set cmd = (xhemireg --s $subject)
       echo "  #@# $cmd" | tee -a $LF
       if($RunIt) then
-        pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
+        if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.xhemireg --output=$logdir/xhemi.$subject.$hemi.sbatch.log"
+        echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
+        $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
+        #pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
         sleep 1
       endif
     endif
@@ -103,7 +129,7 @@ if($DoXHemi) then
     endif
   end
 
-  # xhemi surface registration to fsaverage
+  # xhemi surface registration to fsaverage (why?)
   echo "Checking xhemireg fsaverage registration for each subject" | tee -a $LF
   @ nRunning = 0;
   foreach subject ($subjlist)
@@ -114,7 +140,10 @@ if($DoXHemi) then
       set cmd = (surfreg --s $subject --t fsaverage --xhemi --no-annot --$hemi) # --aparc?
       echo "  #@# $cmd" | tee -a $LF
       if($RunIt) then
-        pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
+        if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.surfreg.fsa  --output=$logdir/surfreg.fsa.$subject.$hemi.sbatch.log"
+        echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
+        $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
+        #pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
         sleep 1
         @ nRunning = $nRunning + 1;
         echo " " | tee -a $LF
@@ -192,7 +221,10 @@ while ($nthIter < $nitersmax)
     echo "#@# $cmd" | tee -a $LF
     if($RunIt) then
       # This can use a lot of memory, so 2 nodes
-      pbsubmit -l nodes=1:ppn=2,vmem=14gb $queue -c "fs_time $cmd" | tee -a $LF
+      if($SubmitType == sbatch) set jb = "--job-name=make_average_subject --output=$logdir/make_average_subject.$nthIter.sbatch.log"
+      echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
+      $submitcmd $jb $MASopts ${DashC}"$cmd" | tee -a $LF
+      #pbsubmit -l nodes=1:ppn=2,vmem=14gb $queue -c "fs_time $cmd" | tee -a $LF
       date | tee -a $LF
       if($ShortSleep == 0) then      
         echo "Sleeping 10 min (make_average_subject)" | tee -a $LF
@@ -246,7 +278,10 @@ while ($nthIter < $nitersmax)
         echo "#i# $nthIter $nthSubject/$#subjlist $subject $hemi `date` ------- " | tee -a  $LF
         echo $cmd | tee -a $LF
         if($RunIt) then
-          pbsubmit -n $OMP_NUM_THREADS $queue -c "$cmd" |& tee -a $LF
+        if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.surfreg --output=$logdir/surfreg.$subject.$hemi.$nthIter.sbatch.log"
+          echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
+          $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
+          #pbsubmit -n $OMP_NUM_THREADS $queue -c "$cmd" |& tee -a $LF
           echo " " | tee -a $LF
           sleep 1
         endif
@@ -261,7 +296,10 @@ while ($nthIter < $nitersmax)
           echo "#ix# i=$nthIter $nthSubject/$#subjlist $subject $hemi xhemi `date` ------- " | tee -a  $LF
           echo $cmd | tee -a $LF
           if($RunIt) then
-            pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" |& tee -a $LF
+           if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.xhemisurfreg  --output=$logdir/xhemisurfreg.$subject.$hemi.$nthIter.sbatch.log"
+            echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
+            $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
+            #pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" |& tee -a $LF
             echo " " | tee -a $LF
             sleep 1
           endif
@@ -451,6 +489,7 @@ while( $#argv != 0 )
 
     case "--no-q":
       set queue = ""
+      set xhemiqueue = ""
       breaksw
 
     case "--xq":
@@ -481,6 +520,11 @@ while( $#argv != 0 )
       breaksw
     case "--annot":
       set UseAParc = 1;
+      breaksw
+
+    case "--account":
+      if($#argv < 1) goto arg1err;
+      setenv FS_BATCH_ACCOUNT $argv[1]; shift;
       breaksw
 
     case "--log":
@@ -546,12 +590,6 @@ foreach subject ($subjlist)
     exit 1;
   endif
 end
-if($RunIt) then
-  which pbsubmit >& /dev/null
-  if($status) then
-    echo "ERROR: pbsubmit command not found"
-  endif
-endif
 if(! $?OMP_NUM_THREADS) setenv OMP_NUM_THREADS 1
 
 goto check_params_return;
@@ -591,6 +629,7 @@ usage_exit:
   echo "  --short-sleep : sleep for shorter time before polling"
   echo "  --no-template-only : make avg surf files even with a single hemi or --no-vol"
   echo "  --threads N "
+  echo "  --account slurm-account : or set env variable FS_BATCH_ACCOUNT"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -605,21 +644,25 @@ This is a script that iteratively creates a cortical folding atlas
 (stored as a .tif file). A given tif is generated from the
 registration to the previous tif. This procedure can take take a while
 (eg, 12 iterations takes about 24 hours). The more iterations, the
-more it converges. This should be run from launchpad (or something
-else that has pbsubmit installed). This automatically manages all of
-the bookkeeping to create and register to iterative templates. It
-pbsubmits all the registration jobs so they can run in parallel, waits
-until they are all done, then generates the tif in an average subject
-folder. Because it pbsubmits the needed jobs, this script should NOT
-itself be pbsubmitted. Each iteration will yield an average subject
-folder (with tif and other files in it); the name will be based on the
---base arg. Both lh and rh will be done and stored in the same average
-subject folder. If you run with a given number of iterations and you
-want to do more iterations, just submit the same command line with the
-new number of iterations. It will see that the earlier iterations are
-done and start with the next iteration (ie, it will not try to re-run
-all the iterations you have already processed). This process can be
-used to create average subjects like fsaverage and fsaverage_sym.
+more it converges. This automatically manages all of the bookkeeping
+to create and register to iterative templates. It submits all the
+registration jobs so they can run in parallel, waits until they are
+all done, then generates the tif in an average subject folder.
+
+Each iteration will yield an average subject folder (with tif and
+other files in it); the name will be based on the --base arg. Both lh
+and rh will be done and stored in the same average subject folder. If
+you run with a given number of iterations and you want to do more
+iterations, just submit the same command line with the new number of
+iterations. It will see that the earlier iterations are done and start
+with the next iteration (ie, it will not try to re-run all the
+iterations you have already processed). This process can be used to
+create average subjects like fsaverage and fsaverage_sym.
+
+Because it submits the needed jobs, this script should NOT itself be
+submitted. This should handle platforms that use either pbsubmit or
+sbatch. For sbatch, you must set the FS_BATCH_ACCOUNT or pass the
+account name with --account.
 
 setenv SUBJECTS_DIR /autofs/cluster/freesurfer/subjects/atlases/aparc_atlas.V6
 cd /autofs/cluster/freesurfer/subjects/atlases/aparc_atlas.V6/scripts
