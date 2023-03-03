@@ -42,7 +42,7 @@ set ovlist = ($ovlist area.pial area.mid curv.pial inflated.K)
 set surflist = (orig white pial smoothwm sphere)
 set surflist = ($surflist inflated)
 set annotlist = ()
-set annotlist = ($annotlist aparc BA aparc.a2009s)
+set annotlist = ($annotlist aparc BA aparc.a2009s aparc.DKTatlas)
 set labellist = (cortex)
 
 set cmdargs = ($argv);
