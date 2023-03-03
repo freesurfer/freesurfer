@@ -2081,9 +2081,7 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
   // matches the surface volume geometry. Invert if necessary
   if(surf->vg.valid){
     if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
-      printf("[DEBUG] MRISltaMultiply(): surface vg not equal LTA src\n");
       if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
-        printf("[DEBUG] MRISltaMultiply(): surface vg not equal LTA trg\n");
 	// If this fails a lot, try setting vg_isEqual_Threshold higher
 	printf("vg surf ------------------------\n");
 	fflush(stdout);	fflush(stderr);
@@ -4246,12 +4244,8 @@ static void MRISsetNeighborhoodSizeAndOptionallyDist(MRIS *mris, int nsize, bool
   }
   mrisCheckVertexFaceTopology(mris);
   
-  printf("[DEBUG] (before MRISsetNeighborhoodSizeAndDistWkr()) mris->dist_nsize=%x(%d), nsize=%d, mris->dist_alloced_flags=%x\n",
-         mris->dist_nsize, mris->dist_nsize, nsize, mris->dist_alloced_flags);
   MRISsetNeighborhoodSizeAndDistWkr(mris, nsize, alwaysDoDist);
-
-  printf("[DEBUG] mris->dist_nsize=%x(%d), nsize=%d, mris->dist_alloced_flags=%x\n",
-         mris->dist_nsize, mris->dist_nsize, nsize, mris->dist_alloced_flags);  
+  
   if (!(mris->dist_alloced_flags & 1))  { cheapAssert(mris->dist_nsize == 0);     }
   else                                  { cheapAssert(mris->dist_nsize >= nsize); }
   mrisCheckVertexFaceTopology(mris);
