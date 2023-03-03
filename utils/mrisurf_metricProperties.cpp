@@ -2081,7 +2081,9 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
   // matches the surface volume geometry. Invert if necessary
   if(surf->vg.valid){
     if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
+      printf("[DEBUG] MRISltaMultiply(): surface vg not equal LTA src\n");
       if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
+        printf("[DEBUG] MRISltaMultiply(): surface vg not equal LTA trg\n");
 	// If this fails a lot, try setting vg_isEqual_Threshold higher
 	printf("vg surf ------------------------\n");
 	fflush(stdout);	fflush(stderr);
@@ -4244,8 +4246,12 @@ static void MRISsetNeighborhoodSizeAndOptionallyDist(MRIS *mris, int nsize, bool
   }
   mrisCheckVertexFaceTopology(mris);
   
+  printf("[DEBUG] (before MRISsetNeighborhoodSizeAndDistWkr()) mris->dist_nsize=%x(%d), nsize=%d, mris->dist_alloced_flags=%x\n",
+         mris->dist_nsize, mris->dist_nsize, nsize, mris->dist_alloced_flags);
   MRISsetNeighborhoodSizeAndDistWkr(mris, nsize, alwaysDoDist);
-  
+
+  printf("[DEBUG] mris->dist_nsize=%x(%d), nsize=%d, mris->dist_alloced_flags=%x\n",
+         mris->dist_nsize, mris->dist_nsize, nsize, mris->dist_alloced_flags);  
   if (!(mris->dist_alloced_flags & 1))  { cheapAssert(mris->dist_nsize == 0);     }
   else                                  { cheapAssert(mris->dist_nsize >= nsize); }
   mrisCheckVertexFaceTopology(mris);
@@ -13102,11 +13108,28 @@ void mrisFindMiddleOfGray(MRIS *mris) {
 
 // Cloning should be the union of a surface and an empty surface
 // but that is NYI
-//
+// The funtion is only used in mris_convert.
 MRIS* MRISunion(MRIS const * mris, MRIS const * mris2) {
+    // check if both surface volgeom are the same
+    if (!vg_isEqual(&mris->vg, &mris2->vg))
+    {
+      printf("ERROR: MRISunion() - VolGeom of both surface are not the same!!!\n");
+      return NULL;
+    }
+
+    // check if both surfaces are in the same space
+    if (mris->useRealRAS != mris2->useRealRAS)
+    {
+      printf("ERROR:  MRISunion() - input surfaces are not in the same space!!!\n");
+      return NULL;
+    }
+
     int vno,vno2,vno3;
     MRIS * const mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
                                    mris->nfaces+mris2->nfaces);
+
+    mris3->useRealRAS = mris->useRealRAS;
+
     copyVolGeom(&mris->vg,&mris3->vg);
     for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
     {
