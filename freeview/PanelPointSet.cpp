@@ -116,6 +116,9 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxOverallScore(int)));
   connect( ui->spinBoxSecondQA, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxSecondQA(int)));
   connect( ui->textEditOverallQuality, SIGNAL(textChanged()), this, SLOT(OnTextOverallQualityChanged()));
+
+  if (m_mapCurrentPoint.contains(layer))
+    SetCurrentPoint(m_mapCurrentPoint[layer]);
 }
 
 void PanelPointSet::DoIdle()
@@ -206,9 +209,13 @@ void PanelPointSet::DoUpdateWidgets()
 
     if (!layer->GetEnhancedData("overall_score").isNull())
       ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
+    else
+      ui->spinBoxOverallScore->setValue(1);
 
     if (!layer->GetEnhancedData("qa_level").isNull())
       ui->spinBoxSecondQA->setValue(layer->GetEnhancedData("qa_level").toInt());
+    else
+      ui->spinBoxSecondQA->setValue(-1);
 
     ui->textEditOverallQuality->setPlainText(layer->GetEnhancedData("overall_quality").toString());
   }
@@ -526,6 +533,8 @@ void PanelPointSet::UpdatePointInfo()
     {
       AddStatItem(key, stats[key].toDouble());
     }
+
+    m_mapCurrentPoint[layer] = nIndex;
   }
   BlockAllSignals(false);
 }

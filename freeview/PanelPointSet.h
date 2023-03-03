@@ -16,6 +16,7 @@
 #define PANELPOINTSET_H
 
 #include "PanelLayer.h"
+#include <QMap>
 
 namespace Ui
 {
@@ -77,6 +78,7 @@ private:
   QList<QWidget*> m_widgetlistSpline;
 
   QString     m_self;
+  QMap<QObject*, int> m_mapCurrentPoint;
 };
 
 #endif // PANELPOINTSET_H
