@@ -1407,6 +1407,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     ui->actionSyncInstances->setChecked(true);
   }
 
+  if (parser->Found("rotate-around-cursor"))
+    ((RenderView3D*)m_views[3])->SetFocalPointAtCursor(true);
+
   if (QFile::exists(m_sSyncFilePath) && QFileInfo(m_sSyncFilePath).lastModified().addDays(1) < QDateTime::currentDateTime())
   {
     QFile file(m_sSyncFilePath);

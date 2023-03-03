@@ -461,7 +461,6 @@ bool FSSurface::LoadCurvature( const QString& filename )
   else
   {
     int cVertices = m_MRIS->nvertices;
-
     vtkSmartPointer<vtkFloatArray> curvs = vtkFloatArray::SafeDownCast( m_polydata->GetPointData()->GetArray( "Curvature" ) );
     if (curvs.GetPointer() == NULL)
     {
@@ -969,6 +968,7 @@ void FSSurface::UpdatePolyData( MRIS* mris,
   polydata->GetPointData()->SetNormals( newNormals );
   newPolys->Squeeze(); // since we've estimated size; reclaim some space
   polydata->SetPolys( newPolys );
+
   if ( polydata_verts )
   {
     polydata_verts->SetPoints( newPoints );
