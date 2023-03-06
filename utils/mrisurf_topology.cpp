@@ -3336,3 +3336,75 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
   
   return 1;
 }
+
+/*!
+  \fn std::vector<int> MRISgetSpatOrderedNeighbors(MRIS *surf, int centervno)
+  \brief This gets a list of the neighboring vertex numbers around the
+  center vertex. The vertices are spatially ordered, meaning that the
+  1st in the list is a neighbor of the the 2nd and the last; the 2nd
+  is a neighbor of the 1st and 3rd, and so on. They are ordered
+  counterclockwise around the center vertex (same as the order of the
+  vertices around a face).
+ */
+std::vector<int> MRISgetSpatOrderedNeighbors(MRIS *surf, int centervno)
+{
+  std::vector<int> vtxnolist;
+  // Vertex topology of the center vertex
+  VERTEX_TOPOLOGY const * const vt = &(surf->vertices_topology[centervno]);
+  // Get the first face
+  FACE *face = &(surf->faces[vt->f[0]]);
+  // Go through the corners of the first face
+  int k;
+  for(k=0; k < 3; k++) if(face->v[k]==centervno) break;
+  // k is now the corner of the face that corresponds to centervno
+  // Add one to it to get the next corner. 
+  k++;  if(k==3) k=0;
+  // Get the vertexno that corresonds to that corner, put in the list
+  vtxnolist.push_back(face->v[k]);
+  // Get the next corner
+  k++;  if(k==3) k=0;
+  // Add this vertexno to the list
+  vtxnolist.push_back(face->v[k]);
+  // Now, the first two vertices are going around the center in an
+  // order that is consistent with the way the vertices go around a
+  // face. Not sure it is important, but it will force the rest of
+  // the vertices to below to follow the same convention.
+  
+  // Now, go through the spatially continuous vertex neighbors. At this
+  // point, we already have two of them, so start at 2
+  for(int nthnbr = 2; nthnbr < vt->vnum; nthnbr++){
+    // Go through all the nbr vertices to find out which one is the
+    // next (nth) spatially continous neighbor. Add it to the list
+    // when found.
+    for(int ntest = 0; ntest < vt->vnum; ntest++){
+      int vnotest = vt->v[ntest];
+      if(MRISisNextSpatOrderedNeighbor(surf, centervno, vnotest, vtxnolist)){
+	vtxnolist.push_back(vnotest);
+	break;
+      }
+    }
+  }
+  return(vtxnolist);
+}
+
+int MRISisNextSpatOrderedNeighbor(MRIS *surf, int centervno, int vnotest, std::vector<int> vnolist)
+{
+  // If the test vertex is already in the vnolist, then it is not the next vertex
+  for(int n=0; n < vnolist.size(); n++) if(vnotest == vnolist[n]) return(0);
+
+  // This is the last added vertex no
+  int lastvno = vnolist[vnolist.size()-1];
+
+  // The test vertex is the next vertex if it is a neighbor of both
+  // the center and last vertices.
+  VERTEX_TOPOLOGY const * const vt = &(surf->vertices_topology[vnotest]);
+  int nhits = 0;
+  for(int n = 0; n < vt->vnum; n++) {
+    int vnvno = vt->v[n];
+    if(vnvno == centervno) nhits++;
+    if(vnvno == lastvno)   nhits++;
+    if(nhits == 2) return(1);
+  }
+  return(0);
+}
+
