@@ -2534,15 +2534,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "isosurface" )
       {
         QStringList script("setdisplayisosurface");
-        QStringList args = subArgu.split( ",");
-        if ( args.size() > 0 && args[0].size() > 0 )
-        {
-          script << args[0];
-        }
-        if ( args.size() > 1 && args[1].size() > 0 )
-        {
-          script << args[1];
-        }
+        QStringList args = subArgu.split(",", MD_SkipEmptyParts);
+        script << args;
         m_scripts.insert( 0, script );
       }
       else if ( subOption == "isosurface_output")
@@ -3185,36 +3178,39 @@ void MainWindow::CommandSetAutoAdjustFrameContrast( const QStringList& sa )
 }
 
 
-void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
+void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa_in )
 {
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {
     bool bOK;
     double dValue;
-    if ( sa.size() > 1 )
+    QStringList sa = sa_in;
+    sa.removeFirst();
+    if ( sa_in.size() > 1 )
     {
-      dValue = sa[1].toDouble(&bOK);
+      dValue = sa_in[1].toDouble(&bOK);
       if ( bOK )
       {
         mri->GetProperty()->SetContourMinThreshold( dValue );
-      }
-      else if ( sa[1].toLower() != "on" )
-      {
-        cerr << "Isosurface threshold value is not valid.\n";
+        sa.removeFirst();
       }
     }
-    if ( sa.size() > 2 )
+    if ( sa_in.size() > 2 )
     {
-      dValue = sa[2].toDouble(&bOK);
+      dValue = sa_in[2].toDouble(&bOK);
       if ( bOK )
       {
         mri->GetProperty()->SetContourMaxThreshold( dValue );
+        sa.removeFirst();
       }
-      else
-      {
-        cerr << "Isosurface threshold value is not valid.\n";
-      }
+    }
+    for (int i = 0; i < sa.size(); i++)
+    {
+      if (sa[i] == "voxelize")
+        mri->GetProperty()->SetShowVoxelizedContour(true);
+      else if (sa[i] != "on" || sa[i] != "1")
+        cerr << "Unrecognized option(s) for isosurface";
     }
     connect(mri, SIGNAL(IsoSurfaceUpdating()), SLOT(SetProcessing()));
     connect(mri, SIGNAL(IsoSurfaceUpdated()), SLOT(SetProcessingFinished()));

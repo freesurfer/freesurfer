@@ -47,9 +47,10 @@
     </required>
 
     <optional>
-      <intro>Valid options:</intro>
-      <argument>-p patch-file</argument>
-      <explanation>input patch file, not a full surface</explanation>
+      <argument>-? | -u | -h</argument>
+      <explanation>help page</explanation>
+      <argument>-p</argument>
+      <explanation>in-file is a patch file, not a full surface</explanation>
       <argument>-c scalar-file</argument>
       <explanation>input scalar curv overlay file (must still specify surface)</explanation>
       <argument>-f scalar-file</argument>
@@ -78,8 +79,8 @@
       <explanation>input .label file and name for this label</explanation>
       <argument>--labelstats label-stats</argument>
       <explanation>output gifti file to which label stats will be written</explanation>
-      <argument>--combinesurfs in-file in-file2 out-file</argument>
-      <explanation>combine surface files</explanation>
+      <argument>--combinesurfs</argument>
+      <explanation>combine surface files, two input surface files required</explanation>
       <argument>--delete-cmds</argument>
       <explanation>delete command lines in surface</explanation>
       <argument>--center</argument>
@@ -105,7 +106,7 @@
       <argument>--area surface area.mgz</argument>
       <explanation>compute vertex-wise area (no other args needed); rescales group if needed</explanation>
       <argument>--angle surface angles.mgz</argument>
-      <explanation>compute cortical orientation angles</explanation>
+      <explanation>compute cortical orientation angles (no other args needed)</explanation>
       <argument>--label2mask surface label mask.mgz</argument>
       <explanation>convert a surface-based label to a binary mask (no other args needed)</explanation>
       <intro> Note: --cras_add and --cras_subtract are depricated. They are included for backwards compatability. Use --to-tkr and --to-scanner instead. </intro>

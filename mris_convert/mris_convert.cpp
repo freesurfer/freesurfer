@@ -94,11 +94,13 @@ static int convertToWFile(char *in_fname, char *out_fname) ;
 static int convertFromWFile(char *in_fname, char *out_fname) ;
 static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 static MRI* computeAngles(MRIS* surf) ;
+static int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
 /*-------------------------------- DATA ----------------------------*/
 
 const char *Progname ;
 
+static bool doTkrRASConvert = false;
 static int center_surface=0 ;
 static int talairach_flag = 0 ;
 static char *talxfmsubject = NULL;
@@ -141,7 +143,7 @@ MRIS *SurfCoords = NULL;
 int WriteArea = 0;
 int nUpsample = 0,UpsampleSortType=0;
 int DeleteCommands = 0;
-static int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
+
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -179,6 +181,9 @@ main(int argc, char *argv[])
 
   check_options();
 
+  if (argc == 1) // no input parameters provided
+    usage_exit();
+
 #if !__COMBINESURFS_TAKE_INFILE2
   // confirm that all options were eaten (this catches the case where options
   // were included at the end of the command string)
@@ -186,14 +191,19 @@ main(int argc, char *argv[])
   {
     if (argc != 4)
     {
-      usage_exit() ;
+      printf("--combinesurfs option is specified.\n");
+      printf("ERROR in-file in2-file out-file are required!!!\n");
+      exit(1);
+      //usage_exit() ;
     }
   }
   else
   {
     if (argc != 3)
     {
-      usage_exit() ;
+      printf("ERROR in-file out-file are required!!!\n");
+      exit(1);
+      //usage_exit() ;
     }
   }
 #else
@@ -269,11 +279,13 @@ main(int argc, char *argv[])
     if( req >= STRLEN ) {
       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
     }
-    mris = MRISread(fname) ;
+    
+    // why do we need to read .orig before reading the patch ???
+    mris = MRISread(fname, doTkrRASConvert) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
-    if (MRISreadPatch(mris, in_fname) != NO_ERROR)
+    if (MRISreadPatch(mris, in_fname, doTkrRASConvert) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, in_fname) ;
     if (read_orig_positions)
@@ -285,7 +297,7 @@ main(int argc, char *argv[])
   }
   else
   {
-    mris = MRISread(in_fname) ;
+    mris = MRISread(in_fname, doTkrRASConvert) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
@@ -427,15 +439,18 @@ main(int argc, char *argv[])
   }
   else if (combinesurfs_flag)
   {
-    MRI_SURFACE *mris2 = MRISread(in2_fname) ;
+    MRI_SURFACE *mris2 = MRISread(in2_fname, doTkrRASConvert) ;
     if (!mris2)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, in2_fname) ;
 
     MRIS* mris3 = MRISunion(mris, mris2);
     
-    MRISwrite(mris3, out_fname);
+    if (mris3 != NULL)
+    {
+      MRISwrite(mris3, out_fname);
+      MRISfree(&mris3);
+    }
     MRISfree(&mris2);
-    MRISfree(&mris3);
   }
   else
   {
@@ -455,7 +470,7 @@ main(int argc, char *argv[])
     else
     {
       // default output:
-      printf("Saving %s as a surface\n",out_fname);
+      printf("Saving %s as a surface in %s space\n", out_fname, (mris->useRealRAS) ? "SCANNER" : "TKREGISTER");
       if(VolGeomMRI) {
 	printf("Adding Vol Geom\n");
         getVolGeom(VolGeomMRI,&mris->vg);
@@ -886,7 +901,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "-to-surf")) {
     ToSurfCoords = 1;
-    SurfCoords = MRISread(argv[2]);
+    SurfCoords = MRISread(argv[2], doTkrRASConvert);
     if(SurfCoords == NULL) exit (1);
     nargs = 1 ;
   }

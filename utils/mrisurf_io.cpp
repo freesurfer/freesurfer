@@ -1002,7 +1002,7 @@ int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
 
   Description
   ------------------------------------------------------*/
-int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
+int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname, bool dotkrRASConvert)
 {
   char fname[STRLEN];
 
@@ -1023,7 +1023,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   // check whether the patch file is ascii or binary
   if (type == MRIS_GIFTI_FILE)    /* .gii */
   {
-    mris = MRISread(fname);
+    mris = MRISread(fname, dotkrRASConvert);
   }
   else if (type == MRIS_ASCII_TRIANGLE_FILE) /* .ASC */
   {
@@ -1238,12 +1238,12 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 
   Description
   ------------------------------------------------------*/
-int MRISreadPatch(MRI_SURFACE *mris, const char *pname)
+int MRISreadPatch(MRI_SURFACE *mris, const char *pname, bool dotkrRASConvert)
 {
   int ret;
 
   // update the vertices in patch file
-  ret = MRISreadPatchNoRemove(mris, pname);
+  ret = MRISreadPatchNoRemove(mris, pname, dotkrRASConvert);
   if (ret != NO_ERROR) {
     return (ret);
   }
@@ -4329,7 +4329,7 @@ MRI_SURFACE *MRISfastRead(const char *fname)
 
   Description
   ------------------------------------------------------*/
-MRIS * MRISread(const char *fname)
+MRIS * MRISread(const char *fname, bool dotkrRasConvert)
 {
   MRIS *mris = MRISreadOverAlloc(fname, 1.0);
   if (mris == NULL) return (NULL);
@@ -4337,9 +4337,9 @@ MRIS * MRISread(const char *fname)
   // save xyz coordinates space because mris->useRealRAS is changed after conversion
   mris->orig_xyzspace = mris->useRealRAS;
 
-  // convert surface xyz coordinates scanner space to tkregister space 
+  // convert surface xyz coordinates from scanner space to tkregister space 
   // (ie, the native space that the surface xyz coords are generated in)
-  if (mris->useRealRAS)
+  if (mris->useRealRAS && dotkrRasConvert)
     MRISscanner2Tkr(mris);
 
   MRISsetNeighborhoodSizeAndDist(mris, 3);  // find nbhds out to 3-nbrs
@@ -5059,7 +5059,7 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
     mris->max_curv = curvmax;
     mris->min_curv = curvmin;
     return (NO_ERROR);
-  }
+  } // (mritype != MRI_VOLUME_TYPE_UNKNOWN)
 
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
@@ -5685,6 +5685,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
         case TAG_OLD_USEREALRAS:
           if (!freadIntEx(&mris->useRealRAS, fp))  // set useRealRAS
           {
+            // we got a read error, should we stop???
             mris->useRealRAS = 0;  // if error, set to default
           }
           break;
@@ -5841,6 +5842,9 @@ int MRISreadDecimation(MRI_SURFACE *mris, char *fname)
   return (ndec);
 }
 
+
+// what is the difference from MRISreadCurvatureFile() ???
+// curv value is float in new, and it is int in old ???
 int MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname)
 {
   int k, vnum, fnum, vals_per_vertex;

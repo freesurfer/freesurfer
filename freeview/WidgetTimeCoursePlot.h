@@ -40,6 +40,8 @@ public:
   double          m_dXInterval;
   qint64          m_nId;
   QString         m_strName;
+  double          m_dLocalMin;
+  double          m_dLocalMax;
 
   bool            m_bShow;
   QColor          m_color;
@@ -90,6 +92,8 @@ signals:
   void PlotRangeChanged();
 
 private:
+  void UpdateRange();
+
   QList<TimeCourseData>   m_data;
   double          m_dMin;
   double          m_dMax;

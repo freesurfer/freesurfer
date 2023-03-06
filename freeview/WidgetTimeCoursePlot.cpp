@@ -65,13 +65,22 @@ void WidgetTimeCoursePlot::AddTimeCourseData(const TimeCourseData &data)
   if (m_dMax < data.m_dMax)
     m_dMax = data.m_dMax;
 
+  double local_min = 1e10, local_max = -1e10;
   for (int i = 0; i < data.m_points.size(); i++)
   {
-    if (m_dLocalMin > data.m_points[i])
-      m_dLocalMin = data.m_points[i];
-    else if (m_dLocalMax < data.m_points[i])
-      m_dLocalMax = data.m_points[i];
+    if (local_min > data.m_points[i])
+      local_min = data.m_points[i];
+    else if (local_max < data.m_points[i])
+      local_max = data.m_points[i];
   }
+
+  m_data[m_data.size()-1].m_dLocalMax = local_max;
+  m_data[m_data.size()-1].m_dLocalMin = local_min;
+
+  if (m_dLocalMin > local_min)
+    m_dLocalMin = local_min;
+  if (m_dLocalMax < local_max)
+    m_dLocalMax = local_max;
 
   if (m_dMax <= m_dMin)
     m_dMax = m_dMin+1;
@@ -98,9 +107,33 @@ void WidgetTimeCoursePlot::SetDataVisible(qint64 nId, bool bShow)
     if (m_data[i].m_nId == nId)
     {
       m_data[i].m_bShow = bShow;
+      if (m_bAutoScale)
+        UpdateRange();
       update();
       break;
     }
+  }
+}
+
+void WidgetTimeCoursePlot::UpdateRange()
+{
+  double old_min = m_dLocalMin, old_max = m_dLocalMax;
+  m_dLocalMin = 1e10;
+  m_dLocalMax = -1e10;
+  for (int i = 0; i < m_data.size(); i++)
+  {
+    if (m_data[i].m_bShow)
+    {
+      if (m_data[i].m_dLocalMin < m_dLocalMin)
+        m_dLocalMin = m_data[i].m_dLocalMin;
+      if (m_data[i].m_dLocalMax > m_dLocalMax)
+        m_dLocalMax = m_data[i].m_dLocalMax;
+    }
+  }
+  if (m_dLocalMin > m_dLocalMax) // none is shown, restore previous values
+  {
+    m_dLocalMin = old_min;
+    m_dLocalMax = old_max;
   }
 }
 

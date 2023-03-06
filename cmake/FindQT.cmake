@@ -1,12 +1,14 @@
 # Qt Find Module
 
-if(NOT Qt5_DIR)
-  # default search path
-  if(EXISTS ${FS_PACKAGES_DIR}/qt/5.11/lib/cmake/Qt5)
-    set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.11/lib/cmake/Qt5)
-  elseif(EXISTS ${FS_PACKAGES_DIR}/qt/5.6/lib/cmake/Qt5)
-    set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.6/lib/cmake/Qt5)
-  endif()
+if(NOT Qt6_DIR)
+   if(NOT Qt5_DIR)
+     # default search path
+     if(EXISTS ${FS_PACKAGES_DIR}/qt/5.11/lib/cmake/Qt5)
+       set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.11/lib/cmake/Qt5)
+     elseif(EXISTS ${FS_PACKAGES_DIR}/qt/5.6/lib/cmake/Qt5)
+       set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.6/lib/cmake/Qt5)
+     endif()
+   endif()
 endif()
 
 # find Qt components
@@ -15,11 +17,19 @@ if(NOT APPLE)
   set(_qt_components ${_qt_components} X11Extras)
 endif()
 
-find_package(Qt5 COMPONENTS ${_qt_components})
+if(Qt6_DIR)
+   find_package(Qt6 COMPONENTS ${_qt_components})
+elseif(Qt5_DIR)
+   find_package(Qt5 COMPONENTS ${_qt_components})
+endif()
 
 # cmake doesn't easily provide us with a cross-platform path to
 # root qt install directory, so we'll use the hidden QtCore prefix
-set(Qt5_INSTALL_DIR ${_qt5Core_install_prefix})
+if(Qt6_DIR)
+   set(Qt6_INSTALL_DIR ${_qt6Core_install_prefix})
+elseif(Qt5_DIR)
+   set(Qt5_INSTALL_DIR ${_qt5Core_install_prefix})
+endif()
 
 # install the shared libraries to the freesurfer lib directory
 if(Qt5_FOUND AND NOT APPLE)

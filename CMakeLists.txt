@@ -253,6 +253,7 @@ if(BUILD_GUIS)
 
   # -------- qt --------
 
+if(NOT Qt6_DIR)
   if(NOT Qt5_DIR)
      if(HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
         set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
@@ -263,9 +264,15 @@ if(BUILD_GUIS)
         set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
      endif()
   endif()
+endif()
 
   find_package(QT)
-  message(STATUS "For HOST_OS=${HOST_OS} Qt5_DIR=${Qt5_DIR}")
+
+  if(Qt6_DIR)
+     message(STATUS "For HOST_OS=${HOST_OS} Qt6_DIR=${Qt6_DIR}")
+  elseif(Qt5_DIR)
+     message(STATUS "For HOST_OS=${HOST_OS} Qt5_DIR=${Qt5_DIR}")
+  endif()
 
 endif()
 
