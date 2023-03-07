@@ -32,7 +32,7 @@ int RenderWidget::LoadImages(const QStringList& filenames)
   if (!m_images.isEmpty())
   {
     SetCurrentImageIndex(0);
-    qWarning("Loaded %lld image files", m_images.size());
+    qWarning("Loaded %d image files", (int)m_images.size());
   }
 
   return m_images.size();
