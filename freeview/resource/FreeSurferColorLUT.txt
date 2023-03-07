@@ -372,7 +372,7 @@
 
 
 # Cerebellar parcellation labels from SUIT (matches labels in cma.h),
-# FastSurfer-CerebNet builds on top of these SUITS labels and expands them two aggregated labels (see below)
+# FastSurfer-CerebNet builds on top of these SUITS labels and adds two aggregated labels (see below)
 # See https://doi.org/10.1016/j.neuroimage.2022.119703
 #No. Label Name:                            R   G   B   A
 601  Cbm_Left_I_IV                          0   69  190 0
@@ -500,7 +500,7 @@
 939  R-Post-Hypothalamus                    255 170 20  0
 
 # Below is the color table for olfactory bulb structures. 
-# See : Automated Olfactory Bulb Segmentation on High Resolutional T2-Weighted MRI
+# See: Automated Olfactory Bulb Segmentation on High Resolutional T2-Weighted MRI
 # Estrada et al. Neuroimage 2021. 
 # https://doi.org/10.1016/j.neuroimage.2021.118464
   
