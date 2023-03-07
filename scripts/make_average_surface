@@ -197,6 +197,11 @@ foreach hemi ($hemilist)
   echo "#@# Making $hemi registration template ---------"  | tee -a $LF
   set atlas = $hemi.reg.template.tif
   set cmd = (mris_make_template -norot)
+  # In general, don't use annot for the template; this has not been
+  # fully tested and may cause some problems. It is consistent with
+  # recon-all and surfreg to not use the annot, so, if you do use it,
+  # make sure that you turn on using the annot during the reg in those
+  # programs.
   if($UseAnnotTemplate) set cmd = ($cmd -annot aparc)
   set cmd = ($cmd $hemi $sphere_reg $SUBJECTS $atlas)
   pwd | tee -a $LF
@@ -258,8 +263,8 @@ foreach hemi ($hemilist)
   # Create a link to sphere.reg (want to do this? or reg to fsaverage?)
   if($UseSymLink) then
     cd surf
-    ln -s  $hemi.sphere $hemi.sphere.reg
-    ln -s  $hemi.sphere $hemi.$average_subject.sphere.reg
+    ln -sf  $hemi.sphere $hemi.sphere.reg
+    ln -sf  $hemi.sphere $hemi.$average_subject.sphere.reg
     cd ..
   else
     cp  surf/$hemi.sphere surf/$hemi.sphere.reg
@@ -701,6 +706,7 @@ while( $#argv != 0 )
 
     # These are flags passed to make_average_subject, but dont apply here
     case "--ctab":
+    case "--rca-threads":
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
         set getting_subjects = 0;
@@ -808,10 +814,10 @@ usage_exit:
   echo "   --rh : only do right hemi (default is to do both)"
   echo "                                 default: sphere.reg"
   echo "   --force   : overwrite existing average subject data"
-  echo "   --no-annot : do not use annotation at all"
   echo "   --annot-template : use annotation when making tif"
   echo "   --template-only : useful when creating iterative atlases"
   echo "   --no-template-only : turns off --template-only"
+  echo "   --no-annot : do not create average annotations (does not affect use with template)"
   echo "   --no-cortex-label : do not create ?h.cortex.label"
   echo "   --annot annotname <--annot annotname > : supply list of annots to use (default $annotlist)"
   echo "   --meas measname <--meas measname > : supply list of meass to use (default $measlist)"
