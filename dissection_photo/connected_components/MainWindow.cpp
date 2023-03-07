@@ -8,9 +8,9 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QSettings>
-#include <QDesktopWidget>
 #include "CommonDef.h"
 #include <QTemporaryDir>
+#include <QScreen>
 
 #define WND_TITLE "Connected Components"
 
@@ -49,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
   setWindowTitle(WND_TITLE);
   QSettings s;
   QRect rc = s.value("MainWindow/Geometry").toRect();
-  if (rc.isValid() && QApplication::desktop()->screenGeometry(this).contains(rc))
+  if (rc.isValid() && QGuiApplication::primaryScreen()->geometry().contains(rc))
     setGeometry(rc);
 
   m_proc = new QProcess(this);
@@ -57,7 +57,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(m_proc, SIGNAL(readyReadStandardOutput()), SLOT(OnProcessOutputMessage()));
   connect(m_proc, SIGNAL(readyReadStandardError()), SLOT(OnProcessErrorMessage()));
   connect(m_proc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(OnProcessFinished()));
-  connect(m_proc, SIGNAL(error(QProcess::ProcessError)), SLOT(OnProcessError(QProcess::ProcessError)));
+  connect(m_proc, SIGNAL(errorOccurred(QProcess::ProcessError)), SLOT(OnProcessError(QProcess::ProcessError)));
 }
 
 MainWindow::~MainWindow()
@@ -184,8 +184,8 @@ void MainWindow::LoadImage(int n)
   if (!rects.isEmpty())
   {
     QList<QPoint> pts;
-    foreach (RECT_REGION r, rects)
-      pts << r.first << r.second;
+    for (int i = 0; i < rects.size(); i++)
+      pts << rects[i].first << rects[i].second;
     m_maskProcessor.LoadSelections(pts);
     ui->widgetImageView->SetOverlay(m_maskProcessor.GetMaskImage(m_listStockColors));
     ui->pushButtonNext->setEnabled(true);

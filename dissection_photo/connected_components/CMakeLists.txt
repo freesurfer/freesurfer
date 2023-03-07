@@ -1,6 +1,6 @@
 project(connected_components)
 
-if(BUILD_GUIS AND Qt5_FOUND)
+if(BUILD_GUIS)
 
   include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
