@@ -10,13 +10,12 @@ set hemilist = (lh rh);
 set UseInitReg = 0;
 set DoXHemi = 0;
 set LF = ();
-set queue = "-q max200"; 
-set xhemiqueue = "-q max200"; 
 set RunIt = 1;
 set InitSurfReg = sphere.reg
 set InitSubj = ();
 set UseAParc = 1;
-set DoVol = 1;
+set DoVol = 0;
+set DoVolOnLast = 1;
 set icoorder = 7
 set ShortSleep = 0;
 set NoTemplateOnly = 0;
@@ -78,7 +77,7 @@ if($status == 0) then
     --account=$FS_SBATCH_ACCOUNT --ntasks-per-node=1 \
     --cpus-per-task=$OMP_NUM_THREADS --mem=7G --time=0-10:00)
   set DashC = "--wrap="
-  set MASopts = "--cpus-per-task=2 --mem=14G"
+  set MASopts = "--mem=14G --cpus-per-task=2"
 else
   set SubmitType = "pbsubmit"
   set submitcmd = "pbsubmit -n $OMP_NUM_THREADS"
@@ -109,7 +108,6 @@ if($DoXHemi) then
         if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.xhemireg --output=$logdir/xhemi.$subject.$hemi.sbatch.log"
         echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
         $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
-        #pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
         sleep 1
       endif
     endif
@@ -143,7 +141,6 @@ if($DoXHemi) then
         if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.surfreg.fsa  --output=$logdir/surfreg.fsa.$subject.$hemi.sbatch.log"
         echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
         $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
-        #pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
         sleep 1
         @ nRunning = $nRunning + 1;
         echo " " | tee -a $LF
@@ -209,22 +206,21 @@ while ($nthIter < $nitersmax)
   end
   if($MASNeeded) then
     echo "i=$nthIter Running Make Average Subject `date`" | tee -a $LF
-    set cmd = (make_average_subject --out $atlas --surf-reg $srcreg --ico $icoorder)
+    set cmd = (make_average_subject --out $atlas --surf-reg $srcreg --ico $icoorder --rca-threads 2) #threads fixed above
     if($#InitSubj == 0 || $nthIter != 1) set cmd = ($cmd --subjects $subjlist)
     if($#InitSubj != 0 && $nthIter == 1) set cmd = ($cmd --subjects $InitSubj)
     # If not running both lh and rh
-    if($#hemilist == 1) set cmd = ($cmd --no-vol --template-only --$hemilist)
-    if($DoVol == 0) set cmd = ($cmd --no-vol --template-only)
-    if($NoTemplateOnly) set cmd = ($cmd --no-template-only) # turns off --template-only above
+    if($#hemilist == 1) set cmd = ($cmd --$hemilist)
     if($DoXHemi) set cmd = ($cmd --xhemi)
-    if($UseAParc == 0)  set cmd = ($cmd --no-annot)
+    if($DoVol == 0 && !($DoVolOnLast && ($nthIter == $nitersmax))) set cmd = ($cmd --no-vol --template-only --no-annot)
+    if($NoTemplateOnly) set cmd = ($cmd --no-template-only) # turns off --template-only above
+    if($UseAParc == 0)  set cmd = ($cmd --no-annot-template)
     echo "#@# $cmd" | tee -a $LF
     if($RunIt) then
-      # This can use a lot of memory, so 2 nodes
+      # This can use a lot of memory
       if($SubmitType == sbatch) set jb = "--job-name=make_average_subject --output=$logdir/make_average_subject.$nthIter.sbatch.log"
       echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
       $submitcmd $jb $MASopts ${DashC}"$cmd" | tee -a $LF
-      #pbsubmit -l nodes=1:ppn=2,vmem=14gb $queue -c "fs_time $cmd" | tee -a $LF
       date | tee -a $LF
       if($ShortSleep == 0) then      
         echo "Sleeping 10 min (make_average_subject)" | tee -a $LF
@@ -272,8 +268,8 @@ while ($nthIter < $nitersmax)
       set outreg = $SUBJECTS_DIR/$subject/surf/$hemi.$atlas.sphere.reg
       if(! -e $outreg) then
         @ nRunning = $nRunning + 1;
-        set cmd = (surfreg --s $subject --t $atlas --$hemi)
-        if($UseAParc == 0)  set cmd = ($cmd --no-annot)
+        set cmd = (surfreg --s $subject --t $atlas --$hemi --no-annot)
+        if($UseAParc)  set cmd = ($cmd --aparc)
         if($UseInitReg) set cmd = ($cmd --init-reg $srcreg)
         echo "#i# $nthIter $nthSubject/$#subjlist $subject $hemi `date` ------- " | tee -a  $LF
         echo $cmd | tee -a $LF
@@ -281,7 +277,6 @@ while ($nthIter < $nitersmax)
         if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.surfreg --output=$logdir/surfreg.$subject.$hemi.$nthIter.sbatch.log"
           echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
           $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
-          #pbsubmit -n $OMP_NUM_THREADS $queue -c "$cmd" |& tee -a $LF
           echo " " | tee -a $LF
           sleep 1
         endif
@@ -290,8 +285,8 @@ while ($nthIter < $nitersmax)
         set outreg = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.$atlas.sphere.reg
         if(! -e $outreg) then
           @ nRunning = $nRunning + 1;
-          set cmd = (surfreg --s $subject --t $atlas --$hemi --xhemi)
-          if($UseAParc == 0)  set cmd = ($cmd --no-annot)
+          set cmd = (surfreg --s $subject --t $atlas --$hemi --xhemi --no-annot)
+          if($UseAParc)  set cmd = ($cmd --aparc)
           if($UseInitReg) set cmd = ($cmd --init-reg $srcreg)
           echo "#ix# i=$nthIter $nthSubject/$#subjlist $subject $hemi xhemi `date` ------- " | tee -a  $LF
           echo $cmd | tee -a $LF
@@ -299,7 +294,6 @@ while ($nthIter < $nitersmax)
            if($SubmitType == sbatch) set jb = "--job-name=$subject.$hemi.xhemisurfreg  --output=$logdir/xhemisurfreg.$subject.$hemi.$nthIter.sbatch.log"
             echo $submitcmd $jb ${DashC}\"$cmd\" | tee -a $LF
             $submitcmd $jb ${DashC}"$cmd" | tee -a $LF
-            #pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" |& tee -a $LF
             echo " " | tee -a $LF
             sleep 1
           endif
@@ -449,12 +443,25 @@ while( $#argv != 0 )
       set hemilist = rh
       breaksw
 
+    case "--lhrh":
+      set hemilist = (lh rh)
+      breaksw
+
     case "--xhemi":
+      set hemilist = lh
       set DoXHemi = 1;
       breaksw
 
     case "--vol":
       set DoVol = 1;
+      breaksw
+
+    case "--vol-on-last":
+      set DoVolOnLast = 1;
+      breaksw
+
+    case "--no-vol-on-last":
+      set DoVolOnLast = 0;
       breaksw
 
     case "--no-vol":
@@ -515,9 +522,11 @@ while( $#argv != 0 )
       setenv OMP_NUM_THREADS $argv[1]; shift
       breaksw
 
+    case "--no-annot-template":
     case "--no-annot":
       set UseAParc = 0;
       breaksw
+    case "--annot-template":
     case "--annot":
       set UseAParc = 1;
       breaksw
@@ -612,20 +621,20 @@ usage_exit:
   echo "  --f subjlistfile, --fsgd fsgdfile, --s subject1 --s subject2 "
   echo "  --b output base (subject will be called base.iITERNO)"
   echo "  --nmax nmax : maximum number of iterations"
-  echo "  --xhemi : do xhemi"
+  echo "  --xhemi : do xhemi (sets hemilist to lh only, use --lhrh after if both are wanted)"
   echo "  --init-surf-reg surf (default $InitSurfReg)"
   echo "      Registration used to make template on first iteration"
   echo "  --init-subject subject : create first atlas from subject instead"
   echo "      of all subjects. Automatically uses sphere for init surf"
-  echo "  --no-annot : good for monkeys"
+  echo "  --no-annot-template : good for monkeys"
   echo "  --lh, --rh : do left or right (default is both)"
+  echo "  --lhrh : do both left or right (default)"
   echo "  --ico icoorder : default is 7"
-  echo "  --no-vol : do not run make_average_volume"
+  echo "  --no-vol-on-last : do not run make_average_volume on the last iteration"
+  echo "  --vol : run make_average_volume on each iteration"
   echo "  --init : use prev iter reg to init mris_register/surfreg instead "
   echo "      of ?h.sphere. This might speed things up, but could bias. Note: "
   echo "      this has nothing to do with --int-surf-reg or --init-subject"
-  echo "  --q : spec queue to use (eg, max100)"
-  echo "  --no-q : use default queue"
   echo "  --short-sleep : sleep for shorter time before polling"
   echo "  --no-template-only : make avg surf files even with a single hemi or --no-vol"
   echo "  --threads N "
