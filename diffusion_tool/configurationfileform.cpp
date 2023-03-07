@@ -3,7 +3,7 @@
 #include <QTextStream>
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include "configurationfileform.h"
 
@@ -895,8 +895,9 @@ void ConfigurationFileForm::matcher(QDir directory, QString pattern, QVector<QSt
     QFileInfoList directory_contents = directory.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     // QTextStream(stdout) << "about to peep " << directory.absolutePath() << " and its length is " << directory_contents.length() << endl;
     QDir* temp = NULL;
-    QRegExp rx(pattern);
-    rx.setPatternSyntax(QRegExp::Wildcard);
+    QString wc_exp = QRegularExpression::wildcardToRegularExpression(pattern);
+    QRegularExpression rx(QRegularExpression::anchoredPattern(wc_exp),
+                          QRegularExpression::CaseInsensitiveOption);
     QString subject_name;
     int temp_index;
 
@@ -914,7 +915,7 @@ void ConfigurationFileForm::matcher(QDir directory, QString pattern, QVector<QSt
         else
         {
             // QTextStream(stdout) << "about to peep the contents of " << directory_contents[i].absoluteFilePath() << endl;
-            if (rx.exactMatch(directory_contents[i].absoluteFilePath()))
+            if (rx.match(directory_contents[i].absoluteFilePath()).hasMatch())
             {
                 vector.append(directory_contents[i].absoluteFilePath());
 

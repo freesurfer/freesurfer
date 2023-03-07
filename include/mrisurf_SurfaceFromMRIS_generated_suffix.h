@@ -153,6 +153,9 @@ namespace SurfaceFromMRIS {
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
     }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
+    }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
     }
@@ -428,6 +431,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -770,6 +776,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -1272,6 +1281,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -2444,6 +2456,9 @@ namespace SurfaceFromMRIS {
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
     }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
+    }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
     }
@@ -3609,6 +3624,9 @@ namespace SurfaceFromMRIS {
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
     }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
+    }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
     }
@@ -3876,6 +3894,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -4171,6 +4192,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -4504,6 +4528,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -5009,6 +5036,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -6190,6 +6220,9 @@ namespace SurfaceFromMRIS {
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
     }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
+    }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
     }
@@ -7354,6 +7387,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
@@ -8570,6 +8606,9 @@ namespace SurfaceFromMRIS {
     }
     PCOLOR_TABLE Surface::ct() const {
         return repr->ct;
+    }
+    int Surface::orig_xyzspace() const {  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
+        return repr->orig_xyzspace;
     }
     int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         return repr->useRealRAS;
