@@ -27,8 +27,19 @@ endif()
 # root qt install directory, so we'll use the hidden QtCore prefix
 if(Qt6_DIR)
    set(Qt6_INSTALL_DIR ${_qt6Core_install_prefix})
+   if(APPLE)
+     # find_package function fails to set _qt_components with Qt6 (but not Qt5), so set Qt6 paths based upon Qt6_DIR.
+     # The bug for Qt6 being unable to find modules was supposed to have been fixed in 6.4, but still did not work for me.
+     # So the cmake command line needs to set both Qt6_DIR and Qt6GuiTools_DIR. A relative path for Qt6_INSTALL_DIR does work.
+     set(Qt6_INSTALL_DIR ${Qt6_DIR}/../../..)
+     # set(Qt6GuiTools_DIR ${Qt6_DIR}GuiTools)
+     set(MAC_QT_INSTALL_DIR ${Qt6_INSTALL_DIR})
+   endif()
 elseif(Qt5_DIR)
    set(Qt5_INSTALL_DIR ${_qt5Core_install_prefix})
+   if(APPLE)
+     set(MAC_QT_INSTALL_DIR ${Qt5_INSTALL_DIR})
+   endif()
 endif()
 
 # install the shared libraries to the freesurfer lib directory
