@@ -42,8 +42,8 @@ def fiducials_correction(args):
             size=point[2],
             angle=point[3],
             response=point[4],
-            octave=point[5],
-            class_id=point[6],
+            octave=int(point[5]),
+            class_id=int(point[6]),
         )
         kp_template.append(temp)
 

@@ -6,7 +6,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QDebug>
-#include <QDesktopWidget>
+#include <QScreen>
 #include <QFileDialog>
 #include "DialogWelcome.h"
 #include <QTimer>
@@ -45,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
   QSettings s;
   QRect rc = s.value("MainWindow/Geometry").toRect();
   m_strLastDir = s.value("LastDir").toString();
-  if (rc.isValid() && QApplication::desktop()->screenGeometry(this).contains(rc))
+  if (rc.isValid() && QGuiApplication::primaryScreen()->geometry().contains(rc))
     setGeometry(rc);
 
   m_proc = new QProcess(this);
@@ -53,7 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(m_proc, SIGNAL(readyReadStandardOutput()), SLOT(OnProcessOutputMessage()));
   connect(m_proc, SIGNAL(readyReadStandardError()), SLOT(OnProcessErrorMessage()));
   connect(m_proc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(OnProcessFinished()));
-  connect(m_proc, SIGNAL(error(QProcess::ProcessError)), SLOT(OnProcessError(QProcess::ProcessError)));
+  connect(m_proc, SIGNAL(errorOccurred(QProcess::ProcessError)), SLOT(OnProcessError(QProcess::ProcessError)));
 }
 
 MainWindow::~MainWindow()
