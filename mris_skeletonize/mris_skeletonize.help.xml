@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mris_skeletonize</name>
+	<description>Computes the skeleton of gyri (ie, the crowns) or sulci (ie, the fundi)
+        </description>
+  <arguments>
+
+    <required>
+      <argument>--surf surfacepath</argument>
+      <explanation>surfacepath</explanation>
+      <argument>--sphere spherepath</argument>
+      <explanation>sphere needed for nonmax suppression</explanation>
+      <argument>--mask mask</argument>
+      <explanation>final skeletonized mask</explanation>
+    </required>
+
+    <optional>
+      <argument>--surfvals surfvals.mgz</argument>
+      <explanation>Surfaces values used to create the initial mask after any preprocessing (eg, scale, smoothing)</explanation>
+      <argument>--ps PointSet.json</argument>
+      <explanation>Point set of the skeleton</explanation>
+      <argument>--nbrsize N</argument>
+      <explanation>Neighborhood size for 2nd FF</explanation>
+      <argument>--threshold threshold</argument>
+      <explanation>Used to create initial mask that will be skeletonized.</explanation>
+      <argument>--fwhm fwhm</argument>
+      <explanation>Smooth surface values by this FWHM.</explanation>
+    </optional>
+
+  </arguments>
+  <example> 
+  </example>
+
+</help>
+
+

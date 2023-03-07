@@ -555,6 +555,7 @@ add_subdirectories(
   mris_left_right_register
   mris_make_surfaces
   mris_register
+  mris_skeletonize
   mris_smooth
   mris_sphere
   mris_surface_stats
