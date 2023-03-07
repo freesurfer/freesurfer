@@ -109,7 +109,7 @@ endif
 if($DoSurfaces && $DoVolumes && $DoRibbon) then
   set xopts = `fs_temp_file --suffix .xopts`
   set cmd = (recon-all -s $average_subject -cortribbon -aparc2aseg -threads $rcathreads)
-  if($#hemilist == 1) set cmd = (recon-all -$hemilist)
+  if($#hemilist == 1) set cmd = ($cmd -$hemilist)
   echo "mri_aparc2aseg --no-relabel" > $xopts
   set cmd = ($cmd -expert $xopts -xopts-overwrite)
   echo $cmd | tee -a $LF
