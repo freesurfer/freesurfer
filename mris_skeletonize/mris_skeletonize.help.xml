@@ -31,21 +31,37 @@
     <required>
       <argument>--surf surfacepath</argument>
       <explanation>surfacepath</explanation>
-      <argument>--sphere spherepath</argument>
-      <explanation>sphere needed for nonmax suppression</explanation>
+      <argument>--surfvals surfvalspath</argument>
+      <explanation>Pass input explicitly rather than computing it</explanation>
+      <argument>--k1</argument>
+      <explanation>Use k1 from surface</explanation>
+      <argument>--curv-nonmaxsup</argument>
+      <explanation>Use curvature H computed from surface with non-max suppression</explanation>
+      <argument>--gyrus</argument>
+      <explanation>skeletonize the crowns of the gyri (with --k1 or --curv-nonmaxsup)</explanation>
+      <argument>--sulcus</argument>
+      <explanation>skeletonize the fundi of the sulci (with --k1 or --curv-nonmaxsup)</explanation>
       <argument>--mask mask</argument>
       <explanation>final skeletonized mask</explanation>
     </required>
 
     <optional>
+      <argument>--o outdir</argument>
+      <explanation>Save all outputs into outdir (names will be supplied)</explanation>
+      <argument>--sphere spherepath</argument>
+      <explanation>sphere, only needed for nonmax suppression</explanation>
       <argument>--surfvals surfvals.mgz</argument>
       <explanation>Surfaces values used to create the initial mask after any preprocessing (eg, scale, smoothing)</explanation>
       <argument>--ps PointSet.json</argument>
       <explanation>Point set of the skeleton</explanation>
+      <argument>--label labelfile</argument>
+      <explanation>Surface label of the skeleton</explanation>
       <argument>--nbrsize N</argument>
-      <explanation>Neighborhood size for 2nd FF</explanation>
+      <explanation>Neighborhood size for 2nd FF (default is 2) </explanation>
       <argument>--threshold threshold</argument>
       <explanation>Used to create initial mask that will be skeletonized.</explanation>
+      <argument>--cluster nkeep</argument>
+      <explanation>Cluster the thresholded input and keep the largets nkeep clusters</explanation>
       <argument>--fwhm fwhm</argument>
       <explanation>Smooth surface values by this FWHM.</explanation>
     </optional>

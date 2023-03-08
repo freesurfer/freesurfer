@@ -46,6 +46,7 @@
 #include "dtk.fs.h"
 #include "colortab.h"
 #include "transform.h"
+#include "surfcluster.h"
 #include "cmdargs.h"
 #include "version.h"
 #ifdef _OPENMP
@@ -66,8 +67,12 @@ public:
   MRIS *m_surf=NULL,*m_sphere=NULL;
   MRI *m_mask=NULL;
   std::vector<std::vector<int>> vtxnbrlist; // nbrs in spatially contiguous order
+  std::vector<int> terminals, branchpoints;
+  class branchstruct {public: std::vector<int> vtxlist; double length=0;};
+  std::vector<branchstruct> branches;  
   int NeighborhoodSize = 2;
   double m_threshold = 0.3;
+  int nkeep=0; // number of clusters to keep, 0 means don't do clustering
   double m_fwhm = 0;
   std::vector<std::pair<double,int>> edgelist; // val,vno
   std::vector<double> surfvals;
@@ -97,6 +102,74 @@ public:
     }
     return(0);
   };
+  int nmasknbrs(int vno){
+    // Count the number of neighbors in the mask
+    std::vector<int> nbrlist = vtxnbrlist[vno];
+    int nnbrs = 0;
+    for(int n=0; n < nbrlist.size(); n++) if(MRIgetVoxVal(m_mask,nbrlist[n],0,0,0)>0) nnbrs++;
+    return(nnbrs);
+  }
+  void get_termbranch(void){
+    // Get lists of terminals and branchpoints
+    terminals.clear();
+    branchpoints.clear();
+    for(int n=0; n < edgelist.size(); n++){
+      int vno = edgelist[n].second;
+      int nnbrs = nmasknbrs(vno);
+      if(nnbrs == 1) terminals.push_back(vno);
+      if(nnbrs  > 2) branchpoints.push_back(vno);
+      // nnbrs==0 is possible, maybe?
+    }
+    printf("Found %d terminals and %d branchpoints\n",(int)terminals.size(),(int)branchpoints.size());
+  };
+  int get_branches(void){
+    // This was meant as a segmentation of the skeleton into individual segments ("branches"). This 
+    // code works but only on spurs. More needs to be done, but had to work on other things.
+    branches.clear();
+    std::vector<int> hitmap(m_surf->nvertices,0);// only makes a difference for terminals
+    for(int n=0; n < terminals.size(); n++){
+      int vno = terminals[n];
+      if(hitmap[vno]) continue;
+      branchstruct branch;
+      branch.vtxlist.push_back(vno);
+      hitmap[vno] = 1;
+      printf("terminal %d %d %d ",n,(int)branches.size()+1,vno);
+      fflush(stdout);
+      // Move out from this vertex, finding the next active but unhit neighbor 
+      while(1){
+	// If this vertex is a terminal or branchpoint, so stop
+	// searching.  Note that the same terminals/branchpoints will
+	// be represented across multiple branches
+	int nmnbrs = nmasknbrs(vno);
+	if(branch.vtxlist.size()>1 && nmnbrs != 2) break;
+	// Otherwise, look through the neighbors for the next one (has to be there)
+	std::vector<int> nbrlist = vtxnbrlist[vno];
+	int found = 0;
+	for(int k=0; k < nbrlist.size(); k++){
+	  int nbrvno = nbrlist[k];
+	  if(!MRIgetVoxVal(m_mask,nbrvno,0,0,0)) continue;
+	  if(hitmap[nbrvno]) continue;
+	  // If it gets here, then this vetex is the next step (there
+	  // can be one and only one).  Add it to the list and update
+	  // the hit map.
+	  branch.vtxlist.push_back(nbrvno);
+	  hitmap[nbrvno] = 1;
+	  //int len = (int)branch.vtxlist.size();
+	  //printf("  Terminal %d %6d nm=%d nnbrs=%d k=%d nbrvno=%6d m=%d len=%d\n",
+	  //	 n,vno,nmnbrs,(int)nbrlist.size(),k,nbrvno,(int)MRIgetVoxVal(m_mask,nbrvno,0,0,0),len);
+	  //fflush(stdout);
+	  found = 1;
+	  vno = nbrvno;
+	  break;
+	} // loop over neighbors
+	if(!found) break;
+      }// while(!done) getting members of the branch
+      printf(" len = %5d\n",(int)branch.vtxlist.size()); fflush(stdout);
+      branches.push_back(branch);
+    }
+    printf("Found %d branches\n",(int)branches.size());
+    return((int)branches.size());
+  }
   int erodeable(int vno) {
     // Test whether a given vertex can be eroded without causing
     // the skeleton to become disconnected
@@ -210,6 +283,44 @@ public:
     MatrixFree(&scannerxyz);
     return(err);
   }
+  int write_label(char *fname, char *subject){
+    // Write current edge list vertices as a surface label. When the
+    // procedure is done, this will be the skeleton.
+    LABEL *label = LabelAlloc(edgelist.size()+1, subject, "skeleton");
+    label->n_points = edgelist.size();
+    for(int n=0; n < edgelist.size(); n++){
+      int vno = edgelist[n].second;
+      label->lv[n].vno = vno;
+      label->lv[n].x = m_surf->vertices[vno].x;
+      label->lv[n].y = m_surf->vertices[vno].y;
+      label->lv[n].z = m_surf->vertices[vno].z;
+      label->lv[n].stat = surfvals[vno];
+    }
+    int err = LabelWrite(label,fname);
+    return(err);
+  }
+  int cluster(void){
+    printf("Clusterizing %d\n",nkeep);
+    int NClusters=0;
+    MRIScopyMRI(m_surf,m_mask,0,"val"); // overwrites the val field
+    SURFCLUSTERSUM *scs = sclustMapSurfClusters(m_surf,0.5,-1,+1,0,&NClusters,NULL,NULL);
+    printf("Found %d clusters\n",NClusters);
+    double cmaxsize = sclustMaxClusterArea(scs, NClusters);
+    printf("Max cluster size %lf\n",cmaxsize);
+    SURFCLUSTERSUM *scs2 = SortSurfClusterSum(scs, NClusters);
+    free(scs);
+    scs = scs2;
+    sclustAnnot(m_surf, NClusters); // create an annotation for convenience
+    for(int vno=0; vno < m_surf->nvertices; vno++){
+      int cno = m_surf->vertices[vno].undefval;
+      for(int k=0; k < nkeep; k++){
+	double v=0;
+	if(scs[k].clusterno == cno) v=1;
+	MRIsetVoxVal(m_mask,vno,0,0,0,v);
+      }
+    }
+    return(0);
+  }
 
   int skeletonize(void){
     // When this is done, the m_mask will be a binary mask of the skeleton and edgelist
@@ -219,9 +330,12 @@ public:
       return(1);
     }
     if(m_fwhm > 0) smooth_surfvals(m_fwhm);
+
     if(m_mask) MRIfree(&m_mask);
     m_mask = MRIalloc(m_surf->nvertices,1,1,MRI_INT);
     for(int vno=0; vno < m_surf->nvertices; vno++) if(surfvals[vno] > m_threshold) MRIsetVoxVal(m_mask,vno,0,0,0, 1);
+    if(nkeep>0) cluster();
+
     build_vtxnbrlist();
 
     int iter=0, nerodedtot=0;
@@ -251,10 +365,13 @@ struct utsname uts;
 char *cmdline, cwd[2000];
 int checkoptsonly = 0;
 const char *Progname = NULL;
+char *surfvalspath=NULL;
 char *surfpath=NULL, *spherepath=NULL, *outmaskpath=NULL,*outsurfvalspath=NULL,*pointsetpath=NULL,*labelpath=NULL,*tractpath=NULL;
+char *outdir=NULL;
 SurfSkeleton sk;
 double scale = -1; // gyrus, crowns
 char *subject=NULL, *hemi=NULL, *surfname=NULL;
+int inputtype=0;
 
 int main(int argc, char** argv)
 {
@@ -278,14 +395,35 @@ int main(int argc, char** argv)
   check_options();
   if(checkoptsonly) return(0);
 
+  if(outdir){
+    err = mkdir(outdir,0777);
+    if (err != 0 && errno != EEXIST) {
+      printf("ERROR: creating directory %s\n",outdir);
+      perror(NULL);
+      return(1);
+    }
+  }
+
   sk.m_surf = MRISread(surfpath);
   if(!sk.m_surf) exit(1);
-  sk.m_sphere = MRISread(spherepath);
-  if(!sk.m_sphere) exit(1);
 
-  sk.load_curv_nonmaxsup(scale);
+  if(inputtype == 1){
+    MRI *mri = MRIread(surfvalspath);
+    if(mri==NULL) exit(1);
+    sk.mri2surfvals(mri);
+    MRIfree(&mri);
+  }
+  if(inputtype == 2){  
+    sk.m_sphere = MRISread(spherepath);
+    sk.load_curv_nonmaxsup(scale);
+    if(!sk.m_sphere) exit(1);
+  }
+  if(inputtype == 3){  
+    sk.load_k1(scale);
+  }
 
   sk.skeletonize();
+
   if(outmaskpath) {
     err = MRIwrite(sk.m_mask,outmaskpath);
     if(err) exit(err);
@@ -294,10 +432,24 @@ int main(int argc, char** argv)
     err = sk.write_surfvals(outsurfvalspath);
     if(err) exit(err);
   }
-  if(pointsetpath){
-    err = sk.write_pointset(pointsetpath);
+  if(labelpath){
+    err = sk.write_label(labelpath,subject);
     if(err) exit(err);
   }
+  if(pointsetpath){
+    // returns 1 always
+    sk.write_pointset(pointsetpath);
+  }
+  if(outdir){
+    char tmpstr[2000];
+    sprintf(tmpstr,"%s/cluster.mgz",outdir);
+    printf("Writing annotation %s\n",tmpstr);
+    MRISwriteAnnotation(sk.m_surf, tmpstr);
+  }
+
+  //sk.get_termbranch();
+  //sk.get_branches();
+
   printf("mris_skeletonize done\n");
 
   return 0;
@@ -324,8 +476,17 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version"))     print_version() ;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--gyrus"))  scale = -1; 
-    else if (!strcasecmp(option, "--sulcus")) scale = +1; 
+    else if (!strcasecmp(option, "--gyrus")  || !strcasecmp(option, "--crown"))  scale = -1; 
+    else if (!strcasecmp(option, "--sulcus") || !strcasecmp(option, "--fundus")) scale = +1; 
+
+    else if(!strcasecmp(option, "--surfvals")){
+      if (nargc < 1) CMDargNErr(option,1);
+      surfvalspath = pargv[0];
+      inputtype = 1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--curv-nonmaxsup")) inputtype = 2;
+    else if (!strcasecmp(option, "--k1"))             inputtype = 3;
 
     else if (!strcasecmp(option, "--s")){
       if(nargc < 3) CMDargNErr(option,3);
@@ -344,6 +505,11 @@ static int parse_commandline(int argc, char **argv) {
       spherepath = pargv[0];
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--outdir")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outdir = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--mask")){
       if(nargc < 1) CMDargNErr(option,1);
       outmaskpath = pargv[0];
@@ -359,12 +525,17 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&sk.m_threshold);
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--cluster")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&sk.nkeep);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--fwhm")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&sk.m_fwhm);
       nargsused = 1;
     }
-    else if(!strcasecmp(option, "--surfvals")){
+    else if(!strcasecmp(option, "--out-surfvals")){
       if (nargc < 1) CMDargNErr(option,1);
       outsurfvalspath = pargv[0];
       nargsused = 1;
@@ -403,13 +574,42 @@ static void check_options()
 {
   dump_options();
 
+  if(inputtype == 0){
+    printf("ERROR: input type not specified, use --surfvals, --curv-nonmaxsup, or --k1\n");
+    exit(1);
+  }
+
+  if(outdir){
+    char tmpstr[2000];
+    if(!outmaskpath){
+      sprintf(tmpstr,"%s/skeleton.mgz",outdir);
+      outmaskpath = strcpyalloc(tmpstr);
+    }
+    if(!pointsetpath){
+      sprintf(tmpstr,"%s/skeleton.json",outdir);
+      pointsetpath = strcpyalloc(tmpstr);
+    }
+    if(!outsurfvalspath){
+      sprintf(tmpstr,"%s/surfvals.mgz",outdir);
+      outsurfvalspath = strcpyalloc(tmpstr);
+    }
+    if(!labelpath){
+      sprintf(tmpstr,"%s/skeleton.label",outdir);
+      labelpath = strcpyalloc(tmpstr);
+    }
+    if(!tractpath){
+      sprintf(tmpstr,"%s/skeleton.tract",outdir);
+      tractpath = strcpyalloc(tmpstr);
+    }
+  }
+
   // atlasMesh is required
   if(surfpath == NULL){
     printf("ERROR: must spec --surf\n");
     exit(1);
   }
-  if(spherepath == NULL){
-    printf("ERROR: must spec --sphere\n");
+  if(inputtype == 2 && spherepath == NULL){
+    printf("ERROR: must spec --sphere with --curv-nonmaxsup\n");
     exit(1);
   }
   if(outmaskpath==NULL && outsurfvalspath==NULL && pointsetpath==NULL && labelpath==NULL && tractpath==NULL){
