@@ -170,6 +170,7 @@ add_library(utils STATIC
   mrisurf_topology.cpp
   mrisurf_vals.cpp
   mrisutils.cpp
+  MRISurfOverlay.cpp
   mriTransform.cpp
   mrivoxel.cpp
   numerics.cpp

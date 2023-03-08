@@ -165,8 +165,9 @@ static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int fra
 static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame);
 
 static MRI *sdtRead(const char *fname, int read_volume);
-static MRI *mghRead(const char *fname, int read_volume, int frame);
-static int mghWrite(MRI *mri, const char *fname, int frame);
+// these two functions are made accessible to others
+//static MRI *mghRead(const char *fname, int read_volume, int frame);
+//static int mghWrite(MRI *mri, const char *fname, int frame);
 static int mghAppend(MRI *mri, const char *fname, int frame);
 
 /********************************************/
@@ -10725,7 +10726,7 @@ int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
 // declare function pointer
 // static int (*myclose)(FILE *stream);
 
-static MRI *mghRead(const char *fname, int read_volume, int frame)
+MRI *mghRead(const char *fname, int read_volume, int frame)
 {
   MRI *mri;
   znzFile fp;
@@ -11170,7 +11171,7 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
   return (mri);
 }
 
-static int mghWrite(MRI *mri, const char *fname, int frame)
+int mghWrite(MRI *mri, const char *fname, int frame)
 {
   znzFile fp;
   int ival, start_frame, end_frame, x, y, z, width, height, depth, unused_space_size, flen;

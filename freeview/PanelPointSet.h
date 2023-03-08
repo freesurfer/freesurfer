@@ -67,6 +67,7 @@ protected slots:
   void OnTextOverallQualityChanged();
   void OnSpinBoxOverallScore(int);
   void OnSpinBoxSecondQA(int);
+  void OnCheckBoxFixed(bool b);
 
 private:
   QLabel* MakeCommentItem(const QVariantMap& map, QLabel* label_in = NULL);

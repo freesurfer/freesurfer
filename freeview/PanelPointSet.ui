@@ -25,7 +25,7 @@
      <x>0</x>
      <y>0</y>
      <width>349</width>
-     <height>886</height>
+     <height>928</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -69,203 +69,16 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+      <property name="topMargin">
+       <number>3</number>
+      </property>
       <property name="verticalSpacing">
        <number>6</number>
       </property>
-      <item row="20" column="0" colspan="2">
-       <widget class="QLabel" name="labelMoreInfo">
-        <property name="styleSheet">
-         <string notr="true">padding-top: 5px;</string>
-        </property>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelNumberOfPoints">
         <property name="text">
-         <string>More Info on Point # 1</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEditFileName"/>
-      </item>
-      <item row="5" column="1">
-       <widget class="QCheckBox" name="checkBoxSnapToCenter">
-        <property name="text">
-         <string>Snap to voxel center</string>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="0">
-       <widget class="QLabel" name="labelSplineColor">
-        <property name="text">
-         <string>Spline color</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_5">
-        <item>
-         <widget class="QLabel" name="labelNumberTotal">
-          <property name="text">
-           <string>0</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_5">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButtonGoToPoint">
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Go to</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="spinBoxGoToPoint">
-          <property name="wrapping">
-           <bool>true</bool>
-          </property>
-          <property name="minimum">
-           <number>1</number>
-          </property>
-          <property name="maximum">
-           <number>999</number>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="15" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_14">
-        <item>
-         <widget class="QSlider" name="sliderOffset">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditOffset">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="27" column="0">
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>7</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelOpacity">
-        <property name="text">
-         <string>Opacity</string>
-        </property>
-       </widget>
-      </item>
-      <item row="18" column="0">
-       <widget class="QLabel" name="labelSplineRadius_3">
-        <property name="text">
-         <string>Overall quality</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QLineEdit" name="lineEditRadius">
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="10" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>1</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="12" column="0">
-       <widget class="QLabel" name="labelMin">
-        <property name="text">
-         <string>Min</string>
+         <string># of points</string>
         </property>
        </widget>
       </item>
@@ -276,7 +89,7 @@
         </property>
        </widget>
       </item>
-      <item row="23" column="0" colspan="2">
+      <item row="24" column="0" colspan="2">
        <widget class="QScrollArea" name="scrollAreaComments">
         <property name="minimumSize">
          <size>
@@ -319,30 +132,38 @@
         </widget>
        </widget>
       </item>
-      <item row="3" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <widget class="QtColorPicker" name="colorpickerPointColor" native="true"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelFileName">
+        <property name="text">
+         <string>File name</string>
+        </property>
+       </widget>
       </item>
-      <item row="14" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_11">
+      <item row="13" column="0">
+       <widget class="QLabel" name="labelMid">
+        <property name="text">
+         <string>Mid</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="checkBoxSnapToCenter">
+        <property name="text">
+         <string>Snap to voxel center</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
+       <widget class="QLabel" name="labelSplineColor">
+        <property name="text">
+         <string>Spline color</string>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
-         <widget class="QSlider" name="sliderMax">
+         <widget class="QSlider" name="sliderMid">
           <property name="maximum">
            <number>100</number>
           </property>
@@ -352,7 +173,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEditMax">
+         <widget class="QLineEdit" name="lineEditMid">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -369,49 +190,72 @@
         </item>
        </layout>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="labelNumberOfPoints">
+      <item row="23" column="0">
+       <widget class="QLabel" name="label_2">
         <property name="text">
-         <string># of points</string>
+         <string>Comments</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
-      <item row="13" column="0">
-       <widget class="QLabel" name="labelMid">
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelColor_2">
         <property name="text">
-         <string>Mid</string>
+         <string>Color</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_6">
-        <property name="topMargin">
-         <number>0</number>
-        </property>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditFileName"/>
+      </item>
+      <item row="23" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
         <item>
-         <widget class="QCheckBox" name="checkBoxShowSpline">
+         <widget class="QPushButton" name="pushButtonCommentAdd">
           <property name="text">
-           <string>Show spline</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
+           <string>Add</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="checkBoxClosedSpline">
-          <property name="text">
-           <string>Closed spline</string>
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="checkable">
-           <bool>true</bool>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
           </property>
-          <property name="checked">
-           <bool>false</bool>
-          </property>
-         </widget>
+         </spacer>
         </item>
        </layout>
+      </item>
+      <item row="16" column="0">
+       <widget class="QLabel" name="labelSplineRadius">
+        <property name="text">
+         <string>Spline radius</string>
+        </property>
+       </widget>
+      </item>
+      <item row="25" column="0">
+       <spacer name="verticalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>2</width>
+          <height>3</height>
+         </size>
+        </property>
+       </spacer>
       </item>
       <item row="11" column="0">
        <widget class="QLabel" name="labelScalarMap">
@@ -420,12 +264,15 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="labelFileName">
+      <item row="4" column="0">
+       <widget class="QLabel" name="labelRadius">
         <property name="text">
-         <string>File name</string>
+         <string>Radius</string>
         </property>
        </widget>
+      </item>
+      <item row="11" column="1">
+       <widget class="QComboBox" name="comboBoxScalarMap"/>
       </item>
       <item row="17" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_18">
@@ -491,42 +338,18 @@
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>40</width>
-            <height>20</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
          </spacer>
         </item>
        </layout>
       </item>
-      <item row="22" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_8">
+      <item row="15" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
-         <widget class="QPushButton" name="pushButtonCommentAdd">
-          <property name="text">
-           <string>Add</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="13" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_7">
-        <item>
-         <widget class="QSlider" name="sliderMid">
+         <widget class="QSlider" name="sliderOffset">
           <property name="maximum">
            <number>100</number>
           </property>
@@ -536,7 +359,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEditMid">
+         <widget class="QLineEdit" name="lineEditOffset">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -553,12 +376,124 @@
         </item>
        </layout>
       </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelColor_2">
+      <item row="26" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_10">
+        <item>
+         <widget class="QPushButton" name="pushButtonStatAdd">
+          <property name="text">
+           <string>Add</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonStatDelete">
+          <property name="text">
+           <string>Delete</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_7">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="15" column="0">
+       <widget class="QLabel" name="labelOffset">
         <property name="text">
-         <string>Color</string>
+         <string>Offset</string>
         </property>
        </widget>
+      </item>
+      <item row="9" column="1">
+       <widget class="QComboBox" name="comboBoxSplineColor">
+        <item>
+         <property name="text">
+          <string>Solid Color</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Heatscale</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLineEdit" name="lineEditRadius">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelOpacity">
+        <property name="text">
+         <string>Opacity</string>
+        </property>
+       </widget>
+      </item>
+      <item row="22" column="0" colspan="2">
+       <widget class="QFrame" name="frame">
+        <property name="styleSheet">
+         <string notr="true"/>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::HLine</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Sunken</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>1</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
       <item row="2" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -590,37 +525,114 @@
         </item>
        </layout>
       </item>
-      <item row="26" column="0" colspan="2">
-       <widget class="QTreeWidget" name="treeWidgetStats">
+      <item row="26" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Statistics</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerPointColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="28" column="0">
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>7</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="18" column="1">
+       <widget class="QPlainTextEdit" name="textEditOverallQuality">
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>100</height>
+          <height>50</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">QHeaderView {font-size:10px;}</string>
+        <property name="placeholderText">
+         <string>Write comment</string>
         </property>
-        <property name="rootIsDecorated">
-         <bool>false</bool>
-        </property>
-        <property name="itemsExpandable">
-         <bool>false</bool>
-        </property>
-        <property name="expandsOnDoubleClick">
-         <bool>false</bool>
-        </property>
-        <column>
-         <property name="text">
-          <string>Name</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>Value</string>
-         </property>
-        </column>
        </widget>
+      </item>
+      <item row="1" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QLabel" name="labelNumberTotal">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonGoToPoint">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Go to</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinBoxGoToPoint">
+          <property name="wrapping">
+           <bool>true</bool>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>999</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item row="12" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_9">
@@ -652,58 +664,20 @@
         </item>
        </layout>
       </item>
-      <item row="11" column="1">
-       <widget class="QComboBox" name="comboBoxScalarMap"/>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="labelRadius">
+      <item row="12" column="0">
+       <widget class="QLabel" name="labelMin">
         <property name="text">
-         <string>Radius</string>
+         <string>Min</string>
         </property>
        </widget>
-      </item>
-      <item row="15" column="0">
-       <widget class="QLabel" name="labelOffset">
-        <property name="text">
-         <string>Offset</string>
-        </property>
-       </widget>
-      </item>
-      <item row="25" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_10">
-        <item>
-         <widget class="QPushButton" name="pushButtonStatAdd">
-          <property name="text">
-           <string>Add</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButtonStatDelete">
-          <property name="text">
-           <string>Delete</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_7">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
       </item>
       <item row="19" column="0" colspan="2">
        <layout class="QHBoxLayout" name="horizontalLayout_13">
         <property name="rightMargin">
          <number>3</number>
+        </property>
+        <property name="bottomMargin">
+         <number>15</number>
         </property>
         <item>
          <spacer name="horizontalSpacer_8">
@@ -737,13 +711,6 @@
         </item>
        </layout>
       </item>
-      <item row="17" column="0">
-       <widget class="QLabel" name="labelSplineRadius_2">
-        <property name="text">
-         <string>Overall score</string>
-        </property>
-       </widget>
-      </item>
       <item row="16" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
@@ -763,96 +730,172 @@
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>40</width>
-            <height>20</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
          </spacer>
         </item>
        </layout>
       </item>
-      <item row="16" column="0">
-       <widget class="QLabel" name="labelSplineRadius">
-        <property name="text">
-         <string>Spline radius</string>
-        </property>
-       </widget>
+      <item row="14" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_11">
+        <item>
+         <widget class="QSlider" name="sliderMax">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditMax">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
-      <item row="22" column="0">
-       <widget class="QLabel" name="label_2">
+      <item row="18" column="0">
+       <widget class="QLabel" name="labelSplineRadius_3">
         <property name="text">
-         <string>Comments</string>
+         <string>Overall quality</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
-      <item row="25" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Statistics</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="1">
-       <widget class="QComboBox" name="comboBoxSplineColor">
-        <item>
-         <property name="text">
-          <string>Solid Color</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Heatscale</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="18" column="1">
-       <widget class="QPlainTextEdit" name="textEditOverallQuality">
+      <item row="27" column="0" colspan="2">
+       <widget class="QTreeWidget" name="treeWidgetStats">
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>50</height>
+          <height>100</height>
          </size>
         </property>
-        <property name="placeholderText">
-         <string>Write comment</string>
-        </property>
-       </widget>
-      </item>
-      <item row="21" column="0" colspan="2">
-       <widget class="QFrame" name="frame">
         <property name="styleSheet">
-         <string notr="true"/>
+         <string notr="true">QHeaderView {font-size:10px;}</string>
         </property>
-        <property name="frameShape">
-         <enum>QFrame::HLine</enum>
+        <property name="rootIsDecorated">
+         <bool>false</bool>
         </property>
-        <property name="frameShadow">
-         <enum>QFrame::Sunken</enum>
+        <property name="itemsExpandable">
+         <bool>false</bool>
+        </property>
+        <property name="expandsOnDoubleClick">
+         <bool>false</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Value</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+      <item row="17" column="0">
+       <widget class="QLabel" name="labelSplineRadius_2">
+        <property name="text">
+         <string>Overall score</string>
         </property>
        </widget>
       </item>
-      <item row="24" column="0">
-       <spacer name="verticalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
+      <item row="6" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <property name="topMargin">
+         <number>0</number>
         </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
+        <item>
+         <widget class="QCheckBox" name="checkBoxShowSpline">
+          <property name="text">
+           <string>Show spline</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxClosedSpline">
+          <property name="text">
+           <string>Closed spline</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="20" column="0" colspan="2">
+       <layout class="QHBoxLayout" name="horizontalLayout_12">
+        <property name="topMargin">
+         <number>3</number>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>2</width>
-          <height>3</height>
-         </size>
+        <item>
+         <widget class="QLabel" name="labelMoreInfo">
+          <property name="styleSheet">
+           <string notr="true">padding-top: 5px;</string>
+          </property>
+          <property name="text">
+           <string>More Info on Point # 1</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_11">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxFixed">
+          <property name="text">
+           <string>Fixed</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="7" column="1">
+       <widget class="QCheckBox" name="checkBoxShowUnfixedOnly">
+        <property name="text">
+         <string>Show unfixed points only</string>
         </property>
-       </spacer>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
