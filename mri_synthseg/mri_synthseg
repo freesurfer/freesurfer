@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--parc", action="store_true", help="(optional) Whether to perform cortex parcellation.")
     parser.add_argument("--robust", action="store_true", help="(optional) Whether to use robust predictions (slower).")
     parser.add_argument("--fast", action="store_true", help="(optional) Bypass some processing for faster prediction.")
-    parser.add_argument("--ct", action="store_true", help="(optional) Clip CT scans in Hounsfield scale to [0, 80].")
+    parser.add_argument("--ct", action="store_true", help="(optional) Clip CT scans in Hounsfield scale to [0, 80]")
     parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
     parser.add_argument("--qc", help="(optional) Output CSV file with qc scores for all subjects.")
     parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --i designates a folder.")
