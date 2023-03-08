@@ -36,6 +36,7 @@ static int mrisReadGeoFilePositions     (MRI_SURFACE *mris, const char *fname);
 static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname);
 static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier);
 static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname);
+static int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname);
 
 
 static int mris_readval_frame = -1;
@@ -365,6 +366,14 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     return (NO_ERROR);
   }
 
+  int mristype = MRISfileNameType(sname);
+  if (mristype == MRIS_ASCII_FILE)
+  {
+    mrisWriteAsciiCurvatureFile(mris, fname);
+    return (NO_ERROR);
+  }
+
+  // output curv new format
   fp = fopen(fname, "wb");
   if (fp == NULL) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", fname));
 
@@ -3076,15 +3085,15 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
               mris->min_curv = curvmin;
               // printf("maxcurv=%f, mincurv=%f\n",curvmax, curvmin);
             }
-          }
+          } // end of parsing one FIELD - fieldName, &fieldNum, &nvertices_data
           else {
             fclose(fp);
             ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error parsing FIELDs in file %s", fname));
           }
-        }
-      }
-    }
-  }
+        } // end of for loop going through all fields
+      } // end of processing FIELD
+    } // end of processing POINT_DATA
+  } // curv or scalar data fields
 
   fclose(fp);
   
@@ -4952,6 +4961,34 @@ static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
   return (NO_ERROR);
 }
 
+
+/*-------------------------------------------------------*/
+static int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
+{
+  FILE   *fp ;
+  int    vno ;
+  VERTEX *v ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorExit(ERROR_BADFILE, "mrisWriteAsciiCurvatureFile() could not open output file %s.\n", fname) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      continue ;
+    }
+    fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
+            vno, v->x, v->y, v->z, v->curv) ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
+
 int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
 {
   int k, i, vnum, fnum;
@@ -5013,7 +5050,9 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
     mris = MRISreadVTK(mris, fname);
     return (NO_ERROR);
   }
+
   if (mritype != MRI_VOLUME_TYPE_UNKNOWN) {
+    // only MRI_CURV_FILE and MRI_MGH_FILE are allowed here
     frame = MRISgetReadFrame();
     TempMRI = MRIreadHeader(fname, mritype);
     if (TempMRI == NULL) {
@@ -5030,6 +5069,9 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
       return (1);
     }
     MRIfree(&TempMRI);
+
+    // MRI_CURV_FILE will be read in as MRI - MRISreadCurvAsMRI();
+    // MRI_MGH_FILE - mghRead()
     TempMRI = MRIread(fname);
     if (TempMRI == NULL) {
       return (ERROR_BADFILE);
@@ -5075,6 +5117,9 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
     }
   }
 
+  // MRISfileNameType() returns one of these types:
+  //   MRIS_VOLUME_FILE, MRIS_ASCII_TRIANGLE_FILE, MRIS_GEO_TRIANGLE_FILE, MRIS_ICO_FILE, MRIS_VTK_FILE, MRIS_STL_FILE, MRIS_GIFTI_FILE, MRI_MGH_FILE, MRIS_ANNOT_FILE, MRIS_BINARY_QUADRANGLE_FILE.
+  //   MRIS_ASCII_TRIANGLE_FILE, MRIS_VTK_FILE, MRIS_GIFTI_FILE, MRI_CURV_FILE, MRI_MGH_FILE have been handled earlier.
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "reading curvature file...");
   }
@@ -5084,10 +5129,21 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
 
   fread3(&vnum, fp);
   if (vnum == NEW_VERSION_MAGIC_NUMBER) {
+    // If the first 4 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
+    // and mri_identify() identifies it as MRI_CURV_FILE, which should be handled earlier already.
+    // this should be treated as an error if it reaches here
     fclose(fp);
     return (MRISreadNewCurvatureFile(mris, fname));
   }
 
+  // looks like the file format is
+  // int vnum (nvertices)
+  // int fnum (nfaces)
+  // int curv x nvertices), curv recalculated as curv/100.0
+  // ??? is this the old curv format ???
+
+  // it will also reach here for MRIS_VOLUME_FILE, MRIS_GEO_TRIANGLE_FILE, MRIS_ICO_FILE, MRIS_STL_FILE, MRIS_ANNOT_FILE, MRIS_BINARY_QUADRANGLE_FILE
+  // ??? how will this work ???
   fread3(&fnum, fp);
   if (vnum != mris->nvertices) {
     fclose(fp);
