@@ -396,7 +396,7 @@ int main(int argc, char** argv)
   if(checkoptsonly) return(0);
 
   if(outdir){
-    err = mkdir(outdir,0777);
+    err = fio_mkdirp(outdir,0777);
     if (err != 0 && errno != EEXIST) {
       printf("ERROR: creating directory %s\n",outdir);
       perror(NULL);
