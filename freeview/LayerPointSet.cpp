@@ -481,9 +481,10 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   vtkPoints* pts = vtkPoints::New();
   vtkCellArray* lines = vtkCellArray::New();
   lines->InsertNextCell( m_points.size() + (bClosed?1:0) );
+  bool bShowUnfixedOnly = GetProperty()->GetShowUnfixedOnly();
   for ( int i = 0; i < m_points.size(); i++ )
   {
-    if (radius > 0)
+    if (radius > 0 && (!bShowUnfixedOnly || !m_points[i].info.value("fixed").toBool()))
     {
       vtkSphereSource* sphere = vtkSphereSource::New();
       sphere->SetCenter( m_points[i].pt );
@@ -578,7 +579,8 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     int n = 0;
     for ( int j = 0; j < m_points.size(); j++ )
     {
-      if ( radius > 0 && fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) )
+      if ( radius > 0 && fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) &&
+           (!bShowUnfixedOnly || !m_points[j].info.value("fixed").toBool()))
       {
         vtkSphereSource* sphere = vtkSphereSource::New();
         double point[3] = { m_points[j].pt[0], m_points[j].pt[1], m_points[j].pt[2] };

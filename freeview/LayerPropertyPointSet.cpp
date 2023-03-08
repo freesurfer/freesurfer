@@ -66,7 +66,7 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
   m_bShowSpline = true;
   m_bSnapToVoxelCenter = false;
   m_bClosedSpline = false;
-
+  m_bShowUnfixedOnly = false;
   m_lutHeatScale = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
   connect(this, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SIGNAL(PropertyChanged()));
@@ -456,4 +456,14 @@ void LayerPropertyPointSet::SetStatRange(double dMin, double dMax)
   m_dStatMin = dMin;
   m_dStatMax = dMax;
   UpdateScalarValues();
+}
+
+void LayerPropertyPointSet::SetShowUnfixedOnly(bool b)
+{
+  if (m_bShowUnfixedOnly != b)
+  {
+    m_bShowUnfixedOnly = b;
+    emit PropertyChanged();
+    emit ScalarChanged();
+  }
 }
