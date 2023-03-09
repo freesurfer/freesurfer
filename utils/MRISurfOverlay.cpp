@@ -28,17 +28,23 @@ MRISurfOverlay::~MRISurfOverlay()
 }
 
 
-// static member method to return file type for the given file
+/* static member method to return file type for the given file
+ *
+ *  The following file types are considered valid overlay files:
+ *    MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, MRIS_ASCII_FILE, MRIS_VTK_FILE
+ * For file types other than those, return MRI_VOLUME_TYPE_UNKNOWN to callers.
+ *
+ * Notes: This class only handles MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE now.
+ */
 int MRISurfOverlay::getFileFormat(const char *foverlay)
 {
-  // check if we support the file format
+  // check if overlay file type is valid
   int mritype = mri_identify(foverlay);
-  if (mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
-      mritype != MRI_MGH_FILE  &&
-      mritype != GIFTI_FILE) 
-  {
-    printf("ERROR unsupported overlay file type %d\n", mritype);
-  }
+  int mristype = MRISfileNameType(foverlay);
+  if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
+       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
+      (mristype != MRIS_ASCII_FILE && mristype != MRIS_VTK_FILE)) 
+    mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
   return mritype;
 }
@@ -50,28 +56,173 @@ int MRISurfOverlay::getFileFormat(const char *foverlay)
  *   (MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE). 
  *   MRI_CURV_FILE is the new CURV format with MAGICNO. = 16777215.
  *
- *   Overlay files can also be in MRIS_ASCII_FILE, MRIS_VTK_FILE, and old CURV formats. 
- *   These formats are still handled by MRISreadCurvatureFile()/MRISwriteCurvature().
+ *   Overlay files can also be in MRIS_ASCII_FILE, MRIS_VTK_FILE, and old CURV formats (read). 
  *
  * The overlay data has 1D morphometry data (vertex-wise measures) or other per-vertex information.
- * The data is read into MRI representation in this class.
+ * The data is read into MRI representation in this class for MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE.
  */
-MRI *MRISurfOverlay::read(const char *foverlay, int read_volume)
+MRI *MRISurfOverlay::read(const char *foverlay, int read_volume, MRIS *outmris)
 {
   // check if we support the file format
   __format = getFileFormat(foverlay);
   if (__format == MRI_VOLUME_TYPE_UNKNOWN)
+  {
+    printf("ERROR MRISurfOverlay::read() - unsupported overlay input type\n");
     return NULL;
+  }
 
+  __overlaymri = NULL;
   memcpy(__foverlay, foverlay, sizeof(__foverlay));
   if (__format == MRI_CURV_FILE)
-    readCurvatureBinary(__foverlay, read_volume);
+  {
+    readCurvatureAsMRI(__foverlay, read_volume);
+    if (outmris != NULL)
+      __copyOverlay2MRIS(outmris);
+  }
   else if (__format == MRI_MGH_FILE)
+  {
     __overlaymri = mghRead(__foverlay, read_volume, -1);
+    if (outmris != NULL)
+      __copyOverlay2MRIS(outmris);
+  }
   else if (__format == GIFTI_FILE)
-    __overlaymri = MRISreadGiftiAsMRI(__foverlay, read_volume);
+  {
+    if (outmris != NULL)
+      mrisReadGIFTIfile(__foverlay, outmris);
+    else
+      __overlaymri = MRISreadGiftiAsMRI(__foverlay, read_volume);
+  }
+  else if (__format == MRIS_ASCII_FILE)
+  {
+    mrisReadAsciiCurvatureFile(outmris, __foverlay);
+  }
+  else if (__format == VTK_FILE)
+  {
+    MRISreadVTK(outmris, __foverlay);
+  }
+  else // assume it is in old curv format
+  {
+    __readOldCurvature(outmris, __foverlay);
+  }
 
   return __overlaymri;
+}
+
+
+/*
+ * private function to read old curvature format
+ *
+ * here is the file format:
+ *   int vnum (nvertices)
+ *   int fnum (nfaces)
+ *   int curv x nvertices
+ */
+int MRISurfOverlay::__readOldCurvature(MRIS *outmris, const char *fname)
+{
+  FILE *fp = fopen(fname, "r");
+  if (fp == NULL) 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::__readOldCurvature(): could not open %s", fname));
+
+  int vnum, fnum;
+
+  fread3(&vnum, fp);
+  /*
+   * if (vnum == NEW_VERSION_MAGIC_NUMBER) {
+   *  // If the first 4 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
+   *  // and mri_identify() identifies it as MRI_CURV_FILE, which should be handled earlier already.
+   *  // this should be treated as an error if it reaches here
+   *  fclose(fp);
+   *  return (MRISreadNewCurvatureFile(mris, fname));
+   * }
+   */
+
+  fread3(&fnum, fp);
+  if (vnum != outmris->nvertices) {
+    fclose(fp);
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE,
+                 "MRISurfOverlay::__readOldCurvature(): incompatible vertex "
+                 "number in file %s",
+                 fname));
+  }
+
+  float curvmin = 10000.0f;
+  float curvmax = -10000.0f; /* for compiler warnings */
+  for (int k = 0; k < vnum; k++) {
+    int i;
+    fread2(&i, fp);
+    float curv = i / 100.0;
+
+    if (k == 0) {
+      curvmin = curvmax = curv;
+    }
+    if (curv > curvmax) {
+      curvmax = curv;
+    }
+    if (curv < curvmin) {
+      curvmin = curv;
+    }
+    outmris->vertices[k].curv = curv;
+  }
+  outmris->max_curv = curvmax;
+  outmris->min_curv = curvmin;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "done. min=%2.3f max=%2.3f\n", curvmin, curvmax);
+  }
+
+  fclose(fp);
+
+  return NO_ERROR;
+}
+
+
+/*
+ * private function to copy curvature data to MRIS structure
+ * ??? optional flag indicating the overlay data ???
+ * ??? shape or stats ???
+ */
+int MRISurfOverlay::__copyOverlay2MRIS(MRIS *outmris)
+{
+  int frame = MRISgetReadFrame();
+  if (__overlaymri->nframes <= frame) {
+    printf("ERROR: attempted to read frame %d from %s\n", frame, __foverlay);
+    printf("  but this file only has %d frames.\n", __overlaymri->nframes);
+    return (ERROR_BADFILE);
+  }
+
+  int nv = __overlaymri->width * __overlaymri->height * __overlaymri->depth;
+  if (nv != outmris->nvertices) {
+    printf("ERROR: number of vertices in %s does not match surface (%d,%d)\n", __foverlay, nv, outmris->nvertices);
+    return 1;
+  }
+
+  int vno = 0;
+  float curvmin = 10000.0f;
+  float curvmax = -10000.0f; /* for compiler warnings */
+  for (int s = 0; s < __overlaymri->depth; s++) {
+    for (int r = 0; r < __overlaymri->height; r++) {
+      for (int c = 0; c < __overlaymri->width; c++) {
+        float curv = MRIgetVoxVal(__overlaymri, c, r, s, frame);
+        if (s == 0 && r == 0 && c == 0) {
+          curvmin = curvmax = curv;
+        }
+        if (curv > curvmax) {
+          curvmax = curv;
+        }
+        if (curv < curvmin) {
+          curvmin = curv;
+        }
+        outmris->vertices[vno].curv = curv;
+        vno++;
+      }
+    }
+  }
+
+  outmris->max_curv = curvmax;
+  outmris->min_curv = curvmin;
+
+  return NO_ERROR;
 }
 
 
@@ -80,7 +231,7 @@ MRI *MRISurfOverlay::read(const char *foverlay, int read_volume)
  * The implementation is taken from MRISreadCurvAsMRI().
  * MRISreadCurvAsMRI() will be changed to use this method.
  */
-MRI *MRISurfOverlay::readCurvatureBinary(const char *curvfile, int read_volume)
+MRI *MRISurfOverlay::readCurvatureAsMRI(const char *curvfile, int read_volume)
 {
   if (!IDisCurv(curvfile))
     return (NULL);
@@ -122,28 +273,56 @@ MRI *MRISurfOverlay::readCurvatureBinary(const char *curvfile, int read_volume)
 }
 
 
-/* Output overlay MRI representation to disk. Output inmri if it is given. 
- * file formats supported are MRI_CURV_FILE, MRI_MGH_FILE, and GIFTI_FILE.
- * 
- * MRIS_ASCII_FILE, MRIS_VTK_FILE, and old CURV formats are handled in MRISwriteCurvature().
+/* Output overlay MRI representation to disk. Output inmris if it is given. 
+ * file formats supported are MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE,
+ * MRIS_ASCII_FILE, MRIS_VTK_FILE.
  */
-int MRISurfOverlay::write(const char *fout, MRI *inmri)
+int MRISurfOverlay::write(const char *fout, MRIS *inmris)
 {
   int error = 0;
 
   MRI *outmri = __overlaymri;
-  if (inmri != NULL)
-    outmri = inmri;
+  if (outmri == NULL && inmris == NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - no data available"));
 
-  if (outmri == NULL)
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - empty MRI"));
+  // check if we support the file format
+  int  outtype = getFileFormat(fout);
+  if (outtype == MRI_VOLUME_TYPE_UNKNOWN)
+    outtype = MRI_CURV_FILE;    // write as MRI_CURV_FILE
 
-  int  mritype  = mri_identify(fout);
-  if (mritype == MRI_MGH_FILE)
+  if (outtype == MRI_MGH_FILE)
     error = mghWrite(outmri, fout, -1);
-  else if (mritype == GIFTI_FILE)
-    error = mriWriteGifti(outmri, fout);
-  else   // default, write as MRI_CURV_FILE
+  else if (outtype == GIFTI_FILE)
+  {
+    if (inmris != NULL)
+    {
+      /* ???__foverlay will be read again in MRISwriteGIFTI() why???
+       * ...
+       * if (intent_code == NIFTI_INTENT_SHAPE) {
+       *   if (MRISreadCurvatureFile(mris, curv_fname)) {
+       *     fprintf(stderr, "MRISwriteGIFTI: couldn't read %s\n", curv_fname);
+       *     gifti_free_image(image);
+       *     return ERROR_BADFILE;
+       *   }
+       *   ...
+       * }
+       */
+      error = MRISwriteGIFTI(inmris, NIFTI_INTENT_SHAPE, fout, __foverlay);
+    }
+    else
+      error = mriWriteGifti(outmri, fout);
+  }
+  else if (outtype == MRIS_ASCII_FILE)
+  {
+    error = mrisWriteAsciiCurvatureFile(inmris, (char*)fout);
+  }
+  else if (outtype == VTK_FILE)
+  {
+    MRISwriteVTK(inmris, fout);
+    MRISwriteCurvVTK(inmris, fout);
+    error = NO_ERROR;
+  }
+  else if (outtype == MRI_CURV_FILE)
   {
     // check MRI dimensions
     if (__nVertices != outmri->width)

@@ -77,7 +77,7 @@ static const COLOR_TABLE miniColorTable =
 
 int main(int argc, char *argv[]) ;
 
-static void __writeCurvatureFile(MRIS *mris, const char *curv, char *out_fname);
+static void __convertOverlayFile(MRIS *mris, const char *curv, char *out_fname);
 static void __writeLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
 static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, const char *fcurv, char *out_fname);
 static void __writeFuncFile(const char *ffunc, char *out_fname);
@@ -92,7 +92,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int convertToWFile(char *in_fname, char *out_fname) ;
 static int convertFromWFile(char *in_fname, char *out_fname) ;
-static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
+//static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 static MRI* computeAngles(MRIS* surf) ;
 static int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
@@ -405,7 +405,7 @@ main(int argc, char *argv[])
   }
 
   if (curv_file_flag)
-    __writeCurvatureFile(mris, curv_fname, out_fname);
+    __convertOverlayFile(mris, curv_fname, out_fname);
   else if (annot_file_flag)
     __writeAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, curv_fname, out_fname);
   else if (label_file_flag)
@@ -423,7 +423,6 @@ main(int argc, char *argv[])
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
   else if(PrintXYZOnly)
   {
-    // ???create utility function MRISprintVertexCoords(FILE *fp, MRIS *mris)???
     fp = fopen(out_fname, "w");
     printf("Printing only XYZ to ascii file %s\n", out_fname);
 
@@ -487,7 +486,7 @@ main(int argc, char *argv[])
 }
 
 
-static void __writeCurvatureFile(MRIS *mris, const char *fcurv, char *out_fname)
+static void __convertOverlayFile(MRIS *mris, const char *fcurv, char *out_fname)
 {
   if (MRISreadCurvatureFile(mris, fcurv) != NO_ERROR)
   {
@@ -498,7 +497,8 @@ static void __writeCurvatureFile(MRIS *mris, const char *fcurv, char *out_fname)
   int type = MRISfileNameType(out_fname) ;
   if (type == MRIS_ASCII_FILE)
   {
-    writeAsciiCurvFile(mris, out_fname) ;
+    mrisWriteAsciiCurvatureFile(mris, out_fname);
+    //writeAsciiCurvFile(mris, out_fname) ;
   }
   else if (type == MRIS_GIFTI_FILE)
   {
@@ -672,7 +672,8 @@ static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, con
       type = MRISfileNameType(out_fname) ;
       if (type == MRIS_ASCII_FILE)
       {
-        writeAsciiCurvFile(mris, out_fname) ;
+        mrisWriteAsciiCurvatureFile(mris, out_fname);
+        //writeAsciiCurvFile(mris, out_fname) ;
       }
       else if (type == MRIS_GIFTI_FILE)
       {
@@ -1120,32 +1121,33 @@ convertFromWFile(char *in_fname, char *out_fname)
 }
 
 
-static int
-writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
-{
-  FILE   *fp ;
-  int    vno ;
-  VERTEX *v ;
-
-  fp = fopen(out_fname, "w") ;
-  if (!fp)
-    ErrorExit(ERROR_BADFILE, "%s could not open output file %s.\n",
-              Progname, out_fname) ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
-            vno, v->x, v->y, v->z, v->curv) ;
-  }
-
-  fclose(fp) ;
-  return(NO_ERROR) ;
-}
+// mrisurf_io.cpp now has a copy of this - mrisWriteAsciiCurvatureFile()
+//static int
+//writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
+//{
+//  FILE   *fp ;
+//  int    vno ;
+//  VERTEX *v ;
+//
+//  fp = fopen(out_fname, "w") ;
+//  if (!fp)
+//    ErrorExit(ERROR_BADFILE, "%s could not open output file %s.\n",
+//              Progname, out_fname) ;
+//
+//  for (vno = 0 ; vno < mris->nvertices ; vno++)
+//  {
+//    v = &mris->vertices[vno] ;
+//    if (v->ripflag)
+//    {
+//      continue ;
+//    }
+//    fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
+//            vno, v->x, v->y, v->z, v->curv) ;
+//  }
+//
+//  fclose(fp) ;
+//  return(NO_ERROR) ;
+//}
 
 /*
   \fn int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)

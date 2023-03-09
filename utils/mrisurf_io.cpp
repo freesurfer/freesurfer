@@ -36,7 +36,6 @@ static int mrisReadGeoFilePositions     (MRI_SURFACE *mris, const char *fname);
 static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname);
 static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier);
 static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname);
-static int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname);
 
 
 static int mris_readval_frame = -1;
@@ -4929,18 +4928,20 @@ int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname)
 
   Description
   ------------------------------------------------------*/
-static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
 {
   FILE *fp;
   int vno;
   char line[STRLEN], *cp;
   VERTEX *v;
 
+  // ??? need to skip lines starting with # if we write comments in the file ???
   fp = fopen(fname, "r");
   if (!fp)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "%s could not open file %s.\n", mrisReadAsciiCurvatureFile, fname));
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
+    // if ripflag is set, there should have no corresponding vertex info in asc file
     if (v->ripflag) {
       continue;
     }
@@ -4948,6 +4949,8 @@ static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
     if (!cp) {
       break;
     }
+
+    // ???should check if the vno match???
     if (sscanf(line, "%*d %*f %*f %*f %f\n", &v->curv) != 1)
       ErrorReturn(ERROR_BADFILE,
                   (ERROR_BADFILE,
@@ -4963,12 +4966,14 @@ static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
 
 
 /*-------------------------------------------------------*/
-static int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
+int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
 {
   FILE   *fp ;
   int    vno ;
   VERTEX *v ;
 
+  // ??? write comments about data in the file: #!xxx ???
+  // ??? some other ascii files do that ???
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorExit(ERROR_BADFILE, "mrisWriteAsciiCurvatureFile() could not open output file %s.\n", fname) ;
@@ -4976,6 +4981,7 @@ static int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+    // don't output the vertex if ripflag is set
     if (v->ripflag)
     {
       continue ;
@@ -5054,6 +5060,8 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   if (mritype != MRI_VOLUME_TYPE_UNKNOWN) {
     // only MRI_CURV_FILE and MRI_MGH_FILE are allowed here
     frame = MRISgetReadFrame();
+
+    // ??? why read the volume twice ???
     TempMRI = MRIreadHeader(fname, mritype);
     if (TempMRI == NULL) {
       return (ERROR_BADFILE);
