@@ -489,6 +489,8 @@ char *IDstemFromName(const char *name)
 */
 char *IDextensionFromName(const char *name)
 {
+  // these extensions are considered volume files:
+  //   nii, mgz, mgh, img, bhdr, nii.gz, _000.bfloat, _000.bshort
   int len;
   char *ext;
 
@@ -1210,6 +1212,8 @@ END c++ version of is_nrrd()
 
 /*----------------------------------------
   IDisCurv() - surface curve file format
+  return TRUE (1) if first 4 bytes int = NEW_VERSION_MAGIC_NUMBER (16777215);
+  otherwise, return FALSE (0)
   ----------------------------------------*/
 int IDisCurv(const char *curvfile)
 {

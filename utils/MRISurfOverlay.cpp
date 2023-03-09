@@ -40,10 +40,14 @@ int MRISurfOverlay::getFileFormat(const char *foverlay)
 {
   // check if overlay file type is valid
   int mritype = mri_identify(foverlay);
+
   int mristype = MRISfileNameType(foverlay);
+  if (mristype == MRIS_ASCII_FILE)
+    mritype = ASCII_FILE;
+
   if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
        mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
-      (mristype != MRIS_ASCII_FILE && mristype != MRIS_VTK_FILE)) 
+      (mritype != ASCII_FILE && mritype != VTK_FILE)) 
     mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
   return mritype;
@@ -92,7 +96,7 @@ MRI *MRISurfOverlay::read(const char *foverlay, int read_volume, MRIS *outmris)
     else
       __overlaymri = MRISreadGiftiAsMRI(__foverlay, read_volume);
   }
-  else if (__format == MRIS_ASCII_FILE)
+  else if (__format == ASCII_FILE)
   {
     mrisReadAsciiCurvatureFile(outmris, __foverlay);
   }
@@ -291,7 +295,29 @@ int MRISurfOverlay::write(const char *fout, MRIS *inmris)
     outtype = MRI_CURV_FILE;    // write as MRI_CURV_FILE
 
   if (outtype == MRI_MGH_FILE)
-    error = mghWrite(outmri, fout, -1);
+  {
+    if (inmris != NULL)
+    {
+      MRI *TempMRI = MRIalloc(inmris->nvertices, 1, 1, MRI_FLOAT);
+      if (TempMRI == NULL)
+        return (ERROR_NOMEMORY);
+
+      for (int vno = 0; vno < inmris->nvertices; vno++) {
+        VERTEX *v = &inmris->vertices[vno];
+        if (vno == Gdiag_no)
+          DiagBreak();
+
+        MRIsetVoxVal(TempMRI, vno, 0, 0, 0, v->curv);
+      }
+
+      MRIwrite(TempMRI, fout);
+      MRIfree(&TempMRI);
+    }
+    else
+    {
+      error = mghWrite(outmri, fout, -1);
+    }
+  }
   else if (outtype == GIFTI_FILE)
   {
     if (inmris != NULL)
@@ -312,7 +338,7 @@ int MRISurfOverlay::write(const char *fout, MRIS *inmris)
     else
       error = mriWriteGifti(outmri, fout);
   }
-  else if (outtype == MRIS_ASCII_FILE)
+  else if (outtype == ASCII_FILE)
   {
     error = mrisWriteAsciiCurvatureFile(inmris, (char*)fout);
   }
@@ -324,6 +350,22 @@ int MRISurfOverlay::write(const char *fout, MRIS *inmris)
   }
   else if (outtype == MRI_CURV_FILE)
   {
+    if (inmris != NULL)
+    {
+      error = __writeCurvFromMRIS(inmris, fout);
+    }
+    else
+    {
+      error = __writeCurvFromMRI(outmri, fout);
+    }
+  }
+
+  return error;
+}
+
+
+int MRISurfOverlay::__writeCurvFromMRI(MRI *outmri, const char *fout)
+{
     // check MRI dimensions
     if (__nVertices != outmri->width)
     {
@@ -341,7 +383,7 @@ int MRISurfOverlay::write(const char *fout, MRIS *inmris)
     // the logic was modified based on MRISwriteCurvature() binary output.
     FILE *fp = fopen(fout, "wb");
     if (fp == NULL) 
-      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - could not open %s", fout));
+      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::__writeCurvFromMRI() - could not open %s", fout));
 
     fwrite3(-1, fp); /* same old trick - mark it as new format */
     fwriteInt(__nVertices, fp);
@@ -361,9 +403,28 @@ int MRISurfOverlay::write(const char *fout, MRIS *inmris)
       }
     }
     fclose(fp);
-  }
 
-  return error;
+  return NO_ERROR;
 }
 
 
+int MRISurfOverlay::__writeCurvFromMRIS(MRIS *outmris, const char *fout)
+{
+  // output curv new format
+  FILE *fp = fopen(fout, "wb");
+  if (fp == NULL) 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::__writeCurvFromMRIS(): could not open %s", fout));
+
+  fwrite3(-1, fp); /* same old trick - mark it as new format */
+  fwriteInt(outmris->nvertices, fp);
+  fwriteInt(outmris->nfaces, fp);
+  fwriteInt(1, fp); /* 1 value per vertex */
+
+  for (int k = 0; k < outmris->nvertices; k++) {
+    float curv = outmris->vertices[k].curv;
+    fwriteFloat(curv, fp);
+  }
+  fclose(fp);
+
+  return NO_ERROR;
+}

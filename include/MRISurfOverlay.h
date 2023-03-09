@@ -47,6 +47,9 @@ private:
   int __copyOverlay2MRIS(MRIS *outmris);
   int __readOldCurvature(MRIS *outmris, const char *fname);
 
+  int __writeCurvFromMRI(MRI *outmri, const char *fout);
+  int __writeCurvFromMRIS(MRIS *outmris, const char *fout);
+
 
   char __foverlay[1024]; // full path to overlay file
   int  __type;           // not assigned yet, FS_MRISURFOVERLAY*
