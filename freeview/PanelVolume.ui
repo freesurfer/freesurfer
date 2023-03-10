@@ -1297,6 +1297,12 @@ of each frame</string>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_21">
+      <property name="spacing">
+       <number>5</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
       <item>
        <widget class="QCheckBox" name="checkBoxShowContour">
         <property name="text">
@@ -1320,48 +1326,32 @@ of each frame</string>
       <item>
        <widget class="BusyIndicator" name="widgetBusyIndicator" native="true"/>
       </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonContourUpdate">
+        <property name="text">
+         <string>Update</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayoutContour" columnstretch="0,0">
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelContourSpaceHolder">
-        <property name="styleSheet">
-         <string notr="true">color:rgba(0,0,0,0)</string>
-        </property>
-        <property name="text">
-         <string>Smooth iterations</string>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="0">
-       <widget class="QLabel" name="labelContourColor">
-        <property name="text">
-         <string>Surface color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelContourThresholdLow">
-        <property name="text">
-         <string>Low threshold</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="10" column="1">
+      <item row="12" column="1">
        <widget class="QCheckBox" name="checkBoxUseColorMap">
         <property name="text">
          <string>Use color map</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="7" column="1">
+       <widget class="QCheckBox" name="checkBoxUpsampleContour">
+        <property name="text">
+         <string>Upsample volume</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_8">
         <item>
          <widget class="QCheckBox" name="checkBoxShowLabelContour">
@@ -1379,7 +1369,20 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="3" column="1">
+      <item row="11" column="1">
+       <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
+      </item>
+      <item row="11" column="0">
+       <widget class="QLabel" name="labelContourColor">
+        <property name="text">
+         <string>Surface color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_12">
         <item>
          <widget class="QSlider" name="sliderContourThresholdLow">
@@ -1412,7 +1415,24 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="4" column="1">
+      <item row="9" column="1">
+       <widget class="QCheckBox" name="checkBoxContourDilateFirst">
+        <property name="text">
+         <string>Dilate first</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelContourSpaceHolder">
+        <property name="styleSheet">
+         <string notr="true">color:rgba(0,0,0,0)</string>
+        </property>
+        <property name="text">
+         <string>Smooth iterations</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_13">
         <item>
          <widget class="QSlider" name="sliderContourThresholdHigh">
@@ -1445,41 +1465,17 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="11" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_16">
-        <item>
-         <widget class="QPushButton" name="pushButtonContourSave">
-          <property name="text">
-           <string>Save</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="labelContourThresholdHigh">
+      <item row="5" column="0">
+       <widget class="QLabel" name="labelContourThresholdLow">
         <property name="text">
-         <string>High threshold</string>
+         <string>Low threshold</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
-      <item row="8" column="1">
+      <item row="10" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_15">
         <item>
          <widget class="QSlider" name="sliderContourSmoothIteration">
@@ -1515,24 +1511,7 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="9" column="1">
-       <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
-      </item>
-      <item row="5" column="1">
-       <widget class="QCheckBox" name="checkBoxUpsampleContour">
-        <property name="text">
-         <string>Upsample volume</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <widget class="QCheckBox" name="checkBoxContourExtractAll">
-        <property name="text">
-         <string>Extract all regions</string>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="0">
+      <item row="10" column="0">
        <widget class="QLabel" name="labelSmoothIteration">
         <property name="text">
          <string>Smooth iterations</string>
@@ -1542,10 +1521,44 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
-       <widget class="QCheckBox" name="checkBoxContourDilateFirst">
+      <item row="6" column="0">
+       <widget class="QLabel" name="labelContourThresholdHigh">
         <property name="text">
-         <string>Dilate first</string>
+         <string>High threshold</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_16">
+        <item>
+         <widget class="QPushButton" name="pushButtonContourSave">
+          <property name="text">
+           <string>Save</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="8" column="1">
+       <widget class="QCheckBox" name="checkBoxContourExtractAll">
+        <property name="text">
+         <string>Extract all regions</string>
         </property>
        </widget>
       </item>
@@ -1752,8 +1765,8 @@ of each frame</string>
    <slot>OnCheckShowContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>148</x>
-     <y>1575</y>
+     <x>147</x>
+     <y>1558</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1801,7 +1814,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>156</x>
-     <y>1107</y>
+     <y>1131</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -2009,7 +2022,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>340</x>
-     <y>897</y>
+     <y>920</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -2041,7 +2054,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>272</x>
-     <y>1639</y>
+     <y>1633</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2057,7 +2070,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>272</x>
-     <y>1673</y>
+     <y>1670</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2089,7 +2102,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>272</x>
-     <y>1639</y>
+     <y>1633</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2105,7 +2118,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>272</x>
-     <y>1673</y>
+     <y>1670</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2137,7 +2150,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>340</x>
-     <y>1638</y>
+     <y>1631</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2153,7 +2166,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>340</x>
-     <y>1672</y>
+     <y>1668</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -2169,7 +2182,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>340</x>
-     <y>1775</y>
+     <y>1774</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -2232,8 +2245,8 @@ of each frame</string>
    <slot>OnSliderTrackVolumeMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>277</x>
-     <y>1446</y>
+     <x>280</x>
+     <y>1426</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2248,8 +2261,8 @@ of each frame</string>
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>343</x>
-     <y>1442</y>
+     <x>348</x>
+     <y>1424</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2264,8 +2277,8 @@ of each frame</string>
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>277</x>
-     <y>1446</y>
+     <x>280</x>
+     <y>1426</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2297,7 +2310,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>350</x>
-     <y>1140</y>
+     <y>1145</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2361,7 +2374,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>236</x>
-     <y>925</y>
+     <y>949</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2392,8 +2405,8 @@ of each frame</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>146</x>
-     <y>967</y>
+     <x>194</x>
+     <y>1001</y>
     </hint>
     <hint type="destinationlabel">
      <x>23</x>
@@ -2408,8 +2421,8 @@ of each frame</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>146</x>
-     <y>967</y>
+     <x>194</x>
+     <y>1001</y>
     </hint>
     <hint type="destinationlabel">
      <x>257</x>
@@ -2424,8 +2437,8 @@ of each frame</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>146</x>
-     <y>967</y>
+     <x>194</x>
+     <y>1001</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2456,8 +2469,8 @@ of each frame</string>
    <slot>OnCheckBoxSelectAllLabels(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>16</x>
-     <y>1140</y>
+     <x>15</x>
+     <y>1145</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2573,7 +2586,7 @@ of each frame</string>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
-     <y>1775</y>
+     <y>1774</y>
     </hint>
    </hints>
   </connection>
@@ -2585,11 +2598,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>236</x>
-     <y>1036</y>
+     <y>1060</y>
     </hint>
     <hint type="destinationlabel">
      <x>298</x>
-     <y>1036</y>
+     <y>1060</y>
     </hint>
    </hints>
   </connection>
@@ -2616,12 +2629,28 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>294</x>
-     <y>1603</y>
+     <x>341</x>
+     <y>1597</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
-     <y>1747</y>
+     <y>1744</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonContourUpdate</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnButtonContourUpdate()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>1554</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>648</x>
+     <y>1576</y>
     </hint>
    </hints>
   </connection>
@@ -2670,5 +2699,6 @@ of each frame</string>
   <slot>OnCheckVoxelizedContour(bool)</slot>
   <slot>OnLineEditVectorNormThreshold(QString)</slot>
   <slot>OnColorTableItemClicked(QTreeWidgetItem*)</slot>
+  <slot>OnButtonContourUpdate()</slot>
  </slots>
 </ui>

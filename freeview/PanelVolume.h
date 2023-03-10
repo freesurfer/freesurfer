@@ -156,6 +156,8 @@ protected slots:
 
   void RefreshColorTable();
 
+  void OnButtonContourUpdate();
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );
   void DoUpdateWidgets();

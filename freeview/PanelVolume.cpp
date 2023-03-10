@@ -190,7 +190,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->checkBoxUpsampleContour
                       << ui->checkBoxVoxelizedContour
                       << ui->labelContourSpaceHolder
-                      << ui->checkBoxContourDilateFirst;
+                      << ui->checkBoxContourDilateFirst
+                      << ui->pushButtonContourUpdate;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
                             << ui->sliderContourThresholdHigh
@@ -2100,4 +2101,13 @@ QList<LayerMRI*> PanelVolume::GetLinkedVolumes()
 {
   QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
   return linked_mri;
+}
+
+void PanelVolume::OnButtonContourUpdate()
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->RebuildContour();
+  }
 }
