@@ -2,6 +2,7 @@
 #define MRISURFOVERLAY_H
 
 #include "mri.h"
+#include "mrisurf.h"
 
 // list of Freesurfer surface overlays
 // the list for FS_MRISURFOVERLAY_STATS* is not complete
@@ -24,11 +25,10 @@
  *   (MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE). 
  *   MRI_CURV_FILE is the new CURV format with MAGICNO. = 16777215.
  *
- *   Overlay files can also be in MRIS_ASCII_FILE, MRIS_VTK_FILE, and old CURV formats. 
- *   These formats are still handled by MRISreadCurvatureFile()/MRISwriteCurvature().
+ *   Overlay files can also be in MRIS_ASCII_FILE, MRIS_VTK_FILE, and old CURV formats (read). 
  *
  * The overlay data has 1D morphometry data (vertex-wise measures) or other per-vertex information.
- * The data is read into MRI representation in this class.
+ * The data is read into MRI representation in this class for MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE.
  */
 class MRISurfOverlay
 {
@@ -36,14 +36,21 @@ public:
   MRISurfOverlay();
   ~MRISurfOverlay();
 
-  MRI *read(const char *foverlay, int read_volume);
-  int write(const char *fout, MRI *inmri=NULL);  // MRISwriteCurvature()
+  MRI *read(const char *foverlay, int read_volume, MRIS *outmris=NULL);  // MRISreadCurvatureFile()
+  int write(const char *fout, MRIS *inmris=NULL);  // MRISwriteCurvature()
 
-  MRI *readCurvatureBinary(const char *curvfile, int read_volume);
+  MRI *readCurvatureAsMRI(const char *curvfile, int read_volume);
 
   static int getFileFormat(const char *foverlay);
 
 private:
+  int __copyOverlay2MRIS(MRIS *outmris);
+  int __readOldCurvature(MRIS *outmris, const char *fname);
+
+  int __writeCurvFromMRI(MRI *outmri, const char *fout);
+  int __writeCurvFromMRIS(MRIS *outmris, const char *fout);
+
+
   char __foverlay[1024]; // full path to overlay file
   int  __type;           // not assigned yet, FS_MRISURFOVERLAY*
   int  __format;         // MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE

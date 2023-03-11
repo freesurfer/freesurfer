@@ -1045,6 +1045,7 @@ extern float ic_z_vertices[]  ;
 #define MGH_LABEL_FILE                32
 #define MGH_ANNOT                     33 // surface annotation file
 #define NPY_FILE                      34 // numpy npy file
+#define ASCII_FILE                    35 // .asc
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;

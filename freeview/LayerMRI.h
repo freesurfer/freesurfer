@@ -383,6 +383,7 @@ public slots:
   void UpdateResliceInterpolation();
   void UpdateMRIToImage();
   void SetMaskThreshold(double val);
+  void RebuildContour();
 
 Q_SIGNALS:
   void ResampleFactorChanged();
@@ -429,7 +430,6 @@ protected slots:
   void ResetRef();
 
   void OnLabelContourChanged(int n = -1);
-  void RebuildContour();
 
   void UpdateLabelInformation();
   void OnLabelInformationReady();
