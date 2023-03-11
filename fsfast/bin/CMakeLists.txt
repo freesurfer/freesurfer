@@ -79,7 +79,6 @@ install_configured(
   getfirstrundir-sess
   getfirstsliceno
   getformat_from_stem
-  getfullpath
   geticoorder
   getlastsliceno
   getmatlab
