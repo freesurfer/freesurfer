@@ -5062,10 +5062,18 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
     frame = MRISgetReadFrame();
 
     // ??? why read the volume twice ???
-    TempMRI = MRIreadHeader(fname, mritype);
+    //TempMRI = MRIreadHeader(fname, mritype);
+    //if (TempMRI == NULL) {
+    //  return (ERROR_BADFILE);
+    //}
+
+    // MRI_CURV_FILE will be read in as MRI - MRISreadCurvAsMRI();
+    // MRI_MGH_FILE - mghRead()
+    TempMRI = MRIread(fname);
     if (TempMRI == NULL) {
       return (ERROR_BADFILE);
     }
+
     if (TempMRI->nframes <= frame) {
       printf("ERROR: attempted to read frame %d from %s\n", frame, fname);
       printf("  but this file only has %d frames.\n", TempMRI->nframes);
@@ -5076,14 +5084,8 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
       printf("ERROR: number of vertices in %s does not match surface (%d,%d)\n", sname, nv, mris->nvertices);
       return (1);
     }
-    MRIfree(&TempMRI);
+    //MRIfree(&TempMRI);
 
-    // MRI_CURV_FILE will be read in as MRI - MRISreadCurvAsMRI();
-    // MRI_MGH_FILE - mghRead()
-    TempMRI = MRIread(fname);
-    if (TempMRI == NULL) {
-      return (ERROR_BADFILE);
-    }
     vno = 0;
     curvmin = 10000.0f;
     curvmax = -10000.0f; /* for compiler warnings */
