@@ -82,7 +82,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
 
 #ifdef Q_OS_MAC
   ui->groupBoxMac->setEnabled(true);
-  ui->groupBoxMac->show();
+  ui->groupBoxMac->hide();
 //  connect(ui->checkBoxMacUnified, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUnifiedTitleAndToolBar(bool)));
   connect(ui->checkBoxCommandKey, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUseCommandControl(bool)));
 #else
