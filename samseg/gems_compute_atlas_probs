@@ -37,6 +37,8 @@ parser.add_argument('--save-figs', action='store_true', default=False, help='Sav
 parser.add_argument('--save-average-figs', action='store_true', default=False, help='Save average rasterized prior.')
 parser.add_argument('--subjects_file', help='Text file with list of subjects.')
 parser.add_argument('--labels_file', help='Text file with list of labels (instead of --labels).')
+parser.add_argument('--samseg-subdir', default='samseg',help='Name of samseg subdir in subject/mri folder')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.out_dir):
@@ -142,7 +144,7 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
             affine = nib.load(os.path.join(args.segmentations_dir, subject_dir, args.segmentation_name)).affine
 
         if args.from_samseg:
-            history = np.load(os.path.join(args.subjects_dir, subject_dir, 'mri', 'samseg', 'history.p'), allow_pickle=True)
+            history = np.load(os.path.join(args.subjects_dir, subject_dir, 'mri', args.samseg_subdir, 'history.p'), allow_pickle=True)
         else:
             history = np.load(os.path.join(args.subjects_dir, subject_dir, 'history.p'), allow_pickle=True)
 
