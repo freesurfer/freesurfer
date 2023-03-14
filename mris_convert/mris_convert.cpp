@@ -43,6 +43,8 @@
 
 #include "compilerdefs.h"
 
+#include "MRISurfOverlay.h"
+
 #define __COMBINESURFS_TAKE_INFILE2 0
 
 //------------------------------------------------------------------------
@@ -488,26 +490,9 @@ main(int argc, char *argv[])
 
 static void __convertOverlayFile(MRIS *mris, const char *fcurv, char *out_fname)
 {
-  if (MRISreadCurvatureFile(mris, fcurv) != NO_ERROR)
-  {
-    printf("ERROR reading curvature file %s\n", fcurv);
-    exit(1);
-  }
-
-  int type = MRISfileNameType(out_fname) ;
-  if (type == MRIS_ASCII_FILE)
-  {
-    mrisWriteAsciiCurvatureFile(mris, out_fname);
-    //writeAsciiCurvFile(mris, out_fname) ;
-  }
-  else if (type == MRIS_GIFTI_FILE)
-  {
-    MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, fcurv);
-  }
-  else
-  {
-    MRISwriteCurvature(mris, out_fname) ;
-  }
+  MRISurfOverlay *fsOverlay = new MRISurfOverlay();
+  fsOverlay->read(fcurv, TRUE, mris);
+  fsOverlay->write(out_fname, mris);
 }
 
 

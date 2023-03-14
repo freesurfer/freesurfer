@@ -25,7 +25,7 @@
 #include <QDebug>
 
 #ifdef Q_OS_MAC
-Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::MetaModifier;
+Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::ControlModifier;
 Qt::Key Interactor::CONTROL_KEY = Qt::Key_Meta;
 #else
 Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::ControlModifier;
@@ -53,7 +53,7 @@ void Interactor::SetAction( int nAction )
 void Interactor::SetUseCommandControl(bool b)
 {
 #ifdef Q_OS_MAC
-  if (b)
+  if (true)
   {
     CONTROL_MODIFIER = Qt::ControlModifier;
     CONTROL_KEY = Qt::Key_Control;
