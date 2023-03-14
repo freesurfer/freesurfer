@@ -83,7 +83,6 @@
 #include "nii_dicom_batch.h"
 
 #include "fscnpy.h"
-#include "MRISurfOverlay.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -7553,11 +7552,6 @@ static MRI *ximgRead(const char *fname, int read_volume)
   -----------------------------------------------------------*/
 static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
 {
-  MRISurfOverlay *fsOverlay = new MRISurfOverlay();
-  MRI *curvmri = fsOverlay->readCurvatureAsMRI(curvfile, read_volume);
-
-  return curvmri;
-#if 0
   int magno, k, vnum, fnum, vals_per_vertex;
   float curv;
   FILE *fp;
@@ -7592,7 +7586,6 @@ static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
   fclose(fp);
 
   return (curvmri);
-#endif
 }
 
 /*------------------------------------------------------------------
