@@ -2819,7 +2819,7 @@ int MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri, int nframe)
 {
   char line[STRLEN], *cp = NULL;
 
@@ -3061,6 +3061,10 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
               if (fscanf(fp, "%f", &f)) {
                 v->curv = f;  // fill-in both curvature and scalar data fields
                 v->val = f;
+
+                if (outmri != NULL)
+                  MRIsetVoxVal(outmri, vno, 0, 0, nframe, f);
+
                 if (isCurvData) {
                   // printf("%f\n",v->curv);
                   if (vno == 0) {
@@ -4928,7 +4932,7 @@ int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname)
 
   Description
   ------------------------------------------------------*/
-int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri, int nframe)
 {
   FILE *fp;
   int vno;
@@ -4958,6 +4962,9 @@ int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
                    "could not scan curvature from line '%s'",
                    fname,
                    line));
+
+    if (outmri != NULL)
+      MRIsetVoxVal(outmri, vno, 0, 0, nframe, v->curv);
   }
 
   fclose(fp);
