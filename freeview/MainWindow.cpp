@@ -197,6 +197,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionDeleteLayer);
 
   addAction(ui->actionNextLabelPoint);
+  addAction(ui->actionShowLabelOutline);
 
 #ifdef DISABLE_LINEPROF
   ui->actionLineProfile->setVisible(false);
@@ -808,7 +809,7 @@ void MainWindow::closeEvent( QCloseEvent * event )
     msg += "\nDo you still want to quit?";
     QMessageBox msgbox(this);
     msgbox.setIcon(QMessageBox::Question);
-    QAbstractButton* yesBtn = msgbox.addButton("Quit", QMessageBox::YesRole);
+    QAbstractButton* yesBtn = msgbox.addButton("Quit without Saving", QMessageBox::YesRole);
     msgbox.addButton("Cancel", QMessageBox::NoRole);
     msgbox.setText(msg);
     msgbox.setWindowTitle("Warning");
@@ -5739,9 +5740,12 @@ bool MainWindow::OnCloseVolume(const QList<Layer*>& layers_in)
   {
     if ( qobject_cast<LayerMRI*>(layer)->IsModified() )
     {
-      if ( QMessageBox::question( this, "Volume Not Saved",
-                                  "Volume has been modifed and not been saved. Do you still want to continue?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+      QMessageBox box(QMessageBox::Question, tr("Close Volume"),
+                      "Volume has been modifed and not been saved. Do you still want to continue?",
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
       {
         return false;
       }
@@ -6169,9 +6173,12 @@ void MainWindow::OnCloseROI(const QList<Layer*>& layers_in)
   {
     if ( qobject_cast<LayerROI*>(layer)->IsModified() )
     {
-      if ( QMessageBox::question( this, "ROI Not Saved",
-                                  "ROI has been modifed and not been saved. Do you still want to continue?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+      QMessageBox box(QMessageBox::Question, tr("Close ROI"),
+                      "ROI has been modifed and not been saved. Do you still want to continue?",
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
       {
         return;
       }
@@ -6388,9 +6395,12 @@ void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
   {
     if ( qobject_cast<LayerPointSet*>(layer)->IsModified() )
     {
-      if ( QMessageBox::question( this, "Point Set Not Saved",
-                                  "Point set has been modifed and not been saved. Do you still want to continue?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+      QMessageBox box(QMessageBox::Question, tr("Close Point Set"),
+                      "Point Set has been modifed and not been saved. Do you still want to continue?",
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
       {
         return;
       }
@@ -9866,5 +9876,14 @@ void MainWindow::SetNeurologicalView(bool b)
   for (int i = 0; i < 3; i++)
   {
     ((RenderView2D*)m_views[i])->SetNeurologicalView(b);
+  }
+}
+
+void MainWindow::OnShowLabelOutline(bool bShow)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    mri->GetProperty()->SetShowLabelOutline(bShow);
   }
 }

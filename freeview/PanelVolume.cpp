@@ -354,6 +354,7 @@ void PanelVolume::DoIdle()
   bool bDataAvail = (!strgs.isEmpty() && strgs[0] == FS_VOLUME_SETTING_ID);
   ui->actionPasteSetting->setEnabled(layer && bDataAvail);
   ui->actionPasteSettingToAll->setEnabled(layer && bDataAvail);
+  ui->checkBoxShowOutline->setChecked(layer && layer->GetProperty()->GetShowLabelOutline());
   BlockAllSignals( false );
 }
 

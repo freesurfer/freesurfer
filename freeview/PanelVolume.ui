@@ -1290,9 +1290,6 @@ of each frame</string>
       <property name="text">
        <string>Show label outline only (Ctrl+L)</string>
       </property>
-      <property name="shortcut">
-       <string>Ctrl+L</string>
-      </property>
      </widget>
     </item>
     <item>
