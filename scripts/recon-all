@@ -7089,7 +7089,8 @@ while( $#argv != 0 )
       set DoCurvHK         = 1;
       breaksw
 
-    case "-autorecon-pial":
+    case "-autorecon-bfs":
+    case "-autorecon-pial": # does more than pial
       set DoMaskBFS        = 1;
       set DoAutoDetGWStats = 1;
       set DoWhitePreAparc  = 1;
