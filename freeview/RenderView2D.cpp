@@ -217,6 +217,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
   }
   //  m_renderer->ResetCameraClippingRange();
   cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2])/2 );
+  Update2DOverlay();
 }
 
 void RenderView2D::UpdateAnnotation()

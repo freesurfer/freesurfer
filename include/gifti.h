@@ -25,11 +25,28 @@
 
 #include "gifti_io.h"
 #include "mrisurf.h"
+#include "MRISurfOverlay.h"
 
-MRIS* mrisReadGIFTIfile(const char *fname, MRIS *mris);
-MRIS* mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum);
+MRIS* mrisReadGIFTIfile(const char *fname, MRIS *mris, MRI *outmri=NULL, int *frame=NULL);
+MRIS* mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri=NULL, int *frame=NULL);
 MRI* MRISreadGiftiAsMRI(const char *fname, int read_volume);
 int MRISwriteGIFTI(MRIS* mris, int intent_code, const char *out_fname, const char *curv_fname);
 int mriWriteGifti(MRI* mri, const char *out_fname);
+
+// GIFTI intent related functions extracted from MRISwriteGIFTI()
+int MRISwriteGIFTIIntent(MRIS *mris, int intent_code, gifti_image *image, const char *out_fname, const char *curv_fname);
+int MRISwriteGIFTIShape(MRIS *mris, gifti_image *image, int intent_code, const char *curv_fname);
+int MRISwriteGIFTIStats(MRIS *mris, gifti_image *image, int intent_code);
+int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code);
+int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname);
+
+// function to output multiple overlays
+int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *out_fname);
+// overloaded functions to handle combined GIFTI with multiple intents
+int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype);
+int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype);
+int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype);
+
+
 
 #endif

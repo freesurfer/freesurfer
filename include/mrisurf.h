@@ -657,9 +657,9 @@ int          MRISreadCurvatureIntoArray(const char *fname,
 int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
-int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname);
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
 int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname);
-MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname);
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
 
 MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *typestring,

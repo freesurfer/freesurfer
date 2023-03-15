@@ -79,15 +79,17 @@ static const COLOR_TABLE miniColorTable =
 
 int main(int argc, char *argv[]) ;
 
-static void __convertOverlayFile(MRIS *mris, const char *curv, char *out_fname);
-static void __writeLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
-static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, const char *fcurv, char *out_fname);
-static void __writeFuncFile(const char *ffunc, char *out_fname);
-static void __writeNormals(MRIS *mris, char *out_fname);
-static void __writeMRISPatch(MRIS *mris, char *out_fname);
+static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname);
+static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
+static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname);
+static void __convertFuncFile(const char *ffunc, char *out_fname);
+static void __convertNormals(MRIS *mris, char *out_fname);
+static void __convertMRISPatch(MRIS *mris, char *out_fname);
 
 static int  get_option(int argc, char *argv[]) ;
 static void check_options(void);
+static int isflag(char *flag);
+static int nth_is_arg(int nargc, char **argv, int nth);
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
@@ -112,6 +114,8 @@ static int w_file_dst_flag = 0 ;
 static int w_file_src_flag = 0 ;
 static int curv_file_flag = 0 ;
 static char *curv_fname = NULL;
+static const char **arr_fcurv = NULL;
+static int  nfcurv = 0;
 static int func_file_flag = 0 ;
 static char *func_fname = NULL;
 static int annot_file_flag = 0 ;
@@ -132,6 +136,7 @@ static int PrintXYZOnly = 0;
 static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
+static int mergegifti_flag = 0;
 static int userealras_flag = 0;
 static int usesurfras_flag = 0;
 static MRI *VolGeomMRI=NULL;
@@ -407,20 +412,20 @@ main(int argc, char *argv[])
   }
 
   if (curv_file_flag)
-    __convertOverlayFile(mris, curv_fname, out_fname);
+    __convertCurvatureFile(mris, nfcurv, arr_fcurv, out_fname);
   else if (annot_file_flag)
-    __writeAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, curv_fname, out_fname);
+    __convertAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, out_fname);
   else if (label_file_flag)
-    __writeLabelFile(mris, label_fname, label_name, labelstats_fname, out_fname);
+    __convertLabelFile(mris, label_fname, label_name, labelstats_fname, out_fname);
   else if (func_file_flag)
   {
-    __writeFuncFile(func_fname, out_fname);
+    __convertFuncFile(func_fname, out_fname);
     exit(0);
   }
   else if (mris->patch)
-    __writeMRISPatch(mris, out_fname);
+    __convertMRISPatch(mris, out_fname);
   else if (output_normals)
-    __writeNormals(mris, out_fname);
+    __convertNormals(mris, out_fname);
   else if (write_vertex_neighbors)
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
   else if(PrintXYZOnly)
@@ -459,6 +464,8 @@ main(int argc, char *argv[])
       printf("Removing Vol Geom\n");
       mris->vg.valid = 0;
     }
+
+    // ??? should we call MRIcopyMRIS() instead ???
     if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE) {
       printf("Saving surface xyz %s as a volume format\n",out_fname);
       MRI *vol = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3);
@@ -488,15 +495,28 @@ main(int argc, char *argv[])
 }
 
 
-static void __convertOverlayFile(MRIS *mris, const char *fcurv, char *out_fname)
+static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname)
 {
-  MRISurfOverlay *fsOverlay = new MRISurfOverlay();
-  fsOverlay->read(fcurv, TRUE, mris);
-  fsOverlay->write(out_fname, mris);
+  OverlayInfoStruct poverlayStruct[noverlay];
+  for (int n = 0; n < noverlay; n++)
+  {
+    poverlayStruct[n].__foverlay = foverlays[n];
+    poverlayStruct[n].__type = FS_MRISURFOVERLAY_SHAPE;
+    poverlayStruct[n].__format = MRISurfOverlay::getFileFormat(foverlays[n]);
+    poverlayStruct[n].__stframe = n;  // assume one frame for each curvature
+    poverlayStruct[n].__numframe = 1;
+  }
+
+  MRISurfOverlay *fsOverlay = new MRISurfOverlay(mris, noverlay, &poverlayStruct[0]);
+  int error = fsOverlay->read(TRUE, mris);
+  if (error != NO_ERROR)
+    return;
+
+  fsOverlay->write(out_fname, mris, (mergegifti_flag) ? true : false);
 }
 
 
-static void __writeLabelFile(MRIS *mris, const char *flabel, const char *labelname, const char *labelstats, char *out_fname)
+static void __convertLabelFile(MRIS *mris, const char *flabel, const char *labelname, const char *labelstats, char *out_fname)
 {
 #if 0  // for some reasons, defining the variables here doesn't work
   const COLOR_TABLE_ENTRY unknown = {"unknown", 0,0,0,0, 0,0,0,0};
@@ -596,7 +616,7 @@ static void __writeLabelFile(MRIS *mris, const char *flabel, const char *labelna
 }
 
 
-static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, const char *fcurv, char *out_fname)
+static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname)
 {
     // first read the annotation/gifti label data...
     int type = MRISfileNameType(fannot);
@@ -662,8 +682,7 @@ static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, con
       }
       else if (type == MRIS_GIFTI_FILE)
       {
-        // ??? is curv_fname set for this code path ???
-        MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, fcurv);
+        MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, NULL);
       }
       else
       {
@@ -697,7 +716,7 @@ static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, con
 }
 
 
-static void __writeFuncFile(const char *ffunc, char *out_fname)
+static void __convertFuncFile(const char *ffunc, char *out_fname)
 {
     MRI* mri = MRIread( ffunc );
     if (NULL == mri)
@@ -709,7 +728,7 @@ static void __writeFuncFile(const char *ffunc, char *out_fname)
 }
 
 
-static void __writeNormals(MRIS *mris, char *out_fname)
+static void __convertNormals(MRIS *mris, char *out_fname)
 {
     if (MRISfileNameType(out_fname) == MRIS_ASCII_TRIANGLE_FILE)
       MRISwriteNormalsAscii(mris, out_fname) ;
@@ -718,7 +737,7 @@ static void __writeNormals(MRIS *mris, char *out_fname)
 }
 
 
-static void __writeMRISPatch(MRIS *mris, char *out_fname)
+static void __convertMRISPatch(MRIS *mris, char *out_fname)
 {
     int type = MRISfileNameType(out_fname) ;
     if (type == MRIS_GIFTI_FILE)
@@ -842,6 +861,10 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
 #endif
   }
+  else if (!stricmp(option, "-mergegifti"))
+  {
+    mergegifti_flag = 1;
+  }
   else if (!stricmp(option, "-delete-cmds"))
   {
     DeleteCommands = 1;
@@ -915,10 +938,30 @@ get_option(int argc, char *argv[])
       nargs = 1 ;
       break ;
     case 'C':
+    {
       curv_file_flag = 1 ;
       curv_fname = argv[2] ;
       nargs = 1 ;
+
+      int argc0 = 2;
+      int nth = 3;
+      // get additional input curvature files
+      // minus 2 positional arguments
+      while (nth_is_arg(argc-nth-2, argv, nth))
+      {
+        nargs++; nth++;
+      }
+
+      arr_fcurv = new const char*[nargs];
+      for (int n = 0; n < nargs; n++)
+      {
+        arr_fcurv[n] = argv[argc0];
+        argc0++;
+      }
+
+      nfcurv = nargs;
       break ;
+    }
     case 'N':
       output_normals = 1;
       break ;
@@ -964,6 +1007,12 @@ get_option(int argc, char *argv[])
 
 static void check_options(void)
 {
+  if (combinesurfs_flag && curv_file_flag)
+  {
+    printf("ERROR: --combinesurf and -c are mutually exclusive. \n");
+    exit(1);
+  }
+
   // --to-scanner/--userealras and --to-tkr/--usesurfras are mutually exclusive
   if ( (ToScanner || userealras_flag) && 
        (ToTkr     || usesurfras_flag) )
@@ -991,7 +1040,31 @@ static void check_options(void)
   }
 }
 
-static void
+/*---------------------------------------------------------------*/
+static int isflag(char *flag) {
+  int len;
+  len = strlen(flag);
+  if (len < 2) return(0);
+
+  if (flag[0] == '-' && flag[1] == '-') return(1);
+  return(0);
+}
+
+/*---------------------------------------------------------------*/
+static int nth_is_arg(int nargc, char **argv, int nth) {
+  /* Checks that nth arg exists and is not a flag */
+  /* nth is 0-based */
+
+  /* check that there are enough args for nth to exist */
+  if (nargc <= 0) return(0);
+
+  /* check whether the nth arg is a flag */
+  if (isflag(argv[nth])) return(0);
+
+  return(1);
+}
+
+static void 
 usage_exit(void)
 {
   print_help() ;

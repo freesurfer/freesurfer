@@ -39,9 +39,11 @@
   <arguments>
 
     <required>
-      <intro>Exactly one input is required:</intro>
+      <intro>Required positional parameters (these need to be placed after any options):</intro>
       <argument>in-file</argument>
       <explanation>input filename</explanation>
+      <argument>[second-in-file]</argument>
+      <explanation>input second filename to be combined with in-file, required for --combinesurfs</explanation>
       <argument>out-file</argument>
       <explanation>output filename</explanation>
     </required>
@@ -51,8 +53,8 @@
       <explanation>help page</explanation>
       <argument>-p</argument>
       <explanation>in-file is a patch file, not a full surface</explanation>
-      <argument>-c scalar-file</argument>
-      <explanation>input scalar curv overlay file (must still specify surface)</explanation>
+      <argument>-c scalar-file1, scalar-file2, ..., scalar-filen</argument>
+      <explanation>input scalar curv overlay files (must still specify surface)</explanation>
       <argument>-f scalar-file</argument>
       <explanation>input functional time-series or other multi-frame data (must specify surface)</explanation>
       <argument>-o origname</argument>
@@ -81,6 +83,8 @@
       <explanation>output gifti file to which label stats will be written</explanation>
       <argument>--combinesurfs</argument>
       <explanation>combine surface files, two input surface files required</explanation>
+      <argument>--mergegifti</argument>
+      <explanation>generate combined gifti file with surface and multiple curvature data</explanation>
       <argument>--delete-cmds</argument>
       <explanation>delete command lines in surface</explanation>
       <argument>--center</argument>

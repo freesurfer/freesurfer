@@ -843,3 +843,5 @@ if(BUILD_DNG)
   add_subdirectory(dngtester)
 endif()
 
+# add wrapper for slicedelay
+install_pyscript(./scripts/slicedelay)

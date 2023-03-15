@@ -632,6 +632,8 @@ protected slots:
 
   void OnDeleteLayer();
 
+  void OnShowLabelOutline(bool bShow);
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();

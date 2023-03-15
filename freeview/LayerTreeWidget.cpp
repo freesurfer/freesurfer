@@ -268,7 +268,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(wnd->ui->actionLoadPointSet);
     menu->addAction(wnd->ui->actionReloadPointSet);
     menu->addSeparator();
-    if (wnd->GetMode() == RenderView::IM_VoxelEdit && ((LayerPointSet*)layer)->GetProperty()->GetShowSpline())
+    if (wnd->GetMode() == RenderView::IM_VoxelEdit && type == "PointSet" && ((LayerPointSet*)layer)->GetProperty()->GetShowSpline())
     {
       QAction* act = new QAction("Convert to Volume Label", this);
       connect(act, SIGNAL(triggered(bool)), wnd, SLOT(OnPointSetToLabel()));
