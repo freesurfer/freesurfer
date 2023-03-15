@@ -99,6 +99,8 @@ private:
   bool __isStatsData(int nthOverlay);
   bool __isShapeMeasurement(int nthOverlay);
 
+  int __getFrameCount();
+
   int __nVertices;
   int __nFaces;              // # of triangles, we need this for MRI_CURV_FILE output
 

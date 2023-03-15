@@ -683,3 +683,32 @@ bool MRISurfOverlay::__isStatsData(int nthOverlay)
 
   return statsData;
 }
+
+int MRISurfOverlay::__getFrameCount()
+{
+  int count = 0;
+  for (int n = 0; n < __noverlay; n++)
+  {
+    int overlayFormat = getFileFormat(__overlayInfo[n].__foverlay);
+    if (overlayFormat == MRI_MGH_FILE)
+    {
+      MRI *tempMRI = MRIreadHeader(__overlayInfo[n].__foverlay, MRI_MGH_FILE);
+      if (tempMRI == NULL)
+        return count;
+  
+      count += tempMRI->nframes;
+      MRIfree(&tempMRI);
+    }
+    else if (overlayFormat == GIFTI_FILE)
+    {
+      int intents = getShapeStatIntentCount(__overlayInfo[__currFrame].__foverlay);
+      count += intents;
+    }
+    else // MRI_CURV_FILE, ASCII_FILE, VTK_FILE, and old curv format
+      count++;
+  
+    __overlayInfo[n].__format = overlayFormat;
+  }
+  
+  return count;
+}

@@ -1110,7 +1110,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
   gifti_free_image(image);
 
   return mris;
-}
+} // end of mrisReadGIFTIdanum()
 
 
  /*-----------------------------------------------------------
@@ -1275,7 +1275,7 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   /* And we're done. */
   gifti_free_image(image);
   return (mri);
-}
+} // end of MRISreadGiftiAsMRI()
 
 /*
  * insert username and current date into meta data
@@ -1359,7 +1359,7 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
   gifti_free_image(image);
 
   return ERROR_NONE;
-}
+} // end of MRISwriteGIFTI()
 
 /*-----------------------------------------------------------
   Parameters:    MRI structure (surface-encoded volume),
@@ -1471,7 +1471,7 @@ int mriWriteGifti(MRI *mri, const char *out_fname)
   gifti_free_image(image);
 
   return ERROR_NONE;
-}
+} // end of mriWriteGifti()
 
 
 
@@ -1524,7 +1524,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, int intent_code, gifti_image *image, const 
   }  // end of if NIFTI_INTENT_<stats>
 
   return NO_ERROR;
-} // end of MRISwriteGIFTIIntent() 
+} // end of MRISwriteGIFTIIntent(MRIS *mris, ...) 
 
 
 /*
@@ -1613,7 +1613,7 @@ int MRISwriteGIFTIShape(MRIS *mris, gifti_image *image, int intent_code, const c
     }
 
     return NO_ERROR;
-} // end of MRISwriteGIFTIShape()
+} // end of MRISwriteGIFTIShape(MRIS *mris, ...)
 
 
 /*
@@ -1676,7 +1676,7 @@ int MRISwriteGIFTIStats(MRIS *mris, gifti_image *image, int intent_code)
     }
 
     return NO_ERROR;
-} // end of MRISwriteGIFTIStats()
+} // end of MRISwriteGIFTIStats(MRIS *mris, ...)
 
 
 /*
@@ -2304,7 +2304,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
   }  // end of if NIFTI_INTENT_<stats>
 
   return NO_ERROR;
-}
+} // end of MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, ...)
 
 
 /*
@@ -2424,7 +2424,7 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 #endif
 
     return NO_ERROR;
-} // end of MRISwriteGIFTIShape()
+} // end of MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, ...)
 
 
 /*
@@ -2513,4 +2513,61 @@ int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 #endif
 
     return NO_ERROR;
-} // end of MRISwriteGIFTIStats()
+} // end of MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, ...)
+
+
+int getShapeStatIntentCount(const char *fgifti)
+{
+  /*
+   * attempt to read the file
+   */
+  gifti_image *image = gifti_read_image(fgifti, 1);
+  if (NULL == image) {
+    fprintf(stderr, "getShapeStatIntentCount(): gifti_read_image() returned NULL\n");
+    return 0;
+  }
+
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
+  }
+
+  /*
+   * check for compliance
+   */
+  int valid = gifti_valid_gifti_image(image, 1);
+  if (valid == 0) {
+    fprintf(stderr, "getShapeStatIntentCount(): GIFTI file %s is invalid!\n", fgifti);
+    gifti_free_image(image);
+    return 0;
+  }
+
+  /*
+   * Now parse the DataArrays, count NIFTI_INTENT_SHAPE and NIFTI_INTENT_<stat>
+   */
+  int count = 0;
+  int endDAnum = image->numDA;
+  for (int numDA = 0; numDA < endDAnum; numDA++) {
+    giiDataArray *darray = image->darray[numDA];
+
+    // skip these intents
+    if ((darray->intent == NIFTI_INTENT_POINTSET)   || 
+        (darray->intent == NIFTI_INTENT_TRIANGLE)   ||
+        (darray->intent == NIFTI_INTENT_LABEL)      || 
+        (darray->intent == NIFTI_INTENT_GENMATRIX)  ||
+        (darray->intent == NIFTI_INTENT_VECTOR)     || 
+        (darray->intent == NIFTI_INTENT_RGB_VECTOR) ||
+        (darray->intent == NIFTI_INTENT_RGBA_VECTOR))
+      continue;
+
+    count++;
+  } 
+
+  /*
+   * And we're done.
+   */
+  gifti_free_image(image);
+
+  return count;
+} // end of getShapeStatIntentCount()
