@@ -47,6 +47,7 @@ static int use_thickness = 0 ;
 static int nsurfaces = 1 ;
 static const char *thickness_name = "thickness" ;
 static const char *pial_name = "pial" ;
+static const char *tmap_fname = NULL ;
 static int nbrs = 2 ;
 
 static char *orig_name = NULL ;
@@ -119,9 +120,16 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM, "%s: could not open log file %s", Progname, log_fname) ;
   }
   if (use_thickness)
-    printf("expanding surface %s by %2.1f%% of thickness "
-           "and writing it to %s\n",
-           in_fname, 100.0*mm_out, out_fname) ;
+  {
+    if (use_thickness > 0)
+      printf("expanding surface %s by %2.1f%% of thickness "
+	     "and writing it to %s\n",
+	     in_fname, 100.0*mm_out, out_fname) ;
+    else
+      printf("expanding surface %s by percentages in %s "
+	     "and writing it to %s\n",
+	     in_fname, tmap_fname, out_fname) ;
+  }
   else
     printf("expanding surface %s by %2.1f mm and writing it to %s\n",
            in_fname, mm_out, out_fname) ;
@@ -138,7 +146,7 @@ main(int argc, char *argv[])
   }
   if (use_thickness)
   {
-    printf("reading thickness...\n") ;
+    printf("reading thickness %s...\n", thickness_name) ;
     if (MRISreadCurvatureFile(mris, thickness_name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not load thickness file", Progname) ;
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
@@ -160,6 +168,20 @@ main(int argc, char *argv[])
 
   if (parms.mri_brain && FZERO(mris->vg.xsize))
     MRIScopyVolGeomFromMRI(mris, parms.mri_brain) ;
+  if (tmap_fname != NULL)
+  {
+    parms.mri_dtrans = MRIread(tmap_fname);
+    if (parms.mri_dtrans == NULL)
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not tmap vertex percentages from %s\n", Progname, tmap_fname) ;
+    if (parms.mri_dtrans->width != mris->nvertices)
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not tmap width %d != mris->nvertices %d in %s\n", 
+		Progname, parms.mri_dtrans->width, mris->nvertices, tmap_fname) ;
+    printf("setting vno distance to %f\n", MRIgetVoxVal(parms.mri_dtrans, 0, 0, 0, 0));
+  }
+  else
+    parms.mri_dtrans = NULL ;
   MRISexpandSurface(mris, mm_out, &parms, use_thickness, nsurfaces);
 #if 0
   if (navgs > 0)
@@ -313,6 +335,13 @@ get_option(int argc, char *argv[])
     printf("reading pial surface from %s\n", pial_name) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "tmap"))
+  {
+    use_thickness = -1 ;
+    tmap_fname = argv[2] ;
+    printf("reading thickness target percent map from %s\n", tmap_fname) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
     {
     case 'O':
@@ -384,5 +413,6 @@ usage_exit(int code)
          Progname) ;
   printf("  Example: mris_expand -thickness lh.white 0.5 lh.graymid\n");
   printf("  Example: mris_expand -label labelfile lh.white 0.5 lh.graymid\n");
+  printf("  Example: mris_expand -tmap thickness_pct_target.mgz lh.white 0.5 lh.graymid\n");
   exit(code) ;
 }

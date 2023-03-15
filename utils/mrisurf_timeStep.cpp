@@ -2063,6 +2063,7 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
   MRI_SURFACE *mris_ico;
   MHT *mht = NULL;
 
+  printf("MRISexpandSurface, use_thick %d, mri_dtrans %lx\n", use_thick, (long unsigned int)parms->mri_dtrans);
   l_spring_orig = parms->l_spring;
   if (Gdiag & DIAG_SHOW) {
     mrisLogIntegrationParms(stderr, mris, parms);
@@ -2117,6 +2118,7 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       if (v->ripflag) {
         continue;
       }
+
       MRISsetXYZ(mris, vno,
         v->x + distance * v->nx,
         v->y + distance * v->ny,
@@ -2206,6 +2208,12 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
           DiagBreak();
         }
         if (use_thick) {
+	  if (use_thick < 0 && parms->mri_dtrans != NULL)   // use map of target percentages
+	  {
+	    distance = MRIgetVoxVal(parms->mri_dtrans, vno, 0, 0, 0) ;
+	    if (vno == 0 && DIAG_VERBOSE_ON)
+	      printf("!!!!!!!!!!!!  resetting distance to %f !!!!!!!!!!!!!\n", distance);
+	  }
           dx = pial_x[vno] - v->origx;
           dy = pial_y[vno] - v->origy;
           dz = pial_z[vno] - v->origz;
