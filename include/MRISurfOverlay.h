@@ -44,13 +44,12 @@ struct OverlayInfoStruct
 {
   //char __foverlay[1024]; // full path to overlay file
   const char *__foverlay;
-  int  __type;           // not assigned yet, FS_MRISURFOVERLAY*
-  int  __format;         // MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE
+  int  __type;           // FS_MRISURFOVERLAY*
+  const char *__datatype;// CurvatureRadial, SulcalDepth, Thickness, Area, (Volume, Jacobian)
+  int  __format;         // MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
   int  __stframe;        // starting frame, this can be used when we combine multiple overlays in one MRI
-  int  __numframe;        // for functions time series*, nframes can be > 1
+  int  __numframe;       // for functions time series*, nframes can be > 1
 
-  //int __nVertices;
-  //int __nFaces;              // # of triangles, we need this for MRI_CURV_FILE output
   int __nValsPerVertex = 1;  // number of values at each vertex, should be 1  
 };
 
@@ -73,7 +72,6 @@ public:
   ~MRISurfOverlay();
 
   int read(int read_volume, MRIS *mris);
-  int readOneOverlay(int nthOverlay, int read_volume, MRIS *mris);  // MRISreadCurvatureFile()
   int write(const char *fout, MRIS *inmris=NULL, bool mergegifti=false);  // MRISwriteCurvature()
 
   int getNumOverlay() { return __noverlay; }
@@ -82,6 +80,7 @@ public:
   int getGIFTIIntent(int nthOverlay);
   int getFirstFrameNo(int nthOverlay) { return __overlayInfo[nthOverlay].__stframe; }
   int getNumFrames(int nthOverlay) { return __overlayInfo[nthOverlay].__stframe + __overlayInfo[nthOverlay].__numframe; }
+  const char *getDataType(int nthOverlay) { return __overlayInfo[nthOverlay].__datatype; }
 
   // return overlay data in multi-frame MRI
   MRI *getOverlayMRI() { return __overlaymri; }
@@ -89,6 +88,7 @@ public:
   static int getFileFormat(const char *foverlay);
 
 private:
+  int __readOneOverlay(int nthOverlay, int read_volume, MRIS *mris);  // MRISreadCurvatureFile()
   int __copyOverlay2MRIS(MRIS *outmris);
   int __readCurvatureAsMRI(const char *curvfile, int read_volume);
   int __readOldCurvature(const char *fname);

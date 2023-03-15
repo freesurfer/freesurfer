@@ -80,11 +80,11 @@ static const COLOR_TABLE miniColorTable =
 int main(int argc, char *argv[]) ;
 
 static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname);
-static void __writeLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
-static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname);
-static void __writeFuncFile(const char *ffunc, char *out_fname);
-static void __writeNormals(MRIS *mris, char *out_fname);
-static void __writeMRISPatch(MRIS *mris, char *out_fname);
+static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
+static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname);
+static void __convertFuncFile(const char *ffunc, char *out_fname);
+static void __convertNormals(MRIS *mris, char *out_fname);
+static void __convertMRISPatch(MRIS *mris, char *out_fname);
 
 static int  get_option(int argc, char *argv[]) ;
 static void check_options(void);
@@ -414,18 +414,18 @@ main(int argc, char *argv[])
   if (curv_file_flag)
     __convertCurvatureFile(mris, nfcurv, arr_fcurv, out_fname);
   else if (annot_file_flag)
-    __writeAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, out_fname);
+    __convertAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, out_fname);
   else if (label_file_flag)
-    __writeLabelFile(mris, label_fname, label_name, labelstats_fname, out_fname);
+    __convertLabelFile(mris, label_fname, label_name, labelstats_fname, out_fname);
   else if (func_file_flag)
   {
-    __writeFuncFile(func_fname, out_fname);
+    __convertFuncFile(func_fname, out_fname);
     exit(0);
   }
   else if (mris->patch)
-    __writeMRISPatch(mris, out_fname);
+    __convertMRISPatch(mris, out_fname);
   else if (output_normals)
-    __writeNormals(mris, out_fname);
+    __convertNormals(mris, out_fname);
   else if (write_vertex_neighbors)
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
   else if(PrintXYZOnly)
@@ -464,6 +464,8 @@ main(int argc, char *argv[])
       printf("Removing Vol Geom\n");
       mris->vg.valid = 0;
     }
+
+    // ??? should we call MRIcopyMRIS() instead ???
     if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE) {
       printf("Saving surface xyz %s as a volume format\n",out_fname);
       MRI *vol = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3);
@@ -506,12 +508,15 @@ static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverl
   }
 
   MRISurfOverlay *fsOverlay = new MRISurfOverlay(mris, noverlay, &poverlayStruct[0]);
-  fsOverlay->read(TRUE, mris);
+  int error = fsOverlay->read(TRUE, mris);
+  if (error != NO_ERROR)
+    return;
+
   fsOverlay->write(out_fname, mris, (mergegifti_flag) ? true : false);
 }
 
 
-static void __writeLabelFile(MRIS *mris, const char *flabel, const char *labelname, const char *labelstats, char *out_fname)
+static void __convertLabelFile(MRIS *mris, const char *flabel, const char *labelname, const char *labelstats, char *out_fname)
 {
 #if 0  // for some reasons, defining the variables here doesn't work
   const COLOR_TABLE_ENTRY unknown = {"unknown", 0,0,0,0, 0,0,0,0};
@@ -611,7 +616,7 @@ static void __writeLabelFile(MRIS *mris, const char *flabel, const char *labelna
 }
 
 
-static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname)
+static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname)
 {
     // first read the annotation/gifti label data...
     int type = MRISfileNameType(fannot);
@@ -711,7 +716,7 @@ static void __writeAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, con
 }
 
 
-static void __writeFuncFile(const char *ffunc, char *out_fname)
+static void __convertFuncFile(const char *ffunc, char *out_fname)
 {
     MRI* mri = MRIread( ffunc );
     if (NULL == mri)
@@ -723,7 +728,7 @@ static void __writeFuncFile(const char *ffunc, char *out_fname)
 }
 
 
-static void __writeNormals(MRIS *mris, char *out_fname)
+static void __convertNormals(MRIS *mris, char *out_fname)
 {
     if (MRISfileNameType(out_fname) == MRIS_ASCII_TRIANGLE_FILE)
       MRISwriteNormalsAscii(mris, out_fname) ;
@@ -732,7 +737,7 @@ static void __writeNormals(MRIS *mris, char *out_fname)
 }
 
 
-static void __writeMRISPatch(MRIS *mris, char *out_fname)
+static void __convertMRISPatch(MRIS *mris, char *out_fname)
 {
     int type = MRISfileNameType(out_fname) ;
     if (type == MRIS_GIFTI_FILE)

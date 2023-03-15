@@ -15,6 +15,26 @@ MRISurfOverlay::MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *pove
   for (int n = 0; n < __noverlay; n++)
   {
     __overlayInfo[n] = poverlayInfo[n];
+
+    __overlayInfo[n].__stframe = n;  // assume one frame for each overlay
+
+    const char *curv_fname = __overlayInfo[n].__foverlay;
+    __overlayInfo[n].__datatype = NULL;
+    if (strstr(curv_fname, ".thickness"))
+      __overlayInfo[n].__datatype = "Thickness";
+    else if (strstr(curv_fname, ".curv"))
+      __overlayInfo[n].__datatype = "CurvatureRadial";
+    else if (strstr(curv_fname, ".sulc"))
+      __overlayInfo[n].__datatype = "SulcalDepth";
+    else if (strstr(curv_fname, ".area"))
+      __overlayInfo[n].__datatype = "Area";
+    else if (strstr(curv_fname, ".volume"))
+      __overlayInfo[n].__datatype = "Volume";
+    else if (strstr(curv_fname, ".jacobian"))
+      __overlayInfo[n].__datatype = "Jacobian";
+    else
+      __overlayInfo[n].__datatype = NULL; 
+
 #if 0
     memcpy(__overlayInfo[n], poverlayInfo[n], sizeof(__overlayInfo[n]));
     __overlayInfo[n].__type = poverlayInfo[n]__type;
@@ -26,6 +46,7 @@ MRISurfOverlay::MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *pove
 #endif
   }
 
+  // Can't handle multi overlay in one input file
   std::vector<int> shape{__nVertices, 1, 1, __noverlay};
   __overlaymri = new MRI(shape, MRI_FLOAT);
   __currFrame = 0;
@@ -43,7 +64,7 @@ MRISurfOverlay::~MRISurfOverlay()
 /* static member method to return file type for the given file
  *
  *  The following file types are considered valid overlay files:
- *    MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, MRIS_ASCII_FILE, MRIS_VTK_FILE
+ *    MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
  * For file types other than those, return MRI_VOLUME_TYPE_UNKNOWN to callers.
  *
  * Notes: This class only handles MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE now.
@@ -75,7 +96,7 @@ int MRISurfOverlay::read(int read_volume, MRIS *mris)
     __currFrame = n;
     __overlayInfo[n].__stframe = __currFrame;
 
-    int error = readOneOverlay(n, read_volume, mris);
+    int error = __readOneOverlay(n, read_volume, mris);
     if (error != NO_ERROR)
       return error;
   }
@@ -90,12 +111,12 @@ int MRISurfOverlay::read(int read_volume, MRIS *mris)
  *   (MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE). 
  *   MRI_CURV_FILE is the new CURV format with MAGICNO. = 16777215.
  *
- *   Overlay files can also be in MRIS_ASCII_FILE, MRIS_VTK_FILE, and old CURV formats (read). 
+ *   Overlay files can also be in ASCII_FILE, VTK_FILE, and old CURV formats (read). 
  *
  * The overlay data has 1D morphometry data (vertex-wise measures) or other per-vertex information.
  * The data is read into MRI representation in this class for MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE.
  */
-int MRISurfOverlay::readOneOverlay(int nthOverlay, int read_volume, MRIS *mris)
+int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris)
 {
   if (mris == NULL)
   {
@@ -125,11 +146,24 @@ int MRISurfOverlay::readOneOverlay(int nthOverlay, int read_volume, MRIS *mris)
   else if (overlayFormat == MRI_MGH_FILE)
   {
     MRI *tempMRI = mghRead(__overlayInfo[__currFrame].__foverlay, read_volume, -1);
-    if (tempMRI->width != __nVertices || tempMRI->height != 1 || tempMRI->depth != 1 || tempMRI->nframes != 1)
+    if (tempMRI->width != __nVertices || tempMRI->height != 1 || tempMRI->depth != 1)
     {
-      printf("ERROR MRISurfOverlay::readOneOverlay() - wrong MRI_MGH_FILE dimension (%s)\n", __overlayInfo[nthOverlay].__foverlay);
+      printf("[ERROR] MRISurfOverlay::readOneOverlay() - %s dimensions (%d x %d x %d) doesn't match number of surface vertices (%d)\n",
+             __overlayInfo[nthOverlay].__foverlay, tempMRI->width, tempMRI->height, tempMRI->depth, __nVertices);
       return ERROR_BADFILE;
     }
+
+    if (tempMRI->nframes > 1)
+    {
+      printf("[ERROR] MRISurfOverlay::readOneOverlay() - %s has multiple frames = %d.\n", __overlayInfo[nthOverlay].__foverlay, tempMRI->nframes);
+      return ERROR_BADFILE;
+      // Can't handle it now, just return error
+      //__overlayInfo[__currOverlay].__numframe = tempMRI->nframes;
+      //printf("[INFO] MRISurfOverlay::readOneOverlay() - Each frame will be treated as one overlay.\n");
+      //__noverlay = tempMRI->nframes;
+    }
+
+    __overlayInfo[__currOverlay].__numframe = 1;
 
     // copy the data to __currFrame
     for (int f = 0; f < __overlaymri->nframes; f++) {
@@ -144,18 +178,18 @@ int MRISurfOverlay::readOneOverlay(int nthOverlay, int read_volume, MRIS *mris)
     }
     MRIfree(&tempMRI);
 
-    __overlayInfo[__currOverlay].__numframe = __overlaymri->nframes;
     __copyOverlay2MRIS(mris);
   }
   else if (overlayFormat == GIFTI_FILE)
   {
-    // ??? only one SHAPE and <STATS> is handled ???
+    // after read, 
+    //   first SHAPE is saved in mris->curv;
+    //   first <STATS> is saved in mris->val and mris->stat;
+    //   all SHAPE and <STATS> data arrays are saved as multi-frame MRI
+    int currFrame_saved = __currFrame;
     mrisReadGIFTIfile(__overlayInfo[__currFrame].__foverlay, mris, __overlaymri, &__currFrame);
 
-    // ??? multiple frames ???
-    __overlayInfo[__currOverlay].__numframe = 1;
-    //else
-    //  __overlaymri = MRISreadGiftiAsMRI(__foverlay, read_volume);
+    __overlayInfo[__currOverlay].__numframe = (__currFrame - currFrame_saved);
   }
   else if (overlayFormat == ASCII_FILE)
   {
@@ -424,13 +458,10 @@ int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
   }
   else if (outtype == GIFTI_FILE)
   {
-    //MRISwriteGIFTICombined(mris, fout, __overlaymri, __noverlay, __overlayInfo);
     if (mergegifti)
       MRISwriteGIFTICombined(mris, this, fout);
     else
     {
-      int giftiintent = getGIFTIIntent(0);
-
       /* ???__foverlay will be read again in MRISwriteGIFTI() why???
        * ...
        * if (intent_code == NIFTI_INTENT_SHAPE) {
@@ -442,6 +473,7 @@ int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
        *   ...
        * }
        */
+      int giftiintent = getGIFTIIntent(0);
       error = MRISwriteGIFTI(mris, giftiintent, fout, __overlayInfo[0].__foverlay);
     }
   }

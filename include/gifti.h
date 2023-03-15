@@ -43,9 +43,9 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
 // function to output multiple overlays
 int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *out_fname);
 // overloaded functions to handle combined GIFTI with multiple intents
-int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname);
-int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname);
-int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code);
+int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype);
+int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype);
+int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype);
 
 
 

@@ -889,6 +889,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       else {
         found_curv_data++;
 
+        if (*frame >= 1)
+          fprintf(stderr, "WARNING: Skip saving %s data in array #%d (%s) in MRI \n",
+                          gifti_intent_to_string(darray->intent), numDA, fname);
+
         if (node_index)  // sparse data storage
         {
           int nindex;
@@ -914,8 +918,11 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
               MRIsetVoxVal(outmri, vno, 0, 0, *frame, mris->vertices[vno].curv);
           }
         }
+
+        if (outmri != NULL)
+          (*frame)++;
       }
-    }
+    } // NIFTI_INTENT_SHAPE
     else if (darray->intent == NIFTI_INTENT_LABEL) {
       // 'label' data goes into the 'annotation' data element of mris
       if ((NULL == mris->ct) || (NULL == ct))  // sanity-check
@@ -983,7 +990,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
           vno++;
         }
       }
-    }
+    } // NIFTI_INTENT_LABEL
     else if (darray->intent == NIFTI_INTENT_VECTOR) {
       // 'vector' data goes in our 'dx,dy,dz' data element of mris
       int vno;
@@ -995,7 +1002,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         mris->vertices[vno].dy = (float)gifti_get_DA_value_2D(darray, vno, 1);
         mris->vertices[vno].dz = (float)gifti_get_DA_value_2D(darray, vno, 2);
       }
-    }
+    } // NIFTI_INTENT_VECTOR
     else if ((darray->intent == NIFTI_INTENT_RGB_VECTOR) || (darray->intent == NIFTI_INTENT_RGBA_VECTOR)) {
       // 'rgba' data goes in our 'annotation' data element of mris
       int vno;
@@ -1039,13 +1046,13 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
         MRISRGBToAnnot(r, g, b, mris->vertices[vno].annotation);
       }
-    }
+    } // NIFTI_INTENT_RGB_VECTOR || NIFTI_INTENT_RGBA_VECTOR
     else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
       fprintf(stderr,
               "WARNING: ignoring unsupported data array NIFTI_INTENT_GENMATRIX"
               " in file %s\n",
               fname);
-    }
+    } // NIFTI_INTENT_GENMATRIX
     else {
       // 'statistics' and all other kinds of data we'll put in both our
       // 'stat' and 'val' data elements of the mris structure
@@ -1058,6 +1065,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       }
       else {
         found_statval_data++;
+
+        if (*frame >= 1)
+          fprintf(stderr, "WARNING: Skip saving %s data in array #%d (%s) in MRI \n",
+                          gifti_intent_to_string(darray->intent), numDA, fname);
 
         if (node_index)  // sparse data storage
         {
@@ -1086,6 +1097,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
               MRIsetVoxVal(outmri, vno, 0, *frame, 0, mris->vertices[vno].stat);
           }
         }
+
+        if (outmri != NULL)
+          (*frame)++;
       }
     } // 'statistics' and all other kinds of data
   } // for each DAnum
@@ -1098,6 +1112,19 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
   return mris;
 }
 
+
+ /*-----------------------------------------------------------
+   mrisReadGIFTIfile()
+                 reads a GIFTI file, putting vertices,
+                 and faces into an MRIS_SURFACE structure,
+                 along with any other data, like labels,
+                 colors, curv data, stats or values.
+                
+   after read, 
+     first SHAPE is saved in mris->curv; 
+     first <STATS> is saved in mris->val and mris->stat;
+     all SHAPE and <STATS> data arrays are saved as multi-frame MRI
+  -----------------------------------------------------------*/
 MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, MRI *outmri, int *frame)
 {
   // default read routine (read all data arrays)
@@ -1223,6 +1250,8 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   mri = MRIallocSequence(num_vertices, 1, 1, MRI_FLOAT, frame_count);
   frame_count = 0;
   int da_num;
+  // ??? intent_code_idx = 4 here ???
+  // ??? need outer loop for through INTENT_CODE_MAX_IDX ???
   for (da_num = 0; da_num < image->numDA; da_num++) {
     scalars = gifti_find_DA(image, intent_code[intent_code_idx], da_num);
     if (NULL == scalars) {
@@ -2202,7 +2231,8 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
     int giftiintent = poverlays->getGIFTIIntent(n);
     int stFrame = poverlays->getFirstFrameNo(n);
     int endFrame = poverlays->getNumFrames(n);
-    int error = MRISwriteGIFTIIntent(mris, overlaymri, stFrame, endFrame, image, giftiintent, out_fname, poverlays->getOverlayFilename(n));
+    const char *datatype = poverlays->getDataType(n);
+    int error = MRISwriteGIFTIIntent(mris, overlaymri, stFrame, endFrame, image, giftiintent, out_fname, poverlays->getOverlayFilename(n), datatype);
     if (error != NO_ERROR)
       return error;
   }
@@ -2234,7 +2264,7 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
 } // end of MRISwriteGIFTICombined()
 
 
-int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname)
+int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype)
 {
   /* -------------------------------------------------------
    * Surface file
@@ -2247,7 +2277,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
    * Shape file
    */
   if (intent_code == NIFTI_INTENT_SHAPE) {
-    return MRISwriteGIFTIShape(mris, mri, stframe, endframe, image, intent_code, curv_fname);
+    return MRISwriteGIFTIShape(mris, mri, stframe, endframe, image, intent_code, curv_fname, datatype);
   }  // end of if NIFTI_INTENT_SHAPE
 
   /* -------------------------------------------------------
@@ -2270,7 +2300,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
       intent_code == NIFTI_INTENT_CHI || intent_code == NIFTI_INTENT_INVGAUSS || intent_code == NIFTI_INTENT_EXTVAL ||
       intent_code == NIFTI_INTENT_PVAL || intent_code == NIFTI_INTENT_LOGPVAL ||
       intent_code == NIFTI_INTENT_LOG10PVAL || intent_code == NIFTI_INTENT_ESTIMATE) {
-    return MRISwriteGIFTIStats(mris, mri, stframe, endframe, image, intent_code); 
+    return MRISwriteGIFTIStats(mris, mri, stframe, endframe, image, intent_code, curv_fname, datatype); 
   }  // end of if NIFTI_INTENT_<stats>
 
   return NO_ERROR;
@@ -2281,7 +2311,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
  * Shape file
  *       intent_code = NIFTI_INTENT_SHAPE
  */
-int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname)
+int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype)
 {
 #if 0
     // data is in mri
@@ -2326,7 +2356,8 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 
     /* include some metadata describing this shape */
     gifti_add_to_meta(&shape->meta, "Name", curv_fname, 1);
-    const char *meta = NULL;
+    const char *meta = datatype;
+#if 0
     if (strstr(curv_fname, ".thickness")) {
       meta = "Thickness";
     }
@@ -2345,6 +2376,7 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
     if (strstr(curv_fname, ".jacobian")) {
       meta = "Jacobian";
     }
+#endif
     if (meta) {
       gifti_add_to_meta(&shape->meta, "ShapeDataType", meta, 1);
     }
@@ -2399,7 +2431,7 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
  * Statistics file
  *       intent_code = NIFTI_INTENT_<stats>
  */
-int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code)
+int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype)
 {
     if ((endframe - stframe) > 1)
     {
