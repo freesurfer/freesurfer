@@ -52,7 +52,7 @@ class GenericRenderView : public QVTKWidget
 
 public:
   // constructor & deconstructor
-  GenericRenderView(QWidget* parent = NULL, Qt::WindowFlags f = 0);
+  GenericRenderView(QWidget* parent = NULL, Qt::WindowFlags f = Qt::Widget);
   virtual ~GenericRenderView();
 
   // call render window to render

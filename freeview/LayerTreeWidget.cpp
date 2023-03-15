@@ -98,7 +98,12 @@ void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
     QTreeWidgetItem* item = itemAt(event->pos());
     if (rectCheckbox.isEmpty() || rectCheckbox.width() <= 0)
     {
-      QStyleOptionViewItem option = viewOptions();
+      QStyleOptionViewItem option;
+#if QT_VERSION_MAJOR > 5
+      initViewItemOption(&option);
+#else
+      option = viewOptions();
+#endif
       if (item)
         rectCheckbox = m_itemDelegate->GetCheckBoxRect(indexFromItem(item), option);
     }
@@ -263,7 +268,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(wnd->ui->actionLoadPointSet);
     menu->addAction(wnd->ui->actionReloadPointSet);
     menu->addSeparator();
-    if (wnd->GetMode() == RenderView::IM_VoxelEdit && ((LayerPointSet*)layer)->GetProperty()->GetShowSpline())
+    if (wnd->GetMode() == RenderView::IM_VoxelEdit && type == "PointSet" && ((LayerPointSet*)layer)->GetProperty()->GetShowSpline())
     {
       QAction* act = new QAction("Convert to Volume Label", this);
       connect(act, SIGNAL(triggered(bool)), wnd, SLOT(OnPointSetToLabel()));

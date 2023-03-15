@@ -36,6 +36,7 @@
 #include <QMenu>
 #include "RenderView3D.h"
 #include "SurfacePath.h"
+#include "MigrationDefs.h"
 
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
@@ -379,11 +380,11 @@ void InfoTreeWidget::OnEditFinished()
     return;
   }
 
-  QStringList list = m_editor->text().trimmed().split(",", QString::SkipEmptyParts);
+  QStringList list = m_editor->text().trimmed().split(",", MD_SkipEmptyParts);
   QVariantMap map = m_itemEdited->data(1, Qt::UserRole).toMap();
   if ( list.size() < 3)
   {
-    list = m_editor->text().trimmed().split(" ", QString::SkipEmptyParts);
+    list = m_editor->text().trimmed().split(" ", MD_SkipEmptyParts);
   }
   QString type = map["Type"].toString();
   double ras[3];
@@ -540,7 +541,7 @@ void InfoTreeWidget::contextMenuEvent(QContextMenuEvent * e)
     QAction* act = new QAction(layer->GetName(), this);
     act->setCheckable(true);
     act->setChecked(layer->GetProperty()->GetShowInfo());
-    act->setData(qVariantFromValue(qobject_cast<QObject*>(layer)));
+    act->setData(QVariant::fromValue(qobject_cast<QObject*>(layer)));
     connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleShowInfo(bool)));
     menu->addAction(act);
   }

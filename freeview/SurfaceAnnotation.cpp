@@ -266,7 +266,7 @@ void SurfaceAnnotation::UpdateData()
         m_nIndices[i] = -1;
     }
   }
-  qSort(annotIndices);
+  std::sort(annotIndices.begin(), annotIndices.end());
   QList<int> new_ids = m_mapNewLabels.keys();
   foreach (int id, new_ids)
   {
@@ -611,7 +611,7 @@ QColor SurfaceAnnotation::GenerateNewColor()
   while (!c.isValid() || (c.red()+c.green()+c.blue())/3 < 50 ||
          m_listColors.contains(c))
   {
-    c = QColor(qrand()%256, qrand()%256, qrand()%256);
+    c = QColor(rand()%256, rand()%256, rand()%256);
   }
   return c;
 }

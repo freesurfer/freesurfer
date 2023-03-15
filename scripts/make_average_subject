@@ -35,6 +35,7 @@ set Force = 0;
 set KeepAllOrig = 0;
 set DoRibbon = 1
 set hemilist = (lh rh);
+set rcathreads = 1
 
 set cmdargs = ($argv);
 
@@ -74,8 +75,8 @@ if($DoLink) then
   echo "Creating link"
   pushd $SUBJECTS_DIR > /dev/null
   set cmd = (ln -s $sdoutfulldir/$average_subject $average_subject)
-  echo $cmd
-  $cmd
+  echo $cmd| tee -a $LF
+  $cmd| tee -a $LF
   if($status) then
     echo "ERROR: make_average_subject"
     exit 1;
@@ -83,34 +84,36 @@ if($DoLink) then
   popd > /dev/null
 endif
 
-if($DoSurfaces) then
-  set cmd = (make_average_surface $cmdargs)
-  echo $cmd
-  $cmd
-  if($status) then
-    echo "ERROR: make_average_surface"
-    exit 1;
-  endif
-endif
-
 if($DoVolumes) then
+  # Do volumes first so that there is a volgeom template for surfaces
   set cmd = (make_average_volume $cmdargs)
   if($KeepAllOrig) set cmd = ($cmd --keep-all-orig)
-  echo $cmd
+  echo $cmd | tee -a $LF
   $cmd
   if($status) then
-    echo "ERROR: make_average_volume"
+    echo "ERROR: make_average_volume"| tee -a $LF
     exit 1;
   endif
 endif
 
-if($DoSurfaces && $DoVolumes && $DoRibbon && $#hemilist == 2) then
+if($DoSurfaces) then
+  set cmd = (make_average_surface $cmdargs)
+  echo $cmd | tee -a $LF
+  $cmd
+  if($status) then
+    echo "ERROR: make_average_surface"| tee -a $LF
+    exit 1;
+  endif
+endif
+
+if($DoSurfaces && $DoVolumes && $DoRibbon) then
   set xopts = `fs_temp_file --suffix .xopts`
-  set cmd = (recon-all -s $average_subject -cortribbon -aparc2aseg)
+  set cmd = (recon-all -s $average_subject -cortribbon -aparc2aseg -threads $rcathreads)
+  if($#hemilist == 1) set cmd = ($cmd -$hemilist)
   echo "mri_aparc2aseg --no-relabel" > $xopts
   set cmd = ($cmd -expert $xopts -xopts-overwrite)
-  echo $cmd
-  $cmd
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
   rm $xopts
 endif
@@ -156,6 +159,11 @@ while( $#argv != 0 )
     case "--ico":
       if($#argv < 1) goto arg1err;
       set IcoOrder = $argv[1]; shift;
+      breaksw
+
+    case "--rca-threads":
+      if($#argv < 1) goto arg1err;
+      set rcathreads = $argv[1]; shift;
       breaksw
 
     case "--sd-out":
@@ -301,6 +309,7 @@ usage_exit:
   echo "   --no-symlink : do not use symbolic links with surfs (just copy files)"
   echo "   --no-ribbon : do not create ribbon.mgz and aparc+aseg.mgz files"
   echo "   --no-surf2surf : use old parametric surface mapping method (may give big faces at the poles)"
+  echo "   --rca-threads nthreads : number of threads to pass to recon-all"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"

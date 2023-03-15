@@ -1,6 +1,6 @@
 project(fiducials_calibration)
 
-if(BUILD_GUIS AND Qt5_FOUND)
+if(BUILD_GUIS)
 
   include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 

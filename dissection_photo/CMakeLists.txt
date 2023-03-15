@@ -1,12 +1,17 @@
 project(dissection_photo)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-if(BUILD_GUIS AND Qt5_FOUND)
+if(BUILD_GUIS)
 
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTORCC ON)
-  set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+
+  if(Qt6_DIR)
+    set(QT_LIBRARIES Qt6::Core Qt6::Widgets)
+  elseif(Qt5_DIR)
+    set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+  endif()
 
   add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare
                       -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-deprecated-declarations)

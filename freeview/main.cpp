@@ -41,7 +41,7 @@
 #endif
 
 #include "fsinit.h"
-#include "log.h"
+//#include "log.h"
 #include "chklc.h"
 #include "utils.h"
 
@@ -111,7 +111,7 @@ void myMessageOutput(QtMsgType type, const char *msg)
 int main(int argc, char *argv[])
 {
   Progname = argv[0];
-  throwExceptions(true);
+//  throwExceptions(true);
 
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
     "':resample=method' or 'interpolation=method' Set the interpolation method when resampling is necessary. method can be 'nearest' (default), 'trilinear' or 'cubic.\n\n"
     "':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n"
     "':mask=volume_name' Use the given volume to as mask for display. The mask volume must be loaded first.\n\n"
-    "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"
+    "':isosurface=option,...' Set 3D display as isosurface. Options can be two numbers as the low and high thresholds. Or if simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings. Another available option is 'voxelize' to show label isosurfaces as voxelized.\n\n"
     "':isosurface_color=color' Set the color of the isosurface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
     "':isosurface_smooth=iterations' Set the number of smooth iterations. Default value is 5.\n\n"
     "':extract_all_regions=flag' Set isosurface to extract all regions. default setting is on.\n\n"
@@ -287,6 +287,7 @@ int main(int argc, char *argv[])
     "'Zoom' Same as 'Dolly'.\n\n"
     "Note that the order matters!\n\n"
     "For example: '-cam dolly 1.5 azimuth 30' will zoom in the camera by 1.5 times and then rotate it along the view up vector by 30 degrees.\n", 2, 1000 ),
+    CmdLineEntry( CMD_LINE_SWITCH, "rotate-around-cursor", "rotate-around-cursor", "", "Set rotating around the cursor for 3D view (instead of rotating around the center of the view)" ),
     CmdLineEntry( CMD_LINE_SWITCH, "orthographic", "orthographic", "", "Set orthographic projection for 3D view." ),
     CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z> [Option]", "Set cursor location at the given RAS coordinate. If option is given as 'tkreg', the entered coordinate is in tkreg coordinate.", 3, 4 ),
     CmdLineEntry( CMD_LINE_OPTION, "slice", "slice", "<X> <Y> <Z>", "Set cursor location at the given slice numbers of the first loaded volume.", 3, 3 ),
@@ -353,7 +354,7 @@ int main(int argc, char *argv[])
 
   // global initialization
   CursorFactory::Initialize();
-  qsrand(QDateTime::currentDateTime().toTime_t());
+  srand(QDateTime::currentDateTime().toSecsSinceEpoch());
   vtkObject::GlobalWarningDisplayOff();
   // fesetround(FE_TONEAREST);
 #ifdef CYGWIN

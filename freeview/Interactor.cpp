@@ -25,7 +25,7 @@
 #include <QDebug>
 
 #ifdef Q_OS_MAC
-Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::MetaModifier;
+Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::ControlModifier;
 Qt::Key Interactor::CONTROL_KEY = Qt::Key_Meta;
 #else
 Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::ControlModifier;
@@ -53,7 +53,7 @@ void Interactor::SetAction( int nAction )
 void Interactor::SetUseCommandControl(bool b)
 {
 #ifdef Q_OS_MAC
-  if (b)
+  if (true)
   {
     CONTROL_MODIFIER = Qt::ControlModifier;
     CONTROL_KEY = Qt::Key_Control;
@@ -141,8 +141,8 @@ bool Interactor::ProcessMouseLeaveEvent( QEvent* event, RenderView* view )
 
 void Interactor::UpdateCursor( QEvent* event, QWidget* wnd )
 {
-  if ( (event->type() == QEvent::MouseButtonPress && ((QMouseEvent*)event)->button() == Qt::MidButton) ||
-       (event->type() == QEvent::MouseMove && ((QMouseEvent*)event)->buttons() & Qt::MidButton ))
+  if ( (event->type() == QEvent::MouseButtonPress && ((QMouseEvent*)event)->button() == Qt::MiddleButton) ||
+       (event->type() == QEvent::MouseMove && ((QMouseEvent*)event)->buttons() & Qt::MiddleButton ))
   {
     wnd->setCursor( CursorFactory::CursorPan );
   }

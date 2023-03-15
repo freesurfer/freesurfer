@@ -90,7 +90,9 @@ QVTKWidget::QVTKWidget(QWidget* p, Qt::WindowFlags f)
 {
   this->UseTDx=false;
   // no background
+#if QT_VERSION_MAJOR < 6
   this->setAttribute(Qt::WA_NoBackground);
+#endif
   // no double buffering
   this->setAttribute(Qt::WA_PaintOnScreen);
 
@@ -109,7 +111,11 @@ QVTKWidget::QVTKWidget(QWidget* p, Qt::WindowFlags f)
   mPaintEngine = new QVTKPaintEngine;
 
   this->mCachedImage = vtkImageData::New();
+#if VTK_MAJOR_VERSION <= 5
   this->mCachedImage->SetScalarTypeToUnsignedChar();
+#else
+  this->mCachedImage->AllocateScalars(VTK_UNSIGNED_CHAR, 1);
+#endif
   this->mCachedImage->SetOrigin(0,0,0);
   this->mCachedImage->SetSpacing(1,1,1);
 
@@ -307,10 +313,14 @@ void QVTKWidget::saveImageToCache()
 
   int w = this->width();
   int h = this->height();
-  this->mCachedImage->SetWholeExtent(0, w-1, 0, h-1, 0, 0);
+  int wext[6] = {0, w-1, 0, h-1, 0, 0};
+  this->mCachedImage->SetExtent(wext);
+#if VTK_MAJOR_VERSION > 5
+  this->mCachedImage->AllocateScalars(VTK_UNSIGNED_CHAR, 3);
+#else
   this->mCachedImage->SetNumberOfScalarComponents(3);
-  this->mCachedImage->SetExtent(this->mCachedImage->GetWholeExtent());
   this->mCachedImage->AllocateScalars();
+#endif
   vtkUnsignedCharArray* array = vtkUnsignedCharArray::SafeDownCast(
         this->mCachedImage->GetPointData()->GetScalars());
   this->mRenWin->GetPixelData(0, 0, this->width()-1, this->height()-1, 1,
@@ -325,7 +335,11 @@ void QVTKWidget::setAutomaticImageCacheEnabled(bool flag)
   if (!flag)
   {
     this->mCachedImage->Initialize();
+#if VTK_MAJOR_VERSION <= 5
     this->mCachedImage->SetScalarTypeToUnsignedChar();
+#else
+    this->mCachedImage->AllocateScalars(VTK_UNSIGNED_CHAR, 1);
+#endif
     this->mCachedImage->SetOrigin(0,0,0);
     this->mCachedImage->SetSpacing(1,1,1);
   }
@@ -471,7 +485,11 @@ void QVTKWidget::paintEvent(QPaintEvent* )
 
   // In Qt 4.1+ let's support redirected painting
   // if redirected, let's grab the image from VTK, and paint it to the device
+#if QT_VERSION_MAJOR < 6
   QPaintDevice* device = QPainter::redirected(this);
+#else
+  QPaintDevice* device = NULL;
+#endif
   if(device != NULL && device != this)
   {
     int w = this->width();
@@ -523,7 +541,7 @@ void QVTKWidget::mousePressEvent(QMouseEvent* e)
     iren->InvokeEvent(vtkCommand::LeftButtonPressEvent, e);
     break;
 
-  case Qt::MidButton:
+  case Qt::MiddleButton:
     iren->InvokeEvent(vtkCommand::MiddleButtonPressEvent, e);
     break;
 
@@ -624,7 +642,7 @@ void QVTKWidget::mouseReleaseEvent(QMouseEvent* e)
     iren->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, e);
     break;
 
-  case Qt::MidButton:
+  case Qt::MiddleButton:
     iren->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent, e);
     break;
 
@@ -738,13 +756,13 @@ void QVTKWidget::wheelEvent(QWheelEvent* e)
 
   // VTK supports wheel mouse events only in version 4.5 or greater
   // give event information to interactor
-  iren->SetEventInformationFlipY(e->x(), e->y(),
+  iren->SetEventInformationFlipY(e->pixelDelta().x(), e->pixelDelta().y(),
                                  (e->modifiers() & Qt::ControlModifier) > 0 ? 1 : 0,
                                  (e->modifiers() & Qt::ShiftModifier ) > 0 ? 1 : 0);
 
   // invoke vtk event
   // if delta is positive, it is a forward wheel event
-  if(e->delta() > 0)
+  if(e->angleDelta().y() > 0)
   {
     iren->InvokeEvent(vtkCommand::MouseWheelForwardEvent, e);
   }

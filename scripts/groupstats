@@ -347,6 +347,11 @@ while( $#argv != 0 )
       set mapmeaslist = (thickness.new.mris_make_surfaces area.new.mris_make_surfaces volume)
       breaksw
 
+    case "--base":
+      # base does not have w-g.pct
+      set mapmeaslist = (thickness area volume curv sulc); #  exclude w-g.pct
+      breaksw
+
     case "--m":
       if($#argv < 1) goto arg1err;
       set mapmeaslist = $argv[1]; shift;
@@ -478,6 +483,7 @@ usage_exit:
   echo "  --no-wparcstats : do not do wmparcstats"
   echo "  --no-stats : do not do any ROI stats"
   echo "  --new : append .new.mris_make_surfaces to map names"
+  echo "  --base : sets meas thickness area volume curv sulc (excludes w-g.pct)" 
   echo "  --keep53 : keep 5.3 aseg names (eg, Thalamus-Proper)"
   echo "  "
 

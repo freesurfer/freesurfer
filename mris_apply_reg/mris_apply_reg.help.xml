@@ -38,6 +38,8 @@
       <explanation> source-target registration pair</explanation>
       <argument>--lta source-surf ltafile outputsurf</argument>
       <explanation> apply an LTA registration to a surface</explanation>
+      <argument>--lta-rot source-surf ltafile outputsurf</argument>
+      <explanation> apply just the rotational components of an LTA registration to a surface</explanation>
       <argument>--m3z source-surf m3zfile outputsurf</argument>
       <explanation> apply an M3Z registration to a surface</explanation>
     </required-flagged>

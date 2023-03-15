@@ -70,6 +70,7 @@
 #include "vtkInteractorStyleMyTrackballCamera.h"
 #include <vtkCubeAxesActor.h>
 #include <QMessageBox>
+#include <QActionGroup>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -437,7 +438,6 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
   // MousePositionToRAS( posX, posY, pos );
   // vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
-  // vtkPropPicker* picker = vtkPropPicker::SafeDownCast( this->GetPicker() );
   if ( picker )
   {
     picker->InitializePickList();
@@ -552,8 +552,13 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
       picker->Pick( posX, posY, 0, GetRenderer() );
       picker->GetPickPosition( pos );
       prop = picker->GetViewProp();
-
-      if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) )
+      LayerMRI* mri_sel = (LayerMRI*)lc_mri->HasProp(prop);
+      if (mri_sel->GetProperty()->GetShowAsContour())
+      {
+        lc_mri->SetCursorRASPosition( pos );
+        MainWindow::GetMainWindow()->SetSlicePosition( pos );
+      }
+      else if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) )
       {
         if ( bCursor )
         {
@@ -782,9 +787,8 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
 
 int RenderView3D::PickCurrentPointSetPoint(int posX, int posY, LayerPointSet *curPointSet)
 {
-  LayerCollection* lc_ps = MainWindow::GetMainWindow()->GetLayerCollection( "PointSet" );
-
   this->setToolTip("");
+  LayerCollection* lc_ps = MainWindow::GetMainWindow()->GetLayerCollection( "PointSet" );
   if ( lc_ps->IsEmpty() )
   {
     return -1;
@@ -1920,4 +1924,24 @@ void RenderView3D::SavePathAsControlPoints(SurfacePath *sp)
     if (!surf->SavePathAsControlPoints(fn, !sp->IsPathMade()))
       QMessageBox::warning(this, "Error", "Failed to save file " + fn);
   }
+}
+
+bool RenderView3D::PickVolume(int posX, int posY, double *pos_out)
+{
+  vtkProp* prop = this->PickProp( posX, posY, pos_out );
+  if ( !prop )
+  {
+    return false;
+  }
+
+  LayerCollection* lc_mri = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
+  for ( int i = 0; i < lc_mri->GetNumberOfLayers(); i++ )
+  {
+    LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer(i);
+    if (mri->GetProperty()->GetShowAsContour() && mri->HasProp(prop))
+    {
+      return true;
+    }
+  }
+  return false;
 }

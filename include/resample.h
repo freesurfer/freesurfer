@@ -115,9 +115,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
 
 MRI *surf2surf_nnf(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
                    MRI_SURFACE *TrgSurfReg, int UseHash);
-
-MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol,
-                           MATRIX *Ma2v, float projfrac);
+MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac, MRI *mask);
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
 MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, 
 		    int nsurfs, LTA *Q, MRI *volsurf);

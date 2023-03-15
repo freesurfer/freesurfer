@@ -825,9 +825,9 @@ static int parse_commandline(int argc, char **argv) {
 
       // Now create a matrix from the parameters
       MATRIX *T = TranformAffineParams2Matrix(p, NULL);
-      MatrixInverse(T,T); // Again with the inverse
-
+      //MatrixInverse(T,T); // This was a bug, need to use LTAinvert() as now done below
       MatrixCopy(T,lta->xforms[0].m_L);
+      LTAinvert(lta,lta); // Again with the inverse
       LTAchangeType(lta,srctype);
       int err = LTAwrite(lta,pargv[1]);
       nargsused = 2;

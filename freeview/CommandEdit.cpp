@@ -14,6 +14,8 @@
  */
 #include "CommandEdit.h"
 #include <QSettings>
+#include <QRegularExpression>
+#include "MigrationDefs.h"
 
 #ifdef Q_OS_MAC
 #define CONTROL_KEY Qt::MetaModifier
@@ -142,7 +144,7 @@ void CommandEdit::ProcessCommandInput()
 {
   m_strTempCommand.clear();
   QString strg = this->toPlainText();
-  QStringList list = strg.mid(m_strPrompt.size()).split(QRegExp("\\s+"), QString::SkipEmptyParts);
+  QStringList list = strg.mid(m_strPrompt.size()).split(QRegularExpression("\\s+"), MD_SkipEmptyParts);
   if (!list.isEmpty() && (list[0].toLower() == "freeview" || list[0].toLower() == "fv") )
   {
     list.removeFirst();

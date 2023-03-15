@@ -33,6 +33,7 @@
 #include <QTextStream>
 #include <QSettings>
 #include <QDebug>
+#include "MigrationDefs.h"
 
 //using namespace std;
 
@@ -65,7 +66,7 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
   m_bShowSpline = true;
   m_bSnapToVoxelCenter = false;
   m_bClosedSpline = false;
-
+  m_bShowUnfixedOnly = false;
   m_lutHeatScale = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
   connect(this, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SIGNAL(PropertyChanged()));
@@ -393,7 +394,7 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
   std::vector<double> values;
   while (!in.atEnd())
   {
-    QStringList strgs = in.readLine().split( " ", QString::SkipEmptyParts );
+    QStringList strgs = in.readLine().split( " ", MD_SkipEmptyParts );
     for ( int i = 0; i < strgs.size(); i++ )
     {
       values.push_back( strgs[i].toDouble() );
@@ -455,4 +456,14 @@ void LayerPropertyPointSet::SetStatRange(double dMin, double dMax)
   m_dStatMin = dMin;
   m_dStatMax = dMax;
   UpdateScalarValues();
+}
+
+void LayerPropertyPointSet::SetShowUnfixedOnly(bool b)
+{
+  if (m_bShowUnfixedOnly != b)
+  {
+    m_bShowUnfixedOnly = b;
+    emit PropertyChanged();
+    emit ScalarChanged();
+  }
 }

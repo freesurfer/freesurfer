@@ -23,6 +23,7 @@
 #include <vtkLookupTable.h>
 #include <vtkMath.h>
 #include "MyUtils.h"
+#include "MigrationDefs.h"
 
 LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
   Layer(parent),
@@ -597,7 +598,7 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
 
   QTextStream in (&file);
   QString content = in.readAll();
-  QStringList slist = content.split("\n---\n", QString::SkipEmptyParts);
+  QStringList slist = content.split("\n---\n", MD_SkipEmptyParts);
   if (slist.size() < 3)
     return NULL;
 
@@ -615,7 +616,7 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
   if (!ptset1->LoadFromString(slist[1]))
     return NULL;
 
-  QStringList ar = slist[2].split("\n", QString::SkipEmptyParts);
+  QStringList ar = slist[2].split("\n", MD_SkipEmptyParts);
   if (ar.size() < 3)
   {
     delete ptset0;
@@ -623,17 +624,17 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
     return NULL;
   }
 
-  QStringList sublist = ar[0].split(" ", QString::SkipEmptyParts);
+  QStringList sublist = ar[0].split(" ", MD_SkipEmptyParts);
   if (sublist.size() < 2)
     return NULL;
   int nPlane = sublist[1].toInt();
 
-  sublist = ar[1].split(" ", QString::SkipEmptyParts);
+  sublist = ar[1].split(" ", MD_SkipEmptyParts);
   if (sublist.size() < 2)
     return NULL;
   double dResolution = sublist[1].toDouble();
 
-  sublist = ar[2].split(" ", QString::SkipEmptyParts);
+  sublist = ar[2].split(" ", MD_SkipEmptyParts);
   if (sublist.size() < 2)
     return NULL;
   int nSamples = sublist[1].toInt();
@@ -644,7 +645,7 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
 
   if (ar.size() > 3)
   {
-    sublist = ar[3].split(" ", QString::SkipEmptyParts);
+    sublist = ar[3].split(" ", MD_SkipEmptyParts);
     if (sublist.size() > 1)
     {
       lp->m_dOffset = sublist[1].toDouble();

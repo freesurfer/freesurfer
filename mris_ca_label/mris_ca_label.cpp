@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 {
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
                *canon_surf_name ;
-  int          ac, nargs, i, err=0 ;
+  int          ac, nargs, err=0 ; // i
   int          msec, minutes, seconds ;
   Timer start ;
   MRI_SURFACE  *mris ;
@@ -144,22 +144,14 @@ int main(int argc, char *argv[])
 
   printf("reading atlas from %s...\n", argv[4]) ;
   gcsa = GCSAread(argv[4]) ;
-  if (!gcsa)
-    ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s",
-              Progname, argv[4]) ;
+  if (!gcsa) ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s", Progname, argv[4]) ;
 
   int req = snprintf(fname, STRLEN, "%s/%s/%s/%s.%s", subjects_dir,subject_name,surf_dir,hemi,orig_name); 
-  if( req >= STRLEN ) {
-    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-  }
-  if (DIAG_VERBOSE_ON)
-  {
-    printf("reading surface from %s...\n", fname) ;
-  }
+  if( req >= STRLEN ) std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  printf("reading surface from %s...\n", fname) ;
+
   mris = MRISread(fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
-              Progname, fname, subject_name) ;
+  if (!mris)   ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",Progname, fname, subject_name) ;
   MRISresetNeighborhoodSize(mris, nbrs) ;
   mris->ct = gcsa->ct ; /* hack so that color table
                                        will get written into annot file */
@@ -174,9 +166,14 @@ int main(int argc, char *argv[])
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   err = MRISreadCanonicalCoordinates(mris, canon_surf_name);
-  if (err != NO_ERROR) ErrorExit(ERROR_NOFILE,"%s: could not read spherical coordinate system from %s for %s",
+  if(err != NO_ERROR) ErrorExit(ERROR_NOFILE,"%s: could not read spherical coordinate system from %s for %s",
 				 Progname, canon_surf_name, subject_name) ;
 
+  int sulconly = 0;
+  err = gcsa->load_default_data(mris, subject_name, sulconly, which_norm);
+  if(err) exit(err);
+
+#if 0
   for (i = gcsa->ninputs-1 ; i >= 0 ; i--) {
     printf("input %d: %s, flags %0x, avgs %d, name %s\n",i, gcsa->inputs[i].type == GCSA_INPUT_CURV_FILE ?
            "CURVATURE FILE" : "MEAN CURVATURE", gcsa->inputs[i].flags,gcsa->inputs[i].navgs, gcsa->inputs[i].fname) ;
@@ -202,6 +199,7 @@ int main(int argc, char *argv[])
     if(i == 2) MRIScopyCurvatureToImagValues(mris) ;
     else if (i == 1) MRIScopyValToVal2(mris) ;
   }// end loop over inputs
+#endif
 
   if (novar)
   {
@@ -533,58 +531,6 @@ print_version(void)
   exit(1) ;
 }
 
-#if 0
-// Relabels small islands that are smaller than MIN_AREA_PCT=0.1 of the biggest island
-int postprocess(GCSA *gcsa, MRI_SURFACE *mris)
-{
-  LABEL       **larray, *area ;
-  int         nlabels, i, j, annotation, n, nchanged, niter = 0, deleted ;
-  double      max_area, label_area ;
-  int max_iter = 5;
-
-  do{
-    deleted = nchanged  = 0 ;
-    // break up annotation into individual labels, some annots might be spread over multiple labels
-    MRISsegmentAnnotated(mris, &larray, &nlabels, 0) ;
-    /* printf("%d total segments in Gibbs annotation\n", nlabels) ;*/
-    MRISclearMarks(mris) ;
-    // Go through all labels
-    for (i = 0 ; i < nlabels ; i++){
-      area = larray[i] ;
-      if(!area)  continue ;
-
-      // Get annotation for this label
-      annotation = mris->vertices[area->lv[0].vno].annotation ;
-      /* find label with this annotation with max area */
-      max_area = LabelArea(area, mris) ;
-      n = 1;
-      for(j = i+1 ; j < nlabels ; j++) {
-        if(!larray[j]) continue ;
-	// if this label does not match the annotation, then skip
-        if(annotation !=mris->vertices[larray[j]->lv[0].vno].annotation) continue ;
-        n++ ;
-        label_area = LabelArea(larray[j], mris) ;
-        if(label_area > max_area) max_area = label_area ;
-      }// end 1st loop over secondary labels
-      for (j = i ; j < nlabels ; j++) {
-        if(!larray[j]) continue ;
-        if(annotation != mris->vertices[larray[j]->lv[0].vno].annotation) continue ;
-        label_area = LabelArea(larray[j], mris) ;
-        if(label_area < MIN_AREA_PCT*max_area) { // by default, MIN_AREA_PCT=0.1
-          /*printf("relabeling annot %2.1f mm area...\n", label_area) ;*/
-          nchanged += GCSAreclassifyLabel(gcsa, mris, larray[j]) ;
-          deleted++ ;
-        }
-        LabelFree(&larray[j]) ;
-      }// 2nd loop over seconary labels
-    }// end primary label loop
-    free(larray) ;
-    printf("%03d: %d total segments, %d labels (%d vertices) changed\n", niter, nlabels, deleted, nchanged) ;
-  }
-  while (nchanged > 0 && niter++ < max_iter) ;
-  return(NO_ERROR) ;
-}
-#endif
 
 #define MARK_RELABEL 2
 #define MAX_EXCLUDED 100

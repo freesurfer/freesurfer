@@ -82,6 +82,11 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
   if (MacHelper::IsDarkMode())
     ui->commentsContentWidget->setStyleSheet(QString("#commentsContentWidget {background-color:#1E1E1E;}"));
 #endif
+
+  connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxOverallScore(int)));
+  connect( ui->spinBoxSecondQA, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxSecondQA(int)));
+  connect( ui->textEditOverallQuality, SIGNAL(textChanged()), SLOT(OnTextOverallQualityChanged()));
+  connect( ui->checkBoxFixed, SIGNAL(toggled(bool)), SLOT(OnCheckBoxFixed(bool)));
 }
 
 PanelPointSet::~PanelPointSet()
@@ -113,9 +118,10 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSplineColor(QColor)));
   connect( ui->comboBoxSplineColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorMap(int)));
   connect( ui->checkBoxClosedSpline, SIGNAL(toggled(bool)), p, SLOT(SetClosedSpline(bool)));
-  connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxOverallScore(int)));
-  connect( ui->spinBoxSecondQA, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxSecondQA(int)));
-  connect( ui->textEditOverallQuality, SIGNAL(textChanged()), this, SLOT(OnTextOverallQualityChanged()));
+  connect( ui->checkBoxShowUnfixedOnly, SIGNAL(toggled(bool)), p, SLOT(SetShowUnfixedOnly(bool)));
+
+  if (m_mapCurrentPoint.contains(layer))
+    SetCurrentPoint(m_mapCurrentPoint[layer]);
 }
 
 void PanelPointSet::DoIdle()
@@ -206,9 +212,13 @@ void PanelPointSet::DoUpdateWidgets()
 
     if (!layer->GetEnhancedData("overall_score").isNull())
       ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
+    else
+      ui->spinBoxOverallScore->setValue(1);
 
     if (!layer->GetEnhancedData("qa_level").isNull())
       ui->spinBoxSecondQA->setValue(layer->GetEnhancedData("qa_level").toInt());
+    else
+      ui->spinBoxSecondQA->setValue(-1);
 
     ui->textEditOverallQuality->setPlainText(layer->GetEnhancedData("overall_quality").toString());
   }
@@ -496,7 +506,6 @@ void PanelPointSet::UpdatePointInfo()
   if ( layer && layer->GetNumberOfPoints() > nIndex )
   {
     ui->labelMoreInfo->setText(tr("Information on Point #%1").arg(nIndex+1));
-
     // Update comments
     {
       QLayoutItem* item;
@@ -507,6 +516,7 @@ void PanelPointSet::UpdatePointInfo()
       }
     }
     ControlPoint p = layer->GetPoint(nIndex);
+    ui->checkBoxFixed->setChecked(p.info.value("fixed").toBool());
     QVariantList comments = p.info.value("comments").toList();
     foreach (QVariant v, comments)
     {
@@ -519,13 +529,15 @@ void PanelPointSet::UpdatePointInfo()
     // Update stats
     ui->treeWidgetStats->clear();
     QTreeWidgetItem* item = AddStatItem("legacy", p.value);
-    item->setTextColor(0, Qt::gray);
+    item->setForeground(0, Qt::gray);
     QVariantMap stats = p.info.value("statistics").toMap();
     QStringList keys = stats.keys();
     foreach (QString key, keys)
     {
       AddStatItem(key, stats[key].toDouble());
     }
+
+    m_mapCurrentPoint[layer] = nIndex;
   }
   BlockAllSignals(false);
 }
@@ -542,7 +554,7 @@ void PanelPointSet::OnButtonCommentAdd()
     QDateTime local = QDateTime::currentDateTime();
     QDateTime utc = local.toUTC();
     utc.setTimeSpec(Qt::LocalTime);
-    local.setUtcOffset(utc.secsTo(local));
+    local.setOffsetFromUtc(utc.secsTo(local));
     map["timestamp"] = local;
     map["user"] = m_self;
     QLabel* label = MakeCommentItem(map);
@@ -611,7 +623,7 @@ void PanelPointSet::OnCommentLabelClicked(const QString &link)
           QDateTime local = QDateTime::currentDateTime();
           QDateTime utc = local.toUTC();
           utc.setTimeSpec(Qt::LocalTime);
-          local.setUtcOffset(utc.secsTo(local));
+          local.setOffsetFromUtc(utc.secsTo(local));
           map["timestamp"] = local;
           comments[i] = map;
           MakeCommentItem(map, l);
@@ -721,6 +733,16 @@ void PanelPointSet::OnButtonStatDelete()
       ui->treeWidgetStats->takeTopLevelItem(ui->treeWidgetStats->indexOfTopLevelItem(item));
       delete item;
     }
+  }
+}
+
+void PanelPointSet::OnCheckBoxFixed(bool b)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  int nIndex = ui->spinBoxGoToPoint->value()-1;
+  if (layer && nIndex < layer->GetNumberOfPoints())
+  {
+    layer->UpdatePoint(nIndex, "fixed", b);
   }
 }
 

@@ -500,6 +500,43 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using parameterization file %s\n", param_file) ;
   }
+  else if(!stricmp(option,"curvs")||!stricmp(option,"H")||!stricmp(option,"K")||!stricmp(option,"k1")||!stricmp(option,"k2")||!stricmp(option,"k1k2"))
+  {
+    MRIS *surf = MRISread(argv[2]);
+    if(!surf) exit(1);
+    int err, nbrhdsize;
+    sscanf(argv[3],"%d",&nbrhdsize);
+    printf("nbrhdsize %d\n",nbrhdsize);
+    MRISsetNeighborhoodSizeAndDist(surf, nbrhdsize) ;
+    MRIScomputeSecondFundamentalForm(surf);
+    char tmpstr[2000];
+    MRI *mri=NULL;
+    if(!stricmp(option,"curvs")||!stricmp(option,"H")){
+      sprintf(tmpstr,"%s.H.mgz",argv[4]);
+      mri = MRIcopyMRIS(mri, surf, 0, "H");
+      err = MRIwrite(mri,tmpstr);
+      if(err)exit(err);
+    }
+    if(!stricmp(option,"curvs")||!stricmp(option,"K")){
+      sprintf(tmpstr,"%s.K.mgz",argv[4]);
+      mri = MRIcopyMRIS(mri, surf, 0, "K");
+      err = MRIwrite(mri,tmpstr);
+      if(err)exit(err);
+    }
+    if(!stricmp(option,"curvs")||!stricmp(option,"k1")||!stricmp(option,"k1k2")){
+      sprintf(tmpstr,"%s.k1.mgz",argv[4]);
+      mri = MRIcopyMRIS(mri, surf, 0, "k1");
+      err = MRIwrite(mri,tmpstr);
+      if(err)exit(err);
+    }
+    if(!stricmp(option,"curvs")||!stricmp(option,"k2")||!stricmp(option,"k1k2")){
+      sprintf(tmpstr,"%s.k2.mgz",argv[4]);
+      mri = MRIcopyMRIS(mri, surf, 0, "k2");
+      err = MRIwrite(mri,tmpstr);
+      if(err)exit(err);
+    }
+    exit(0);
+  }
   else if (!stricmp(option, "nparam"))
   {
     char *cp ;

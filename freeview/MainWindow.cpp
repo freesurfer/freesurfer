@@ -14,6 +14,7 @@
  */
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include <cstddef>
 #include <QtCore>
 #include <QtGui>
 #include <QFileInfo>
@@ -113,12 +114,13 @@
 #include <QFileSystemWatcher>
 #include <QClipboard>
 #include <QDebug>
-#include <QDesktopWidget>
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
 #include "DialogMovePoint.h"
 #include "VolumeFilterOptimal.h"
+#include <QRegularExpression>
+#include "MigrationDefs.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -195,6 +197,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionDeleteLayer);
 
   addAction(ui->actionNextLabelPoint);
+  addAction(ui->actionShowLabelOutline);
 
 #ifdef DISABLE_LINEPROF
   ui->actionLineProfile->setVisible(false);
@@ -560,14 +563,14 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_widgetFloatControlPanel = new QWidget(this, Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
   QVBoxLayout* layout = new QVBoxLayout;
-  layout->setMargin(0);
+  layout->setContentsMargins(0,0,0,0);
   m_widgetFloatControlPanel->setLayout(layout);
   m_widgetFloatControlPanel->hide();
   m_widgetFloatControlPanel->setWindowTitle("Layers");
 
   m_widgetFloatInfoPanel = new QWidget(this, Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
   layout = new QVBoxLayout;
-  layout->setMargin(0);
+  layout->setContentsMargins(0,0,0,0);
   m_widgetFloatInfoPanel->setLayout(layout);
   m_widgetFloatInfoPanel->hide();
   m_widgetFloatInfoPanel->setWindowTitle("Info");
@@ -580,6 +583,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 #endif
 
   ui->actionTransformSurface->setVisible(false);
+
+  qRegisterMetaType<SurfaceOverlay*>("SurfaceOverlay");
 }
 
 MainWindow::~MainWindow()
@@ -804,7 +809,7 @@ void MainWindow::closeEvent( QCloseEvent * event )
     msg += "\nDo you still want to quit?";
     QMessageBox msgbox(this);
     msgbox.setIcon(QMessageBox::Question);
-    QAbstractButton* yesBtn = msgbox.addButton("Quit", QMessageBox::YesRole);
+    QAbstractButton* yesBtn = msgbox.addButton("Quit without Saving", QMessageBox::YesRole);
     msgbox.addButton("Cancel", QMessageBox::NoRole);
     msgbox.setText(msg);
     msgbox.setWindowTitle("Warning");
@@ -1402,6 +1407,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
       m_sSyncFilePath = sa[0];
     ui->actionSyncInstances->setChecked(true);
   }
+
+  if (parser->Found("rotate-around-cursor"))
+    ((RenderView3D*)m_views[3])->SetFocalPointAtCursor(true);
 
   if (QFile::exists(m_sSyncFilePath) && QFileInfo(m_sSyncFilePath).lastModified().addDays(1) < QDateTime::currentDateTime())
   {
@@ -2252,13 +2260,13 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
     cerr << "Can not open for read: " << qPrintable(sa[1]) << ".\n";
     return;
   }
-  QStringList lines = QString(file.readAll()).trimmed().split("\n", QString::SkipEmptyParts);
+  QStringList lines = QString(file.readAll()).trimmed().split("\n", MD_SkipEmptyParts);
   foreach (QString line, lines)
   {
     if (line.trimmed().indexOf("#") == 0)
       continue;
 
-    QStringList args = line.trimmed().split(QRegExp("\\s+"), QString::SkipEmptyParts);
+    QStringList args = line.trimmed().split(QRegularExpression("\\s+"), MD_SkipEmptyParts);
     if (args.size() > 0 &&
         ( args[0].toLower() == "freeview" || args[0].toLower() == "fv"))
     {
@@ -2527,15 +2535,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "isosurface" )
       {
         QStringList script("setdisplayisosurface");
-        QStringList args = subArgu.split( ",");
-        if ( args.size() > 0 && args[0].size() > 0 )
-        {
-          script << args[0];
-        }
-        if ( args.size() > 1 && args[1].size() > 0 )
-        {
-          script << args[1];
-        }
+        QStringList args = subArgu.split(",", MD_SkipEmptyParts);
+        script << args;
         m_scripts.insert( 0, script );
       }
       else if ( subOption == "isosurface_output")
@@ -3178,36 +3179,39 @@ void MainWindow::CommandSetAutoAdjustFrameContrast( const QStringList& sa )
 }
 
 
-void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
+void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa_in )
 {
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {
     bool bOK;
     double dValue;
-    if ( sa.size() > 1 )
+    QStringList sa = sa_in;
+    sa.removeFirst();
+    if ( sa_in.size() > 1 )
     {
-      dValue = sa[1].toDouble(&bOK);
+      dValue = sa_in[1].toDouble(&bOK);
       if ( bOK )
       {
         mri->GetProperty()->SetContourMinThreshold( dValue );
-      }
-      else if ( sa[1].toLower() != "on" )
-      {
-        cerr << "Isosurface threshold value is not valid.\n";
+        sa.removeFirst();
       }
     }
-    if ( sa.size() > 2 )
+    if ( sa_in.size() > 2 )
     {
-      dValue = sa[2].toDouble(&bOK);
+      dValue = sa_in[2].toDouble(&bOK);
       if ( bOK )
       {
         mri->GetProperty()->SetContourMaxThreshold( dValue );
+        sa.removeFirst();
       }
-      else
-      {
-        cerr << "Isosurface threshold value is not valid.\n";
-      }
+    }
+    for (int i = 0; i < sa.size(); i++)
+    {
+      if (sa[i] == "voxelize")
+        mri->GetProperty()->SetShowVoxelizedContour(true);
+      else if (sa[i] != "on" || sa[i] != "1")
+        cerr << "Unrecognized option(s) for isosurface";
     }
     connect(mri, SIGNAL(IsoSurfaceUpdating()), SLOT(SetProcessing()));
     connect(mri, SIGNAL(IsoSurfaceUpdated()), SLOT(SetProcessingFinished()));
@@ -3579,11 +3583,11 @@ void MainWindow::CommandSetTrackRender(const QStringList &cmd)
 
 void MainWindow::CommandLoadSurface( const QStringList& cmd )
 {
-  QStringList rawoverlay_list = cmd[1].split("overlay=", QString::SkipEmptyParts, Qt::CaseInsensitive);
+  QStringList rawoverlay_list = cmd[1].split("overlay=", MD_SkipEmptyParts, Qt::CaseInsensitive);
   QStringList overlay_list;
   for (int i = 1; i < rawoverlay_list.size(); i++)
   {
-    QStringList sublist = rawoverlay_list[i].split("correlation=", QString::SkipEmptyParts, Qt::CaseInsensitive);
+    QStringList sublist = rawoverlay_list[i].split("correlation=", MD_SkipEmptyParts, Qt::CaseInsensitive);
     overlay_list << QString("overlay=") + sublist[0];
     for (int j = 1; j < sublist.size(); j++)
       overlay_list << QString("correlation=") + sublist[i];
@@ -3631,21 +3635,21 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         else if (subOption == "overlay_method")
           overlay_method = subArgu;
         else if (subOption == "overlay_threshold")
-          overlay_thresholds = subArgu.split(",", QString::SkipEmptyParts);
+          overlay_thresholds = subArgu.split(",", MD_SkipEmptyParts);
         else if (subOption == "overlay_rh" && (subArgu == "1" || subArgu == "true"))
           bSecondHalfData = true;
         else if (subOption == "overlay_opacity")
           overlay_opacity = subArgu;
         else if (subOption == "overlay_color")
-          overlay_color = subArgu.split(",", QString::SkipEmptyParts);
+          overlay_color = subArgu.split(",", MD_SkipEmptyParts);
         else if (subOption == "overlay_frame")
           overlay_frame = subArgu;
         else if (subOption == "overlay_smooth")
           overlay_smooth_steps = subArgu;
         else if (subOption == "overlay_custom")
-          overlay_custom = subArgu.split(",", QString::SkipEmptyParts);
+          overlay_custom = subArgu.split(",", MD_SkipEmptyParts);
         else if (subOption == "overlay_mask")
-          overlay_mask = subArgu.split(",", QString::SkipEmptyParts);
+          overlay_mask = subArgu.split(",", MD_SkipEmptyParts);
       }
     }
     if (overlay_reg.isEmpty())
@@ -3945,7 +3949,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         }
         else if (subOption == "sup_files")
         {
-          sup_files = subArgu.split(",",  QString::SkipEmptyParts);
+          sup_files = subArgu.split(",",  MD_SkipEmptyParts);
         }
         else if (subOption == "goto")
         {
@@ -4730,7 +4734,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
   }
   if (!spline_heatmap.isEmpty())
   {
-    m_scripts.insert( 0, QStringList("setpointsetheatmap") << spline_heatmap.split(",", QString::SkipEmptyParts));
+    m_scripts.insert( 0, QStringList("setpointsetheatmap") << spline_heatmap.split(",", MD_SkipEmptyParts));
   }
 
   LoadWayPointsFile( fn, args );
@@ -5736,9 +5740,12 @@ bool MainWindow::OnCloseVolume(const QList<Layer*>& layers_in)
   {
     if ( qobject_cast<LayerMRI*>(layer)->IsModified() )
     {
-      if ( QMessageBox::question( this, "Volume Not Saved",
-                                  "Volume has been modifed and not been saved. Do you still want to continue?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+      QMessageBox box(QMessageBox::Question, tr("Close Volume"),
+                      "Volume has been modifed and not been saved. Do you still want to continue?",
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
       {
         return false;
       }
@@ -6166,9 +6173,12 @@ void MainWindow::OnCloseROI(const QList<Layer*>& layers_in)
   {
     if ( qobject_cast<LayerROI*>(layer)->IsModified() )
     {
-      if ( QMessageBox::question( this, "ROI Not Saved",
-                                  "ROI has been modifed and not been saved. Do you still want to continue?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+      QMessageBox box(QMessageBox::Question, tr("Close ROI"),
+                      "ROI has been modifed and not been saved. Do you still want to continue?",
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
       {
         return;
       }
@@ -6385,9 +6395,12 @@ void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
   {
     if ( qobject_cast<LayerPointSet*>(layer)->IsModified() )
     {
-      if ( QMessageBox::question( this, "Point Set Not Saved",
-                                  "Point set has been modifed and not been saved. Do you still want to continue?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+      QMessageBox box(QMessageBox::Question, tr("Close Point Set"),
+                      "Point Set has been modifed and not been saved. Do you still want to continue?",
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
       {
         return;
       }
@@ -7799,7 +7812,7 @@ void MainWindow::OnGoToPoint()
     QFile file( fn );
     file.open(QIODevice::ReadOnly | QIODevice::Text);
     QString strg = file.readAll();
-    QStringList args = strg.trimmed().split(QRegExp("\\s+"));
+    QStringList args = strg.trimmed().split(QRegularExpression("\\s+"));
     while (args.size() > 3)
       args.removeLast();
     args.insert( args.begin(), "setras" );
@@ -9658,7 +9671,7 @@ void MainWindow::OnTileSyncedWindows()
 
 void MainWindow::TileWindow(int n)
 {
-  QRect rc = QApplication::desktop()->geometry();
+  QRect rc = QGuiApplication::primaryScreen()->geometry();
   if (n == 0)
     rc.setWidth(rc.width()/2);
   else
@@ -9863,5 +9876,14 @@ void MainWindow::SetNeurologicalView(bool b)
   for (int i = 0; i < 3; i++)
   {
     ((RenderView2D*)m_views[i])->SetNeurologicalView(b);
+  }
+}
+
+void MainWindow::OnShowLabelOutline(bool bShow)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    mri->GetProperty()->SetShowLabelOutline(bShow);
   }
 }

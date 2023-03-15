@@ -172,7 +172,7 @@ class ColorPickerItem : public QFrame
   Q_OBJECT
 
 public:
-  ColorPickerItem(const QColor &color = Qt::white, const QString &text = QString::null,
+  ColorPickerItem(const QColor &color = Qt::white, const QString &text = "",
                   QWidget *parent = 0);
   ~ColorPickerItem();
 
@@ -321,7 +321,7 @@ void QtColorPicker::buttonPressed(bool toggled)
     return;
   }
 
-  const QRect desktop = QApplication::desktop()->geometry();
+  const QRect desktop = QGuiApplication::primaryScreen()->geometry();
   // Make sure the popup is inside the desktop.
   QPoint pos = mapToGlobal(rect().bottomLeft());
   if (pos.x() < desktop.left())
@@ -967,7 +967,7 @@ void ColorPickerPopup::regenerateGrid()
     delete grid;
   }
   grid = new QGridLayout(this);
-  grid->setMargin(1);
+  grid->setContentsMargins(1,1,1,1);
   grid->setSpacing(0);
 
   int ccol = 0, crow = 0;
@@ -1000,14 +1000,12 @@ void ColorPickerPopup::regenerateGrid()
 */
 void ColorPickerPopup::getColorFromDialog()
 {
-  bool ok;
-  QRgb rgb = QColorDialog::getRgba(lastSel.rgba(), &ok, parentWidget());
-  if (!ok)
+  QColor col = QColorDialog::getColor(lastSel, parentWidget());
+  if (!col.isValid())
   {
     return;
   }
 
-  QColor col = QColor::fromRgba(rgb);
   insertColor(col, tr("Custom"), -1);
   lastSel = col;
   emit selected(col);

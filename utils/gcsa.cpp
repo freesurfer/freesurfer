@@ -216,7 +216,7 @@ int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
     if (vno == Gdiag_no){
       DiagBreak();
     }
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs,gcsa->inputvals, vno);
     if (vno == Gdiag_no){
       DiagBreak();
       printf("vno = %d annot=%d ",vno,v->annotation);
@@ -264,7 +264,7 @@ int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs,gcsa->inputvals, vno);
     if (vno == Gdiag_no && v->annotation == 1336341) DiagBreak();
     if (v->annotation == 0) /* not labeled */
       continue;
@@ -604,6 +604,176 @@ int GCSAwrite(GCSA *gcsa, char *fname)
   return (NO_ERROR);
 }
 
+/*!
+  \fn int GCSAdiff(GCSA *gcsa1, GCSA *gcsa2, double thresh)
+  \brief Determine whether two GCSAs are different. thresh sets the
+  minimum threshold for floating point diffs. Color tables are
+  checked but if differences are found, it will not be reported
+  as a difference in the GCSA with the reasoning that if everything
+  else in the GCSA is the same, the color table diffs must be trivial.
+ */
+int GCSAdiff(GCSA *gcsa1, GCSA *gcsa2, double thresh)
+{
+  int vno, n, i, j;
+  GCSA_NODE *gcsan1,*gcsan2;
+  GCS *gcs1,*gcs2;
+  CP_NODE *cpn1,*cpn2;
+  CP *cp1,*cp2;
+
+  printf("GCSAdiff(): thresh=%g\n",thresh);
+
+  if(gcsa1->ninputs != gcsa2->ninputs){
+    printf("diff ninputs %d %d\n",gcsa1->ninputs,gcsa2->ninputs);
+    return(1);
+  }
+  if(gcsa1->icno_classifiers != gcsa2->icno_classifiers){
+    printf("diff icno_classifiers %d %d\n",gcsa1->icno_classifiers,gcsa2->icno_classifiers);
+    return(2);
+  }
+  if(gcsa1->icno_priors != gcsa2->icno_priors){
+    printf("diff icno_priors %d %d\n",gcsa1->icno_priors,gcsa2->icno_priors);
+    return(3);
+  }
+  printf("GCSAdiff(): ninputs=%d, class_ico=%d, prior_ico=%d\n",gcsa1->ninputs,gcsa1->icno_classifiers,gcsa1->icno_priors);
+
+  for (i = 0; i < gcsa1->ninputs; i++) {
+    if(gcsa1->inputs[i].type != gcsa2->inputs[i].type){
+      printf("diff inputs[%d].type %d %d\n",i,gcsa1->inputs[i].type,gcsa2->inputs[i].type);
+      return(4);
+    }
+    if(strcmp(gcsa1->inputs[i].fname,gcsa2->inputs[i].fname)!=0){
+      printf("diff inputs[%d].fname %s %s\n",i,gcsa1->inputs[i].fname,gcsa2->inputs[i].fname);
+      return(5);
+    }
+    if(gcsa1->inputs[i].navgs != gcsa2->inputs[i].navgs){
+      printf("diff inputs[%d].navgs %d %d\n",i,gcsa1->inputs[i].navgs,gcsa2->inputs[i].navgs);
+      return(6);
+    }
+    if(gcsa1->inputs[i].flags != gcsa2->inputs[i].flags){
+      printf("diff inputs[%d].flags %d %d\n",i,gcsa1->inputs[i].flags,gcsa2->inputs[i].flags);
+      return(7);
+    }
+    printf("GCSAdiff(): input=%d, type=%d fname=%s navgs=%d flags=%d\n",i,gcsa1->inputs[i].type,
+	   gcsa1->inputs[i].fname,gcsa1->inputs[i].navgs,gcsa1->inputs[i].flags);
+  }
+
+  /* check class statistics first */
+  for(vno = 0; vno < gcsa1->mris_classifiers->nvertices; vno++) {
+    gcsan1 = &gcsa1->gc_nodes[vno];
+    gcsan2 = &gcsa2->gc_nodes[vno];
+    if(gcsan1->nlabels != gcsan2->nlabels){
+      printf("diff LL vno=%d nlabels %d %d\n",vno,gcsan1->nlabels,gcsan2->nlabels);
+      return(8);
+    }
+    if(gcsan1->total_training != gcsan2->total_training){
+      printf("diff LL vno=%d total_training %d %d\n",vno,gcsan1->total_training,gcsan2->total_training);
+      return(9);
+    }
+    for(n = 0; n < gcsan1->nlabels; n++) {
+      gcs1 = &gcsan1->gcs[n];
+      gcs2 = &gcsan2->gcs[n];
+      if(gcs1->total_training != gcs2->total_training){
+	printf("diff LL vno=%d n=%d total_training %d %d\n",vno,n,gcs1->total_training,gcs2->total_training);
+	return(11);
+      }
+      for(int k=0; k < gcsa1->ninputs; k++){
+	double d = fabs(gcs1->v_means->rptr[k+1][1] - gcs2->v_means->rptr[k+1][1]);
+	if(d > thresh){
+	  printf("diff LL vno=%d n=%d k=%d means %f %f\n",vno,n,k,gcs1->v_means->rptr[k+1][1],gcs2->v_means->rptr[k+1][1]);
+	  return(12);
+	}
+      }
+      for(int k=0; k < gcsa1->ninputs; k++){
+	for(int m=0; m < gcsa1->ninputs; m++){
+	  double d = fabs(gcs1->m_cov->rptr[k+1][m+1] - gcs2->m_cov->rptr[k+1][m+1]);
+	  if(d > thresh){
+	    printf("diff LL vno=%d n=%d k=%d m=%d cov %f %f\n",vno,n,k,m,gcs1->m_cov->rptr[k+1][m+1],gcs2->m_cov->rptr[k+1][m+1]);
+	    return(13);
+	  }
+	}
+      }
+    }
+  }
+
+  /* now write out prior info */
+  for (vno = 0; vno < gcsa1->mris_priors->nvertices; vno++) {
+    cpn1 = &gcsa1->cp_nodes[vno];
+    cpn2 = &gcsa2->cp_nodes[vno];
+    if(cpn1->nlabels != cpn2->nlabels){
+      printf("diff prior vno=%d nlabels %d %d\n",vno,cpn1->nlabels,cpn2->nlabels);
+      return(14);
+    }
+    if(cpn1->total_training != cpn2->total_training){
+      printf("diff prior vno=%d total_training %d %d\n",vno,cpn1->total_training,cpn2->total_training);
+      return(15);
+    }
+    for(n = 0; n < cpn1->nlabels; n++) {
+      cp1 = &cpn1->cps[n];
+      cp2 = &cpn2->cps[n];
+      double d = fabs(cp1->prior - cp2->prior);
+      if(d > thresh){
+	printf("diff prior vno=%d n=%d prior %f %f\n",vno,n,cp1->prior,cp2->prior);
+	return(17);
+      }
+      for(i = 0; i < GIBBS_SURFACE_NEIGHBORS; i++) {
+	if(cp1->total_nbrs[i] != cp2->total_nbrs[i]){
+	  printf("diff gprior vno=%d n=%d i=%d total_nbrs %d %d\n",vno,n,i,cp1->total_nbrs[i],cp2->total_nbrs[i]);
+	  return(18);
+	}
+	if(cp1->nlabels[i] != cp2->nlabels[i]){
+	  printf("diff gprior vno=%d n=%d i=%d nlabels %d %d\n",vno,n,i,cp1->nlabels[i],cp2->nlabels[i]);
+	  return(19);
+	}
+        for(j = 0; j < cp1->nlabels[i]; j++) {
+	  if(cp1->labels[i][j] != cp2->labels[i][j]){
+	    printf("diff gprior vno=%d n=%d i=%d j=%d annot %d %d\n",vno,n,i,j,cp1->labels[i][j],cp2->labels[i][j]);
+	    return(20);
+	  }
+	}
+      }
+    }
+  }
+
+  if(gcsa1->ct!=NULL && gcsa2->ct==NULL)  printf("diff: warning: gcsa1 has a ct but gcsa2 does not\n");
+  if(gcsa1->ct==NULL && gcsa2->ct!=NULL)  printf("diff: warning: gcsa2 has a ct but gcsa1 does not\n");
+  if(gcsa1->ct && gcsa2->ct){
+    int ctabsdiff=0;
+    COLOR_TABLE *ct1=gcsa1->ct;
+    COLOR_TABLE *ct2=gcsa2->ct;
+    if(ct1->nentries != ct2->nentries){
+      printf("diff: warning: color tables have diff no of entries %d %d\n",ct1->nentries,ct2->nentries);
+      ctabsdiff=1;
+    }
+    else {
+      for(int n=0; n < ct1->nentries; n++){
+	CTE *cte1 = ct1->entries[n];
+	CTE *cte2 = ct2->entries[n];
+	if(cte1!=NULL && cte2==NULL) {
+	  printf("diff: warning: entry gcsa1 has entry %d but gcsa2 does not\n",n);
+	  ctabsdiff=1;
+	}
+      	else if(cte2!=NULL && cte1==NULL){
+	  printf("diff: warning: entry gcsa2 has entry %d but gcsa1 does not\n",n);
+	  ctabsdiff=1;
+	}
+	else {
+	  if(strcmp(cte1->name,cte2->name)!=0){
+	    printf("diff: warning: entry %d names are different %s %s\n",n,cte1->name,cte2->name);
+	    ctabsdiff=1;
+	  }
+	}
+      }
+    }
+    if(strcmp(ct1->fname,ct2->fname)!=0){
+      printf("diff: info: ctab names are different: \n   %s\n   %s\n",ct1->fname,ct2->fname);
+      if(ctabsdiff==0) printf("   but the embedded ctabs are the same\n");
+    }
+  }
+
+
+  return (NO_ERROR);
+}
+
 GCSA *GCSAread(char *fname)
 {
   static const bool trace = false;
@@ -792,7 +962,7 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
 
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
@@ -1160,7 +1330,7 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
 
       if (vno == Gdiag_no) DiagBreak();
 
-      GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+      GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
 
       VERTEX const * const v_prior = GCSAsourceToPriorVertex(gcsa, v);
       vno_prior = v_prior - gcsa->mris_priors->vertices;
@@ -1400,7 +1570,7 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 
       if (v->ripflag || v->marked) continue;
 
-      GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+      GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
       max_ll = 10 * BIG_AND_NEGATIVE;
       best_label = v->annotation;
       for (n = 0; n < vt->vnum; n++) {
@@ -1428,12 +1598,9 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 
   return (total);
 }
-
-int GCSAload_inputs(VERTEX *v, double *v_inputs, int ninputs)
+int GCSAload_inputs(double *v_inputs, MRI *inputs, int vno)
 {
-  v_inputs[0] = v->val;
-  if (ninputs > 1) v_inputs[1] = v->val2;
-  if (ninputs > 2) v_inputs[2] = v->imag_val;
+  for(int n=0; n < inputs->nframes; n++) v_inputs[n] = MRIgetVoxVal(inputs,vno,0,0,n);
   return (NO_ERROR);
 }
 
@@ -2093,7 +2260,7 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     MRISorigVertexToVoxel(mris, v, mri_aseg, &x, &y, &z);
     label = (int)MRIgetVoxVal(mri_aseg, nint(x), nint(y), nint(z), 0);
 
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
     if (vno_prior == Gdiag_no) DiagBreak();
@@ -2147,7 +2314,7 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
     if (v->ripflag || v->marked != mark) continue;
     if (vno == Gdiag_no) DiagBreak();
 
-    GCSAload_inputs(v, v_inputs, gcsa->ninputs);
+    GCSAload_inputs(v_inputs, gcsa->inputvals, vno);
     v_prior = GCSAsourceToPriorVertex(gcsa, v);
     vno_prior = v_prior - gcsa->mris_priors->vertices;
     if (vno_prior == Gdiag_no) DiagBreak();
@@ -2356,3 +2523,87 @@ int GCSArelabelIslands(GCSA *gcsa, MRI_SURFACE *mris, int max_iter, float min_ar
   while (nchanged > 0 && niter++ < max_iter) ;
   return(NO_ERROR) ;
 }
+
+/*!
+  \fn int GCSA::load_default_data(MRIS *surf, char *subject_name, int sulc_only, int which_norm)
+  \brief Load in the "default" data for GCSA. This function is used in
+  both mris_ca_{train,label}.  It provides a consistent interface. The
+  data are loaded both into the into the inputvals MRI structure and
+  into the non-longer-used vertex structure {val,val2,imag_val}. The
+  code is a little obscure, but basically it load the mean curv into
+  frame 0; if ninputs=2, it loads the sulc into frame 1; if ninputs=3,
+  it loads the thickness into frame 2. This is a refactorization of
+  code that was in both mris_ca_{train,label}. which_norm is usually
+  set to NORM_MEAN. The GCSA Input structure must be set in advance,
+  eg with GCSAputInputType(). Not sure that sulc_only will work.
+*/
+int GCSA::load_default_data(MRIS *surf, char *subject_name, int sulc_only, int which_norm)
+{
+  int err=0;
+  if(this->inputvals) MRIfree(&this->inputvals);
+
+  printf("GCSA::load_default_data(): ninputs=%d  sulc_only=%d which_norm=%d\n",this->ninputs,sulc_only,which_norm);
+  if(this->ninputs < 1 || this->ninputs > 3){
+    printf("GCSA::load_default_data(): ninputs=%d  must be 1,2,3\n",this->ninputs);
+    return(1);
+  }
+
+  // Allocate the MRI structure
+  this->inputvals = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,this->ninputs);
+
+  int normalize1_flag = this->inputs[0].flags & GCSA_NORMALIZE;
+  if(!sulc_only){ // default, compute mean curvature and load as 1st input (v->val)
+    MRISuseMeanCurvature(surf) ;
+    MRISaverageCurvatures(surf, this->inputs[0].navgs); // spatially smooth
+    if(normalize1_flag) {
+      printf("GCSA::load_default_data(): normalizing #1, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToValues(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 0, "val");
+  }
+
+  if(this->ninputs > 1 || sulc_only) { // not the default, load sulc and set as 2nd input (v->val2)
+    int k = 1;
+    if(sulc_only) k = 0;
+    if(this->inputs[1].navgs > 0) {
+      printf("GCSA::load_default_data(): input #2 or sulconly navg=%d > 0\n",this->inputs[1].navgs);
+      return(err);
+    }
+    err = MRISreadCurvature(surf, this->inputs[k].fname);
+    if(err) {
+      MRIfree(&this->inputvals);
+      return(err);
+    }
+    int normalize2_flag = this->inputs[k].flags & GCSA_NORMALIZE;
+    if(normalize2_flag || (sulc_only && normalize1_flag)) {
+      printf("GCSA::load_default_data(): normalizing #2, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToValues(surf) ;
+    MRIScopyValToVal2(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, k, "val2");
+  }
+
+  if(this->ninputs > 2){ // not the default, load in thickness and set as 3rd input (v->imag_val)
+    if(this->inputs[2].navgs > 0) {
+      printf("GCSA::load_default_data(): input #3 navg=%d > 0\n",this->inputs[2].navgs);
+      return(err);
+    }
+    err = MRISreadCurvature(surf, this->inputs[2].fname);
+    if(err) {
+      MRIfree(&this->inputvals);
+      return(err);
+    }
+    int normalize3_flag = this->inputs[2].flags & GCSA_NORMALIZE;
+    if(normalize3_flag)  {
+      printf("GCSA::load_default_data(): normalizing #3, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToImagValues(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 2, "imag_val");
+  }
+  
+  return(0);
+}
+

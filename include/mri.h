@@ -1045,6 +1045,7 @@ extern float ic_z_vertices[]  ;
 #define MGH_LABEL_FILE                32
 #define MGH_ANNOT                     33 // surface annotation file
 #define NPY_FILE                      34 // numpy npy file
+#define ASCII_FILE                    35 // .asc
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
@@ -1514,6 +1515,10 @@ MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
 
 /* extract the RASToVoxeMatrix from an MRI */
 MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
+
+// functions read/write MRI_MGH_FILE
+MRI *mghRead(const char *fname, int read_volume, int frame);
+int mghWrite(MRI *mri, const char *fname, int frame);
 
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC

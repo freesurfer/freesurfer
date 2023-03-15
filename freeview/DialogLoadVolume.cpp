@@ -22,11 +22,10 @@
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QMessageBox>
-
-
+#include <QRegularExpression>
+#include "MigrationDefs.h"
 
 #include "mri.h"
-
 
 DialogLoadVolume::DialogLoadVolume(QWidget *parent) :
   QDialog(parent),
@@ -138,7 +137,7 @@ void DialogLoadVolume::OnLUT( int nSel )
 
 QStringList DialogLoadVolume::GetVolumeFileNames()
 {
-  QStringList fns = ui->comboBoxFilenames->currentText().trimmed().split( QRegExp( "[;]" ), QString::SkipEmptyParts );
+  QStringList fns = ui->comboBoxFilenames->currentText().trimmed().split( QRegularExpression( "[;]" ), MD_SkipEmptyParts );
   for (int i = 0; i < fns.size(); i++)
   {
     fns[i] = MyUtils::CygwinPathProof(fns[i]);

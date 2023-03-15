@@ -119,6 +119,9 @@ int narray = 0;
 MRI_SURFACE *surfarray[100];
 MRI *overlayarray[100], *ribbon=NULL;
 LTA *ArrayLTA=NULL;
+int MaskToCortex=0;
+char *labelfile=NULL;
+MRI *mask=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -156,8 +159,9 @@ int main(int argc, char **argv) {
       ribbon = MRIread(tmpstr);
       if(ribbon==NULL) exit(1);
     }
-    OutVol = MRIsurf2VolOpt(ribbon, surfarray, overlayarray,
-			    narray, ArrayLTA, NULL);
+
+    OutVol = MRIsurf2VolOpt(ribbon, surfarray, overlayarray,narray, ArrayLTA, NULL);
+
     if(OutVol == NULL) exit(1);
     if(DoAddVal){
       printf("Adding %lf to non-zero voxels\n",AddVal);
@@ -323,6 +327,19 @@ int main(int argc, char **argv) {
   MRIcopyHeader(TempVol,OutVol);
   OutVol->nframes = SurfVal->nframes;
 
+  // Handle any mask
+  char cortexlabelpath[2000];
+  if(MaskToCortex) {
+    sprintf(cortexlabelpath,"%s/%s/label/%s.cortex.label",fsenv->SUBJECTS_DIR,srcsubject,hemi);
+    labelfile = cortexlabelpath;
+  }
+  if(labelfile){
+    printf("Reading label file %s\n",labelfile);
+    LABEL *label = LabelRead(NULL,labelfile);
+    if(label==NULL) exit(1);
+    mask = MRISlabel2Mask(SrcSurf,label,NULL);
+  }
+
   printf("INFO: mapping vertices to closest voxel\n");
   if (fillribbon) {   /* fill entire ribbon */
     VtxVol = MRIconst(TempVol->width, TempVol->height, TempVol->depth, 1, -1, NULL);
@@ -330,7 +347,7 @@ int main(int argc, char **argv) {
     nhits = 0; 
     for (projfrac = ProjFracStart ; projfrac <= ProjFracStop ; projfrac += ProjFracDelta) {
       MRI *VtxVolp;
-      VtxVolp = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+      VtxVolp = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac, mask);
       if (VtxVol == NULL) {
         printf("ERROR: could not map vertices to voxels\n");
         exit(1);
@@ -360,13 +377,13 @@ int main(int argc, char **argv) {
     // This is a hack for when there's a merge volume
     //projfrac = (ProjFracStart+ProjFracStop)/2;
     //VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
-  } else {  /* sample from one point */
-    VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+  } 
+  else {  /* sample from one point */
+    VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac, mask);
     if (VtxVol == NULL) {
       printf("ERROR: could not map vertices to voxels\n");
       exit(1);
     }
-
     printf("INFO: resampling surface to volume\n");
     nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
     printf("INFO: sampled %d voxels in the volume\n",nhits);
@@ -477,11 +494,27 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         surfvalfmtid = string_to_type(surfvalfmt);
       }
-    } else if (istringnmatch(option, "--srcsubject",9)) {
+    } 
+    else if (istringnmatch(option, "--srcsubject",9)) {
       if (nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--surf",9)) {
+    } 
+    else if(strcmp(option, "--mask")==0) {
+      if(nargc < 1) argnerr(option,1);
+      mask = MRIread(pargv[0]);
+      if(!mask) exit(1);
+      nargsused = 1;
+    } 
+    else if(strcmp(option, "--mask-to-label")==0) {
+      if(nargc < 1) argnerr(option,1);
+      labelfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (strcmp(option, "--mask-to-cortex")==0) {
+      MaskToCortex=1;
+    } 
+    else if (istringnmatch(option, "--surf",9)) {
       if (nargc < 1) argnerr(option,1);
       surfname = pargv[0];
       nargsused = 1;
@@ -716,6 +749,9 @@ static void print_usage(void) {
   printf("  --sphpvf radius nvox voxsize fsubsamp icoorder outvol outsurf\n");
   printf("  \n");
   printf("  Applies to both methods\n");
+  printf("  --mask-to-cortex : mask to ?h.cortex.label\n");
+  printf("  --mask-to-label labelfile : mask to the passed label file\n");
+  printf("  --mask surfacemask: mask to the passed mask\n");
   printf("  --add const : add constant value to each non-zero output voxel\n");
   printf("  --copy-ctab : setenv FS_COPY_HEADER_CTAB 1\n");
   printf("  --sd subjectsdir : FreeSurfer subjects' directory\n");
@@ -935,8 +971,6 @@ static void check_options(void) {
     }
     return;
   }
-
-
   if (! mksurfmask ) {
     if (surfvalpath == NULL) {
       printf("A surface value path must be supplied\n");
@@ -1045,6 +1079,19 @@ static void check_options(void) {
     }
   }
   if (mergevolpath) tempvolpath = mergevolpath;
+
+  if(MaskToCortex && labelfile){
+    printf("ERROR: cannot use both --mask-to-label and --mask-to-cortex\n");
+    exit(1);
+  }
+  if(MaskToCortex && mask){
+    printf("ERROR: cannot use both --mask and --mask-to-cortex\n");
+    exit(1);
+  }
+  if(labelfile && mask){
+    printf("ERROR: cannot use both --mask and --mask-to-label\n");
+    exit(1);
+  }
 
   return;
 }

@@ -27,6 +27,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include "MigrationDefs.h"
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
   m_label( NULL )
@@ -97,7 +98,7 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
   bool bRealRAS = true;
   for ( int i = 0; i < ar.size(); i++ )
   {
-    QStringList subs = ar[i].split(" ", QString::SkipEmptyParts );
+    QStringList subs = ar[i].split(" ", MD_SkipEmptyParts );
     if ( subs.size() > 2 )
     {
       for ( int j = 0; j < 3; j++ )

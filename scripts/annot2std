@@ -126,7 +126,7 @@ foreach subject ($subjlist)
     set seg = $tmpdir/seg.$nthsubject.$subject.xhemi.mgh
     set ctab = $tmpdir/seg.$nthsubject.$subject.xhemi.ctab
     set cmd = (mri_annotation2label --subject $subject/xhemi --hemi $hemi \
-      --seg $seg --ctab $ctab --annotation $inannot)
+      --seg $seg --ctab $ctab --annotation $inannot --segbase 0)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;

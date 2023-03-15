@@ -30,11 +30,7 @@
 #include <vector>
 #include <QVariantMap>
 
-
-
 #include "colortab.h"
-
-
 
 struct ScalarValues
 {
@@ -170,6 +166,11 @@ public:
     return m_nType;
   }
 
+  bool GetShowUnfixedOnly()
+  {
+    return m_bShowUnfixedOnly;
+  }
+
   void SetStatRange(double dMin, double dMax);
 
   void SetScalarToStat();
@@ -208,6 +209,7 @@ public slots:
   }
 
   void SetClosedSpline(bool bClosed);
+  void SetShowUnfixedOnly(bool b);
 
 private:
   void SetColorMapChanged ();
@@ -246,6 +248,8 @@ private:
   bool    m_bSnapToVoxelCenter;
   bool    m_bShowSpline;
   bool    m_bClosedSpline;
+
+  bool    m_bShowUnfixedOnly;
 
   int         m_nScalarType;
   LayerMRI*   m_layerScalar;

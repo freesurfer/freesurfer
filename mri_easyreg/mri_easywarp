@@ -121,29 +121,28 @@ def save_volume(volume, aff, header, path):
 
 def mkdir(path_dir):
 
-    if path_dir[-1] == '/':
-        path_dir = path_dir[:-1]
-    if not os.path.isdir(path_dir):
-        list_dir_to_create = [path_dir]
-        while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
-            list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
-        for dir_to_create in reversed(list_dir_to_create):
-            os.mkdir(dir_to_create)
+    if len(path_dir)>0:
+        if path_dir[-1] == '/':
+            path_dir = path_dir[:-1]
+        if not os.path.isdir(path_dir):
+            list_dir_to_create = [path_dir]
+            while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
+                list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
+            for dir_to_create in reversed(list_dir_to_create):
+                os.mkdir(dir_to_create)
 
 
 
 def fast_3D_interp_torch(X, II, JJ, KK, mode):
     if mode=='nearest':
-        IIr = torch.round(II).long()
-        JJr = torch.round(JJ).long()
-        KKr = torch.round(KK).long()
-        IIr[IIr < 0] = 0
-        JJr[JJr < 0] = 0
-        KKr[KKr < 0] = 0
-        IIr[IIr > (X.shape[0] - 1)] = (X.shape[0] - 1)
-        JJr[JJr > (X.shape[1] - 1)] = (X.shape[1] - 1)
-        KKr[KKr > (X.shape[2] - 1)] = (X.shape[2] - 1)
-        Y = X[IIr, JJr, KKr]
+        ok = (II>0) & (JJ>0) & (KK>0) & (II<=X.shape[0]-1) & (JJ<=X.shape[1]-1) & (KK<=X.shape[2]-1)
+        IIr = torch.round(II[ok]).long()
+        JJr = torch.round(JJ[ok]).long()
+        KKr = torch.round(KK[ok]).long()
+        c = X[IIr, JJr, KKr]
+        Y = torch.zeros(II.shape, device='cpu')
+        Y[ok] = c.float()
+        
     elif mode=='linear':
         ok = (II>0) & (JJ>0) & (KK>0) & (II<=X.shape[0]-1) & (JJ<=X.shape[1]-1) & (KK<=X.shape[2]-1)
         IIv = II[ok]

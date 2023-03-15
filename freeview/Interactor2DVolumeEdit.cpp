@@ -55,7 +55,7 @@ void Interactor2DVolumeEdit::PreprocessMouseEvent(QMouseEvent *event)
   if (bRightButtonErase && event->button() == Qt::RightButton && event->modifiers() == Qt::NoModifier)
   {
     QMouseEvent e(event->type(), event->pos(), Qt::LeftButton, Qt::LeftButton, Qt::ShiftModifier);
-    *event = e;
+//    *event = e;
   }
 }
 
@@ -351,7 +351,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     m_bEditing = false;
     if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
     {
-      if ( event->button() == Qt::MidButton )
+      if ( event->button() == Qt::MiddleButton )
       {
         view->GetCursor2D()->Update();
         view->RequestRedraw();
@@ -667,7 +667,7 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
     {
       QMouseEvent* e = ( QMouseEvent* )event;
       bMouseEvent = true;
-      if ( ( ( e->button() == Qt::MidButton || e->button() == Qt::RightButton ) && !m_bEditing ) ||
+      if ( ( ( e->button() == Qt::MiddleButton || e->button() == Qt::RightButton ) && !m_bEditing ) ||
            ( ( e->modifiers() & CONTROL_MODIFIER) && (e->modifiers() & Qt::ShiftModifier) ) )
       {
         Interactor2D::UpdateCursor( event, wnd );

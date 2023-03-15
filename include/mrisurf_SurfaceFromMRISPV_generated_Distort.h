@@ -382,6 +382,7 @@
         inline float                 dy2                      ( size_t i                      ) const ;
         inline float                 dz2                      ( size_t i                      ) const ;
         inline PCOLOR_TABLE          ct                       (                               ) const ;
+        inline int                   orig_xyzspace            (                               ) const ;  //  xyz coordinate space of surface read by MRISread() before any conversion, 0=tkregister space, 1=scanner space
         inline int                   useRealRAS               (                               ) const ;  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
         inline VOL_GEOM              vg                       (                               ) const ;  //  volume info from which this surface is created. valid iff vg.valid = 1
         inline MRIS_cmdlines_t       cmdlines                 (                               ) const ;

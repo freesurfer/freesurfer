@@ -1338,10 +1338,10 @@ void LayerVolumeBase::GetDisplayBounds( double* bounds )
 
 QString LayerVolumeBase::GenerateCacheFileName()
 {
-  QString strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
+  QString strg = QDir::tempPath() + "/freeview-cache-" + QString::number(rand());
   while (QFile::exists(strg))
   {
-    strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
+    strg = QDir::tempPath() + "/freeview-cache-" + QString::number(rand());
   }
 #ifdef Q_CYGWIN_WIN
   strg = MyUtils::NormalizeCygwinPath(strg);

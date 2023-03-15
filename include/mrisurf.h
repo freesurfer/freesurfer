@@ -623,7 +623,7 @@ double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, in
 
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
-MRI_SURFACE  *MRISread(const char *fname) ;
+MRI_SURFACE  *MRISread(const char *fname, bool dotkrRasConvert=true) ;
 MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double nVFMultiplier) ;
 MRI_SURFACE  *MRISfastRead(const char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris,const  char *sname) ;
@@ -638,8 +638,8 @@ int          MRISreadWhiteCoordinates(MRI_SURFACE *mris,const  char *sname) ;
 int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, double phi, double theta,
                                   double *pxw, double *pyw, double *pzw) ;
-int          MRISreadPatch(MRI_SURFACE *mris,const  char *pname) ;
-int          MRISreadPatchNoRemove(MRI_SURFACE *mris,const  char *pname) ;
+int          MRISreadPatch(MRI_SURFACE *mris,const  char *pname, bool dotkrRasConvert=true) ;
+int          MRISreadPatchNoRemove(MRI_SURFACE *mris,const  char *pname, bool dotkrRasConvert=true) ;
 int          MRISreadTriangleProperties(MRI_SURFACE *mris,
                                         const  char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris,
@@ -656,6 +656,10 @@ int          MRISreadCurvatureIntoArray(const char *fname,
                                         float** out_array) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
+
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
+int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname);
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
 
 MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *typestring,

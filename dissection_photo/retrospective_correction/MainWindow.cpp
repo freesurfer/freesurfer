@@ -8,7 +8,7 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QSettings>
-#include <QDesktopWidget>
+#include <QScreen>
 #include "CommonDef.h"
 #include <QTemporaryDir>
 
@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
 
   QSettings s;
   QRect rc = s.value("MainWindow/Geometry").toRect();
-  if (rc.isValid() && QApplication::desktop()->screenGeometry(this).contains(rc))
+  if (rc.isValid() && QGuiApplication::primaryScreen()->geometry().contains(rc))
     setGeometry(rc);
 
   SetupScriptPath();

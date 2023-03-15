@@ -73,6 +73,7 @@ void QVTKPaintEngine::drawPixmap(const QRectF& r, const QPixmap& pm, const QRect
   QImage img = pix.toImage().mirrored().rgbSwapped();
 
   // blend the pixels from QImage into the vtkRenderWindow's buffer
+#if QT_VERSION_MAJOR < 6
   vtkRenderWindow* renWin = this->Widget->GetRenderWindow();
   renWin->SetRGBACharPixelData(ri.left(), this->Widget->height() - ri.top() - ri.height(),
                                ri.left()+img.width() - 1,
@@ -80,6 +81,7 @@ void QVTKPaintEngine::drawPixmap(const QRectF& r, const QPixmap& pm, const QRect
                                img.bits(),
                                renWin->GetDoubleBuffer() ? 0 : 1,
                                1);
+#endif
 
   // NOTE: this would perform much better if textures were used and caching of those
   // textures was done (probably vtkActor2D and vtkImageMapper)

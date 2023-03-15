@@ -49,6 +49,18 @@
       <explanation>set neighborhood size to nbrs </explanation>
       <argument>-seed N</argument>
       <explanation>set random number generator to seed N</explanation>
+      <argument>-curvs surf nbrhdsize stem</argument>
+      <explanation>Stand-alone option to save H (mean), K (gaussian), k1, and k2 curvatures to stem.{curvname}.mgz</explanation>
+      <argument>-H surf nbrhdsize stem</argument>
+      <explanation>Stand-alone option to save H mean curvature to stem.H.mgz</explanation>
+      <argument>-K surf nbrhdsize stem</argument>
+      <explanation>Stand-alone option to save K gaussian curvature to stem.K.mgz</explanation>
+      <argument>-k1 surf nbrhdsize stem</argument>
+      <explanation>Stand-alone option to save k1 (primary principle) curvature to stem.k1.mgz </explanation>
+      <argument>-k2 surf nbrhdsize stem</argument>
+      <explanation>Stand-alone option to save k2 (secondary principle) curvature to stem.k2.mgz </explanation>
+      <argument>-k1k2 surf nbrhdsize stem</argument>
+      <explanation>Stand-alone option to save k1 and k2 curvature to stem.{k1,k2}.mgz </explanation>
     </optional-flagged>
   </arguments>
   <outputs>

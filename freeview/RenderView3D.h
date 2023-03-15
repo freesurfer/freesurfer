@@ -115,6 +115,8 @@ public:
 
   int PickCurrentPointSetPoint(int posX, int posY, LayerPointSet* curPointSet = NULL);
 
+  bool PickVolume(int posX, int posY, double* pt_out);
+
   void ShowSlice(int nPlane, bool bshow);
 
   QVariantMap GetCameraInfo();

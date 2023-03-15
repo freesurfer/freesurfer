@@ -82,7 +82,7 @@ bool Interactor2DVolumeCrop::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     return false;
   }
   else if ( !(event->buttons() & Qt::LeftButton) && !(event->buttons() & Qt::RightButton) &&
-            !(event->buttons() & Qt::MidButton) &&
+            !(event->buttons() & Qt::MiddleButton) &&
             MainWindow::GetMainWindow()->GetVolumeCropper()
             ->PickActiveBound2D( view, event->x(), event->y() ) )
   {
