@@ -408,7 +408,7 @@
 # See https://doi.org/10.1016/j.neuroimage.2022.119703
 630  Cbm_Vermis_VII                         230 73  25  0
 631  Cbm_Vermis_VIII                        103 255 255 0
-
+632  Cbm_Vermis                             230 73  25  0
 
 # Cerebellar lobule parcellations
 640  Cbm_Right_I_V_med                      204  0  0   0
