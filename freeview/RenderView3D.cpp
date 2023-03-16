@@ -553,12 +553,12 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
       picker->GetPickPosition( pos );
       prop = picker->GetViewProp();
       LayerMRI* mri_sel = (LayerMRI*)lc_mri->HasProp(prop);
-      if (mri_sel->GetProperty()->GetShowAsContour())
+      if (mri_sel && mri_sel->GetProperty()->GetShowAsContour())
       {
         lc_mri->SetCursorRASPosition( pos );
         MainWindow::GetMainWindow()->SetSlicePosition( pos );
       }
-      else if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) )
+      else if ( mri_sel || lc_roi->HasProp( prop ) )
       {
         if ( bCursor )
         {

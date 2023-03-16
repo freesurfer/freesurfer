@@ -200,6 +200,7 @@ int main(int argc, char *argv[])
     "':overlay_custom=[filename]val,r,g,b,val2,r2,g2,b2...' Set customized overlay color. If only given one argument as filename, customized color scale will be loaded from the given file.\n\n"
     "':overlay_opacity=opacity' Set opacity of overlay.\n\n"
     "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
+    "':overlay_offset=offset' Set the offset for overlay threshold setting.\n\n"
     "':overlay_mask=filename(,invert)' Use given label file as mask for overlay. If invert is specified, use the inverted mask.\n\n"
     "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
     "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"

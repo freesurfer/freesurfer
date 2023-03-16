@@ -2013,6 +2013,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayOpacity( sa );
   }
+  else if ( cmd == "setsurfaceoverlayoffset")
+  {
+    CommandSetSurfaceOverlayOffset(sa);
+  }
   else if ( cmd == "setsurfaceoverlayframe")
   {
     CommandSetSurfaceOverlayFrame( sa );
@@ -3603,7 +3607,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom"
-                        << "overlay_mask";
+                        << "overlay_mask" << "overlay_offset";
   bool bNoAutoLoad = m_defaultSettings["no_autoload"].toBool();
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
@@ -3622,6 +3626,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QStringList overlay_thresholds;
     QStringList overlay_custom;
     QStringList overlay_mask;
+    QString overlay_offset;
     bool bSecondHalfData = false;
     for ( int k = sa_fn.size()-1; k >= 0; k-- )
     {
@@ -3650,6 +3655,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           overlay_custom = subArgu.split(",", MD_SkipEmptyParts);
         else if (subOption == "overlay_mask")
           overlay_mask = subArgu.split(",", MD_SkipEmptyParts);
+        else if (subOption == "overlay_offset")
+          overlay_offset = subArgu;
       }
     }
     if (overlay_reg.isEmpty())
@@ -3764,6 +3771,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_mask.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlaymask") << overlay_mask);
+
+          if (!overlay_offset.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlayoffset") << overlay_offset);
         }
         else if ( subOption == "mrisps" )
         {
@@ -4072,6 +4082,30 @@ void MainWindow::CommandSetSurfaceOverlayOpacity(const QStringList &cmd)
       else
       {
         cerr << "Invalid input for overlay opacity.\n";
+      }
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOverlayOffset(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      bool ok;
+      double val = cmd[1].toDouble(&ok);
+      if (ok)
+      {
+        overlay->GetProperty()->SetOffset(val);
+        surf->UpdateOverlay(true);
+        overlay->EmitDataUpdated();
+      }
+      else
+      {
+        cerr << "Invalid input for overlay offset.\n";
       }
     }
   }
