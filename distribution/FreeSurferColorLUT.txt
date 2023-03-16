@@ -315,14 +315,14 @@
 358 Pos-Lymph                               20  130 180 0
 359 Neg-Lymph                               20  180 130 0
 
-370 ctl-lh-infragranular                  205 70  130  0
-371 ctl-lh-layer1                         210 80  130  0
-372 ctl-lh-layer2                         215 90  130  0
-373 ctl-lh-layer3                         220 100  130  0
-374 ctl-lh-layer4                         225 110  130  0
-375 ctl-lh-layer5                         230 120  130  0
-376 ctl-lh-layer6                         235 135  130  0
-377 ctx-lh-supragranular                  240 140  130  0
+370 ctl-rh-infragranular                  205 70  130  0
+371 ctl-rh-layer1                         210 80  130  0
+372 ctl-rh-layer2                         215 90  130  0
+373 ctl-rh-layer3                         220 100  130  0
+374 ctl-rh-layer4                         225 110  130  0
+375 ctl-rh-layer5                         230 120  130  0
+376 ctl-rh-layer6                         235 135  130  0
+377 ctx-rh-supragranular                  240 140  130  0
 
 400 V1                                      206 62  78  0
 401 V2                                      121 18  134 0
