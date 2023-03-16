@@ -404,6 +404,7 @@ protected:
   void CommandSetSurfaceOverlaySmooth     ( const QStringList& cmd );
   void CommandSetSurfaceOverlayMask      ( const QStringList& cmd );
   void CommandSetSurfaceOverlayCustom     ( const QStringList& cmd );
+  void CommandSetSurfaceOverlayOffset    ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );
