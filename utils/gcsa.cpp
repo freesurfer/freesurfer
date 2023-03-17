@@ -2248,9 +2248,7 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
 {
   int old_index, vno, vno_classifier, vno_prior, label, index, changed, cc_annotation;
   VERTEX *v, *v_classifier, *v_prior;
-  GCSA_NODE *gcsan;
-  CP_NODE *cpn;
-  double v_inputs[100], p;
+  double v_inputs[100], p[3];
   double x, y, z;
 
   for (changed = vno = 0; vno < mris->nvertices; vno++) {
@@ -2267,11 +2265,11 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior);
     vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
     if (vno_classifier == Gdiag_no) DiagBreak();
-    gcsan = &gcsa->gc_nodes[vno_classifier];
+    GCSA_NODE *gcsan = &gcsa->gc_nodes[vno_classifier];
 
     CTABfindAnnotation(mris->ct, v->annotation, &old_index);
 
-    cpn = &gcsa->cp_nodes[vno_prior];
+    CP_NODE *cpn = &gcsa->cp_nodes[vno_prior];
     if (IS_CC(label)) {
       CTABfindName(mris->ct, "corpuscallosum", &index);
       if (index < 0) CTABfindName(mris->ct, "Medial_wall", &index);
@@ -2291,7 +2289,7 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     else if (old_index >= 0 && mris->ct && !stricmp(mris->ct->entries[old_index]->name, "corpuscallosum")) {
       // find 2nd most likely label that isn't callosum
       CTABannotationAtIndex(mris->ct, old_index, &cc_annotation);
-      label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, &cc_annotation, 1, vno);
+      label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, p, &cc_annotation, 1, vno);
       if (label != v->annotation) {
         changed++;
         v->annotation = label;
@@ -2305,9 +2303,7 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
 {
   int old_index, vno, vno_classifier, vno_prior, label, index, changed, num, n;
   VERTEX *v, *v_classifier, *v_prior, *vn;
-  GCSA_NODE *gcsan;
-  CP_NODE *cpn;
-  double v_inputs[100], p;
+  double v_inputs[100], p[3];
 
   for (changed = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -2321,12 +2317,12 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
     v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior);
     vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
     if (vno_classifier == Gdiag_no) DiagBreak();
-    gcsan = &gcsa->gc_nodes[vno_classifier];
+    GCSA_NODE *gcsan = &gcsa->gc_nodes[vno_classifier];
 
     CTABfindAnnotation(mris->ct, v->annotation, &old_index);
 
-    cpn = &gcsa->cp_nodes[vno_prior];
-    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, exclude_list, nexcluded, vno);
+    CP_NODE *cpn = &gcsa->cp_nodes[vno_prior];
+    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, p, exclude_list, nexcluded, vno);
     if (label >= 0 && label != v->annotation) {
       changed++;
       v->annotation = label;
@@ -2337,9 +2333,13 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
      that had nonzero priors and reclassify them based on nbrs. */
   do {
     for (num = vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
       v = &mris->vertices[vno];
       if (v->ripflag || v->marked != mark) continue;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      /* moved to before assigning VERTEX_TOPOLOGY const * const vt
+       * v = &mris->vertices[vno];
+       * if (v->ripflag || v->marked != mark) continue;
+       */
       if (vno == Gdiag_no) DiagBreak();
       for (n = 0; n < vt->vnum; n++) {
         vn = &mris->vertices[vt->v[n]];
