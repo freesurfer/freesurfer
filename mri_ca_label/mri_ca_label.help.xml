@@ -125,6 +125,10 @@
       <explanation>Insert WM between putamen and cortex (replacing putamen)</explanation>
       <argument>-sa-insert-wm-bet-putctx inputseg topo outputseg</argument>
       <explanation>Stand-alone operation</explanation>
+      <argument>-insert-from-seg segvol index1 index2 ...</argument>
+      <explanation>Insert the given indices from segvol into the output seg</explanation>
+      <argument>-sa-insert-from-seg segvol index1 index2 ... inseg outseg</argument>
+      <explanation>Stand-alone insert the given indices from segvol into the input seg and save as outseg</explanation>
       <argument>-threads or -nthreads NTHREADS</argument>
       <explanation>Set the number of open mp threads</explanation>
     </optional-flagged>
