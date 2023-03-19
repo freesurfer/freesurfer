@@ -465,13 +465,12 @@ main(int argc, char *argv[])
       mris->vg.valid = 0;
     }
 
-    // ??? should we call MRIcopyMRIS() instead ???
     if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE) {
       printf("Saving surface xyz %s as a volume format\n",out_fname);
       MRI *vol = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3);
-      MRIScopyMRI(mris,vol,0,"x");
-      MRIScopyMRI(mris,vol,1,"y");
-      MRIScopyMRI(mris,vol,2,"z");
+      MRIcopyMRIS(vol,mris,0,"x");
+      MRIcopyMRIS(vol,mris,1,"y");
+      MRIcopyMRIS(vol,mris,2,"z");
       MRIwrite(vol,out_fname);
       MRIfree(&vol);
     }

@@ -168,7 +168,7 @@ main(int argc, char *argv[])
 
   MRIreInitCache(mri_layers) ; 
 
-  if (FS_names && nlayers != 1)
+  if (FS_names && nlayers > 2)
     ErrorExit(ERROR_UNSUPPORTED, "%s: if specifying FS_names must use -nlayers 1", Progname) ;
   printf("reading laminar surfaces from %s.?\n", LAMINAR_NAME) ;
   for (i = 0 ; i <= nlayers ; i++) {
@@ -186,8 +186,15 @@ main(int argc, char *argv[])
 	}
       }
     } else {
-      int req = snprintf(fname, STRLEN,
-			 "%s/%s/surf/%s.%s.%d", sdir, subject,hemi,LAMINAR_NAME,i) ;
+      int req ; 
+      if (FS_names && i == 0)
+	req = snprintf(fname, STRLEN, "%s/%s/surf/%s.white", sdir, subject,hemi) ;
+      else if (FS_names && i == 2)
+	req = snprintf(fname, STRLEN, "%s/%s/surf/%s.pial", sdir, subject,hemi) ;
+      else if (FS_names)
+	req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject,hemi,LAMINAR_NAME) ;
+      else
+	req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s.%d", sdir, subject,hemi,LAMINAR_NAME,i) ;
       if( req >= STRLEN ) {
         std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
