@@ -34,8 +34,8 @@
 30  Left-vessel                             160 32  240 0
 31  Left-choroid-plexus                     0   200 200 0
 32  Left-F3orb                              100 50  100 0
-33  Left-WMCrowns                           135 50  74  0
-34  Left-aOg                                122 135 50  0
+33  Left-aOg                                122 135 50  0
+34  Left-WMCrowns                           123 135 50  0
 35  Left-mOg                                51  50  135 0
 36  Left-pOg                                74  155 60  0
 37  Left-Stellate                           120 62  43  0
@@ -89,7 +89,7 @@
 83  Left-F1                                 255 218 185 0
 84  Right-F1                                255 218 185 0
 85  Optic-Chiasm                            234 169 30  0
-192 Corpus_Callosum                         250 255 50  0
+192 Corpus_Callosum                         0   0   160 0
 
 86  Left_future_WMSA                        200 120  255 0
 87  Right_future_WMSA                       200 121  255 0
@@ -193,6 +193,8 @@
 180 Left-Cortical-Dysplasia                 73  61  139 0
 181 Right-Cortical-Dysplasia                73  62  139 0
 182 CblumNodulus                            10 100  176 0
+183 Left-Vermis                            119 100  176 0
+184 Right-Vermis                           100 119  176 0
 
 #192 Corpus_Callosum  listed after #85 above
 193 Left-hippocampal_fissure                0   196 255 0
@@ -470,14 +472,14 @@
 901       Air-Internal                     0 170 0 0 
 902       Artery                           204 0 0 255 
 906       EyeBalls                         230 189 66 255 
-907       Other-Tissues                    250 250 51 255 
+907       Other-Tissues                    85 85 0 0
 908       Rectus-Muscles                   190 50 73 255
 909       Mucosa                           255 160 188 255 
-911       Skin                             190 156 120 255
+911       Skin                             85 85 85 0
 912       Charm-Spinal-Cord                  0 187 169 255 
 914       Vein                             0 84 255 255 
-915       Bone-Cortical                    238 215 150 255 
-916       Bone-Cancellous                  237 199 154 255  
+915       Bone-Cortical                    0 85 0 0
+916       Bone-Cancellous                  190 156 120 255
 917       Charm-Background                 0 168 255 255 
 920       Cortical-CSF                     120 133 217 255 
 930       Optic-Nerve                      0 191 122 255 
@@ -1388,6 +1390,7 @@
 11173  ctx_lh_S_temporal_inf                   21 180 180   0
 11174  ctx_lh_S_temporal_sup                  223 220  60   0
 11175  ctx_lh_S_temporal_transverse           221  60  60   0
+11300  ctx_lh_high_myelin                      60 162  60   0
 
 12100  ctx_rh_Unknown                           0   0   0   0
 12101  ctx_rh_G_and_S_frontomargin             23 220  60   0
@@ -1465,6 +1468,7 @@
 12173  ctx_rh_S_temporal_inf                   21 180 180   0
 12174  ctx_rh_S_temporal_sup                  223 220  60   0
 12175  ctx_rh_S_temporal_transverse           221  60  60   0
+12300  ctx_rh_high_myelin                     60  200  60   0
 
 #No.   Label Name:                              R   G   B   A
 13100  wm_lh_Unknown                            0   0   0   0
