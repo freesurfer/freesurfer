@@ -94,7 +94,8 @@ class SamsegLongitudinal:
         thresholdSearchString=None,
         modeNames=None,
         pallidumAsWM=True,
-        savePosteriors=False
+        savePosteriors=False,
+        tpToBaseTransforms=None,
         ):
 
         # Store input parameters as class variables
@@ -112,6 +113,16 @@ class SamsegLongitudinal:
         self.modeNames = modeNames
         self.pallidumAsWM = pallidumAsWM
         self.savePosteriors = savePosteriors
+        self.tpToBaseTransforms = tpToBaseTransforms
+
+        # Check if all time point to base transforms are identity matrices.
+        # If so, we can derive a combined 4D mask during preprocessing
+        self.allIdentityTransforms = True
+        if tpToBaseTransforms is not None:
+            for tp, transform in enumerate(self.tpToBaseTransforms):
+                if not np.allclose(transform.matrix, np.eye(4)):
+                    self.allIdentityTransforms = False
+
 
         # Initialize some objects
         self.probabilisticAtlas = ProbabilisticAtlas()
@@ -190,6 +201,7 @@ class SamsegLongitudinal:
                          templateFileName=templateFileName)
         self.imageToImageTransformMatrix, _ = affine.registerAtlas(savePath=sstDir, visualizer=self.visualizer)
 
+
     def preProcess(self):
 
         # construct sstModel
@@ -205,32 +217,92 @@ class SamsegLongitudinal:
         self.sstModel.imageBuffers, self.sstModel.transform, self.sstModel.voxelSpacing, self.sstModel.cropping = readCroppedImages(self.sstFileNames, templateFileName, self.imageToImageTransformMatrix)
 
         self.imageBuffersList = []
-        for imageFileNames in self.imageFileNamesList:
-            imageBuffers, _, _, _ = readCroppedImages(imageFileNames, templateFileName, self.imageToImageTransformMatrix)
-            self.imageBuffersList.append(imageBuffers)
+        self.voxelSpacings = []
+        self.transforms = []
+        self.masks = []
+        self.croppings = []
+        if self.allIdentityTransforms:
 
-        # Put everything in a big 4-D matrix to derive one consistent mask across all time points
-        imageSize = self.sstModel.imageBuffers.shape[:3]
-        numberOfContrasts = self.sstModel.imageBuffers.shape[-1]
-        self.combinedImageBuffers = np.zeros(imageSize + (numberOfContrasts * (1 + self.numberOfTimepoints),))
-        self.combinedImageBuffers[..., 0:numberOfContrasts] = self.sstModel.imageBuffers
-        for timepointNumber in range(self.numberOfTimepoints):
-            self.combinedImageBuffers[..., (timepointNumber + 1) * numberOfContrasts:
-                                      (timepointNumber + 2) * numberOfContrasts] = self.imageBuffersList[timepointNumber]
+            self.imageBuffersList = []
+            for imageFileNames in self.imageFileNamesList:
+                imageBuffers, _, _, _ = readCroppedImages(imageFileNames, templateFileName,
+                                                          self.imageToImageTransformMatrix)
+                self.imageBuffersList.append(imageBuffers)
 
-        self.combinedImageBuffers, self.sstModel.mask = maskOutBackground(self.combinedImageBuffers, self.sstModel.modelSpecifications.atlasFileName,
-                                                        self.sstModel.transform,
-                                                        self.sstModel.modelSpecifications.maskingProbabilityThreshold,
-                                                        self.sstModel.modelSpecifications.maskingDistance,
-                                                        self.probabilisticAtlas,
-                                                        self.sstModel.voxelSpacing)
-        combinedImageBuffers = logTransform(self.combinedImageBuffers, self.sstModel.mask)
+            # Put everything in a big 4-D matrix to derive one consistent mask across all time points
+            imageSize = self.sstModel.imageBuffers.shape[:3]
+            numberOfContrasts = self.sstModel.imageBuffers.shape[-1]
+            self.combinedImageBuffers = np.zeros(imageSize + (numberOfContrasts * (1 + self.numberOfTimepoints),))
+            self.combinedImageBuffers[..., 0:numberOfContrasts] = self.sstModel.imageBuffers
+            for timepointNumber in range(self.numberOfTimepoints):
+                self.combinedImageBuffers[..., (timepointNumber + 1) * numberOfContrasts:
+                                               (timepointNumber + 2) * numberOfContrasts] = self.imageBuffersList[
+                    timepointNumber]
 
-        # Retrieve the masked sst and time points
-        self.sstModel.imageBuffers = combinedImageBuffers[..., 0:numberOfContrasts]
-        for timepointNumber in range(self.numberOfTimepoints):
-            self.imageBuffersList[timepointNumber] = combinedImageBuffers[..., (timepointNumber + 1) * numberOfContrasts:
-                                                                          (timepointNumber + 2) * numberOfContrasts]
+            self.combinedImageBuffers, self.sstModel.mask = maskOutBackground(self.combinedImageBuffers,
+                                                                              self.sstModel.modelSpecifications.atlasFileName,
+                                                                              self.sstModel.transform,
+                                                                              self.sstModel.modelSpecifications.maskingProbabilityThreshold,
+                                                                              self.sstModel.modelSpecifications.maskingDistance,
+                                                                              self.probabilisticAtlas,
+                                                                              self.sstModel.voxelSpacing)
+            combinedImageBuffers = logTransform(self.combinedImageBuffers, self.sstModel.mask)
+
+            # Retrieve the masked sst and time points
+            self.sstModel.imageBuffers = combinedImageBuffers[..., 0:numberOfContrasts]
+            for timepointNumber in range(self.numberOfTimepoints):
+                self.imageBuffersList[timepointNumber] = combinedImageBuffers[...,
+                                                         (timepointNumber + 1) * numberOfContrasts:
+                                                         (timepointNumber + 2) * numberOfContrasts]
+                self.masks.append(self.sstModel.mask)
+                self.croppings.append(self.sstModel.cropping)
+                self.voxelSpacings.append(self.sstModel.voxelSpacing)
+                self.transforms.append(self.sstModel.transform)
+
+        else:
+
+            for timepointNumber, imageFileNames in enumerate(self.imageFileNamesList):
+
+                # Compute transformation from population atlas (p) to time point (tp), passing through the template space (s)
+                # The transformation needs to be in vox to vox space as self.imageToImageTransformMatrix
+                # We need to concatenate the following transformations
+                # self.imageToImageTransformMatrix -> population to template space - vox to vox transform
+                # tmp_s.geom.vox2world -> template space - vox to world transform
+                # self.tpToBaseTransforms[timepointNumber].inv() -> template to time point space - world to world transform
+                # tmp_tp.geom.world2vox -> time point space - world to vox transform
+                tmpTp = sf.load_volume(imageFileNames[0])
+                tmpS = sf.load_volume(os.path.join(self.savePath, "base", "template_coregistered.mgz"))
+                pToTpTransform = tmpTp.geom.world2vox @ self.tpToBaseTransforms[timepointNumber].inv() @ tmpS.geom.vox2world @ self.imageToImageTransformMatrix
+
+                imageBuffers, transform, voxelSpacing, cropping = readCroppedImages(imageFileNames, templateFileName, pToTpTransform.matrix)
+
+                #
+                self.imageBuffersList.append(imageBuffers)
+                self.voxelSpacings.append(voxelSpacing)
+                self.transforms.append(transform)
+                self.croppings.append(cropping)
+
+            # Derive mask for sst model
+            imageBuffer, self.sstModel.mask = maskOutBackground(self.sstModel.imageBuffers, self.sstModel.modelSpecifications.atlasFileName,
+                                                                self.sstModel.transform,
+                                                                self.sstModel.modelSpecifications.maskingProbabilityThreshold,
+                                                                self.sstModel.modelSpecifications.maskingDistance,
+                                                                self.probabilisticAtlas,
+                                                                self.sstModel.voxelSpacing)
+            self.sstModel.imageBuffers = logTransform(imageBuffer, self.sstModel.mask)
+
+            # Derive one mask for each time point model
+            for timepointNumber in range(self.numberOfTimepoints):
+                imageBuffer, timepointMask = maskOutBackground(self.imageBuffersList[timepointNumber],
+                                                               self.sstModel.modelSpecifications.atlasFileName,
+                                                               self.transforms[timepointNumber],
+                                                               self.sstModel.modelSpecifications.maskingProbabilityThreshold,
+                                                               self.sstModel.modelSpecifications.maskingDistance,
+                                                               self.probabilisticAtlas,
+                                                               self.voxelSpacings[timepointNumber])
+                imageBuffer = logTransform(imageBuffer, timepointMask)
+                self.imageBuffersList[timepointNumber] = imageBuffer
+                self.masks.append(timepointMask)
 
         # construct timepoint models
         self.constructTimepointModels()
@@ -272,7 +344,7 @@ class SamsegLongitudinal:
                 ax.set_title('sst after bias field correction')
                 for timepointNumber in range(self.numberOfTimepoints):
                     ax = axs.ravel()[2 + timepointNumber]
-                    ax.hist(self.imageBuffersList[timepointNumber][self.sstModel.mask, contrastNumber], bins)
+                    ax.hist(self.imageBuffersList[timepointNumber][self.masks[timepointNumber], contrastNumber], bins)
                     ax.grid()
                     ax.set_title('time point ' + str(timepointNumber))
                 axsList.append(axs)
@@ -331,6 +403,17 @@ class SamsegLongitudinal:
         # For the GMM part, I'm using the *average* number of voxels assigned to the components in each mixture (class) of the
         # SST segmentation, so that all the components in each mixture are well-regularized (and tiny components don't get to do
         # whatever they want)
+        #
+        # Note that we need to take into account the possible resolution difference between SST and each time point.
+        # Here we assume that these time points have similar resolution, otherwise the mean might not be the best choice
+        # Scale latent number of measurements by the voxel spacing ratio between the subject-specific template and the time point mean resolution
+        meanTimePointResolution = 0
+        for t in range(self.numberOfTimepoints):
+            meanTimePointResolution += np.prod(self.timepointModels[t].voxelSpacing)
+        meanTimePointResolution /= self.numberOfTimepoints
+        voxelSpacingRatio = np.prod(self.sstModel.voxelSpacing) / meanTimePointResolution
+        print("Voxel spacing ratio: " + str(voxelSpacingRatio))
+
         K0 = self.sstModel.modelSpecifications.K  # Stiffness population -> latent position
         K1 = self.strengthOfLatentDeformationHyperprior * K0  # Stiffness latent position -> each time point
         sstEstimatedNumberOfVoxelsPerGaussian = np.sum(self.sstModel.optimizationHistory[-1]['posteriorsAtEnd'], axis=0) * \
@@ -348,11 +431,11 @@ class SamsegLongitudinal:
             sstEstimatedNumberOfVoxelsInClass = np.sum(sstEstimatedNumberOfVoxelsPerGaussian[gaussianNumbers])
 
             self.latentMixtureWeightsNumberOfMeasurements[
-                classNumber] = self.strengthOfLatentGMMHyperprior * sstEstimatedNumberOfVoxelsInClass
+                classNumber] = self.strengthOfLatentGMMHyperprior * sstEstimatedNumberOfVoxelsInClass * voxelSpacingRatio
 
             averageSizeOfComponents = sstEstimatedNumberOfVoxelsInClass / numberOfComponents
-            self.latentMeansNumberOfMeasurements[gaussianNumbers] = self.strengthOfLatentGMMHyperprior * averageSizeOfComponents
-            self.latentVariancesNumberOfMeasurements[gaussianNumbers] = self.strengthOfLatentGMMHyperprior * averageSizeOfComponents
+            self.latentMeansNumberOfMeasurements[gaussianNumbers] = self.strengthOfLatentGMMHyperprior * averageSizeOfComponents * voxelSpacingRatio
+            self.latentVariancesNumberOfMeasurements[gaussianNumbers] = self.strengthOfLatentGMMHyperprior * averageSizeOfComponents * voxelSpacingRatio
 
         # Estimating the mode of the latentVariance posterior distribution (which is Wishart) requires a stringent condition
         # on latentVariancesNumberOfMeasurements so that the mode is actually defined
@@ -441,8 +524,8 @@ class SamsegLongitudinal:
                     import matplotlib.pyplot as plt  # avoid importing matplotlib by default
                     plt.ion()
                     self.timepointModels[timepointNumber].biasField.downSampleBasisFunctions([1, 1, 1])
-                    timepointBiasFields = self.timepointModels[timepointNumber].biasField.getBiasFields(self.sstModel.mask)
-                    timepointData = self.imageBuffersList[timepointNumber][self.sstModel.mask, :] - timepointBiasFields[self.sstModel.mask, :]
+                    timepointBiasFields = self.timepointModels[timepointNumber].biasField.getBiasFields(self.masks[timepointNumber])
+                    timepointData = self.imageBuffersList[timepointNumber][self.masks[timepointNumber], :] - timepointBiasFields[self.masks[timepointNumber], :]
                     for contrastNumber in range(self.sstModel.gmm.numberOfContrasts):
                         axs = axsList[contrastNumber]
                         ax = axs.ravel()[2 + timepointNumber]
@@ -469,6 +552,7 @@ class SamsegLongitudinal:
             #
             # The parameter estimation happens in a (potentially) downsampled image grid, so it's import to work in the same space
             # when measuring and updating the latentDeformation
+
             transformUsedForEstimation = gems.KvlTransform(
                 requireNumpyArray(self.sstModel.optimizationHistory[-1]['downSampledTransformMatrix']))
             mesh_collection = gems.KvlMeshCollection()
@@ -483,6 +567,7 @@ class SamsegLongitudinal:
                 timepointPositions.append(
                     self.probabilisticAtlas.mapPositionsFromTemplateToSubjectSpace(positionInTemplateSpace, transformUsedForEstimation))
             mesh_collection.set_positions(referencePosition, timepointPositions)
+
 
             # Read mesh in sst warp
             mesh = self.probabilisticAtlas.getMesh(latentAtlasFileName, transformUsedForEstimation)
@@ -733,16 +818,21 @@ class SamsegLongitudinal:
 
             # Read in the various time point images, and compute the average
             numberOfTimepoints = len(contrastImageFileNames)
-            image0 = gems.KvlImage(contrastImageFileNames[0])
-            imageBuffer = image0.getImageBuffer().copy()
+            image0 = sf.load_volume(contrastImageFileNames[0])
+            imageBuffer = image0.transform(affine=self.tpToBaseTransforms[0])
+            # Make sure that we are averaging only non zero voxels
+            count = np.zeros(imageBuffer.shape)
+            count[imageBuffer > 0] += 1
             for timepointNumber in range(1, numberOfTimepoints):
-                imageBuffer += gems.KvlImage(contrastImageFileNames[timepointNumber]).getImageBuffer()
-            imageBuffer /= numberOfTimepoints
+                tmp = sf.load_volume(contrastImageFileNames[timepointNumber]).transform(affine=self.tpToBaseTransforms[timepointNumber]).data
+                imageBuffer += tmp
+                count[tmp > 0] += 1
+            # Make sure that we are not dividing by zero for, e.g., background voxels
+            imageBuffer[count > 0] /= count[count > 0]
 
-            # Create an ITK image and write to disk
-            sst = gems.KvlImage(requireNumpyArray(imageBuffer))
+            # Write image to disk
             sstFilename = os.path.join(sstDir, 'mode%02d_average.mgz' % (contrastNumber + 1))
-            sst.write(sstFilename, image0.transform_matrix)
+            imageBuffer.save(sstFilename)
 
             #
             sstFileNames.append(sstFilename)
@@ -790,8 +880,9 @@ class SamsegLongitudinal:
                 pallidumAsWM=self.pallidumAsWM,
                 savePosteriors=self.savePosteriors
             ))
-            self.timepointModels[timepointNumber].mask = self.sstModel.mask
+
+            self.timepointModels[timepointNumber].mask = self.masks[timepointNumber]
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
-            self.timepointModels[timepointNumber].voxelSpacing = self.sstModel.voxelSpacing
-            self.timepointModels[timepointNumber].transform = self.sstModel.transform
-            self.timepointModels[timepointNumber].cropping = self.sstModel.cropping
+            self.timepointModels[timepointNumber].voxelSpacing = self.voxelSpacings[timepointNumber]
+            self.timepointModels[timepointNumber].transform = self.transforms[timepointNumber]
+            self.timepointModels[timepointNumber].cropping = self.croppings[timepointNumber]
