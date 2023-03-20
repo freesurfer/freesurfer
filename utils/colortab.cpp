@@ -1408,7 +1408,7 @@ int CTABentryNameToIndex(const char *EntryName, COLOR_TABLE *ct)
     cte = ct->entries[i];
     // cte might be NULL, so this check is essential.
     if (cte != NULL) {
-      if (!strcmp(cte->name, EntryName)) return (i);
+      if (!stricmp(cte->name, EntryName)) return (i);
     }
   }
   return (-1);  // error
