@@ -46,8 +46,9 @@ MRISurfOverlay::MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *pove
 #endif
   }
 
-  // Can't handle multi overlay in one input file
-  std::vector<int> shape{__nVertices, 1, 1, __noverlay};
+  // handle multi overlay in one input file
+  __nframes = __getFrameCount();
+  std::vector<int> shape{__nVertices, 1, 1, __nframes};
   __overlaymri = new MRI(shape, MRI_FLOAT);
   __currFrame = 0;
 } 
@@ -125,7 +126,10 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
   }
 
   // check if we support the file format
-  int overlayFormat = getFileFormat(__overlayInfo[nthOverlay].__foverlay);
+  int overlayFormat = __overlayInfo[__currFrame].__format;
+  if (overlayFormat == MRI_VOLUME_TYPE_UNKNOWN)
+    overlayFormat = getFileFormat(__overlayInfo[nthOverlay].__foverlay);
+
   if (overlayFormat == MRI_VOLUME_TYPE_UNKNOWN)
   {
     printf("ERROR MRISurfOverlay::read() - unsupported overlay input type\n");
@@ -153,25 +157,24 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
       return ERROR_BADFILE;
     }
 
+    __overlayInfo[__currOverlay].__numframe = 1;
     if (tempMRI->nframes > 1)
     {
-      printf("[ERROR] MRISurfOverlay::readOneOverlay() - %s has multiple frames = %d.\n", __overlayInfo[nthOverlay].__foverlay, tempMRI->nframes);
-      return ERROR_BADFILE;
-      // Can't handle it now, just return error
-      //__overlayInfo[__currOverlay].__numframe = tempMRI->nframes;
-      //printf("[INFO] MRISurfOverlay::readOneOverlay() - Each frame will be treated as one overlay.\n");
-      //__noverlay = tempMRI->nframes;
+      printf("[INFO] MRISurfOverlay::readOneOverlay() - %s has multiple frames = %d.\n", __overlayInfo[nthOverlay].__foverlay, tempMRI->nframes);
+
+      printf("[INFO] MRISurfOverlay::readOneOverlay() - Each frame will be treated as one overlay.\n");
+      __overlayInfo[__currOverlay].__numframe = tempMRI->nframes;
     }
 
-    __overlayInfo[__currOverlay].__numframe = 1;
-
-    // copy the data to __currFrame
-    for (int f = 0; f < __overlaymri->nframes; f++) {
+    // copy the data to MRI frames
+    int stframe = __overlayInfo[__currOverlay].__stframe;
+    int endframe = __overlayInfo[__currOverlay].__stframe + __overlayInfo[__currOverlay].__numframe;
+    for (int f = stframe; f < endframe; f++) {
       for (int s = 0; s < __overlaymri->depth; s++) {
         for (int r = 0; r < __overlaymri->height; r++) {
           for (int c = 0; c < __overlaymri->width; c++) {
-            float fval = MRIgetVoxVal(tempMRI, c, r, s, 0);
-            MRIsetVoxVal(__overlaymri, c, r, s, __currFrame, fval);
+            float fval = MRIgetVoxVal(tempMRI, c, r, s, f-stframe);
+            MRIsetVoxVal(__overlaymri, c, r, s, f, fval);
 	  }
         }
       }
@@ -229,7 +232,7 @@ int MRISurfOverlay::__readOldCurvature(const char *fname)
   FILE *fp = fopen(fname, "r");
   if (fp == NULL) 
   {
-    printf("ERROR MRISurfOverlay::__readOldCurvature(): could not open %s", fname);
+    printf("ERROR MRISurfOverlay::__readOldCurvature(): could not open %s\n", fname);
     return ERROR_BADFILE;
   }
 
@@ -412,6 +415,15 @@ int MRISurfOverlay::__readCurvatureAsMRI(const char *curvfile, int read_volume)
 int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
 {
   int error = 0;
+
+#ifdef __MRISURFOVERLAY_DEBUG
+  // debug
+  char dbgvol[1024] = {'\0'};  //"/space/papancha/2/users/yh887/fs_test/mris_convert-gifti/dbgvol.mgz";
+  sprintf(dbgvol, "%s.dbg.mgz", fout);
+  printf("[DEBUG] write debug __overlaymri volume as %s\n", dbgvol);
+  mghWrite(__overlaymri, dbgvol, -1);
+#endif
+
 
   if (!mergegifti && __noverlay > 1)
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - more than one overlay to output"));

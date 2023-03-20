@@ -110,6 +110,7 @@ private:
   int __currOverlay;
   int __currFrame;
 
+  int __nframes;
   MRI  *__overlaymri;    // overlay data in MRI representation
 };
 

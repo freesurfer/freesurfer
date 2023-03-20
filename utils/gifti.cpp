@@ -2231,10 +2231,13 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
     int giftiintent = poverlays->getGIFTIIntent(n);
     int stFrame = poverlays->getFirstFrameNo(n);
     int endFrame = poverlays->getNumFrames(n);
-    const char *datatype = poverlays->getDataType(n);
-    int error = MRISwriteGIFTIIntent(mris, overlaymri, stFrame, endFrame, image, giftiintent, out_fname, poverlays->getOverlayFilename(n), datatype);
-    if (error != NO_ERROR)
-      return error;
+    for (int f = stFrame; f < endFrame; f++)
+    {
+      const char *datatype = poverlays->getDataType(n);
+      int error = MRISwriteGIFTIIntent(mris, overlaymri, f, f+1, image, giftiintent, out_fname, poverlays->getOverlayFilename(n), datatype);
+      if (error != NO_ERROR)
+        return error;
+    }
   }
 
   // make sure version is recoded before validation
