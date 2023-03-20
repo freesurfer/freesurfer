@@ -275,13 +275,13 @@
 265 Left-Eyeball                          60  60  60  0
 266 Right-Eyeball                         60  60  60  0
 
-270 ctl-lh-infragranular                  205 70  78  0
-271 ctl-lh-layer1                         210 80  78  0
-272 ctl-lh-layer2                         215 90  78  0
-273 ctl-lh-layer3                         220 100  78  0
-274 ctl-lh-layer4                         225 110  78  0
-275 ctl-lh-layer5                         230 120  78  0
-276 ctl-lh-layer6                         235 135  78  0
+270 ctx-lh-infragranular                  205 70  78  0
+271 ctx-lh-layer1                         210 80  78  0
+272 ctx-lh-layer2                         215 90  78  0
+273 ctx-lh-layer3                         220 100  78  0
+274 ctx-lh-layer4                         225 110  78  0
+275 ctx-lh-layer5                         230 120  78  0
+276 ctx-lh-layer6                         235 135  78  0
 277 ctx-lh-supragranular                  240 140  78  0
 
 # lymph node and vascular labels
@@ -315,13 +315,13 @@
 358 Pos-Lymph                               20  130 180 0
 359 Neg-Lymph                               20  180 130 0
 
-370 ctl-rh-infragranular                  205 70  130  0
-371 ctl-rh-layer1                         210 80  130  0
-372 ctl-rh-layer2                         215 90  130  0
-373 ctl-rh-layer3                         220 100  130  0
-374 ctl-rh-layer4                         225 110  130  0
-375 ctl-rh-layer5                         230 120  130  0
-376 ctl-rh-layer6                         235 135  130  0
+370 ctx-rh-infragranular                  205 70  130  0
+371 ctx-rh-layer1                         210 80  130  0
+372 ctx-rh-layer2                         215 90  130  0
+373 ctx-rh-layer3                         220 100  130  0
+374 ctx-rh-layer4                         225 110  130  0
+375 ctx-rh-layer5                         230 120  130  0
+376 ctx-rh-layer6                         235 135  130  0
 377 ctx-rh-supragranular                  240 140  130  0
 
 400 V1                                      206 62  78  0
