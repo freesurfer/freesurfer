@@ -121,14 +121,22 @@
       <explanation>disables WMSA labels (hypo/hyper-intensities), selects second most probable label for each WMSA labelled voxel instead</explanation>
       <argument>-vent-fix niters nmax topo</argument>
       <explanation>Fix underlabeled ventricle (eg, -1 7000 1)</explanation>
+
       <argument>-insert-wm-bet-putctx topo</argument>
       <explanation>Insert WM between putamen and cortex (replacing putamen)</explanation>
       <argument>-sa-insert-wm-bet-putctx inputseg topo outputseg</argument>
       <explanation>Stand-alone operation</explanation>
+
       <argument>-insert-from-seg segvol index1 index2 ...</argument>
       <explanation>Insert the given indices from segvol into the output seg</explanation>
       <argument>-sa-insert-from-seg segvol index1 index2 ... inseg outseg</argument>
       <explanation>Stand-alone insert the given indices from segvol into the input seg and save as outseg</explanation>
+
+      <argument>-cblum-from-seg segvol </argument>
+      <explanation>Same as insert but sets indices to 7,8,46,47 and sets stray CSF (24) voxels to 0</explanation>
+      <argument>-sa-cblum-from-seg segvol inseg outseg</argument>
+      <explanation>Stand-alone version of -cblum-from-seg</explanation>
+
       <argument>-threads or -nthreads NTHREADS</argument>
       <explanation>Set the number of open mp threads</explanation>
     </optional-flagged>

@@ -248,8 +248,8 @@ char *PreGibbsFile=NULL;
 int n_omp_threads;
 MRI *InsertFromSeg=NULL;
 std::vector<int> InsertFromSegIndices;
-int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> InsertFromSegIndices);
-
+int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> InsertFromSegIndices, int ZeroInsertIndex);
+int InsertCblumFromSeg = -1;
 int main(int argc, char *argv[])
 {
   char         **av ;
@@ -1418,7 +1418,7 @@ int main(int argc, char *argv[])
 
   if(InsertFromSeg){
     printf("Inserting from seg\n");
-    MRIinsertFromSeg(mri_labeled, InsertFromSeg, InsertFromSegIndices);
+    MRIinsertFromSeg(mri_labeled, InsertFromSeg, InsertFromSegIndices, InsertCblumFromSeg);
   }
 
   printf("writing labeled volume to %s\n", out_fname) ;
@@ -1585,12 +1585,47 @@ get_option(int argc, char *argv[])
       InputSeg = MRIread(argv[k]);
       if(!InputSeg) exit(1);
       printf("Inserting from seg\n");
-      MRIinsertFromSeg(InputSeg, InsertFromSeg, InsertFromSegIndices);
+      MRIinsertFromSeg(InputSeg, InsertFromSeg, InsertFromSegIndices,-1);
       int err = MRIwrite(InputSeg,argv[k+1]);
       exit(err);
     }
     printf("\n") ;
   }
+  else if(!stricmp(option, "cblum-from-seg") || !stricmp(option, "sa-cblum-from-seg"))
+  {
+    // same as insert-from-seg, but uses cblum cortex and wm and also zeros voxels
+    // that are cblum in the input but CSF (24) in the output. This is a hack to 
+    // preventa bunch of random CSF voxels in the output
+    // -cblum-from-seg    InserFromSeg.mgz 
+    // -sa-cblum-from-seg InserFromSeg.mgz InputSeg OutputSeg
+    InsertCblumFromSeg = 24;
+    InsertFromSeg = MRIread(argv[2]);
+    if(!InsertFromSeg) exit(1);
+    printf("Inserting cblum from seg %s  ",argv[2]);
+    InsertFromSegIndices.push_back(7);
+    InsertFromSegIndices.push_back(8);
+    InsertFromSegIndices.push_back(46);
+    InsertFromSegIndices.push_back(47);
+    nargs = 1;
+    MRI *InputSeg=NULL;
+    if(!stricmp(option, "sa-cblum-from-seg")){
+      if(argv[2]==NULL || argv[3]==NULL){
+	printf("ERROR: -sa-cblum-from-seg needs an input and output seg\n");
+	exit(1);
+      }
+      InputSeg = MRIread(argv[3]);
+      if(!InputSeg) exit(1);
+      printf("Inserting from seg\n");
+      MRIinsertFromSeg(InputSeg, InsertFromSeg, InsertFromSegIndices,24);
+      printf("Writing to %s\n",argv[4]);
+      int err = MRIwrite(InputSeg,argv[4]);
+      printf("mi_ca_label done\n") ;
+      exit(err);
+    }
+    printf("\n") ;
+  }
+
+
   else if (!stricmp(option, "insert-wm-bet-putctx")){
     sscanf(argv[2],"%d",&insert_wm_bet_putctx_topo);
     nargs = 1 ;
@@ -5429,7 +5464,7 @@ MRI *insert_wm_bet_putctx(MRI *seg, int topo, const char *psfile, MRI *out)
 }
 
 
-int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> InsertFromSegIndices)
+int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> InsertFromSegIndices, int ZeroInsertIndex)
 {
   int nchanged=0;
   for(int c=0; c < mri_labeled->width; c++){
@@ -5463,8 +5498,13 @@ int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> Inse
 	// i1 is cblum wm and i2 is brainstem, then i1 will become
 	// brainstem eventhough brainstem is not in the list. This is
 	// probably ok for the main application (replacing aseg cblum
-	// with synthseg cblum), but I worry a little bit about causing
-	// some artifacts near the boundaries. 
+	// with synthseg cblum), but I worry a little bit about
+	// causing some artifacts near the boundaries. zeros voxels
+	// that are cblum in the input but CSF (24) in the output. The
+	// ZeroInsertIndex is a hack; when applying this to cblum,
+	// setting ZeroInsertIndex=24 will prevent a bunch of random
+	// CSF (24) voxels in the output
+	if(i2 == ZeroInsertIndex) i2 = 0;
 	MRIsetVoxVal(mri_labeled,c,r,s,0,i2);
 	nchanged++;
 	
