@@ -29,15 +29,13 @@
 #include <QPixmap>
 #include <QDebug>
 #include <QButtonGroup>
+#include "DialogSaveAllVolumes.h"
 
 #define ROTATION_INCREMENT    0.5
 #define TRANSLATION_INCREMENT 0.5
 #define SCALE_INCREMENT       0.05
 
-
-
 #include "mri.h"
-
 
 DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   QDialog(parent),
@@ -106,6 +104,8 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
   connect(ui->pushButtonSaveAndReload, SIGNAL(clicked()),
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAsAndReload()));
+  connect(ui->pushButtonSaveAllVolumes, SIGNAL(clicked(bool)),
+          this, SLOT(OnSaveAll()));
 
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
       ->GetSupplementLayer("Landmarks");
@@ -186,6 +186,7 @@ void DialogTransformVolume::UpdateUI( int scope )
     ui->pushButtonRestore->setEnabled( layer->IsTransformed() );
     ui->pushButtonSaveReg->setEnabled( layer->IsTransformed() );
     ui->pushButtonSaveVolumeAs->setEnabled( layer->IsTransformed() );
+    ui->pushButtonSaveAllVolumes->setEnabled(layer->IsTransformed());
     double angle[3];
     layer->GetRotate(angle);
     ui->groupBoxAxis->setDisabled(angle[0] != 0 || angle[1] != 0 || angle[2] != 0);
@@ -881,4 +882,10 @@ void DialogTransformVolume::OnCheckBoxApplyToAll(bool bAll)
     if (sender() == ui->checkBoxApplyToAll)
       MainWindow::GetMainWindow()->RequestRedraw();
   }
+}
+
+void DialogTransformVolume::OnSaveAll()
+{
+  DialogSaveAllVolumes dlg(this);
+  dlg.exec();
 }

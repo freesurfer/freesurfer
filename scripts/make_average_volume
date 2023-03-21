@@ -441,6 +441,7 @@ while( $#argv != 0 )
     case "--lhrh":
     case "--no-ribbon":
     case "--no-annot":
+    case "--no-annot-template":
     case "--no-cortex-label":
     case "--no-surf2surf":
       if ( $getting_subjects ) then
@@ -457,6 +458,7 @@ while( $#argv != 0 )
     case "--ico":
     case "--annot"
     case "--meas"
+    case "--rca-threads":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

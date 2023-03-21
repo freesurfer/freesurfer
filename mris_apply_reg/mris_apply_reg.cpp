@@ -391,7 +391,7 @@ static int parse_commandline(int argc, char **argv) {
       The actual coordinates will come from TMP_VERTEX v->{tx,ty,tz}, so make sure those are set */
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--lta")) {
+    else if(!strcasecmp(option, "--lta") || !strcasecmp(option, "--lta-rot")) {
       /*Automatically determines which direction the LTA goes by looking
 	at the volume geometries of the LTA and the surface.*/
       if(nargc < 3) CMDargNErr(option,3);
@@ -401,6 +401,10 @@ static int parse_commandline(int argc, char **argv) {
       printf("Reading in %s\n",pargv[1]);
       LTA *lta = LTAread(pargv[1]);
       if(lta==NULL) exit(1);
+      if(!strcasecmp(option, "--lta-rot")){
+	printf("Extracting rotational components\n");
+	LTAmat2RotMat(lta);
+      }
       int err = MRISltaMultiply(ltasurf, lta);
       if(err) exit(1);
       if (center_surface)

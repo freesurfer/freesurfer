@@ -89,7 +89,7 @@ public:
 
   ~QtColorPicker();
 
-  void insertColor(const QColor &color, const QString &text = QString::null, int index = -1);
+  void insertColor(const QColor &color, const QString &text = "", int index = -1);
 
   QColor currentColor() const;
 

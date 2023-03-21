@@ -71,6 +71,7 @@
 #include "SurfacePath.h"
 #include <QSet>
 #include "vtkBoundingBox.h"
+#include "MigrationDefs.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -290,7 +291,7 @@ bool LayerSurface::SaveSurfaceAsSTL(const QString &fn)
   vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
   tr->DeepCopy(m_surfaceSource->GetSurfaceToRasTransform());
   vtkSmartPointer<vtkTransformPolyDataFilter> filter =
-        vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+      vtkSmartPointer<vtkTransformPolyDataFilter>::New();
   filter->SetTransform( tr );
 #if VTK_MAJOR_VERSION > 5
   filter->SetInputData( m_surfaceSource->GetPolyData() );
@@ -416,8 +417,8 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   GetProperty()->RebuildCurvatureLUT();
   UpdateColorMap();
   emit SurfaceCurvatureLoaded();
-//  emit ActorUpdated();
-//  emit Modified();
+  //  emit ActorUpdated();
+  //  emit Modified();
   GetProperty()->SetZOrderOverlay(GetProperty()->GetZOrderOverlay()+1);
   GetProperty()->SetZOrderOverlay(GetProperty()->GetZOrderOverlay()-1);
 
@@ -801,8 +802,8 @@ void LayerSurface::InitializeActors()
     //
     // Mappers for the lines.
     //
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputConnection( m_cutter[i]->GetOutputPort() );
+    vtkSmartPointer<vtkPolyDataMapper> mapper1 = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper1->SetInputConnection( m_cutter[i]->GetOutputPort() );
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper2->SetInputConnection( m_cutter[i]->GetOutputPort() );
     //
@@ -814,7 +815,7 @@ void LayerSurface::InitializeActors()
 #if VTK_MAJOR_VERSION > 7
     ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
-    m_sliceActor2D[i]->SetMapper( mapper );
+    m_sliceActor2D[i]->SetMapper( mapper1 );
     //  m_sliceActor2D[i]->SetBackfaceProperty( m_sliceActor2D[i]->MakeProperty() );
     //  m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
     m_sliceActor2D[i]->SetProperty( m_sliceActor2D[i]->MakeProperty() );
@@ -833,7 +834,7 @@ void LayerSurface::InitializeActors()
 #if VTK_MAJOR_VERSION > 5
     mapper3->SetInputData(m_vertexPoly2D[i]);
 #else
-mapper3->SetInput(m_vertexPoly2D[i]);
+    mapper3->SetInput(m_vertexPoly2D[i]);
 #endif 
 
     mapper3->ScalarVisibilityOff();
@@ -1077,31 +1078,31 @@ void LayerSurface::DoSlicePositionChanged( int nPlane, bool bUpdatePosOnly )
   dLen = dMinVS/5;
   if (GetProperty()->GetShowVertices())
   {
-      vtkPoints* all_pts = m_surfaceSource->GetVertexPolyData()->GetPoints();
-      vtkCellArray* all_verts = m_surfaceSource->GetVertexPolyData()->GetVerts();
-      vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
-      double pt[3];
-      vtkIdType npt;
-      vtkIdType* pn;
-      all_verts->InitTraversal();
-      while (all_verts->GetNextCell(npt, pn))
+    vtkPoints* all_pts = m_surfaceSource->GetVertexPolyData()->GetPoints();
+    vtkCellArray* all_verts = m_surfaceSource->GetVertexPolyData()->GetVerts();
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    double pt[3];
+    vtkIdType npt;
+    vtkIdType* pn;
+    all_verts->InitTraversal();
+    while (all_verts->GetNextCell(npt, pn))
+    {
+      all_pts->GetPoint(pn[0], pt);
+      if (qAbs(m_dSlicePosition[nPlane]-pt[nPlane]) < dLen)
       {
-        all_pts->GetPoint(pn[0], pt);
-        if (qAbs(m_dSlicePosition[nPlane]-pt[nPlane]) < dLen)
-        {
-            pts->InsertNextPoint(pt);
-        }
+        pts->InsertNextPoint(pt);
       }
+    }
 
-      vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
-      verts->Allocate( pts->GetNumberOfPoints() );
-      for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
-      {
-        vtkIdType n = i;
-        verts->InsertNextCell( 1, &n );
-      }
-      m_vertexPoly2D[nPlane]->SetPoints(pts);
-      m_vertexPoly2D[nPlane]->SetVerts(verts);
+    vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+    verts->Allocate( pts->GetNumberOfPoints() );
+    for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
+    {
+      vtkIdType n = i;
+      verts->InsertNextCell( 1, &n );
+    }
+    m_vertexPoly2D[nPlane]->SetPoints(pts);
+    m_vertexPoly2D[nPlane]->SetVerts(verts);
   }
 
   // update mapper so the polydata is current
@@ -1574,14 +1575,8 @@ void LayerSurface::UpdateCorrelationOverlay()
 void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
 {
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
-  vtkPolyDataMapper* wf_mapper = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
-  if (!mapper->GetInput() || !wf_mapper->GetInput())
-  {
-    mapper->Update();
-    wf_mapper->Update();
-  }
-  vtkPolyData* polydata = mapper->GetInput();
-  vtkPolyData* polydataWireframe = wf_mapper->GetInput();
+  vtkPolyData* polydata = m_surfaceSource->GetPolyData();
+  vtkPolyData* polydataWireframe = m_surfaceSource->GetWireframePolyData();
   if ( (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0) ||
        (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0))
   {
@@ -1897,7 +1892,7 @@ void LayerSurface::UpdateVertexRender()
     m_vertexActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize()*ratio );
     m_vertexActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVertexColor() );
     if (GetProperty()->GetShowVertices())
-        OnSlicePositionChanged(i);
+      OnSlicePositionChanged(i);
   }
   emit ActorUpdated();
 }
@@ -2363,9 +2358,9 @@ bool LayerSurface::LoadRGBFromFile(const QString &filename)
     while (!file.atEnd())
     {
       QString line = file.readLine();
-      QStringList list = line.split(",", QString::SkipEmptyParts);
+      QStringList list = line.split(",", MD_SkipEmptyParts);
       if (list.size() < 3)
-        list = line.split(" ", QString::SkipEmptyParts);
+        list = line.split(" ", MD_SkipEmptyParts);
       if (list.size() == 3)
       {
         for (int i = 0; i < 3; i++)
@@ -2658,10 +2653,10 @@ SurfacePath* LayerSurface::GetActivePath()
 
 SurfacePath* LayerSurface::GetMadePath(int nPath)
 {
-    if (nPath >= 0 && nPath < m_paths.size() && m_paths[nPath]->IsPathMade())
-        return m_paths[nPath];
-    else
-        return NULL;
+  if (nPath >= 0 && nPath < m_paths.size() && m_paths[nPath]->IsPathMade())
+    return m_paths[nPath];
+  else
+    return NULL;
 }
 
 void LayerSurface::DeleteActivePath()

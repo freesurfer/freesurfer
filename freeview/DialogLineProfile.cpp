@@ -278,8 +278,8 @@ void DialogLineProfile::UpdatePointSetList()
   ui->comboBoxIsoLine2->clear();
   foreach (Layer* layer, layers)
   {
-    ui->comboBoxIsoLine1->addItem(layer->GetName(), qVariantFromValue<QObject*>(layer));
-    ui->comboBoxIsoLine2->addItem(layer->GetName(), qVariantFromValue<QObject*>(layer));
+    ui->comboBoxIsoLine1->addItem(layer->GetName(), QVariant::fromValue<QObject*>(layer));
+    ui->comboBoxIsoLine2->addItem(layer->GetName(), QVariant::fromValue<QObject*>(layer));
   }
 
   if (layers.contains(layer1))

@@ -13102,11 +13102,28 @@ void mrisFindMiddleOfGray(MRIS *mris) {
 
 // Cloning should be the union of a surface and an empty surface
 // but that is NYI
-//
+// The funtion is only used in mris_convert.
 MRIS* MRISunion(MRIS const * mris, MRIS const * mris2) {
+    // check if both surface volgeom are the same
+    if (!vg_isEqual(&mris->vg, &mris2->vg))
+    {
+      printf("ERROR: MRISunion() - VolGeom of both surface are not the same!!!\n");
+      return NULL;
+    }
+
+    // check if both surfaces are in the same space
+    if (mris->useRealRAS != mris2->useRealRAS)
+    {
+      printf("ERROR:  MRISunion() - input surfaces are not in the same space!!!\n");
+      return NULL;
+    }
+
     int vno,vno2,vno3;
     MRIS * const mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
                                    mris->nfaces+mris2->nfaces);
+
+    mris3->useRealRAS = mris->useRealRAS;
+
     copyVolGeom(&mris->vg,&mris3->vg);
     for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
     {

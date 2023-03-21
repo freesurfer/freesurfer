@@ -137,7 +137,7 @@ void PanelConnectomeMatrix::UpdateToLabelVisibility()
         break;
       }
     }
-    ui->treeWidgetTo->setItemHidden(ui->treeWidgetTo->topLevelItem(i),!bConnected);
+    ui->treeWidgetTo->topLevelItem(i)->setHidden(!bConnected);
   }
 }
 

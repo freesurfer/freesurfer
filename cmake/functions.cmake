@@ -120,7 +120,8 @@ function(mac_deploy_qt)
   # run the qt deployment script
   install(CODE "
     message(STATUS \"Deploying ${APP_BUNDLE}\")
-    execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${Qt5_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
+    message(STATUS \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${MAC_QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\")
+    execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${MAC_QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
     endif()"

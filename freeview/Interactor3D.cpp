@@ -60,7 +60,7 @@ bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
 
   view->CancelUpdateMouseRASPosition();
 
-  if ( event->button() == Qt::MidButton && event->modifiers() & CONTROL_MODIFIER )
+  if ( event->button() == Qt::MiddleButton && event->modifiers() & CONTROL_MODIFIER )
   {
     m_bWindowLevel = true;
   }
@@ -176,7 +176,7 @@ bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   }
   else
   {
-    if ( event->buttons() & Qt::MidButton ||
+    if ( event->buttons() & Qt::MiddleButton ||
          event->buttons() & Qt::RightButton ||
          event->buttons() & Qt::LeftButton )
     {

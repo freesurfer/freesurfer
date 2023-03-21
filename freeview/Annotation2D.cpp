@@ -180,42 +180,42 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
         slicePos[0], pos[0], pos[1] );
     if ( pos[0] >= 0 )
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("A %.2f", pos[0]).toLatin1().constData() );
+          ( strg.asprintf("A %.2f", pos[0]).toLatin1().constData() );
     else
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("P %.2f", -pos[0]).toLatin1().constData() );
+          ( strg.asprintf("P %.2f", -pos[0]).toLatin1().constData() );
 
     if ( pos[1] >= 0 )
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("S %.2f", pos[1]).toLatin1().constData() );
+          ( strg.asprintf("S %.2f", pos[1]).toLatin1().constData() );
     else
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[1]).toLatin1().constData() );
+          ( strg.asprintf("I  %.2f", -pos[1]).toLatin1().constData() );
 
     mri->RemapPositionToRealRAS( tpos, pos[2], pos[3],
         slicePos[0], pos[2], pos[3] );
     if ( pos[2] >= 0 )
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("A %.2f", pos[2]).toLatin1().constData() );
+          ( strg.asprintf("A %.2f", pos[2]).toLatin1().constData() );
     else
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("P %.2f", -pos[2]).toLatin1().constData() );
+          ( strg.asprintf("P %.2f", -pos[2]).toLatin1().constData() );
 
     if ( pos[3] >= 0 )
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("S %.2f", pos[3]).toLatin1().constData() );
+          ( strg.asprintf("S %.2f", pos[3]).toLatin1().constData() );
     else
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[3]).toLatin1().constData() );
+          ( strg.asprintf("I  %.2f", -pos[3]).toLatin1().constData() );
 
     mri->RemapPositionToRealRAS( tpos, centPos[1], centPos[2],
         slicePos[0], centPos[1], centPos[2] );
     if ( slicePos[0] >= 0 )
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("R %.2f", slicePos[0]).toLatin1().constData() );
+          ( strg.asprintf("R %.2f", slicePos[0]).toLatin1().constData() );
     else
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("L %.2f", -slicePos[0]).toLatin1().constData() );
+          ( strg.asprintf("L %.2f", -slicePos[0]).toLatin1().constData() );
 
     break;
   case 1:
@@ -231,43 +231,43 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
         slicePos[1], pos[1] );
     if ( pos[0] >= 0 )
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("R %.2f", pos[0]).toLatin1().constData() );
+          ( strg.asprintf("R %.2f", pos[0]).toLatin1().constData() );
     else
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("L %.2f", -pos[0]).toLatin1().constData() );
+          ( strg.asprintf("L %.2f", -pos[0]).toLatin1().constData() );
 
     if ( pos[1] >= 0 )
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("S %.2f", pos[1]).toLatin1().constData() );
+          ( strg.asprintf("S %.2f", pos[1]).toLatin1().constData() );
     else
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[1]).toLatin1().constData() );
+          ( strg.asprintf("I  %.2f", -pos[1]).toLatin1().constData() );
 
     mri->RemapPositionToRealRAS( pos[2], tpos, pos[3], pos[2],
         slicePos[1], pos[3] );
 
     if ( pos[2] >= 0 )
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("R %.2f", pos[2]).toLatin1().constData() );
+          ( strg.asprintf("R %.2f", pos[2]).toLatin1().constData() );
     else
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("L %.2f", -pos[2]).toLatin1().constData() );
+          ( strg.asprintf("L %.2f", -pos[2]).toLatin1().constData() );
 
     if ( pos[3] >= 0 )
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("S %.2f", pos[3]).toLatin1().constData() );
+          ( strg.asprintf("S %.2f", pos[3]).toLatin1().constData() );
     else
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[3]).toLatin1().constData() );
+          ( strg.asprintf("I  %.2f", -pos[3]).toLatin1().constData() );
 
     mri->RemapPositionToRealRAS( centPos[0], tpos, centPos[2], centPos[0],
         slicePos[1], centPos[2] );
     if ( slicePos[1] >= 0 )
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("A %.2f", slicePos[1]).toLatin1().constData() );
+          ( strg.asprintf("A %.2f", slicePos[1]).toLatin1().constData() );
     else
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("P %.2f", -slicePos[1]).toLatin1().constData() );
+          ( strg.asprintf("P %.2f", -slicePos[1]).toLatin1().constData() );
 
     break;
   case 2:
@@ -283,43 +283,43 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 
     if ( pos[0] >= 0 )
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("R %.2f", pos[0]).toLatin1().constData() );
+          ( strg.asprintf("R %.2f", pos[0]).toLatin1().constData() );
     else
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("L %.2f", -pos[0]).toLatin1().constData() );
+          ( strg.asprintf("L %.2f", -pos[0]).toLatin1().constData() );
 
     if ( pos[1] >= 0 )
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("A %.2f", pos[1]).toLatin1().constData() );
+          ( strg.asprintf("A %.2f", pos[1]).toLatin1().constData() );
     else
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("P %.2f", -pos[1]).toLatin1().constData() );
+          ( strg.asprintf("P %.2f", -pos[1]).toLatin1().constData() );
 
     mri->RemapPositionToRealRAS( pos[2], pos[3], tpos,
         pos[2], pos[3], slicePos[2] );
 
     if ( pos[2] >= 0 )
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("R %.2f", pos[2]).toLatin1().constData() );
+          ( strg.asprintf("R %.2f", pos[2]).toLatin1().constData() );
     else
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("L %.2f", -pos[2]).toLatin1().constData() );
+          ( strg.asprintf("L %.2f", -pos[2]).toLatin1().constData() );
 
     if ( pos[3] >= 0 )
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("A %.2f", pos[3]).toLatin1().constData() );
+          ( strg.asprintf("A %.2f", pos[3]).toLatin1().constData() );
     else
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("P %.2f", -pos[3]).toLatin1().constData() );
+          ( strg.asprintf("P %.2f", -pos[3]).toLatin1().constData() );
 
     mri->RemapPositionToRealRAS( centPos[0], centPos[1], tpos,
         centPos[0], centPos[1], slicePos[2] );
     if ( slicePos[2] >= 0 )
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("S %.2f", slicePos[2]).toLatin1().constData() );
+          ( strg.asprintf("S %.2f", slicePos[2]).toLatin1().constData() );
     else
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("I  %.2f", -slicePos[2]).toLatin1().constData() );
+          ( strg.asprintf("I  %.2f", -slicePos[2]).toLatin1().constData() );
 
     break;
   }

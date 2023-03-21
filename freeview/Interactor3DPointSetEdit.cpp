@@ -39,6 +39,7 @@ bool Interactor3DPointSetEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView
 bool Interactor3DPointSetEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
+  MainWindow* mwnd = MainWindow::GetMainWindow();
   if (m_bEditAttempted && qAbs(event->x() - this->m_nPressedPosX) < 2
       && qAbs(event->y() - this->m_nPressedPosY) < 2)
   {
@@ -50,24 +51,40 @@ bool Interactor3DPointSetEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderVi
       return false;
     }
 
-    if (surf && wp)
+    if (wp)
     {
       if ( !(event->modifiers() & Qt::ShiftModifier) )
       {
-        int nvo = -1;
-        nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), surf);
-        if (nvo >= 0)
+        if (!mwnd->GetVisibleLayers("Surface").isEmpty())
         {
-          wp->SaveForUndo();
-          double ras[3];
-          surf->GetTargetAtVertex(nvo, ras, surf->IsInflated()?FSSurface::SurfaceWhite:-1);
-          int nIndex = wp->FindPoint( ras );
-          if ( nIndex < 0 )
+          int nvo = -1;
+          nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), surf);
+          if (nvo >= 0)
           {
-            nIndex = wp->AddPoint( ras, 1, true );
-            return true;
+            wp->SaveForUndo();
+            double ras[3];
+            surf->GetTargetAtVertex(nvo, ras, surf->IsInflated()?FSSurface::SurfaceWhite:-1);
+            int nIndex = wp->FindPoint( ras );
+            if ( nIndex < 0 )
+            {
+              nIndex = wp->AddPoint( ras, 1, true );
+              return true;
+            }
           }
         }
+//        else if (!mwnd->GetVisibleLayers("MRI").isEmpty())
+//        {
+//          double ras[3];
+//          if (view->PickVolume(event->x(), event->y(), ras))
+//          {
+//            int nIndex = wp->FindPoint( ras );
+//            if ( nIndex < 0 )
+//            {
+//              nIndex = wp->AddPoint( ras, 1, true );
+//              return true;
+//            }
+//          }
+//        }
       }
       else
       {

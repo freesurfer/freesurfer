@@ -24,7 +24,7 @@
 
 <help>
 	<name>mris_ca_label</name>
-	<synopsis>mris_ca_label [options] &lt;subject&gt; &lt;hemi&gt; &lt;canonsurf&gt; &lt;classifier&gt; &lt;outputfile&gt;</synopsis>
+	<synopsis>mris_ca_label [options -seed Seed] &lt;subject&gt; &lt;hemi&gt; &lt;canonsurf&gt; &lt;classifier&gt; &lt;outputfile&gt;</synopsis>
 	<description>For a single subject, produces an annotation file, in which each cortical surface vertex is assigned a neuroanatomical label.This automatic procedure employs data from a previously-prepared atlas file. An atlas file is created from a training set, capturing region data manually drawn by neuroanatomists combined with statistics on variability correlated to geometric information derived from the cortical model (sulcus and curvature). Besides the atlases provided with FreeSurfer, new ones can be prepared using mris_ca_train).</description>
   <arguments>
     <positional>
@@ -43,6 +43,8 @@
       <intro>None.</intro>
     </required-flagged>
     <optional-flagged>
+      <argument>-seed &lt;Seed&gt;</argument>
+      <explanation>specify the seed for the random number generator</explanation>
       <argument>-sdir &lt;subject dir&gt;</argument>
       <explanation>specify a subjects directory (default=$SUBJECTS_DIR)</explanation>
       <argument>-orig &lt;filename&gt;</argument>
@@ -60,7 +62,7 @@
       <argument>-t &lt;filename&gt;</argument>
       <explanation>specify parcellation table input file (default: none)</explanation>
       <argument>-p &lt;filename&gt;</argument>
-      <explanation>output a file containing label probability (post,likelihood, prior)for each vertex./explanation>
+      <explanation>output a file containing label probability (post,likelihood, prior)for each vertex.</explanation>
       <argument>-v &lt;number&gt;</argument>
       <explanation>diagnostic level (default=0)</explanation>
       <argument>-w &lt;number&gt; &lt;filename&gt;</argument>

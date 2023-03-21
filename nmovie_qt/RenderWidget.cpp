@@ -32,7 +32,7 @@ int RenderWidget::LoadImages(const QStringList& filenames)
   if (!m_images.isEmpty())
   {
     SetCurrentImageIndex(0);
-    qWarning("Loaded %d image files", m_images.size());
+    qWarning("Loaded %d image files", (int)m_images.size());
   }
 
   return m_images.size();
@@ -77,7 +77,7 @@ void RenderWidget::mousePressEvent(QMouseEvent *e)
   if (e->button() == Qt::LeftButton)
   {
     m_bPressed = true;
-    m_nY = e->y();
+    m_nY = e->pos().y();
   }
 }
 
@@ -85,7 +85,7 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *e)
 {
   if (m_bPressed)
   {
-    int d = e->y()-m_nY;
+    int d = e->pos().y()-m_nY;
     int nStepSize = 1;
     if (d >= nStepSize)
     {
@@ -94,7 +94,7 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *e)
         d -= nStepSize;
       }
       while (d > 0);
-      m_nY = e->y();
+      m_nY = e->pos().y();
     }
     else if (d <= -nStepSize)
     {
@@ -103,7 +103,7 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *e)
         d += nStepSize;
       }
       while (d < 0);
-      m_nY = e->y();
+      m_nY = e->pos().y();
     }
   }
 }

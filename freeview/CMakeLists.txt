@@ -204,6 +204,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     Region3D.cpp
     DialogMovePoint.cpp
     VolumeFilterOptimal.cpp
+    DialogSaveAllVolumes.cpp
     freeview.qrc
   )
 
@@ -253,7 +254,11 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     add_definitions(-DDISABLE_LINEPROF)
   endif()
 
-  set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+  if(Qt6_DIR)
+    set(QT_LIBRARIES Qt6::Core Qt6::Widgets)
+  elseif(Qt5_DIR)
+    set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+  endif()
 
   if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework IOKit -framework Accelerate")

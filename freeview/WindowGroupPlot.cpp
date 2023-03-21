@@ -33,7 +33,7 @@ WindowGroupPlot::WindowGroupPlot(QWidget *parent) :
   this->setWindowTitle("Plot");
   connect(ui->comboBoxViewBy, SIGNAL(currentIndexChanged(int)), SLOT(OnComboViewBy(int)));
   connect(ui->comboBoxConfigClass, SIGNAL(currentIndexChanged(int)), SLOT(OnComboConfigClass(int)));
-  connect(ui->comboBoxConfigShape, SIGNAL(currentIndexChanged(QString)), SLOT(OnComboConfigShape(QString)));
+  connect(ui->comboBoxConfigShape, SIGNAL(currentTextChanged(QString)), SLOT(OnComboConfigShape(QString)));
   connect(ui->widgetConfigColor, SIGNAL(colorChanged(QColor)), SLOT(OnConfigColor(QColor)));
   connect(ui->listWidget, SIGNAL(currentItemChanged(QListWidgetItem*,QListWidgetItem*)),
           SLOT(OnCurrentItemChanged(QListWidgetItem*)));

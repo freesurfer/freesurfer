@@ -13,6 +13,7 @@ set outdir = ()
 set surflist = (white)
 set DoOSGM = 0;
 set DoCommon = 1;
+set AllowDiffSubjs = 0; # allow subject list to be diff
 set nomeaslist = ();
 set NoBA = 0;
 set DoAparcStats = 1
@@ -91,7 +92,8 @@ foreach hemi ($hemilist other)
     set table2 =  $g2dir/rois/$b.dat
     set difftable = $outdir/rois/diff.$b.dat
     set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
-    if($DoCommon) set cmd = ($cmd --common)
+    if($DoCommon)    set cmd = ($cmd --common)
+    if($AllowDiffSubjs) set cmd = ($cmd --diff-subjs) # allow subject list not the same in both
     echo "#C# $cmd" | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -153,6 +155,7 @@ foreach aparc ($aparclist)
         set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
         set cmd = ($cmd --rm-exvivo)
         if($DoCommon) set cmd = ($cmd --common)
+        if($AllowDiffSubjs) set cmd = ($cmd --diff-subjs) # allow subject list not the same in both
         echo "#C# $cmd" | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -175,6 +178,7 @@ set table2 =  $g2dir/rois/wmparc.vol.dat
 set difftable = $outdir/rois/diff.wmparc.vol
 set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
 if($DoCommon) set cmd = ($cmd --common)
+if($AllowDiffSubjs) set cmd = ($cmd --diff-subjs) # allow subject list not the same in both
 echo "#C# $cmd" | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -336,6 +340,13 @@ while( $#argv != 0 )
       set DoCommon = 0;
       breaksw
 
+    case "--allow-subj-diff":
+      set AllowDiffSubjs = 1;
+      breaksw
+    case "--no-allow-subj-diff":
+      set AllowDiffSubjs = 0;
+      breaksw
+
     case "--no-maps":
       set DoMaps = 0;
       breaksw
@@ -477,6 +488,7 @@ usage_exit:
   echo "  --no-maps : only analyze ROI data"
   echo "  --osgm : use OSGM instead of native FSGD"
   echo "  --no-common : do not select common segs when running stattablediff"
+  echo "  --allow-subj-diff : allow list of subjects to be different between the two"
   echo "  --no-area : do not compute area diffs"
   echo "  --no-volume : do not compute volume diffs"
   echo "  --no-ba : do not compute diffs for BA labels"

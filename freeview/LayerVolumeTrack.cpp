@@ -262,7 +262,7 @@ QVariantMap LayerVolumeTrack::GetLabelByProp(vtkProp* prop)
     {
       MRI* mri = m_volumeSource->GetMRI();
       map["label"] = mri->frames[i].label;
-      map["name"] = mri->frames[i].name;
+      map["name"] = QString(mri->frames[i].name);
     }
   }
   return map;

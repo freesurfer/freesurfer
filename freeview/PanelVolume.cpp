@@ -37,6 +37,7 @@
 #include <QToolTip>
 #include <QColorDialog>
 #include "LayerTreeWidget.h"
+#include "MigrationDefs.h"
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
@@ -56,9 +57,9 @@ bool ColorTableItem::operator<(const QTreeWidgetItem &other) const
   else
   {
     //    if (txt.trimmed().contains(" "))
-    //      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
+    //      txt = txt.split(" ", MD_SkipEmptyParts).at(1);
     //    if (other_txt.trimmed().contains(" "))
-    //      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
+    //      other_txt = other_txt.split(" ", MD_SkipEmptyParts).at(1);
     if (txt.toLower() != other_txt.toLower())
     {
       txt = txt.toLower();
@@ -189,7 +190,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->checkBoxUpsampleContour
                       << ui->checkBoxVoxelizedContour
                       << ui->labelContourSpaceHolder
-                      << ui->checkBoxContourDilateFirst;
+                      << ui->checkBoxContourDilateFirst
+                      << ui->pushButtonContourUpdate;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
                             << ui->sliderContourThresholdHigh
@@ -233,7 +235,11 @@ PanelVolume::PanelVolume(QWidget *parent) :
         << ui->labelColorMap << ui->comboBoxColorMap
         << ui->checkBoxShowContour << ui->checkBoxShowOutline;
 
+#if (QT_VERSION < QT_VERSION_CHECK(5,15,0))
   combo = combo.toSet().toList();
+#else
+  combo = QSet<QWidget*>(combo.begin(), combo.end()).values();
+#endif
   foreach (QWidget* w, m_widgetlistVolumeTrack)
   {
     int n = combo.indexOf(w);
@@ -348,6 +354,7 @@ void PanelVolume::DoIdle()
   bool bDataAvail = (!strgs.isEmpty() && strgs[0] == FS_VOLUME_SETTING_ID);
   ui->actionPasteSetting->setEnabled(layer && bDataAvail);
   ui->actionPasteSettingToAll->setEnabled(layer && bDataAvail);
+  ui->checkBoxShowOutline->setChecked(layer && layer->GetProperty()->GetShowLabelOutline());
   BlockAllSignals( false );
 }
 
@@ -1035,7 +1042,7 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   else
   {
     ui->labelBrushValueWarning->hide();
-    QStringList keywords = text.split(" ", QString::SkipEmptyParts);
+    QStringList keywords = text.split(" ", MD_SkipEmptyParts);
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
@@ -1769,9 +1776,9 @@ void PanelVolume::OnLineEditProjectionMapRangeChanged()
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
   foreach (LayerMRI* layer, layers)
   {
-    QStringList list = ui->lineEditProjectionMapRange->text().trimmed().split(",", QString::SkipEmptyParts);
+    QStringList list = ui->lineEditProjectionMapRange->text().trimmed().split(",", MD_SkipEmptyParts);
     if (list.size() < 2)
-      list = ui->lineEditProjectionMapRange->text().trimmed().split(" ", QString::SkipEmptyParts);
+      list = ui->lineEditProjectionMapRange->text().trimmed().split(" ", MD_SkipEmptyParts);
 
     if (list.size() > 1)
     {
@@ -2095,4 +2102,13 @@ QList<LayerMRI*> PanelVolume::GetLinkedVolumes()
 {
   QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
   return linked_mri;
+}
+
+void PanelVolume::OnButtonContourUpdate()
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->RebuildContour();
+  }
 }

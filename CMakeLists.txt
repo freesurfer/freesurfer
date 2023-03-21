@@ -165,6 +165,8 @@ if(NOT ITK_DIR)
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos7 CACHE PATH "ITK install directory")
    elseif(HOST_OS MATCHES "Ubuntu18")
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu18 CACHE PATH "ITK install directory")
+   elseif(APPLE)
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_darwin CACHE PATH "ITK install directory")
    else()
       # default
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2 CACHE PATH "ITK install directory")
@@ -251,6 +253,7 @@ if(BUILD_GUIS)
 
   # -------- qt --------
 
+if(NOT Qt6_DIR)
   if(NOT Qt5_DIR)
      if(HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
         set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
@@ -261,9 +264,15 @@ if(BUILD_GUIS)
         set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
      endif()
   endif()
+endif()
 
   find_package(QT)
-  message(STATUS "For HOST_OS=${HOST_OS} Qt5_DIR=${Qt5_DIR}")
+
+  if(Qt6_DIR)
+     message(STATUS "For HOST_OS=${HOST_OS} Qt6_DIR=${Qt6_DIR}")
+  elseif(Qt5_DIR)
+     message(STATUS "For HOST_OS=${HOST_OS} Qt5_DIR=${Qt5_DIR}")
+  endif()
 
 endif()
 
@@ -546,6 +555,7 @@ add_subdirectories(
   mris_left_right_register
   mris_make_surfaces
   mris_register
+  mris_skeletonize
   mris_smooth
   mris_sphere
   mris_surface_stats
@@ -556,6 +566,7 @@ add_subdirectories(
   mrisp_paint
   python
   samseg
+  samsegmesh2surf
   talairach_afd
   scripts
   tkregister2
@@ -832,3 +843,5 @@ if(BUILD_DNG)
   add_subdirectory(dngtester)
 endif()
 
+# add wrapper for slicedelay
+install_pyscript(./scripts/slicedelay)

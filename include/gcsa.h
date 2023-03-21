@@ -56,6 +56,7 @@
 #include "mrishash.h"
 #include "label.h"
 #include "colortab.h"
+#include "fio.h"
 
 #define GCSA_MAGIC 0xababcdcd
 
@@ -65,12 +66,15 @@
 
 /* input flags */
 #define GCSA_NORMALIZE               0x00000001
+
 typedef struct
 {
   int    type ;
   char   fname[STRLEN] ;
+  char   subdir[STRLEN] ;
   int    navgs ;
   int    flags ;
+  int    m_debug=0;
 }
 GCSA_INPUT ;
 
@@ -118,8 +122,9 @@ typedef struct
 }
 GCSA_NODE ;
 
-typedef struct
+class GAUSSIAN_CLASSIFIER_SURFACE_ARRAY 
 {
+ public:
   MRI_SURFACE      *mris_priors ;
   MRI_SURFACE      *mris_classifiers ;
   CP_NODE          *cp_nodes;
@@ -132,8 +137,10 @@ typedef struct
   GCSA_INPUT       inputs[GCSA_MAX_INPUTS] ;
   char             *ptable_fname ;   /* name of color lookup table */
   COLOR_TABLE      *ct ;
-}
-GAUSSIAN_CLASSIFIER_SURFACE_ARRAY, GCSA ;
+  MRI              *inputvals=NULL; // Instead of using v->{val,val2,imag_val}
+  int load_default_data(MRIS *surf, char *subject_name, int sulc_only, int which_norm);
+};
+typedef GAUSSIAN_CLASSIFIER_SURFACE_ARRAY GCSA ;
 
 
 GCSA  *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers) ;
@@ -159,10 +166,13 @@ int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) ;
 int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) ;
 int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, int nexcluded) ;
-int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded);
+int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded, int vno);
 MRI *GCSApriors2MRI(GCSA *gcsa);
 MRI *GCSAlikelihoodMeans2MRI(GCSA *gcsa, int inputno);
 int GCSAfill_cpn_holes(GCSA *gcsa, int nitersmax);
 int GCSAfill_gcsan_holes(GCSA *gcsa, int nitersmax);
-
+int GCSAload_inputs(double *v_inputs, MRI *inputs, int vno);
+GCS *GCSAgetGC(GCSA_NODE *gcsan, int label, int *pn);
+int GCSArelabelIslands(GCSA *gcsa, MRI_SURFACE *mris, int max_iter, float min_area_frac);
+int GCSAdiff(GCSA *gcsa1, GCSA *gcsa2, double thresh);
 #endif

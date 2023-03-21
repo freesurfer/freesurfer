@@ -1074,9 +1074,70 @@ double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
 
 
 /*!
+  \fn MRI *ReadAnnotAsMRISeg(char *annotfname);
+  \brief reads an annotation as an MRI structure with ebedded
+  ctab. The voxel values are the indices of the color table, not the
+  RGB annotation (differs from readAnnotationIntoSeg in this
+  way). Does not need surface.
+ */
+MRI *ReadAnnotAsMRISeg(char *annotfname, int volume_flag)
+{
+  int i, j, vno, num;
+  int tag;
+  FILE *fp;
+  MRI *mri;
+  fp = fopen(annotfname,"r");
+  if(fp == NULL) {
+    printf("ERROR: could not read %s\n",annotfname);
+    return(NULL);
+  }
+
+  /* First int is the number of elements. */
+  num = freadInt(fp);
+  //printf("annot num %d\n",num);
+  if(volume_flag) mri = MRIalloc(num,1,1,MRI_INT);
+  else            mri = MRIallocHeader(num,1,1,MRI_INT,1);
+  /* For each vertex, read in a vno and an int for the annotation value. Check the vno. */
+  for(j = 0; j < num; j++) {
+    vno = freadInt(fp);
+    if(vno >= num){
+      printf("ERROR: ReadAnnotAsMRISeg(): vno = %d >= num = %d\n",vno,num);
+      MRIfree(&mri);
+      return(NULL);
+    }
+    i = freadInt(fp); //annotation value
+    if(volume_flag) MRIsetVoxVal(mri,vno,0,0,0,i);
+  }
+
+  // Read in the color table
+  tag = freadInt(fp);
+  if(feof(fp)) {
+    // nothing further, but need color table, so error
+    printf("ERROR: ReadAnnotAsMRISeg(): no color table found in %s\n",annotfname);
+    MRIfree(&mri);
+    fclose(fp);
+    return(NULL);
+  }
+  if(TAG_OLD_COLORTABLE == tag) {
+    mri->ct = CTABreadFromBinary(fp);
+    if(mri->ct) printf("colortable with %d entries read (originally %s)\n", mri->ct->nentries, mri->ct->fname);
+  }
+  fclose(fp);
+  if(volume_flag && mri->ct){
+    for(j = 0; j < num; j++) {
+      // for some reason annot=0 is not in the ctab when running MRISseg2annot on the output
+      int annot = MRIgetVoxVal(mri,j,0,0,0);
+      int index;
+      CTABfindIndexFromAnnotation(mri->ct, annot, &index);
+      MRIsetVoxVal(mri,j,0,0,0,index);
+    }
+  }
+  return(mri);
+}
+/*!
   \brief Reads an annotation file into a 1D seg overlay. Expects that the
   file has an embedded lookup table so that it can convert annotation values
-  to segmentation indices.
+  to segmentation indices. See also ReadAnnotAsMRISeg().
 */
 MRI *readAnnotationIntoSeg(const std::string& filename)
 {

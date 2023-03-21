@@ -101,7 +101,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
       emit CursorLocationClicked();
     }
   }
-  else if ( (event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier )) ||
+  else if ( (event->button() == Qt::MiddleButton && ( event->modifiers() & Qt::ShiftModifier )) ||
             (event->button() == Qt::RightButton && ( event->modifiers() & CONTROL_MODIFIER ) &&
              ( event->modifiers() & Qt::ShiftModifier )) )
   {
@@ -124,7 +124,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     view->RequestRedraw();
   }
 #endif
-  else if (event->button() == Qt::MidButton && (event->modifiers() & CONTROL_MODIFIER ))
+  else if (event->button() == Qt::MiddleButton && (event->modifiers() & CONTROL_MODIFIER ))
   {
     m_bChangeSlice = true;
   }
@@ -270,7 +270,7 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   }
   else
   {
-    if ( event->buttons() & Qt::MidButton || event->buttons() & Qt::RightButton ||
+    if ( event->buttons() & Qt::MiddleButton || event->buttons() & Qt::RightButton ||
          ((event->buttons() & Qt::LeftButton) && (event->modifiers() & Qt::ShiftModifier)))
     {
       view->UpdateAnnotation();

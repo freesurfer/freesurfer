@@ -126,6 +126,12 @@ char *type_to_string(int type)
     case GIFTI_FILE:
       tmpstr = "gii";
       break;
+    case MGH_ANNOT:
+      tmpstr = "annot";
+      break;
+    case NPY_FILE:
+      tmpstr = "npy";
+      break;
     default:
       tmpstr = "unknown";
       break;
@@ -149,41 +155,43 @@ int string_to_type(const char *string)
   StrLower(ls);
   // is this compressed?
   if (strcmp(ls, "gz") == 0) type = MRI_GZIPPED;
-  if ((strcmp(ls, "ae") == 0) || (strcmp(ls, "sae") == 0) || (strcmp(ls, "csae") == 0)) type = MGH_AUTOENCODER;
-  if ((strcmp(ls, "m3z") == 0) || (strcmp(ls, "m3d") == 0)) type = MGH_MORPH;
-  if (strcmp(ls, "cor") == 0) type = MRI_CORONAL_SLICE_DIRECTORY;
-  if (strcmp(ls, "minc") == 0 || strcmp(ls, "mnc") == 0) type = MRI_MINC_FILE;
-  if (strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0 || strcmp(ls, "analyze3d") == 0) type = MRI_ANALYZE_FILE;
-  if (strcmp(ls, "analyze4d") == 0 || strcmp(ls, "img") == 0)  // img used to be 3d
+  else if ((strcmp(ls, "ae") == 0) || (strcmp(ls, "sae") == 0) || (strcmp(ls, "csae") == 0)) type = MGH_AUTOENCODER;
+  else if ((strcmp(ls, "m3z") == 0) || (strcmp(ls, "m3d") == 0)) type = MGH_MORPH;
+  else if (strcmp(ls, "cor") == 0) type = MRI_CORONAL_SLICE_DIRECTORY;
+  else if (strcmp(ls, "minc") == 0 || strcmp(ls, "mnc") == 0) type = MRI_MINC_FILE;
+  else if (strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0 || strcmp(ls, "analyze3d") == 0) type = MRI_ANALYZE_FILE;
+  else if (strcmp(ls, "analyze4d") == 0 || strcmp(ls, "img") == 0)  // img used to be 3d
     type = MRI_ANALYZE4D_FILE;
-  if (strcmp(ls, "mgh") == 0 || strcmp(ls, "mgz") == 0) type = MRI_MGH_FILE;
-  if (strcmp(ls, "gca") == 0) type = MRI_GCA_FILE;
-  if (strcmp(ls, "signa") == 0) type = SIGNA_FILE;
-  if (strcmp(ls, "ge") == 0 || strcmp(ls, "genesis") == 0) type = GENESIS_FILE;
-  if (strcmp(ls, "gelx") == 0 || strcmp(ls, "lx") == 0) type = GE_LX_FILE;
-  if (strcmp(ls, "bshort") == 0) type = BSHORT_FILE;
-  if (strcmp(ls, "bfloat") == 0) type = BFLOAT_FILE;
-  if (strcmp(ls, "bhdr") == 0) type = BHDR;
-  if (strcmp(ls, "siemens") == 0 || strcmp(ls, "ima") == 0) type = SIEMENS_FILE;
-  if (strcmp(ls, "dicom") == 0) type = DICOM_FILE;
-  if (strcmp(ls, "siemens_dicom") == 0) type = SIEMENS_DICOM_FILE;
-  if (strcmp(ls, "brik") == 0 || strcmp(ls, "afni") == 0) type = BRIK_FILE;
-  if (strcmp(ls, "sdt") == 0 || strcmp(ls, "varian") == 0) type = SDT_FILE;
-  if (strcmp(ls, "otl") == 0 || strcmp(ls, "outline") == 0) type = OTL_FILE;
-  if (strcmp(ls, "gdf") == 0) type = GDF_FILE;
-  if (strcmp(ls, "bruker") == 0) type = BRUKER_FILE;
-  if (strcmp(ls, "ximg") == 0) type = XIMG_FILE;
-  if (strcmp(ls, "nifti1") == 0) type = NIFTI1_FILE;
-  if (strcmp(ls, "nii") == 0) type = NII_FILE;
-  if (strcmp(ls, "nrrd") == 0) type = NRRD_FILE;
+  else if (strcmp(ls, "mgh") == 0 || strcmp(ls, "mgz") == 0) type = MRI_MGH_FILE;
+  else if (strcmp(ls, "gca") == 0) type = MRI_GCA_FILE;
+  else if (strcmp(ls, "signa") == 0) type = SIGNA_FILE;
+  else if (strcmp(ls, "ge") == 0 || strcmp(ls, "genesis") == 0) type = GENESIS_FILE;
+  else if (strcmp(ls, "gelx") == 0 || strcmp(ls, "lx") == 0) type = GE_LX_FILE;
+  else if (strcmp(ls, "bshort") == 0) type = BSHORT_FILE;
+  else if (strcmp(ls, "bfloat") == 0) type = BFLOAT_FILE;
+  else if (strcmp(ls, "bhdr") == 0) type = BHDR;
+  else if (strcmp(ls, "siemens") == 0 || strcmp(ls, "ima") == 0) type = SIEMENS_FILE;
+  else if (strcmp(ls, "dicom") == 0) type = DICOM_FILE;
+  else if (strcmp(ls, "siemens_dicom") == 0) type = SIEMENS_DICOM_FILE;
+  else if (strcmp(ls, "brik") == 0 || strcmp(ls, "afni") == 0) type = BRIK_FILE;
+  else if (strcmp(ls, "sdt") == 0 || strcmp(ls, "varian") == 0) type = SDT_FILE;
+  else if (strcmp(ls, "otl") == 0 || strcmp(ls, "outline") == 0) type = OTL_FILE;
+  else if (strcmp(ls, "gdf") == 0) type = GDF_FILE;
+  else if (strcmp(ls, "bruker") == 0) type = BRUKER_FILE;
+  else if (strcmp(ls, "ximg") == 0) type = XIMG_FILE;
+  else if (strcmp(ls, "nifti1") == 0) type = NIFTI1_FILE;
+  else if (strcmp(ls, "nii") == 0) type = NII_FILE;
+  else if (strcmp(ls, "nrrd") == 0) type = NRRD_FILE;
   // check for IMAGE file
-  if (!strcmp(ls, "mat") || !strcmp(ls, "tif") || !strcmp(ls, "tiff") || !strcmp(ls, "jpg") || !strcmp(ls, "jpeg") ||
+  else if (!strcmp(ls, "mat") || !strcmp(ls, "tif") || !strcmp(ls, "tiff") || !strcmp(ls, "jpg") || !strcmp(ls, "jpeg") ||
       !strcmp(ls, "pgm") || !strcmp(ls, "ppm") || !strcmp(ls, "pbm") || !strcmp(ls, "rgb"))
     type = IMAGE_FILE;
-  if (strcmp(ls, "curv") == 0) type = MRI_CURV_FILE;
-  if (strcmp(ls, "gii") == 0) type = GIFTI_FILE;
-  if (strcmp(ls, "vtk") == 0) type = VTK_FILE;
-  if (strcmp(ls, "label") == 0) type = MGH_LABEL_FILE;
+  else if (strcmp(ls, "curv") == 0) type = MRI_CURV_FILE;
+  else if (strcmp(ls, "gii") == 0) type = GIFTI_FILE;
+  else if (strcmp(ls, "vtk") == 0) type = VTK_FILE;
+  else if (strcmp(ls, "label") == 0) type = MGH_LABEL_FILE;
+  else if (strcmp(ls, "annot") == 0) type = MGH_ANNOT;
+  else if (strcmp(ls, "npy") == 0) type = NPY_FILE;
 
   return (type);
 
@@ -227,7 +235,7 @@ int mri_identify(const char *fname_passed)
       ///////////////////////////////////////////////
       // if type is found then verify
       // IMAGE file uses only extension
-      if (type == IMAGE_FILE) return type;
+      if (type == IMAGE_FILE || type == NPY_FILE) return type;
 
       if (type != MRI_VOLUME_TYPE_UNKNOWN) {
         switch (type) {
@@ -308,6 +316,9 @@ int mri_identify(const char *fname_passed)
             if (is_nrrd(fname)) return type;
             break;
           case GIFTI_FILE:
+            return type;
+            break;
+          case MGH_ANNOT:
             return type;
             break;
           case VTK_FILE:
@@ -478,6 +489,8 @@ char *IDstemFromName(const char *name)
 */
 char *IDextensionFromName(const char *name)
 {
+  // these extensions are considered volume files:
+  //   nii, mgz, mgh, img, bhdr, nii.gz, _000.bfloat, _000.bshort
   int len;
   char *ext;
 
@@ -1199,6 +1212,8 @@ END c++ version of is_nrrd()
 
 /*----------------------------------------
   IDisCurv() - surface curve file format
+  return TRUE (1) if first 4 bytes int = NEW_VERSION_MAGIC_NUMBER (16777215);
+  otherwise, return FALSE (0)
   ----------------------------------------*/
 int IDisCurv(const char *curvfile)
 {

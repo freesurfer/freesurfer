@@ -1862,6 +1862,17 @@
     <string>Alt+O</string>
    </property>
   </action>
+  <action name="actionShowLabelOutline">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Label Outline</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3861,6 +3872,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionShowLabelOutline</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnShowLabelOutline(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3978,5 +4005,6 @@
   <slot>OnCopyView()</slot>
   <slot>OnDeleteLayer()</slot>
   <slot>SetNeurologicalView(bool)</slot>
+  <slot>OnShowLabelOutline(bool)</slot>
  </slots>
 </ui>

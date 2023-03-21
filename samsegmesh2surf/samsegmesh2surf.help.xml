@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>samsegmesh2surf</name>
+	<description>This program can be used to generate freesurfer surface from a samseg atlas mesh file. It can also generate priors at each vertex as overlay MRI volume (nVertices x 1 x 1 x nClasses).
+        </description>
+  <arguments>
+
+    <required>
+      <intro>Exactly one input is required:</intro>
+      <argument>--atlasmesh    atlas-mesh-collection-file</argument>
+      <explanation>input samseg atlas mesh collection file</explanation>
+      <intro>At least one input is required:</intro>
+      <argument>--template     atlas-template-volume</argument>
+      <explanation>input atlas template volume</explanation>
+      <argument>--lta          lta-transform</argument>
+      <explanation>input LTA transform to be applied to surface. If both --lta and --template are specified, automatic detection of which direction the LTA goes by looking at which side matches the atlas template volume geomery. Automatically invert if necessary. --invert will not be applied in this case.</explanation>
+      <intro>At least one output is required:</intro>
+      <argument>--osurf        output-freesufer-surface</argument>
+      <explanation>output freesurfer surface</explanation>
+      <argument>--opriors output-priors-as-mri.mgz</argument>
+      <explanation>output priors as mri volume</explanation>
+    </required>
+
+    <optional>
+      <argument>--invert</argument>
+      <explanation>inverts LTA transform</explanation>
+    </optional>
+
+  </arguments>
+  <example> use given template volume as source image, output surface is aligned with template volume:
+
+   samsegmesh2surf 
+     --atlasmesh atlas_level1.txt.gz 
+     --template template.nii 
+     --osurf out.surf 
+     --opriors priors.mgz
+  </example>
+
+  <example> use LTA src volume as source image, apply the LTA matrix to align output surface with LTA dst volume:
+
+   samsegmesh2surf 
+     --atlasmesh atlas_level1.txt.gz 
+     --lta template.lta
+     --osurf out.surf  
+     --opriors priors.mgz
+  </example>
+
+  <example> invert LTA, use LTA dst volume as source image, apply the LTA matrix to align output surface with LTA src volume:
+
+   samsegmesh2surf 
+     --atlasmesh atlas_level1.txt.gz 
+     --lta template.lta
+     --invert
+     --osurf out.surf  
+     --opriors priors.mgz
+  </example>
+</help>
+
+

@@ -159,6 +159,7 @@ while( $#argv != 0 )
       set InitLTAfromTal = 0
       breaksw
 
+    case "--init-from-tal":
     case "--lta-init-from-tal":
       set InitLTAfromTal = 1
       set InitLTA = ()
@@ -327,6 +328,7 @@ usage_exit:
   echo "  --noneg "
   echo "  --init-reg initregname : default is sphere (do not include hemi)"
   echo "  --lta reg.lta : apply rotational components of affine reg"
+  echo "  --init-from-tal : use talaiach.xfm.lta to init spherical reg"
   echo "  --o outsurfname : default is target.sphere.reg (do not include hemi)"
   echo "      If target is fsaverage, then default is sphere.reg"
   echo "  --threads threads : run in parallel"

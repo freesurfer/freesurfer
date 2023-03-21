@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QDir>
 #include "math.h"
+#include <QRegularExpression>
 
 TreeDataLoader::TreeDataLoader(QObject *parent) : QObject(parent)
 {
@@ -25,7 +26,7 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
   QStringList tract_list;
   foreach (QFileInfo fn, info_list)
   {
-    if (!fn.baseName().contains(QRegExp("[^0-1]")))
+    if (!fn.baseName().contains(QRegularExpression("[^0-1]")))
       tract_list << fn.fileName();
   }
 
@@ -173,7 +174,7 @@ void BinaryTreeView::keyPressEvent(QKeyEvent *event)
 
 void BinaryTreeView::wheelEvent(QWheelEvent *event)
 {
-  ScaleView(pow((double)2, -event->delta() / 240.0));
+  ScaleView(pow((double)2, -event->angleDelta().y() / 240.0));
 }
 
 void BinaryTreeView::drawBackground(QPainter *painter, const QRectF &rect)

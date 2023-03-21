@@ -70,6 +70,7 @@ add_library(utils STATIC
   fs_lbfgs_observer.cpp
   fs_lbfgs_subject.cpp
   fs_powell.cpp
+  fscnpy.cpp
   fsenv.cpp
   fsgdf.cpp
   fsglm.cpp
@@ -169,6 +170,7 @@ add_library(utils STATIC
   mrisurf_topology.cpp
   mrisurf_vals.cpp
   mrisutils.cpp
+  MRISurfOverlay.cpp
   mriTransform.cpp
   mrivoxel.cpp
   numerics.cpp

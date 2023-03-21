@@ -22,6 +22,7 @@
 #include <QScrollBar>
 #include <iostream>
 #include <stdlib.h>
+#include "MigrationDefs.h"
 
 #define BUFFER_SIZE 8192
 char stdout_buffer[BUFFER_SIZE] = {0};
@@ -156,7 +157,7 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
   ScrollToBottom();
   m_bufferStdOut.clear();
   m_bufferStdErr.clear();
-  QStringList args = cmd.split(" ", QString::SkipEmptyParts);
+  QStringList args = cmd.split(" ", MD_SkipEmptyParts);
   if (Known_Shell_Cmds.contains(args[0].toLower()))
   {
     AppendErrorString("This is not a shell. Only freeview commands are supported. Type '-h' for all the available commands.\n");
@@ -170,7 +171,7 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
     if (strg[0] == '-')
       MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
     else
-      MainWindow::GetMainWindow()->AddScript(strg.split(" ", QString::SkipEmptyParts));
+      MainWindow::GetMainWindow()->AddScript(strg.split(" ", MD_SkipEmptyParts));
 
     if ( MainWindow::GetMainWindow()->IsBusy())
     {

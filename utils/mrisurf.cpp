@@ -884,6 +884,7 @@ int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,
   \fn int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
   \brief Transfers the xyz coords from surfcoords to the given surface.
 */
+// The function is used in mris_convert and mris_flatten.
 int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
 {
   int k;
@@ -908,5 +909,13 @@ int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
     v->y = surfcoords->vertices[k].y;
     v->z = surfcoords->vertices[k].z;
   }
+
+  // also copy mris->useRealRAS
+  surf->useRealRAS = surfcoords->useRealRAS;
+
+  // also copy volgeom if it is valid
+  if (surfcoords->vg.valid)
+    copyVolGeom(&surfcoords->vg, &surf->vg);
+
   return(0);
 }

@@ -1165,9 +1165,19 @@ int main(int argc, char *argv[])
       forced_in_type = string_to_type(in_type_string);
       force_in_type_flag = TRUE;
     }
-    else if (strcmp(argv[i], "-dicomread3") == 0 || strcmp(argv[i], "-dcm2niix") == 0)
+    else if(strcmp(argv[i], "-dicomread3") == 0 || strcmp(argv[i], "-dcm2niix")==0 || strcmp(argv[i], "--dcm2niix")==0)
     {
-      UseDICOMRead3 = 1;
+      UseDCM2NIIX = 1;
+    }
+    else if (strcmp(argv[i], "-no-dcm2niix") == 0 || strcmp(argv[i], "--no-dcm2niix") == 0)
+    {
+      UseDCM2NIIX = 0;
+    }
+    else if (strcmp(argv[i], "-createBIDS") == 0 || strcmp(argv[i], "--createBIDS") == 0)
+    {
+     // set environment variable FS_DCM2NIIX_CREATEBIDS to 1,
+     // DICOMRead3() will pick up the variable, and pass it to dcm2niix_fswrapper::setOpts() 
+     setenv("FS_DCM2NIIX_CREATEBIDS", "1", 1);
     }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {

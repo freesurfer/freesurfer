@@ -1,6 +1,6 @@
 project(nmovie_qt)
 
-if(BUILD_GUIS AND Qt5_FOUND)
+if(BUILD_GUIS)
 
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTOMOC ON)
@@ -15,7 +15,11 @@ if(BUILD_GUIS AND Qt5_FOUND)
 
   add_executable(nmovie_qt ${SOURCES})
 
-  target_link_libraries(nmovie_qt Qt5::Core Qt5::Widgets)
+  if(Qt6_DIR)
+    target_link_libraries(nmovie_qt Qt6::Core Qt6::Widgets)
+  elseif(Qt5_DIR)
+    target_link_libraries(nmovie_qt Qt5::Core Qt5::Widgets)
+  endif()
 
   install(TARGETS nmovie_qt DESTINATION bin)
 

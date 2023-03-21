@@ -77,9 +77,12 @@
 #include "znzlib.h"
 #include "romp_support.h"
 #include "NrrdIO.h"
+#include "annotation.h"
 
 #include "nii_dicom.h"
 #include "nii_dicom_batch.h"
+
+#include "fscnpy.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -162,8 +165,9 @@ static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int fra
 static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame);
 
 static MRI *sdtRead(const char *fname, int read_volume);
-static MRI *mghRead(const char *fname, int read_volume, int frame);
-static int mghWrite(MRI *mri, const char *fname, int frame);
+// these two functions are made accessible to others
+//static MRI *mghRead(const char *fname, int read_volume, int frame);
+//static int mghWrite(MRI *mri, const char *fname, int frame);
 static int mghAppend(MRI *mri, const char *fname, int frame);
 
 /********************************************/
@@ -683,7 +687,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     mri = gdfRead(fname_copy, volume_flag);
   }
   else if (type == DICOM_FILE) {  
-    if (UseDICOMRead3) {
+    if (UseDCM2NIIX) {
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 
 	return NULL;
@@ -705,7 +709,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     }
   }
   else if (type == SIEMENS_DICOM_FILE) {
-    if (UseDICOMRead3) {
+    if (UseDCM2NIIX) {
       printf("mriio.cpp: starting DICOMRead3()\n");
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 
@@ -747,6 +751,13 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     I = ImageRead(fname_copy);
     mri = ImageToMRI(I);
     ImageFree(&I);
+  }
+  else if (type == MGH_ANNOT) {
+    mri = ReadAnnotAsMRISeg(fname_copy, volume_flag);
+  }
+  else if (type == NPY_FILE) {
+    fscnpy *cnpy = new fscnpy();
+    mri = cnpy->npy2mri(fname_copy);
   }
   else {
     fprintf(stderr, "mri_read(): type = %d\n", type);
@@ -10715,7 +10726,7 @@ int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
 // declare function pointer
 // static int (*myclose)(FILE *stream);
 
-static MRI *mghRead(const char *fname, int read_volume, int frame)
+MRI *mghRead(const char *fname, int read_volume, int frame)
 {
   MRI *mri;
   znzFile fp;
@@ -11160,7 +11171,7 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
   return (mri);
 }
 
-static int mghWrite(MRI *mri, const char *fname, int frame)
+int mghWrite(MRI *mri, const char *fname, int frame)
 {
   znzFile fp;
   int ival, start_frame, end_frame, x, y, z, width, height, depth, unused_space_size, flen;

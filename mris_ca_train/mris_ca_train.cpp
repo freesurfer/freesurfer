@@ -89,24 +89,21 @@ static int ninputs = 1 ;  /* curv and sulc */
 static int icno_priors = 7 ;
 static int icno_classifiers = 4 ;
 
-#if 0
-static char *curv_name = "curv" ;
-#endif
 static const char *thickness_name = "thickness" ;
 static const char *sulc_name = "sulc" ;
 static int sulconly = 0 ;
+const char *input_fname = NULL;
 
 static char subjects_dir[STRLEN] ;
 int nfillmax = -1;
 int DoFill = 1;
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp, *hemi;
   char         *canon_surf_name, *annot_name ;
   int          ac, nargs, i, train_type ;
-  int          msec, minutes, seconds, nsubjects, input1_flags;
+  int          msec, minutes, seconds, nsubjects, input1_flags, err=0;
   int          input2_flags, input3_flags ;
   Timer start ;
   MRI_SURFACE  *mris ;
@@ -126,48 +123,32 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (ptable_fname)
-  {
+  if (ptable_fname) {
     ctab = CTABreadASCII(ptable_fname) ;
-    if (label_name)
-    {
+    if(label_name){
       CTABfindName(ctab, label_name, &label_index) ;
-      if (label_index < 0)
-        ErrorExit(ERROR_BADPARM, 
-                  "%s: could not find index for label %s in table %s",
-                  Progname, label_name, ptable_fname) ;
+      if(label_index < 0) ErrorExit(ERROR_BADPARM,"%s: could not find index for label %s in table %s",
+				    Progname, label_name, ptable_fname) ;
 
       CTABfindName(ctab, "unknown", &unknown_index) ;
-      if (unknown_index < 0)
-        CTABfindName(ctab, "medial wall", &unknown_index) ;
-      printf("label index = %d, unknown index = %d\n", 
-             label_index, unknown_index) ;
+      if (unknown_index < 0) CTABfindName(ctab, "medial wall", &unknown_index) ;
+      printf("label index = %d, unknown index = %d\n", label_index, unknown_index) ;
     }
   }
-  else if (label_name)
-    ErrorExit
-      (ERROR_UNSUPPORTED, 
-       "%s: must specify colortable with -t <ctab> when specifying label",
-       Progname) ;
+  else if(label_name)ErrorExit(ERROR_UNSUPPORTED,"%s: must specify colortable with -t <ctab> when specifying label", Progname) ;
 
-  if (!strlen(subjects_dir)) /* hasn't been set on command line */
-  {
+  if(!strlen(subjects_dir)){ /* hasn't been set on command line */
     cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM,
-                "%s: SUBJECTS_DIR not defined in environment",
-                Progname);
+    if (!cp) ErrorExit(ERROR_BADPARM,"%s: SUBJECTS_DIR not defined in environment",Progname);
     strcpy(subjects_dir, cp) ;
   }
-  if (argc < 6)
-    usage_exit(1) ;
+  if(argc < 6) usage_exit(1) ;
 
   hemi = argv[1] ;
   canon_surf_name = argv[2] ;
@@ -177,188 +158,109 @@ main(int argc, char *argv[])
 
   gcsa = GCSAalloc(ninputs, icno_priors, icno_classifiers) ;
   input1_flags = input2_flags = input3_flags = 0 ;
-  if (normalize1_flag)
-    input1_flags |= GCSA_NORMALIZE ;
-  if (normalize2_flag)
-    input2_flags |= GCSA_NORMALIZE ;
-  if (normalize3_flag)
-    input3_flags |= GCSA_NORMALIZE ;
+  if(normalize1_flag)  input1_flags |= GCSA_NORMALIZE ;
+  if(normalize2_flag)  input2_flags |= GCSA_NORMALIZE ;
+  if(normalize3_flag)  input3_flags |= GCSA_NORMALIZE ;
   if(ctab) gcsa->ct = ctab;
 
-  if (sulconly)
-  {
-    GCSAputInputType(gcsa,
-                     GCSA_INPUT_CURV_FILE,
-                     sulc_name,
-                     0,
-                     0,
-                     input1_flags);
+  // Note on inputs. This function controls the inputs used for both
+  //training and labeling int GCSAload_inputs(VERTEX *v, double
+  //*v_inputs, int ninputs). It can handle up to 3 inputs which must
+  //be loaded into the vertex in the following vertex fields and will
+  //be taken in the following order: v->val, v->val2, v->imag_val;
+
+  // This copies some into into the GCSA structure so available when labeling (I guess)
+  if(sulconly) { // not the default
+    GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,sulc_name,0,0,input1_flags);
   }
-  else
-  {
-    GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature",
-                     navgs, input1_flags, 0) ;
-    if (ninputs > 1)
-      GCSAputInputType(gcsa,
-                       GCSA_INPUT_CURV_FILE,
-                       sulc_name,
-                       0,
-                       input2_flags,
-                       1);
-    if (ninputs > 2)
-      GCSAputInputType(gcsa,
-                       GCSA_INPUT_CURV_FILE,
-                       thickness_name,
-                       0,
-                       input3_flags,
-                       2);
+  else{ // default
+    GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature",navgs, input1_flags, 0) ;
+    if(ninputs > 1) GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,sulc_name,0,input2_flags,1);
+    if(ninputs > 2) GCSAputInputType(gcsa,GCSA_INPUT_CURV_FILE,thickness_name,0,input3_flags,2);
   }
 
-  for (train_type = 0 ; train_type <= 1 ; train_type++)
-  {
-    printf("computing %s for %d subject \n",
-           train_type ? "covariances" : "means", nsubjects) ;
-    for (i = 0 ; i < nsubjects ; i++)
-    {
+  for (train_type = 0 ; train_type <= 1 ; train_type++) {
+    printf("computing %s for %d subject \n",train_type ? "covariances" : "means", nsubjects) ;
+    for (i = 0 ; i < nsubjects ; i++)  {
       subject_name = argv[i+4] ;
-      printf("processing subject %s, %d of %d...\n", subject_name,i+1,
-             nsubjects);
-      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
-			 hemi, orig_name) ;    
-      if( req >= STRLEN ) {
-	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-      if (DIAG_VERBOSE_ON)
-        printf("reading surface from %s...\n", fname) ;
+      printf("processing subject %s, %d of %d...\n", subject_name,i+1, nsubjects);
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir, subject_name,hemi, orig_name) ;    
+      if( req >= STRLEN ) std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+
+      // First load in the native surface
+      printf("reading surface from %s...\n", fname) ;
       mris = MRISread(fname) ;
-      if (!mris)
-        ErrorExit(ERROR_NOFILE,
-                  "%s: could not read surface file %s for %s",
-                  Progname, fname, subject_name) ;
+      if (!mris) ErrorExit(ERROR_NOFILE,"%s: could not read surface file %s for %s",Progname, fname, subject_name) ;
+      // Set some parameters, compute 2ff, and save to ORIGINAL_VERTICES
       MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      if (label_name)
-      {
+
+      // Load in the manual segentations/annots/labels
+      if(label_name){ // not the default
         LABEL *area ;
         int   i ;
         VERTEX *v ;
-
-        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", 
-			   subjects_dir, subject_name, hemi, annot_name) ; 
-	if( req >= STRLEN ) {
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s",  subjects_dir, subject_name, hemi, annot_name) ; 
+	if( req >= STRLEN )
 	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-	
         area = LabelRead(subject_name, fname) ;
-        if (area == NULL)
-          ErrorExit
-            (ERROR_NOFILE,
-             "%s: could not read label file %s for %s",
-             Progname, fname, subject_name) ;
-        for (i = 0 ; i < area->n_points ; i++)
-        {
-          if (area->lv[i].vno < 0)
-            continue ;
+        if(area == NULL) ErrorExit(ERROR_NOFILE,"%s: could not read label file %s for %s",Progname, fname, subject_name) ;
+        for (i = 0 ; i < area->n_points ; i++) {
+          if (area->lv[i].vno < 0)            continue ;
           v = &mris->vertices[area->lv[i].vno] ;
           if (area->lv[i].vno == Gdiag_no)
             DiagBreak() ;
-          if (v->ripflag)
-            continue ;
+          if (v->ripflag)continue ;
           CTABannotationAtIndex(ctab, label_index, &v->annotation) ;
         }
         // mark rest of surface unknown
-        for (i = 0 ; i < mris->nvertices ; i++)
-        {
+        for(i = 0 ; i < mris->nvertices ; i++) {
           v = &mris->vertices[i] ;
           if (i == Gdiag_no)
             DiagBreak() ;
-          if (v->ripflag || v->annotation)
-            continue ;
+          if(v->ripflag || v->annotation) continue ;
           CTABannotationAtIndex(ctab, unknown_index, &v->annotation) ;
         }
         LabelFree(&area) ;
-      }
-      else{// use annotation
+      }// end of loading a simple label
+      else{// use annotation (default)
 	printf("Reading annotation %s\n",annot_name);
-        if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read annot file %s for %s",
-                    Progname, annot_name, subject_name) ;
+	err = MRISreadAnnotation(mris, annot_name);
+        if(err != NO_ERROR)ErrorExit(ERROR_NOFILE,"%s: could not read annot file %s for %s",Progname, annot_name, subject_name) ;
 	//if(ctab) mris->ct = CTABdeepCopy(ctab);
 	//CTABprintASCII(mris->ct, stdout);
       }
-      if (ptable)
+      if(ptable)
         nparcs = add_to_ptable(mris, ptable, nparcs) ;
 
-      if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE,
-                  "%s: could not read spherical "
-                  "registration file %s for %s",
-                  Progname, canon_surf_name, subject_name) ;
-      if (ninputs > 2)
-      {
-        if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read curv file %s for %s",
-                    Progname, thickness_name, subject_name) ;
-        if (normalize3_flag)
-          MRISnormalizeCurvature(mris, which_norm) ;
-        MRIScopyCurvatureToImagValues(mris) ;
-      }
-      if (ninputs > 1 || sulconly)
-      {
-        if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read curv file %s for %s",
-                    Progname, sulc_name, subject_name) ;
-        if (normalize2_flag || (sulconly && normalize1_flag))
-          MRISnormalizeCurvature(mris, which_norm) ;
-        MRIScopyCurvatureToValues(mris) ;
-        MRIScopyValToVal2(mris) ;
-      }
-      if (!sulconly)
-      {
-#if 0
-        if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not read curv file %s for %s",
-                    Progname, curv_name, subject_name) ;
-#else
-        MRISuseMeanCurvature(mris) ;
-        MRISaverageCurvatures(mris, navgs) ;
-        if (normalize1_flag)
-          MRISnormalizeCurvature(mris, which_norm) ;
-#endif
-        MRIScopyCurvatureToValues(mris) ;
-      }
+      // Now read in the cannonical surface
+      printf("Reading %s\n",canon_surf_name);
+      err = MRISreadCanonicalCoordinates(mris, canon_surf_name);
+      if(err != NO_ERROR) ErrorExit(ERROR_NOFILE, "%s: could not read spherical ""registration file %s for %s",
+				    Progname, canon_surf_name, subject_name) ;
+
+      // Now load the inputs ===========================================
+      err = gcsa->load_default_data(mris, subject_name, sulconly, which_norm);
 
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
       MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-      if (train_type == 0)
-        GCSAtrainMeans(gcsa, mris) ;
-      else
-        GCSAtrainCovariances(gcsa, mris) ;
+      if (train_type == 0) GCSAtrainMeans(gcsa, mris) ;
+      else                 GCSAtrainCovariances(gcsa, mris) ;
       MRISfree(&mris) ;
     }
-    if (train_type == 0)
-      GCSAnormalizeMeans(gcsa) ;
-    else
-      GCSAnormalizeCovariances(gcsa) ;
+    if (train_type == 0) GCSAnormalizeMeans(gcsa) ;
+    else                 GCSAnormalizeCovariances(gcsa) ;
   }
 
   if(DoFill){
-    if(nfillmax > 0)printf("Filling with a maximum of %d iterations\n",nfillmax);
+    if(nfillmax > 0) printf("Filling with a maximum of %d iterations\n",nfillmax);
     else             printf("Filling without a limit of  iterations\n");
     GCSAfill_cpn_holes(gcsa,nfillmax);
     GCSAfill_gcsan_holes(gcsa,nfillmax);
   }
 
-#if 0
-  if (ptable)
-    write_ptable(fname, ptable, nparcs) ;
-#endif
   printf("writing classifier array to %s...\n", out_fname) ;
   gcsa->ptable_fname = ptable_fname ;
   GCSAwrite(gcsa, out_fname) ;
@@ -385,7 +287,7 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help") || !stricmp(option, "help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -456,6 +358,21 @@ get_option(int argc, char *argv[])
     if(mri==NULL) exit(1);
     int err = MRIwrite(mri,argv[3]);
     exit(err);
+  }
+  else if(!stricmp(option, "gcs-diff")){
+    GCSA *gcsa1 = GCSAread(argv[2]);
+    if(!gcsa1) exit(1);
+    GCSA *gcsa2 = GCSAread(argv[3]);
+    if(!gcsa2) exit(1);
+    int err = GCSAdiff(gcsa1,gcsa2,0);
+    if(err) printf("GCSAs are different %d\n",err);
+    else    printf("GCSAs are NOT different\n");
+    exit(err);
+  }
+  else if(!strcmp(option, "input")){
+    input_fname = argv[2];
+    printf("input file  %s\n",input_fname);
+    nargs = 1;
   }
   else if(!strcmp(option, "debug-vertex")){
     Gdiag_no = atoi(argv[2]) ;
@@ -531,8 +448,7 @@ static void
 print_help(void)
 {
   print_usage() ;
-  fprintf(stderr,
-          "\n"
+  printf("\n"
           "Creates a cortical parcellation atlas file based on one or \n"
           "more annotated subjects. mris_ca_train builds probabilistic \n"
           "information estimated from a manually labeled training set \n"
@@ -545,7 +461,8 @@ print_help(void)
           "geometric information derived from the cortical model (sulcus \n"
           "and curvature), and neuroanatomical convention, as found in the \n"
           "training set. The result of mris_ca_train and mris_ca_label is \n"
-          "a complete labeling of cortical sulci and gyri.\n\n");
+          "a complete labeling of cortical sulci and gyri.\n"
+          "Multimodal possible with -n: 1=Mean Curv, 2=Sulc, 3=Thickness.\n\n");
   printf("Required args:\n") ;
   printf("  <hemi>               hemisphere: rh or lh\n");
   printf("  <canon surf>         canonical surface filename\n");
@@ -562,19 +479,20 @@ print_help(void)
   printf("  -ic <number_priors> <number_classifiers>   parameters passed to the classifier routine (default: -ic 7 4)""\n");
   printf("  -sulc                 specify sulc as only input    (default: sulcus and curvature)\n");
   printf("  -sulconly             same as -sulc\n");
-  printf("  -a <number>           number of averages (default=5)\n");
+  printf("  -a <number>           number of nearest neighbor smoothing iterations to apply to input 1 (default=5)\n");
   printf("  -t <filename>         specify parcellation table input file  (default: none)\n");
-  printf("   -n <number>           number of inputs (default=1)\n");
-  printf("   -v <number>            diagnostic level (default=0)\n");
-  printf("   -debug-vertex <number> diagnostic level (default=0)\n");
-  printf("   -gcs-means gcsa inputno means.mgz : stand-alone to extract\n");
+  printf("  -n <number>           number of inputs (default=1,max=3)\n");
+  printf("  -v <number>            diagnostic level (default=0)\n");
+  printf("  -debug-vertex <number> diagnostic level (default=0)\n");
+  printf("  -gcs-means gcsa inputno means.mgz : stand-alone to extract\n");
   printf("      likelihood means for all classes for given input\n");
-  printf("   -gcs-priors gcsa priors.mgz : stand-alone to extract\n");
+  printf("  -gcs-priors gcsa priors.mgz : stand-alone to extract\n");
   printf("      priors for all classes for given input\n");
-  printf("   -nfill nfill : set the max number of iterations for filling empty vertices\n");
-  printf("   -no-fill : do not fill at all\n");
-  printf("   --help                print help info\n");
-  printf("   --version             print version info\n");
+  printf("  -gcs-diff gcsa1 gcsa2 : determines whether GCSAs are different\n");
+  printf("  -nfill nfill : set the max number of iterations for filling empty vertices\n");
+  printf("  -no-fill : do not fill at all\n");
+  printf("  --help                print help info\n");
+  printf("  --version             print version info\n");
   exit(1) ;
 }
 
@@ -635,3 +553,55 @@ find_parc_index(int parc, int *ptable, int nparcs)
   return(-1) ;
 }
 
+#if 0
+int GCSA::load_default_data(MRIS *surf, char *subject_name, int sulc_only, int which_norm)
+{
+  int err;
+  this->inputvals = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,this->ninputs);
+
+  int normalize1_flag = this->inputs[0].flags & GCSA_NORMALIZE;
+  if(!sulconly){ // default, compute mean curvature and load as 1st input (v->val)
+    MRISuseMeanCurvature(surf) ;
+    MRISaverageCurvatures(surf, navgs); // spatially smooth
+    if(normalize1_flag) {
+      printf("GCSA::load_default_data(): normalizing #1, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToValues(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 0, "val");
+  }
+
+  if(this->ninputs > 1 || sulconly) { // not the default, load sulc and set as 2nd input (v->val2)
+    err = MRISreadCurvature(surf, this->inputs[1].fname);
+    if(err) {
+      MRIfree(this->inputvals);
+      return(err);
+    }
+    int normalize2_flag = this->inputs[1].flags & GCSA_NORMALIZE;
+    if(normalize2_flag || (sulconly && normalize1_flag)) {
+      printf("GCSA::load_default_data(): normalizing #2, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToValues(surf) ;
+    MRIScopyValToVal2(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 1, "val2");
+  }
+
+  if(this->ninputs > 2){ // not the default, load in thickness and set as 3rd input (v->imag_val)
+    err = MRISreadCurvature(surf, this->inputs[2].fname);
+    if(err) {
+      MRIfree(this->inputvals);
+      return(err);
+    }
+    int normalize3_flag = this->inputs[2].flags & GCSA_NORMALIZE;
+    if(normalize3_flag)  {
+      printf("GCSA::load_default_data(): normalizing #3, which_norm=%d\n",which_norm);
+      MRISnormalizeCurvature(surf, which_norm) ;
+    }
+    MRIScopyCurvatureToImagValues(surf) ;
+    MRIcopyMRIS(this->inputvals, surf, 2, "imag_val");
+  }
+  
+  return(0);
+}
+#endif

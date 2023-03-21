@@ -19,6 +19,7 @@
 #include "MainWindow.h"
 #include "BrushProperty.h"
 #include <QSettings>
+#include <QActionGroup>
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif

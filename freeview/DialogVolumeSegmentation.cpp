@@ -74,7 +74,7 @@ void DialogVolumeSegmentation::UpdateVolumes()
   foreach (Layer* layer, layers)
   {
     LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
-    ui->comboBoxVolume->addItem(mri->GetName(), qVariantFromValue<QObject*>(mri));
+    ui->comboBoxVolume->addItem(mri->GetName(), QVariant::fromValue<QObject*>(mri));
     if (src == mri)
       ui->comboBoxVolume->setCurrentIndex(ui->comboBoxVolume->count()-1);
   }

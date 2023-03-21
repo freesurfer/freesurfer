@@ -418,6 +418,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--no-surfs":
+    case "--no-surf":
       set DoSurfs = 0;
       set surflist0 = ()
       breaksw
@@ -669,6 +670,7 @@ usage_exit:
   echo "  --surfs : load lh and rh wm surfs"
   echo "  --pial-surfs : load pial surfs instead of wm surfs"
   echo "  --all-surfs : load both pial and wm surfs"
+  echo "  --no-surfs : do not load any surfs"
   echo "  --lh-only, --rh-only : surface hemisphere"
   echo "  --surf surfname : explicit path to surf to load"
   echo "  --aux-surf auxsurfname : explicit path to surf to load"

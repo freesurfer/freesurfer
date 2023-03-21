@@ -82,7 +82,9 @@ QVTKWidget::QVTKWidget(QWidget* p, Qt::WindowFlags f)
 {
   this->UseTDx=false;
   // no background
+#if QT_VERSION_MAJOR < 6
   this->setAttribute(Qt::WA_NoBackground);
+#endif
   // no double buffering
   this->setAttribute(Qt::WA_PaintOnScreen);
 
@@ -466,7 +468,11 @@ void QVTKWidget::paintEvent(QPaintEvent* )
 
   // In Qt 4.1+ let's support redirected painting
   // if redirected, let's grab the image from VTK, and paint it to the device
+#if QT_VERSION_MAJOR < 6
   QPaintDevice* device = QPainter::redirected(this);
+#else
+  QPaintDevice* device = NULL;
+#endif
   bool usingRedirectedDevice = (device != NULL && device != this);
 
   // if we have a saved image, use it

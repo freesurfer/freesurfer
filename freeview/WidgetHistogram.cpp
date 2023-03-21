@@ -494,9 +494,9 @@ void WidgetHistogram::mousePressEvent(QMouseEvent* event )
   {
       emit MouseButtonPressed(Qt::LeftButton, dValue);
   }
-  else if ( event->button() == Qt::MidButton )
+  else if ( event->button() == Qt::MiddleButton )
   {
-      emit MouseButtonPressed(Qt::MidButton, dValue);
+      emit MouseButtonPressed(Qt::MiddleButton, dValue);
   }
   else if ( event->button() == Qt::RightButton )
   {

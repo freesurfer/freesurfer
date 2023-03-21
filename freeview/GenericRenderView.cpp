@@ -262,9 +262,16 @@ void GenericRenderView::wheelEvent(QWheelEvent* event)
     pixelDelta.setX(0);
     QPoint angleDelta = e->angleDelta();
     angleDelta.setX(0);
+
+#if (QT_VERSION < QT_VERSION_CHECK(5,15,0))
     e = new QWheelEvent(e->posF(), e->globalPosF(),
                         pixelDelta, angleDelta, pixelDelta.y(), Qt::Vertical,
                         e->buttons(), e->modifiers(), e->phase(), e->source(), e->source());
+#else
+    e = new QWheelEvent(e->position(), e->globalPosition(),
+                        pixelDelta, angleDelta,
+                        e->buttons(), e->modifiers(), e->phase(), e->source());
+#endif
   }
 
 #if VTK_MAJOR_VERSION > 7

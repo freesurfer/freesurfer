@@ -86,6 +86,8 @@ char *patchname=NULL;
 const char *mtxfmt = NULL;
 int gifti_disp_image = 1;
 
+static bool doTkrRASConvert = false;
+
 int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf);
 int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname);
 int MRISprintEdgeInfo(FILE *fp, const MRIS *surf, int edgeno);
@@ -161,13 +163,14 @@ int main(int argc, char *argv[]) {
   }
 
   // Open as a surface
-  MRIS *mris = MRISread(surffile);
+  MRIS *mris = MRISread(surffile, doTkrRASConvert);
   if (!mris) {
     cerr << "could not open " << surffile << endl;
     return -1;
   }
   if(patchname){
-    int err = MRISreadPatch(mris, patchname);
+    // do we need to read surffile if --patch is specified ???
+    int err = MRISreadPatch(mris, patchname, doTkrRASConvert);
     if(err) exit(1);
   }
   MRIScomputeMetricProperties(mris) ;
@@ -362,9 +365,9 @@ int main(int argc, char *argv[]) {
        << ")" << endl;
   cout << "original vertex space   : " 
        << (mris->orig_xyzspace ? "scannerRAS" : "surfaceRAS") << endl;
-  cout << "vertex locs " 
-       << ((mris->useRealRAS != mris->orig_xyzspace) ? "(converted) : " : "            : ")
-       << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
+  cout << "vertex locs             : " 
+       << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") 
+       << ((mris->useRealRAS != mris->orig_xyzspace) ? "(converted)" : "") << endl;
   if (mris->lta) {
     cout << "talairch.xfm: " << endl;
     MatrixPrint(stdout, mris->lta->xforms[0].m_L);

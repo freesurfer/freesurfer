@@ -52,7 +52,7 @@ numSeries = 0
  */
 
 // set TDCMopts defaults, overwrite settings to output in mgz orientation
-void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir)
+void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir, bool createBIDS)
 {
   memset(&tdcmOpts, 0, sizeof(tdcmOpts));
   setDefaultOpts(&tdcmOpts, NULL);
@@ -62,11 +62,13 @@ void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir)
   if (niioutdir != NULL)
     strcpy(tdcmOpts.outdir, niioutdir);
 
+  strcpy(tdcmOpts.filename, "%4s.%p");
+
   // set the options for freesurfer mgz orientation
   tdcmOpts.isRotate3DAcq = false;
   tdcmOpts.isFlipY = false;
   tdcmOpts.isIgnoreSeriesInstanceUID = true;
-  tdcmOpts.isCreateBIDS = false;
+  tdcmOpts.isCreateBIDS = createBIDS;
   tdcmOpts.isGz = false;
   tdcmOpts.isForceStackSameSeries = 1; // merge 2D slice '-m y'
   tdcmOpts.isForceStackDCE = false;

@@ -160,7 +160,13 @@ if(! $UseTkMedit) then
          $surfname != lh.smoothwm.nofix && $surfname != rh.smoothwm.nofix) then
         set hemi = `echo $surfname | cut -c1-2`
         if($hemi == lh || $hemi == rh) then
+          # problem with specifying a full path here is that it might not be right hemi
           set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
+          if(! -e $annotfile && -e $annot) set annotfile = $annot
+          if(! -e $annotfile) then
+             echo "ERROR: cannot find $annot"
+             exit 1
+          endif
           set annotarg = $annotarg":annot=$annotfile":"annot_outline=0"
         endif
       endif

@@ -16,6 +16,7 @@
 #define PANELPOINTSET_H
 
 #include "PanelLayer.h"
+#include <QMap>
 
 namespace Ui
 {
@@ -66,6 +67,7 @@ protected slots:
   void OnTextOverallQualityChanged();
   void OnSpinBoxOverallScore(int);
   void OnSpinBoxSecondQA(int);
+  void OnCheckBoxFixed(bool b);
 
 private:
   QLabel* MakeCommentItem(const QVariantMap& map, QLabel* label_in = NULL);
@@ -77,6 +79,7 @@ private:
   QList<QWidget*> m_widgetlistSpline;
 
   QString     m_self;
+  QMap<QObject*, int> m_mapCurrentPoint;
 };
 
 #endif // PANELPOINTSET_H

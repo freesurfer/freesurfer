@@ -154,10 +154,10 @@ void Interactor3DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
   {
     QMouseEvent* e = ( QMouseEvent* )event;
 #ifdef Q_OS_MAC
-    if ( (e->button() != Qt::RightButton && e->button() != Qt::MidButton) ||
+    if ( (e->button() != Qt::RightButton && e->button() != Qt::MiddleButton) ||
          ( e->button() == Qt::RightButton && (e->buttons() & Qt::LeftButton) ) )
 #else
-    if (e->button() != Qt::RightButton && e->button() != Qt::MidButton)
+    if (e->button() != Qt::RightButton && e->button() != Qt::MiddleButton)
 #endif
     {
       if ( e->modifiers() & CONTROL_MODIFIER && !(e->modifiers() & Qt::ShiftModifier) )

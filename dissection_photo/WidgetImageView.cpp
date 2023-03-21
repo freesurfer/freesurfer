@@ -4,6 +4,7 @@
 #include <QDebug>
 #include "math.h"
 #include "exif.h"
+#include <QFile>
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),

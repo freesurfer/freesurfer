@@ -5,9 +5,9 @@
 #include <QSettings>
 #include <QFileInfo>
 #include <QMessageBox>
-#include <QDesktopWidget>
 #include <QTimer>
 #include <QFileDialog>
+#include <QScreen>
 #include <QDebug>
 
 #define WND_TITLE "Correction With Fiducials"
@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
 
   QSettings s;
   QRect rc = s.value("MainWindow/Geometry").toRect();
-  if (rc.isValid() && QApplication::desktop()->screenGeometry(this).contains(rc))
+  if (rc.isValid() && QGuiApplication::primaryScreen()->geometry().contains(rc))
     setGeometry(rc);
 
   m_proc = new QProcess(this);

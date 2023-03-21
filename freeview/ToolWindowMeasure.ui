@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>397</width>
-    <height>400</height>
+    <width>412</width>
+    <height>405</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -139,8 +139,8 @@
        <height>270</height>
       </size>
      </property>
-     <property name="tabStopWidth">
-      <number>50</number>
+     <property name="tabStopWidth" stdset="0">
+      <number>0</number>
      </property>
     </widget>
    </item>
