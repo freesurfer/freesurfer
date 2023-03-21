@@ -45,8 +45,8 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
 
 // overloaded functions to handle combined GIFTI with multiple intents
 int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype);
-int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype);
-int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype);
+int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *shapedatatype);
+int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *statsdatatype);
 
 // function to return SHAPE and <STATS> intent counts
 int getShapeStatIntentCount(const char *fgifti);

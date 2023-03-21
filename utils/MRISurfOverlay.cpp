@@ -19,21 +19,23 @@ MRISurfOverlay::MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *pove
     __overlayInfo[n].__stframe = n;  // assume one frame for each overlay
 
     const char *curv_fname = __overlayInfo[n].__foverlay;
-    __overlayInfo[n].__datatype = NULL;
+    __overlayInfo[n].__shapedatatype = NULL;
     if (strstr(curv_fname, ".thickness"))
-      __overlayInfo[n].__datatype = "Thickness";
+      __overlayInfo[n].__shapedatatype = "Thickness";
     else if (strstr(curv_fname, ".curv"))
-      __overlayInfo[n].__datatype = "CurvatureRadial";
+      __overlayInfo[n].__shapedatatype = "CurvatureRadial";
     else if (strstr(curv_fname, ".sulc"))
-      __overlayInfo[n].__datatype = "SulcalDepth";
+      __overlayInfo[n].__shapedatatype = "SulcalDepth";
     else if (strstr(curv_fname, ".area"))
-      __overlayInfo[n].__datatype = "Area";
+      __overlayInfo[n].__shapedatatype = "Area";
     else if (strstr(curv_fname, ".volume"))
-      __overlayInfo[n].__datatype = "Volume";
+      __overlayInfo[n].__shapedatatype = "Volume";
     else if (strstr(curv_fname, ".jacobian"))
-      __overlayInfo[n].__datatype = "Jacobian";
+      __overlayInfo[n].__shapedatatype = "Jacobian";
     else
-      __overlayInfo[n].__datatype = NULL; 
+      __overlayInfo[n].__shapedatatype = NULL; 
+
+    __overlayInfo[n].__giftiIntent = getGIFTIIntent(n);
 
 #if 0
     memcpy(__overlayInfo[n], poverlayInfo[n], sizeof(__overlayInfo[n]));
@@ -158,6 +160,8 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
     }
 
     __overlayInfo[__currOverlay].__numframe = 1;
+
+    // MRI_MGH_FILE can have multiple frames if it is functional statistical data
     if (tempMRI->nframes > 1)
     {
       printf("[INFO] MRISurfOverlay::readOneOverlay() - %s has multiple frames = %d.\n", __overlayInfo[nthOverlay].__foverlay, tempMRI->nframes);
@@ -587,7 +591,10 @@ int MRISurfOverlay::__writeCurvFromMRIS(MRIS *outmris, const char *fout)
 
 int MRISurfOverlay::getGIFTIIntent(int nthOverlay)
 {
-  int giftiIntent = NIFTI_INTENT_NONE;
+  int giftiIntent = __overlayInfo[nthOverlay].__giftiIntent;
+
+  if (giftiIntent != NIFTI_INTENT_NONE)
+    return giftiIntent;
 
   int type = __overlayInfo[nthOverlay].__type;
   if (type == FS_MRISURFOVERLAY_SHAPE      ||
@@ -645,6 +652,7 @@ int MRISurfOverlay::getGIFTIIntent(int nthOverlay)
   else if (type == FS_MRISURFOVERLAY_STATS_ESTIMATE)
     giftiIntent = NIFTI_INTENT_ESTIMATE;
 
+  __overlayInfo[nthOverlay].__giftiIntent = giftiIntent;
   return giftiIntent;
 }
 
@@ -713,6 +721,7 @@ int MRISurfOverlay::__getFrameCount()
     }
     else if (overlayFormat == GIFTI_FILE)
     {
+      // each intent is a frame in MRI
       int intents = getShapeStatIntentCount(__overlayInfo[__currFrame].__foverlay);
       count += intents;
     }

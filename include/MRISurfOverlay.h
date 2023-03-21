@@ -42,13 +42,14 @@
 
 struct OverlayInfoStruct
 {
-  //char __foverlay[1024]; // full path to overlay file
-  const char *__foverlay;
-  int  __type;           // FS_MRISURFOVERLAY*
-  const char *__datatype;// CurvatureRadial, SulcalDepth, Thickness, Area, (Volume, Jacobian)
-  int  __format;         // MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
-  int  __stframe;        // starting frame, this can be used when we combine multiple overlays in one MRI
-  int  __numframe;       // for functions time series*, nframes can be > 1
+  const char *__foverlay;       // full path to overlay file
+  int  __type;                  // FS_MRISURFOVERLAY*
+  int  __giftiIntent;           // NIFTI_INTENT*
+  const char *__shapedatatype;  // this is for NIFTI_INTENT_SHAPE. 
+                                // possible values: CurvatureRadial, SulcalDepth, Thickness, Area, (Volume, Jacobian)
+  int  __format;                // MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
+  int  __stframe;               // starting frame, this can be used when we combine multiple overlays in one MRI
+  int  __numframe;              // for functions time series*, nframes can be > 1
 
   int __nValsPerVertex = 1;  // number of values at each vertex, should be 1  
 };
@@ -80,7 +81,7 @@ public:
   int getGIFTIIntent(int nthOverlay);
   int getFirstFrameNo(int nthOverlay) { return __overlayInfo[nthOverlay].__stframe; }
   int getNumFrames(int nthOverlay) { return __overlayInfo[nthOverlay].__stframe + __overlayInfo[nthOverlay].__numframe; }
-  const char *getDataType(int nthOverlay) { return __overlayInfo[nthOverlay].__datatype; }
+  const char *getShapeDataType(int nthOverlay) { return __overlayInfo[nthOverlay].__shapedatatype; }
 
   // return overlay data in multi-frame MRI
   MRI *getOverlayMRI() { return __overlaymri; }

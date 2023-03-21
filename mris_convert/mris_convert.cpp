@@ -151,6 +151,8 @@ int WriteArea = 0;
 int nUpsample = 0,UpsampleSortType=0;
 int DeleteCommands = 0;
 
+static char *infile = NULL, *infile2 = NULL, *outfile = NULL; 
+
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -187,8 +189,6 @@ main(int argc, char *argv[])
     //printf("argc:%d, argv[1]:%s, argv[2]:%s, argv[3]:%s\n",
     //     argc,argv[1],argv[2],argv[3]);
   }
-
-  check_options();
 
   if (argc == 1) // no input parameters provided
     usage_exit();
@@ -232,6 +232,12 @@ main(int argc, char *argv[])
     out_fname = argv[3];
   }
 #endif
+
+  infile  = in_fname;
+  infile2 = in2_fname;
+  outfile = out_fname;
+
+  check_options();
 
   // check whether output is a .w file
   dot = strrchr(out_fname, '.') ;
@@ -1010,6 +1016,12 @@ get_option(int argc, char *argv[])
 
 static void check_options(void)
 {
+  if (mergegifti_flag && MRISurfOverlay::getFileFormat(outfile) != GIFTI_FILE)
+  {
+    printf("ERROR: --mergegifti only works with GIFTI output\n");
+    exit(1);
+  }
+
   if (combinesurfs_flag && curv_file_flag)
   {
     printf("ERROR: --combinesurf and -c are mutually exclusive. \n");

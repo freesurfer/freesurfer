@@ -2307,8 +2307,8 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
     int endFrame = poverlays->getNumFrames(n);
     for (int f = stFrame; f < endFrame; f++)
     {
-      const char *datatype = poverlays->getDataType(n);
-      int error = MRISwriteGIFTIIntent(mris, overlaymri, f, f+1, image, giftiintent, out_fname, poverlays->getOverlayFilename(n), datatype);
+      const char *shapedatatype = poverlays->getShapeDataType(n);
+      int error = MRISwriteGIFTIIntent(mris, overlaymri, f, f+1, image, giftiintent, out_fname, poverlays->getOverlayFilename(n), shapedatatype);
       if (error != NO_ERROR)
         return error;
     }
@@ -2388,7 +2388,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
  * Shape file
  *       intent_code = NIFTI_INTENT_SHAPE
  */
-int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype)
+int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *shapedatatype)
 {
 #if 0
     // data is in mri
@@ -2433,8 +2433,8 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 
     /* include some metadata describing this shape */
     gifti_add_to_meta(&shape->meta, "Name", curv_fname, 1);
-    const char *meta = datatype;
 #if 0
+    const char *meta = shapedatatype;
     if (strstr(curv_fname, ".thickness")) {
       meta = "Thickness";
     }
@@ -2454,8 +2454,8 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
       meta = "Jacobian";
     }
 #endif
-    if (meta) {
-      gifti_add_to_meta(&shape->meta, "ShapeDataType", meta, 1);
+    if (shapedatatype) {
+      gifti_add_to_meta(&shape->meta, "ShapeDataType", shapedatatype, 1);
     }
 
     /* Allocate the data array. */
@@ -2508,7 +2508,7 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
  * Statistics file
  *       intent_code = NIFTI_INTENT_<stats>
  */
-int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *datatype)
+int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *statsdatatype)
 {
     if ((endframe - stframe) > 1)
     {
