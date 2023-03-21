@@ -55,7 +55,7 @@ bool Interactor3DPointSetEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderVi
     {
       if ( !(event->modifiers() & Qt::ShiftModifier) )
       {
-        if (!mwnd->GetVisibleLayers("Surf").isEmpty())
+        if (!mwnd->GetVisibleLayers("Surface").isEmpty())
         {
           int nvo = -1;
           nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), surf);
