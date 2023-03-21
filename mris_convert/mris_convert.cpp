@@ -164,6 +164,8 @@ main(int argc, char *argv[])
   FILE *fp=NULL;
   char *in2_fname=NULL;
 
+  std::string cmdline = getAllInfo(argc, argv, "mris_convert");
+
   nargs = handleVersionOption(argc, argv, "mris_convert");
   if (nargs && argc - nargs == 1)
   {
@@ -329,6 +331,8 @@ main(int argc, char *argv[])
     }
     mris->ncmds = 0;
   }
+
+  MRISaddCommandLine(mris, cmdline);
 
   if(cras_add){
     printf("Adding scanner CRAS to surface xyz\n");

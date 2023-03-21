@@ -35,6 +35,8 @@
 #include "timer.h"
 #include "utils.h"  // strcpyalloc
 
+#define TAG_CMDLINE_LEN 1024
+
 /*
  *
  */
@@ -651,6 +653,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         vgvalid++;
       }
 
+      // we got all 18 values
       if (vgvalid == 18) {
         mris->vg.valid = 1;  // finally we can say its valid data
       }
@@ -666,6 +669,50 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       stmp = gifti_get_meta_value(&coords->meta, "SurfaceCenterZ");
       if (stmp && (1 == sscanf(stmp, "%f", &mris->zctr))) {
         vgvalid++;
+      }
+    }
+
+    /* retrieve TAG_GROUP_AVG_SURFACE_AREA info */
+    {
+      char *group_avg_surface_area = gifti_get_meta_value(&coords->meta, "TAG_GROUP_AVG_SURFACE_AREA");
+      if (group_avg_surface_area)
+        sscanf(group_avg_surface_area, "%f", &mris->group_avg_surface_area);
+    }
+
+    /* retrieve TAG_CMDLINE info */
+    {
+      char *ncmds = gifti_get_meta_value(&coords->meta, "NUM_TAG_CMDLINE");
+      if (ncmds)
+        sscanf(ncmds, "%d", &mris->ncmds);
+
+      int numcmds = mris->ncmds;
+      if (mris->ncmds > MAX_CMDS)
+      {
+        printf("[WARN] mrisReadGIFTIdanum():  too many commands (%d) in file. Only last %d will be saved!\n", mris->ncmds, MAX_CMDS);
+        mris->ncmds = MAX_CMDS;
+      }
+
+      int toskip = (numcmds > MAX_CMDS) ? (numcmds - MAX_CMDS) : 0;
+      while (toskip)
+        gifti_get_meta_value(&coords->meta, "TAG_CMDLINE");
+
+      for (int ncmd = 0; ncmd < mris->ncmds; ncmd++)
+      {
+        char tag[20] = {'\0'};
+        sprintf(tag, "%s#%d", "TAG_CMDLINE", ncmd);
+
+        char *cmdline = gifti_get_meta_value(&coords->meta, tag);
+        if (!cmdline)
+	{
+          printf("[ERROR] TAG_CMDLINE out of sync\n");
+          break;
+	}
+
+        mris->cmdlines[ncmd] = (char *)calloc(TAG_CMDLINE_LEN + 1, sizeof(char));
+        if (mris->cmdlines[ncmd] == NULL)
+            ErrorExit(ERROR_NOMEMORY, "mrisReadGIFTIdanum(): could not allocate %d byte cmdline", TAG_CMDLINE_LEN);
+        //mris->cmdlines[ncmd][TAG_CMDLINE_LEN] = 0;
+        memcpy(mris->cmdlines[ncmd], cmdline, TAG_CMDLINE_LEN);
       }
     }
 
@@ -2192,6 +2239,33 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
       gifti_add_to_meta(&coords->meta, "SurfaceCenterY", stmp, 1);
       sprintf(stmp, "%f", mris->zctr);
       gifti_add_to_meta(&coords->meta, "SurfaceCenterZ", stmp, 1);
+    }
+
+    // group avg surface area, TAG_GROUP_AVG_SURFACE_AREA
+    if (!FZERO(mris->group_avg_surface_area))
+    {
+      char group_avg_surface_area[100] = {'\0'};
+
+      sprintf(group_avg_surface_area, "%.20f", mris->group_avg_surface_area);
+      gifti_add_to_meta(&coords->meta, "TAG_GROUP_AVG_SURFACE_AREA", group_avg_surface_area, 1);
+    }
+
+    // TAG_CMDLINE
+    if (mris->ncmds > 0)
+    {
+      char ncmds[20] = {'\0'};
+      sprintf(ncmds, "%d", mris->ncmds);
+      gifti_add_to_meta(&coords->meta, "NUM_TAG_CMDLINE", ncmds, 1);
+
+      for (int ncmd = 0; ncmd < mris->ncmds; ncmd++)
+      {
+        char cmdline[TAG_CMDLINE_LEN] = {'\0'};
+        snprintf(cmdline, sizeof(cmdline), "%s", mris->cmdlines[ncmd]);
+
+        char tag[20] = {'\0'};
+        sprintf(tag, "%s#%d", "TAG_CMDLINE", ncmd);
+        gifti_add_to_meta(&coords->meta, tag, cmdline, 1);
+      }
     }
 
     return NO_ERROR;
