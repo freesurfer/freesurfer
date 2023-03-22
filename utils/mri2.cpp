@@ -6707,3 +6707,64 @@ MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol)
   return(outvol);
 }
 
+/*!
+  \fn int MRIfixEntoWM(MRI *invol, MRI *entowm, double lhVal, double rhVal)
+
+  \brief This is a bit of a hack to fix the WM around the gyrus
+  ambiens (entorhinal cortex). This WM is often so thin that it looks
+  like GM. This creates a "bite" in the surface. The idea here is to
+  pass a segmentation (entowm) where this area is labeled as {3,4}006
+  and/or {3,4}201, where 3=lh and 4=rh. Voxels with this label in the
+  entowm volume, are replaced with either lhVal or rhVal. Eg, when
+  fixing the wm.mgz or wm.seg.mgz or wm.asegedit.mgz, set
+  lhVal=rhVal=250 (this is the same value that is used to fill the
+  ventricles, etc).  For brain.finalsurf, use lhVal=rhVal=255. For
+  filled, use lhVal=255 and rhVal=127. Currently, the entowm.mgz can
+  be created using mri_entowm_seg (a DL seg routine). The network was
+  trained from manually labeling this area. 
+ */
+int MRIfixEntoWM(MRI *invol, const MRI *entowm, double lhVal, double rhVal)
+{
+  std::vector<int> lhIndexList = {3006,3201};
+  std::vector<int> rhIndexList = {4006,4201};
+
+  printf("MRIfixEntoWM(): %g %g\n",lhVal,rhVal);
+
+  int nchanged=0;
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	// Get the indices of this voxel
+	int i = MRIgetVoxVal(entowm,c,r,s,0);
+	int iInLhList=0;
+	for(int n=0; n < lhIndexList.size(); n++){
+	  if(i==lhIndexList[n]){
+	    iInLhList = 1;
+	    break;
+	  }
+	}
+	if(iInLhList){
+	  MRIsetVoxVal(invol,c,r,s,0,lhVal);
+	  nchanged++;
+	  continue;
+	}
+	int iInRhList=0;
+	for(int n=0; n < rhIndexList.size(); n++){
+	  if(i==rhIndexList[n]){
+	    iInRhList = 1;
+	    break;
+	  }
+	}
+	if(iInRhList){
+	  MRIsetVoxVal(invol,c,r,s,0,rhVal);
+	  nchanged++;
+	  continue;
+	}
+
+      }
+    }
+  }
+  printf("FixEntoWM(): nchanged = %d\n",nchanged);
+  return(nchanged);
+}
+
