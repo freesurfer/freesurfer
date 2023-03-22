@@ -22,6 +22,9 @@ set DoAllSurfs = 0;
 set altargs = ()
 set patch = ()
 set annotoutline = 1
+set overlaymethod = "mid_to_min"
+if($?FV_PATIENT_ORIENTATION == 0) setenv FV_PATIENT_ORIENTATION 1
+if($?FV_ROTATE_AROUND_CURSOR == 0) setenv FV_ROTATE_AROUND_CURSOR 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -56,7 +59,10 @@ set tSecStart = `date '+%s'`;
 
 if(! $UseTkSurfer) then
   ### FreeView ####----------------------------------------------
-  set cmd = (freeview -f)
+  set cmd = (freeview )
+  if($FV_PATIENT_ORIENTATION == 2) set cmd = ($cmd -neuro-view)
+  if($FV_ROTATE_AROUND_CURSOR) set cmd = ($cmd -rotate-around-cursor)
+  set cmd = ($cmd -f)
   @ nthsurf = 0;
   foreach surf ($surflist)
     @ nthsurf = $nthsurf + 1;
@@ -72,7 +78,8 @@ if(! $UseTkSurfer) then
     foreach overlay ($overlaylist)
       # Change this when RP changes linear opaque in fv
       set fmid = $fthresh;
-      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax":overlay_method=piecewise
+      #set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax":overlay_method=piecewise
+      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmax":"overlay_method=$overlaymethod"
       if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
     end
     if($#labellist) then
@@ -96,6 +103,11 @@ else
 endif
 set cmd = ($cmd $altargs)
 echo $cmd
+if($FV_PATIENT_ORIENTATION == 2) then 
+  echo "\n\n USING NEUROLOGICAL ORIENTATION FOR VOLUME VIEWING\n\n"
+else
+  echo "\n\n USING RADIOLOGICAL ORIENTATION FOR VOLUME VIEWING\n\n"
+endif
 fsvglrun $cmd
 
 #========================================================
@@ -162,6 +174,19 @@ while( $#argv != 0 )
         exit 1;
       endif
       set overlaylist = ($overlaylist $ov)
+      breaksw
+
+    case "-linear":
+      set overlaymethod = linear
+      breaksw
+    case "-linearopaque":
+      set overlaymethod = linearopaque
+      breaksw
+    case "-piecewise":
+      set overlaymethod = piecewise
+      breaksw
+    case "-min_to_max":
+      set overlaymethod = min_to_max
       breaksw
 
     case "-timecourse":
@@ -243,6 +268,24 @@ while( $#argv != 0 )
     case "-novgl":
     case "-no-vgl":
       unsetenv FS_ALLOW_VGLRUN 
+      breaksw
+
+    case "-radiological":
+    case "-radio":
+      setenv FV_PATIENT_ORIENTATION 1
+      breaksw
+    case "-neurological":
+    case "-neuro":
+      setenv FV_PATIENT_ORIENTATION 2
+      breaksw
+
+    case "-rotate-around-cursor":
+    case "-rac":
+      setenv FV_ROTATE_AROUND_CURSOR 1
+      breaksw
+    case "-no-rotate-around-cursor":
+    case "-no-rac":
+      setenv FV_ROTATE_AROUND_CURSOR 0
       breaksw
 
     case "--nolog":
@@ -384,6 +427,9 @@ usage_exit:
   echo "-vgl : runs freeview with /usr/pubsw/bin/vglrun"
   echo "-no-vgl : does not run freeview with /usr/pubsw/bin/vglrun"
   echo "-no-outline : do not show annots as outline"
+  echo "-neuro : use neurological orientation instead of radiological"
+  echo "-rotate-around-cursor (-rca) : in 3d view, rotate around cursor (use -no- to turn off)"
+  echo "-linear, -linearopaque, -piecewise, -min_to_max (default) : overlay heat scale"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

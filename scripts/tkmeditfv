@@ -51,6 +51,9 @@ set mainmax = ()
 set annotlist = ()
 set DoManCheck = 0
 set DoCDMRI = 0;
+set overlaymethod = "mid_to_min"
+if($?FV_PATIENT_ORIENTATION == 0) setenv FV_PATIENT_ORIENTATION 1
+if($?FV_ROTATE_AROUND_CURSOR == 0) setenv FV_ROTATE_AROUND_CURSOR 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -90,6 +93,8 @@ if(! $UseTkMedit) then
   else
     set cmd = (freeview  -v $mainvol":"grayscale=$mainmin,$mainmax)
   endif
+  if($FV_PATIENT_ORIENTATION == 2) set cmd = ($cmd -neuro-view)
+  if($FV_ROTATE_AROUND_CURSOR) set cmd = ($cmd -rotate-around-cursor)
   if($#auxvol) set cmd = ($cmd -v $auxvol)
   if($#segvol) then
     set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
@@ -122,7 +127,8 @@ if(! $UseTkMedit) then
   foreach ov ($overlay)
     #set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
     set fmid = $fthresh;
-    set fvopt = ($ov":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
+    #set fvopt = ($ov":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
+    set fvopt = ($ov":"colormap=heat":"heatscale=$fthresh,$fmax); # ":"overlay_method=$overlaymethod -> does not work with volumes
     if($#overlayreg) set fvopt = ($fvopt":"reg=${overlayreg}:resample=$interp)
     set cmd = ($cmd -v $fvopt)
   end
@@ -207,6 +213,11 @@ else
   if($DoSurfs) set cmd = ($cmd -surfs)
 endif
 echo $cmd
+if($FV_PATIENT_ORIENTATION == 2) then 
+  echo "\n\n USING NEUROLOGICAL ORIENTATION FOR VOLUME VIEWING\n\n"
+else
+  echo "\n\n USING RADIOLOGICAL ORIENTATION FOR VOLUME VIEWING\n\n"
+endif
 fsvglrun $cmd
 #setenv VGL_DISPLAY :0
 #  exec /usr/pubsw/bin/vglrun $cmd
@@ -390,6 +401,19 @@ while( $#argv != 0 )
         exit 1;
       endif
       set overlay = ($overlay $ov)
+      breaksw
+
+    case "-linear":
+      set overlaymethod = linear
+      breaksw
+    case "-linearopaque":
+      set overlaymethod = linearopaque
+      breaksw
+    case "-piecewise":
+      set overlaymethod = piecewise
+      breaksw
+    case "-min_to_max":
+      set overlaymethod = min_to_max
       breaksw
 
     case "-trilin":
@@ -609,6 +633,24 @@ while( $#argv != 0 )
     case "-novgl":
     case "-no-vgl":
       unsetenv FS_ALLOW_VGLRUN 
+      breaksw
+
+    case "-radiological":
+    case "-radio":
+      setenv FV_PATIENT_ORIENTATION 1
+      breaksw
+    case "-neurological":
+    case "-neuro":
+      setenv FV_PATIENT_ORIENTATION 2
+      breaksw
+
+    case "-rotate-around-cursor":
+    case "-rac":
+      setenv FV_ROTATE_AROUND_CURSOR 1
+      breaksw
+    case "-no-rotate-around-cursor":
+    case "-no-rac":
+      setenv FV_ROTATE_AROUND_CURSOR 0
       breaksw
 
     case "--nolog":
@@ -840,6 +882,9 @@ usage_exit:
   echo "-defects : load info needed to evaluate defects"
   echo "-defectps : load defect pointset (also loaded with -defects)"
   echo "-trilin : use trilinear interpolation for volume overlays"
+  echo "-neuro : use neurological orientation instead of radiological"
+  echo "-rotate-around-cursor (-rca) : in 3d view, rotate around cursor (use -no- to turn off)"
+  #echo "-linear, -linearopaque, -piecewise, -min_to_max (default) : overlay heat scale"
   echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
