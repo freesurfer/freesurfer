@@ -434,7 +434,7 @@ int main(int argc, char *argv[]) {
 
   if (surf1->vg.valid != surf2->vg.valid)
     printf("WARN: Surface validity of the geometry differs.\n");
-  if (surf1->useRealRAS != surf1->useRealRAS)
+  if (surf1->useRealRAS != surf2->useRealRAS)
     printf("WARN: Surface coordinates are in different space.\n");
 
   printf("Number of vertices %d %d\n",surf1->nvertices,surf2->nvertices);
