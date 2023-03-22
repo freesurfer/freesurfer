@@ -3639,7 +3639,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_opacity;
     QString overlay_frame;
     QString overlay_smooth_steps;
-    QString overlay_method = "linearopaque";
+    QString overlay_method;
     QStringList overlay_color;
     QStringList overlay_thresholds;
     QStringList overlay_custom;
@@ -3764,10 +3764,13 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             script << "rh";
           m_scripts.insert( 0, script );
 
+          if (overlay_method.isEmpty())
+            overlay_method = "linearopaque";
           if (overlay_method != "linearopaque" || !overlay_thresholds.isEmpty())
           {
-            script = QStringList("setsurfaceoverlaymethod") << overlay_method <<
-                                                               overlay_thresholds;
+            script = QStringList("setsurfaceoverlaymethod") << overlay_method;
+            if (!overlay_thresholds.isEmpty())
+                 script << overlay_thresholds.join(",");
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
@@ -4203,15 +4206,17 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
     if ( overlay )
     {
       int nMethod = SurfaceOverlayProperty::CM_LinearOpaque;
-      if ( cmd[1] == "linear" )
+      QStringList methods = cmd[1].split(",");
+      if (methods.contains("linear", Qt::CaseInsensitive))
       {
         nMethod = SurfaceOverlayProperty::CM_Linear;
       }
-      else if ( cmd[1] == "piecewise" )
+      else if (methods.contains("piecewise", Qt::CaseInsensitive))
       {
         nMethod = SurfaceOverlayProperty::CM_Piecewise;
       }
-      else if ( cmd[1] != "linearopaque" )
+      else if (!methods.contains("linearopaque", Qt::CaseInsensitive) && !methods.contains("mid_to_min", Qt::CaseInsensitive) &&
+               !methods.contains("midtomin", Qt::CaseInsensitive))
       {
         cerr << "Unrecognized overlay method name '" << cmd[1].toLatin1().constData() << "'.\n";
         return;
@@ -4219,49 +4224,58 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 
       overlay->GetProperty()->SetColorMethod( nMethod );
 
-      bool bPercentile = false, bIgnoreZeros = false;
-      while (cmd.last() == "percentile" || cmd.last() == "ignore_zeros")
+      if (cmd.size() > 2)
       {
-        if (cmd.last() == "percentile")
-          bPercentile = true;
+        cmd = cmd[2].split(",", MD_SkipEmptyParts);
+        bool bPercentile = false, bIgnoreZeros = false;
+        while (cmd.last() == "percentile" || cmd.last() == "ignore_zeros")
+        {
+          if (cmd.last() == "percentile")
+            bPercentile = true;
+          else
+            bIgnoreZeros = true;
+          cmd.removeLast();
+        }
+
+        double values[3];
+        if (bIgnoreZeros)
+          overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
+        if (bPercentile)
+          overlay->GetProperty()->SetUsePercentile(bPercentile);
+
+        bool bOK;
+        if ( cmd.size() >= 3 )   // 3 values
+        {
+          values[0] = cmd[0].toDouble(&bOK);
+          values[1] = cmd[1].toDouble(&bOK);
+          values[2] = cmd[2].toDouble(&bOK);
+        }
+        else if (cmd.size() == 2)
+        {
+          values[0] = cmd[0].toDouble(&bOK);
+          values[2] = cmd[1].toDouble(&bOK);
+          values[1] = (values[0]+values[2])/2;
+        }
+        if (bPercentile)
+        {
+          for (int i = 0; i < 3; i++)
+            values[i] = overlay->PercentileToPosition(values[i], bIgnoreZeros);
+        }
+        if ( bOK )
+        {
+          overlay->GetProperty()->SetMinPoint( values[0] );
+          overlay->GetProperty()->SetMidPoint( values[1] );
+          overlay->GetProperty()->SetMaxPoint( values[2] );
+        }
         else
-          bIgnoreZeros = true;
-        cmd.removeLast();
+        {
+          cerr << "Invalid input for overlay threshold.\n";
+        }
       }
 
-      double values[3];
-      if (bIgnoreZeros)
-        overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
-      if (bPercentile)
-        overlay->GetProperty()->SetUsePercentile(bPercentile);
-
-      bool bOK;
-      if ( cmd.size() - 2 >= 3 )   // 3 values
+      if (methods.contains("mid_to_min", Qt::CaseInsensitive) || methods.contains("midtomin", Qt::CaseInsensitive))
       {
-        values[0] = cmd[2].toDouble(&bOK);
-        values[1] = cmd[3].toDouble(&bOK);
-        values[2] = cmd[4].toDouble(&bOK);
-      }
-      else if (cmd.size() - 2 == 2)
-      {
-        values[0] = cmd[2].toDouble(&bOK);
-        values[2] = cmd[3].toDouble(&bOK);
-        values[1] = (values[0]+values[2])/2;
-      }
-      if (bPercentile)
-      {
-        for (int i = 0; i < 3; i++)
-          values[i] = overlay->PercentileToPosition(values[i], bIgnoreZeros);
-      }
-      if ( bOK )
-      {
-        overlay->GetProperty()->SetMinPoint( values[0] );
-        overlay->GetProperty()->SetMidPoint( values[1] );
-        overlay->GetProperty()->SetMaxPoint( values[2] );
-      }
-      else
-      {
-        cerr << "Invalid input for overlay threshold.\n";
+        overlay->GetProperty()->SetAutoMidToMin(true);
       }
 
       surf->UpdateOverlay(true);

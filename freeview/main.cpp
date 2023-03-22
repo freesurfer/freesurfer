@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
     "':curvature_setting=midpoint,slope' method to set curvature midpoint and slope.\n\n"
     "':overlay=overlay_filename' Load overlay data from file.\n\n"
     "':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n"
-    "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
+    "':overlay_method=method_names' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'. Can also combine with 'mid_to_min', separated by ','.\n\n"
     "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate', 'inverse', 'clearlower' and 'clearhigher'. Use comma to apply more than one. 'clearlower/higher' only works when overlay_custom option is on.\n\n"
     "':overlay_custom=[filename]val,r,g,b,val2,r2,g2,b2...' Set customized overlay color. If only given one argument as filename, customized color scale will be loaded from the given file.\n\n"
     "':overlay_opacity=opacity' Set opacity of overlay.\n\n"
