@@ -4352,7 +4352,15 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
   // convert surface xyz coordinates from scanner space to tkregister space 
   // (ie, the native space that the surface xyz coords are generated in)
   if (mris->useRealRAS && dotkrRasConvert)
+  {
+    if (!mris->vg.valid)
+    {
+      printf("ERROR: Surface %s doesn't have valid volume geometry!\n", fname);
+      return NULL;
+    }
+
     MRISscanner2Tkr(mris);
+  }
 
   MRISsetNeighborhoodSizeAndDist(mris, 3);  // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1);       // reset current size to 1-nbrs

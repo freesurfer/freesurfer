@@ -292,9 +292,8 @@ void vg_print(const VOL_GEOM *vg)
     fprintf(stderr, "file    : %s\n", vg->fname);
   }
   else
-    fprintf(stderr,
-            "volume geometry info is either not contained "
-            "or not valid.\n");
+    fprintf(stderr, "volume geometry: info is either not contained or not valid.\n");
+
   fflush(stderr);
 }
 
