@@ -123,6 +123,8 @@ public:
 
   void SetEnhancedData(const QString& key, const QVariant& val);
 
+  bool IsEdited();
+
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();

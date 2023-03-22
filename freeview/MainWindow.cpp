@@ -821,6 +821,24 @@ void MainWindow::closeEvent( QCloseEvent * event )
     }
   }
 
+  QList<Layer*> ps_layers = GetLayers("PointSet");
+  foreach (Layer* layer, ps_layers)
+  {
+    if (layer->property("remind_edit").toBool() && !((LayerPointSet*)layer)->IsEdited())
+    {
+      QMessageBox box(QMessageBox::Question, tr("Unedited Point Set"),
+                      tr("Point set %1 has not been edited. Do you still want to close it?").arg(layer->GetName()),
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Close It"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
+      {
+        event->ignore();
+        return;
+      }
+    }
+  }
+
   SaveSettings();
   QMainWindow::closeEvent( event );
 }
@@ -4782,12 +4800,18 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
   QString radius = "0";
   QVariantMap args;
   bool bCreateNew = false;
+  bool bRemindEdit = false;
   QString name;
   if (options.contains("new", Qt::CaseInsensitive))
   {
     options.removeAll("new");
     bCreateNew = true;
     name = QFileInfo(fn).completeBaseName();
+  }
+  if (options.contains("remind_edit", Qt::CaseInsensitive))
+  {
+    options.removeAll("remind_edit");
+    bRemindEdit = true;
   }
   for ( int i = 1; i < options.size(); i++ )
   {
@@ -4832,7 +4856,11 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
     m_scripts.insert( 0, QStringList("setpointsetradius") << radius);
   }
   if (QFile::exists(fn) || !bCreateNew)
+  {
+    if (bRemindEdit)
+      args["remind_edit"] = true;
     LoadControlPointsFile( fn, args );
+  }
   else if (bCreateNew)
   {
     OnNewPointSet(true);
@@ -4843,6 +4871,8 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
       ps->SetID(args["id"].toInt());
     if (!name.isEmpty())
       ps->SetName(name);
+    if (bRemindEdit)
+      ps->setProperty("remind_edit", true);
   }
 }
 
@@ -6306,6 +6336,9 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type, const QVariantMa
     col_wp->AddLayer( wp );
 
     m_strLastDir = QFileInfo( fn ).canonicalPath();
+
+    if (args["remind_edit"].toBool())
+      wp->setProperty("remind_edit", true);
   }
   else
   {
@@ -6427,12 +6460,25 @@ void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
   }
   foreach (Layer* layer, layers)
   {
-    if ( qobject_cast<LayerPointSet*>(layer)->IsModified() )
+    LayerPointSet* ps = qobject_cast<LayerPointSet*>(layer);
+    if (ps->IsModified())
     {
       QMessageBox box(QMessageBox::Question, tr("Close Point Set"),
-                      "Point Set has been modifed and not been saved. Do you still want to continue?",
+                      tr("Point Set %1 has been modifed and not been saved. Do you still want to close it?").arg(ps->GetName()),
                       QMessageBox::Yes | QMessageBox::Cancel);
-      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setButtonText(QMessageBox::Yes, tr("Close Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
+      {
+        return;
+      }
+    }
+    if (ps->property("remind_edit").toBool() && !ps->IsEdited())
+    {
+      QMessageBox box(QMessageBox::Question, tr("Close Point Set"),
+                      tr("Point Set %1 has not been edited. Do you still want to close it?").arg(ps->GetName()),
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Close It"));
       box.setDefaultButton(QMessageBox::Cancel);
       if (box.exec() != QMessageBox::Yes)
       {
@@ -6440,6 +6486,7 @@ void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
       }
     }
   }
+
   GetLayerCollection( "PointSet" )->RemoveLayers( layers );
   OnSetModeNavigate();
 }

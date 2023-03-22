@@ -256,6 +256,7 @@ int main(int argc, char *argv[])
     "':radius=value' Set radius of the control points.\n\n"
     "':name=display_name' Set the display name of the control points.\n\n"
     "':visible=visibility' Set the initial visibility of the control points. Visibility can be '1' or '0' or 'true' or 'false'.\n\n"
+    "':remind_edit' remind user to edit the point sets if unedited when closed. \n\n"
     "':new' if cannot find the file, create a new one with the given filename. \n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-labels", "p-labels", "<FILES>...", "Load multiple p-label volume files.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-prefix", "p-prefix", "<PREFIX>...", "Set the file name prefix for p-label volume. program will use this to figure out label name from file name.\n", 1, 1 ),

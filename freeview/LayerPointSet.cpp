@@ -1138,3 +1138,8 @@ QVariant LayerPointSet::GetEnhancedData(const QString &key)
     v = m_mapEnhancedData[key];
   return v;
 }
+
+bool LayerPointSet::IsEdited()
+{
+  return m_mapEnhancedData.value("overall_score").toInt() > 1 && m_mapEnhancedData.value("qa_score").toInt() > -1;
+}
