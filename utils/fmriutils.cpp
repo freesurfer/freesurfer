@@ -964,6 +964,8 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
       MRIcopyHeader(mriglm->y, mriglm->F[n]);
       mriglm->p[n] = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
       MRIcopyHeader(mriglm->y, mriglm->p[n]);
+      mriglm->sig[n] = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+      MRIcopyHeader(mriglm->y, mriglm->sig[n]);
       mriglm->z[n] = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
       MRIcopyHeader(mriglm->y, mriglm->z[n]);
       if (glm->ypmfflag[n]) {
@@ -1041,11 +1043,16 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
           if (glm->C[n]->rows == 1)
             MRIsetVoxVal(mriglm->gammaVar[n], c, r, s, 0, glm->gCVM[n]->rptr[1][1]);
           MRIsetVoxVal(mriglm->F[n], c, r, s, 0, glm->F[n]);
-          MRIsetVoxVal(mriglm->p[n], c, r, s, 0, glm->p[n]);
           MRIsetVoxVal(mriglm->z[n], c, r, s, 0, glm->z[n]);
+          MRIsetVoxVal(mriglm->p[n], c, r, s, 0, glm->p[n]);
           if (glm->C[n]->rows == 1 && glm->DoPCC)
             MRIsetVoxVal(mriglm->pcc[n], c, r, s, 0, glm->pcc[n]);
-
+	  if(glm->p[n] == 0)  MRIsetVoxVal(mriglm->sig[n], c, r, s, 0, 10e10);
+	  else {
+	    double sig = -log10(glm->p[n]);
+	    if(glm->C[n]->rows == 1) sig *= SIGN(glm->gamma[n]->rptr[1][1]);
+	    MRIsetVoxVal(mriglm->sig[n], c, r, s, 0, sig);
+	  }
           if (glm->ypmfflag[n])
             MRIfromMatrix(mriglm->ypmf[n], c, r, s, glm->ypmf[n], mriglm->FrameMask);
         }

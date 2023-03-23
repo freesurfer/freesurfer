@@ -113,6 +113,7 @@ USAGE: ./mri_glmfit
    --allow-zero-dof : mostly for very special purposes
    --illcond : allow ill-conditioned design matrices
    --sim-done SimDoneFile : create DoneFile when simulation finished 
+   --no-sig-double : compute sig = -log10(p) from a float precision p rather than double
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -626,6 +627,9 @@ int crsSelfReg[100][3];
 char *SUBJECTS_DIR;
 int cmax, rmax, smax;
 double Fmax, sigmax;
+
+// compute sig = -log10(p) directly from a double precision p rather than from a float precision p
+int SigUseDouble=1;
 
 int pcaSave=0;
 int npca = -1;
@@ -2143,7 +2147,8 @@ int main(int argc, char **argv) {
 
     // Write out the sig
     sprintf(tmpstr,"%s/%s/sig.%s",GLMDir,mriglm->glm->Cname[n],format);
-    MRIwrite(sig,tmpstr);
+    if(SigUseDouble) MRIwrite(mriglm->sig[n],tmpstr);
+    else             MRIwrite(sig,tmpstr);
 
     // Write out the z
     sprintf(tmpstr,"%s/%s/z.%s",GLMDir,mriglm->glm->Cname[n],format);
@@ -2742,6 +2747,8 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--no-fwhm-est")) ComputeFWHM = 0;
     else if (!strcasecmp(option, "--no-est-fwhm")) ComputeFWHM = 0;
+    else if (!strcasecmp(option, "--sig-double"))    SigUseDouble=1;
+    else if (!strcasecmp(option, "--no-sig-double")) SigUseDouble=0;
     else if (!strcasecmp(option, "--var-smooth") ||
                !strcasecmp(option, "--var-fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -3165,6 +3172,7 @@ printf("                  before --fsgd)\n");
 printf("   --allow-zero-dof : mostly for very special purposes\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
 printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
+printf("   --no-sig-double : compute sig = -log10(p) from a float precision p rather than double \n");
 printf("\n");
 printf("\n");
 }
@@ -3791,6 +3799,7 @@ static void dump_options(FILE *fp) {
   }
   if(UseUniform)
     fprintf(fp,"Uniform %lf %lf\n",UniformMin,UniformMax);
+  fprintf(fp,"SigUseDouble %d\n",SigUseDouble);
 
   return;
 }
