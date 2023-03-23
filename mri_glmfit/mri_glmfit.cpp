@@ -2116,8 +2116,11 @@ int main(int argc, char **argv) {
     MRIwrite(mriglm->F[n],tmpstr);
 
     // Compute and Save -log10 p-values
-    sig=MRIlog10(mriglm->p[n],NULL,sig,1);
-    if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
+    if(SigUseDouble) sig = mriglm->sig[n];
+    else {
+      sig=MRIlog10(mriglm->p[n],NULL,sig,1);
+      if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
+    }
 
     if(UseStatTable){
       for(m=0; m < OutStatTable->nrows; m++){
@@ -2147,12 +2150,7 @@ int main(int argc, char **argv) {
 
     // Write out the sig
     sprintf(tmpstr,"%s/%s/sig.%s",GLMDir,mriglm->glm->Cname[n],format);
-    if(SigUseDouble) MRIwrite(mriglm->sig[n],tmpstr);
-    else             MRIwrite(sig,tmpstr);
-
-    // Write out the z
-    sprintf(tmpstr,"%s/%s/z.%s",GLMDir,mriglm->glm->Cname[n],format);
-    MRIwrite(mriglm->z[n],tmpstr);
+    MRIwrite(sig,tmpstr);
 
     // Find and save the max sig
     sigmax = MRIframeMax(sig,0,mriglm->mask,0,&cmax,&rmax,&smax);
@@ -2166,7 +2164,11 @@ int main(int argc, char **argv) {
             sigmax,Fmax,cmax,rmax,smax,SynthSeed);
     fclose(fp);
 
-    MRIfree(&sig);
+    // Write out the z
+    sprintf(tmpstr,"%s/%s/z.%s",GLMDir,mriglm->glm->Cname[n],format);
+    MRIwrite(mriglm->z[n],tmpstr);
+
+    if(!SigUseDouble) MRIfree(&sig);
 
     if(mriglm->npvr == 0){
       printf("Computing efficiency\n");
