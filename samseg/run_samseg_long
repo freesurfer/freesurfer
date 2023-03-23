@@ -4,6 +4,7 @@ import os
 import argparse
 import surfa as sf
 import gems
+import numpy as np
 
 # ------ Parse Command Line Arguments ------
 
