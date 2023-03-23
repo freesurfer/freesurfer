@@ -5152,6 +5152,7 @@ MRI *MRIneg(MRI *mri_src, MRI *mri_dst)
 }
 
 /*-----------------------------------------------------*/
+/*-----------------------------------------------------*/
 MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int nframes, width, height, depth, x, y, z, f, s;
@@ -5724,8 +5725,11 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       default:
-        ErrorReturn(
-              NULL, (ERROR_BADPARM, "MRIcopy: src type %d & dst type %d unsupported", mri_src->type, mri_dst->type));
+	for (x = 0 ; x < mri_dst->width ; x++)
+	  for (y = 0 ; y < mri_dst->height ; y++)
+	    for (z = 0 ; z < mri_dst->depth ; z++)
+	      for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+		MRIsetVoxVal(mri_dst, x, y, z, frame, MRIgetVoxVal(mri_src, x, y, z, frame)) ;
         break;
       }
       break;
@@ -5743,8 +5747,11 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       default:
-        ErrorReturn(
-              NULL, (ERROR_BADPARM, "MRIcopy: src type %d & dst type %d unsupported", mri_src->type, mri_dst->type));
+	for (x = 0 ; x < mri_dst->width ; x++)
+	  for (y = 0 ; y < mri_dst->height ; y++)
+	    for (z = 0 ; z < mri_dst->depth ; z++)
+	      for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+		MRIsetVoxVal(mri_dst, x, y, z, frame, MRIgetVoxVal(mri_src, x, y, z, frame)) ;
         break;
       }
       break;
@@ -5778,8 +5785,11 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       default:
-        ErrorReturn(
-              NULL, (ERROR_BADPARM, "MRIcopy: src type %d & dst type %d unsupported", mri_src->type, mri_dst->type));
+	for (x = 0 ; x < mri_dst->width ; x++)
+	  for (y = 0 ; y < mri_dst->height ; y++)
+	    for (z = 0 ; z < mri_dst->depth ; z++)
+	      for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+		MRIsetVoxVal(mri_dst, x, y, z, frame, MRIgetVoxVal(mri_src, x, y, z, frame)) ;
         break;
       }
       break;
@@ -5797,14 +5807,20 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       default:
-        ErrorReturn(
-              NULL, (ERROR_BADPARM, "MRIcopy: src type %d & dst type %d unsupported", mri_src->type, mri_dst->type));
+	for (x = 0 ; x < mri_dst->width ; x++)
+	  for (y = 0 ; y < mri_dst->height ; y++)
+	    for (z = 0 ; z < mri_dst->depth ; z++)
+	      for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+		MRIsetVoxVal(mri_dst, x, y, z, frame, MRIgetVoxVal(mri_src, x, y, z, frame)) ;
         break;
       }
       break;
     default:
-      ErrorReturn(NULL,
-                  (ERROR_BADPARM, "MRIcopy: src type %d & dst type %d unsupported", mri_src->type, mri_dst->type));
+	for (x = 0 ; x < mri_dst->width ; x++)
+	  for (y = 0 ; y < mri_dst->height ; y++)
+	    for (z = 0 ; z < mri_dst->depth ; z++)
+	      for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+		MRIsetVoxVal(mri_dst, x, y, z, frame, MRIgetVoxVal(mri_src, x, y, z, frame)) ;
       break; /* in case someone removes the errorreturn */
     }
   }
