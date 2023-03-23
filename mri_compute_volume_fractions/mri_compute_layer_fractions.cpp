@@ -160,6 +160,53 @@ main(int argc, char *argv[])
   if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load aseg volume from %s", Progname,fname) ;
 
+  if (mri_aseg->ct)
+  {
+    char fname[STRLEN], *fs ;
+    COLOR_TABLE *ctab_default ;
+    int         *translations, src_label, trg_label, x, y, z ;
+
+    printf("embedded color table found in aseg - translating to default to ensure compatibility\n") ;
+    fs = getenv("FREESURFER_HOME") ;
+    if (fs == NULL)
+      ErrorExit(ERROR_BADPARM, "FREESURFER_HOME must be defined in the environment for LUT translation\n") ;
+    sprintf(fname, "%s/FreeSurferColorLUT.txt", fs) ;
+    ctab_default = CTABreadASCII(fname) ;
+    if (ctab_default == NULL)
+      ErrorExit(ERROR_BADPARM, "could not read default lut from %s\n", fname) ;
+    
+    translations = (int *)calloc(mri_aseg->ct->nentries, sizeof(int)) ;
+    if (translations == NULL)
+      ErrorExit(ERROR_BADPARM, "could not read allocated %d-len translation table\n", mri_aseg->ct->nentries) ;
+
+    for (src_label = 0 ; src_label < mri_aseg->ct->nentries ; src_label++)
+    {
+      if (mri_aseg->ct->entries[src_label] == NULL)
+	continue ;
+      trg_label = CTABentryNameToIndex(mri_aseg->ct->entries[src_label]->name, ctab_default);
+      if (trg_label < 0)
+	printf("src_label %s (%d) cannot be found in default lut\n", mri_aseg->ct->entries[src_label]->name, src_label) ;
+      else
+	translations[src_label] = trg_label ;
+    }
+
+    for (x = 0 ; x < mri_aseg->width ; x++)
+      for (y = 0 ; y < mri_aseg->height ; y++)
+	for (z = 0 ; z < mri_aseg->depth ; z++)
+	{
+	  src_label = (int)MRIgetVoxVal(mri_aseg, x, y,z, 0) ;
+	  trg_label = translations[src_label] ;
+	  MRIsetVoxVal(mri_aseg, x, y, z , 0, trg_label) ;
+	}
+    mri_aseg->ct = ctab_default ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      printf("writing translated aseg to at.mgz") ;
+      MRIwrite(mri_aseg, "at.mgz") ;
+    }
+    free(translations) ;
+  }
+
   nvox = (int)ceil(256/resolution);  
   mri_in = MRIreadHeader(in_fname, MRI_VOLUME_TYPE_UNKNOWN) ;
   if (mri_in == NULL)
@@ -680,13 +727,33 @@ create_synth_vol(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst, int hemi_no)
 {
   VECTOR *v1, *v2 ;
   MATRIX *m_vox2vox ;
-  int    x, y, z, xa, ya, za, aseg_label, seg_label, in_mtl ;
+  int    x, y, z, xa, ya, za, aseg_label, seg_label, in_mtl, dilations, dno ;
   char   *hemi = (char *)(hemi_no == LEFT_HEMI ? "lh" : (hemi_no == RIGHT_HEMI ? "rh" : "both"));
+  MRI    *mri_mtl ;
 
+  mri_mtl = MRIclone(mri_aseg, NULL) ;
+  if (hemi_no == LEFT_HEMI || hemi_no == BOTH_HEMIS)
+  {
+    MRIcopyLabel(mri_aseg, mri_mtl, Left_Hippocampus) ;
+    MRIcopyLabel(mri_aseg, mri_mtl, Left_Amygdala) ;
+    MRIcopyLabel(mri_aseg, mri_mtl, Left_Inf_Lat_Vent) ;
+  }
+  if (hemi_no == RIGHT_HEMI || hemi_no == BOTH_HEMIS)
+  {
+    MRIcopyLabel(mri_aseg, mri_mtl, Right_Hippocampus) ;
+    MRIcopyLabel(mri_aseg, mri_mtl, Right_Amygdala) ;
+    MRIcopyLabel(mri_aseg, mri_mtl, Right_Inf_Lat_Vent) ;
+  }
+  MRIbinarize(mri_mtl, mri_mtl, 1, 0, 1) ;
+  dilations = nint(2.0 / (mri_aseg->xsize)) ;
+  for (dno = 0 ; dno < dilations ; dno++)
+    MRIdilate(mri_mtl, mri_mtl) ;
+
+  if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
     sprintf(fname, "%s.l0.mgz", hemi) ;
-    printf("processing %s\n", fname) ;
+    printf("writing input volume to synth as %s (and input aseg as a.mgz)\n", fname) ;
     MRIwrite(mri_src, fname);
     MRIwrite(mri_aseg, "a.mgz");
   }
@@ -724,27 +791,7 @@ create_synth_vol(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst, int hemi_no)
         seg_label = nint(MRIgetVoxVal(mri_src, x, y, z, 0)) ;
 	// already labeled properly
 	// check to see if we are in MTL where surfaces can't be trusted
-	if (hemi_no == RIGHT_HEMI)
-	{
-	  in_mtl = ((MRIneighbors3x3(mri_aseg, xa, ya, za, Right_Inf_Lat_Vent) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Right_Hippocampus) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Right_Amygdala) > 0)) ;
-	}
-	else if (hemi_no == LEFT_HEMI)
-	{
-	  in_mtl = ((MRIneighbors3x3(mri_aseg, xa, ya, za, Left_Inf_Lat_Vent) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Left_Hippocampus) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Left_Amygdala) > 0)) ;
-	}
-	else  // both hemis
-	{
-	  in_mtl = ((MRIneighbors3x3(mri_aseg, xa, ya, za, Left_Inf_Lat_Vent) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Right_Inf_Lat_Vent) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Left_Hippocampus) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Right_Hippocampus) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Right_Amygdala) > 0) ||
-		    (MRIneighbors3x3(mri_aseg, xa, ya, za, Left_Amygdala) > 0)) ;
-	}
+	in_mtl = (int)MRIgetVoxVal(mri_mtl, x, y, z, 0) ;
 
         if (IS_LAYER(seg_label) && !IS_HIPPO(aseg_label) && !IS_AMYGDALA(aseg_label) &&
 	    !IS_CHOROID(aseg_label) && !IS_VENTRICLE(aseg_label)) 
@@ -772,6 +819,8 @@ create_synth_vol(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst, int hemi_no)
 	    MRIsetVoxVal(mri_dst, x, y, z, 0, aseg_label) ;
 	  else if (in_mtl)  // don't trust ribbon
 	      MRIsetVoxVal(mri_dst, x, y, z, 0, aseg_label) ;
+	  else if (seg_label == CSF_VAL)
+	      MRIsetVoxVal(mri_dst, x, y, z, 0, aseg_label) ;
           break ;
         case Left_Cerebellum_Cortex:
         case Right_Cerebellum_Cortex:
@@ -789,7 +838,7 @@ create_synth_vol(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst, int hemi_no)
 
   if (hemi_no != BOTH_HEMIS)
     MRIeraseOtherHemi(mri_dst, hemi) ;
-  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ; MRIfree(&mri_mtl) ;
   return(mri_dst) ;
 }
 
