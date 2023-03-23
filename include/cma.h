@@ -208,6 +208,17 @@
 #define CC_Mid_Anterior   254
 #define CC_Anterior       255
 
+// left hemi cortical layers
+#define ctx_lh_infragranular                 270 
+#define ctx_lh_layer1                        271 
+#define ctx_lh_layer2                        272 
+#define ctx_lh_layer3                        273 
+#define ctx_lh_layer4                        274 
+#define ctx_lh_layer5                        275 
+#define ctx_lh_layer6                        276 
+#define ctx_lh_supragranular                 277 
+#define IS_LH_LAYER(l) (((l) >= ctx_lh_infragranular) && ((l) <= ctx_lh_supragranular))
+
 //See above 
 //#define IS_CC(l) ((l >= CC_Posterior && l <= CC_Anterior) || (l >= MIN_CC_EXTRA && l <= MAX_CC_EXTRA))
 #define IS_CC(l) ((l >= CC_Posterior && l <= CC_Anterior))
@@ -246,6 +257,18 @@
 #define Right_Internal_PudendalV 357
 #define Pos_Lymph                358
 #define Neg_Lymph                359
+
+// right hemi cortical layers
+#define ctx_rh_infragranular                 370 
+#define ctx_rh_layer1                        371 
+#define ctx_rh_layer2                        372 
+#define ctx_rh_layer3                        373 
+#define ctx_rh_layer4                        374 
+#define ctx_rh_layer5                        375 
+#define ctx_rh_layer6                        376 
+#define ctx_rh_supragranular                 377 
+#define IS_RH_LAYER(l) (((l) >= ctx_rh_infragranular) && ((l) <= ctx_rh_supragranular))
+#define IS_LAYER(l) (IS_LH_LAYER(l) || IS_RH_LAYER(l))
 
 // Brodmann Areas
 #define BA17 400  //                                    206 62  78  0
@@ -499,6 +522,7 @@
 
 // (label == Brain_Stem) ||
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter) || IS_CC(label) || (label == Left_VentralDC) || (label == Right_VentralDC) || IS_CEREBELLAR_WM(label))
+#define IS_CEREBRAL_WM(l)  (((l) == Left_Cerebral_White_Matter) || ((l) == Right_Cerebral_White_Matter))
 #define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities) || IS_FUTURE_WMSA(label))
 #define IS_WMSA(label) IS_HYPO(label)
 #define IS_WMH(label) (IS_WM(label) || IS_HYPO(label))
@@ -512,6 +536,7 @@
 #define IS_CEREBELLAR_GM(label) (((label) == Left_Cerebellum_Cortex) || ((label) == Right_Cerebellum_Cortex))
 #define IS_CEREBELLUM(label) (IS_CEREBELLAR_WM(label) || IS_CEREBELLAR_GM(label))
 
+#define IS_CHOROID(l) (((l) == Left_choroid_plexus) || ((l) == Right_choroid_plexus))
 #define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
 #define IS_AMYGDALA(l) (((l) == Left_Amygdala) || ((l) == Right_Amygdala))
 #define IS_MTL(l)   (IS_HIPPO(l) || IS_AMYGDALA(l))
