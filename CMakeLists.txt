@@ -6,6 +6,17 @@ if(CMAKE_CXX_STANDARD EQUAL "98" )
    message(FATAL_ERROR "CMAKE_CXX_STANDARD:STRING=98 is not supported in.")
 endif()
 
+if(APPLE)
+   set(CMAKE_C_COMPILER "/usr/bin/clang")
+   set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+   # add -DAPPLE_ARM64=ON to cmake command line
+   if(APPLE_ARM64)
+      # add -DCMAKE_OSX_ARCHITECTURES="arm64" to cmake command line (generates "-arch arm64" on compile line)
+      add_definitions(-DARM64)
+      add_definitions(-DPNG_ARM_NEON_OPT=0)
+   endif()
+endif()
+
 # set the default language dialect settings (This must be done BEFORE the project call)
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 11)
@@ -843,5 +854,3 @@ if(BUILD_DNG)
   add_subdirectory(dngtester)
 endif()
 
-# add wrapper for slicedelay
-install_pyscript(./scripts/slicedelay)
