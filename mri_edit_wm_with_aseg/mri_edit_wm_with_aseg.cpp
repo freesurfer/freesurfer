@@ -88,6 +88,9 @@ static int fcd = 0 ;
 int FixSCMHA = 0;
 int FixSCMHANdil = 0;
 
+double FixEntoWMLhVal,FixEntoWMRhVal;
+MRI *entowm=NULL;
+
 int
 main(int argc, char *argv[])
 {
@@ -103,6 +106,9 @@ main(int argc, char *argv[])
   {
     exit (0);
   }
+  for(int i=0; i<argc; i++) printf("%s ",argv[i]);
+  printf("\n");
+  fflush(stdout);
 
   then.reset() ;
   DiagInit(NULL, NULL, NULL) ;
@@ -159,6 +165,8 @@ main(int argc, char *argv[])
   remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
   edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
   spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
+  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLhVal, FixEntoWMRhVal);
+
   if(FixSCMHA){
     FixSubCortMassHA fscmha;
     fscmha.aseg = mri_aseg;
@@ -285,6 +293,29 @@ get_option(int argc, char *argv[])
     MRIfree(&fscmha.mask);
     int err = MRIwrite(fscmha.subcorticalmass,argv[5]);
     exit(err);
+  }
+  else if(!stricmp(option, "fix-ento-wm") || !stricmp(option, "sa-fix-ento-wm"))
+  {
+    // This is a bit of a hack to fill in WM in the gyrus ambiens that
+    // is often so thin that it looks like GM. entowm.mgz is the output of mri_entowm_seg
+    // mri_edit_wm_with_aseg -fix-entowm entowm.mgz lhsetval rhsetval
+    // mri_edit_wm_with_aseg -sa-fix-entowm entowm.mgz lhsetval rhsetval invol outvol
+    // for wm.seg.mgz/wm.asegedit.mgz use setval=250 for both lh and rh
+    // for brain.finalsurfs use 255 for both lh and rh
+    // for filled use 255 for lh and 127 for rh
+    entowm = MRIread(argv[2]);
+    if(entowm==NULL) exit(1);
+    sscanf(argv[3],"%lf",&FixEntoWMLhVal);
+    sscanf(argv[4],"%lf",&FixEntoWMRhVal);
+    printf("Fixing entowm %g %g\n",FixEntoWMLhVal,FixEntoWMRhVal);
+    if(!stricmp(option, "sa-fix-ento-wm")){
+      MRI *invol = MRIread(argv[5]);
+      if(invol==NULL) exit(1);
+      MRIfixEntoWM(invol, entowm, FixEntoWMLhVal, FixEntoWMRhVal);
+      int err = MRIwrite(invol,argv[6]);
+      exit(err);
+    }
+    nargs = 3;
   }
   else if (!stricmp(option, "debug_voxel"))
   {
@@ -3122,4 +3153,3 @@ spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
 
   return(NO_ERROR) ;
 }
-

@@ -246,7 +246,10 @@ char *cmdline2, cwd[2000];
 char *rusage_file=NULL;
 char *PreGibbsFile=NULL;
 int n_omp_threads;
-
+MRI *InsertFromSeg=NULL;
+std::vector<int> InsertFromSegIndices;
+int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> InsertFromSegIndices, int ZeroInsertIndex);
+int InsertCblumFromSeg = -1;
 int main(int argc, char *argv[])
 {
   char         **av ;
@@ -1413,6 +1416,11 @@ int main(int argc, char *argv[])
     mri_labeled = newseg;
   }
 
+  if(InsertFromSeg){
+    printf("Inserting from seg\n");
+    MRIinsertFromSeg(mri_labeled, InsertFromSeg, InsertFromSegIndices, InsertCblumFromSeg);
+  }
+
   printf("writing labeled volume to %s\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
   {
@@ -1464,9 +1472,9 @@ int main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("auto-labeling took %d minutes and %d seconds.\n",
-         minutes, seconds) ;
-  return(0) ;
+  printf("mri_ca_label took %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("mri_ca_label done\n");
+  exit(0);
 }
 /*----------------------------------------------------------------------
   Parameters:
@@ -1546,6 +1554,78 @@ get_option(int argc, char *argv[])
     nowmsa = 1 ;
     printf("disabling WMSA labels\n") ;
   }
+  else if(!stricmp(option, "insert-from-seg") || !stricmp(option, "sa-insert-from-seg"))
+  {
+    // -insert-from-seg    InserFromSeg.mgz index1 <index2 ...>
+    // -sa-insert-from-seg InserFromSeg.mgz index1 <index2 ...> InputSeg OutputSeg
+    InsertFromSeg = MRIread(argv[2]);
+    if(!InsertFromSeg) exit(1);
+    printf("Inserting from seg %s  ",argv[2]);
+    nargs = 1;
+    int k=3;
+    while(1){
+      if(!argv[k]) break;
+      if(!isdigit(argv[k][0])) break;
+      InsertFromSegIndices.push_back(atoi(argv[k]));
+      printf("%s ",argv[k]);
+      k++;
+      nargs++;
+    }
+    printf("\n");
+    if(InsertFromSegIndices.size()==0) {
+      printf("ERROR: -insert-from-seg needs at least one index to insert\n");
+      exit(1);
+    }
+    MRI *InputSeg=NULL;
+    if(!stricmp(option, "sa-insert-from-seg")){
+      if(argv[k]==NULL || argv[k+1]==NULL){
+	printf("ERROR: -sa-insert-from-seg needs an input and output seg\n");
+	exit(1);
+      }
+      InputSeg = MRIread(argv[k]);
+      if(!InputSeg) exit(1);
+      printf("Inserting from seg\n");
+      MRIinsertFromSeg(InputSeg, InsertFromSeg, InsertFromSegIndices,-1);
+      int err = MRIwrite(InputSeg,argv[k+1]);
+      exit(err);
+    }
+    printf("\n") ;
+  }
+  else if(!stricmp(option, "cblum-from-seg") || !stricmp(option, "sa-cblum-from-seg"))
+  {
+    // same as insert-from-seg, but uses cblum cortex and wm and also zeros voxels
+    // that are cblum in the input but CSF (24) in the output. This is a hack to 
+    // preventa bunch of random CSF voxels in the output
+    // -cblum-from-seg    InserFromSeg.mgz 
+    // -sa-cblum-from-seg InserFromSeg.mgz InputSeg OutputSeg
+    InsertCblumFromSeg = 24;
+    InsertFromSeg = MRIread(argv[2]);
+    if(!InsertFromSeg) exit(1);
+    printf("Inserting cblum from seg %s  ",argv[2]);
+    InsertFromSegIndices.push_back(7);
+    InsertFromSegIndices.push_back(8);
+    InsertFromSegIndices.push_back(46);
+    InsertFromSegIndices.push_back(47);
+    nargs = 1;
+    MRI *InputSeg=NULL;
+    if(!stricmp(option, "sa-cblum-from-seg")){
+      if(argv[2]==NULL || argv[3]==NULL){
+	printf("ERROR: -sa-cblum-from-seg needs an input and output seg\n");
+	exit(1);
+      }
+      InputSeg = MRIread(argv[3]);
+      if(!InputSeg) exit(1);
+      printf("Inserting from seg\n");
+      MRIinsertFromSeg(InputSeg, InsertFromSeg, InsertFromSegIndices,24);
+      printf("Writing to %s\n",argv[4]);
+      int err = MRIwrite(InputSeg,argv[4]);
+      printf("mi_ca_label done\n") ;
+      exit(err);
+    }
+    printf("\n") ;
+  }
+
+
   else if (!stricmp(option, "insert-wm-bet-putctx")){
     sscanf(argv[2],"%d",&insert_wm_bet_putctx_topo);
     nargs = 1 ;
@@ -5381,4 +5461,56 @@ MRI *insert_wm_bet_putctx(MRI *seg, int topo, const char *psfile, MRI *out)
   printf("#INSERT_WM_BET_PUTCTX %d putamen voxels changed to WM\n", nchanged);
   fflush(stdout);
   return(out);
+}
+
+
+int MRIinsertFromSeg(MRI *mri_labeled, MRI *InsertFromSeg, std::vector<int> InsertFromSegIndices, int ZeroInsertIndex)
+{
+  int nchanged=0;
+  for(int c=0; c < mri_labeled->width; c++){
+    for(int r=0; r < mri_labeled->height; r++){
+      for(int s=0; s < mri_labeled->depth; s++){
+	// Get the indices of this voxel for both segs
+	int i1 = MRIgetVoxVal(mri_labeled,c,r,s,0);
+	int i2 = MRIgetVoxVal(InsertFromSeg,c,r,s,0);
+
+	if(i1 == i2) continue; // both the same so keep as is
+
+	// Check whether i1, i2 are in the list
+	int i1InList=0, i2InList=0;
+	for(int n=0; n < InsertFromSegIndices.size(); n++){
+	  if(i1==InsertFromSegIndices[n]){
+	    i1InList = 1;
+	    break;
+	  }
+	}
+	for(int n=0; n < InsertFromSegIndices.size(); n++){
+	  if(i2==InsertFromSegIndices[n]){
+	    i2InList = 1;
+	    break;
+	  }
+	}
+	// Neither are in the list, so keep as is
+	if(!i1InList && !i2InList) continue; 
+
+	// At this point, at least one of them is in the list, so
+	// replace it. This will change things on the boundary. Eg, if
+	// i1 is cblum wm and i2 is brainstem, then i1 will become
+	// brainstem eventhough brainstem is not in the list. This is
+	// probably ok for the main application (replacing aseg cblum
+	// with synthseg cblum), but I worry a little bit about
+	// causing some artifacts near the boundaries. zeros voxels
+	// that are cblum in the input but CSF (24) in the output. The
+	// ZeroInsertIndex is a hack; when applying this to cblum,
+	// setting ZeroInsertIndex=24 will prevent a bunch of random
+	// CSF (24) voxels in the output
+	if(i2 == ZeroInsertIndex) i2 = 0;
+	MRIsetVoxVal(mri_labeled,c,r,s,0,i2);
+	nchanged++;
+	
+      }
+    }
+  }
+  printf("MRIinsertFromSeg() changed %d\n",nchanged);
+  return(nchanged);
 }

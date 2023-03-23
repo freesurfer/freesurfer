@@ -137,6 +137,9 @@ static char* gridFile=NULL;
 
 static MRIS *surf1, *surf2;
 
+// this flag doesn't apply to files passed in with command line options
+static bool doTkrRASConvert = false;
+
 static int CheckSurf=0;
 static int CheckXYZ=1;
 static int CheckNXYZ=1;
@@ -417,17 +420,23 @@ int main(int argc, char *argv[]) {
   //so if comparing identical surfaces, the seed must be the same so that
   //any zero-length vertex normals appear the same.
   setRandomSeed(seed) ;
-  surf1 = MRISread(surf1path);
+  surf1 = MRISread(surf1path, doTkrRASConvert);
   if (surf1 == NULL) {
     printf("ERROR: could not read %s\n",surf1path);
     exit(1);
   }
   setRandomSeed(seed) ;
-  surf2 = MRISread(surf2path);
+  surf2 = MRISread(surf2path, doTkrRASConvert);
   if (surf2 == NULL) {
     printf("ERROR: could not read %s\n",surf2path);
     exit(1);
   }
+
+  if (surf1->vg.valid != surf2->vg.valid)
+    printf("WARN: Surface validity of the geometry differs.\n");
+  if (surf1->useRealRAS != surf2->useRealRAS)
+    printf("WARN: Surface coordinates are in different space.\n");
+
   printf("Number of vertices %d %d\n",surf1->nvertices,surf2->nvertices);
   printf("Number of faces    %d %d\n",surf1->nfaces,surf2->nfaces);
 

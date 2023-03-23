@@ -40,7 +40,8 @@
 
 #define FAST_GCAsourceVoxelToPrior 1
 
-#ifndef powerpc
+/* #ifndef powerpc */
+#if !defined(powerpc) && !defined(ARM64)
 #include "affine.hpp"
 #endif
 

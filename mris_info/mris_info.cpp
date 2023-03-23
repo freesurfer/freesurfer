@@ -378,12 +378,22 @@ int main(int argc, char *argv[]) {
   }
   printf("Volume Geometry (vg)\n");
   vg_print(&mris->vg);
-  printf("Volume Geometry vox2ras\n");
-  if(mtxfmt==NULL) MatrixPrint(stdout,vg_i_to_r(&mris->vg));
-  else             MatrixPrintFmt(stdout, mtxfmt, vg_i_to_r(&mris->vg));
-  printf("Volume Geometry vox2ras-tkr\n");
-  if(mtxfmt==NULL) MatrixPrint(stdout,TkrVox2RASfromVolGeom(&mris->vg));
-  else MatrixPrintFmt(stdout,mtxfmt,TkrVox2RASfromVolGeom(&mris->vg));
+
+  if (mris->vg.valid)
+  {
+    printf("Volume Geometry vox2ras\n");
+    if(mtxfmt==NULL) MatrixPrint(stdout,vg_i_to_r(&mris->vg));
+    else             MatrixPrintFmt(stdout, mtxfmt, vg_i_to_r(&mris->vg));
+    printf("Volume Geometry vox2ras-tkr\n");
+    if(mtxfmt==NULL) MatrixPrint(stdout,TkrVox2RASfromVolGeom(&mris->vg));
+    else MatrixPrintFmt(stdout,mtxfmt,TkrVox2RASfromVolGeom(&mris->vg));
+  }
+  else
+  {
+    printf("Volume Geometry vox2ras:     Not available\n");
+    printf("Volume Geometry vox2ras-tkr: Not available\n");
+  }
+
   {
     int i ;
     for (i = 0 ; i < mris->ncmds ; i++)

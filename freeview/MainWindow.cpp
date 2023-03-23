@@ -821,6 +821,24 @@ void MainWindow::closeEvent( QCloseEvent * event )
     }
   }
 
+  QList<Layer*> ps_layers = GetLayers("PointSet");
+  foreach (Layer* layer, ps_layers)
+  {
+    if (layer->property("remind_edit").toBool() && !((LayerPointSet*)layer)->IsEdited())
+    {
+      QMessageBox box(QMessageBox::Question, tr("Unedited Point Set"),
+                      tr("Point set %1 has not been edited. Do you still want to close it?").arg(layer->GetName()),
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Close It"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
+      {
+        event->ignore();
+        return;
+      }
+    }
+  }
+
   SaveSettings();
   QMainWindow::closeEvent( event );
 }
@@ -3621,7 +3639,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_opacity;
     QString overlay_frame;
     QString overlay_smooth_steps;
-    QString overlay_method = "linearopaque";
+    QString overlay_method;
     QStringList overlay_color;
     QStringList overlay_thresholds;
     QStringList overlay_custom;
@@ -3746,10 +3764,13 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             script << "rh";
           m_scripts.insert( 0, script );
 
+          if (overlay_method.isEmpty())
+            overlay_method = "linearopaque";
           if (overlay_method != "linearopaque" || !overlay_thresholds.isEmpty())
           {
-            script = QStringList("setsurfaceoverlaymethod") << overlay_method <<
-                                                               overlay_thresholds;
+            script = QStringList("setsurfaceoverlaymethod") << overlay_method;
+            if (!overlay_thresholds.isEmpty())
+                 script << overlay_thresholds.join(",");
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
@@ -4185,15 +4206,17 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
     if ( overlay )
     {
       int nMethod = SurfaceOverlayProperty::CM_LinearOpaque;
-      if ( cmd[1] == "linear" )
+      QStringList methods = cmd[1].split(",");
+      if (methods.contains("linear", Qt::CaseInsensitive))
       {
         nMethod = SurfaceOverlayProperty::CM_Linear;
       }
-      else if ( cmd[1] == "piecewise" )
+      else if (methods.contains("piecewise", Qt::CaseInsensitive))
       {
         nMethod = SurfaceOverlayProperty::CM_Piecewise;
       }
-      else if ( cmd[1] != "linearopaque" )
+      else if (!methods.contains("linearopaque", Qt::CaseInsensitive) && !methods.contains("mid_to_min", Qt::CaseInsensitive) &&
+               !methods.contains("midtomin", Qt::CaseInsensitive))
       {
         cerr << "Unrecognized overlay method name '" << cmd[1].toLatin1().constData() << "'.\n";
         return;
@@ -4201,49 +4224,58 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 
       overlay->GetProperty()->SetColorMethod( nMethod );
 
-      bool bPercentile = false, bIgnoreZeros = false;
-      while (cmd.last() == "percentile" || cmd.last() == "ignore_zeros")
+      if (cmd.size() > 2)
       {
-        if (cmd.last() == "percentile")
-          bPercentile = true;
+        cmd = cmd[2].split(",", MD_SkipEmptyParts);
+        bool bPercentile = false, bIgnoreZeros = false;
+        while (cmd.last() == "percentile" || cmd.last() == "ignore_zeros")
+        {
+          if (cmd.last() == "percentile")
+            bPercentile = true;
+          else
+            bIgnoreZeros = true;
+          cmd.removeLast();
+        }
+
+        double values[3];
+        if (bIgnoreZeros)
+          overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
+        if (bPercentile)
+          overlay->GetProperty()->SetUsePercentile(bPercentile);
+
+        bool bOK;
+        if ( cmd.size() >= 3 )   // 3 values
+        {
+          values[0] = cmd[0].toDouble(&bOK);
+          values[1] = cmd[1].toDouble(&bOK);
+          values[2] = cmd[2].toDouble(&bOK);
+        }
+        else if (cmd.size() == 2)
+        {
+          values[0] = cmd[0].toDouble(&bOK);
+          values[2] = cmd[1].toDouble(&bOK);
+          values[1] = (values[0]+values[2])/2;
+        }
+        if (bPercentile)
+        {
+          for (int i = 0; i < 3; i++)
+            values[i] = overlay->PercentileToPosition(values[i], bIgnoreZeros);
+        }
+        if ( bOK )
+        {
+          overlay->GetProperty()->SetMinPoint( values[0] );
+          overlay->GetProperty()->SetMidPoint( values[1] );
+          overlay->GetProperty()->SetMaxPoint( values[2] );
+        }
         else
-          bIgnoreZeros = true;
-        cmd.removeLast();
+        {
+          cerr << "Invalid input for overlay threshold.\n";
+        }
       }
 
-      double values[3];
-      if (bIgnoreZeros)
-        overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
-      if (bPercentile)
-        overlay->GetProperty()->SetUsePercentile(bPercentile);
-
-      bool bOK;
-      if ( cmd.size() - 2 >= 3 )   // 3 values
+      if (methods.contains("mid_to_min", Qt::CaseInsensitive) || methods.contains("midtomin", Qt::CaseInsensitive))
       {
-        values[0] = cmd[2].toDouble(&bOK);
-        values[1] = cmd[3].toDouble(&bOK);
-        values[2] = cmd[4].toDouble(&bOK);
-      }
-      else if (cmd.size() - 2 == 2)
-      {
-        values[0] = cmd[2].toDouble(&bOK);
-        values[2] = cmd[3].toDouble(&bOK);
-        values[1] = (values[0]+values[2])/2;
-      }
-      if (bPercentile)
-      {
-        for (int i = 0; i < 3; i++)
-          values[i] = overlay->PercentileToPosition(values[i], bIgnoreZeros);
-      }
-      if ( bOK )
-      {
-        overlay->GetProperty()->SetMinPoint( values[0] );
-        overlay->GetProperty()->SetMidPoint( values[1] );
-        overlay->GetProperty()->SetMaxPoint( values[2] );
-      }
-      else
-      {
-        cerr << "Invalid input for overlay threshold.\n";
+        overlay->GetProperty()->SetAutoMidToMin(true);
       }
 
       surf->UpdateOverlay(true);
@@ -4782,12 +4814,18 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
   QString radius = "0";
   QVariantMap args;
   bool bCreateNew = false;
+  bool bRemindEdit = false;
   QString name;
   if (options.contains("new", Qt::CaseInsensitive))
   {
     options.removeAll("new");
     bCreateNew = true;
     name = QFileInfo(fn).completeBaseName();
+  }
+  if (options.contains("remind_edit", Qt::CaseInsensitive))
+  {
+    options.removeAll("remind_edit");
+    bRemindEdit = true;
   }
   for ( int i = 1; i < options.size(); i++ )
   {
@@ -4832,7 +4870,11 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
     m_scripts.insert( 0, QStringList("setpointsetradius") << radius);
   }
   if (QFile::exists(fn) || !bCreateNew)
+  {
+    if (bRemindEdit)
+      args["remind_edit"] = true;
     LoadControlPointsFile( fn, args );
+  }
   else if (bCreateNew)
   {
     OnNewPointSet(true);
@@ -4843,6 +4885,8 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
       ps->SetID(args["id"].toInt());
     if (!name.isEmpty())
       ps->SetName(name);
+    if (bRemindEdit)
+      ps->setProperty("remind_edit", true);
   }
 }
 
@@ -6306,6 +6350,9 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type, const QVariantMa
     col_wp->AddLayer( wp );
 
     m_strLastDir = QFileInfo( fn ).canonicalPath();
+
+    if (args["remind_edit"].toBool())
+      wp->setProperty("remind_edit", true);
   }
   else
   {
@@ -6427,12 +6474,25 @@ void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
   }
   foreach (Layer* layer, layers)
   {
-    if ( qobject_cast<LayerPointSet*>(layer)->IsModified() )
+    LayerPointSet* ps = qobject_cast<LayerPointSet*>(layer);
+    if (ps->IsModified())
     {
       QMessageBox box(QMessageBox::Question, tr("Close Point Set"),
-                      "Point Set has been modifed and not been saved. Do you still want to continue?",
+                      tr("Point Set %1 has been modifed and not been saved. Do you still want to close it?").arg(ps->GetName()),
                       QMessageBox::Yes | QMessageBox::Cancel);
-      box.setButtonText(QMessageBox::Yes, tr("Continue Without Saving"));
+      box.setButtonText(QMessageBox::Yes, tr("Close Without Saving"));
+      box.setDefaultButton(QMessageBox::Cancel);
+      if (box.exec() != QMessageBox::Yes)
+      {
+        return;
+      }
+    }
+    if (ps->property("remind_edit").toBool() && !ps->IsEdited())
+    {
+      QMessageBox box(QMessageBox::Question, tr("Close Point Set"),
+                      tr("Point Set %1 has not been edited. Do you still want to close it?").arg(ps->GetName()),
+                      QMessageBox::Yes | QMessageBox::Cancel);
+      box.setButtonText(QMessageBox::Yes, tr("Close It"));
       box.setDefaultButton(QMessageBox::Cancel);
       if (box.exec() != QMessageBox::Yes)
       {
@@ -6440,6 +6500,7 @@ void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
       }
     }
   }
+
   GetLayerCollection( "PointSet" )->RemoveLayers( layers );
   OnSetModeNavigate();
 }

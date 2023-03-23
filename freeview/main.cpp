@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
     "':curvature_setting=midpoint,slope' method to set curvature midpoint and slope.\n\n"
     "':overlay=overlay_filename' Load overlay data from file.\n\n"
     "':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n"
-    "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
+    "':overlay_method=method_names' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'. Can also combine with 'mid_to_min', separated by ','.\n\n"
     "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate', 'inverse', 'clearlower' and 'clearhigher'. Use comma to apply more than one. 'clearlower/higher' only works when overlay_custom option is on.\n\n"
     "':overlay_custom=[filename]val,r,g,b,val2,r2,g2,b2...' Set customized overlay color. If only given one argument as filename, customized color scale will be loaded from the given file.\n\n"
     "':overlay_opacity=opacity' Set opacity of overlay.\n\n"
@@ -256,6 +256,7 @@ int main(int argc, char *argv[])
     "':radius=value' Set radius of the control points.\n\n"
     "':name=display_name' Set the display name of the control points.\n\n"
     "':visible=visibility' Set the initial visibility of the control points. Visibility can be '1' or '0' or 'true' or 'false'.\n\n"
+    "':remind_edit' remind user to edit the point sets if unedited when closed. \n\n"
     "':new' if cannot find the file, create a new one with the given filename. \n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-labels", "p-labels", "<FILES>...", "Load multiple p-label volume files.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-prefix", "p-prefix", "<PREFIX>...", "Set the file name prefix for p-label volume. program will use this to figure out label name from file name.\n", 1, 1 ),

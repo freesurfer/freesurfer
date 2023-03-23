@@ -59,6 +59,7 @@ typedef struct
   MRI *gammaVar[100]; // gamma variance (t-tests only)
   MRI *F[100];       // F = gamma'*inv(C*inv(XtX)C')*gamma/(rvar*J)
   MRI *p[100];       // p = significance of the F
+  MRI *sig[100];     // -log10(p)*sign(gamma)
   MRI *z[100];       // z derived from p
   MRI *pcc[100];     // partial correlation coeff
   MRI *ypmf[100];    // partial model fit for each contrast
