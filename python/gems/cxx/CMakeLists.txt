@@ -1,6 +1,8 @@
 include_directories(${CMAKE_SOURCE_DIR}/gems ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
+if(NOT APPLE_ARM64) 
+   set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
+endif()
 
 # temporary fix so that -g doesn't produce linker errors when binding cxx/python code
 set(CMAKE_CXX_FLAGS_DEBUG "")
