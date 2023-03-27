@@ -14,7 +14,11 @@ MRISurfOverlay::MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *pove
   __overlayInfo = new OverlayInfoStruct[__noverlay];
   for (int n = 0; n < __noverlay; n++)
   {
-    __overlayInfo[n] = poverlayInfo[n];
+    __overlayInfo[n].__foverlay = poverlayInfo[n].__foverlay;
+    __overlayInfo[n].__type = poverlayInfo[n].__type;
+    __overlayInfo[n].__format = poverlayInfo[n].__format;
+    __overlayInfo[n].__stframe = poverlayInfo[n].__stframe;  // assume one frame for each curvature
+    __overlayInfo[n].__numframe = poverlayInfo[n].__numframe;
 
     __overlayInfo[n].__stframe = n;  // assume one frame for each overlay
 
