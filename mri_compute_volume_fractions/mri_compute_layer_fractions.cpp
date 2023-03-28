@@ -791,7 +791,7 @@ create_synth_vol(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst, int hemi_no)
         seg_label = nint(MRIgetVoxVal(mri_src, x, y, z, 0)) ;
 	// already labeled properly
 	// check to see if we are in MTL where surfaces can't be trusted
-	in_mtl = (int)MRIgetVoxVal(mri_mtl, x, y, z, 0) ;
+	in_mtl = (int)MRIgetVoxVal(mri_mtl, xa, ya, za, 0) ;
 
         if (IS_LAYER(seg_label) && !IS_HIPPO(aseg_label) && !IS_AMYGDALA(aseg_label) &&
 	    !IS_CHOROID(aseg_label) && !IS_VENTRICLE(aseg_label)) 
