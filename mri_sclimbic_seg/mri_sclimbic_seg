@@ -82,6 +82,7 @@ def main():
     parser.add_argument('--percentile', type=float, help='Use intensity percentile threshold for normalization.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
     parser.add_argument('--output-base', default='sclimbic',help='String to use in output file name; default is sclimbic')
+    parser.add_argument('--no-cite-sclimbic', dest='citeLimbic', action='store_false', help='Do not cite sclimbic paper at the end.')
     # Ideally, we would get this from the model
     parser.add_argument('--nchannels', type=int, default=1,help='Number of channels')
 
@@ -325,16 +326,18 @@ def main():
         segmenter.write_all_case_zscores(summary_file_prefix + 'zqa_scores_all.csv')
         segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.csv')
 
+    # all done
+    if(args.citeLimbic):
+        print('\nIf you use this tool in a publication, please cite:')
+        print('A Deep Learning Toolbox for Automatic Segmentation of Subcortical Limbic Structures from MRI Images');
+        print('Greve, DN, Billot, B, Cordero, D, Hoopes, M. Hoffmann, A, Dalca, A, Fischl, B,  Iglesias, JE, Augustinack, JC')
+        print('2021, Neuroimage. 10.1016/j.neuroimage.2021.118610. PMID: 34571161. https://pubmed.ncbi.nlm.nih.gov/34571161.')
+
     # check memory usage
     if args.debug or args.vmp:
         print_vm_peak()
 
-    # all done
-    print('\nIf you use this tool in a publication, please cite:')
-    print('A Deep Learning Toolbox for Automatic Segmentation of Subcortical Limbic Structures from MRI Images');
-    print('Greve, DN, Billot, B, Cordero, D, Hoopes, M. Hoffmann, A, Dalca, A, Fischl, B,  Iglesias, JE, Augustinack, JC')
-    print('Submitted')
-
+    print('done');
 
 # ------------------------------------------------------------------------------------------------
 #                                         LimbicSegmenter
