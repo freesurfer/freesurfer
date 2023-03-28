@@ -726,7 +726,7 @@ int MRISurfOverlay::__getFrameCount()
     else if (overlayFormat == GIFTI_FILE)
     {
       // each intent is a frame in MRI
-      int intents = getShapeStatIntentCount(__overlayInfo[__currFrame].__foverlay);
+      int intents = getShapeStatIntentCount(__overlayInfo[n].__foverlay);
       count += intents;
     }
     else // MRI_CURV_FILE, ASCII_FILE, VTK_FILE, and old curv format
