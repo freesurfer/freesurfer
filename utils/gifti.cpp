@@ -341,14 +341,14 @@ static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double val
                  if daNum is not -1, then read only the
                  data in data array number daNum
   -------------------------------------------------------------------*/
-MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, int *frame)
+MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, int *frame, std::vector<OverlayInfoStruct> *poverlayinfo)
 {
   /*
    * attempt to read the file
    */
   gifti_image *image = gifti_read_image(fname, 1);
   if (NULL == image) {
-    fprintf(stderr, "mrisReadGIFTIfile: gifti_read_image() returned NULL\n");
+    fprintf(stderr, "mrisReadGIFTIdanum: gifti_read_image() returned NULL\n");
     return NULL;
   }
 
@@ -363,7 +363,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
    */
   int valid = gifti_valid_gifti_image(image, 1);
   if (valid == 0) {
-    fprintf(stderr, "mrisReadGIFTIfile: GIFTI file %s is invalid!\n", fname);
+    fprintf(stderr, "mrisReadGIFTIdanum: GIFTI file %s is invalid!\n", fname);
     gifti_free_image(image);
     return NULL;
   }
@@ -375,7 +375,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
   if (image->labeltable.length > 0) {
     /* check validity of labeltable data */
     if (!gifti_valid_LabelTable(&image->labeltable, 1)) {
-      fprintf(stderr, "mrisReadGIFTIfile: invalid labeltable found in file %s\n", fname);
+      fprintf(stderr, "mrisReadGIFTIdanum: invalid labeltable found in file %s\n", fname);
       gifti_free_image(image);
       return NULL;
     }
@@ -383,7 +383,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     /* copy label table contents to our color_table struct */
     ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
     if (ct == NULL) {
-      fprintf(stderr, "mrisReadGIFTIfile: could not alloc colortable memory\n");
+      fprintf(stderr, "mrisReadGIFTIdanum: could not alloc colortable memory\n");
       gifti_free_image(image);
       return NULL;
     }
@@ -392,7 +392,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     ct->version = 2;
     ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries + 1, sizeof(COLOR_TABLE_ENTRY *));
     if (ct->entries == NULL) {
-      fprintf(stderr, "mrisReadGIFTIfile: could not alloc colortable entries\n");
+      fprintf(stderr, "mrisReadGIFTIdanum: could not alloc colortable entries\n");
       gifti_free_image(image);
       return NULL;
     }
@@ -407,7 +407,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       image->labeltable.rgba = (float *)calloc(image->labeltable.length, 4 * sizeof(float *));
       if (NULL == image->labeltable.rgba) {
         fprintf(stderr,
-                "mrisReadGIFTIfile: "
+                "mrisReadGIFTIdanum: "
                 "couldn't allocate memory for labeltable.rgba\n");
         return NULL;
       }
@@ -428,7 +428,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     for (label_index = 0; label_index < image->labeltable.length; label_index++) {
       ct->entries[label_index] = (CTE *)malloc(sizeof(CTE));
       if (ct->entries[label_index] == NULL) {
-        fprintf(stderr, "mrisReadGIFTIfile: could not alloc colortable entry\n");
+        fprintf(stderr, "mrisReadGIFTIdanum: could not alloc colortable entry\n");
         gifti_free_image(image);
         return NULL;
       }
@@ -512,7 +512,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     }
     if (num_vertices <= 0 || num_cols != 3) {
       fprintf(stderr,
-              "mrisReadGIFTIfile: malformed coords data array in file "
+              "mrisReadGIFTIdanum: malformed coords data array in file "
               "%s: num_vertices=%d num_cols=%d\n",
               fname,
               (int)num_vertices,
@@ -532,7 +532,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     }
     if (num_faces <= 0 || num_cols != 3) {
       fprintf(stderr,
-              "mrisReadGIFTIfile: malformed faces data array in file "
+              "mrisReadGIFTIdanum: malformed faces data array in file "
               "%s: num_faces=%d num_cols=%d\n",
               fname,
               (int)num_faces,
@@ -545,7 +545,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     mris = MRISalloc(num_vertices, num_faces);
     if (NULL == mris) {
       fprintf(stderr,
-              "mrisReadGIFTIfile: failed to allocate an MRIS with "
+              "mrisReadGIFTIdanum: failed to allocate an MRIS with "
               "%d vertices and %d faces\n",
               (int)num_vertices,
               (int)num_faces);
@@ -682,37 +682,36 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     /* retrieve TAG_CMDLINE info */
     {
       char *ncmds = gifti_get_meta_value(&coords->meta, "NUM_TAG_CMDLINE");
+      int numcmds = 0;
       if (ncmds)
-        sscanf(ncmds, "%d", &mris->ncmds);
+        sscanf(ncmds, "%d", &numcmds);
 
-      int numcmds = mris->ncmds;
-      if (mris->ncmds > MAX_CMDS)
+      if (numcmds > MAX_CMDS)
       {
-        printf("[WARN] mrisReadGIFTIdanum():  too many commands (%d) in file. Only last %d will be saved!\n", mris->ncmds, MAX_CMDS);
-        mris->ncmds = MAX_CMDS;
+        printf("[WARN] mrisReadGIFTIdanum():  too many commands (%d) in file. Only last %d will be saved!\n", numcmds, MAX_CMDS);
       }
 
       int toskip = (numcmds > MAX_CMDS) ? (numcmds - MAX_CMDS) : 0;
+      if (toskip)
+        numcmds = MAX_CMDS;
+
       while (toskip)
         gifti_get_meta_value(&coords->meta, "TAG_CMDLINE");
 
-      for (int ncmd = 0; ncmd < mris->ncmds; ncmd++)
+      for (int ncmd = 0; ncmd < numcmds; ncmd++)
       {
         char tag[20] = {'\0'};
         sprintf(tag, "%s#%d", "TAG_CMDLINE", ncmd);
 
         char *cmdline = gifti_get_meta_value(&coords->meta, tag);
-        if (!cmdline)
+        if (cmdline == NULL)
 	{
-          printf("[ERROR] TAG_CMDLINE out of sync\n");
+          printf("[ERROR] TAG_CMDLINE out of sync! No value found for %s\n", tag);
           break;
 	}
 
-        mris->cmdlines[ncmd] = (char *)calloc(TAG_CMDLINE_LEN + 1, sizeof(char));
-        if (mris->cmdlines[ncmd] == NULL)
-            ErrorExit(ERROR_NOMEMORY, "mrisReadGIFTIdanum(): could not allocate %d byte cmdline", TAG_CMDLINE_LEN);
-        //mris->cmdlines[ncmd][TAG_CMDLINE_LEN] = 0;
-        memcpy(mris->cmdlines[ncmd], cmdline, TAG_CMDLINE_LEN);
+        // mris->ncmds will be increased
+        MRISaddCommandLine(mris, cmdline);
       }
     }
 
@@ -815,7 +814,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     CTABgetNumberOfValidEntries(mris->ct, &numEntries);
     if (numEntries != image->labeltable.length) {
       fprintf(
-          stderr, "mrisReadGIFTIfile: ct_entries:%d != labeltable_entries:%d\n", numEntries, image->labeltable.length);
+          stderr, "mrisReadGIFTIdanum: ct_entries:%d != labeltable_entries:%d\n", numEntries, image->labeltable.length);
       gifti_free_image(image);
       return NULL;
     }
@@ -827,6 +826,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
    */
   int found_curv_data = 0;          // track if multiple shape data arrays exist
   int found_statval_data = 0;       // track if multiple stat/val data arrays exist
+  int prev_stat_intent = -1;
+  OverlayInfoStruct statInfo;
   giiDataArray *node_index = NULL;  // support for sparse data storage
   long long num_index_nodes = 0;    // support for sparse data storage
   int startDAnum = 0;
@@ -851,7 +852,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     if (darray->intent == NIFTI_INTENT_NODE_INDEX) {
       if (numDA != 0) {
         fprintf(stderr,
-                "mrisReadGIFTIfile: NODE_INDEX data array found but its not the "
+                "mrisReadGIFTIdanum: NODE_INDEX data array found but its not the "
                 "first data array in file %s\n",
                 fname);
         gifti_free_image(image);
@@ -868,7 +869,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
       if (num_index_nodes <= 0 || num_index_nodes > mris->nvertices || num_cols > 1) {
         fprintf(stderr,
-                "mrisReadGIFTIfile: malformed NODE_INDEX data array in file %s: "
+                "mrisReadGIFTIdanum: malformed NODE_INDEX data array in file %s: "
                 "num_index_nodes=%d num_cols=%d max nvertices=%d, num_cols>1\n",
                 fname,
                 (int)num_index_nodes,
@@ -908,7 +909,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
       if (num_vertices <= 0 || num_vertices != mris->nvertices || num_cols > expected_num_cols) {
         fprintf(stderr,
-                "mrisReadGIFTIfile: malformed data array [%d] in file %s: "
+                "mrisReadGIFTIdanum: malformed data array [%d] in file %s: "
                 "num_vertices=%d num_cols=%d expected nvertices=%d, num_cols=%d\n",
                 numDA,
                 fname,
@@ -926,7 +927,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
      */
     if (darray->intent == NIFTI_INTENT_SHAPE) {
       // 'shape' data goes in our 'curv' data element of mris
-      if (found_curv_data) {
+      if (found_curv_data && outmri == NULL) {
         fprintf(stderr,
                 "WARNING: a prior data array of shape data has already "
                 "been read!  Skipping data in array #%d in file %s\n",
@@ -936,9 +937,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       else {
         found_curv_data++;
 
-        if (*frame >= 1)
-          fprintf(stderr, "WARNING: Skip saving %s data in array #%d (%s) in MRI \n",
-                          gifti_intent_to_string(darray->intent), numDA, fname);
+        if (outmri != NULL)
+          fprintf(stderr, "INFO: %s data in array #%d in file %s saved as MRI frame #%d\n",
+                          gifti_intent_to_string(darray->intent), numDA, fname, *frame);
 
         if (node_index)  // sparse data storage
         {
@@ -966,15 +967,52 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
           }
         }
 
-        if (outmri != NULL)
-          (*frame)++;
+        if (outmri == NULL)
+          continue;
+
+        
+        // save SHAPE information
+        char *shapename_base = NULL;
+        char *metashapename = gifti_get_meta_value(&darray->meta, "Name");
+        if (metashapename != NULL)
+	{
+          char shapename[1024] = {'\0'};
+          // make a copy because basename() may modify the contents of path passed into it
+          memcpy(shapename, metashapename, sizeof(shapename));
+          shapename_base = basename(shapename);
+
+          // remove the .gii extension
+          char *tmpptr = strrchr(shapename_base, '.');
+          if (tmpptr != NULL && strcmp(tmpptr+1, "gii") == 0)
+            *tmpptr = '\0';
+	}
+
+        OverlayInfoStruct overlayInfo;
+        overlayInfo.__foverlay = NULL;
+        if (shapename_base != NULL)
+	{
+          overlayInfo.__foverlay = new char[strlen(shapename_base)+1];
+          strcpy(overlayInfo.__foverlay, shapename_base);
+	}
+        overlayInfo.__type = FS_MRISURFOVERLAY_SHAPE;
+        overlayInfo.__giftiIntent = NIFTI_INTENT_SHAPE;
+        char *metashapedatatype = gifti_get_meta_value(&darray->meta, "ShapeDataType");
+        if (metashapedatatype != NULL)
+          strcpy(overlayInfo.__shapedatatype, metashapedatatype);
+        overlayInfo.__format = GIFTI_FILE;
+        overlayInfo.__stframe = *frame;
+        overlayInfo.__numframe = 1;
+
+        (*poverlayinfo).push_back(overlayInfo);
+
+        (*frame)++;
       }
     } // NIFTI_INTENT_SHAPE
     else if (darray->intent == NIFTI_INTENT_LABEL) {
       // 'label' data goes into the 'annotation' data element of mris
       if ((NULL == mris->ct) || (NULL == ct))  // sanity-check
       {
-        fprintf(stderr, "mrisReadGIFTIfile: NULL colortable\n");
+        fprintf(stderr, "mrisReadGIFTIdanum: NULL colortable\n");
         gifti_free_image(image);
         return NULL;
       }
@@ -1018,7 +1056,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         int result = CTABfindAnnotation(mris->ct, mris->vertices[vno].annotation, &index);
         if ((result != NO_ERROR) || (index < 0) || (index > image->labeltable.length)) {
           fprintf(stderr,
-                  "mrisReadGIFTIfile: label node data not found in colortable! "
+                  "mrisReadGIFTIdanum: label node data not found in colortable! "
                   "vno: %d, annot: %8.8X\n",
                   vno,
                   mris->vertices[vno].annotation);
@@ -1103,7 +1141,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     else {
       // 'statistics' and all other kinds of data we'll put in both our
       // 'stat' and 'val' data elements of the mris structure
-      if (found_statval_data) {
+      if (found_statval_data && outmri == NULL) {
         fprintf(stderr,
                 "WARNING: a prior data array of stat/val data has already "
                 "been read!  Skipping data in array #%d in file %s\n",
@@ -1113,9 +1151,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       else {
         found_statval_data++;
 
-        if (*frame >= 1)
-          fprintf(stderr, "WARNING: Skip saving %s data in array #%d (%s) in MRI \n",
-                          gifti_intent_to_string(darray->intent), numDA, fname);
+        if (outmri != NULL)
+          fprintf(stderr, "INFO: %s data in array #%d in file %s saved as MRI frame #%d\n",
+                          gifti_intent_to_string(darray->intent), numDA, fname, *frame);
 
         if (node_index)  // sparse data storage
         {
@@ -1145,8 +1183,30 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
           }
         }
 
-        if (outmri != NULL)
-          (*frame)++;
+        if (outmri == NULL)
+          continue;
+
+        if (prev_stat_intent != darray->intent)
+	{
+          // save SHAPE information
+          if (prev_stat_intent != -1)
+            (*poverlayinfo).push_back(statInfo);
+
+          statInfo.__foverlay = new char[strlen(fname)+1];
+          strcpy(statInfo.__foverlay, fname);
+          statInfo.__type = FS_MRISURFOVERLAY_STATS;
+          statInfo.__giftiIntent = darray->intent;
+          memset(statInfo.__shapedatatype, 0, sizeof(statInfo.__shapedatatype));
+          statInfo.__format = GIFTI_FILE;
+          statInfo.__stframe = *frame;
+          statInfo.__numframe = 1;
+
+          prev_stat_intent = darray->intent;
+	}
+        else
+          statInfo.__numframe++;
+
+        (*frame)++;
       }
     } // 'statistics' and all other kinds of data
   } // for each DAnum
@@ -1172,10 +1232,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
      first <STATS> is saved in mris->val and mris->stat;
      all SHAPE and <STATS> data arrays are saved as multi-frame MRI
   -----------------------------------------------------------*/
-MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, MRI *outmri, int *frame)
+MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, MRI *outmri, int *frame, std::vector<OverlayInfoStruct> *poverlayinfo)
 {
   // default read routine (read all data arrays)
-  return mrisReadGIFTIdanum(fname, mris, -1, outmri, frame);
+  return mrisReadGIFTIdanum(fname, mris, -1, outmri, frame, poverlayinfo);
 }
 
 /*-----------------------------------------------------------
@@ -1262,6 +1322,7 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
       if (++da_num >= image->numDA) {
         break;
       }
+      // ??? why the check ???
       if ((intent_code[intent_code_idx] != NIFTI_INTENT_TIME_SERIES) &&
           (intent_code[intent_code_idx] != NIFTI_INTENT_SHAPE) && (intent_code[intent_code_idx] != NIFTI_INTENT_NONE) &&
           (intent_code[intent_code_idx] != NIFTI_INTENT_NORMAL)) {
@@ -2273,6 +2334,57 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
 
 
 
+int MRISwriteGIFTI(MRIS* mris, const MRI *mri, int stframe, int endframe, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype)
+{
+  if (NULL == mris || NULL == out_fname) {
+    fprintf(stderr, "MRISwriteGIFTI: invalid parameter\n");
+    return ERROR_BADPARM;
+  }
+
+  gifti_image *image = (gifti_image *)calloc(1, sizeof(gifti_image));
+  if (NULL == image) {
+    fprintf(stderr, "MRISwriteGIFTI: couldn't allocate image\n");
+    return ERROR_NOMEMORY;
+  }
+  image->version = strcpyalloc(GIFTI_XML_VERSION);
+
+  insertCommonMetaData(&image->meta);
+  if (strlen(mris->subject_name)) {
+    gifti_add_to_meta(&image->meta, "SubjectID", mris->subject_name, 1);
+  }
+
+  // 
+  int error = MRISwriteGIFTIIntent(mris, mri, stframe, endframe, image, intent_code, out_fname, curv_fname, datatype);
+  if (error != NO_ERROR)
+    return error;
+
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image(image, 1);
+  if (valid == 0) {
+    fprintf(stderr, "MRISwriteGIFTI: GIFTI file %s is invalid!\n", out_fname);
+    gifti_free_image(image);
+    return ERROR_BADFILE;
+  }
+
+  /* Write the file. */
+  if (gifti_write_image(image, out_fname, 1)) {
+    fprintf(stderr, "MRISwriteGIFTI: couldn't write image\n");
+    gifti_free_image(image);
+    return ERROR_BADFILE;
+  }
+
+  gifti_free_image(image);
+
+  return ERROR_NONE;
+} // end of MRISwriteGIFTI(MRIS *mris, const MRI *mri, ...)
+
+
 int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *out_fname)
 {
   if (NULL == mris || NULL == out_fname) {
@@ -2302,7 +2414,8 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
   int noverlay = poverlays->getNumOverlay();
   for (int n = 0; n < noverlay; n++)
   {
-    int giftiintent = poverlays->getGIFTIIntent(n);
+    int overlaytype = poverlays->getOverlayType(n);
+    int giftiintent = poverlays->getGIFTIIntent(overlaytype);
     int stFrame = poverlays->getFirstFrameNo(n);
     int endFrame = poverlays->getNumFrames(n);
     for (int f = stFrame; f < endFrame; f++)
@@ -2593,7 +2706,7 @@ int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 } // end of MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, ...)
 
 
-int getShapeStatIntentCount(const char *fgifti)
+int getShapeStatIntentCount(const char *fgifti, int *nVertices, int *nFaces)
 {
   /*
    * attempt to read the file
@@ -2628,14 +2741,68 @@ int getShapeStatIntentCount(const char *fgifti)
   for (int numDA = 0; numDA < endDAnum; numDA++) {
     giiDataArray *darray = image->darray[numDA];
 
-    // skip these intents
-    if ((darray->intent == NIFTI_INTENT_POINTSET)   || 
-        (darray->intent == NIFTI_INTENT_TRIANGLE)   ||
-        (darray->intent == NIFTI_INTENT_LABEL)      || 
-        (darray->intent == NIFTI_INTENT_GENMATRIX)  ||
-        (darray->intent == NIFTI_INTENT_VECTOR)     || 
-        (darray->intent == NIFTI_INTENT_RGB_VECTOR) ||
-        (darray->intent == NIFTI_INTENT_RGBA_VECTOR))
+    if (darray->intent == NIFTI_INTENT_POINTSET)
+    {
+      // get number of vertices
+      long long num_vertices = 0;
+      long long  num_cols = 0;
+      if (darray->ind_ord == GIFTI_IND_ORD_ROW_MAJOR) {
+        // RowMajorOrder
+        gifti_DA_rows_cols(darray, &num_vertices, &num_cols);
+      }
+      else {
+        // ColumnMajorOrder
+        gifti_DA_rows_cols(darray, &num_cols, &num_vertices);
+      }
+      if (num_vertices <= 0 || num_cols != 3) {
+        fprintf(stderr,
+                "getShapeStatIntentCount(): malformed coords data array in file "
+                "%s: num_vertices=%d num_cols=%d\n",
+                fgifti,
+                (int)num_vertices,
+                (int)num_cols);
+        gifti_free_image(image);
+        return 0;
+      }
+
+      if (nVertices != NULL)
+        *nVertices = num_vertices;
+      continue;
+    }
+    else if (darray->intent == NIFTI_INTENT_TRIANGLE)
+    {
+      // get number of triangle faces
+      long long num_faces = 0;
+      long long num_cols = 0;
+      if (darray->ind_ord == GIFTI_IND_ORD_ROW_MAJOR) {
+        // RowMajorOrder
+        gifti_DA_rows_cols(darray, &num_faces, &num_cols);
+      }
+      else {
+        // ColumnMajorOrder
+        gifti_DA_rows_cols(darray, &num_cols, &num_faces);
+      }
+      if (num_faces <= 0 || num_cols != 3) {
+        fprintf(stderr,
+                "getShapeStatIntentCount(): malformed faces data array in file "
+                "%s: num_faces=%d num_cols=%d\n",
+                fgifti,
+                (int)num_faces,
+                (int)num_cols);
+        gifti_free_image(image);
+        return 0;
+      }
+
+      if (nFaces != NULL)
+        *nFaces = num_faces;
+      continue;
+    }
+    else if ((darray->intent == NIFTI_INTENT_LABEL)      || 
+             (darray->intent == NIFTI_INTENT_GENMATRIX)  ||
+             (darray->intent == NIFTI_INTENT_VECTOR)     || 
+             (darray->intent == NIFTI_INTENT_RGB_VECTOR) ||
+             (darray->intent == NIFTI_INTENT_RGBA_VECTOR))
+      // skip these intents
       continue;
 
     count++;

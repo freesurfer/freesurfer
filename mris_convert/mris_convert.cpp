@@ -79,6 +79,7 @@ static const COLOR_TABLE miniColorTable =
 
 int main(int argc, char *argv[]) ;
 
+static MRIS *__splitGIFTI(const char *fgifti, const char *outdir, const char *fout=NULL);
 static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname);
 static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
 static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname);
@@ -113,7 +114,7 @@ static int read_orig_positions = 0 ;
 static int w_file_dst_flag = 0 ;
 static int w_file_src_flag = 0 ;
 static int curv_file_flag = 0 ;
-static char *curv_fname = NULL;
+//static char *curv_fname = NULL;
 static const char **arr_fcurv = NULL;
 static int  nfcurv = 0;
 static int func_file_flag = 0 ;
@@ -137,6 +138,8 @@ static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
 static int mergegifti_flag = 0;
+static int splitgifti_flag = 0;
+static char *giftioutdir = NULL;
 static int userealras_flag = 0;
 static int usesurfras_flag = 0;
 static MRI *VolGeomMRI=NULL;
@@ -312,12 +315,19 @@ main(int argc, char *argv[])
   }
   else
   {
-    mris = MRISread(in_fname, doTkrRASConvert) ;
-    if (!mris)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+    if (splitgifti_flag)
+    {
+      mris = __splitGIFTI(in_fname, giftioutdir);
+    }
+    else
+    {
+      mris = MRISread(in_fname, doTkrRASConvert) ;
+      if (!mris)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
-    if (center_surface)
-      MRIScenter(mris, mris) ;
+      if (center_surface)
+        MRIScenter(mris, mris) ;
+    }
   }
 
   if(nUpsample > 0){
@@ -504,19 +514,24 @@ main(int argc, char *argv[])
 }
 
 
+static MRIS *__splitGIFTI(const char *fgifti, const char *outdir, const char *fout)
+{
+  MRIS *mris = NULL;
+
+  MRISurfOverlay *fsOverlay = new MRISurfOverlay(fgifti);
+  mris = fsOverlay->readGIFTICombined(fgifti, mris);
+  if (mris == NULL)
+    return NULL;
+
+  fsOverlay->separateGIFTIDataArray(mris, outdir);
+
+  return mris;
+}
+
+
 static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname)
 {
-  OverlayInfoStruct poverlayStruct[noverlay];
-  for (int n = 0; n < noverlay; n++)
-  {
-    poverlayStruct[n].__foverlay = foverlays[n];
-    poverlayStruct[n].__type = FS_MRISURFOVERLAY_SHAPE;
-    poverlayStruct[n].__format = MRISurfOverlay::getFileFormat(foverlays[n]);
-    poverlayStruct[n].__stframe = n;  // assume one frame for each curvature
-    poverlayStruct[n].__numframe = 1;
-  }
-
-  MRISurfOverlay *fsOverlay = new MRISurfOverlay(mris, noverlay, &poverlayStruct[0]);
+  MRISurfOverlay *fsOverlay = new MRISurfOverlay(mris, noverlay, foverlays);
   int error = fsOverlay->read(TRUE, mris);
   if (error != NO_ERROR)
     return;
@@ -874,6 +889,15 @@ get_option(int argc, char *argv[])
   {
     mergegifti_flag = 1;
   }
+  else if (!stricmp(option, "-splitgifti"))
+  {
+    splitgifti_flag = 1;
+  }
+  else if (!stricmp(option, "-giftioutdir"))
+  {
+    giftioutdir = argv[2] ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "-delete-cmds"))
   {
     DeleteCommands = 1;
@@ -949,7 +973,7 @@ get_option(int argc, char *argv[])
     case 'C':
     {
       curv_file_flag = 1 ;
-      curv_fname = argv[2] ;
+      //curv_fname = argv[2] ;
       nargs = 1 ;
 
       int argc0 = 2;
@@ -1016,9 +1040,27 @@ get_option(int argc, char *argv[])
 
 static void check_options(void)
 {
+  if (nfcurv > 1 && !mergegifti_flag)
+  {
+    printf("ERROR: more than one overlay are specified. Use --mergegifti to combine them into single GIFTI output.\n");
+    exit(1);
+  }
+
   if (mergegifti_flag && MRISurfOverlay::getFileFormat(outfile) != GIFTI_FILE)
   {
     printf("ERROR: --mergegifti only works with GIFTI output\n");
+    exit(1);
+  }
+
+  if (splitgifti_flag && MRISurfOverlay::getFileFormat(infile) != GIFTI_FILE)
+  {
+    printf("ERROR: --splitgifti only works with GIFTI input\n");
+    exit(1);
+  }
+
+  if (splitgifti_flag && giftioutdir == NULL)
+  {
+    printf("ERROR: use --giftioutdir to specify output directory for generated GIFTI files\n");
     exit(1);
   }
 

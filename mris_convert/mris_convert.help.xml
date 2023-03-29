@@ -53,7 +53,7 @@
       <explanation>help page</explanation>
       <argument>-p</argument>
       <explanation>in-file is a patch file, not a full surface</explanation>
-      <argument>-c scalar-file1, scalar-file2, ..., scalar-filen</argument>
+      <argument>-c scalar-file1, scalar-file2, ...</argument>
       <explanation>input scalar curv overlay files (must still specify surface)</explanation>
       <argument>-f scalar-file</argument>
       <explanation>input functional time-series or other multi-frame data (must specify surface)</explanation>
@@ -85,6 +85,10 @@
       <explanation>combine surface files, two input surface files required</explanation>
       <argument>--mergegifti</argument>
       <explanation>generate combined gifti file with surface and multiple curvature data</explanation>
+      <argument>--splitgifti</argument>
+      <explanation>separate surface and data array from combined gifti file, output them into individual files</explanation>
+      <argument>--giftioutdir</argument>
+      <explanation>outout directory for generated gifiti files, used with --splitgifti only</explanation>
       <argument>--delete-cmds</argument>
       <explanation>delete command lines in surface</explanation>
       <argument>--center</argument>
