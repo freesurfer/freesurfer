@@ -536,11 +536,6 @@ int main(int argc, char *argv[])
     {
       store_orig_ras2vox_flag = TRUE;
     }
-    else if (strcmp(argv[i], "-nc") == 0 ||
-             strcmp(argv[i], "--nochange") == 0)
-    {
-      nochange_flag = TRUE;
-    }
     else if (strcmp(argv[i], "-cm") == 0 ||
              strcmp(argv[i], "--conform_min") == 0)
     {
