@@ -36,7 +36,8 @@
 #include "utils.h"  // strcpyalloc
 #include "libgen.h"
 
-#define TAG_CMDLINE_LEN 1024
+#define TAG_CMDLINE_LEN   1024
+#define NUM_VOLGEOM_META  19
 
 /*
  *
@@ -575,7 +576,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
     /* retrieve volume geometry info */
     {
-      int vgvalid = 0;  // there are a total of 18 values
+      int vgvalid = 0;  // there are a total of 19 values (NUM_VOLGEOM_META)
       char *stmp = gifti_get_meta_value(&coords->meta, "VolGeomWidth");
       if (stmp && (1 == sscanf(stmp, "%d", &mris->vg.width))) {
         vgvalid++;  // track valid volgeom values found
@@ -653,9 +654,15 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       if (stmp && (1 == sscanf(stmp, "%f", &mris->vg.c_s))) {
         vgvalid++;
       }
+      stmp = gifti_get_meta_value(&coords->meta, "VolGeomFname");
+      if (stmp) {
+        vgvalid++;
+        memcpy(mris->vg.fname, stmp, sizeof(mris->vg.fname));
+      }
 
-      // we got all 18 values
-      if (vgvalid == 18) {
+
+      // we got all the values
+      if (vgvalid == NUM_VOLGEOM_META) {
         mris->vg.valid = 1;  // finally we can say its valid data
       }
 
@@ -2253,6 +2260,7 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
     if (mris->vg.valid) {
       char stmp[100];
 
+      gifti_add_to_meta(&coords->meta, "VolGeomFname", mris->vg.fname, 1);
       sprintf(stmp, "%d", mris->vg.width);
       gifti_add_to_meta(&coords->meta, "VolGeomWidth", stmp, 1);
       sprintf(stmp, "%d", mris->vg.height);
