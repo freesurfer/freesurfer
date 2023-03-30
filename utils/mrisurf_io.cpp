@@ -3777,12 +3777,20 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
               }
               break;
             case TAG_CMDLINE:
-              if (mris->ncmds > MAX_CMDS)
-                ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mris->ncmds);
-              mris->cmdlines[mris->ncmds] = (char *)calloc(len + 1, sizeof(char));
-              fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp);
-              mris->cmdlines[mris->ncmds][len] = 0;
-              mris->ncmds++;
+	      {
+                const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_READ");
+                if (noextra == NULL)
+                {
+                  //printf("[INFO]: read TRIANGULARSURFACE EXTRA - cmds\n");
+
+                  if (mris->ncmds > MAX_CMDS)
+                    ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mris->ncmds);
+                  mris->cmdlines[mris->ncmds] = (char *)calloc(len + 1, sizeof(char));
+                  fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp);
+                  mris->cmdlines[mris->ncmds][len] = 0;
+                  mris->ncmds++;
+	        }
+	      }
               break;
             default:
               TAGskip(fp, tag, (long long)len);
@@ -4386,6 +4394,7 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
     if (!mris->vg.valid)
     {
       printf("ERROR: Surface %s doesn't have valid volume geometry!\n", fname);
+      MRISfree(&mris);
       return NULL;
     }
 
@@ -5551,6 +5560,10 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (!user)  user = getenv("LOGNAME");
   if (!user)  user = "UNKNOWN";
 
+  const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_WRITE");
+  if (noextra != NULL)
+    printf("[INFO]: NO TRIANGULARSURFACE EXTRA - created by line & cmds\n");
+
   auto cdt = currentDateTime();
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
@@ -5559,7 +5572,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwriteTriangularSurface(%s): can't create file\n", fname));
   
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
-  fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
+  if (noextra == NULL)
+    fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
   fwriteInt(mris->nvertices, fp);
   fwriteInt(mris->nfaces, fp); /* # of triangles */
 
@@ -5589,6 +5603,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
     fwriteFloat(mris->group_avg_surface_area, fp);
     TAGwriteEnd(fp, here);
   }
+
+  if (noextra == NULL)
   {
     for (int i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
   }
@@ -5723,8 +5739,14 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "mrisReadTriangleFile(%s): could not open file", fname));
 
   fread3(&magic, fp);
-  fgets(line, 200, fp);
-  fscanf(fp, "\n");
+
+  const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_READ");
+  if (noextra == NULL)
+  {
+    //printf("[INFO]: read TRIANGULARSURFACE EXTRA - created by line\n");
+    fgets(line, 200, fp);
+    fscanf(fp, "\n");
+  }
   /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
   nvertices = freadInt(fp);
   nfaces    = freadInt(fp);

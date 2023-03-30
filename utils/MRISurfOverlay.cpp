@@ -5,58 +5,41 @@
 #include "gifti.h"
 
 // constructor
-MRISurfOverlay::MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *poverlayInfo)
+MRISurfOverlay::MRISurfOverlay(MRIS *mris, int nfcurvs, const char **fcurvs, int nfstats, const char **fstats)
 {
   __nVertices = mris->nvertices;
   __nFaces    = mris->nfaces;
 
-  __noverlay = noverlay;
-  __overlayInfo = new OverlayInfoStruct[__noverlay];
-  for (int n = 0; n < __noverlay; n++)
-  {
-    __overlayInfo[n].__foverlay = poverlayInfo[n].__foverlay;
-    __overlayInfo[n].__type = poverlayInfo[n].__type;
-    __overlayInfo[n].__format = poverlayInfo[n].__format;
-    __overlayInfo[n].__stframe = poverlayInfo[n].__stframe;  // assume one frame for each curvature
-    __overlayInfo[n].__numframe = poverlayInfo[n].__numframe;
-
-    __overlayInfo[n].__stframe = n;  // assume one frame for each overlay
-
-    const char *curv_fname = __overlayInfo[n].__foverlay;
-    __overlayInfo[n].__shapedatatype = NULL;
-    if (strstr(curv_fname, ".thickness"))
-      __overlayInfo[n].__shapedatatype = "Thickness";
-    else if (strstr(curv_fname, ".curv"))
-      __overlayInfo[n].__shapedatatype = "CurvatureRadial";
-    else if (strstr(curv_fname, ".sulc"))
-      __overlayInfo[n].__shapedatatype = "SulcalDepth";
-    else if (strstr(curv_fname, ".area"))
-      __overlayInfo[n].__shapedatatype = "Area";
-    else if (strstr(curv_fname, ".volume"))
-      __overlayInfo[n].__shapedatatype = "Volume";
-    else if (strstr(curv_fname, ".jacobian"))
-      __overlayInfo[n].__shapedatatype = "Jacobian";
-    else
-      __overlayInfo[n].__shapedatatype = NULL; 
-
-    __overlayInfo[n].__giftiIntent = getGIFTIIntent(n);
-
-#if 0
-    memcpy(__overlayInfo[n], poverlayInfo[n], sizeof(__overlayInfo[n]));
-    __overlayInfo[n].__type = poverlayInfo[n]__type;
-    __overlayInfo[n].__format = MRI_VOLUME_TYPE_UNKNOWN;
-    __overlayInfo[n].__stframe = n;  // assume one frame for each overlay
-    __overlayInfo[n].__numframe = 1;
-
-    __overlayInfo[n].__nValsPerVertex = 1;
-#endif
-  }
+  __nfcurvature = nfcurvs;
+  __fcurvatures = fcurvs;
+  __nfstats     = nfstats;
+  __fstats      = fstats;
 
   // handle multi overlay in one input file
+  __currFrame = 0;
   __nframes = __getFrameCount();
   std::vector<int> shape{__nVertices, 1, 1, __nframes};
   __overlaymri = new MRI(shape, MRI_FLOAT);
+} 
+
+
+// constructor
+MRISurfOverlay::MRISurfOverlay(const char *fgifti)
+{
+  __nVertices = 0;
+  __nFaces    = 0;
+
+  __nfcurvature = 1;
+  __fcurvatures = new const char*[1];
+  __fcurvatures[0] = fgifti;
+  __nfstats     = 0;
+  __fstats      = NULL;
+
+  // handle multi overlay in one input file
   __currFrame = 0;
+  __nframes = __getFrameCount(&__nVertices, &__nFaces);
+  std::vector<int> shape{__nVertices, 1, 1, __nframes};
+  __overlaymri = new MRI(shape, MRI_FLOAT);
 } 
 
 
@@ -97,16 +80,47 @@ int MRISurfOverlay::getFileFormat(const char *foverlay)
 // read all overlay
 int MRISurfOverlay::read(int read_volume, MRIS *mris)
 {
-  for (int n = 0; n < __noverlay; n++)
-  {
-    __currOverlay = n;
-    __currFrame = n;
-    __overlayInfo[n].__stframe = __currFrame;
+  int n = 0;
 
-    int error = __readOneOverlay(n, read_volume, mris);
+  // read curvature files
+  for (; n < __nfcurvature; n++)
+  {
+    OverlayInfoStruct overlayInfo;
+    overlayInfo.__foverlay = new char[strlen(__fcurvatures[n])+1];
+    strcpy(overlayInfo.__foverlay, __fcurvatures[n]);
+    overlayInfo.__type = FS_MRISURFOVERLAY_SHAPE;
+    overlayInfo.__giftiIntent = NIFTI_INTENT_SHAPE;    //getGIFTIIntent(overlayInfo.__type);
+
+    // assign GIFTI ShapeDataType metadata
+    const char *curv_fname = overlayInfo.__foverlay;
+    memset(overlayInfo.__shapedatatype, 0, sizeof(overlayInfo.__shapedatatype));
+    if (strstr(curv_fname, ".thickness"))
+      strcpy(overlayInfo.__shapedatatype, "Thickness");
+    else if (strstr(curv_fname, ".curv"))
+      strcpy(overlayInfo.__shapedatatype, "CurvatureRadial");
+    else if (strstr(curv_fname, ".sulc"))
+      strcpy(overlayInfo.__shapedatatype, "SulcalDepth");
+    else if (strstr(curv_fname, ".area"))
+      strcpy(overlayInfo.__shapedatatype, "Area");
+    else if (strstr(curv_fname, ".volume"))
+      strcpy(overlayInfo.__shapedatatype, "Volume");
+    else if (strstr(curv_fname, ".jacobian"))
+      strcpy(overlayInfo.__shapedatatype, "Jacobian");
+
+    overlayInfo.__format = getFileFormat(overlayInfo.__foverlay);
+    overlayInfo.__stframe = __currFrame;
+
+    // read curvature file
+    int error = __readOneOverlay(&overlayInfo, read_volume, mris);
     if (error != NO_ERROR)
       return error;
+
+    // __currFrame will be updated in __readOneOverlay() (mrisReadGIFTIfile() for GIFTI_FILE)
+    //__currFrame += overlayInfo.__numframe;
   }
+
+  // read stats files
+  // ...
 
   return NO_ERROR;
 }
@@ -123,7 +137,7 @@ int MRISurfOverlay::read(int read_volume, MRIS *mris)
  * The overlay data has 1D morphometry data (vertex-wise measures) or other per-vertex information.
  * The data is read into MRI representation in this class for MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE.
  */
-int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris)
+int MRISurfOverlay::__readOneOverlay(OverlayInfoStruct *overlayInfo, int read_volume, MRIS *mris)
 {
   if (mris == NULL)
   {
@@ -132,9 +146,9 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
   }
 
   // check if we support the file format
-  int overlayFormat = __overlayInfo[__currFrame].__format;
+  int overlayFormat = overlayInfo->__format;
   if (overlayFormat == MRI_VOLUME_TYPE_UNKNOWN)
-    overlayFormat = getFileFormat(__overlayInfo[nthOverlay].__foverlay);
+    overlayFormat = getFileFormat(overlayInfo->__foverlay);
 
   if (overlayFormat == MRI_VOLUME_TYPE_UNKNOWN)
   {
@@ -142,41 +156,47 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
     return ERROR_BADFILE;
   }
 
-  __overlayInfo[__currFrame].__format = overlayFormat;
+  overlayInfo->__format = overlayFormat;
 
   if (overlayFormat == MRI_CURV_FILE)
   {
-    int error = __readCurvatureAsMRI(__overlayInfo[__currFrame].__foverlay, read_volume);
+    int error = __readCurvatureAsMRI(overlayInfo->__foverlay, read_volume);
     if (error != NO_ERROR)
       return error;
 
-    __overlayInfo[__currOverlay].__numframe = 1;
-    __copyOverlay2MRIS(mris);
+    overlayInfo->__numframe = 1;
+
+    // add to OverlayInfoStruct vector
+    __overlayInfo.push_back(*overlayInfo);
+
+    __copyOverlay2MRIS(overlayInfo, mris);
+
+    __currFrame += overlayInfo->__numframe;
   }
   else if (overlayFormat == MRI_MGH_FILE)
   {
-    MRI *tempMRI = mghRead(__overlayInfo[__currFrame].__foverlay, read_volume, -1);
+    MRI *tempMRI = mghRead(overlayInfo->__foverlay, read_volume, -1);
     if (tempMRI->width != __nVertices || tempMRI->height != 1 || tempMRI->depth != 1)
     {
       printf("[ERROR] MRISurfOverlay::readOneOverlay() - %s dimensions (%d x %d x %d) doesn't match number of surface vertices (%d)\n",
-             __overlayInfo[nthOverlay].__foverlay, tempMRI->width, tempMRI->height, tempMRI->depth, __nVertices);
+             overlayInfo->__foverlay, tempMRI->width, tempMRI->height, tempMRI->depth, __nVertices);
       return ERROR_BADFILE;
     }
 
-    __overlayInfo[__currOverlay].__numframe = 1;
+    overlayInfo->__numframe = 1;
 
     // MRI_MGH_FILE can have multiple frames if it is functional statistical data
     if (tempMRI->nframes > 1)
     {
-      printf("[INFO] MRISurfOverlay::readOneOverlay() - %s has multiple frames = %d.\n", __overlayInfo[nthOverlay].__foverlay, tempMRI->nframes);
+      printf("[INFO] MRISurfOverlay::readOneOverlay() - %s has multiple frames = %d.\n", overlayInfo->__foverlay, tempMRI->nframes);
 
       printf("[INFO] MRISurfOverlay::readOneOverlay() - Each frame will be treated as one overlay.\n");
-      __overlayInfo[__currOverlay].__numframe = tempMRI->nframes;
+      overlayInfo->__numframe = tempMRI->nframes;
     }
 
     // copy the data to MRI frames
-    int stframe = __overlayInfo[__currOverlay].__stframe;
-    int endframe = __overlayInfo[__currOverlay].__stframe + __overlayInfo[__currOverlay].__numframe;
+    int stframe = overlayInfo->__stframe;
+    int endframe = overlayInfo->__stframe + overlayInfo->__numframe;
     for (int f = stframe; f < endframe; f++) {
       for (int s = 0; s < __overlaymri->depth; s++) {
         for (int r = 0; r < __overlaymri->height; r++) {
@@ -189,7 +209,12 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
     }
     MRIfree(&tempMRI);
 
-    __copyOverlay2MRIS(mris);
+    // add to OverlayInfoStruct vector
+    __overlayInfo.push_back(*overlayInfo);
+
+    __copyOverlay2MRIS(overlayInfo, mris);
+
+    __currFrame += overlayInfo->__numframe;
   }
   else if (overlayFormat == GIFTI_FILE)
   {
@@ -197,30 +222,44 @@ int MRISurfOverlay::__readOneOverlay(int nthOverlay, int read_volume, MRIS *mris
     //   first SHAPE is saved in mris->curv;
     //   first <STATS> is saved in mris->val and mris->stat;
     //   all SHAPE and <STATS> data arrays are saved as multi-frame MRI
-    int currFrame_saved = __currFrame;
-    mrisReadGIFTIfile(__overlayInfo[__currFrame].__foverlay, mris, __overlaymri, &__currFrame);
-
-    __overlayInfo[__currOverlay].__numframe = (__currFrame - currFrame_saved);
+    // __overlayInfo is updated in mrisReadGIFTIfile() while reading the intents
+    mrisReadGIFTIfile(overlayInfo->__foverlay, mris, __overlaymri, &__currFrame, &__overlayInfo);
   }
   else if (overlayFormat == ASCII_FILE)
   {
-    mrisReadAsciiCurvatureFile(mris, __overlayInfo[__currFrame].__foverlay, __overlaymri, __currFrame);
-    __overlayInfo[__currOverlay].__numframe = 1;
+    mrisReadAsciiCurvatureFile(mris, overlayInfo->__foverlay, __overlaymri, __currFrame);
+    overlayInfo->__numframe = 1;
+
+    // add to OverlayInfoStruct vector
+    __overlayInfo.push_back(*overlayInfo);
+
+    __currFrame += overlayInfo->__numframe;
   }
   else if (overlayFormat == VTK_FILE)
   {
     // ??? VTK might have multiple FIELD ???
-    MRISreadVTK(mris, __overlayInfo[__currFrame].__foverlay, __overlaymri, __currFrame);
-    __overlayInfo[__currOverlay].__numframe = 1;
+    MRISreadVTK(mris, overlayInfo->__foverlay, __overlaymri, __currFrame);
+    overlayInfo->__numframe = 1;
+
+    // add to OverlayInfoStruct vector
+    __overlayInfo.push_back(*overlayInfo);
+
+    __currFrame += overlayInfo->__numframe;
   }
   else // assume it is in old curv format
   {
-    int error = __readOldCurvature(__overlayInfo[__currFrame].__foverlay);
+    int error = __readOldCurvature(overlayInfo->__foverlay);
     if (error != NO_ERROR)
       return error;
 
-    __overlayInfo[__currOverlay].__numframe = 1;
-    __copyOverlay2MRIS(mris);
+    overlayInfo->__numframe = 1;
+
+    // add to OverlayInfoStruct vector
+    __overlayInfo.push_back(*overlayInfo);
+
+    __copyOverlay2MRIS(overlayInfo, mris);
+
+    __currFrame += overlayInfo->__numframe;
   }
 
   return NO_ERROR;
@@ -298,8 +337,6 @@ int MRISurfOverlay::__readOldCurvature(const char *fname)
 
   fclose(fp);
 
-  __overlayInfo[__currOverlay].__numframe = 1;
-
   return NO_ERROR;
 }
 
@@ -310,54 +347,65 @@ int MRISurfOverlay::__readOldCurvature(const char *fname)
  * stats data        - copy to MRIS->stat and MRIS->val.
  * ??? check ripflag ???
  */
-int MRISurfOverlay::__copyOverlay2MRIS(MRIS *outmris)
+int MRISurfOverlay::__copyOverlay2MRIS(OverlayInfoStruct *overlayInfo, MRIS *outmris)
 {
   int frame = MRISgetReadFrame();
-  if (__overlayInfo[__currFrame].__numframe <= frame) {
-    printf("ERROR: attempted to read frame %d from %s\n", frame, __overlayInfo[__currFrame].__foverlay);
-    printf("  but this file only has %d frames.\n", __overlayInfo[__currFrame].__numframe);
+  if (overlayInfo->__numframe <= frame) {
+    printf("ERROR: attempted to read frame %d from %s\n", frame, overlayInfo->__foverlay);
+    printf("  but this file only has %d frames.\n", overlayInfo->__numframe);
     return (ERROR_BADFILE);
   }
 
   int nv = __overlaymri->width * __overlaymri->height * __overlaymri->depth;
   if (nv != outmris->nvertices) {
     printf("ERROR: number of vertices in %s does not match surface (%d,%d)\n", 
-           __overlayInfo[__currFrame].__foverlay, nv, outmris->nvertices);
+           overlayInfo->__foverlay, nv, outmris->nvertices);
     return 1;
   }
 
-  bool shapeMeasurement = __isShapeMeasurement(__currFrame);
-  bool statsData = __isStatsData(__currFrame);
+  bool shapeMeasurement = __isShapeMeasurement(overlayInfo->__type);
+  bool statsData = __isStatsData(overlayInfo->__type);
+
+  int stframe = overlayInfo->__stframe;
+  int endframe = overlayInfo->__stframe + overlayInfo->__numframe;
+
+  if (shapeMeasurement && overlayInfo->__numframe > 1)
+  {
+    printf("ERROR: curvature data has multiple frames\n");
+    return (ERROR_BADFILE);
+  }
 
   int vno = 0;
   float curvmin = 10000.0f;
   float curvmax = -10000.0f; /* for compiler warnings */
-  for (int s = 0; s < __overlaymri->depth; s++) {
-    for (int r = 0; r < __overlaymri->height; r++) {
-      for (int c = 0; c < __overlaymri->width; c++) {
-        float f = MRIgetVoxVal(__overlaymri, c, r, s, frame);
+  for (int f = stframe; f < endframe; f++) {
+    for (int s = 0; s < __overlaymri->depth; s++) {
+      for (int r = 0; r < __overlaymri->height; r++) {
+        for (int c = 0; c < __overlaymri->width; c++) {
+          float fval = MRIgetVoxVal(__overlaymri, c, r, s, f);
 
-        if (shapeMeasurement)
-	{ 
-          if (s == 0 && r == 0 && c == 0) {
-            curvmin = curvmax = f;
-          }
-          if (f > curvmax) {
-            curvmax = f;
-          }
-          if (f < curvmin) {
-            curvmin = f;
-          }
-          outmris->vertices[vno].curv = f;
-          outmris->vertices[vno].val = f;
-        }
-        else if (statsData)
-        {
-          outmris->vertices[vno].stat = f;
-          outmris->vertices[vno].val = f;
-        }
+          if (shapeMeasurement)
+	  { 
+            if (s == 0 && r == 0 && c == 0)
+              curvmin = curvmax = fval;
 
-        vno++;
+            if (fval > curvmax)
+              curvmax = fval;
+
+            if (fval < curvmin)
+              curvmin = fval;
+
+            outmris->vertices[vno].curv = fval;
+            outmris->vertices[vno].val = fval;
+          }
+          else if (statsData)
+          {
+            outmris->vertices[vno].stat = fval;
+            outmris->vertices[vno].val = fval;
+          }
+
+          vno++;
+        }
       }
     }
   }
@@ -407,8 +455,6 @@ int MRISurfOverlay::__readCurvatureAsMRI(const char *curvfile, int read_volume)
     MRIsetVoxVal(__overlaymri, k, 0, 0, __currFrame, curv);
   }
 
-  __overlayInfo[__currOverlay].__numframe = 1;
-
   fclose(fp);
 
   return NO_ERROR;
@@ -433,7 +479,8 @@ int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
 #endif
 
 
-  if (!mergegifti && __noverlay > 1)
+  int noverlay = __overlayInfo.size();
+  if (!mergegifti && noverlay > 1)
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - more than one overlay to output"));
 
   MRI *outmri = __overlaymri;
@@ -445,10 +492,12 @@ int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
   if (outtype == MRI_VOLUME_TYPE_UNKNOWN)
     outtype = MRI_CURV_FILE;    // write as MRI_CURV_FILE
 
-  if ((outtype == ASCII_FILE || outtype == VTK_FILE || outtype == MRI_CURV_FILE) && __noverlay > 1)
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - ASCII_FILE/VTK_FILE/MRI_CURV_FILE has more than one overlay"));
+  if (noverlay > 1 &&
+      (outtype == ASCII_FILE   || outtype == VTK_FILE || 
+       outtype == MRI_MGH_FILE || outtype == MRI_CURV_FILE))
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - ASCII_FILE/VTK_FILE/MRI_MGH_FILE/MRI_CURV_FILE has more than one overlay"));
 
-  // ASCII_FILE, VTK_FILE, MRI_CURV_FILE can only have contain one overlay data
+  // ASCII_FILE, VTK_FILE, MRI_MGH_FILE, MRI_CURV_FILE can only have contain one overlay data
   // ASCII_FILE, VTK_FILE only output from MRIS
   if (outtype == MRI_MGH_FILE)
   {
@@ -493,8 +542,9 @@ int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
        *   ...
        * }
        */
-      int giftiintent = getGIFTIIntent(0);
+      int giftiintent = getGIFTIIntent(__overlayInfo[0].__type);
       error = MRISwriteGIFTI(mris, giftiintent, fout, __overlayInfo[0].__foverlay);
+      // ??? change it to use separateGIFTIDataArray() to write the first overlay ???
     }
   }
   else if (outtype == ASCII_FILE)
@@ -509,7 +559,8 @@ int MRISurfOverlay::write(const char *fout, MRIS *mris, bool mergegifti)
   }
   else if (outtype == MRI_CURV_FILE)
   {
-    error = __writeCurvFromMRIS(mris, fout);
+    error = __writeCurvFromMRI(outmri, fout);
+    //error = __writeCurvFromMRIS(mris, fout);
 #if 0
     if (inmris != NULL)
     {
@@ -593,130 +644,123 @@ int MRISurfOverlay::__writeCurvFromMRIS(MRIS *outmris, const char *fout)
 }
 
 
-int MRISurfOverlay::getGIFTIIntent(int nthOverlay)
+int MRISurfOverlay::getGIFTIIntent(int overlaytype)
 {
-  int giftiIntent = __overlayInfo[nthOverlay].__giftiIntent;
+  int giftiIntent = NIFTI_INTENT_NONE;
 
-  if (giftiIntent != NIFTI_INTENT_NONE)
-    return giftiIntent;
-
-  int type = __overlayInfo[nthOverlay].__type;
-  if (type == FS_MRISURFOVERLAY_SHAPE      ||
-      type == FS_MRISURFOVERLAY_SHAPE_CURV || 
-      type == FS_MRISURFOVERLAY_SHAPE_SULC ||
-      type == FS_MRISURFOVERLAY_SHAPE_AREA ||
-      type == FS_MRISURFOVERLAY_SHAPE_THICKNESS)
+  if (overlaytype == FS_MRISURFOVERLAY_SHAPE      ||
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_CURV || 
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_SULC ||
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_AREA ||
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_THICKNESS)
     giftiIntent = NIFTI_INTENT_SHAPE;
-  else if (type == FS_MRISURFOVERLAY_STATS_CORREL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_CORREL)
     giftiIntent = NIFTI_INTENT_CORREL; 
-  else if (type == FS_MRISURFOVERLAY_STATS_TTEST)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_TTEST)
     giftiIntent = NIFTI_INTENT_TTEST;
-  else if (type == FS_MRISURFOVERLAY_STATS_FTEST)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_FTEST)
      giftiIntent = NIFTI_INTENT_FTEST;
-  else if (type == FS_MRISURFOVERLAY_STATS_ZSCORE)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_ZSCORE)
     giftiIntent = NIFTI_INTENT_ZSCORE; 
-  else if (type == FS_MRISURFOVERLAY_STATS_CHISQ)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_CHISQ)
     giftiIntent = NIFTI_INTENT_CHISQ;
-  else if (type == FS_MRISURFOVERLAY_STATS_BETA)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_BETA)
     giftiIntent = NIFTI_INTENT_BETA;
-  else if (type == FS_MRISURFOVERLAY_STATS_BINOM)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_BINOM)
     giftiIntent = NIFTI_INTENT_BINOM;
-  else if (type == FS_MRISURFOVERLAY_STATS_GAMMA)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_GAMMA)
     giftiIntent = NIFTI_INTENT_GAMMA; 
-  else if (type == FS_MRISURFOVERLAY_STATS_POISSON)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_POISSON)
     giftiIntent = NIFTI_INTENT_POISSON;
-  else if (type == FS_MRISURFOVERLAY_STATS_NORMAL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_NORMAL)
     giftiIntent = NIFTI_INTENT_NORMAL; 
-  else if (type == FS_MRISURFOVERLAY_STATS_FTEST_NONC)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_FTEST_NONC)
     giftiIntent = NIFTI_INTENT_FTEST_NONC;
-  else if (type == FS_MRISURFOVERLAY_STATS_CHISQ_NONC)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_CHISQ_NONC)
     giftiIntent = NIFTI_INTENT_CHISQ_NONC; 
-  else if (type == FS_MRISURFOVERLAY_STATS_LOGISTIC)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_LOGISTIC)
     giftiIntent = NIFTI_INTENT_LOGISTIC;
-  else if (type == FS_MRISURFOVERLAY_STATS_LAPLACE)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_LAPLACE)
     giftiIntent = NIFTI_INTENT_LAPLACE; 
-  else if (type == FS_MRISURFOVERLAY_STATS_UNIFORM)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_UNIFORM)
     giftiIntent = NIFTI_INTENT_UNIFORM;
-  else if (type == FS_MRISURFOVERLAY_STATS_TTEST_NONC)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_TTEST_NONC)
     giftiIntent = NIFTI_INTENT_TTEST_NONC; 
-  else if (type == FS_MRISURFOVERLAY_STATS_WEIBULL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_WEIBULL)
     giftiIntent = NIFTI_INTENT_WEIBULL;
-  else if (type == FS_MRISURFOVERLAY_STATS_CHI)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_CHI)
     giftiIntent = NIFTI_INTENT_CHI; 
-  else if (type == FS_MRISURFOVERLAY_STATS_INVGAUSS)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_INVGAUSS)
     giftiIntent = NIFTI_INTENT_INVGAUSS; 
-  else if (type == FS_MRISURFOVERLAY_STATS_EXTVAL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_EXTVAL)
     giftiIntent = NIFTI_INTENT_EXTVAL;
-  else if (type == FS_MRISURFOVERLAY_STATS_PVAL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_PVAL)
     giftiIntent = NIFTI_INTENT_PVAL; 
-  else if (type == FS_MRISURFOVERLAY_STATS_LOGPVAL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_LOGPVAL)
     giftiIntent = NIFTI_INTENT_LOGPVAL;
-  else if (type == FS_MRISURFOVERLAY_STATS_LOG10PVAL)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_LOG10PVAL)
     giftiIntent = NIFTI_INTENT_LOG10PVAL; 
-  else if (type == FS_MRISURFOVERLAY_STATS_ESTIMATE)
+  else if (overlaytype == FS_MRISURFOVERLAY_STATS_ESTIMATE)
     giftiIntent = NIFTI_INTENT_ESTIMATE;
 
-  __overlayInfo[nthOverlay].__giftiIntent = giftiIntent;
   return giftiIntent;
 }
 
 
-bool MRISurfOverlay::__isShapeMeasurement(int nthOverlay)
+bool MRISurfOverlay::__isShapeMeasurement(int overlaytype)
 {
   bool shapeMeasurement = false;
-  int type = __overlayInfo[nthOverlay].__type;
-  if (type == FS_MRISURFOVERLAY_SHAPE      ||
-      type == FS_MRISURFOVERLAY_SHAPE_CURV || 
-      type == FS_MRISURFOVERLAY_SHAPE_SULC ||
-      type == FS_MRISURFOVERLAY_SHAPE_AREA ||
-      type == FS_MRISURFOVERLAY_SHAPE_THICKNESS)
+  if (overlaytype == FS_MRISURFOVERLAY_SHAPE      ||
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_CURV || 
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_SULC ||
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_AREA ||
+      overlaytype == FS_MRISURFOVERLAY_SHAPE_THICKNESS)
     shapeMeasurement = true;
 
   return shapeMeasurement;
 }
 
-bool MRISurfOverlay::__isStatsData(int nthOverlay)
+bool MRISurfOverlay::__isStatsData(int overlaytype)
 {
   bool statsData = false;
-  int type = __overlayInfo[nthOverlay].__type;
-  if (type == FS_MRISURFOVERLAY_STATS_CORREL     ||
-      type == FS_MRISURFOVERLAY_STATS_TTEST      ||
-      type == FS_MRISURFOVERLAY_STATS_FTEST      ||
-      type == FS_MRISURFOVERLAY_STATS_ZSCORE     ||
-      type == FS_MRISURFOVERLAY_STATS_CHISQ      ||
-      type == FS_MRISURFOVERLAY_STATS_BETA       ||
-      type == FS_MRISURFOVERLAY_STATS_BINOM      ||
-      type == FS_MRISURFOVERLAY_STATS_GAMMA      ||
-      type == FS_MRISURFOVERLAY_STATS_POISSON    ||
-      type == FS_MRISURFOVERLAY_STATS_NORMAL     ||
-      type == FS_MRISURFOVERLAY_STATS_FTEST_NONC ||
-      type == FS_MRISURFOVERLAY_STATS_CHISQ_NONC ||
-      type == FS_MRISURFOVERLAY_STATS_LOGISTIC   ||
-      type == FS_MRISURFOVERLAY_STATS_LAPLACE    ||
-      type == FS_MRISURFOVERLAY_STATS_UNIFORM    ||
-      type == FS_MRISURFOVERLAY_STATS_TTEST_NONC ||
-      type == FS_MRISURFOVERLAY_STATS_WEIBULL    ||
-      type == FS_MRISURFOVERLAY_STATS_CHI        ||
-      type == FS_MRISURFOVERLAY_STATS_INVGAUSS   ||
-      type == FS_MRISURFOVERLAY_STATS_EXTVAL     ||
-      type == FS_MRISURFOVERLAY_STATS_PVAL       ||
-      type == FS_MRISURFOVERLAY_STATS_LOGPVAL    ||
-      type == FS_MRISURFOVERLAY_STATS_LOG10PVAL  ||
-      type == FS_MRISURFOVERLAY_STATS_ESTIMATE)
+  if (overlaytype == FS_MRISURFOVERLAY_STATS_CORREL     ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_TTEST      ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_FTEST      ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_ZSCORE     ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_CHISQ      ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_BETA       ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_BINOM      ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_GAMMA      ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_POISSON    ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_NORMAL     ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_FTEST_NONC ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_CHISQ_NONC ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_LOGISTIC   ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_LAPLACE    ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_UNIFORM    ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_TTEST_NONC ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_WEIBULL    ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_CHI        ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_INVGAUSS   ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_EXTVAL     ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_PVAL       ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_LOGPVAL    ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_LOG10PVAL  ||
+      overlaytype == FS_MRISURFOVERLAY_STATS_ESTIMATE)
     statsData = true;
 
   return statsData;
 }
 
-int MRISurfOverlay::__getFrameCount()
+int MRISurfOverlay::__getFrameCount(int *nVertices, int *nFaces)
 {
   int count = 0;
-  for (int n = 0; n < __noverlay; n++)
+  for (int n = 0; n < __nfcurvature; n++)
   {
-    int overlayFormat = getFileFormat(__overlayInfo[n].__foverlay);
+    int overlayFormat = getFileFormat(__fcurvatures[n]);
     if (overlayFormat == MRI_MGH_FILE)
     {
-      MRI *tempMRI = MRIreadHeader(__overlayInfo[n].__foverlay, MRI_MGH_FILE);
+      MRI *tempMRI = MRIreadHeader(__fcurvatures[n], MRI_MGH_FILE);
       if (tempMRI == NULL)
         return count;
   
@@ -725,15 +769,78 @@ int MRISurfOverlay::__getFrameCount()
     }
     else if (overlayFormat == GIFTI_FILE)
     {
+      // count SHAPE & <STATS> intents
       // each intent is a frame in MRI
-      int intents = getShapeStatIntentCount(__overlayInfo[n].__foverlay);
+      int intents = getShapeStatIntentCount(__fcurvatures[n], nVertices, nFaces);
       count += intents;
     }
     else // MRI_CURV_FILE, ASCII_FILE, VTK_FILE, and old curv format
       count++;
-  
-    __overlayInfo[n].__format = overlayFormat;
   }
   
+#if 0
+  for (int n = 0; n < __nfstats; n++)
+  {
+    int overlayFormat = getFileFormat(__fstats[n]);
+    if (overlayFormat == MRI_MGH_FILE)
+    {
+      MRI *tempMRI = MRIreadHeader(__fstats[n], MRI_MGH_FILE);
+      if (tempMRI == NULL)
+        return count;
+  
+      count += tempMRI->nframes;
+      MRIfree(&tempMRI);
+    }
+    else if (overlayFormat == GIFTI_FILE)
+    {
+      // count <STATS> intents
+      // each intent is a frame in MRI
+      int intents = getShapeStatIntentCount(__fstats[n]);
+      count += intents;
+    }
+    else // MRI_CURV_FILE, ASCII_FILE, VTK_FILE, and old curv format
+      count++;
+  }
+#endif
+
   return count;
+}
+
+
+MRIS* MRISurfOverlay::readGIFTICombined(const char *fgifti, MRIS *mris)
+{
+  return mrisReadGIFTIfile(fgifti, mris, __overlaymri, &__currFrame, &__overlayInfo);
+}
+
+
+int MRISurfOverlay::separateGIFTIDataArray(MRIS *mris, const char *outdir, const char *fout)
+{
+#if 0  // surface will be written out by the caller mris_convert
+  int error = MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fout, NULL);
+  if (error != NO_ERROR)
+    return error;
+#endif
+
+  int error = NO_ERROR;
+
+  // write out individual overlay in GIFTI.
+  // Later, we can expand the logic to output in other format too.
+  int noverlay = __overlayInfo.size();
+  for (int n = 0; n < noverlay; n++)
+  {
+    int giftiintent = getGIFTIIntent(__overlayInfo[n].__type);
+    int stframe  = __overlayInfo[n].__stframe;
+    int endframe = __overlayInfo[n].__stframe + __overlayInfo[n].__numframe;
+    const char *datatype = __overlayInfo[n].__shapedatatype;
+    char curv_fname[1024] = {'\0'};
+    if (__overlayInfo[n].__foverlay != NULL)
+      sprintf(curv_fname, "%s/%s.gii", outdir, __overlayInfo[n].__foverlay);
+    else
+      sprintf(curv_fname, "%s/intent-dataarray-%d.gii", outdir, n);
+    error =  MRISwriteGIFTI(mris, __overlaymri, stframe, endframe, giftiintent, curv_fname, curv_fname, datatype);
+    if (error != NO_ERROR)
+      break; 
+  }
+
+  return error;
 }

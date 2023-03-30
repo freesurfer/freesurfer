@@ -42,16 +42,16 @@
 
 struct OverlayInfoStruct
 {
-  const char *__foverlay;       // full path to overlay file
+  char *__foverlay;       // full path to overlay file
   int  __type;                  // FS_MRISURFOVERLAY*
   int  __giftiIntent;           // NIFTI_INTENT*
-  const char *__shapedatatype;  // this is for NIFTI_INTENT_SHAPE. 
+  char __shapedatatype[256];    // this is for NIFTI_INTENT_SHAPE. 
                                 // possible values: CurvatureRadial, SulcalDepth, Thickness, Area, (Volume, Jacobian)
   int  __format;                // MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
   int  __stframe;               // starting frame, this can be used when we combine multiple overlays in one MRI
   int  __numframe;              // for functions time series*, nframes can be > 1
 
-  int __nValsPerVertex = 1;  // number of values at each vertex, should be 1  
+  int __nValsPerVertex = 1;     // number of values at each vertex, should be 1  
 };
 
 
@@ -69,19 +69,29 @@ struct OverlayInfoStruct
 class MRISurfOverlay
 {
 public:
-  MRISurfOverlay(MRIS *mris, int noverlay, OverlayInfoStruct *poverlayInfo);
+  MRISurfOverlay(MRIS *mris, int nfcurvs, const char **fcurvs, int nfstats = 0, const char **fstats = NULL);
+  MRISurfOverlay(const char *fgifti);
+
   ~MRISurfOverlay();
 
+  //
   int read(int read_volume, MRIS *mris);
   int write(const char *fout, MRIS *inmris=NULL, bool mergegifti=false);  // MRISwriteCurvature()
 
-  int getNumOverlay() { return __noverlay; }
+  //
+  MRIS *readGIFTICombined(const char *fgifti, MRIS *mris);
+  int separateGIFTIDataArray(MRIS *mris, const char *outdir, const char *fout=NULL);
+
+  //
+  int getNumOverlay() { return __overlayInfo.size(); }
   const char *getOverlayFilename(int nthOverlay) { return __overlayInfo[nthOverlay].__foverlay; }
   int getOverlayType(int nthOverlay) { return __overlayInfo[nthOverlay].__type; }
-  int getGIFTIIntent(int nthOverlay);
   int getFirstFrameNo(int nthOverlay) { return __overlayInfo[nthOverlay].__stframe; }
   int getNumFrames(int nthOverlay) { return __overlayInfo[nthOverlay].__stframe + __overlayInfo[nthOverlay].__numframe; }
   const char *getShapeDataType(int nthOverlay) { return __overlayInfo[nthOverlay].__shapedatatype; }
+
+  // convert from overlay type to GIFTI intent
+  int getGIFTIIntent(int overlaytype);
 
   // return overlay data in multi-frame MRI
   MRI *getOverlayMRI() { return __overlaymri; }
@@ -89,26 +99,29 @@ public:
   static int getFileFormat(const char *foverlay);
 
 private:
-  int __readOneOverlay(int nthOverlay, int read_volume, MRIS *mris);  // MRISreadCurvatureFile()
-  int __copyOverlay2MRIS(MRIS *outmris);
+  int __readOneOverlay(OverlayInfoStruct *overlayInfo, int read_volume, MRIS *mris);  // MRISreadCurvatureFile()
+  int __copyOverlay2MRIS(OverlayInfoStruct *overlayInfo, MRIS *outmris);
   int __readCurvatureAsMRI(const char *curvfile, int read_volume);
   int __readOldCurvature(const char *fname);
 
   int __writeCurvFromMRI(MRI *outmri, const char *fout);
   int __writeCurvFromMRIS(MRIS *outmris, const char *fout);
 
-  bool __isStatsData(int nthOverlay);
-  bool __isShapeMeasurement(int nthOverlay);
+  bool __isStatsData(int overlaytype);
+  bool __isShapeMeasurement(int overlaytype);
 
-  int __getFrameCount();
+  int __getFrameCount(int *nVertices=NULL, int *nFaces=NULL);
 
   int __nVertices;
   int __nFaces;              // # of triangles, we need this for MRI_CURV_FILE output
 
-  int __noverlay;
-  OverlayInfoStruct *__overlayInfo;
+  int __nfcurvature;         // number of input curvature files
+  const char **__fcurvatures; // list of curvature files
+  int __nfstats;
+  const char **__fstats;
 
-  int __currOverlay;
+  std::vector<OverlayInfoStruct> __overlayInfo;
+
   int __currFrame;
 
   int __nframes;
