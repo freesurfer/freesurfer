@@ -217,6 +217,8 @@ main(int argc, char *argv[])
 #endif
       if (which_edits & HYPO_EDITS){
         printf("%s: relabeling hypointensities...\n", hemi) ;
+	if (gca == NULL)
+	  ErrorExit(ERROR_NOFILE, "no gca loaded so cannot relabel hypos. Maybe run with -hypo 0") ;
         relabel_hypointensities(mri_aseg, mri_inputs, mris, h, gca, transform) ;
       }
       if (which_edits & (CORTEX_EDITS | CEREBELLUM_EDITS))      {
