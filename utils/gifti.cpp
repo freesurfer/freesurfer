@@ -34,6 +34,7 @@
 #include "nifti1.h"
 #include "timer.h"
 #include "utils.h"  // strcpyalloc
+#include "libgen.h"
 
 #define TAG_CMDLINE_LEN 1024
 

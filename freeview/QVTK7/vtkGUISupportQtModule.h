@@ -7,9 +7,9 @@
 #include "vtkRenderingCoreModule.h"
 
 #include "qsystemdetection.h"
-#if defined(Q_OS_OSX) && defined(ARM64)
+#if defined(Q_OS_MAC) && defined(ARM64)
 #  include "vtkRenderingOpenGLModule.h"
-#elif Q_OS_OSX
+#elif defined(Q_OS_MAC)
 #  include "vtkRenderingOpenGL2Module.h"
 #else
 #  include "vtkRenderingOpenGLModule.h"
