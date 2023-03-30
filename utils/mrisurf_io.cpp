@@ -1091,18 +1091,46 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname, bool dotkrRASCon
                      j));
 
       // convert it to mm, i.e. change the vertex position
-      MRISsetXYZ(mris,k,
-        rx,
-        ry,
-        rz);
+      MRISsetXYZ(mris,k, rx, ry, rz);
       if (k == Gdiag_no && Gdiag & DIAG_SHOW)
-        fprintf(stdout,
-                "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
-                k,
-                mris->vertices[k].x,
-                mris->vertices[k].y,
-                mris->vertices[k].z);
+        fprintf(stdout,"vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
+                k,mris->vertices[k].x,mris->vertices[k].y,mris->vertices[k].z);
     }
+  }
+  else if(type == MRIS_LABEL_FILE) {
+    printf("Reading label %s as a patch\n",fname);
+    LABEL *lab = LabelRead(NULL,fname);
+    if(!lab) exit(1);
+    for(int k=0; k < mris->nvertices; k++) mris->vertices[k].ripflag = 1;
+    for(int k=0; k < lab->n_points; k++){
+      int vno = lab->lv[k].vno;
+      if(vno < 0) {
+	printf("ERROR: MRISreadPatch(): vno=%d < 0\n",vno);
+	exit(1);
+      }
+      if(vno >= mris->nvertices) {
+	printf("ERROR: MRISreadPatch(): vno=%d > nvertices=%d\n",vno,mris->nvertices);
+	exit(1);
+      }
+      mris->vertices[vno].ripflag = 0;
+    }
+    LabelFree(&lab);
+  }
+  else if(type == MRIS_VOLUME_FILE) {
+    double thresh = 0.5; // it would be nice to have more flexibility
+    printf("Reading volume %s as a patch, thresh=%g\n",fname,thresh);
+    MRI *mri = MRIread(fname);
+    if(!mri) exit(1);
+    if(mri->width != mris->nvertices) {
+      printf("ERROR: MRISreadPatch(): dimension mismatch, width=%d, nvertices=%d\n",mri->width,mris->nvertices);
+      exit(1);
+    }
+    for(int k=0; k < mris->nvertices; k++){
+      double v = MRIgetVoxVal(mri,k,0,0,0);
+      if(v>thresh) mris->vertices[k].ripflag = 0;
+      else         mris->vertices[k].ripflag = 1;
+    }
+    MRIfree(&mri);
   }
   /////////////////////////////////////////////////////////////////////////
   // here file was binary
@@ -1217,14 +1245,13 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname, bool dotkrRASCon
                   mris->vertices[k].z);
       }
     }
+  } // end binary file
+
+  if(fp) fclose(fp);
+
+  for (k = 0; k < mris->nvertices; k++){
+    if(mris->vertices_topology[k].num == 0 || mris->vertices_topology[k].vnum == 0) mris->vertices[k].ripflag = 1;
   }
-  if (fp) {
-    fclose(fp);
-  }
-  for (k = 0; k < mris->nvertices; k++)
-    if (mris->vertices_topology[k].num == 0 || mris->vertices_topology[k].vnum == 0) {
-      mris->vertices[k].ripflag = 1;
-    }
 
   // remove ripflag set vertices
   MRISremoveRipped(mris);
@@ -2568,6 +2595,9 @@ int MRISfileNameType(const char *fname)
   }
   else if (!strcmp(ext, "ANNOT")) {
     type = MRIS_ANNOT_FILE;
+  }
+  else if (!strcmp(ext, "LABEL")) {
+    type = MRIS_LABEL_FILE;
   }
   else {
     type = MRIS_BINARY_QUADRANGLE_FILE;
