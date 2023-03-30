@@ -3751,7 +3751,7 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
                 const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_READ");
                 if (noextra == NULL)
                 {
-                  printf("[INFO]: read TRIANGULARSURFACE EXTRA - cmds\n");
+                  //printf("[INFO]: read TRIANGULARSURFACE EXTRA - cmds\n");
 
                   if (mris->ncmds > MAX_CMDS)
                     ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mris->ncmds);
@@ -5531,8 +5531,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (!user)  user = "UNKNOWN";
 
   const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_WRITE");
-  if (noextra == NULL)
-    printf("[INFO]: output TRIANGULARSURFACE EXTRA - created by line & cmds\n");
+  if (noextra != NULL)
+    printf("[INFO]: NO TRIANGULARSURFACE EXTRA - created by line & cmds\n");
 
   auto cdt = currentDateTime();
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -5713,7 +5713,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_READ");
   if (noextra == NULL)
   {
-    printf("[INFO]: read TRIANGULARSURFACE EXTRA - created by line\n");
+    //printf("[INFO]: read TRIANGULARSURFACE EXTRA - created by line\n");
     fgets(line, 200, fp);
     fscanf(fp, "\n");
   }
