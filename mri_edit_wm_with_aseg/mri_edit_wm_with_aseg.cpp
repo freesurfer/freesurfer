@@ -89,10 +89,10 @@ int FixSCMHA = 0;
 int FixSCMHANdil = 0;
 
 double FixEntoWMLhVal,FixEntoWMRhVal;
+int FixEntoWMLevel;
 MRI *entowm=NULL;
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   MRI    *mri_wm, *mri_aseg, *mri_T1 ;
   Timer then ;
@@ -165,7 +165,7 @@ main(int argc, char *argv[])
   remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
   edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
   spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
-  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLhVal, FixEntoWMRhVal);
+  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal);
 
   if(FixSCMHA){
     FixSubCortMassHA fscmha;
@@ -298,24 +298,28 @@ get_option(int argc, char *argv[])
   {
     // This is a bit of a hack to fill in WM in the gyrus ambiens that
     // is often so thin that it looks like GM. entowm.mgz is the output of mri_entowm_seg
-    // mri_edit_wm_with_aseg -fix-entowm entowm.mgz lhsetval rhsetval
-    // mri_edit_wm_with_aseg -sa-fix-entowm entowm.mgz lhsetval rhsetval invol outvol
-    // for wm.seg.mgz/wm.asegedit.mgz use setval=250 for both lh and rh
-    // for brain.finalsurfs use 255 for both lh and rh
-    // for filled use 255 for lh and 127 for rh
+    // mri_edit_wm_with_aseg -fix-entowm entowm.mgz level lhsetval rhsetval
+    // mri_edit_wm_with_aseg -sa-fix-entowm entowm.mgz level lhsetval rhsetval invol outvol
+    // for wm.seg.mgz/wm.asegedit.mgz use level=3 and setval=250 for both lh and rh
+    // for brain.finalsurfs use level=2 and setval=255 for both lh and rh
+    // for filled use level=3 and setval =255 for lh and =127 for rh
+    // level=1 only fill entowm without gyrus ambiens (probably not useful)
+    // level=2 only fill gyrus ambiens without entowm (more conservative)
+    // level=3 fill both entowm and gyrus ambiens 
     entowm = MRIread(argv[2]);
     if(entowm==NULL) exit(1);
-    sscanf(argv[3],"%lf",&FixEntoWMLhVal);
-    sscanf(argv[4],"%lf",&FixEntoWMRhVal);
-    printf("Fixing entowm %g %g\n",FixEntoWMLhVal,FixEntoWMRhVal);
+    sscanf(argv[3],"%d",&FixEntoWMLevel);
+    sscanf(argv[4],"%lf",&FixEntoWMLhVal);
+    sscanf(argv[5],"%lf",&FixEntoWMRhVal);
+    printf("Fixing entowm %d %g %g\n",FixEntoWMLevel,FixEntoWMLhVal,FixEntoWMRhVal);
     if(!stricmp(option, "sa-fix-ento-wm")){
-      MRI *invol = MRIread(argv[5]);
+      MRI *invol = MRIread(argv[6]);
       if(invol==NULL) exit(1);
-      MRIfixEntoWM(invol, entowm, FixEntoWMLhVal, FixEntoWMRhVal);
-      int err = MRIwrite(invol,argv[6]);
+      MRIfixEntoWM(invol, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal);
+      int err = MRIwrite(invol,argv[7]);
       exit(err);
     }
-    nargs = 3;
+    nargs = 4;
   }
   else if (!stricmp(option, "debug_voxel"))
   {

@@ -6709,58 +6709,48 @@ MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol)
 
 /*!
   \fn int MRIfixEntoWM(MRI *invol, MRI *entowm, double lhVal, double rhVal)
-
   \brief This is a bit of a hack to fix the WM around the gyrus
   ambiens (entorhinal cortex). This WM is often so thin that it looks
   like GM. This creates a "bite" in the surface. The idea here is to
   pass a segmentation (entowm) where this area is labeled as {3,4}006
-  and/or {3,4}201, where 3=lh and 4=rh. Voxels with this label in the
-  entowm volume, are replaced with either lhVal or rhVal. Eg, when
-  fixing the wm.mgz or wm.seg.mgz or wm.asegedit.mgz, set
-  lhVal=rhVal=250 (this is the same value that is used to fill the
-  ventricles, etc).  For brain.finalsurf, use lhVal=rhVal=255. For
-  filled, use lhVal=255 and rhVal=127. Currently, the entowm.mgz can
-  be created using mri_entowm_seg (a DL seg routine). The network was
-  trained from manually labeling this area. 
+  and/or {3,4}201, where 3=lh and 4=rh as created by mri_entowm_seg.
+  Voxels with this label in the entowm volume, are replaced with
+  either lhVal or rhVal.  X006 is a large chunk of WM around
+  ento. X201 is the gyrus ambiens.  Having these two allows a way to
+  modulate the aggressiveness of the fix. Level=1 only fills X006
+  (probably not useful); Level=2 fills only X201; Level=3 fills both.
+  For example, whe using it to fix the wm.seg.mgz and/or the
+  filled.mgz, it is ok to be aggressive as the surface will be refined
+  from there. When using it to fix the brain.finalsurfs, then just
+  using gyrus ambiens might be called for because the fix will be very
+  heavy-handed. Eg, when fixing the wm.mgz or wm.seg.mgz or
+  wm.asegedit.mgz, set lhVal=rhVal=250 (this is the same value that is
+  used to fill the ventricles, etc).  For brain.finalsurf, use
+  lhVal=rhVal=255. For filled, use lhVal=255 and rhVal=127. Currently,
+  the entowm.mgz can be created using mri_entowm_seg (a DL seg
+  routine). The network was trained from manually labeling this area.
  */
-int MRIfixEntoWM(MRI *invol, const MRI *entowm, double lhVal, double rhVal)
+int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double rhVal)
 {
-  std::vector<int> lhIndexList = {3006,3201};
-  std::vector<int> rhIndexList = {4006,4201};
-
-  printf("MRIfixEntoWM(): %g %g\n",lhVal,rhVal);
+  printf("MRIfixEntoWM(): %g %g Level=%d\n",lhVal,rhVal,Level);
 
   int nchanged=0;
   for(int c=0; c < invol->width; c++){
     for(int r=0; r < invol->height; r++){
       for(int s=0; s < invol->depth; s++){
-	// Get the indices of this voxel
 	int i = MRIgetVoxVal(entowm,c,r,s,0);
-	int iInLhList=0;
-	for(int n=0; n < lhIndexList.size(); n++){
-	  if(i==lhIndexList[n]){
-	    iInLhList = 1;
-	    break;
-	  }
-	}
-	if(iInLhList){
+	if((i==3006 && (Level==1 || Level==3)) || 
+	   (i==3201 && (Level==2 || Level==3)) ){
 	  MRIsetVoxVal(invol,c,r,s,0,lhVal);
 	  nchanged++;
 	  continue;
 	}
-	int iInRhList=0;
-	for(int n=0; n < rhIndexList.size(); n++){
-	  if(i==rhIndexList[n]){
-	    iInRhList = 1;
-	    break;
-	  }
-	}
-	if(iInRhList){
+	if((i==4006 && (Level==1 || Level==3)) || 
+	   (i==4201 && (Level==2 || Level==3)) ){
 	  MRIsetVoxVal(invol,c,r,s,0,rhVal);
 	  nchanged++;
 	  continue;
 	}
-
       }
     }
   }

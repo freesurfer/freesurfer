@@ -47,9 +47,9 @@
       <explanation>erase rh labels from output</explanation>
       <argument>-rh</argument>
       <explanation>erase lh labels from output</explanation>
-      <argument>-fix-ento-wm entowm lhval rhval</argument>
-      <explanation>Insert lhval rhval where 3006 and 4006 in entowm volume. For wm.seg use 250. For brain.finalsurfs use 255. For filled use 255 and 127. </explanation>
-      <argument>-sa-fix-ento-wm entowm lhval rhval invol outvol</argument>
+      <argument>-fix-ento-wm entowm level lhval rhval</argument>
+      <explanation>Insert lhval rhval where {3,4}006 and {3,4}201 in entowm volume. For wm.seg use 250. For brain.finalsurfs use 255. For filled use 255 and 127. </explanation>
+      <argument>-sa-fix-ento-wm entowm level lhval rhval invol outvol</argument>
       <explanation>Stand-alone version of -fix-ento-wm </explanation>
       <argument>-debug_voxel Gx Gy Gz</argument>
     </optional-flagged>
