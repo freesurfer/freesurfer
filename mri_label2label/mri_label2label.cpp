@@ -70,6 +70,7 @@
 #include "mri2.h"
 #include "version.h"
 #include "path.h"
+#include "cmdargs.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -1118,9 +1119,10 @@ static int parse_commandline(int argc, char **argv) {
       // surf aseg outlabel
       if(nargc < 4){
 	printf("ERROR: when using --label-cortex, the usage is:\n");
-	printf("  --label-cortex surf aseg KeepHipAmyg01 outlabel \n");
+	printf("  --label-cortex surf aseg KeepHipAmyg01 outlabel <entowm.mgz>\n");
 	exit(1);
       }
+      nargsused = 4;
       MRIS *lsurf = MRISread(pargv[0]);
       if(lsurf==NULL) exit(1);
       MRI *aseg = MRIread(pargv[1]);
@@ -1128,11 +1130,26 @@ static int parse_commandline(int argc, char **argv) {
       MRIScomputeMetricProperties(lsurf);// might not be needed
       int KeepHipAmyg01;
       sscanf(pargv[2],"%d",&KeepHipAmyg01);
+      if(pargv[4] && !CMDisFlag(pargv[4])){
+	// This will insert entowm into the aseg to help expand the
+	// label into the entowm region. The problem is that the
+	// entowm extends into hippo and amyg and won't have a cortex
+	// seg on the cortex side, so the the label will still not
+	// extend as far as it could. This is an complex problem that
+	// will have to be solved later. Currently, 3/31/2023, I'm not
+	// using this fix in the general entowm fix in recon-all, but
+	// I'll keep this code here for refence.
+	printf("Reading in entowm seg %s\n",pargv[4]);
+	MRI *entowm = MRIread(pargv[4]);
+	if(!entowm) exit(1);
+	MRIfixEntoWM(aseg, entowm, 3, 2, 41);
+	MRIfree(&entowm);
+	nargsused++;
+      }
       LABEL *lcortex = MRIScortexLabelDECC(lsurf, aseg, 4, 4, -1, KeepHipAmyg01);
       if(lcortex == NULL) exit(1);
       int err = LabelWrite(lcortex, pargv[3]);
       exit(err);
-      nargsused = 4;
     } 
     else if (!strcmp(option, "--baryfill")) {
       if (nargc < 4) argnerr(option,4);
@@ -1209,7 +1226,7 @@ static void print_usage(void) {
   printf("   --paint dmax surfname : map to closest vertex on source surfname if d < dmax\n");
   printf("   --dmindmin overlayfile : bin mask with vertex of closest label point when painting\n");
   printf("   --baryfill surf surflabel delta outlabel\n");
-  printf("   --label-cortex surface aseg KeepHipAmyg01 outlabel : create a label like ?h.cortex.label\n");
+  printf("   --label-cortex surface aseg KeepHipAmyg01 outlabel : create a label like ?h.cortex.label <entowm.mgz>\n");
   printf("   --surf-label2mask label surf mask : stand-alone way to convert a label to a binary mask\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
