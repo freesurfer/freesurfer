@@ -1,0 +1,180 @@
+#!/bin/tcsh -f
+# mri_entowm_seg - 
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+set sclimbicargs = ()
+set LF = /dev/stdout
+
+if(0) then
+set trset = all
+set trset = tr+va
+set nstd = 21
+set iter = 108;
+set split = postedit.split1
+set split = ga+ewm.split1
+set topdir = /autofs/space/sulc_001/users/ento-subfields/ento/deep-ento-invivo/entowm31
+set splitdir = $topdir/$split
+set ctab = $splitdir/log/ctab.min.lut
+set iterstr = `printf %03d $iter`
+set model = $topdir/$split/m.$trset.default.nstd$nstd/dice_$iterstr.h5
+set base = entowm31.$trset.i$iterstr.nstd$nstd
+endif
+
+set model = $FREESURFER/models/entowm.fsm31.t1.nstd00-30.nstd21-108.h5
+set ctab = $FREESURFER/models/entowm.ctab
+set base = entowm
+
+foreach f ($model $ctab) 
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1
+  endif
+end
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+#========================================================
+set cmd = (mri_sclimbic_seg --no-cite-sclimbic --model $model \
+  --keep_ac --ctab $ctab  --percentile 99.9 --vmp \
+  --output-base $base $sclimbicargs)
+echo $cmd 
+$cmd
+if($status) goto error_exit
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "mri_entowm_seg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "mri_entowm_seg-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "mri_entowm_seg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "mri_entowm_seg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      set sclimbicargs = ($sclimbicargs $flag)
+      #echo ERROR: Flag $flag unrecognized. 
+      #echo $cmdline
+      #exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mri_entowm_seg : basically takes the same args are mri_sclimbic_seg"
+  mri_sclimbic_seg | sed 's/mri_sclimbic_seg/mri_enotwm_seg/g'
+  #echo " --i input  : file or folder or subject"
+  #echo " --o output : file or folder"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Segments white matter near gyrus ambiens entorhinal cortex using a
+deeplearning model. The purpose is to help freesurfer better build
+surfaces in this area. The WM here becomes very thin (~0.5mm) and
+freesurfer usually cannot segment it. This program does a better
+job. It is meant to be run from inside of recon-all. 
+
+This script is just a frontend for mri_sclimbic_seg but passing it a
+different model and color table. Any unrecognized options will be
+passed to mri_sclimbic_seg.
+
+These are the segments
+
+3006  wm-lh-entorhinal                 50 245  28  0
+3201  wm-lh-gyrus-ambiens             245  50  28  0
+4006  wm-rh-entorhinal                 50 215  28  0
+4201  wm-rh-gyrus-ambiens             245  50 128  0
