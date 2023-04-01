@@ -4977,8 +4977,8 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
       nsmall = 0; /* start counting small steps again */
     }
 
-    printf("#GCMRL# %4d dt %10.6f rms %6.3f %6.3f%% neg %d  invalid %d tFOTS %6.4f tGradient %6.4f tsec %6.4f",
-	   n, min_dt, rms, pct_change, gcam->neg,  Ginvalid, tFOTS, tGradient, timer.milliseconds()/1000.0);
+    //printf("#GCMRL# %4d dt %10.6f rms %6.3f %6.3f%% neg %d  invalid %d tFOTS %6.4f tGradient %6.4f tsec %6.4f",
+    //n, min_dt, rms, pct_change, gcam->neg,  Ginvalid, tFOTS, tGradient, timer.milliseconds()/1000.0);
     if (parms->l_binary > 0)
       printf(", aligned = %d (%2.3f%%)\n", Galigned,
 	     100.0 * Galigned / ((gcam->width * gcam->height * gcam->depth) - Ginvalid));
