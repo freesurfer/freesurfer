@@ -125,4 +125,16 @@ UseStopMaskSCM:
     action: enable
     descr: Use stop mask when creating white.preaparc and white surfaces
     
+FixEntoWM:
+    value: False
+    flags: -fix-ento-wm
+    action: enable
+    descr: Fix the WM in the area around entorhinal cortex and gyrus ambiens
+    
+CblumFromSynthSeg:
+    value: False
+    flags: -cblum-from-synthseg
+    action: enable
+    descr: Run mri_synthseg and insert the cerebellum wm and gm into the aseg
+    
 
