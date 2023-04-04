@@ -5230,6 +5230,7 @@ if ($DoBaLabels) then
           echo "-------------------------------------------------------------------------" |& tee -a $LF |& tee -a $CF
           echo "ERROR: Label ${balabel} does not exist in SUBJECTS_DIR fsaverage!"         |& tee -a $LF |& tee -a $CF
           echo "       The fsaverage link probably points to an older freesurfer version"  |& tee -a $LF |& tee -a $CF
+          echo " $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label" |& tee -a $LF |& tee -a $CF
           echo "-------------------------------------------------------------------------" |& tee -a $LF |& tee -a $CF
           goto error_exit;
         endif
