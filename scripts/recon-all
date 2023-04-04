@@ -1566,6 +1566,7 @@ if($UseSynthSeg || $CblumFromSynthSeg) then
         rm -f aseg.auto_noCCseg.mgz
         ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
         popd
+      endif
     endif
   endif
   if(! $CblumFromSynthSeg) then
@@ -2824,10 +2825,18 @@ if($DoCALabel  && ! $UseSynthSeg) then
   set cmd = ($cmd ${GCADIR}/$GCA)
   set cmd = ($cmd ${asegbasename}.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    # Create/delete a file to indicate whether Cblum is from SynthSeg
+    set cblumfile = $subjdir/scripts/CblumFromSynthSeg.txt
+    if($CblumFromSynthSeg) then
+      touch $cblumfile
+    else
+      rm -f $cblumfile
+    endif
+  endif
   if($status) goto error_exit;
 endif
-
 
 Restart:
 
@@ -2968,14 +2977,17 @@ if($DoMaskBFS) then
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-  else # manedit does not exist
+  else 
+    # Manedit does NOT exist in current folder
+    # With the change below, both cross and base will have manedits. If no edits have been
+    # made, then no change will be made to long bfs
     # If base manedit exists, copy edits to this. If not and cross manedit exists, use those
     set bfmanedit = ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz # cross
     if($longitudinal && $LongTransferBaseBFS) then
       set bfmanedit = ${SUBJECTS_DIR}/${longbaseid}/mri/brain.finalsurfs.manedit.mgz # base
     endif
-    if ( $longitudinal && -e $bfmanedit && ! $LongSamseg) then
-      # transfer edits from cross or base
+    if($longitudinal && -e $bfmanedit && ! $LongSamseg) then
+      # Transfer any edits from cross or base to long. If no edits, then this has no effect
       set cmd = (mri_mask -transfer 255)
       set cmd = ($cmd -keep_mask_deletion_edits)
       if(! $LongTransferBaseBFS) set cmd = ($cmd -xform $tpNtobase_regfile)
@@ -2987,11 +2999,14 @@ if($DoMaskBFS) then
       if($status) goto error_exit;
     endif
     if($FixEntoWM) then
+      # There is a question as to whether to do this in long because
+      # ento was probably fixed in cross; this would add to that
+      # fix. Probably not a big deal.
       # Level is hardcoded at 2. To change to 3 put 
       # "bfsfixentowm -sa-fix-ento-wm entowm.mgz 3 255 255" in the xopts
       set xopts = `fsr-getxopts bfsfixentowm $XOptsFile $GlobXOptsFile`;
-      set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 2 255 255 $xopts \
-        brain.finalsurfs.mgz brain.finalsurfs.mgz)
+      set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 2 255 255 \
+        $xopts brain.finalsurfs.mgz brain.finalsurfs.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -3676,6 +3691,7 @@ if($DoWhitePreAparc) then
     set cmd = (mris_place_surface --adgws-in $ads --wm $wm --threads $OMP_NUM_THREADS\
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
+    if($FixEntoWM) set cmd = ($cmd --restore-255) 
     #if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1) # errors near Put/Insula
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
@@ -4218,6 +4234,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
+    if($FixEntoWM) set cmd = ($cmd --restore-255) 
     if($UseHighMyelin) then
       set hml = $ldir/$hemi.high-myelin.label
       set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
@@ -4279,6 +4296,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+    if($FixEntoWM) set cmd = ($cmd --restore-255) 
     if($longitudinal) then
       set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
       set cmd = ($cmd --blend-surf .25 $white)
