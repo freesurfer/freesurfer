@@ -212,32 +212,36 @@ model.load_state_dict(checkpoint['model_state_dict'])
 image = sf.load_volume(args.image)
 print(f'Input image read from: {args.image}')
 
-# frame check
-if image.nframes > 1:
-    sf.system.fatal('Input image cannot have more than 1 frame')
+# loop over frames (try not to keep too much data in memory)
+print(f'Processing frame (of {image.nframes}):', end=' ', flush=True)
+mask = []
+for f in range(image.nframes):
+    print(f + 1, end=' ', flush=True)
+    frame = image.new(image.framed_data[..., f])
 
-# conform image and fit to shape with factors of 64
-conformed = image.conform(voxsize=1.0, dtype='float32', method='nearest', orientation='LIA').crop_to_bbox()
-target_shape = np.clip(np.ceil(np.array(conformed.shape[:3]) / 64).astype(int) * 64, 192, 320)
-conformed = conformed.reshape(target_shape)
+    # conform image and fit to shape with factors of 64
+    conformed = frame.conform(voxsize=1.0, dtype='float32', method='nearest', orientation='LIA').crop_to_bbox()
+    target_shape = np.clip(np.ceil(np.array(conformed.shape[:3]) / 64).astype(int) * 64, 192, 320)
+    conformed = conformed.reshape(target_shape)
 
-# normalize intensities
-conformed -= conformed.min()
-conformed = (conformed / conformed.percentile(99)).clip(0, 1)
+    # normalize intensities
+    conformed -= conformed.min()
+    conformed = (conformed / conformed.percentile(99)).clip(0, 1)
 
-# predict the surface distance transform
-with torch.no_grad():
-    input_tensor = torch.from_numpy(conformed.data[np.newaxis, np.newaxis]).to(device)
-    sdt = model(input_tensor).cpu().numpy().squeeze()
+    # predict the surface distance transform
+    with torch.no_grad():
+        input_tensor = torch.from_numpy(conformed.data[np.newaxis, np.newaxis]).to(device)
+        sdt = model(input_tensor).cpu().numpy().squeeze()
 
-# unconform the sdt and extract mask
-sdt = conformed.new(sdt).resample_like(image, fill=100)
+    # unconform the sdt and extract mask
+    sdt = conformed.new(sdt).resample_like(image, fill=100)
 
-# find largest CC (just do this to be safe for now)
-components = scipy.ndimage.label(sdt.data < args.border)[0]
-bincount = np.bincount(components.flatten())[1:]
-mask = (components == (np.argmax(bincount) + 1))
-mask = scipy.ndimage.binary_fill_holes(mask)
+    # find largest CC to be safe
+    mask.append((sdt < args.border).connected_component_mask(k=1, fill=True))
+
+# combine frames and end line
+mask = sf.stack(mask)
+print('done')
 
 # write the masked output
 if args.out:
