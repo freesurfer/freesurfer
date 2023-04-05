@@ -2,13 +2,7 @@
 
 import os
 import sys
-import torch
-import torch
-import torch.nn as nn
-import numpy as np
 import argparse
-import surfa as sf
-import scipy.ndimage
 
 ref = '''
 If you use SynthStrip in your analysis, please cite:
@@ -36,6 +30,12 @@ if len(sys.argv) == 1 or '-h' in sys.argv or '--help' in sys.argv:
     print(ref)
     exit(1)
 args = parser.parse_args()
+
+# do not wait for third-party imports just to show usage
+import torch
+import torch.nn as nn
+import numpy as np
+import surfa as sf
 
 # sanity check on the inputs
 if not args.out and not args.mask:
