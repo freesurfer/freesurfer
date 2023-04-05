@@ -10,18 +10,19 @@ import argparse
 import surfa as sf
 import scipy.ndimage
 
-description = '''
-Robust, universal skull-stripping for brain images of any
-type. If you use SynthStrip in your analysis, please cite:
-
-SynthStrip: Skull-Stripping for Any Brain Image.
-A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann.
-NeuroImage 206 (2022), 119474.
+ref = '''
+If you use SynthStrip in your analysis, please cite:
+----------------------------------------------------
+SynthStrip: Skull-Stripping for Any Brain Image
+A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann
+NeuroImage 206 (2022), 119474
 https://doi.org/10.1016/j.neuroimage.2022.119474 
+
+Website: https://w3id.org/synthstrip
 '''
 
 # parse command line
-parser = argparse.ArgumentParser(description=description)
+parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--image', metavar='file', required=True, help='Input image to skullstrip.')
 parser.add_argument('-o', '--out', metavar='file', help='Save stripped image to path.')
 parser.add_argument('-m', '--mask', metavar='file', help='Save binary brain mask to path.')
@@ -29,8 +30,10 @@ parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
 parser.add_argument('-b', '--border', default=1, type=int, help='Mask border threshold in mm. Default is 1.')
 parser.add_argument('--no-csf', action='store_true', help='Exclude CSF from brain border.')
 parser.add_argument('--model', metavar='file', help='Alternative model weights.')
-if len(sys.argv) == 1:
+if len(sys.argv) == 1 or '-h' in sys.argv or '--help' in sys.argv:
+    print('Robust, universal skull-stripping for brain images of any type.')
     parser.print_help()
+    print(ref)
     exit(1)
 args = parser.parse_args()
 
@@ -254,8 +257,4 @@ if args.mask:
     image.new(mask).save(args.mask)
     print(f'Binary brain mask saved to: {args.mask}')
 
-print('If you use SynthStrip in your analysis, please cite:')
-print('----------------------------------------------------')
-print('SynthStrip: Skull-Stripping for Any Brain Image.')
-print('A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann.')
-print('NeuroImage 206 (2022), 119474.')
+print(ref)
