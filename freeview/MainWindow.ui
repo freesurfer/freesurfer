@@ -1850,8 +1850,19 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_radiological.png</normaloff>
+     <normalon>:/resource/icons/view_neurological.png</normalon>:/resource/icons/view_radiological.png</iconset>
+   </property>
    <property name="text">
     <string>Neurological View</string>
+   </property>
+   <property name="toolTip">
+    <string>Radiological / Neurological View</string>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionLockOthers">
