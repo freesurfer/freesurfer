@@ -501,7 +501,7 @@ int main(int argc, char **argv)
   FACE *face;
   VERTEX *vtx0,*vtx1,*vtx2;
   double area, a0, a1, a2, d, dmin, dmax, dsum;
-  COLOR_TABLE *ctab=NULL;
+  COLOR_TABLE *ctab=NULL, *srcctab=NULL;
   LABEL *MaskLabel;
   MRI *inmask = NULL, *outmask=NULL, *mri2=NULL;
   char *stem, *ext;
@@ -773,6 +773,7 @@ int main(int argc, char **argv)
   } 
   else { /* Use MRIreadType */
     SrcVals =  MRIreadType(srcvalfile,srctype);
+    if(SrcVals->ct) srcctab = CTABdeepCopy(SrcVals->ct);
     if (SrcVals == NULL) {
       printf("ERROR: could not read %s as type %d\n",srcvalfile,srctype);
       exit(1);
@@ -1181,7 +1182,7 @@ int main(int argc, char **argv)
       MRIfree(&TrgVals);
       TrgVals = mritmp;
     }
-    if (reshape3d) {
+    if(reshape3d) {
       if(TrgSurfReg->nvertices != 163842) {
 	printf("ERROR: subject must have 163842 vertices to 3d reshape\n");
 	exit(1);
@@ -1195,9 +1196,11 @@ int main(int argc, char **argv)
       MRIfree(&TrgVals);
       TrgVals = mritmp;
     }
-    if(DoNormVar) {
-      NormVar(TrgVals, NULL);
-    }
+    if(DoNormVar) NormVar(TrgVals, NULL);
+    if(srcctab) {
+      printf("Copying ctab from source\n");
+      TrgVals->ct = CTABdeepCopy(srcctab);
+    }      printf("NOT Copying ctab from source\n");
     if(! SplitFrames) {
       printf("Saving to %s\n",trgvalfile);
       err = MRIwriteType(TrgVals,trgvalfile,trgtype);
