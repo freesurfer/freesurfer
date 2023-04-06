@@ -165,7 +165,6 @@ int main(int argc, char *argv[])
   remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
   edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
   spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
-  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal);
 
   if(FixSCMHA){
     FixSubCortMassHA fscmha;
@@ -213,6 +212,8 @@ int main(int argc, char *argv[])
 	  
 	}
   }
+  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal);
+
   printf("writing edited volume to %s....\n", output_file_name) ;
   MRIwrite(mri_wm, output_file_name) ;
 
