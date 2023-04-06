@@ -30,8 +30,8 @@ static void unwarpCRS(GradUnwarp *gradUnwarp, MATRIX *vox2ras, MATRIX *inv_vox2r
 
 int checkoptsonly = 0;
 const char *Progname = NULL;
-std::string gradfile_str, inf_str, outf_str, loadtrans_str, outtrans_str;
-const char *gradfile = NULL, *inf = NULL, *outf = NULL, *loadtrans = NULL, *outtrans = NULL;
+std::string gradfile_str, inf_str, outf_str, loadtrans_str, outtrans_str, invgcamfile_str;
+const char *gradfile = NULL, *inf = NULL, *outf = NULL, *loadtrans = NULL, *outtrans = NULL, *invgcamfile=NULL;
 int inputras = 0, inputcrs = 0, unwarp = 0, m3zonly = 0;
 double ras_x, ras_y, ras_z;
 int crs_c = 0, crs_r = 0, crs_s = 0;
@@ -187,8 +187,7 @@ int main(int argc, char *argv[])
 
     printf("Writing to %s\n", outf);
     int err = MRIwrite(unwarpedvol, outf);
-    if (err) 
-      printf("something went wrong\n");
+    if(err) exit(1);
 
     MRIfree(&unwarpedvol);
 
@@ -220,14 +219,24 @@ int main(int argc, char *argv[])
     MRISfree(&origsurf);
   }
   
-  if (outtrans != NULL)
-  {
+  if(outtrans != NULL) {
     // this also covers save_transtbl_only 
     // if we used gradient file to unwarp, we need to create the m3z transform table now
-    if (getenv("GRADUNWARP_USE_GRADFILE"))
+    if(getenv("GRADUNWARP_USE_GRADFILE"))
       gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
-
     gradUnwarp->save_transtable(outtrans);
+  }
+
+  if(invgcamfile != NULL) {
+    // this also covers save_transtbl_only 
+    // if we used gradient file to unwarp, we need to create the m3z transform table now
+    if(outtrans == NULL) {
+      if(getenv("GRADUNWARP_USE_GRADFILE"))
+	gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
+    }
+    gradUnwarp->invert_gcam(origvol);
+    gradUnwarp->save_transtable(invgcamfile);
+    // WARNING: gcam will now be inverted!
   }
 
   delete gradUnwarp;
@@ -385,14 +394,23 @@ static int parse_commandline(int argc, char **argv) {
       loadtrans_str = fio_fullpath(pargv[0]);
       loadtrans = loadtrans_str.c_str();
       nargsused = 1;
-    } else if (!strcmp(option, "--out_transtbl")) {
+    } 
+    else if(!strcmp(option, "--out_transtbl") || !strcmp(option, "--gcam")) {
       if (nargc < 1) CMDargNErr(option,1);
       outtrans_str = fio_fullpath(pargv[0]);
       outtrans = outtrans_str.c_str();
       nargsused = 1;
-    } else if (!strcmp(option, "--save_transtbl_only")) {
+    } 
+    else if (!strcmp(option, "--inv-gcam")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      invgcamfile_str = fio_fullpath(pargv[0]);
+      invgcamfile= invgcamfile_str.c_str();
+      nargsused = 1;
+    } 
+    else if(!strcmp(option, "--save_transtbl_only") || !strcmp(option, "--gcam-only")) {
       m3zonly = 1; unwarp = 0;
-    } else if (!strcmp(option, "--interp")) {
+    } 
+    else if (!strcmp(option, "--interp")) {
       if (nargc < 1) CMDargNErr(option, 1);
       interpmethod = pargv[0];
       interpcode = MRIinterpCode(interpmethod);
@@ -431,11 +449,13 @@ static void print_usage(void) {
   printf("\n");
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --gradcoeff <gradient-file> | --load_transtbl <m3z-table>   gradient coeff input, or load unwarp transform table in m3z format \n");
-  printf("   --i <input-warped-file>                                     input volume, or surface \n");
-  printf("   --o <output-unwarped-file>                                  unwarped output volume, or surface \n");
-  printf("   --out_transtbl <output-m3z-table>                           save unwarp transform table in m3z format \n");
-  printf("   --save_transtbl_only                                        no unwarping volume/surface, just save unwarp transform table in m3z format, need --gradcoeff <> \n");
+  printf("   --gradcoeff <gradient-file>  gradient coeff input (not with --load_transtbl)\n");
+  printf("   --load_transtbl <m3z-table>  load unwarp transform table in m3z format (not with --gradcoeff)\n");
+  printf("   --i <input-warped-file>       input volume, or surface \n");
+  printf("   --o <output-unwarped-file>    unwarped output volume, or surface \n");
+  printf("   --out_transtbl <output-m3z-table>  save unwarp transform table in m3z format (or --gcam)\n");
+  printf("   --save_transtbl_only   just save unwarp transform table in m3z format, need --gradcoeff <> (or --gcam-only)\n");
+  printf("   --inv-gcam invgcam.m3z : save inverse of m3z\n");
   printf("\n");
   //printf("   --ras       x,y,z\n");
   //printf("   --crs       c,r,s\n");
