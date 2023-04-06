@@ -227,16 +227,15 @@ int main(int argc, char *argv[])
     gradUnwarp->save_transtable(outtrans);
   }
 
-  if(invgcamfile != NULL) {
-    // this also covers save_transtbl_only 
-    // if we used gradient file to unwarp, we need to create the m3z transform table now
+  if(0 && invgcamfile != NULL) {
+    // This does not actually invert the gcam, which is what I wanted it to do
     if(outtrans == NULL) {
       if(getenv("GRADUNWARP_USE_GRADFILE"))
 	gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
     }
-    gradUnwarp->invert_gcam(origvol);
+    gradUnwarp->invert_gcam(unwarpedvol);
     gradUnwarp->save_transtable(invgcamfile);
-    // WARNING: gcam will now be inverted!
+    // WARNING: unwarpedvol will now be warped!!
   }
 
   delete gradUnwarp;
@@ -455,7 +454,7 @@ static void print_usage(void) {
   printf("   --o <output-unwarped-file>    unwarped output volume, or surface \n");
   printf("   --out_transtbl <output-m3z-table>  save unwarp transform table in m3z format (or --gcam)\n");
   printf("   --save_transtbl_only   just save unwarp transform table in m3z format, need --gradcoeff <> (or --gcam-only)\n");
-  printf("   --inv-gcam invgcam.m3z : save inverse of m3z\n");
+  //printf("   --inv-gcam invgcam.m3z : save inverse of m3z\n"); // does not work the way I wanted it to
   printf("\n");
   //printf("   --ras       x,y,z\n");
   //printf("   --crs       c,r,s\n");
