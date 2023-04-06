@@ -2041,44 +2041,29 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 3)
-  {
-    print_help() ;  /* will exit */
-  }
+  if (argc < 3) print_help() ;  /* will exit */
 
   strcpy(input_fname, argv[1]) ;
   strcpy(out_fname, argv[2]) ;
 
-  if (!Gdiag)
-  {
-    fprintf(stderr, "reading input volume...") ;
-  }
-
+  printf("reading input volume... %s",input_fname) ;// typically wm.mgz
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
-  {
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
-  }
   MRIaddCommandLine(mri_im, cmdline) ;
-  if (mri_im->type != MRI_UCHAR)
-  {
+  if (mri_im->type != MRI_UCHAR){
     MRI *mri_tmp ;
-
     mri_tmp = MRIchangeType(mri_im, MRI_UCHAR, 0.0, 0.999, TRUE) ;
     MRIfree(&mri_im) ;
     mri_im = mri_tmp ;
   }
 
-  if (find_rh_voxel)
-  {
+  if (find_rh_voxel)  // not done by default
     find_rh_seed_point(mri_im, &rh_vol_x, &rh_vol_y, &rh_vol_z) ;
-  }
-  else if (find_lh_voxel)
-  {
+  else if (find_lh_voxel)  // not done by default
     find_rh_seed_point(mri_im, &lh_vol_x, &lh_vol_y, &lh_vol_z) ;
-  }
-  if (fillonly)
-  {
+
+  if (fillonly){ // not done by default
     mri_rh_fill = MRIclone(mri_im, NULL) ;
     mri_rh_im = MRIcopy(mri_im, NULL) ;
     if (find_rh_voxel || rhv)   // rh specified
@@ -2087,7 +2072,6 @@ main(int argc, char *argv[])
     else   // assume it's lh
       MRIfillVolume
       (mri_rh_fill, mri_rh_im, lh_vol_x, lh_vol_y, lh_vol_z,lh_fill_val);
-
     MRIwrite(mri_rh_fill, out_fname) ;
     exit(0) ;
   }
@@ -2741,10 +2725,6 @@ main(int argc, char *argv[])
   {
     printf("Erasing brainstem...") ;
     MRIsetLabelValues(mri_im, mri_seg, mri_im, Brain_Stem, 0) ;
-#if 0
-    MRIsetLabelValues(mri_im, mri_seg, mri_im, Left_VentralDC, 0) ;
-    MRIsetLabelValues(mri_im, mri_seg, mri_im, Right_VentralDC, 0) ;
-#endif
     mri_pons = NULL ;
     printf("done.\n");
   }
@@ -2752,8 +2732,7 @@ main(int argc, char *argv[])
   MRIfree(&mri_tal) ;
 
   /* make cuts in both image and labels image to avoid introducing a connection
-     with one of the labels
-  */
+     with one of the labels  */
   if (mri_seg == NULL)
   {
     MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
@@ -3026,41 +3005,6 @@ main(int argc, char *argv[])
       
     }
   }
-
-#if 0
-  if (segmentation_fname)
-  {
-    //    printf("x_cc = %g, y_cc = %g, z_cc = %g\n",
-    // (float)x_cc, (float)y_cc, (float) z_cc);
-    double x_cc_img, y_cc_img, z_cc_img;
-    //x_cc, y_cc, z_cc is still in the transformed space -xh
-    //transform them into image space
-    //note mri_cc was transformed into image space
-    MRItalairachVoxelToVoxelEx
-    (mri_im, x_cc, y_cc, z_cc, &x_cc_img, &y_cc_img, &z_cc_img, lta);
-    x_cc = (int)x_cc_img;
-    y_cc = (int)y_cc_img;
-    z_cc = (int)z_cc_img;
-
-    printf("Voxel coord of CC in image space is (%d, %d, %d)\n",
-           x_cc, y_cc, z_cc);
-    MRIeraseTalairachPlaneNewEx
-    (mri_seg, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc,
-     mri_seg->width, fill_val, lta);
-    //    edit_segmentation(mri_im, mri_seg) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      MRIwrite(mri_seg,"mri_seg_erased.mgz");
-    }
-    MRIeraseTalairachPlaneNewEx
-    (mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc,
-     mri_seg->width, fill_val, lta);
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      MRIwrite(mri_im,"mri_im_erased.mgz");
-    }
-  }
-#endif
 
   if (!lhonly &&
       (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
