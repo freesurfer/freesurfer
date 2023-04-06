@@ -16,6 +16,16 @@ git annex unlock synthstrip.*.pt
 VERSION=X.X
 docker build -t freesurfer/synthstrip:${VERSION} .
 docker push freesurfer/synthstrip:${VERSION}
+
+# point the "latest" tag to the new container
+docker tag freesurfer/synthstrip:${VERSION} freesurfer/synthstrip:latest
+docker push freesurfer/synthstrip:latest
 ```
 
-Once this is built and pushed to the [freesurfer dockerhub](https://hub.docker.com/u/freesurfer), make sure to update the version reference in the `synthstrip-docker` and `synthstrip-singularity` scripts.
+Once this is built and pushed to the [Docker Hub](https://hub.docker.com/u/freesurfer), make sure to update the version reference in the `synthstrip-docker` and `synthstrip-singularity` scripts:
+
+```bash
+sed -i "s/^\(version = \).*/\1'$VERSION'/" synthstrip-docker
+sed -i "s/\(synthstrip.\)[0-9.]*\(\.\|$\)/\1$VERSION\2/g" synthstrip-singularity
+git diff singularity-*
+```
