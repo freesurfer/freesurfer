@@ -1549,10 +1549,10 @@ if($SynthStrip) then
   endif
 endif
 
+set synthseg = $subjdir/mri/synthseg.rca.mgz
 if($UseSynthSeg || $CblumFromSynthSeg) then
   # Note: no m3z will be produced
   set origvol  = $subjdir/mri/orig.mgz
-  set synthseg = $subjdir/mri/synthseg.rca.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthseg $XOptsFile`;
