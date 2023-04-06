@@ -7429,6 +7429,8 @@ MRI *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
   return (mri);
 }
 
+// To be clear, this does not invert the gcam. Rather, it populates mri_{x,y,z}ind MRI structs
+// in the gcam which is used to apply the inverse. 
 int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 {
   int x, y, z, width, height, depth;
@@ -7437,29 +7439,20 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   double xf, yf, zf;
   float num;
 
-  if (gcam->mri_xind) /* already inverted */
-  {
-    return (NO_ERROR);
-  }
+  if(gcam->mri_xind) return (NO_ERROR); /*  mri_{x,y,z}ind already computed*/
 
   // verify the volume size ////////////////////////////////////////////
   if (mri->width != gcam->image.width || mri->height != gcam->image.height || mri->depth != gcam->image.depth)
-    ErrorExit(ERROR_BADPARM,
-              "mri passed volume size ( %d %d %d ) is different from "
+    ErrorExit(ERROR_BADPARM,"mri passed volume size ( %d %d %d ) is different from "
               "the one used to create M3D data ( %d %d %d )\n",
-              mri->width,
-              mri->height,
-              mri->depth,
-              gcam->image.width,
-              gcam->image.height,
-              gcam->image.depth);
+              mri->width, mri->height, mri->depth, gcam->image.width, gcam->image.height,gcam->image.depth);
 
   // use mri
   width = mri->width;
   height = mri->height;
   depth = mri->depth;
 
-  // mri_xind, yind, zind
+  // allocate mri_xind, yind, zind
   gcam->mri_xind = MRIalloc(width, height, depth, MRI_FLOAT);
   MRIcopyHeader(mri, gcam->mri_xind);
   gcam->mri_yind = MRIalloc(width, height, depth, MRI_FLOAT);
@@ -7486,33 +7479,19 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
         // find nodes
         gcamn = &gcam->nodes[x][y][z];
 
-        if (gcamn->invalid == GCAM_POSITION_INVALID) {
-          continue;
-        }
+        if(gcamn->invalid == GCAM_POSITION_INVALID) continue;
 
         // get the source volume position
         xf = gcamn->x;
         yf = gcamn->y;
         zf = gcamn->z;
         // make them within the range of index /////////////////////////////
-        if (xf < 0) {
-          xf = 0;
-        }
-        if (yf < 0) {
-          yf = 0;
-        }
-        if (zf < 0) {
-          zf = 0;
-        }
-        if (xf >= width) {
-          xf = width - 1;
-        }
-        if (yf >= height) {
-          yf = height - 1;
-        }
-        if (zf >= depth) {
-          zf = depth - 1;
-        }
+        if (xf < 0) xf = 0;
+        if (yf < 0) yf = 0;
+        if (zf < 0) zf = 0;
+        if (xf >= width) xf = width - 1;
+        if (yf >= height) yf = height - 1;
+        if (zf >= depth) zf = depth - 1;
         // xv = nint(xf);
         // yv = nint(yf);
         // zv = nint(zf);
@@ -7527,7 +7506,6 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
         // src -> gcam volume position
         MRIinterpolateIntoVolume(gcam->mri_yind, (double)xf, (double)yf, (double)zf, (double)y);
         MRIinterpolateIntoVolume(gcam->mri_zind, (double)xf, (double)yf, (double)zf, (double)z);
-
         // mark counts (how many went in)
         MRIinterpolateIntoVolume(mri_counts, (double)xf, (double)yf, (double)zf, (double)1.0);
       }
@@ -7548,15 +7526,13 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
         }
         // get count
         num = MRIgetVoxVal(mri_counts, x, y, z, 0);
-        if (num == 0) {
-          continue; /* nothing there */
-        }
+        if(num == 0) continue; /* nothing there */
         // give average gcam position for this points
         MRIFvox(gcam->mri_xind, x, y, z) = MRIFvox(gcam->mri_xind, x, y, z) / (float)num;
         MRIFvox(gcam->mri_yind, x, y, z) = MRIFvox(gcam->mri_yind, x, y, z) / (float)num;
         MRIFvox(gcam->mri_zind, x, y, z) = MRIFvox(gcam->mri_zind, x, y, z) / (float)num;
         MRIvox(mri_ctrl, x, y, z) = CONTROL_MARKED;
-        if (num < .1) MRIsetVoxVal(mri_ctrl, x, y, z, 0, 0);
+        if(num < .1) MRIsetVoxVal(mri_ctrl, x, y, z, 0, 0);
       }
     }
   }
