@@ -971,6 +971,10 @@ int MRIasegContraLatLabel(int id)
   case 259: // SkullApprox
   case 260: // BoneOrAir
   case 262: // Sinus
+  case 502: // Charm Artery
+  case 902: // Charm Artery
+  case 514: // Charm Vein
+  case 914: // Charm Vein
   case WM_hypointensities:
   case non_WM_hypointensities:
   case CSF:
