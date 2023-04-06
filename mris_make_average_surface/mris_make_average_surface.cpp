@@ -236,6 +236,7 @@ main(int argc, char *argv[]) {
     printf("#VMPC# mris_make_average_surface VmPeak  %d\n",GetVmPeak());
     printf("mris_make_average_surface done\n");
     exit(0);
+    //====================================================================
   }
 
   printf("Using parametric surface instead of surf2surf.\n");
