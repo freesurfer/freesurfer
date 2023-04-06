@@ -86,6 +86,7 @@ static int navgs = 0 ;
 static int single_surf = 0 ;
 static double l_ocorr = 1.0 ;
 static char *annot_name = NULL ;
+static char *keep_label = NULL ;
 static int atlas_size=3;
 static int max_passes = 4 ;
 static float min_degrees = 0.5 ;
@@ -287,6 +288,23 @@ main(int argc, char *argv[])
                 "%s: could not read annot file %s",
                 Progname, annot_name) ;
     MRISripMedialWall(mris) ;
+  }
+  if(keep_label)
+  {
+    LABEL *lab = LabelRead(NULL,keep_label);
+    if(lab==NULL) exit(1);
+    MRI *mask = MRISlabel2Mask(mris,lab,NULL);
+    int nripped = 0;
+    for(int vno = 0; vno < mris->nvertices; vno++){
+      if(MRIgetVoxVal(mask,vno,0,0,0)==0){
+	mris->vertices[vno].ripflag=1;
+	nripped++;
+      }
+    }
+    printf("Ripping %d vertices from label %s\n",nripped,keep_label);
+    //MRIwrite(mask,"junk.mask.mgz");
+    MRIfree(&mask);
+    LabelFree(&lab);
   }
 
   MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
@@ -722,6 +740,12 @@ get_option(int argc, char *argv[])
   {
     annot_name = argv[2] ;
     fprintf(stderr,"zeroing medial wall in %s\n", annot_name) ;
+    nargs=1;
+  }
+  else if (!stricmp(option, "keep-label"))
+  {
+    keep_label = argv[2] ;
+    printf("keep_label %s\n", keep_label);
     nargs=1;
   }
   else if (!stricmp(option, "init"))
