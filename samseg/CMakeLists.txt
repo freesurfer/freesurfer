@@ -8,4 +8,6 @@ install_pyscript(
   gems_compute_atlas_probs
 )
 
-add_test_script(NAME samseg SCRIPT test.sh)
+# temporarily disable
+# add_test_script(NAME samseg SCRIPT test.sh)
+

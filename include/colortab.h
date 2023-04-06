@@ -30,6 +30,8 @@
 #include "stdio.h"
 #include "znzlib.h"
 
+#define CTAB_VERSION_TO_WRITE 2
+
 /* A color table entry. The index of the entry in the table itself is
    the structure index. */
 typedef struct

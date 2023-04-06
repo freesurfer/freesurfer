@@ -203,6 +203,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   ui->actionLineProfile->setVisible(false);
 #endif
 
+  QWidget *spacer = new QWidget();
+  spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+  ui->mainToolBar->addWidget(spacer);
+
+  ui->mainToolBar->addAction(ui->actionNeurologicalView);
+
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
 
@@ -579,6 +585,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   if (MacHelper::IsDarkMode())
   {
     ui->actionShowCoordinateAnnotation->setIcon(MacHelper::InvertIcon(ui->actionShowCoordinateAnnotation->icon(), QSize(), true));
+    ui->actionNeurologicalView->setIcon(MacHelper::InvertIcon(ui->actionNeurologicalView->icon(), QSize(), true));
   }
 #endif
 
