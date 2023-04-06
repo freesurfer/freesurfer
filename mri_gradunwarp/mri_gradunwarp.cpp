@@ -233,8 +233,8 @@ int main(int argc, char *argv[])
       if(getenv("GRADUNWARP_USE_GRADFILE"))
 	gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
     }
-    gradUnwarp->invert_gcam(unwarpedvol);
-    gradUnwarp->save_transtable(invgcamfile);
+    //gradUnwarp->invert_gcam(unwarpedvol);
+    //gradUnwarp->save_transtable(invgcamfile);
     // WARNING: unwarpedvol will now be warped!!
   }
 
@@ -478,6 +478,7 @@ static void print_help(void) {
   printf("\n%s\n\n",getVersion().c_str());
   printf("\n");
   printf("This program provides a tool to correct gradient non-linearity distortions in MRI images.\n");
+  printf("The m3z output will map from the unwarped space to the warped space.\n");
   printf("\n");
   printf("Examples:\n");
   printf("\n");
