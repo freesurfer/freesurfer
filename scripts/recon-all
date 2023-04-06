@@ -7096,6 +7096,7 @@ while( $#argv != 0 )
       set DoSkullLTA       = 0;
       set DoSegStats       = 0;
       set DoCANormalize    = 1;
+      set DoGCAReg         = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
       set DoNormalization2 = 1;
