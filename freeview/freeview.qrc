@@ -136,5 +136,7 @@
         <file>resource/DSI_mesh_181.dat</file>
         <file>resource/DSI_vectors_181.dat</file>
         <file>resource/icons/volume_unlock.png</file>
+        <file>resource/icons/view_neurological.png</file>
+        <file>resource/icons/view_radiological.png</file>
     </qresource>
 </RCC>

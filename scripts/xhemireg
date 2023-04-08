@@ -205,13 +205,12 @@ foreach srchemi ($srchemilist)
       # it.  This saves time, but it also better than recomputing it
       # when a non-recon-all process was needed to compute the
       # unflipped xfm.
-      # Create the xfm.lta in the unflipped, if needed. 
       set subjdir = $SUBJECTS_DIR/$subject
       set xfm = $subjdir/mri/transforms/talairach.xfm # unflipped
       set lta = $subjdir/mri/transforms/talairach.xfm.lta
-      set tlta = $subjdir/mri/transforms/talairach.lta
       set ud = `UpdateNeeded $lta $xfm`
       if($ud) then
+        # Create the xfm.lta in the unflipped, if needed. 
         set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
         set cmd = (lta_convert --src $subjdir/mri/orig.mgz --trg $mni305 --inxfm $xfm \
             --outlta $lta --subject fsaverage --ltavox2vox)

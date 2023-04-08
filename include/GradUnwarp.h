@@ -60,6 +60,15 @@ public:
   MRI*  unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw);
   MRIS* unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf);
   MRIS* unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf);
+  int invert_gcam(MRI *unwarpedvol){
+    // This does not actually invert the gcam. Rather it computes
+    // mri_{x,y,z}ind inside the gcam. These are used to apply the
+    // inverse gcam. The inverse gcam will be applied to the
+    // unwarpedvol in-place.
+    printf("invert_gcam(): \n");
+    int err = GCAMinvert(gcam, unwarpedvol);
+    return(err);
+  }
   
 private:
   int nthreads;

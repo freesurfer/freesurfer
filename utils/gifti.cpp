@@ -36,7 +36,8 @@
 #include "utils.h"  // strcpyalloc
 #include "libgen.h"
 
-#define TAG_CMDLINE_LEN 1024
+#define TAG_CMDLINE_LEN   1024
+#define NUM_VOLGEOM_META  19
 
 /*
  *
@@ -328,6 +329,78 @@ static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double val
   return;
 }
 
+
+/*
+ *
+ */
+static COLOR_TABLE *makeColorTable(std::map<int, float*> &unique_annot_map, const char *fname)
+{
+    /* copy label table contents to our color_table struct */
+    COLOR_TABLE *ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
+    if (ct == NULL) {
+      fprintf(stderr, "makeColorTable(): could not alloc colortable memory\n");
+      return NULL;
+    }
+    memset(ct, 0, sizeof(COLOR_TABLE));
+    ct->nentries = unique_annot_map.size();
+    ct->version = CTAB_VERSION_TO_WRITE;  //2;
+    ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries + 1, sizeof(COLOR_TABLE_ENTRY *));
+    if (ct->entries == NULL) {
+      fprintf(stderr, "makeColorTable(): could not alloc colortable entries\n");
+      return NULL;
+    }
+    // memset(ct->entries,0,sizeof(ct->entries)); // original
+    memset(ct->entries, 0, sizeof(*ct->entries));  // changed by dng
+    strncpy(ct->fname, fname, sizeof(ct->fname)-1);
+
+    std::map<int, float*>::iterator it = unique_annot_map.begin();
+    int label_index = 0;
+    while (it != unique_annot_map.end())
+    {
+      ct->entries[label_index] = (CTE *)malloc(sizeof(CTE));
+      if (ct->entries[label_index] == NULL) {
+        fprintf(stderr, "makeColorTable(): could not alloc colortable entry\n");
+        return NULL;
+      }
+      char unknown_label[256] = {'\0'};
+      sprintf(unknown_label, "Unknown_Label_%d", label_index);
+      strncpy(
+          ct->entries[label_index]->name,
+	  unknown_label,
+	  sizeof(ct->entries[label_index]->name)-1);
+
+      float *rgba = it->second;
+      ct->entries[label_index]->rf = rgba[0];
+      ct->entries[label_index]->ri = floor((rgba[0]) * 256);
+      if (ct->entries[label_index]->ri > 255) {
+        ct->entries[label_index]->ri = 255;
+      }
+      ct->entries[label_index]->gf = rgba[1];
+      ct->entries[label_index]->gi = floor((rgba[1]) * 256);
+      if (ct->entries[label_index]->gi > 255) {
+        ct->entries[label_index]->gi = 255;
+      }
+      ct->entries[label_index]->bf = rgba[2];
+      ct->entries[label_index]->bi = floor((rgba[2]) * 256);
+      if (ct->entries[label_index]->bi > 255) {
+        ct->entries[label_index]->bi = 255;
+      }
+      ct->entries[label_index]->af = rgba[3];
+      ct->entries[label_index]->ai = floor((rgba[3]) * 256);
+      if (ct->entries[label_index]->ai > 255) {
+        ct->entries[label_index]->ai = 255;
+      }
+
+      it++;
+      label_index++;
+    }
+    ct->entries[label_index] = NULL;
+    CTABfindDuplicateNames(ct);
+
+    return ct;
+}
+
+
 /*-------------------------------------------------------------------
   Parameters:    input file name of GIFTI file
                  optional mris structure to store data found
@@ -373,6 +446,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
    * check for 'LabelTable' data and read into our colortable if exists
    */
   COLOR_TABLE *ct = NULL;
+  int maxkey = -1;
   if (image->labeltable.length > 0) {
     /* check validity of labeltable data */
     if (!gifti_valid_LabelTable(&image->labeltable, 1)) {
@@ -380,6 +454,31 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       gifti_free_image(image);
       return NULL;
     }
+
+    
+    /* 1. GIFTI LabelTable is a LUT. 
+     *    a. It is used by DataArrays whose values are an key into the LabelTable’s labels. 
+     *       A file should contain at most one LabelTable and it must be located in the file prior to any DataArray elements.
+     *    b. The label keys are non-negative integers. They are not necessarily ordered or sequential.
+     *    c. The label keys serve as index to COLOR_TABLE.  Number of COLOR_TABLE entries to create is max(label key) + 1.
+     *       Missing numbers in label keys will leave empty COLOR_TABLE entries.
+     *
+     * 2. LUT is read into COLOR_TABLE in CTABreadASCII2():
+     *    a. first colum in LUT becomes COLOR_TABLE index 
+     *    b. number of COLOR_TABLE entries to create is max(1st LUT column) + 1
+     *    c. COLOR_TABLE index is 0 .. n
+     *    d. w/ or w/o '0  Unknown 0    0      0      0' in the first line, index 0 will be there
+     *       the difference: w/  the line, CTABfindAnnotation() returns 0  for annotation=0;
+     *                       w/o the line, CTABfindAnnotation() returns -1 for annotation=0
+     *    e. skipped numbers in LUT will leave holes (empty entries) in COLOR_TABLE,
+     *       their corresponding index will have unknown annotations
+     */
+
+    /* Scan through the file and see what our max label key is. 
+     * Create COLOR_TABLE with (maxkey + 1) entries.
+     */
+    for (int nlabel = 0; nlabel < image->labeltable.length; nlabel++)
+      maxkey = (image->labeltable.key[nlabel] > maxkey) ? image->labeltable.key[nlabel] : maxkey;
 
     /* copy label table contents to our color_table struct */
     ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
@@ -389,9 +488,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       return NULL;
     }
     memset(ct, 0, sizeof(COLOR_TABLE));
-    ct->nentries = image->labeltable.length;
-    ct->version = 2;
-    ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries + 1, sizeof(COLOR_TABLE_ENTRY *));
+    ct->nentries = maxkey + 1;  //image->labeltable.length;
+    ct->version = CTAB_VERSION_TO_WRITE;  //2;
+    ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *));
     if (ct->entries == NULL) {
       fprintf(stderr, "mrisReadGIFTIdanum: could not alloc colortable entries\n");
       gifti_free_image(image);
@@ -403,8 +502,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
     float *rgba = image->labeltable.rgba;
     if (NULL == rgba) {
-      // optional rgba values are missing, so we must create colors for
-      // the labels
+      // optional rgba values are missing, so we must create colors for the labels
       image->labeltable.rgba = (float *)calloc(image->labeltable.length, 4 * sizeof(float *));
       if (NULL == image->labeltable.rgba) {
         fprintf(stderr,
@@ -424,54 +522,76 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       }
     }
 
+    if (Gdiag & DIAG_SHOW)
+      printf("[DEBUG] mrisReadGIFTIdanum(): ct->nentries=%d, num_entries_to_read=%d\n", ct->nentries, image->labeltable.length);
+
     rgba = image->labeltable.rgba;
     int label_index;
+    // loop through LabelTable
     for (label_index = 0; label_index < image->labeltable.length; label_index++) {
-      ct->entries[label_index] = (CTE *)malloc(sizeof(CTE));
-      if (ct->entries[label_index] == NULL) {
-        fprintf(stderr, "mrisReadGIFTIdanum: could not alloc colortable entry\n");
-        gifti_free_image(image);
-        return NULL;
+      // retrieve the label key, use it as COLOR_TABLE index
+      int labelkey = image->labeltable.key[label_index];
+      if (ct->entries[labelkey] != NULL)
+      {
+        printf("mrisReadGIFTIdanum(%s): Duplicate labelkey %d:%s, was %s\n",
+               fname, labelkey, image->labeltable.label[label_index], ct->entries[labelkey]->name);
       }
-      strncpy(
-          ct->entries[label_index]->name,
-	  image->labeltable.label[label_index],
-	  sizeof(ct->entries[label_index]->name)-1);
+      else
+      {
+        ct->entries[labelkey] = (CTE *)malloc(sizeof(CTE));
+        if (ct->entries[labelkey] == NULL) {
+          fprintf(stderr, "mrisReadGIFTIdanum: could not alloc colortable entry\n");
+          gifti_free_image(image);
+          return NULL;
+        }
 
-      ct->entries[label_index]->rf = rgba[0];
-      ct->entries[label_index]->ri = floor((rgba[0]) * 256);
-      if (ct->entries[label_index]->ri > 255) {
-        ct->entries[label_index]->ri = 255;
+        if (Gdiag & DIAG_SHOW)
+          printf("[DEBUG] mrisReadGIFTIdanum(): created ct->entries[%d]\n", labelkey);
+
+        strncpy(
+            ct->entries[labelkey]->name,
+	    image->labeltable.label[label_index],
+	    sizeof(ct->entries[labelkey]->name)-1);
+
+        ct->entries[labelkey]->rf = rgba[0];
+        ct->entries[labelkey]->ri = floor((rgba[0]) * 256);
+        if (ct->entries[labelkey]->ri > 255) {
+          ct->entries[labelkey]->ri = 255;
+        }
+
+        ct->entries[labelkey]->gf = rgba[1];
+        ct->entries[labelkey]->gi = floor((rgba[1]) * 256);
+        if (ct->entries[labelkey]->gi > 255) {
+          ct->entries[labelkey]->gi = 255;
+        }
+
+        ct->entries[labelkey]->bf = rgba[2];
+        ct->entries[labelkey]->bi = floor((rgba[2]) * 256);
+        if (ct->entries[labelkey]->bi > 255) {
+          ct->entries[labelkey]->bi = 255;
+        }
+
+        ct->entries[labelkey]->af = rgba[3];
+        ct->entries[labelkey]->ai = floor((rgba[3]) * 256);
+        if (ct->entries[labelkey]->ai > 255) {
+          ct->entries[labelkey]->ai = 255;
+        }
+
+        rgba += 4;
       }
-      ct->entries[label_index]->gf = rgba[1];
-      ct->entries[label_index]->gi = floor((rgba[1]) * 256);
-      if (ct->entries[label_index]->gi > 255) {
-        ct->entries[label_index]->gi = 255;
-      }
-      ct->entries[label_index]->bf = rgba[2];
-      ct->entries[label_index]->bi = floor((rgba[2]) * 256);
-      if (ct->entries[label_index]->bi > 255) {
-        ct->entries[label_index]->bi = 255;
-      }
-      ct->entries[label_index]->af = rgba[3];
-      ct->entries[label_index]->ai = floor((rgba[3]) * 256);
-      if (ct->entries[label_index]->ai > 255) {
-        ct->entries[label_index]->ai = 255;
-      }
-      rgba += 4;
       /*
         printf("RGBA: %d %d %d %d %f %f %f %f\n",
-           ct->entries[label_index]->ri,
-           ct->entries[label_index]->gi,
-           ct->entries[label_index]->bi,
-           ct->entries[label_index]->ai,
-           ct->entries[label_index]->rf,
-           ct->entries[label_index]->gf,
-           ct->entries[label_index]->bf,
-           ct->entries[label_index]->af);
+           ct->entries[labelkey]->ri,
+           ct->entries[labelkey]->gi,
+           ct->entries[labelkey]->bi,
+           ct->entries[labelkey]->ai,
+           ct->entries[labelkey]->rf,
+           ct->entries[labelkey]->gf,
+           ct->entries[labelkey]->bf,
+           ct->entries[labelkey]->af);
       */
     }
-    ct->entries[label_index] = NULL;
+    //ct->entries[label_index] = NULL;
     CTABfindDuplicateNames(ct);
 
     // we're done, except that the colortable struct 'ct' will get stored
@@ -575,7 +695,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
     /* retrieve volume geometry info */
     {
-      int vgvalid = 0;  // there are a total of 18 values
+      int vgvalid = 0;  // there are a total of 19 values (NUM_VOLGEOM_META)
       char *stmp = gifti_get_meta_value(&coords->meta, "VolGeomWidth");
       if (stmp && (1 == sscanf(stmp, "%d", &mris->vg.width))) {
         vgvalid++;  // track valid volgeom values found
@@ -653,9 +773,15 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       if (stmp && (1 == sscanf(stmp, "%f", &mris->vg.c_s))) {
         vgvalid++;
       }
+      stmp = gifti_get_meta_value(&coords->meta, "VolGeomFname");
+      if (stmp) {
+        vgvalid++;
+        memcpy(mris->vg.fname, stmp, sizeof(mris->vg.fname));
+      }
 
-      // we got all 18 values
-      if (vgvalid == 18) {
+
+      // we got all the values
+      if (vgvalid == NUM_VOLGEOM_META) {
         mris->vg.valid = 1;  // finally we can say its valid data
       }
 
@@ -1035,35 +1161,50 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         if (mris->vertices[vno].ripflag) {
           continue;
         }
+
+	/*
+         * The value at each node is a key into the LabelTable. 
+         * Nodes that are “unassigned” should be assigned a label whose color 
+         * components’ alpha value is zero. An RGBA color with an alpha value of 
+         * zero is fully transparent. Also note that the keys of the Labels are not 
+         * necessarily sequential.
+	 */
         int table_key = *(label_data + da_index);
         int table_index = 0;
-        for (table_index = 0; table_index < ct->nentries; table_index++) {
+        for (table_index = 0; table_index < image->labeltable.length; table_index++) {
           if (table_key == image->labeltable.key[table_index]) {
             // found the label key for this node
             break;
           }
         }
+
         int annotation = 0;  // default to no label found
-        if ((table_index < ct->nentries) && (table_index >= 0)) {
-          // printf("vno: %d, tidx: %d, name: %s\n",
-          //     vno,table_index,ct->entries[table_index]->name);
+        if ((table_index < image->labeltable.length) && (table_index >= 0)) {
+          // table_index pass the tests, table_key (label key) is valid.
+          // invalid table_key is getting the default annotation = 0
+          if (Gdiag & DIAG_SHOW)
+            printf("mrisReadGIFTIdanum(): vno: %d, tkey: %d, tidx: %d, name: %s\n",
+		   vno, table_key, table_index, ct->entries[table_key]->name);
           annotation = CTABrgb2Annotation(
-              ct->entries[table_index]->ri, ct->entries[table_index]->gi, ct->entries[table_index]->bi);
+              ct->entries[table_key]->ri, ct->entries[table_key]->gi, ct->entries[table_key]->bi);
         }
         mris->vertices[vno].annotation = annotation;
 
+#if 0   // the check below will fail because not every node is assigned 
         // cross-check:
         int index = -1;
         int result = CTABfindAnnotation(mris->ct, mris->vertices[vno].annotation, &index);
-        if ((result != NO_ERROR) || (index < 0) || (index > image->labeltable.length)) {
+        if ((result != NO_ERROR) || (index < 0) || (index >= maxkey)) {
           fprintf(stderr,
                   "mrisReadGIFTIdanum: label node data not found in colortable! "
-                  "vno: %d, annot: %8.8X\n",
+                  "vno: %d, annot: %8.8X, index: %d\n",
                   vno,
-                  mris->vertices[vno].annotation);
+                  mris->vertices[vno].annotation,
+                  index);
           gifti_free_image(image);
           return NULL;
         }
+#endif
 
         if (node_index)  // sparse data storage support
         {
@@ -1090,9 +1231,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       }
     } // NIFTI_INTENT_VECTOR
     else if ((darray->intent == NIFTI_INTENT_RGB_VECTOR) || (darray->intent == NIFTI_INTENT_RGBA_VECTOR)) {
+      std::map<int, float*> unique_annot_map;
+
       // 'rgba' data goes in our 'annotation' data element of mris
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++) {
+      for (int vno = 0; vno < mris->nvertices; vno++) {
         if (mris->vertices[vno].ripflag) {
           continue;
         }
@@ -1131,7 +1273,17 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         }
 
         MRISRGBToAnnot(r, g, b, mris->vertices[vno].annotation);
+        std::map<int, float*>::iterator it = unique_annot_map.find(mris->vertices[vno].annotation);
+        if (it == unique_annot_map.end())
+	{
+          float *rgb = new float[3];
+          rgb[0] = red; rgb[1] = green; rgb[2] = blue;
+          unique_annot_map[mris->vertices[vno].annotation] = rgb;
+	}
       }
+
+      // make a color lookup table with unique annotation from dataarray
+      makeColorTable(unique_annot_map, fname);
     } // NIFTI_INTENT_RGB_VECTOR || NIFTI_INTENT_RGBA_VECTOR
     else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
       fprintf(stderr,
@@ -1803,8 +1955,19 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
     /*
      * LabelTable struct, fill it in with our colortable stuff
      */
+
+    /* We have to run through our table and count our non-null entries.
+     * The count will be LabelTable length.
+     */
+    int num_entries_to_write = 0;
+    for (int i = 0; i < mris->ct->nentries; i++)
+      if (NULL != mris->ct->entries[i]) num_entries_to_write++;
+
+    if (Gdiag & DIAG_SHOW)
+      printf("[DEBUG] MRISwriteGIFTILabel(): mris->ct->entries=%d, to_write=%d\n", mris->ct->nentries, num_entries_to_write);
+
     giiLabelTable labeltable;
-    labeltable.length = mris->ct->nentries;
+    labeltable.length = num_entries_to_write;  //mris->ct->nentries;
     if (labeltable.length == 0) {
       fprintf(stderr, "MRISwriteGIFTILabel: colortable is empty!\n");
       return ERROR_BADFILE;
@@ -1817,24 +1980,35 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
       return ERROR_NOMEMORY;
     }
     float *rgba = labeltable.rgba;
-    int idx;
-    for (idx = 0; idx < labeltable.length; idx++) {
+    int idx = 0;
+    for (int n = 0; n < mris->ct->nentries; n++) {
       // the key could be the freesurfer 'annotation' value, which is
       // supposed to be unique to the FreeSurferColorLUT, but for gifti
       // purposes, it is more intutive and obvious to use the index.
       // also, a display application might choose to interpret the
       // label data at each vertex as indicies rather than keys (which
       // i think ignores the gifti spec, but is reasonable to do so).
-      labeltable.key[idx] = idx;
-      // labeltable.key[idx] = CTABrgb2Annotation(mris->ct->entries[idx]->ri,
-      //                                       mris->ct->entries[idx]->gi,
-      //                                       mris->ct->entries[idx]->bi);
-      // printf("%8.8X\n",labeltable.key[idx]);
 
-      if (strlen(mris->ct->entries[idx]->name) != 0) {
-        // printf("idx=%d, name=%s\n",idx,mris->ct->entries[idx]->name);
-        labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
+      // output only the non-null entries
+      if (mris->ct->entries[n] != NULL && strlen(mris->ct->entries[n]->name) != 0) {
+        labeltable.key[idx] = n;
+        // labeltable.key[idx] = CTABrgb2Annotation(mris->ct->entries[idx]->ri,
+        //                                       mris->ct->entries[idx]->gi,
+        //                                       mris->ct->entries[idx]->bi);
+        // printf("%8.8X\n",labeltable.key[idx]);
+
+        printf("idx=%d, name=%s\n",idx,mris->ct->entries[n]->name);
+        labeltable.label[idx] = strcpyalloc(mris->ct->entries[n]->name);
+
+        rgba[0] = mris->ct->entries[n]->rf;
+        rgba[1] = mris->ct->entries[n]->gf;
+        rgba[2] = mris->ct->entries[n]->bf;
+        rgba[3] = 1.0f;
+
+        idx++;      // next label
+        rgba += 4;  // next color
       }
+#if 0
       else {
         char tmpname[30];
         sprintf(tmpname, "unknown_%d", idx);
@@ -1842,10 +2016,12 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
         labeltable.label[idx] = strcpyalloc(tmpname);
       }
 
-      if ((strlen(mris->ct->entries[idx]->name) == 0) ||
+      if (mris->ct->entries[idx] == NULL ||
+          (strlen(mris->ct->entries[idx]->name) == 0) ||
           (strcmp(labeltable.label[idx], "unknown") == 0) ||
           (strcmp(labeltable.label[idx], "Unknown") == 0)) {
         // make certain unknown region is completely empty, invisible
+        printf("idx=%d, make certain unknown region is completely empty, invisible\n", idx);
         rgba[0] = rgba[1] = rgba[2] = rgba[3] = 0.0f;
       }
       else {
@@ -1855,6 +2031,7 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
         rgba[3] = 1.0f;
       }
       rgba += 4;  // next color
+#endif
       /*
         printf("RGBA: %d %d %d %d %f %f %f %f\n",
         mris->ct->entries[idx]->ri,
@@ -2253,6 +2430,7 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
     if (mris->vg.valid) {
       char stmp[100];
 
+      gifti_add_to_meta(&coords->meta, "VolGeomFname", mris->vg.fname, 1);
       sprintf(stmp, "%d", mris->vg.width);
       gifti_add_to_meta(&coords->meta, "VolGeomWidth", stmp, 1);
       sprintf(stmp, "%d", mris->vg.height);

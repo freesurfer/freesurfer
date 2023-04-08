@@ -88,6 +88,8 @@
 #include "vtkFloatArray.h"
 #include "vtkPassThrough.h"
 #include "vtkDiscreteMarchingCubes.h"
+#include "vtkGlyph3D.h"
+
 #if VTK_MAJOR_VERSION > 5
 #include "vtkFlyingEdges3D.h"
 #endif
@@ -340,6 +342,24 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     glyph->Update();
     actor_out->SetMapper(glyph);
     glyph->ScalarVisibilityOn();
+
+/*
+    vtkSmartPointer<vtkGlyph3D> glyph = vtkSmartPointer<vtkGlyph3D>::New();
+    glyph->SetSourceConnection(cube->GetOutputPort());
+    glyph->SetScaleModeToDataScalingOff();
+#if VTK_MAJOR_VERSION > 5
+    glyph->SetInputData(polydata);
+#else
+    vtkSmartPointer<vtkPassThrough> pass = vtkSmartPointer<vtkPassThrough>::New();
+    pass->SetInput(polydata);
+    glyph->SetInputConnection(pass->GetOutputPort());
+#endif
+    glyph->Update();
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputConnection( glyph->GetOutputPort() );
+    actor_out->SetMapper(mapper);
+    mapper->ScalarVisibilityOn();
+    */
   }
 
   return true;

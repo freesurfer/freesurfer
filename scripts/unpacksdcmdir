@@ -879,7 +879,7 @@ set unpackerr 1
 set DoInfoDump 1
 set SkipMoCo 0
 set LogFile ""
-set UseDCM2NIIX 0;
+set UseDCM2NIIX 1; # changed to 1 on 3/27/2023
 
 if { $argc == 0 } { PrintUsage; exit 1;}
 

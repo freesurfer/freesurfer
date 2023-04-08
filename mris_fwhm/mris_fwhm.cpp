@@ -387,6 +387,7 @@ int main(int argc, char *argv[]) {
       exit(err);
     }
   }
+  
 
   printf("Computing spatial AR1 \n");
   ar1 = MRISar1(surf, InVals, mask, NULL);
@@ -501,7 +502,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--no-detrend")) DoDetrend = 0;
     else if (!strcasecmp(option, "--varnorm")) varnorm = 1;
-
     else if (!strcasecmp(option, "--prune"))    prunemask = 1;
     else if (!strcasecmp(option, "--no-prune")) prunemask = 0;
     else if (!strcasecmp(option, "--prune_thr")){
@@ -650,10 +650,9 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcasecmp(option, "--kfil") ){
       if(nargc < 5) {
-	printf(" --kfil input mask surf kern output\n");
+	printf(" --kfil input mask surf acf output\n");
 	exit(1);
       }
-      MATRIX *globkern;
       InVals = MRIread(pargv[0]);
       if(InVals->type != MRI_FLOAT) {
 	printf("Converting source to float\n");
@@ -668,13 +667,18 @@ static int parse_commandline(int argc, char **argv) {
       if(strcmp(pargv[1],"NULL")!=0) mask = MRIread(pargv[1]);
       else mask = NULL;
       surf = MRISread(pargv[2]);
-      globkern = MatrixReadTxt(pargv[3], NULL);
-      //for(n = 0; n < globkern->rows; n++)  globkern->rptr[n+1][1] = globkern->rptr[n+1][1]*globkern->rptr[n+1][1];
+      if(surf==NULL) exit(1);
+      surf->avg_vertex_dist = 0.721953;
+      MATRIX *acf = MatrixReadTxt(pargv[3], NULL);
+      if(acf==NULL) exit(1);
+      //MATRIX *globkern = MatrixACF2Kernel(acf,NULL,NULL);
+      MATRIX *globkern = acf;
+      if(globkern==NULL) exit(1);
       //MatrixPrint(stdout,globkern);
       SURFHOPLIST **shlarray=NULL;
-      mritmp = MRISsmoothKernel(surf, InVals, NULL, NULL, globkern, &shlarray, NULL);
-      printf("vtxval %g\n",MRIFseq_vox(mritmp,1031,0,0,0));
-
+      //mritmp = MRISsmoothKernel(surf, InVals, mask, NULL, globkern, &shlarray, 1, NULL);
+      mritmp = MRISsmoothKernel(surf, InVals, mask, NULL, globkern, &shlarray, NULL);
+      //printf("vtxval %g\n",MRIFseq_vox(mritmp,1031,0,0,0));
       MRIwrite(mritmp,pargv[4]);
       exit(0);
     }

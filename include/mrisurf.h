@@ -1538,7 +1538,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 #define MRIS_GIFTI_FILE                7
 #define MRIS_ANNOT_FILE                8
 #define MRIS_VOLUME_FILE               9
-
+#define MRIS_LABEL_FILE               10
 
 #define IS_QUADRANGULAR(mris)                   \
   (mris->type == MRIS_BINARY_QUADRANGLE_FILE)

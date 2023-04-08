@@ -1961,3 +1961,38 @@ std::string makeTempDir()
   if (res == nullptr) fs::fatal() << "Could not create temporary directory in " << basedir;
   return dirname;
 }
+
+
+/*!
+  \fn std::vector<unsigned int> FindMatches(std::vector<int> iv, int i)
+  \brief return all indices in iv that match i. Returns a possibly
+  empty unsigned int vector of indices. Note that this function can be
+  overloaded to use other data types
+ */
+std::vector<unsigned int> FindMatches(std::vector<int> iv, int i)
+{
+  std::vector<unsigned int> indices;
+  std::vector<int>::iterator itr = iv.begin();
+  while(itr != iv.end()){
+    if(*itr == i) indices.push_back(itr-iv.begin());
+    itr++;
+  }
+  return(indices);
+}
+/*!
+  \fn int FindFirstMatch(std::vector<int> iv, int i)
+  \brief return the first index in iv that matchs i. If nothing
+  matches, then returns -1. FindMatches() could be used but this is
+  potentially faster when only one match is expected or only the first
+  or any match is wanted.  Note that this function can be overloaded
+  to use other data types
+ */
+int FindFirstMatch(std::vector<int> iv, int i)
+{
+  std::vector<int>::iterator itr = iv.begin();
+  while(itr != iv.end()){
+    if(*itr == i) return(itr-iv.begin());
+    itr++;
+  }
+  return(-1);
+}

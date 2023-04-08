@@ -9,7 +9,7 @@ set scriptname = `basename $0`
 
 set outdir = ();
 set inputlist = ()
-set DoMC = ()
+set DoRegToBase = ()
 setenv OMP_NUM_THREADS 1
 set ForceUpdate = 0;
 set tmpdir = ();
@@ -20,6 +20,9 @@ set SavePosteriors = 0
 set SaveProbabilities = 0;
 set DoMRF = 0;
 set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
+set Resample = 1;
+set UseMedian = 1
+set DoStats = 1
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -76,87 +79,105 @@ if($?PBS_JOBID) then
 endif
 
 #========================================================
-if($DoMC) then
-  mkdir -p $outdir/mc
-
-  # set names for ltas and output volumes
-  @ nth = 0
-  set RunLtas = ()
-  set RunIscales = ()
-  set MCVolumes = ()
-  foreach input ($inputlist)
-    @ nth = $nth + 1
-    set nthstr = `printf %03d $nth`
-    set nthlta = $outdir/mc/input$nthstr.lta
-    set RunLtas=($RunLtas $nthlta)
-    set nthiscale = $outdir/mc/input$nthstr-iscale.txt
-    set RunIscales=($RunIscales $nthiscale)
-    set mcvol = $outdir/mc/mc.$nthstr.mgz
-    set MCVolumes = ($MCVolumes $mcvol)
-  end
-
-  set template = $outdir/mc/mctemplate.mgz
-  set cmd = (mri_robust_template --mov $inputlist --average 1 --template $template \
-    --satit  --inittp 1 --fixtp  --noit   --iscale  --iscaleout $RunIscales \
-    --subsample 200 --lta $RunLtas --mapmov $MCVolumes)
-  echo $cmd | tee -a $LF
-  set ud = `UpdateNeeded $template $inputlist`
-  if($ud || $ForceUpdate) then
-    fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  else
-    echo "\nMotion correction does not need to be updated\n" |& tee -a $LF
-  endif
-else
-  echo "Not performing motion correction" |& tee -a $LF
-  set MCVolumes = ($inputlist)
-endif
-
-mkdir -p $outdir/inputs
-pushd $outdir/inputs
+mkdir -p $outdir/inputs/t1w
 @ nth = 0;
-set inputlist2 = ()
-foreach invol ($MCVolumes)
+foreach invol ($inputlist)
   @ nth = $nth + 1
   set nthstr = `printf %03d $nth`
   # filename cannot have a dot in it
-  set volname = input_$nthstr.mgz 
-  set ext = `fname2ext $invol`
-  if($ext != mgz) then
-    set ud = `UpdateNeeded $volname $invol`
-    if($ud || $ForceUpdate) then
-      set cmd = (mri_convert $invol $volname)
-      echo $cmd | tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    else
-      echo "Conversion to mgz does not need to be updated"
-    endif
-  else
-    if($DoMC) then
-      set mcvol = ../mc/mc.$nthstr.mgz
-      set cmd = (ln -sf $mcvol $volname)  
-    else
-      set cmd = (ln -sf $invol $volname)  
-    endif
-    echo $cmd | tee -a $LF    
-    $cmd |& tee -a $LF    
+  set volname = $outdir/inputs/t1w/input_$nthstr.mgz 
+  set ud = `UpdateNeeded $volname $invol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $invol $volname)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
     if($status) goto error_exit;
+  else
+    echo "Local copy does not need to be updated" | tee -a $LF
   endif
-  set inputlist2 = ($inputlist2 -t $outdir/inputs/$volname)
 end
-popd
+
+set regdir = $outdir/reg/t1w
+if($DoRegToBase) then
+  mkdir -p $regdir
+  # set names for ltas and output volumes
+  @ nth = 0
+  set TPLtas = ()
+  set TPIscales = ()
+  set RegVolumes = ()
+  set inputlist2 = ()
+  foreach input ($inputlist)
+    @ nth = $nth + 1
+    set nthstr = `printf %03d $nth`
+    set volname = $outdir/inputs/t1w/input_$nthstr.mgz 
+    set inputlist2 = ($inputlist2 $volname)
+    set nthlta = $regdir/input$nthstr.lta
+    set TPLtas=($TPLtas $nthlta)
+    set nthiscale = $regdir/input$nthstr-iscale.txt
+    set TPIscales=($TPIscales $nthiscale)
+    set regvol = $regdir/reg.$nthstr.mgz
+    set RegVolumes = ($RegVolumes $regvol)
+  end
+
+  set template = $regdir/mctemplate.mgz
+  set ud = `UpdateNeeded $template $inputlist2`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_robust_template --mov $inputlist2 --average $UseMedian --template $template \
+      --satit --iscale  --iscaleout $TPIscales --lta $TPLtas)
+    if(1 || $Resample) set cmd = ($cmd --mapmov $RegVolumes)
+    # --iscale allow also intensity scaling (default off). why not?
+    # --sat 4.6 vs --satit. --sat specifies oulier sensitivity vs autodetect. which?
+    # --inittp 1 --fixtp  - set tp 1 to target, defeats the purpose
+    # --noit - do not iterate, just create first template; not good
+    # --subsample 200 subsample if dim > # on all axes (default no subs.). ?????
+    # --average 1 : 0=mean, 1=median
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "\nRegistration does not need to be updated\n" |& tee -a $LF
+  endif
+endif
 
 echo "\n\n" | tee -a $LF
 
-set cmd = (run_samseg_long $inputlist2 -o $outdir)
+set cmd = (run_samseg_long -o $outdir)
+if($Resample) then
+  foreach v ($RegVolumes)
+    set cmd = ($cmd -t $v )
+  end
+else
+  foreach v ($inputlist2)
+    set cmd = ($cmd -t $v )
+  end
+  set cmd = ($cmd --tp-to-base-transform)
+  foreach lta ($TPLtas)
+    set cmd = ($cmd  $lta)
+  end
+endif
 if($SaveWarp) set cmd = ($cmd --save-warp)
 if($SavePosteriors) set cmd = ($cmd --save-posteriors)
-
 echo $cmd | tee -a $LF
-
 fs_time $cmd |& tee -a $LF
 if($status) goto error_exit;
+
+@ nth = 0
+while($nth < $#inputlist)
+  @ nth = $nth + 1
+  set nthstr = `printf %03d $nth`
+  set tpdir = $outdir/tp$nthstr
+  set seg = $tpdir/seg.mgz
+  set stats = $tpdir/seg.stats
+  set ud = `UpdateNeeded $stats $seg`
+  if(($ud || $ForceUpdate) && $DoStats) then
+    # Compute segstats
+    set cmd = (mri_segstats --ctab-default --seg $seg --sum $stats)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+end
+
 
 #========================================================
 
@@ -212,13 +233,25 @@ while( $#argv != 0 )
       set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
+    case "--reg-to-base":
     case "--mc":
-      set DoMC = 1;
+      set DoRegToBase = 1;
+      # Might resample, might not
       breaksw
 
+    case "--no-reg-to-base":
     case "--no-mc":
-    case "--nomc":
-      set DoMC = 0;
+      set DoRegToBase = 0;
+      set Resample = 0;
+      breaksw
+
+    case "--resample":
+      set Resample = 1;
+      set DoRegToBase = 1;
+      breaksw
+    case "--no-resample":
+      set Resample = 0;
+      # Might reg to base, might not
       breaksw
 
     case "--threads":
@@ -302,7 +335,7 @@ if($#inputlist < 2) then
   echo "ERROR: must spec at least two inputs"
   exit 1;
 endif
-if($#DoMC == 0) then
+if($#DoRegToBase == 0) then
   echo "ERROR: must spec either --mc or --no-mc"
   exit 1;
 endif

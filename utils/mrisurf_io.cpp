@@ -1091,18 +1091,46 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname, bool dotkrRASCon
                      j));
 
       // convert it to mm, i.e. change the vertex position
-      MRISsetXYZ(mris,k,
-        rx,
-        ry,
-        rz);
+      MRISsetXYZ(mris,k, rx, ry, rz);
       if (k == Gdiag_no && Gdiag & DIAG_SHOW)
-        fprintf(stdout,
-                "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
-                k,
-                mris->vertices[k].x,
-                mris->vertices[k].y,
-                mris->vertices[k].z);
+        fprintf(stdout,"vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
+                k,mris->vertices[k].x,mris->vertices[k].y,mris->vertices[k].z);
     }
+  }
+  else if(type == MRIS_LABEL_FILE) {
+    printf("Reading label %s as a patch\n",fname);
+    LABEL *lab = LabelRead(NULL,fname);
+    if(!lab) exit(1);
+    for(int k=0; k < mris->nvertices; k++) mris->vertices[k].ripflag = 1;
+    for(int k=0; k < lab->n_points; k++){
+      int vno = lab->lv[k].vno;
+      if(vno < 0) {
+	printf("ERROR: MRISreadPatch(): vno=%d < 0\n",vno);
+	exit(1);
+      }
+      if(vno >= mris->nvertices) {
+	printf("ERROR: MRISreadPatch(): vno=%d > nvertices=%d\n",vno,mris->nvertices);
+	exit(1);
+      }
+      mris->vertices[vno].ripflag = 0;
+    }
+    LabelFree(&lab);
+  }
+  else if(type == MRIS_VOLUME_FILE) {
+    double thresh = 0.5; // it would be nice to have more flexibility
+    printf("Reading volume %s as a patch, thresh=%g\n",fname,thresh);
+    MRI *mri = MRIread(fname);
+    if(!mri) exit(1);
+    if(mri->width != mris->nvertices) {
+      printf("ERROR: MRISreadPatch(): dimension mismatch, width=%d, nvertices=%d\n",mri->width,mris->nvertices);
+      exit(1);
+    }
+    for(int k=0; k < mris->nvertices; k++){
+      double v = MRIgetVoxVal(mri,k,0,0,0);
+      if(v>thresh) mris->vertices[k].ripflag = 0;
+      else         mris->vertices[k].ripflag = 1;
+    }
+    MRIfree(&mri);
   }
   /////////////////////////////////////////////////////////////////////////
   // here file was binary
@@ -1217,14 +1245,13 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname, bool dotkrRASCon
                   mris->vertices[k].z);
       }
     }
+  } // end binary file
+
+  if(fp) fclose(fp);
+
+  for (k = 0; k < mris->nvertices; k++){
+    if(mris->vertices_topology[k].num == 0 || mris->vertices_topology[k].vnum == 0) mris->vertices[k].ripflag = 1;
   }
-  if (fp) {
-    fclose(fp);
-  }
-  for (k = 0; k < mris->nvertices; k++)
-    if (mris->vertices_topology[k].num == 0 || mris->vertices_topology[k].vnum == 0) {
-      mris->vertices[k].ripflag = 1;
-    }
 
   // remove ripflag set vertices
   MRISremoveRipped(mris);
@@ -2569,6 +2596,9 @@ int MRISfileNameType(const char *fname)
   else if (!strcmp(ext, "ANNOT")) {
     type = MRIS_ANNOT_FILE;
   }
+  else if (!strcmp(ext, "LABEL")) {
+    type = MRIS_LABEL_FILE;
+  }
   else {
     type = MRIS_BINARY_QUADRANGLE_FILE;
   }
@@ -3747,12 +3777,20 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
               }
               break;
             case TAG_CMDLINE:
-              if (mris->ncmds > MAX_CMDS)
-                ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mris->ncmds);
-              mris->cmdlines[mris->ncmds] = (char *)calloc(len + 1, sizeof(char));
-              fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp);
-              mris->cmdlines[mris->ncmds][len] = 0;
-              mris->ncmds++;
+	      {
+                const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_READ");
+                if (noextra == NULL)
+                {
+                  //printf("[INFO]: read TRIANGULARSURFACE EXTRA - cmds\n");
+
+                  if (mris->ncmds > MAX_CMDS)
+                    ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mris->ncmds);
+                  mris->cmdlines[mris->ncmds] = (char *)calloc(len + 1, sizeof(char));
+                  fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp);
+                  mris->cmdlines[mris->ncmds][len] = 0;
+                  mris->ncmds++;
+	        }
+	      }
               break;
             default:
               TAGskip(fp, tag, (long long)len);
@@ -4356,6 +4394,7 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
     if (!mris->vg.valid)
     {
       printf("ERROR: Surface %s doesn't have valid volume geometry!\n", fname);
+      MRISfree(&mris);
       return NULL;
     }
 
@@ -5521,6 +5560,10 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (!user)  user = getenv("LOGNAME");
   if (!user)  user = "UNKNOWN";
 
+  const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_WRITE");
+  if (noextra != NULL)
+    printf("[INFO]: NO TRIANGULARSURFACE EXTRA - created by line & cmds\n");
+
   auto cdt = currentDateTime();
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
@@ -5529,7 +5572,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwriteTriangularSurface(%s): can't create file\n", fname));
   
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
-  fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
+  if (noextra == NULL)
+    fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
   fwriteInt(mris->nvertices, fp);
   fwriteInt(mris->nfaces, fp); /* # of triangles */
 
@@ -5559,6 +5603,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
     fwriteFloat(mris->group_avg_surface_area, fp);
     TAGwriteEnd(fp, here);
   }
+
+  if (noextra == NULL)
   {
     for (int i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
   }
@@ -5693,8 +5739,14 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "mrisReadTriangleFile(%s): could not open file", fname));
 
   fread3(&magic, fp);
-  fgets(line, 200, fp);
-  fscanf(fp, "\n");
+
+  const char *noextra = getenv("NOTRIANGULARSURFACE_EXTRA_READ");
+  if (noextra == NULL)
+  {
+    //printf("[INFO]: read TRIANGULARSURFACE EXTRA - created by line\n");
+    fgets(line, 200, fp);
+    fscanf(fp, "\n");
+  }
   /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
   nvertices = freadInt(fp);
   nfaces    = freadInt(fp);

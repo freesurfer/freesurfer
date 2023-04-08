@@ -34,8 +34,6 @@
 #include "proto.h"
 #include "utils.h"
 
-#define CTAB_VERSION_TO_WRITE 2
-
 /* Different binary i/o versions. */
 static int CTABwriteIntoBinaryV1(COLOR_TABLE *ct, FILE *fp);
 static int CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp);
@@ -56,6 +54,19 @@ Reads in 7th column as tissue type
 
 COLOR_TABLE *CTABreadASCII(const char *fname) { return CTABreadASCII2(fname, 1); }
 
+/* Discussions of Label File, LUT, and Annotation:
+ *   https://surfer.nmr.mgh.harvard.edu/fswiki/LabelsClutsAnnotationFiles
+ *
+ * LUT is read into COLOR_TABLE:
+ *   a. first colum in LUT becomes COLOR_TABLE index 
+ *   b. number of COLOR_TABLE entries to create is max(1st LUT column) + 1
+ *   c. COLOR_TABLE index is 0 .. n
+ *   d. w/ or w/o '0  Unknown 0    0      0      0' in the first line, index 0 will be there
+ *      the difference: w/  the line, CTABfindAnnotation() returns 0  for annotation=0;
+ *                      w/o the line, CTABfindAnnotation() returns -1 for annotation=0
+ *   e. skipped numbers in LUT will leave holes (empty entries) in COLOR_TABLE,
+ *      their corresponding index will have unknown annotations
+ */
 COLOR_TABLE *CTABreadASCII2(const char *fname, int checkDuplicateNames)
 {
   COLOR_TABLE *ct;
@@ -743,6 +754,9 @@ COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp)
   /* Read the number of entries to read. */
   num_entries_to_read = freadInt(fp);
 
+  if (Gdiag & DIAG_SHOW)
+    printf("[DEBUG] CTABreadFromBinaryV2(): ct->nentries=%d, num_entries_to_read=%d\n", ct->nentries, num_entries_to_read);
+ 
   /* For each entry, read in the info. */
   for (i = 0; i < num_entries_to_read; i++) {
     /* Read a structure number first. */
@@ -817,6 +831,15 @@ int CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp)
   if (NULL == ct) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABwriteIntoBinaryV2: ct was NULL"));
   if (NULL == fp) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABwriteIntoBinaryV2: fp was NULL"));
 
+  /* CTAB binary format:
+   *   negative version number (-2)
+   *   number of CTAB entries include empty (null) ones (ct->nentries)
+   *   length of file name string follows (strlen(ct->fname) + 1)
+   *   file name (ct->fname)
+   *   number of non-null entries
+   *   (COLOR_TABLE_ENTRY) x (number of non-null entries)
+   */
+
   /* Write our negative version number. */
   fwriteInt(-2, fp);
 
@@ -836,6 +859,9 @@ int CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp)
   for (i = 0; i < ct->nentries; i++)
     if (NULL != ct->entries[i]) num_entries_to_write++;
   fwriteInt(num_entries_to_write, fp);
+
+  if (Gdiag & DIAG_SHOW)
+    printf("[DEBUG] CTABwriteIntoBinaryV2(): ct->entries=%d, to_write=%d\n", ct->nentries, num_entries_to_write);
 
   /* Now for each bin, if it's not null, write it to the stream. */
   for (structure = 0; structure < ct->nentries; structure++) {

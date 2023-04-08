@@ -62,7 +62,7 @@ typedef unsigned short int BOOL;
 char *SDCMStatusFile = 0;
 char *SDCMListFile = 0;
 int  UseDICOMRead2 = 1; // use new dicom reader by default
-int  UseDCM2NIIX = 0;
+int  UseDCM2NIIX = 1; // changed to 1 on 4/06/2023
 /* These variables allow the user to change the first tag checked to
    get the slice thickness.  This is needed with siemens mag res
    angiogram (MRAs) */

@@ -18,6 +18,7 @@ set threads = 1
 set LF = ();
 set InitLTAfromTal = 0
 set AnnotSet = 0
+set SetVolGeom = 1
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -96,6 +97,20 @@ foreach hemi ($hemilist)
   echo "#CMD# $cmd"|& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+
+  if($SetVolGeom) then
+    # This makes sure that all spheres have the same volume geometry
+    # and are centered at 0. This is unimportant for the application
+    # of the spherical reg, but it can be helpful when loading two
+    # spheres in freeview for the purposes of evaluating the
+    # registration.
+    set fsaorig = $FREESURFER/subjets/fsaverage/mri/orig.mgz
+    set cmd = (mris_convert --center --vol-geom  $fsaorig $outreg $outreg)
+    echo "#CMD# $cmd"|& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
 end
 
 # Compute how long it took
@@ -191,6 +206,13 @@ while( $#argv != 0 )
     case "--no-annot":
       set annot = ();
       set AnnotSet = 1
+      breaksw
+
+    case "--set-vol-geom":
+      set SetVolGeom = 1
+      breaksw
+    case "--no-set-vol-geom":
+      set SetVolGeom = 0
       breaksw
 
     case "--threads":
@@ -331,6 +353,7 @@ usage_exit:
   echo "  --init-from-tal : use talaiach.xfm.lta to init spherical reg"
   echo "  --o outsurfname : default is target.sphere.reg (do not include hemi)"
   echo "      If target is fsaverage, then default is sphere.reg"
+  echo "  --no-set-vol-geom : do not set volume geometry and center the sphere"
   echo "  --threads threads : run in parallel"
   echo ""
 

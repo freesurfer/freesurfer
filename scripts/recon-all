@@ -395,6 +395,7 @@ set PWD = pwd;
 if ( -e /bin/pwd ) set PWD = /bin/pwd
 
 set argv0 = ($argv); # make a copy
+
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -help | wc -l`
 if($n != 0) then
@@ -408,6 +409,12 @@ if($n != 0) then
 endif
 
 source $FREESURFER_HOME/sources.csh
+
+if(-e $SUBJECTS_DIR/global-expert-options.txt) then
+  set xopts = `fsr-getxopts recon-all $SUBJECTS_DIR/global-expert-options.txt`;
+  set argv = ($argv $xopts);
+  echo "Adding $xopts to recon-all command line"
+endif
 
 # Forward the command line arguments to recon-config, which
 # will parse out any recognized flags and update a recon-specific
@@ -1542,10 +1549,10 @@ if($SynthStrip) then
   endif
 endif
 
-if($UseSynthSeg) then
+set synthseg = $subjdir/mri/synthseg.rca.mgz
+if($UseSynthSeg || $CblumFromSynthSeg) then
   # Note: no m3z will be produced
   set origvol  = $subjdir/mri/orig.mgz
-  set synthseg = $subjdir/mri/synthseg.rca.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthseg $XOptsFile`;
@@ -1554,24 +1561,28 @@ if($UseSynthSeg) then
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-      pushd $subjdir/mri 
-      rm -f aseg.auto_noCCseg.mgz
-      ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
-      popd
+      if(! $CblumFromSynthSeg) then
+        pushd $subjdir/mri 
+        rm -f aseg.auto_noCCseg.mgz
+        ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
+        popd
+      endif
     endif
   endif
-  set xopts = `fsr-getxopts seg2recon $XOptsFile`;
-  set cmd = (seg2recon --s $subjid --seg $synthseg --i $origvol --threads $OMP_NUM_THREADS)
-  if(-e $synthstrip) set cmd =($cmd --m $synthstrip)
-  set cmd = ($cmd $xopts)
-  if($#XOptsFile) set cmd = ($cmd --expert $XOptsFile)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+  if(! $CblumFromSynthSeg) then
+    set xopts = `fsr-getxopts seg2recon $XOptsFile`;
+    set cmd = (seg2recon --s $subjid --seg $synthseg --i $origvol --threads $OMP_NUM_THREADS)
+    if(-e $synthstrip) set cmd =($cmd --m $synthstrip)
+    set cmd = ($cmd $xopts)
+    if($#XOptsFile) set cmd = ($cmd --expert $XOptsFile)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    # seg2recon will create a brainmask.mgz. Below, synthstrip will re-create it,
+    # but it should be identical.
   endif
-  # seg2recon will create a brainmask.mgz. Below, synthstrip will re-create it,
-  # but it should be identical.
 endif
 
 if($UseSamseg) then
@@ -2668,6 +2679,23 @@ if($DoSkullLTA) then
   echo $cmd > $touchdir/skull_2.lta.touch
 endif
 
+if($FixEntoWM) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "\n#@# EntoWM Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  set nu = $mdir/nu.mgz
+  set entowm = $mdir/entowm.mgz  
+  set ud = `UpdateNeeded $entowm $nu`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_entowm_seg $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_entowm_seg --i $nu --o $entowm --threads $OMP_NUM_THREADS $xopts)
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "EntoWM Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
 #--------------                      --------------#
 #-------------- SubCort Segmentation --------------#
 ##-------------        -calabel      --------------#
@@ -2778,6 +2806,7 @@ if($DoCALabel  && ! $UseSynthSeg) then
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
   if($NoWMSA) set cmd = ($cmd -nowmsa)
+  if($CblumFromSynthSeg) set cmd = ($cmd -cblum-from-seg $synthseg)
   set asegbasename=(aseg.auto_noCCseg)
   if($longitudinal) then
     # Initizlize long TP using ...
@@ -2796,10 +2825,18 @@ if($DoCALabel  && ! $UseSynthSeg) then
   set cmd = ($cmd ${GCADIR}/$GCA)
   set cmd = ($cmd ${asegbasename}.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    # Create/delete a file to indicate whether Cblum is from SynthSeg
+    set cblumfile = $subjdir/scripts/CblumFromSynthSeg.txt
+    if($CblumFromSynthSeg) then
+      touch $cblumfile
+    else
+      rm -f $cblumfile
+    endif
+  endif
   if($status) goto error_exit;
 endif
-
 
 Restart:
 
@@ -2940,13 +2977,17 @@ if($DoMaskBFS) then
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-  else
-    set bfmanedit = ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz
+  else 
+    # Manedit does NOT exist in current folder
+    # With the change below, both cross and base will have manedits. If no edits have been
+    # made, then no change will be made to long bfs
+    # If base manedit exists, copy edits to this. If not and cross manedit exists, use those
+    set bfmanedit = ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz # cross
     if($longitudinal && $LongTransferBaseBFS) then
-      set bfmanedit = ${SUBJECTS_DIR}/${longbaseid}/mri/brain.finalsurfs.manedit.mgz
+      set bfmanedit = ${SUBJECTS_DIR}/${longbaseid}/mri/brain.finalsurfs.manedit.mgz # base
     endif
-    if ( $longitudinal && -e $bfmanedit && ! $LongSamseg) then
-      # transfer edits from cross
+    if($longitudinal && -e $bfmanedit && ! $LongSamseg) then
+      # Transfer any edits from cross or base to long. If no edits, then this has no effect
       set cmd = (mri_mask -transfer 255)
       set cmd = ($cmd -keep_mask_deletion_edits)
       if(! $LongTransferBaseBFS) set cmd = ($cmd -xform $tpNtobase_regfile)
@@ -2957,6 +2998,24 @@ if($DoMaskBFS) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+    if($FixEntoWM) then
+      # There is a question as to whether to do this in long because
+      # ento was probably fixed in cross; this would add to that
+      # fix. Probably not a big deal.
+      # Level is hardcoded at 2. To change to 3 put 
+      # "bfsfixentowm -sa-fix-ento-wm entowm.mgz 3 255 255" in the xopts
+      set xopts = `fsr-getxopts bfsfixentowm $XOptsFile $GlobXOptsFile`;
+      set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 2 255 255 \
+        $xopts brain.finalsurfs.mgz brain.finalsurfs.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    # Copy brain.finalsurfs to manedit (applies to cross, base, and long)
+    set cmd = (cp brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz)
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
   endif
 endif
 
@@ -3056,8 +3115,8 @@ if($DoSegmentation) then
     set xopts = `fsr-getxopts mri_edit_wm_with_aseg $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_edit_wm_with_aseg)
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
-    set cmd = ($cmd $xopts wm.seg.mgz brain.mgz \
-        aseg.presurf.mgz wm.asegedit.mgz)
+    if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 250 250)
+    set cmd = ($cmd $xopts wm.seg.mgz brain.mgz aseg.presurf.mgz wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3081,7 +3140,13 @@ if($DoSegmentation) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-
+  if($FixEntoWM) then
+    echo "Fixing entowm in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
+    set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 3 250 250 wm.mgz wm.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
   if($longitudinal && $AllowLongWMtransfers && ! $LongSamseg) then
     if ($UseLongbaseWMedits) then
       # transfer wm edits (voxels=255) from longbase wm.mgz to long tpN wm.mgz
@@ -3626,6 +3691,7 @@ if($DoWhitePreAparc) then
     set cmd = (mris_place_surface --adgws-in $ads --wm $wm --threads $OMP_NUM_THREADS\
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
+    if($FixEntoWM) set cmd = ($cmd --restore-255) 
     #if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1) # errors near Put/Insula
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
@@ -3659,6 +3725,10 @@ if($DoCortexLabel) then
     echo "#@# CortexLabel $hemi `date`" |& tee -a $LF |& tee -a $CF
     set cortex = ../label/$hemi.cortex.label # Must have a "/" or LabelRead() fails
     set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 0 $cortex)
+    # Label usually will not cover all of entowm fix. Adding entowm.mgz below will
+    # help, but not much, and could have unpredictable results, so not using it.
+    # The real fix is to fix the aseg.
+    if(0 && $FixEntoWM) set cmd = ($cmd entowm.mgz);
     set xopts = `fsr-getxopts CortexLabel $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
@@ -3677,6 +3747,7 @@ if($DoCortexLabel) then
     echo "#@# CortexLabel+HipAmyg $hemi `date`" |& tee -a $LF |& tee -a $CF
     set cortexha = ../label/$hemi.cortex+hipamyg.label # Must have a "/" or LabelRead() fails below
     set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 1 $cortexha)
+    if(0 && $FixEntoWM) set cmd = ($cmd entowm.mgz);
     set xopts = `fsr-getxopts CortexLabelHA $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
@@ -4163,6 +4234,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
+    if($FixEntoWM) set cmd = ($cmd --restore-255) 
     if($UseHighMyelin) then
       set hml = $ldir/$hemi.high-myelin.label
       set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
@@ -4224,6 +4296,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+    if($FixEntoWM) set cmd = ($cmd --restore-255) 
     if($longitudinal) then
       set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
       set cmd = ($cmd --blend-surf .25 $white)
@@ -5157,6 +5230,7 @@ if ($DoBaLabels) then
           echo "-------------------------------------------------------------------------" |& tee -a $LF |& tee -a $CF
           echo "ERROR: Label ${balabel} does not exist in SUBJECTS_DIR fsaverage!"         |& tee -a $LF |& tee -a $CF
           echo "       The fsaverage link probably points to an older freesurfer version"  |& tee -a $LF |& tee -a $CF
+          echo " $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label" |& tee -a $LF |& tee -a $CF
           echo "-------------------------------------------------------------------------" |& tee -a $LF |& tee -a $CF
           goto error_exit;
         endif
@@ -7022,6 +7096,7 @@ while( $#argv != 0 )
       set DoSkullLTA       = 0;
       set DoSegStats       = 0;
       set DoCANormalize    = 1;
+      set DoGCAReg         = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
       set DoNormalization2 = 1;
@@ -8414,7 +8489,12 @@ check_params:
 
   if($DoParallel == 1 && $#hemilist == 1) then
     echo "ERROR: cannot use -parallel with a single hemi"
-    exit(1);
+    exit 1;
+  endif
+
+  if($UseSynthSeg && $CblumFromSynthSeg) then
+    echo "ERROR: cannot -synthseg and -cblum-from-synthseg"
+    exit 1
   endif
 
 #-------------------------------------------------#

@@ -167,6 +167,7 @@ install_configured(
   mri_add_new_tp
   mri_align_long.csh
   mri_create_t2combined
+  mri_entowm_seg
   mri_glmfit-sim
   mri_mergelabels
   mri_motion_correct

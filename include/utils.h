@@ -23,6 +23,7 @@
 
 
 #include <string>
+#include <vector>
 #include "base.h"
 
 #define MATLAB_FILE   0
@@ -145,5 +146,6 @@ int PrintMemUsage(FILE *fp);
 int PrintRUsage(int who, const char *pre, FILE *fp);
 int WriteRUsage(int who, const char *pre, char *fname);
 double *DListStats(double *dlist, int nlist, double *stats);
-
+std::vector<unsigned int> FindMatches(std::vector<int> iv, int i);
+int FindFirstMatch(std::vector<int> iv, int i);
 #endif

@@ -27,6 +27,7 @@ set LF = ()
 set cleanup = 1
 set ForceUpdate = 0; 
 set thresh = 1.2;
+set DoBiasFieldCor = 1
 # Extracerebral segs (samseg and charm)
 set xcersegs = (165 258 259 85 501 502 506 507 508 509 511 512 514 404 516 517 530)
 
@@ -148,17 +149,24 @@ endif
 # correction. mri_fit_bias takes the log of the input, then fits a GLM
 # with DCT as regressors.
 set nu = $mdir/nu.mgz
-set biasfield = $mdir/biasfield.mgz
-set ud = `UpdateNeeded $nu $segvol $input $headmask`
-if($ud || $ForceUpdate) then
-  set xopts = `fsr-getxopts mri_fit_bias $XOptsFiles`
-  set cmd = (mri_fit_bias --i $input --seg $segvol --mask $headmask \
-    --bias $biasfield --threads $threads --o $nu --thresh $thresh $xopts)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
+if($DoBiasFieldCor) then
+  set biasfield = $mdir/biasfield.mgz
+  set ud = `UpdateNeeded $nu $segvol $input $headmask`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_fit_bias $XOptsFiles`
+    set cmd = (mri_fit_bias --i $input --seg $segvol --mask $headmask \
+      --bias $biasfield --threads $threads --o $nu --thresh $thresh $xopts)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "$nu does not need updating" | tee -a $LF
+  endif
 else
-  echo "$nu does not need updating" | tee -a $LF
+  echo "Not applying bias field correction" | tee -a $LF
+  pushd $mdir
+  ln -s orig.mgz nu.mgz
+  popd
 endif
 
 # Run tal registration. This could be done in recon-all, but recon-all
@@ -383,6 +391,15 @@ while( $#argv != 0 )
       set ndilate = $argv[1]; shift;
       breaksw
 
+    case "--no-bias-field-cor":
+    case "--no-bfc":
+      set DoBiasFieldCor = 0
+      breaksw
+    case "--bias-field-cor":
+    case "--bfc":
+      set DoBiasFieldCor = 1
+      breaksw
+
     case "--m":
       if($#argv < 1) goto arg1err;
       set mask = $argv[1]; shift;
@@ -547,6 +564,7 @@ usage_exit:
   echo "  --thresh thresh : threshold for bias field estimation"
   echo "  --expert xoptsfile <--expert xoptsfile>"
   echo "  --rca : run recon-all on the output (good for testing)"
+  echo "  --no-bias-field-cor (--no-bfc) : do not compute or apply bias field correction" 
   echo ""
 
   if(! $PrintHelp) exit 1;
