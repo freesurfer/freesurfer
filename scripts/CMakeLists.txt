@@ -301,6 +301,7 @@ install_pyscript(
   fspalm
   rca-config
   rca-config2csh
+  slicedelay
 )
 
 install(FILES mri_nu_correct.mni.help.xml DESTINATION docs/xml)
