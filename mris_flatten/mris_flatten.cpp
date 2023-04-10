@@ -1030,6 +1030,12 @@ print_help(void)
   fprintf(stderr,
           " -dilate <# of dilations>\n\t"
           "specify the number of times to dilate the ripped edges to ensure a clean cut\n") ;
+  fprintf(stderr,
+          " -norand\n\t"
+          "set the random seed to 0 so that flattening is repeatable\n") ;
+  fprintf(stderr,
+          " -seed <random seed>\n\t"
+          "set the random seed to a specific value so that flattening is repeatable\n") ;
   printf(" -copy-coords surf : copy xyz coords from surface before flattening\n");
   printf("    This allows creating cuts on, eg, white surface, but flattening the inflated\n");
   printf("    eg, mris_flatten -copy-coords lh.inflated -dilate 1 lh.white.cut lh.inflated.cut.flatten\n");
