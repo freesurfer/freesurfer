@@ -613,7 +613,6 @@ int DoFill=0;
 int DoFillConserve=0;
 int FillUpsample=2;
 MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
-MRI *MRIvol2volGCAM0(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
 int DoMultiply=0;
 double MultiplyVal=0;
 int DownSample[3] = {0,0,0}; // downsample source
@@ -1516,7 +1515,7 @@ static int parse_commandline(int argc, char **argv) {
       printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
       exit(0);
     }
-    else if(istringnmatch(option, "--gcam",0) || istringnmatch(option, "--gcam0",0)) {
+    else if (istringnmatch(option, "--gcam",0)) {
       LTA *srclta, *dstlta;
       if(nargc < 7){
 	printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
@@ -1543,10 +1542,7 @@ static int parse_commandline(int argc, char **argv) {
       } else vsm = NULL;
       sscanf(pargv[5],"%d",&interpcode);
       targvolfile = pargv[6];
-      if(getenv("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT") != NULL || istringnmatch(option, "--gcam0",0))
-	out = MRIvol2volGCAM0(mov, srclta, gcam, dstlta, vsm, interpcode, NULL);
-      else
-	out = MRIvol2volGCAM(mov, srclta, gcam, dstlta, vsm, interpcode, NULL);
+      out = MRIvol2volGCAM(mov, srclta, gcam, dstlta, vsm, interpcode, NULL);
       if(out == NULL) exit(1);
       printf("Writing to %s\n",targvolfile);
       err = MRIwrite(out,targvolfile);
@@ -1666,10 +1662,9 @@ printf("  --kernel            : save the trilinear interpolation kernel instead\
 printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header\n");
 printf("\n");
 printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
-printf("     srclta, gcam, or vsm can be set to 0 to indicate identity (not regheader)\n");
+printf("     srclta, gcam, or vsm can be set to 0 to indicate identity\n");
 printf("     direction is automatically determined from srclta and dstlta\n");
 printf("     interp 0=nearest, 1=trilin, 5=cubicbspline\n");
-printf("     DestVol -> dstLTA -> CVSVol -> gcam -> AnatVol -> srcLTA -> B0UnwarpedVol -> VSM -> MovVol (b0Warped)\n");
 printf("\n");
 printf("  --spm-warp mov movlta warp interp output\n");
 printf("     mov is the input to be mapped \n");
@@ -2309,248 +2304,8 @@ MATRIX *LoadRfsl(char *fname) {
   \brief Converts one volume into another using as many as four transforms: VSM, src linear, gcam/m3z, dst linear.
   Any may be NULL except dstlta in which case they are assumed to be the identity. This function allows for
   transforming from the functional space to a sub FoV of CVS space including B0 distortion correction.
-  This is kind of confusing because the transforms all go backwards
-  DestVol --> dstLTA --> CVSVol --> gcam --> AnatVol --> srcLTA --> B0UnwarpedVol --> VSM --> MovVol (b0Warped)
-  DestVol --> dstLTA --> srcLTA --> B0UnwarpedVol --> VSM --> MovVol (b0Warped)
-  DestVol --> dstLTA --> B0UnwarpedVol --> VSM --> MovVol (b0Warped)
-  Three more possibilites with removing VSM
  */
 MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst)
-{
-  int c,r,s,f,out_of_gcam,cvsm,rvsm,iss;
-  //VOL_GEOM *vgdst_src,*vgdst_dst;
-  MATRIX *crsDst, *crsGCAM=NULL, *crsAnat=NULL, *crsSrc=NULL, *Vdst, *Vsrc;
-  double val,v;
-  MRI_BSPLINE * bspline = NULL;
-  float drvsm, *valvect;
-  Timer timer;
-
-  printf("MRIvol2volGCAM(): ---------+++++++++++++++++++----------------------\n");
-
-  if(!vsm) printf("MRIvol2volGCAM(): VSM not used\n");
-  if(!gcam) printf("MRIvol2volGCAM(): GCAM not used\n");
-  if(!srclta) printf("MRIvol2volGCAM(): Source LTA not used\n");
-  printf("MRIvol2volGCAM(): interpolation type is %d %s\n",sample_type,MRIinterpString(sample_type));
-
-  if(vsm){
-    if(MRIdimMismatch(src,vsm,0)){
-      printf("ERROR: MRIvol2volGCAM(): src-vsm dim mismatch\n");
-      return(NULL);
-    }
-  }
-
-  // Make sure that the source lta points in the right direction
-  LTA *srcltacopy = srclta;
-  if(srclta){
-    srcltacopy = LTAcopy(srclta,NULL); // don't modify the passed lta
-    if(LTAmriIsSource(srcltacopy, src)){
-      printf("MRIvol2volGCAM(): Inverting Source LTA\n");
-      LTAinvert(srclta, srcltacopy); // have to actually invert it for below
-    }
-    else if(!LTAmriIsTarget(srcltacopy, src)){
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Source LTA matches the mov vol geom\n");
-      printf("mov vol geom ======================\n");
-      vg_print(src);
-      printf("Source LTA ======================\n");
-      LTAprint(stdout, srcltacopy);
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Source LTA matches the mov vol geom\n");
-      return(NULL);
-    }
-    if(gcam && !vg_isEqual(&srcltacopy->xforms[0].src,&(gcam->image))){
-      // make sure that the gcam->image matches the src of the Source LTA
-      printf("ERROR: MRIvol2volGCAM(): gcam image vol geom does not match Source LTA src vol geom\n");
-      printf("gcam image vol geom ======================\n");
-      vg_print(&gcam->image);
-      printf("Source LTA ======================\n");
-      LTAprint(stdout, srcltacopy);
-      printf("ERROR: MRIvol2volGCAM(): gcam image vol geom does not match Source LTA src vol geom\n");
-      return(NULL);
-    }
-    // Finally, make sure that it is vox2vox
-    if(srcltacopy->type != LINEAR_VOX_TO_VOX){
-      printf("MRIvol2volGCAM(): Chaning Source LTA type to vox2vox\n");
-      LTAchangeType(srcltacopy, LINEAR_VOX_TO_VOX) ;
-    }
-    Vsrc = MatrixCopy(srcltacopy->xforms[0].m_L,NULL);
-  }
-  else Vsrc = MatrixIdentity(4,NULL);
-
-  // Make sure the dest lta matches geom and points in the right direction
-  int InvertDstLTA=0;
-  if(gcam){
-    // given CRS in the "atlas" space, the GCAM returns the CRS in the image space
-    // gcam->{image,atlas}
-    //VOL_GEOM   image;   /* destination/target/output of the transform  */
-    //VOL_GEOM   atlas ;  /* source/move/input of the transform       */
-    if(vg_isEqual(&dstlta->xforms[0].dst,&(gcam->atlas))) InvertDstLTA=0;
-    else if(vg_isEqual(&dstlta->xforms[0].src,&(gcam->atlas))) InvertDstLTA=1;
-    else {
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the atlas vol geom in the GCAM\n");
-      printf("gcam atlas vol geom ======================\n");
-      vg_print(&gcam->atlas);
-      printf("Dest LTA ======================\n");
-      LTAprint(stdout, dstlta);
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the atlas vol geom in the GCAM\n");
-      return(NULL);
-    }
-  }
-  else if(srcltacopy){ // gcam not specified, so check against the srclta; srclta must have been inverted if needed
-    if(vg_isEqual(&dstlta->xforms[0].dst,&(srcltacopy->xforms[0].src))) InvertDstLTA=0;
-    if(vg_isEqual(&dstlta->xforms[0].src,&(srcltacopy->xforms[0].src))) InvertDstLTA=1;
-    else {
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the src vol geom of the Source LTA\n");
-      printf("Source LTA src vol geom ======================\n");
-      vg_print(&srcltacopy->xforms[0].src);
-      printf("Dest LTA ======================\n");
-      LTAprint(stdout, dstlta);
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the src vol geom of the Source LTA\n");
-      return(NULL);
-    }
-  }
-  else { // must match mov/src volume
-    if(LTAmriIsTarget(dstlta, src))      InvertDstLTA = 0;
-    else if(LTAmriIsSource(dstlta, src)) InvertDstLTA = 1;
-    else {
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the mov/src vol geom\n");
-      printf("mov vol geom ======================\n");
-      vg_print(src);
-      printf("Dest LTA ======================\n");
-      LTAprint(stdout, dstlta);
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the mov/src vol geom\n");
-      return(NULL);
-    }
-  }
-
-  LTA *dstltacopy;
-  if(InvertDstLTA){
-    printf("MRIvol2volGCAM(): Inverting Dest LTA\n");
-    dstltacopy = LTAinvert(dstlta,NULL);
-  }
-  else dstltacopy = LTAcopy(dstlta,NULL); // don't modify the passed lta
-  if(dstltacopy->type != LINEAR_VOX_TO_VOX){
-    printf("MRIvol2volGCAM(): Chaning Destination LTA type to vox2vox\n");
-    LTAchangeType(dstltacopy, LINEAR_VOX_TO_VOX) ;
-  }
-  Vdst = MatrixCopy(dstltacopy->xforms[0].m_L,NULL);
-  // Vdst = MatrixInverse(dstlta->xforms[0].m_L,NULL); // was in original
-
-  if(dst == NULL){
-    dst = MRIallocFromVolGeom(&(dstltacopy->xforms[0].src), MRI_FLOAT, src->nframes, 0);
-    if(dst==NULL) return(NULL);
-    MRIcopyPulseParameters(src,dst);
-  }
-  // else should check
-
-  if(sample_type == SAMPLE_CUBIC_BSPLINE) bspline = MRItoBSpline(src,NULL,3);
-  valvect = (float *) calloc(sizeof(float),src->nframes);
-
-  crsDst = MatrixAlloc(4,1,MATRIX_REAL);
-  crsDst->rptr[4][1] = 1;
-  crsAnat = MatrixAlloc(4,1,MATRIX_REAL);
-  crsAnat->rptr[4][1] = 1;
-  // scroll thru the CRS in the output/dest volume
-  timer.reset();
-  for(c=0; c < dst->width; c++){
-    for(r=0; r < dst->height; r++){
-      for(s=0; s < dst->depth; s++){
-	// CRS in destination volume
-	crsDst->rptr[1][1] = c;
-	crsDst->rptr[2][1] = r;
-	crsDst->rptr[3][1] = s;
-
-	// Compute the CRS in the GCAM "atlas" CRS space
-	crsGCAM = MatrixMultiplyD(Vdst,crsDst,crsGCAM);
-
-	if(gcam){
-	  // Compute the CRS in the anatomical "image" space
-	  out_of_gcam = GCAMsampleMorph(gcam, 
-					crsGCAM->rptr[1][1],crsGCAM->rptr[2][1],crsGCAM->rptr[3][1],
-					&crsAnat->rptr[1][1],&crsAnat->rptr[2][1],&crsAnat->rptr[3][1]);
-	  if(out_of_gcam) continue;
-	}
-	else crsAnat = MatrixCopy(crsGCAM,crsAnat);
-
-	// Compute the CRS in the Source Space (eg, functional B0warped space )
-	crsSrc = MatrixMultiply(Vsrc,crsAnat,crsSrc);
-
-        if(vsm){
-          /* crsSrc is the CRS in the undistored source space. This
-	     code computes the crsSrc in the space distorted by B0
-	     inhomogeneity (ie, the space of MRI *src).  This is just
-	     a change in the row value as given by the voxel shift map
-	     (VSM). The VSM must have the same dimensions as src. */
-	  cvsm = floor(crsSrc->rptr[1][1]);
-	  rvsm = floor(crsSrc->rptr[2][1]);
-	  iss = nint(crsSrc->rptr[3][1]);
-
-	  if(cvsm < 0 || cvsm+1 >= src->width)  continue;
-	  if(rvsm < 0 || rvsm+1 >= src->height) continue;
-	  if(iss < 0  || iss+1  >= src->depth) continue;
-	  // Dont sample outside the BO mask indicated by vsm=0
-	  v = MRIgetVoxVal(vsm,cvsm,rvsm,iss,0);
-	  if(fabs(v) < FLT_MIN) continue;
-	  v = MRIgetVoxVal(vsm,cvsm+1,rvsm,iss,0);
-	  if(fabs(v) < FLT_MIN) continue;
-	  v = MRIgetVoxVal(vsm,cvsm,rvsm+1,iss,0);
-	  if(fabs(v) < FLT_MIN) continue;
-	  v = MRIgetVoxVal(vsm,cvsm+1,rvsm+1,iss,0);
-	  if(fabs(v) < FLT_MIN) continue;
-	  /* Performs 3D interpolation. May want to use iss instead of crsSrc->rptr[3][1]
-	     to make it a 2D interpolation. Not sure.*/
-          MRIsampleSeqVolume(vsm, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1], &drvsm, 0, 0);
-	  if(drvsm == 0) continue;
-          crsSrc->rptr[2][1] += drvsm;
-        }
-
-	// Check for out of the source FoV
-	if(crsSrc->rptr[1][1] < 0 || crsSrc->rptr[1][1] >= src->width)  continue;
-	if(crsSrc->rptr[2][1] < 0 || crsSrc->rptr[2][1] >= src->height) continue;
-	if(crsSrc->rptr[3][1] < 0 || crsSrc->rptr[3][1] >= src->depth)  continue;
-
-        if(sample_type != SAMPLE_TRILINEAR)
-	  for(f=0; f < src->nframes; f++){
-	    if(sample_type == SAMPLE_CUBIC_BSPLINE)
-	      MRIsampleBSpline(bspline, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1], f, &val);
-	    else
-	      MRIsampleVolumeFrameType(src,
-				       crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1],
-				       f, sample_type, &val) ;
-	    MRIsetVoxVal(dst,c,r,s,f, val);
-	  }
-	else {
-	  // This will do the same as above, it is just faster with multiple frames
-          MRIsampleSeqVolume(src, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1],
-			     valvect,0, src->nframes-1) ;
-	  for(f=0; f < src->nframes; f++)  MRIsetVoxVal(dst,c,r,s,f, valvect[f]);
-	}
-
-      } // s
-    } // r
-  } // c
-
-  MatrixFree(&crsDst);
-  MatrixFree(&crsGCAM);
-  MatrixFree(&crsAnat);
-  MatrixFree(&crsSrc);
-  MatrixFree(&Vdst);
-  MatrixFree(&Vsrc);
-  if(bspline) MRIfreeBSpline(&bspline);
-  free(valvect);
-  if(srcltacopy) LTAfree(&srcltacopy);
-  if(dstltacopy) LTAfree(&dstltacopy);
-
-  printf("MRIvol2volGCAM: t=%6.4f\n", timer.seconds());
-  fflush(stdout);
-
-  return(dst);
-}
-
-
-// This is the "old" version without all the checks and flexibility of
-// the new one. This can be called from the command line because the
-// new one has a lot of changes and I'm afraid I might have broken
-// something.
-MRI *MRIvol2volGCAM0(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst)
 {
   int c,r,s,f,out_of_gcam,cvsm,rvsm,iss;
   VOL_GEOM *vgdst_src,*vgdst_dst;
@@ -2559,10 +2314,6 @@ MRI *MRIvol2volGCAM0(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *v
   MRI_BSPLINE * bspline = NULL;
   float drvsm, *valvect;
   Timer timer;
-
-  printf("MRIvol2volGCAM0(): ===========================================================\n");
-  if(getenv("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT") != NULL) printf("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT is set\n");
-  else printf("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT is NOT set\n");
 
   if(!vsm) printf("MRIvol2volGCAM(): VSM not used\n");
   if(!gcam) printf("MRIvol2volGCAM(): GCAM not used\n");
@@ -2668,7 +2419,6 @@ MRI *MRIvol2volGCAM0(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *v
 
 	  if(cvsm < 0 || cvsm+1 >= src->width)  continue;
 	  if(rvsm < 0 || rvsm+1 >= src->height) continue;
-	  if(iss < 0  || iss+1  >= src->depth) continue;
 	  // Dont sample outside the BO mask indicated by vsm=0
 	  v = MRIgetVoxVal(vsm,cvsm,rvsm,iss,0);
 	  if(fabs(v) < FLT_MIN) continue;
@@ -2726,30 +2476,3 @@ MRI *MRIvol2volGCAM0(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *v
   return(dst);
 }
 
-#if 0
-  if(0){
-    vgdst_src = &(dstlta->xforms[0].src);
-    vgdst_dst = &(dstlta->xforms[0].dst);
-    // check that vgdst_src is 256^3, 1mm
-    if(vgdst_src->width != 256 || vgdst_src->height != 256 ||
-       vgdst_src->depth != 256 || vgdst_src->xsize != 1 ||
-       vgdst_src->ysize != 1   || vgdst_src->zsize != 1){
-      if(vgdst_dst->width != 256 || vgdst_dst->height != 256 ||
-	 vgdst_dst->depth != 256 || vgdst_dst->xsize != 1 ||
-	 vgdst_dst->ysize != 1   || vgdst_dst->zsize != 1)
-	if(getenv("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT") == NULL) {
-	  printf("ERROR: MRIvol2volGCAM(): neither src nor dst VG of Dest LTA is conformed\n");
-	  return(NULL);
-	}
-	else
-	  printf("WARN: MRIvol2volGCAM(): neither src nor dst VG of Dest LTA is conformed\n");
-      else {
-	printf("MRIvol2volGCAM(): Inverting Destination LTA\n");
-	LTAinvert(dstlta,dstlta);
-      }
-    }
-    else printf("MRIvol2volGCAM(): NOT inverting Destination LTA\n");
-  }
-
-
-#endif

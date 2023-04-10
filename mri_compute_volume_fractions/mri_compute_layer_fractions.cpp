@@ -205,7 +205,6 @@ main(int argc, char *argv[])
       MRIwrite(mri_aseg, "at.mgz") ;
     }
     free(translations) ;
-    mri_aseg->ct = ctab_default ;
   }
 
   nvox = (int)ceil(256/resolution);  
@@ -341,7 +340,6 @@ main(int argc, char *argv[])
       if (nlayers != 2)
 	ErrorExit(ERROR_UNSUPPORTED, "%s: synth only available for nlayers = 2 (%d specified)", Progname, nlayers);
       mri_synth = MRIcloneDifferentType(mri_layers, MRI_INT) ; // layers if uchar and won't fit ctx labels
-      mri_synth->ct = mri_aseg->ct ;
       MRIcopy(mri_layers, mri_synth) ;
       if (hemi_no == LEFT_HEMI)  // lh
       {
@@ -388,9 +386,7 @@ main(int argc, char *argv[])
       create_synth_vol(mri_synth, mri_aseg, mri_synth, hemi_no);
       printf("writing synth volume to %s\n", synth_fname) ;
       MRIwrite(mri_synth, synth_fname) ;
-      mri_synth->ct = NULL ;  // it wasn't allocated by us
       MRIfree(&mri_synth) ;
-      exit(0) ;
     }
 
     add_aseg_structures_outside_ribbon(mri_layers, mri_aseg, mri_layers, 
@@ -497,13 +493,9 @@ get_option(int argc, char *argv[]) {
     hemi_no = !stricmp(hemi, "lh") ? LEFT_HEMI : (!stricmp(hemi, "rh") ? RIGHT_HEMI : BOTH_HEMIS);
     printf("processing %s hemisphere (%d)\n", hemi, hemi_no) ;
   } else switch (toupper(*option)) {
-      
   case 'W':
     Gdiag |= DIAG_WRITE ;
     printf("turning on write diagnostics\n") ;
-    break ;
-  case 'H':
-    usage_exit(0) ;
     break ;
   case 'N':
     LAMINAR_NAME = argv[2] ;
@@ -549,13 +541,6 @@ usage_exit(int code) {
   printf("  -SDIR SUBJECTS_DIR \n");
   printf(
          "\t\n");
-    printf("this program computes volumetric partial volume fractions from laminar surfaces\n") ;
-    printf("use -synth <output name> to combine them with the aseg for a single segmentation vol\n") ;
-    printf("some sample commmand lines:\n") ;
-    printf("compute a single synth volume for both hemis:\n") ;
-    printf("mri_compute_layer_fractions -a $aseg   -sdir  $SUBJECTS_DIR -synth $target -$hemi -FS_names -s $s -nlayers 2 -r .125 -n graymid.rand  identity.nofile $asegfile $sd/mri/$hemi.layer_fractions.mgz") ;
-    printf("compute partial volume fractions for a single hemi:\n") ;
-    printf("mri_compute_layer_fractions -sdir $SUBJECTS_DIR -$hemi -FS_names -s $s -nlayers 2 -w -r .125 -n graymid.rand  identity.nofile $aseg $target\n") ;
   exit(code) ;
 }
 
@@ -817,22 +802,6 @@ create_synth_vol(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst, int hemi_no)
 
         switch (aseg_label)
         {
-	case ctx_lh_infragranular:                
-	case ctx_lh_layer1:                       
-	case ctx_lh_layer2:                       
-	case ctx_lh_layer3:                       
-	case ctx_lh_layer4:                       
-	case ctx_lh_layer5:                       
-	case ctx_lh_layer6:                       
-	case ctx_lh_supragranular:                
-	case ctx_rh_infragranular:                
-	case ctx_rh_layer1:                       
-	case ctx_rh_layer2:                       
-	case ctx_rh_layer3:                       
-	case ctx_rh_layer4:                       
-	case ctx_rh_layer5:                       
-	case ctx_rh_layer6:                       
-	case ctx_rh_supragranular:                
         case Right_Cerebral_Cortex:
 	case Left_Cerebral_Cortex:
 	  if (IS_CEREBRAL_WM(seg_label))   // if it is inside the white surface use the aseg value
