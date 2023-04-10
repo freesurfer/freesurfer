@@ -59,7 +59,7 @@ static void print_usage();
 static void usage_exit();
 static void print_help();
 static void print_version();
-static void dump_options();
+static void dump_options(FILE *fp);
 
 class SurfSkeleton 
 {
@@ -76,6 +76,14 @@ public:
   double m_fwhm = 0;
   std::vector<std::pair<double,int>> edgelist; // val,vno
   std::vector<double> surfvals;
+  void dump(FILE *fp){
+    fprintf(fp,"NeighborhoodSize %d\n",NeighborhoodSize);
+    fprintf(fp,"m_threshold %6.4f\n",m_threshold);
+    fprintf(fp,"m_fwhm %6.4f\n",m_fwhm);
+    fprintf(fp,"nkeep %d\n",nkeep);
+    fflush(fp);
+  };
+
   int build_vtxnbrlist(void){
     // For each vertex, get the list of neighboring vertices in the 
     // proper spatial order
@@ -402,7 +410,20 @@ int main(int argc, char** argv)
       perror(NULL);
       return(1);
     }
+    char tmpstr[2000];
+    sprintf(tmpstr,"%s/mris_skeletonize.log",outdir);
+    FILE *fp = fopen(tmpstr,"w");
+    dump_options(fp);
+    fprintf(fp,"cd %s \n",cwd);
+    fprintf(fp,"%s ",Progname);
+    for(int n=0; n < argc; n++)     fprintf(fp,"%s ",argv[n]);
+    fprintf(fp,"\n");
+    sk.dump(fp);
+    fprintf(fp,"scale %6.4f\n",scale);
+    fclose(fp);
   }
+  sk.dump(stdout);
+  printf("scale %6.4f\n",scale);
 
   sk.m_surf = MRISread(surfpath);
   if(!sk.m_surf) exit(1);
@@ -572,7 +593,7 @@ static int parse_commandline(int argc, char **argv) {
 /* --------------------------------------------- */
 static void check_options()
 {
-  dump_options();
+  dump_options(stdout);
 
   if(inputtype == 0){
     printf("ERROR: input type not specified, use --surfvals, --curv-nonmaxsup, or --k1\n");
@@ -642,13 +663,13 @@ static void print_version() {
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void dump_options() {
-  printf("\n");
-  printf("%s\n", getVersion().c_str());
-  printf("cwd %s\n", cwd);
-  printf("cmdline %s\n", cmdline);
-  printf("sysname  %s\n", uts.sysname);
-  printf("hostname %s\n", uts.nodename);
-  printf("machine  %s\n", uts.machine);
-  printf("\n");
+static void dump_options(FILE *fp) {
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n", getVersion().c_str());
+  fprintf(fp,"cwd %s\n", cwd);
+  fprintf(fp,"cmdline %s\n", cmdline);
+  fprintf(fp,"sysname  %s\n", uts.sysname);
+  fprintf(fp,"hostname %s\n", uts.nodename);
+  fprintf(fp,"machine  %s\n", uts.machine);
+  fprintf(fp,"\n");
 }
