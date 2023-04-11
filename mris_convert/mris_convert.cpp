@@ -642,27 +642,12 @@ static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label
 
 static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname)
 {
-    // first read the annotation/gifti label data...
-    int type = MRISfileNameType(fannot);
-    if (type == MRIS_ANNOT_FILE)
+    if (MRISreadAnnotation(mris, fannot) != NO_ERROR)
     {
-      if (MRISreadAnnotation(mris, fannot) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (NULL == mrisReadGIFTIdanum(fannot, mris, giftiDaNum))
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for --annot: %s\n", fannot);
+      printf("ERROR: failed to read annotation %s\n", fannot);
       exit(1);
     }
+
     // read parcstats text file (pairs of parc labels and stat values) and
     // save value associated with that parc label into the vertex with that
     // parc (annot) label
@@ -698,7 +683,7 @@ static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, c
         }
       }
       // now write the 'curv' data (the parc stats we just assigned) to file
-      type = MRISfileNameType(out_fname) ;
+      int type = MRISfileNameType(out_fname) ;
       if (type == MRIS_ASCII_FILE)
       {
         mrisWriteAsciiCurvatureFile(mris, out_fname);
@@ -713,28 +698,12 @@ static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, c
         MRISwriteCurvature(mris, out_fname) ;
       }
       exit(0);
-    }
+    } // if (parcstats != NULL)
 
     // if fall through, then write annot file
-    type = MRISfileNameType(out_fname);
-    if (type == MRIS_ANNOT_FILE)
+    if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
     {
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for output: "
-             "%s\n",out_fname);
+      printf("ERROR: failed to write annotation %s\n", out_fname);
       exit(1);
     }
 }

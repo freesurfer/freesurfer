@@ -647,13 +647,7 @@ int          MRISreadBinaryCurvature(MRI_SURFACE *mris,
 int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname) ;
 float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris,
                                          const  char *sname) ;
-int          MRISreadNewCurvatureIntoArray(const char *fname,
-                                           int in_array_size,
-                                           float** out_array) ;
 float        *MRISreadCurvatureVector(MRI_SURFACE *mris,const  char *sname) ;
-int          MRISreadCurvatureIntoArray(const char *fname,
-                                        int in_array_size,
-                                        float** out_array) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
@@ -668,16 +662,10 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *hemi,
                       const char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISreadValuesIntoArray(const char *fname,
-                                     int in_array_size,
-                                     float** out_array) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices) ;
 int          MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices);
 int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISreadAnnotationIntoArray(const char *fname,
-                                         int in_array_size,
-                                         int** out_array);
 int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
                                                  COLOR_TABLE** out_table);
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
