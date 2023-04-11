@@ -1,31 +1,30 @@
-FROM ubuntu:18.04
+# base image with Python and SynthStrip on path (eventually)
+FROM ubuntu:22.04 AS base
+ENV FREESURFER_HOME="/freesurfer"
+ENV VIRTUAL_ENV="$FREESURFER_HOME/env"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# copy local data
-COPY . /external
-
-# shell settings
-WORKDIR /freesurfer
-
-# install utils
 RUN apt-get update && \
-    apt-get install -y build-essential python3 python3-pip python3-dev && \
+    apt-get install -y --no-install-recommends python3 && \
     rm -rf /var/lib/apt/lists/*
 
-# python packages
+
+# intermediate stage with build requirements not needed in final image
+FROM base AS build
+RUN apt-get update && \
+    apt-get install -y build-essential python3-pip python3-dev python3-venv
+
+# install packages into virtual environment as soon as it exists
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install numpy torch==1.10.2
-RUN python3 -m pip install surfa
-RUN python3 -m pip install cache purge
+RUN python3 -m venv "$VIRTUAL_ENV"
+RUN python3 -m pip install torch==2.0.0 surfa
 
-# install synthstrip
-RUN cp /external/mri_synthstrip /freesurfer/
+# install synthstrip from local folder
+COPY mri_synthstrip $VIRTUAL_ENV/bin
+COPY synthstrip.*.pt $FREESURFER_HOME/models/
 
-# configure model
-ENV FREESURFER_HOME /freesurfer
-RUN mkdir -p /freesurfer/models
-RUN cp /external/synthstrip.*.pt /freesurfer/models/
 
-# clean up
-RUN rm -rf /external /root/.cache/pip
-
-ENTRYPOINT ["python3", "/freesurfer/mri_synthstrip"]
+# only copy files needed for final image
+FROM base
+COPY --from=build $FREESURFER_HOME $FREESURFER_HOME
+ENTRYPOINT ["mri_synthstrip"]
