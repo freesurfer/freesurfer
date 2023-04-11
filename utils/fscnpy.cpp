@@ -126,6 +126,9 @@ MRI* fscnpy::npy2mri(const char *npy, bool verbose)
           if (__dtype_len == 8) 
             byteswapbuffloat(__data, bytes_per_slice);
 	}
+
+        // freeview progress bar
+        exec_progress_callback(s, mri->depth, f, mri->nframes);
       }
     }
 #else
