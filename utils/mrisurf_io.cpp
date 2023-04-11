@@ -1499,9 +1499,7 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   MRISclearAnnotations(mris);
 
   int mritype = mri_identify(fname);
-  if (mritype == MGH_ANNOT)
-    error = __mrisreadannot(fname, mris);
-  else if (mritype == MRI_MGH_FILE)
+  if (mritype == MRI_MGH_FILE)
     error = __mrisreadseg2annot(fname, mris);
   else if (mritype == GIFTI_FILE)
   {
@@ -1511,8 +1509,10 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   }
   else
   {
-    printf("ERROR: unknown annotation file format %s\n", fname);
-    error = ERROR_BADFILE;
+    if (mritype != MGH_ANNOT)
+      strcat(fname, ".annot");
+
+    error = __mrisreadannot(fname, mris);
   }
 
   return error;
@@ -1907,9 +1907,7 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   int error = NO_ERROR;
 
   int mritype = mri_identify(fname);
-  if (mritype == MGH_ANNOT)
-    error = __mriswriteannot(mris, fname);
-  else if (mritype == GIFTI_FILE)
+  if (mritype == GIFTI_FILE)
     error = MRISwriteGIFTI(mris, NIFTI_INTENT_LABEL, fname, NULL);
   else if (mritype == MRI_MGH_FILE)
   {
@@ -1932,8 +1930,10 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   }
   else
   {
-    printf("ERROR: unknown output annotation file format %s\n", fname);
-    error = ERROR_BADFILE;
+    if (mritype != MGH_ANNOT)
+      strcat(fname, ".annot");
+
+    error = __mriswriteannot(mris, fname);
   }
 
   return error;
