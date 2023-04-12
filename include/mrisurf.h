@@ -30,6 +30,8 @@
 #include "json.h"
 using json = nlohmann::json;
 
+struct OverlayInfoStruct;
+
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
 #define CONTRAST_FLAIR 2
@@ -644,16 +646,16 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris,
                                         const  char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris,
                                      const  char *mris_fname) ;
-int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname) ;
+int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname, MRI *curvmri=NULL, std::vector<OverlayInfoStruct> *poverlayinfo=NULL) ;
 float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris,
                                          const  char *sname) ;
 float        *MRISreadCurvatureVector(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
-int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *curvmri=NULL);
 int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname);
-MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *curvmri=NULL);
 
 MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *typestring,
@@ -705,7 +707,7 @@ int          MRISwriteICO(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteSTL(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISwriteCurvature(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteCurvature(MRI_SURFACE *mris, const  char *fname, const char *curv_name=NULL) ;
 int          MRISreadNewCurvatureFile(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
 #define NORM_NONE  -1

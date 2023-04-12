@@ -147,7 +147,7 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr);
 static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr);
 static void swap_nifti_1_header(struct nifti_1_header *hdr);
-static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
+//static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
 
 static MRI *mriNrrdRead(const char *fname, int read_volume);
 static int mriNrrdWrite(MRI *mri, const char *fname);
@@ -7550,7 +7550,7 @@ static MRI *ximgRead(const char *fname, int read_volume)
   MRISreadCurvAsMRI() - reads freesurfer surface curv format
   as an MRI.
   -----------------------------------------------------------*/
-static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
+MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
 {
   int magno, k, vnum, fnum, vals_per_vertex;
   float curv;

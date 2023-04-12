@@ -531,12 +531,14 @@ static MRIS *__splitGIFTI(const char *fgifti, const char *outdir, const char *fo
 
 static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname)
 {
+  bool mergegifti = (mergegifti_flag) ? true : false;
+
   MRISurfOverlay *fsOverlay = new MRISurfOverlay(mris, noverlay, foverlays);
-  int error = fsOverlay->read(TRUE, mris);
+  int error = fsOverlay->read(TRUE, mris, mergegifti);
   if (error != NO_ERROR)
     return;
 
-  fsOverlay->write(out_fname, mris, (mergegifti_flag) ? true : false);
+  fsOverlay->write(mris, out_fname, mergegifti);
 }
 
 
