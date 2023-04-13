@@ -219,8 +219,9 @@ int mri_identify(const char *fname_passed)
       type = string_to_type(ext);
 
       if (type == MRI_GZIPPED) {
-        if (strstr(fname, ".mgh.gz")) type = MRI_MGH_FILE;
-        if (strstr(fname, ".nii.gz"))
+        if (strstr(fname, ".mgh.gz"))
+          type = MRI_MGH_FILE;
+        else if (strstr(fname, ".nii.gz"))
           type = NII_FILE;
         else {
           type = MRI_VOLUME_TYPE_UNKNOWN;
