@@ -1513,7 +1513,7 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
 
   if (mritype == MGH_ANNOT)
     error = __mrisreadannot(fname, mris);
-  if (mritype == MRI_MGH_FILE)
+  else if (mritype == MRI_MGH_FILE)
     error = __mrisreadseg2annot(fname, mris);
   else if (mritype == GIFTI_FILE)
   {
