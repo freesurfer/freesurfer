@@ -1854,7 +1854,7 @@ int MRISisCTABPresentInAnnotation(const char *fname, int *present)
 }
 
 /*-----------------------------------------------------*/
-int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
+int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
 {
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
   
@@ -1929,7 +1929,10 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   if (mritype == MGH_ANNOT)
     error = __mriswriteannot(mris, fname);
   else if (mritype == GIFTI_FILE)
-    error = MRISwriteGIFTI(mris, NIFTI_INTENT_LABEL, fname, NULL);
+  {
+    int gifti_intent = (writect) ? NIFTI_INTENT_LABEL : NIFTI_INTENT_RGBA_VECTOR; 
+    error = MRISwriteGIFTI(mris, gifti_intent, fname, NULL);
+  }
   else if (mritype == MRI_MGH_FILE)
   {
     printf("MRISurfAnnotation::writeAnnotation((): writing %s as a surface seg\n", fname);

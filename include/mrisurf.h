@@ -667,7 +667,7 @@ int          MRISreadValues(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices) ;
 int          MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices);
-int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname, bool writect=true) ;
 int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
                                                  COLOR_TABLE** out_table);
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
@@ -1645,7 +1645,9 @@ unsigned long MRISeraseOutsideOfSurface(float h,
 /* Some utility functions to handle reading and writing annotation
    values. MRISRGBToAnnot stuffs an r,g,b tuple into an annotation
    value and MRISAnnotToRGB separates an annotation value into an
-   r,g,b tuple. */
+   r,g,b tuple.
+   Duplicated macros are defined in colortab.h as AnnotToRGB and RGBToAnnot
+ */
 #define MRISAnnotToRGB(annot,r,g,b)             \
   r = annot & 0xff ;                            \
   g = (annot >> 8) & 0xff ;                     \

@@ -40,6 +40,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, int intent_code, gifti_image *image, const 
 int MRISwriteGIFTIShape(MRIS *mris, gifti_image *image, int intent_code, const char *curv_fname);
 int MRISwriteGIFTIStats(MRIS *mris, gifti_image *image, int intent_code);
 int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code);
+int MRISwriteGIFTIRGBAVector(MRIS *mris, gifti_image *image, int intent_code);
 int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname);
 
 /*********************************************************

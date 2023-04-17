@@ -121,6 +121,7 @@ static int func_file_flag = 0 ;
 static char *func_fname = NULL;
 static int annot_file_flag = 0 ;
 static char *annot_fname = NULL;
+static int writect = 1;
 static int gifti_da_num = -1;
 static int label_file_flag = 0 ;
 static char *label_fname = NULL;
@@ -703,7 +704,7 @@ static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, c
     } // if (parcstats != NULL)
 
     // if fall through, then write annot file
-    if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+    if (MRISwriteAnnotation(mris, out_fname, (writect) ? true : false) != NO_ERROR)
     {
       printf("ERROR: failed to write annotation %s\n", out_fname);
       exit(1);
@@ -776,6 +777,11 @@ get_option(int argc, char *argv[])
     annot_fname = argv[2] ;
     annot_file_flag = 1;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "-no-writect"))
+  {
+    // hidden flag to output annotation as gifti NIFTI_INTENT_RGBA_VECTOR
+    writect = 0;
   }
   else if (!stricmp(option, "-label2mask")) {
     MRIS *surf = MRISread(argv[2]);

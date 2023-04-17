@@ -676,7 +676,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
 
     /* Set some meta data in the mris. */
     strcpy(mris->fname, fname);
-    mris->type = MRIS_TRIANGULAR_SURFACE;
+    mris->type = MRIS_TRIANGULAR_SURFACE;  // ??? is this correct ???
     char *hemi = gifti_get_meta_value(&coords->meta, "AnatomicalStructurePrimary");
     if (hemi && (strcmp(hemi, "CortexRight") == 0)) {
       mris->hemisphere = RIGHT_HEMISPHERE;
@@ -1249,8 +1249,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         int r, g, b;
 
         float red = (float)gifti_get_DA_value_2D(darray, vno, 0);
-        float green = (float)gifti_get_DA_value_2D(darray, vno, 0);
-        float blue = (float)gifti_get_DA_value_2D(darray, vno, 0);
+        float green = (float)gifti_get_DA_value_2D(darray, vno, 1);
+        float blue = (float)gifti_get_DA_value_2D(darray, vno, 2);
 
         if (red > 1) {
           r = (int)red;
@@ -1284,6 +1284,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         std::map<int, float*>::iterator it = unique_annot_map.find(mris->vertices[vno].annotation);
         if (it == unique_annot_map.end())
 	{
+          // map key/value pair: annotation/(r, g, b)
           float *rgb = new float[3];
           rgb[0] = red; rgb[1] = green; rgb[2] = blue;
           unique_annot_map[mris->vertices[vno].annotation] = rgb;
@@ -1291,7 +1292,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
       }
 
       // make a color lookup table with unique annotation from dataarray
-      makeColorTable(unique_annot_map, fname);
+      mris->ct = makeColorTable(unique_annot_map, fname);
     } // NIFTI_INTENT_RGB_VECTOR || NIFTI_INTENT_RGBA_VECTOR
     else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
       fprintf(stderr,
@@ -1781,6 +1782,15 @@ int MRISwriteGIFTIIntent(MRIS *mris, int intent_code, gifti_image *image, const 
   }  // end of if NIFTI_INTENT_LABEL
 
   /* -------------------------------------------------------
+   * RGBA file
+   */
+  if (intent_code == NIFTI_INTENT_RGBA_VECTOR) {
+    int error = MRISwriteGIFTIRGBAVector(mris, image, intent_code); 
+    if (error != NO_ERROR)
+      return error;    
+  }  // end of if NIFTI_INTENT_RGBA_VECTOR
+
+  /* -------------------------------------------------------
    * Statistics file
    */
   if (intent_code == NIFTI_INTENT_CORREL || intent_code == NIFTI_INTENT_TTEST || intent_code == NIFTI_INTENT_FTEST ||
@@ -2129,6 +2139,79 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
 
     return NO_ERROR;
 } // end of MRISwriteGIFTILabel()
+
+
+/*
+ * RGBA file
+ *       output NIFTI_INTENT_RGBA_VECTOR
+ */
+int MRISwriteGIFTIRGBAVector(MRIS *mris, gifti_image *image, int intent_code)
+{
+    /*
+     * RGBA
+     */
+    giiDataArray *rgba = gifti_alloc_and_add_darray(image);
+    if (NULL == rgba) {
+      fprintf(stderr, "MRISwriteGIFTIRGBAVector(): couldn't allocate giiDataArray\n");
+      gifti_free_image(image);
+      return ERROR_NOMEMORY;
+    }
+
+    /* Set its attributes. */
+    rgba->intent = NIFTI_INTENT_RGBA_VECTOR;
+    rgba->datatype = NIFTI_TYPE_FLOAT32;
+    rgba->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+    rgba->num_dim = 2;
+    rgba->dims[0] = mris->nvertices;        /* In highest first, dim0 = rows */
+    rgba->dims[1] = 4;                      /* In highest first, dim1 = cols */
+    rgba->encoding = GIFTI_ENCODING_B64GZ;  // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+    rgba->endian = GIFTI_ENDIAN_LITTLE;
+#else
+    rgba->endian = GIFTI_ENDIAN_BIG;
+#endif
+
+    rgba->coordsys = NULL;             // empty, unless we find something here...
+    rgba->nvals = gifti_darray_nvals(rgba);
+    gifti_datatype_sizes(rgba->datatype, &rgba->nbyper, NULL);
+
+    /* Allocate the data array. */
+    rgba->data = NULL;
+    rgba->data = (void *)calloc(rgba->nvals, rgba->nbyper);
+    if (NULL == rgba->data) {
+      fprintf(stderr,
+              "MRISwriteGIFTIRGBAVector(): couldn't allocate rgba data of "
+              "length %d, element size %d\n",
+              (int)rgba->nvals,
+              rgba->nbyper);
+      gifti_free_image(image);
+      return ERROR_NOMEMORY;
+    }
+
+    /* Copy in all our data. */
+    int vertex_index;
+    for (vertex_index = 0; vertex_index < mris->nvertices; vertex_index++) {
+      if (mris->vertices[vertex_index].ripflag)
+        continue;
+
+      int annot = mris->vertices[vertex_index].annotation;
+      int r1, g1, b1;
+      r1 = annot & 0x0000ff;
+      g1 = (annot >> 8) & 0x0000ff;
+      b1 = (annot >> 16) & 0x0000ff;
+
+      int r, g, b;
+      MRISAnnotToRGB(annot, r, g, b);
+
+      gifti_set_DA_value_2D(rgba, vertex_index, 0, (float)r/255.0);
+      gifti_set_DA_value_2D(rgba, vertex_index, 1, (float)g/255.0);
+      gifti_set_DA_value_2D(rgba, vertex_index, 2, (float)b/255.0);
+      gifti_set_DA_value_2D(rgba, vertex_index, 3, 1.0f);
+    }
+
+    return NO_ERROR;
+} // end of MRISwriteGIFTIRGBAVector()
+
 
 
 /*
