@@ -203,14 +203,14 @@ if [ $generate -eq 1 ]; then
    perl -i -pe's;^git\+https.*voxelmorph.*;git\+https://github.com/voxelmorph/voxelmorph.git\@__VOXELMORPH_HASH__;' requirements-extra-build.txt
    perl -i -pe's;__VOXELMORPH_HASH__;$ENV{VOXELMORPH_HASH};' requirements-extra-build.txt
 
-   diff_cmd_pystrum="diff requirements-extra.txt requirements-extra-build.txt | grep 'git+https' | grep pystrum"
-   echo && echo $diff_cmd_pystrum && eval $diff_cmd_pystrum
+   # diff_cmd_pystrum="diff requirements-extra.txt requirements-extra-build.txt | grep 'git+https' | grep pystrum"
+   # echo && echo $diff_cmd_pystrum && eval $diff_cmd_pystrum
 
-   diff_cmd_neurite="diff requirements-extra.txt requirements-extra-build.txt | grep 'git+https' | grep neurite"
-   echo && echo $diff_cmd_neurite && eval $diff_cmd_neurite
+   # diff_cmd_neurite="diff requirements-extra.txt requirements-extra-build.txt | grep 'git+https' | grep neurite"
+   # echo && echo $diff_cmd_neurite && eval $diff_cmd_neurite
 
-   diff_cmd_voxelmorph="diff requirements-extra.txt requirements-extra-build.txt | grep 'git+https' | grep voxelmorph"
-   echo && echo $diff_cmd_voxelmorph && eval $diff_cmd_voxelmorph
+   # diff_cmd_voxelmorph="diff requirements-extra.txt requirements-extra-build.txt | grep 'git+https' | grep voxelmorph"
+   # echo && echo $diff_cmd_voxelmorph && eval $diff_cmd_voxelmorph
    echo
 
    # Generated files:
