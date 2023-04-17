@@ -34,16 +34,11 @@ test_command mri_convert ep2d.mosaic/ep2d.mosaic.dcm ep2d.mosaic.mgz
 compare_vol ep2d.mosaic.mgz ep2d.mosaic/ref/ep2d.mosaic.ref.mgz --geo-thresh 0.00005
 
 # non-mosaic DICOM with incomplete ASCII header
-# *** temporarily disable the test, need to figure out why dcm2niix generate different output
-#>mri_diff vnav.non-mosaic-t.mgz vnav.non-mosaic.ref.mgz
-#Volumes differ in geometry row=1 col=2 diff=0.000000 (3.72529e-09)
-#>mri_diff vnav.non-mosaic-t.mgz vnav.non-mosaic.ref.mgz --geo-thresh 0.00008
-#Volumes differ in geometry row=1 col=3 diff=15.996228 (15.9962)
-#>mri_diff vnav.non-mosaic-t.mgz vnav.non-mosaic.ref.mgz --geo-thresh 16
-#diffcount 0
-#Volumes differ in orientation PIR PIL
-#test_command mri_convert vnav.non-mosaic/vnav.non-mosaic.dcm vnav.non-mosaic.mgz
-#compare_vol vnav.non-mosaic.mgz vnav.non-mosaic/ref/vnav.non-mosaic.ref.mgz
+# mri_convert -dcm2niix output and reference volumes differ in orientation PIR PIL.
+# As a result of orientation difference, geometry differs too.
+# Doug agreed to ignore the differences.
+test_command mri_convert vnav.non-mosaic/vnav.non-mosaic.dcm vnav.non-mosaic.mgz
+compare_vol vnav.non-mosaic.mgz vnav.non-mosaic/ref/vnav.non-mosaic.ref.mgz --notallow-geo --notallow-ori
 
 # DICOM with identical geometry - but mosaic'd
 test_command mri_convert --mosaic-fix-noascii vnav.mosaic/vnav.mosaic.dcm vnav.mosaic.mgz
