@@ -2510,3 +2510,60 @@ int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist)
 
   return (i);
 }
+
+
+/* add an unique entry at the end of COLOR_TABLE
+ * the ctab index of newly added entry is return in *ctabindex
+ */
+int CTABaddUniqueEntryAtEnd(COLOR_TABLE *ct, char *name, int *ctabindex)
+{
+  *ctabindex = -1;
+
+  COLOR_TABLE_ENTRY **pcte = ct->entries;
+
+  // allocate one more COLOR_TABLE_ENTRY
+  ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries+1, sizeof(COLOR_TABLE_ENTRY *));
+
+  for (int i = 0; i < ct->nentries; i++)
+  {
+    // point to old memory for each COLOR_TABLE_ENTRY
+    ct->entries[i] = pcte[i];
+#if 0
+    // copy over the data, free the old memory for each COLOR_TABLE_ENTRY
+    if (pcte[i] != NULL)
+    {
+      ct->entries[i] = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
+      memmove(ct->entries[i], pcte[i], sizeof(COLOR_TABLE_ENTRY));
+      free(pcte[i]);
+    }
+#endif
+  }
+  
+  int r, g, b;
+  int rgbi = -1;
+  do
+  { 
+    r = nint(randomNumber(0, 255));
+    g = nint(randomNumber(0, 255));
+    b = nint(randomNumber(0, 255));
+
+    CTABfindRGBi(ct, r, g, b, &rgbi);
+  } while (rgbi >= 0);
+
+  COLOR_TABLE_ENTRY *cte = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
+  cte->ri = r;
+  cte->gi = g;
+  cte->bi = b;
+  cte->ai = 255;
+  cte->rf = (float)cte->ri / 255.0f;
+  cte->gf = (float)cte->gi / 255.0f;
+  cte->bf = (float)cte->bi / 255.0f;
+  cte->af = (float)cte->ai / 255.0f;
+  strcpy(cte->name, name);
+
+  ct->entries[ct->nentries] = cte;
+  *ctabindex = ct->nentries;
+  ct->nentries++;
+
+  return NO_ERROR;
+}

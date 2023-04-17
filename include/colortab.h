@@ -189,5 +189,6 @@ int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname);
 COLOR_TABLE *CTABreadASCIIttHeader(const char *fname);
 int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge);
 int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist) ;
+int CTABaddUniqueEntryAtEnd(COLOR_TABLE *ct, char *name, int *ctabindex);
 
 #endif
