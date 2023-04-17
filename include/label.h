@@ -191,4 +191,6 @@ LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb);
 LABEL *LabelRemoveHolesSurf(MRIS *surf, LABEL *lb);
 LABEL *LabelRemoveHolesAndIslandsSurf(MRIS *surf, LABEL *lb);
 
+int LabelVertexTableSortByVtxno(const void *p1, const void *p2);
+
 #endif
