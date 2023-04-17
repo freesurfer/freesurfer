@@ -49,6 +49,9 @@ static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 
+static void __annotation2label();
+static void __annotation2labelV2();
+
 int main(int argc, char *argv[]) ;
 
 const char *Progname = NULL;
@@ -97,8 +100,8 @@ e_LOBARDIVISION Ge_lobarDivision = e_default;
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int err,vtxno,ano,ani,vtxani,animax;
-  int nargs,IsBorder,k;
+  int err,vtxno;
+  int nargs,IsBorder;
   MRI *border;
 
   nargs = handleVersionOption(argc, argv, "mri_annotation2label");
@@ -251,76 +254,7 @@ int main(int argc, char **argv)
     exit(0);
   }
 
-  /* Determine which indices are present in the file by
-     examining the index at each vertex */
-  animax = -1;
-  for (vtxno = 0; vtxno < Surf->nvertices; vtxno++) {
-    // get the annotation (rgb packed into an int)
-    ano = Surf->vertices[vtxno].annotation;
-    // From annotation, get index into color table
-    CTABfindAnnotation(Surf->ct, ano, &vtxani);
-    nperannot[vtxani] ++;
-    if (animax < vtxani) {
-      animax = vtxani;
-    }
-  }
-  printf("max index = %d\n",animax);
-
-  // Load statistic file
-  if(StatFile) {
-    printf("Loading stat file %s\n",StatFile);
-    Stat = MRIread(StatFile);
-    if(Stat == NULL) {
-      exit(1);
-    }
-    if(Stat->width != Surf->nvertices) {
-      printf("ERROR: dimension mismatch between surface (%d) and stat (%d)\n",
-             Surf->nvertices,Stat->width);
-      exit(1);
-    }
-  }
-
-  // Go thru each index present and save a label
-  for (ani=0; ani <= animax; ani++) {
-
-    if (label_index >= 0 && ani != label_index) {
-      continue ;
-    }
-    if (nperannot[ani] == 0) {
-      printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
-      continue;
-    }
-
-    if (labelbase != NULL) {
-      sprintf(labelfile,"%s-%03d.label",labelbase,ani);
-    }
-    if (outdir != NULL)  {
-      int req = snprintf(labelfile,1000,"%s/%s.%s.label",outdir,hemi,
-			 Surf->ct->entries[ani]->name);
-      if( req >= 1000 ) {
-	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-
-    printf("%3d  %5d %s\n",ani,nperannot[ani],labelfile);
-    label = annotation2label(ani, Surf);
-    if(label == NULL) {
-      ErrorPrintf(ERROR_BADPARM, "index %d not found, cannot write %s - skipping",
-                  ani, labelfile) ;
-      continue ;
-    }
-    strcpy(label->subject_name,subject);
-
-    if(Stat) {
-      for(k=0; k < label->n_points; k++) {
-        vtxno = label->lv[k].vno;
-        label->lv[k].stat = MRIgetVoxVal(Stat,vtxno,0,0,0);
-      }
-    }
-
-    LabelWrite(label,labelfile);
-    LabelFree(&label);
-  }
+  __annotation2label();
 
   return(0);
 }
@@ -719,3 +653,121 @@ static int singledash(char *flag)
   return(0);
 }
 
+
+// call annotation2label()
+static void __annotation2label()
+{
+  /* Determine which indices are present in the file by
+     examining the index at each vertex */
+  int animax = -1;
+  int vtxani;
+  for (int vtxno = 0; vtxno < Surf->nvertices; vtxno++) {
+    // get the annotation (rgb packed into an int)
+    int ano = Surf->vertices[vtxno].annotation;
+    // From annotation, get index into color table
+    CTABfindAnnotation(Surf->ct, ano, &vtxani);
+    nperannot[vtxani] ++;
+    if (animax < vtxani) {
+      animax = vtxani;
+    }
+  }
+  printf("max index = %d\n",animax);
+
+  // Load statistic file
+  if(StatFile) {
+    printf("Loading stat file %s\n",StatFile);
+    Stat = MRIread(StatFile);
+    if(Stat == NULL) {
+      exit(1);
+    }
+    if(Stat->width != Surf->nvertices) {
+      printf("ERROR: dimension mismatch between surface (%d) and stat (%d)\n",
+             Surf->nvertices,Stat->width);
+      exit(1);
+    }
+  }
+
+  // Go thru each index present and save a label
+  for (int ani=0; ani <= animax; ani++) {
+
+    if (label_index >= 0 && ani != label_index) {
+      continue ;
+    }
+    if (nperannot[ani] == 0) {
+      printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
+      continue;
+    }
+
+    if (labelbase != NULL) {
+      sprintf(labelfile,"%s-%03d.label",labelbase,ani);
+    }
+    if (outdir != NULL)  {
+      int req = snprintf(labelfile,1000,"%s/%s.%s.label",outdir,hemi,
+			 Surf->ct->entries[ani]->name);
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+
+    printf("%3d  %5d %s\n",ani,nperannot[ani],labelfile);
+    label = annotation2label(ani, Surf);
+    if(label == NULL) {
+      ErrorPrintf(ERROR_BADPARM, "index %d not found, cannot write %s - skipping",
+                  ani, labelfile) ;
+      continue ;
+    }
+    strcpy(label->subject_name,subject);
+
+    if(Stat) {
+      for(int k=0; k < label->n_points; k++) {
+        int vtxno = label->lv[k].vno;
+        label->lv[k].stat = MRIgetVoxVal(Stat,vtxno,0,0,0);
+      }
+    }
+
+    LabelWrite(label,labelfile);
+    LabelFree(&label);
+  }
+}
+
+
+// call annotation2labelV2()
+static void __annotation2labelV2()
+{
+  printf("calling annotation2labelV2() ...\n");
+
+  int nlabels = 0;
+  LABEL **labels = annotation2labelV2(Surf, label_index, StatFile, &nlabels);
+  for (int nlabel = 0; nlabel < nlabels; nlabel++)
+  {
+    if (labels[nlabel] == NULL)
+      continue;
+
+    strcpy(labels[nlabel]->subject_name, subject);
+
+    // get annotation from first label point, retrieve labelindex to LUT
+    int labelindex = -1;
+    int annot = Surf->vertices[labels[nlabel]->lv[0].vno].annotation;
+    CTABfindAnnotation(Surf->ct, annot, &labelindex);
+
+    char labelfile[1024];
+    if (labelbase != NULL)
+      sprintf(labelfile, "%s-%03d.label", labelbase, labelindex);
+ 
+    if (outdir != NULL)
+    {
+      int req = snprintf(labelfile, 1000, "%s/%s.%s.label", outdir, hemi, labels[nlabel]->name);
+      if( req >= 1000 )
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
+    printf("%3d  %5d %s\n", labelindex, labels[nlabel]->n_points, labelfile);
+
+    LabelWrite(labels[nlabel], labelfile);
+
+    // free the memory
+     LabelFree(&labels[nlabel]);
+  }
+
+  free(labels);
+}
