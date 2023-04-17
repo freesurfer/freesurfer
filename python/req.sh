@@ -112,7 +112,7 @@ if [ $generate -eq 1 ]; then
    rm -f temp_req.list.all && touch temp_req.list.all
 
    # ./temp_req.py
-   ./temp_req.py | sed 's;),;)\n;g' | sed 's;^\[;;' | sed 's;\]$;;' | sed 's;^ ;;' | sed 's;'\'';;g' | sed 's;[)(];;g' | sed 's;, ;==;' | sort | uniq  >> temp_req.list.all
+   ./temp_req.py | sed 's;),;)\n;g' | sed 's;^\[;;' | sed 's;\]$;;' | sed 's;^ ;;' | sed 's;'\'';;g' | sed 's;[)(];;g' | sed 's;, ;==;' | sort -d | uniq  >> temp_req.list.all
 
    # filter out current entries in requirements-extra.txt
    rm -f temp_req.list.filter_extra && touch temp_req.list.filter_extra
@@ -135,8 +135,8 @@ if [ $generate -eq 1 ]; then
    wc -l temp_req.list.all.pruned temp_req.list.extra
 
    rm -f requirements-build.txt requirements-extra-build.txt
-   cat temp_req.list.all.pruned | sort | uniq > requirements-build.txt
-   cat temp_req.list.extra | sort | uniq > requirements-extra-build.txt
+   cat temp_req.list.all.pruned | sort -d | uniq > requirements-build.txt
+   cat temp_req.list.extra | sort -d | uniq > requirements-extra-build.txt
 
    # FIX UP
 
