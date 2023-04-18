@@ -136,11 +136,16 @@ int MRISurfOverlay::__readOneOverlay(OverlayInfoStruct *overlayInfo, int read_vo
     overlayFormat = getFileFormat(overlayInfo->__foverlay);
 
   overlayInfo->__format = overlayFormat;
+#if 0  
+  // file in curv format will have MRI_VOLUME_TYPE_UNKNOWN if it is not found
+  // MRISreadCurvatureFile() will also try to find the file in surf/ directory
+  // don't exit now
   if (overlayFormat == MRI_VOLUME_TYPE_UNKNOWN)
   {
     printf("ERROR MRISurfOverlay::read() - unsupported overlay input type\n");
     return ERROR_BADFILE;
   }
+#endif
 
   if (!usemri)
   {
