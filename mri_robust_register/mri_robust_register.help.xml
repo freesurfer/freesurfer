@@ -118,6 +118,8 @@ Note: most cost functions require the image backgrounds to be black! Also, only 
       <explanation>with ROBENT: write movable entropy image.</explanation>
      <argument>--powelltol &lt;real&gt;</argument>
       <explanation>with MI,NMI etc: set Powell tolerance (default 0.00001 = 1e-5).</explanation>
+     <argument>--sobel</argument>
+      <explanation>register Sobel magnitude images (default no)</explanation>
       
 
       <argument>--nosym</argument>
