@@ -391,6 +391,10 @@ static COLOR_TABLE *makeColorTable(std::map<int, float*> &unique_annot_map, cons
         ct->entries[label_index]->ai = 255;
       }
 
+      printf("%d %s %d (%d %d %d %d)\n",
+             label_index, ct->entries[label_index]->name, it->first,
+             ct->entries[label_index]->ri, ct->entries[label_index]->gi, ct->entries[label_index]->bi, ct->entries[label_index]->ai);
+
       it++;
       label_index++;
     }
@@ -2195,10 +2199,6 @@ int MRISwriteGIFTIRGBAVector(MRIS *mris, gifti_image *image, int intent_code)
         continue;
 
       int annot = mris->vertices[vertex_index].annotation;
-      int r1, g1, b1;
-      r1 = annot & 0x0000ff;
-      g1 = (annot >> 8) & 0x0000ff;
-      b1 = (annot >> 16) & 0x0000ff;
 
       int r, g, b;
       MRISAnnotToRGB(annot, r, g, b);

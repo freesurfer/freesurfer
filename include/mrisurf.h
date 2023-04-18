@@ -1647,6 +1647,8 @@ unsigned long MRISeraseOutsideOfSurface(float h,
    value and MRISAnnotToRGB separates an annotation value into an
    r,g,b tuple.
    Duplicated macros are defined in colortab.h as AnnotToRGB and RGBToAnnot
+   annotation => RGB are also calculated in CTABfindAnnotation(), CTABgetAnnotationName()
+   RGB => annotation are also calculated in CTABrgb2Annotation(), CTABannotationAtIndex()
  */
 #define MRISAnnotToRGB(annot,r,g,b)             \
   r = annot & 0xff ;                            \

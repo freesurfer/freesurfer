@@ -761,11 +761,12 @@ static void label2annotationV2()
   // create MRI (nvertices x (nlabels+4) x 1 x 1) to track labels assigned to each vertex
   // the MRI is used a 2D int array with these columns:
   //      col 0      col 1            col 2               col 3       col 4    ...   col (4+nlabels) 
-  //    annotation  labelno.   nlabel-mapped-to-vertex    stat       labelno.  ...     labelno.
+  //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat     labelno.  ...     labelno.
   //   
   //   col 0 and col 1 is the final annotation and labelno. assigned to the vertex;
   //   col 4 to (4+nlabels) record all labelno. assigned to the vertex
-  // 
+  //   * col 3 should be float
+  //
   std::vector<int> shape{mris->nvertices, (nlabels+4), 1, 1};
   MRI *labelStat =  new MRI(shape, MRI_INT);
   if (labelStat == NULL)
@@ -861,7 +862,11 @@ static void label2annotationV2()
         MRIsetVoxVal(labelStat, vtxno, 0, 0, 0, label_annot);
         MRIsetVoxVal(labelStat, vtxno, 1, 0, 0, nthlabel);
         MRIsetVoxVal(labelStat, vtxno, 2, 0, 0, MRIgetVoxVal(labelStat, vtxno, 2, 0, 0)+1);
-        MRIsetVoxVal(labelStat, vtxno, 3, 0, 0, label->lv[n].stat);
+
+        // this should be a float
+        int stat =  MRIgetVoxVal(labelStat, vtxno, 3, 0, 0);
+        MRIsetVoxVal(labelStat, vtxno, 3, 0, 0, (label->lv[n].stat > stat) ?  label->lv[n].stat : stat);
+
         MRIsetVoxVal(labelStat, vtxno, 4+nthlabel, 0, 0, nthlabel);
       }
 
