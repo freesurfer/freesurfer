@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
   parser.addHelp(mris_annot_diff_help_xml, mris_annot_diff_help_xml_len);
   parser.addArgument("annot1");
   parser.addArgument("annot2");
+  parser.addArgument("--verbose",   0, Bool, false);
   parser.addArgument("--diff-ctab", 0, Bool, false);
   parser.parse(argc, argv);
 
@@ -32,6 +33,8 @@ int main(int argc, char *argv[])
   if (nvertices1 != nvertices2)
     fs::fatal() << "annotation sizes (" << nvertices1 << " and " << nvertices2 << ") do not match";
 
+  bool verbose = parser.retrieve<bool>("verbose");
+
   // load annot files
   MRIS *surf1 = MRISoverAlloc(nvertices1, 0, nvertices1, 0);
   MRIS *surf2 = MRISoverAlloc(nvertices2, 0, nvertices2, 0);
@@ -49,14 +52,17 @@ int main(int argc, char *argv[])
     {
       ndiffs++;
 
-      int r1, g1, b1;
-      MRISAnnotToRGB(ano1, r1, g1, b1);
+      if (verbose)
+      {
+        int r1, g1, b1;
+        MRISAnnotToRGB(ano1, r1, g1, b1);
 
-      int r2, g2, b2;
-      MRISAnnotToRGB(ano2, r2, g2, b2);
+        int r2, g2, b2;
+        MRISAnnotToRGB(ano2, r2, g2, b2);
 
-      printf("[INFO] annotation differs at vtxno %d (%d and %d), (%d,%d,%d and %d,%d,%d)\n",
-             vtxno, ano1, ano2, r1, g1, b1, r2, g2, b2);
+        printf("[INFO] annotation differs at vtxno %d (%d and %d), (%d,%d,%d and %d,%d,%d)\n",
+               vtxno, ano1, ano2, r1, g1, b1, r2, g2, b2);
+      }
     }
   }
 
@@ -66,10 +72,14 @@ int main(int argc, char *argv[])
     fs::error() << "found " << ndiffs << " differences between annotations";
     error = 1;
   }
+  else
+    printf("No Annotation difference found!\n");
 
   bool diff_ctab = parser.retrieve<bool>("diff-ctab");
   if (!diff_ctab)
     exit(error);
+
+  printf("\n");
 
   int nctabdiffs = 0;
   COLOR_TABLE *ctab1 = surf1->ct;
@@ -77,10 +87,11 @@ int main(int argc, char *argv[])
   int todiff = ctab1->nentries;
   if (ctab1->nentries != ctab2->nentries)
   {
-    printf("[INFO] colortab number of entries (%d and %d) do not match\n", ctab1->nentries, ctab2->nentries);
     nctabdiffs++;
     todiff = (ctab1->nentries < ctab2->nentries) ? ctab1->nentries : ctab2->nentries;
     error = 1;
+    if (verbose)
+      printf("[INFO] colortab number of entries (%d and %d) do not match\n", ctab1->nentries, ctab2->nentries);
   }
 
   for (int n = 0; n < todiff; n++)
@@ -89,15 +100,17 @@ int main(int argc, char *argv[])
     COLOR_TABLE_ENTRY *cte2 = ctab2->entries[n];
     if ((cte1 == NULL && cte2 != NULL) || (cte1 != NULL && cte2 == NULL))
     {
-      printf("[INFO] colortab entry %d, don't match\n", n);
       nctabdiffs++;
+      if (verbose)
+        printf("[INFO] colortab entry %d, don't match\n", n);
     }
     else if (cte1 != NULL && cte2 != NULL)
     {
       if (strcmp(cte1->name, cte2->name) != 0)
       {
-        printf("[INFO] colortab entry %d, label name (%s and %s) don't match\n", n, cte1->name, cte2->name);
         nctabdiffs++;
+        if (verbose)
+          printf("[INFO] colortab entry %d, label name (%s and %s) don't match\n", n, cte1->name, cte2->name);
       }
 
       if (cte1->ri != cte2->ri ||
@@ -105,8 +118,9 @@ int main(int argc, char *argv[])
           cte1->bi != cte2->bi ||
           cte1->ai != cte2->ai)
       {
-        printf("[INFO] colortab entry %d, RGBi (%d,%d,%d,%d and %d,%d,%d,%d) don't match\n", n, cte1->ri, cte1->gi, cte1->bi, cte1->ai, cte2->ri, cte2->gi, cte2->bi, cte2->ai);
         nctabdiffs++;
+        if (verbose) 
+          printf("[INFO] colortab entry %d, RGBi (%d,%d,%d,%d and %d,%d,%d,%d) don't match\n", n, cte1->ri, cte1->gi, cte1->bi, cte1->ai, cte2->ri, cte2->gi, cte2->bi, cte2->ai);
       }
       
       if (cte1->rf != cte2->rf ||
@@ -114,16 +128,18 @@ int main(int argc, char *argv[])
           cte1->bf != cte2->bf ||
           cte1->af != cte2->af)
       {
-        printf("[INFO] colortab entry %d, RGBf (%.6f,%.6f,%.6f,%.6f and %.6f,%.6f,%.6f,%.6f) don't match\n", n, cte1->rf, cte1->gf, cte1->bf, cte1->af, cte2->rf, cte2->gf, cte2->bf, cte2->af);
         nctabdiffs++;
+        if (verbose)
+          printf("[INFO] colortab entry %d, RGBf (%.6f,%.6f,%.6f,%.6f and %.6f,%.6f,%.6f,%.6f) don't match\n", n, cte1->rf, cte1->gf, cte1->bf, cte1->af, cte2->rf, cte2->gf, cte2->bf, cte2->af);
       }
     }
   }
 
   if (nctabdiffs > 0)
     fs::fatal() << "found " << nctabdiffs << " differences between color tables";
+  else
+    printf("No color tables difference found!\n");
 
-  printf("No difference found!\n");
   exit(0);
 
 #if 0
