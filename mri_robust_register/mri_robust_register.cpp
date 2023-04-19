@@ -123,6 +123,7 @@ struct Parameters
   string entdst;
   bool entball;
   bool entcorrection;
+  bool sobel;
   double powelltol;
   bool whitebgmov;
   bool whitebgdst;
@@ -134,7 +135,7 @@ static struct Parameters P =
     NULL, NULL, false, false, true, false, 1, -1, false, 0.16, true, true, "",
     "", -1, -1, Registration::ROB,
 //  256,
-    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, 1e-5, false, false,false};
+    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, false, 1e-5, false, false,false};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -1569,6 +1570,18 @@ static void initRegistration(Registration & R, Parameters & P)
           P.maskmov.c_str());
   }
   
+  if (P.sobel)
+  {
+    cout << "Converting mov to sobel magnitute image ..." << endl;
+    MRI * temp = mri_mov;
+    mri_mov = MRIalloc(temp->width, temp->height, temp->depth, MRI_FLOAT);
+    mri_mov = MRIcopyHeader(temp, mri_mov);
+    mri_mov->type = MRI_FLOAT;
+    MRIsobel(temp, NULL, mri_mov);
+    //MRIwrite(mri_mov,"sobel-mov.mgz");
+    MRIfree(&temp);
+  }
+  
   if (P.entropy)
   {
     MRI * temp = mri_mov;
@@ -1624,6 +1637,18 @@ static void initRegistration(Registration & R, Parameters & P)
     if (!mri_mask)
       ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
           P.maskdst.c_str());
+  }
+  
+  if (P.sobel)
+  {
+    cout << "Converting dst to sobel magnitute image ..." << endl;
+    MRI * temp = mri_dst;
+    mri_dst = MRIalloc(temp->width, temp->height, temp->depth, MRI_FLOAT);
+    mri_dst = MRIcopyHeader(temp, mri_dst);
+    mri_dst->type = MRI_FLOAT;
+    MRIsobel(temp, NULL, mri_dst);
+    //MRIwrite(mri_dst,"sobel-dst.mgz");
+    MRIfree(&temp);
   }
   
   if (P.entropy)
@@ -1977,6 +2002,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.entmov = string(argv[1]);
     nargs = 1;
     cout << "--entmov: Output entropy mov image as " << P.entmov << endl;
+  }
+  else if (!strcmp(option, "SOBEL"))
+  {
+    P.sobel = true;
+    nargs = 0;
+    cout << "--sobel: Using Sobel magnitude images."<< endl;
   }
   else if (!strcmp(option, "MAXIT"))
   {
