@@ -121,6 +121,7 @@ static int func_file_flag = 0 ;
 static char *func_fname = NULL;
 static int annot_file_flag = 0 ;
 static char *annot_fname = NULL;
+static int writect = 1;
 static int gifti_da_num = -1;
 static int label_file_flag = 0 ;
 static char *label_fname = NULL;
@@ -531,12 +532,14 @@ static MRIS *__splitGIFTI(const char *fgifti, const char *outdir, const char *fo
 
 static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname)
 {
+  bool mergegifti = (mergegifti_flag) ? true : false;
+
   MRISurfOverlay *fsOverlay = new MRISurfOverlay(mris, noverlay, foverlays);
-  int error = fsOverlay->read(TRUE, mris);
+  int error = fsOverlay->read(TRUE, mris, mergegifti);
   if (error != NO_ERROR)
     return;
 
-  fsOverlay->write(out_fname, mris, (mergegifti_flag) ? true : false);
+  fsOverlay->write(mris, out_fname, mergegifti);
 }
 
 
@@ -642,27 +645,12 @@ static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label
 
 static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname)
 {
-    // first read the annotation/gifti label data...
-    int type = MRISfileNameType(fannot);
-    if (type == MRIS_ANNOT_FILE)
+    if (MRISreadAnnotation(mris, fannot) != NO_ERROR)
     {
-      if (MRISreadAnnotation(mris, fannot) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (NULL == mrisReadGIFTIdanum(fannot, mris, giftiDaNum))
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for --annot: %s\n", fannot);
+      printf("ERROR: failed to read annotation %s\n", fannot);
       exit(1);
     }
+
     // read parcstats text file (pairs of parc labels and stat values) and
     // save value associated with that parc label into the vertex with that
     // parc (annot) label
@@ -698,7 +686,7 @@ static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, c
         }
       }
       // now write the 'curv' data (the parc stats we just assigned) to file
-      type = MRISfileNameType(out_fname) ;
+      int type = MRISfileNameType(out_fname) ;
       if (type == MRIS_ASCII_FILE)
       {
         mrisWriteAsciiCurvatureFile(mris, out_fname);
@@ -713,28 +701,12 @@ static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, c
         MRISwriteCurvature(mris, out_fname) ;
       }
       exit(0);
-    }
+    } // if (parcstats != NULL)
 
     // if fall through, then write annot file
-    type = MRISfileNameType(out_fname);
-    if (type == MRIS_ANNOT_FILE)
+    if (MRISwriteAnnotation(mris, out_fname, (writect) ? true : false) != NO_ERROR)
     {
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else if (type == MRIS_GIFTI_FILE)
-    {
-      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
-      {
-        exit(1);
-      }
-    }
-    else
-    {
-      printf("ERROR: unknown file annot file type specified for output: "
-             "%s\n",out_fname);
+      printf("ERROR: failed to write annotation %s\n", out_fname);
       exit(1);
     }
 }
@@ -805,6 +777,11 @@ get_option(int argc, char *argv[])
     annot_fname = argv[2] ;
     annot_file_flag = 1;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "-no-writect"))
+  {
+    // hidden flag to output annotation as gifti NIFTI_INTENT_RGBA_VECTOR
+    writect = 0;
   }
   else if (!stricmp(option, "-label2mask")) {
     MRIS *surf = MRISread(argv[2]);

@@ -34,8 +34,8 @@
       <argument>--surfvals surfvalspath</argument>
       <explanation>Pass input explicitly rather than computing it</explanation>
       <argument>--k1</argument>
-      <explanation>Use k1 from surface</explanation>
-      <argument>--curv-nonmaxsup</argument>
+      <explanation>Use k1 from surface (not with --curv-nonmaxsup)</explanation>
+      <argument>--curv-nonmaxsup (not with --k1)</argument>
       <explanation>Use curvature H computed from surface with non-max suppression</explanation>
       <argument>--gyrus</argument>
       <explanation>skeletonize the crowns of the gyri (with --k1 or --curv-nonmaxsup)</explanation>
@@ -46,7 +46,7 @@
     </required>
 
     <optional>
-      <argument>--o outdir</argument>
+      <argument>--outdir outdir</argument>
       <explanation>Save all outputs into outdir (names will be supplied)</explanation>
       <argument>--sphere spherepath</argument>
       <explanation>sphere, only needed for nonmax suppression</explanation>
@@ -59,7 +59,7 @@
       <argument>--nbrsize N</argument>
       <explanation>Neighborhood size for 2nd FF (default is 2) </explanation>
       <argument>--threshold threshold</argument>
-      <explanation>Used to create initial mask that will be skeletonized.</explanation>
+      <explanation>Used to create initial mask that will be skeletonized (typically about 0.3).</explanation>
       <argument>--cluster nkeep</argument>
       <explanation>Cluster the thresholded input and keep the largets nkeep clusters</explanation>
       <argument>--fwhm fwhm</argument>

@@ -30,6 +30,8 @@
 #include "json.h"
 using json = nlohmann::json;
 
+struct OverlayInfoStruct;
+
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
 #define CONTRAST_FLAIR 2
@@ -644,22 +646,16 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris,
                                         const  char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris,
                                      const  char *mris_fname) ;
-int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname) ;
+int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname, MRI *curvmri=NULL, std::vector<OverlayInfoStruct> *poverlayinfo=NULL) ;
 float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris,
                                          const  char *sname) ;
-int          MRISreadNewCurvatureIntoArray(const char *fname,
-                                           int in_array_size,
-                                           float** out_array) ;
 float        *MRISreadCurvatureVector(MRI_SURFACE *mris,const  char *sname) ;
-int          MRISreadCurvatureIntoArray(const char *fname,
-                                        int in_array_size,
-                                        float** out_array) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
-int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *curvmri=NULL);
 int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname);
-MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri=NULL, int nframe=0);
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *curvmri=NULL);
 
 MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *typestring,
@@ -668,16 +664,10 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *hemi,
                       const char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISreadValuesIntoArray(const char *fname,
-                                     int in_array_size,
-                                     float** out_array) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices) ;
 int          MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices);
-int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISreadAnnotationIntoArray(const char *fname,
-                                         int in_array_size,
-                                         int** out_array);
+int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname, bool writect=true) ;
 int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
                                                  COLOR_TABLE** out_table);
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
@@ -717,7 +707,7 @@ int          MRISwriteICO(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteSTL(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISwriteCurvature(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteCurvature(MRI_SURFACE *mris, const  char *fname, const char *curv_name=NULL) ;
 int          MRISreadNewCurvatureFile(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
 #define NORM_NONE  -1
@@ -1655,7 +1645,11 @@ unsigned long MRISeraseOutsideOfSurface(float h,
 /* Some utility functions to handle reading and writing annotation
    values. MRISRGBToAnnot stuffs an r,g,b tuple into an annotation
    value and MRISAnnotToRGB separates an annotation value into an
-   r,g,b tuple. */
+   r,g,b tuple.
+   Duplicated macros are defined in colortab.h as AnnotToRGB and RGBToAnnot
+   annotation => RGB are also calculated in CTABfindAnnotation(), CTABgetAnnotationName()
+   RGB => annotation are also calculated in CTABrgb2Annotation(), CTABannotationAtIndex()
+ */
 #define MRISAnnotToRGB(annot,r,g,b)             \
   r = annot & 0xff ;                            \
   g = (annot >> 8) & 0xff ;                     \

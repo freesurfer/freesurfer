@@ -173,6 +173,10 @@ int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found);
 int CTABrandom(COLOR_TABLE *ct);
 int CTABunique(COLOR_TABLE *ct, int nmax);
 
+/* Duplicated macros are defined in mrisurf.h as MRISAnnotToRGB and MRISRGBToAnnot
+ * annotation => RGB are also calculated in CTABfindAnnotation(), CTABgetAnnotationName()
+ * RGB => annotation are also calculated in CTABrgb2Annotation(), CTABannotationAtIndex()
+ */
 #define AnnotToRGB(annot,r,g,b)             \
   r = annot & 0xff ;                            \
   g = (annot >> 8) & 0xff ;                     \
@@ -189,5 +193,6 @@ int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname);
 COLOR_TABLE *CTABreadASCIIttHeader(const char *fname);
 int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge);
 int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist) ;
+int CTABaddUniqueEntryAtEnd(COLOR_TABLE *ct, char *name, int *ctabindex);
 
 #endif

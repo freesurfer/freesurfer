@@ -103,7 +103,8 @@ def generate_slice_delay_file(sdf, nslices, order, ngroups):
     print(f"ERROR: cannot divide nslices={nslices} by ngroups={ngroups}")
     sys.exit(0)
 
-  nslicespg = nslices/ngroups
+  # This ratio should always be an int. Should to an error check to assure
+  nslicespg = int(nslices/ngroups)
 
   print(f"sdf {sdf}")
   print(f"nslices {nslices}")

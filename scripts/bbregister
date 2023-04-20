@@ -327,7 +327,7 @@ if($DoPass1) then
   if($InitSurfCostOnly) set cmd = ($cmd --init-surf-cost-only);
   if($UseEPIMask) set cmd = ($cmd --mask);
   if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
-  if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
+  if($#VSM) set cmd = ($cmd --vsm $VSM);
   if($IncludeZeroVoxels) set cmd = ($cmd --include-zero-voxels)
   if($#TargetVol) set cmd = ($cmd --target-volume $TargetVol)
   if($#RandInitMax) then
@@ -366,7 +366,7 @@ if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
 if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
-if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
+if($#VSM) set cmd = ($cmd --vsm $VSM);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
@@ -581,6 +581,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $VSM"
         exit 1;
       endif
+      set UseEPIMask = 1; # Turn on EPI B0 mask by default
       breaksw
 
     case "--reg":
@@ -966,6 +967,9 @@ while( $#argv != 0 )
 
     case "--epi-mask":
       set UseEPIMask = 1;
+      breaksw
+    case "--no-epi-mask":
+      set UseEPIMask = 0;
       breaksw
 
     case "--no-cortex-label":

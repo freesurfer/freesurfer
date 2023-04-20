@@ -83,7 +83,7 @@ set UseB0DC = 0;
 set ApplySubCortMask = 1;
 set PerSession = 0;
 set PerRun = 0;
-
+set OverrideTR = 0
 set force = 0;
 
 set cmdargs = ($argv);
@@ -163,6 +163,7 @@ echo "designtype $DesignType" | tee -a $flac
 if($#TPExcludeFile) echo "tpexclude $TPExcludeFile" | tee -a $flac
 echo "nskip $NSkip" | tee -a $flac
 if($#PolyFit) echo "polyfit $PolyFit" | tee -a $flac
+if($OverrideTR) echo "OverrideTR 1" | tee -a $flac
 echo "HPFCutoffHz $HPFCutoffHz" | tee -a $flac
 echo "HeteroGCor $HeteroGCor" | tee -a $flac
 # LPF is Experimental
@@ -339,6 +340,13 @@ while( $#argv != 0 )
     case "-TR":
       if($#argv < 1) goto arg1err;
       set TR = $argv[1]; shift;
+      breaksw
+
+    case "-auto-tr":
+    case "-auto-TR":
+    case "-override-tr":
+      set TR = 1;
+      set OverrideTR = 1
       breaksw
 
     case "-nuisreg": # External regressor file
@@ -855,6 +863,7 @@ usage_exit:
   echo "  -notask : use external and/or nuisance regressors only"
   echo "  -paradigm  ParName      : name of paradigm file (needed for ER and ret)"
   echo "  -TR   TR                : TR value in seconds"
+  echo "  -auto-TR                : get TR from data (allows for different sessions to have different TRs)"
   echo ""
   echo "Event-Related and Blocked Design Arguments "
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"

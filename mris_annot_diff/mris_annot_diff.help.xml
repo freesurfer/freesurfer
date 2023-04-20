@@ -1,5 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
-  <name>mris_annot_diff</name>
-  <usage>mris_annot_diff [options] &lt;annot1&gt; &lt;annot2&gt;</usage>
-  <description>Compare two surface annotation files.</description>
+
+	<name>mris_annot_diff</name>
+	<description>Compare two surface annotation files. The program works with .annot only.</description>
+  <arguments>
+
+    <required>
+      <intro>Required parameters:</intro>
+      <argument>annot1</argument>
+      <explanation>input .annot file 1</explanation>
+      <argument>annot2</argument>
+      <explanation>input .annot file 2</explanation>
+    </required>
+
+    <optional>
+      <argument>--diff-ctab</argument>
+      <explanation>diff colortable included in .annot</explanation>
+      <argument>--verbose</argument>
+      <explanation>print details of annotation/colortable differences</explanation>
+    </optional>
+
+  </arguments>
+
 </help>

@@ -37,7 +37,7 @@
       <argument>--reg register.{dat,lta}</argument>
       <explanation>Output FreeSurfer registration file (tkregister-style or LTA format).</explanation>
       <argument>--vsm VoxelShiftMap </argument>
-      <explanation>Include B0 distortion correction while performing registration. A voxel shift map can be created from a B0 map with the epidewarp.fsl script (in FreeSurfer)</explanation>
+      <explanation>Include B0 distortion correction while performing registration. A voxel shift map can be created from a B0 map with the epidewarp.fsl script (in FreeSurfer). Automatically turns on epi B0 mask; so run with --no-epi-mask if you do not want that.</explanation>
       <intro>Initialization Arguments</intro>
       <argument>--init-coreg (Default)</argument>
       <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>
@@ -112,6 +112,8 @@
       <explanation>2nd stage, use nearest neighbor interp (defalt is trilinear)</explanation>
       <argument>--epi-mask</argument>
       <explanation>mask out brain edge and B0 regions (1st and 2nd stages)</explanation>
+      <argument>--no-epi-mask</argument>
+      <explanation>Turn off epi B0 mask</explanation>
       <argument>--no-cortex-label</argument>
       <explanation>Do not use ?h.cortex.label to mask. </explanation>
       <argument>--label labelfile</argument>

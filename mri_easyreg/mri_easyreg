@@ -349,8 +349,8 @@ def main():
     print('All done')
     print(' ')
     print('If you use EasyReg in your analysis, please cite:')
-    print('EasyReg: A ready-to-use deep learning tool for symmetric affine and nonlinear brain MRI registration.')
-    print('JE Iglesias. Under revision.')
+    print('A ready-to-use machine learning tool for symmetric multi-modality registration of brain MRI.')
+    print('JE Iglesias. Scientific Reports, accepted for publication.')
     print('https://doi.org/10.21203/rs.3.rs-2444602/v1')
     print(' ')
 
