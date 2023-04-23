@@ -23,7 +23,7 @@ google-pasta==0.2.0
 grpcio==1.54.0
 idna==3.4
 imageio==2.27.0
-importlib-metadata==6.5.1
+importlib-metadata==6.6.0
 importlib-resources==5.12.0
 jax==0.4.8
 joblib==1.2.0
