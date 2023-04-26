@@ -1,9 +1,5 @@
 #! /bin/tcsh -f
 
-# TODO: remove this when integrated into FreeSurfer
-setenv FREESURFER_HOME /usr/local/freesurfer/7.3.0
-source $FREESURFER_HOME/SetUpFreeSurfer.csh
-
 set tcsh61706 = (`tcsh --version | grep "6\.17\.06"`)
 if ("$tcsh61706" != "") then
   echo ""
@@ -13,10 +9,8 @@ if ("$tcsh61706" != "") then
   set anyerror
 endif
 
-set rootdir=`dirname $0`
-set abs_rootdir=`cd $rootdir && pwd`
-set PYTHON_SCRIPT_DIR=$abs_rootdir/python
-set MODEL=$abs_rootdir/mri_model.h5
+set PYTHON_SCRIPT_DIR=`./python`
+set MODEL=`mri_model.h5`
 
 # If no arguments given
 # If requesting help
@@ -133,16 +127,16 @@ if(-e $IsRunningFile) then
 endif
 
 # If everything is in place, let's do it! First, we create the directories we need
-mkdir $SUBJECTS_DIR/$SNAME
-mkdir $SUBJECTS_DIR/$SNAME/label
-mkdir $SUBJECTS_DIR/$SNAME/mri
-mkdir $SUBJECTS_DIR/$SNAME/mri/transforms
-mkdir $SUBJECTS_DIR/$SNAME/scripts
-mkdir $SUBJECTS_DIR/$SNAME/stats
-mkdir $SUBJECTS_DIR/$SNAME/surf
-mkdir $SUBJECTS_DIR/$SNAME/tmp
-mkdir $SUBJECTS_DIR/$SNAME/touch
-mkdir $SUBJECTS_DIR/$SNAME/trash
+mkdir -p $SUBJECTS_DIR/$SNAME
+mkdir -p $SUBJECTS_DIR/$SNAME/label
+mkdir -p $SUBJECTS_DIR/$SNAME/mri
+mkdir -p $SUBJECTS_DIR/$SNAME/mri/transforms
+mkdir -p $SUBJECTS_DIR/$SNAME/scripts
+mkdir -p $SUBJECTS_DIR/$SNAME/stats
+mkdir -p $SUBJECTS_DIR/$SNAME/surf
+mkdir -p $SUBJECTS_DIR/$SNAME/tmp
+mkdir -p $SUBJECTS_DIR/$SNAME/touch
+mkdir -p $SUBJECTS_DIR/$SNAME/trash
 
 # Next, we create the IsRunning file
 echo "------------------------------" > $IsRunningFile
@@ -705,5 +699,3 @@ echo "TODO: add Karthik's preprint here!"
 echo " "
 
 exit 0
-
-
