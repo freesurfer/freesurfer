@@ -321,6 +321,7 @@ void ArgumentParser::parse(size_t ac, char** av)
   for (ArgumentVector::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {
     Argument arg = *it;
     if (arg.required && !exists(arg.canonicalName())) {
+      outputHelpXml(helptext, helptextsize);
       fs::fatal(2) << "missing required input '" << arg.canonicalName() << "'";
     }
   }

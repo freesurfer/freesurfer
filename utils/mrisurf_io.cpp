@@ -23,7 +23,7 @@
 #include "mrisurf_base.h"
 
 #include "mrisutils.h"
-
+#include "MRISurfOverlay.h"
 
 #define QUAD_FILE_MAGIC_NUMBER (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER (-2 & 0x00ffffff)
@@ -41,6 +41,9 @@ static int MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int
 static int MRISreadNewCurvatureIntoArray(const char *fname, int in_array_size, float** out_array);
 static int MRISreadCurvatureIntoArray(const char *fname, int in_array_size, float** out_array);
 static int MRISreadValuesIntoArray(const char *fname, int in_array_size, float** out_array) ;
+
+static int __mrisreadcurvmri(MRIS *mris, const char *fname, int type, int read_volume, MRI *curvmri);
+static int __mrisreadcurvoldformat(MRIS *mris, const char *fname, MRI *curvmri);
 
 static int __mrisreadannot(const char *fannot, MRIS *mris);
 static int __mrisreadseg2annot(const char *fannot, MRIS *mris);
@@ -263,14 +266,10 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 is a volume format (eg, mgz), then it will use MRIwrite(). Can
 save in VTK as well. 
 */
-int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
+int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_name)
 {
-  int k, mritype;
-  float curv;
   char fname[STRLEN], path[STRLEN], name[STRLEN];
   const char *hemi;
-  const char *cp;
-  FILE *fp;
 
   switch (mris->hemisphere) {
     case LEFT_HEMISPHERE:
@@ -286,7 +285,8 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
       hemi = "unknown";
       break;
   }
-  cp = strchr(sname, '/');
+  
+  const char *cp = strchr(sname, '/');
   if (!cp) /* no path - use same one as mris was read from */
   {
     FileNamePath(mris->fname, path);
@@ -343,57 +343,62 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     fprintf(stdout, "writing curvature file %s\n", fname);
   }
 
-  mritype = mri_identify(sname);
+  int mritype = mri_identify(fname);
+  int mristype = MRISfileNameType(fname);
+  if (mristype == MRIS_ASCII_FILE)
+    mritype = ASCII_FILE;
 
-  if (mritype == MRI_MGH_FILE) {
-    int vno;
-    MRI *TempMRI;
-    VERTEX *v;
+  if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
+       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
+      (mritype != ASCII_FILE && mritype != VTK_FILE)) 
+    mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
-    TempMRI = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT);
-    if (TempMRI == NULL) {
+  int error = NO_ERROR;
+  if (mritype == MRI_MGH_FILE)
+  {
+    MRI *TempMRI = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT);
+    if (TempMRI == NULL)
       return (ERROR_NOMEMORY);
-    }
-    vno = 0;
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
-      if (vno == Gdiag_no) {
+
+    for (int vno = 0; vno < mris->nvertices; vno++)
+    {
+      VERTEX *v = &mris->vertices[vno];
+      if (vno == Gdiag_no)
         DiagBreak();
-      }
+
       MRIsetVoxVal(TempMRI, vno, 0, 0, 0, v->curv);
     }
 
     MRIwrite(TempMRI, fname);
     MRIfree(&TempMRI);
-    return (NO_ERROR);
   }
-  else if (mritype == VTK_FILE) {
+  else if (mritype == VTK_FILE)
+  {
     MRISwriteVTK(mris, fname);
     MRISwriteCurvVTK(mris, fname);
-    return (NO_ERROR);
   }
-
-  int mristype = MRISfileNameType(sname);
-  if (mristype == MRIS_ASCII_FILE)
+  else if (mritype == ASCII_FILE)
+    error = mrisWriteAsciiCurvatureFile(mris, fname);
+  else if (mritype == GIFTI_FILE)
+    error = MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, fname, curv_name);
+  else
   {
-    mrisWriteAsciiCurvatureFile(mris, fname);
-    return (NO_ERROR);
-  }
+    // output curv new format
+    FILE *fp = fopen(fname, "wb");
+    if (fp == NULL)
+      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", fname));
 
-  // output curv new format
-  fp = fopen(fname, "wb");
-  if (fp == NULL) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", fname));
-
-  fwrite3(-1, fp); /* same old trick - mark it as new format */
-  fwriteInt(mris->nvertices, fp);
-  fwriteInt(mris->nfaces, fp);
-  fwriteInt(1, fp); /* 1 value per vertex */
-  for (k = 0; k < mris->nvertices; k++) {
-    curv = mris->vertices[k].curv;
-    fwriteFloat(curv, fp);
+    fwrite3(-1, fp); /* same old trick - mark it as new format */
+    fwriteInt(mris->nvertices, fp);
+    fwriteInt(mris->nfaces, fp);
+    fwriteInt(1, fp); /* 1 value per vertex */
+    for (int k = 0; k < mris->nvertices; k++) {
+      float curv = mris->vertices[k].curv;
+      fwriteFloat(curv, fp);
+    }
+    fclose(fp);
   }
-  fclose(fp);
-  return (NO_ERROR);
+  return error;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -1499,7 +1504,16 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   MRISclearAnnotations(mris);
 
   int mritype = mri_identify(fname);
-  if (mritype == MRI_MGH_FILE)
+  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
+  {
+    // attempt as .annot
+    strcat(fname, ".annot");
+    mritype = MGH_ANNOT;
+  }
+
+  if (mritype == MGH_ANNOT)
+    error = __mrisreadannot(fname, mris);
+  else if (mritype == MRI_MGH_FILE)
     error = __mrisreadseg2annot(fname, mris);
   else if (mritype == GIFTI_FILE)
   {
@@ -1509,10 +1523,8 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   }
   else
   {
-    if (mritype != MGH_ANNOT)
-      strcat(fname, ".annot");
-
-    error = __mrisreadannot(fname, mris);
+    printf("ERROR: unknown annotation file format %s\n", fname);
+    error = ERROR_BADFILE;
   }
 
   return error;
@@ -1842,7 +1854,7 @@ int MRISisCTABPresentInAnnotation(const char *fname, int *present)
 }
 
 /*-----------------------------------------------------*/
-int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
+int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
 {
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
   
@@ -1907,8 +1919,20 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   int error = NO_ERROR;
 
   int mritype = mri_identify(fname);
-  if (mritype == GIFTI_FILE)
-    error = MRISwriteGIFTI(mris, NIFTI_INTENT_LABEL, fname, NULL);
+  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
+  {
+    // attempt as .annot
+    strcat(fname, ".annot");
+    mritype = MGH_ANNOT;
+  }
+
+  if (mritype == MGH_ANNOT)
+    error = __mriswriteannot(mris, fname);
+  else if (mritype == GIFTI_FILE)
+  {
+    int gifti_intent = (writect) ? NIFTI_INTENT_LABEL : NIFTI_INTENT_RGBA_VECTOR; 
+    error = MRISwriteGIFTI(mris, gifti_intent, fname, NULL);
+  }
   else if (mritype == MRI_MGH_FILE)
   {
     printf("MRISurfAnnotation::writeAnnotation((): writing %s as a surface seg\n", fname);
@@ -1930,10 +1954,8 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
   }
   else
   {
-    if (mritype != MGH_ANNOT)
-      strcat(fname, ".annot");
-
-    error = __mriswriteannot(mris, fname);
+    printf("ERROR: unknown output annotation file format %s\n", fname);
+    error = ERROR_BADFILE;
   }
 
   return error;
@@ -2967,7 +2989,7 @@ int MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri, int nframe)
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *curvmri)
 {
   char line[STRLEN], *cp = NULL;
 
@@ -3210,8 +3232,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname, MRI *outmri, int 
                 v->curv = f;  // fill-in both curvature and scalar data fields
                 v->val = f;
 
-                if (outmri != NULL)
-                  MRIsetVoxVal(outmri, vno, 0, 0, nframe, f);
+                if (curvmri != NULL)
+                  MRIsetVoxVal(curvmri, vno, 0, 0, 0, f);
 
                 if (isCurvData) {
                   // printf("%f\n",v->curv);
@@ -5089,7 +5111,7 @@ int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname)
 
   Description
   ------------------------------------------------------*/
-int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri, int nframe)
+int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *curvmri)
 {
   FILE *fp;
   int vno;
@@ -5120,8 +5142,8 @@ int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname, MRI *outmri
                    fname,
                    line));
 
-    if (outmri != NULL)
-      MRIsetVoxVal(outmri, vno, 0, 0, nframe, v->curv);
+    if (curvmri != NULL)
+      MRIsetVoxVal(curvmri, vno, 0, 0, 0, v->curv);
   }
 
   fclose(fp);
@@ -5159,21 +5181,11 @@ int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
 }
 
 
-int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
+int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, std::vector<OverlayInfoStruct> *poverlayinfo)
 {
-  int k, i, vnum, fnum;
-  float curv = 0, curvmin, curvmax;
-  FILE *fp;
-  const char *cp;
-  char path[STRLEN], fname[STRLEN], type;
-  int mritype, frame, nv, c, r, s, vno;
-  MRI *TempMRI;
+  char path[STRLEN], fname[STRLEN];
 
-
-
-
-
-  cp = strchr(sname, '/');
+  const char *cp = strchr(sname, '/');
   if (!cp) /* no path - use same one as mris was read from */
   {
     if (getenv("FS_POSIX")) {
@@ -5206,7 +5218,39 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   else {
     strcpy(fname, sname); /* path specified explicitly */
   }
-  mritype = mri_identify(sname);
+
+  int read_volume = TRUE;
+
+  // determine curvature file type
+  int mritype = mri_identify(fname);
+  int mristype = MRISfileNameType(fname);
+  if (mristype == MRIS_ASCII_FILE)
+    mritype = ASCII_FILE;
+
+  if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
+       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
+      (mritype != ASCII_FILE && mritype != VTK_FILE)) 
+    mritype = MRI_VOLUME_TYPE_UNKNOWN;
+
+  int error = NO_ERROR;
+  if (mritype == VTK_FILE)
+    mris = MRISreadVTK(mris, fname);
+  else if (mritype == MRI_MGH_FILE || mritype == MRI_CURV_FILE)
+    error = __mrisreadcurvmri(mris, fname, mritype, read_volume, curvmri);
+  else if (mritype == ASCII_FILE)
+    error = mrisReadAsciiCurvatureFile(mris, fname, curvmri);
+  else if (mritype == GIFTI_FILE)
+    mris = mrisReadGIFTIfile(fname, mris, poverlayinfo);
+  else
+    error = __mrisreadcurvoldformat(mris, fname, curvmri);
+
+  if (mris == NULL)
+    error = ERROR_BADFILE;
+
+  return error;
+    
+
+#if 0
   if (mritype == GIFTI_FILE) {
     mris = mrisReadGIFTIfile(fname, mris);
     if (mris) {
@@ -5351,7 +5395,143 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   }
   fclose(fp);
   return (NO_ERROR);
+#endif
 }
+
+
+int __mrisreadcurvmri(MRIS *mris, const char *fname, int type, int read_volume, MRI *curvmri)
+{
+  // only MRI_CURV_FILE and MRI_MGH_FILE are allowed here
+  int frame = MRISgetReadFrame();
+
+  // MRI_CURV_FILE will be read in as MRI - MRISreadCurvAsMRI();
+  // MRI_MGH_FILE - mghRead()
+  MRI *TempMRI = NULL;
+  if (type == MRI_MGH_FILE)
+    TempMRI = mghRead(fname, read_volume, -1);
+  else if (type == MRI_CURV_FILE)
+    TempMRI = MRISreadCurvAsMRI(fname, read_volume);
+
+  if (TempMRI == NULL)
+    return (ERROR_BADFILE);
+
+  if (TempMRI->nframes <= frame) {
+    printf("ERROR: attempted to read frame %d from %s\n", frame, fname);
+    printf("  but this file only has %d frames.\n", TempMRI->nframes);
+    return (ERROR_BADFILE);
+  }
+
+  int nv = TempMRI->width * TempMRI->height * TempMRI->depth;
+  if (nv != mris->nvertices) {
+    printf("ERROR: number of vertices in %s does not match surface (%d,%d)\n", fname, nv, mris->nvertices);
+    return (1);
+  }
+
+  int vno = 0;
+  float curvmin = 10000.0f;
+  float curvmax = -10000.0f; /* for compiler warnings */
+  for (int f = 0; f < TempMRI->nframes; f++) {
+    for (int s = 0; s < TempMRI->depth; s++) {
+      for (int r = 0; r < TempMRI->height; r++) {
+        for (int c = 0; c < TempMRI->width; c++) {
+          float curv = MRIgetVoxVal(TempMRI, c, r, s, frame);
+          if (s == 0 && r == 0 && c == 0)
+            curvmin = curvmax = curv;
+
+          if (curv > curvmax)
+            curvmax = curv;
+
+          if (curv < curvmin)
+            curvmin = curv;
+
+          mris->vertices[vno].curv = curv;
+          if (curvmri != NULL)
+            MRIsetVoxVal(curvmri, c, r, s, f, curv);
+
+          vno++;
+        }
+      }
+    }
+  }
+
+  MRIfree(&TempMRI);
+  mris->max_curv = curvmax;
+  mris->min_curv = curvmin;
+
+  return (NO_ERROR);
+}
+
+
+/*
+ * function to read old curvature format
+ *
+ * here is the file format:
+ *   int vnum (nvertices)
+ *   int fnum (nfaces)
+ *   int curv x nvertices, curv recalculated as curv/100.0
+ */
+int __mrisreadcurvoldformat(MRIS *mris, const char *fname, MRI *curvmri)
+{
+  int vnum, fnum;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "reading curvature file (old format) ...");
+  }
+
+  FILE *fp = fopen(fname, "r");
+  if (fp == NULL) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "__mrisreadoldcurvaturefile(): could not open %s", fname));
+
+  
+  fread3(&vnum, fp);
+  /*
+   * if (vnum == NEW_VERSION_MAGIC_NUMBER) {
+   *  // If the first 4 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
+   *  // and mri_identify() identifies it as MRI_CURV_FILE, which should be handled earlier already.
+   *  // this should be treated as an error if it reaches here
+   *  fclose(fp);
+   *  return (MRISreadNewCurvatureFile(mris, fname));
+   * }
+   */
+
+  fread3(&fnum, fp);
+  if (vnum != mris->nvertices) {
+    fclose(fp);
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE,
+                 "__mrisreadoldcurvaturefile(): incompatible vertex "
+                 "number in file %s",
+                 fname));
+  }
+  float curvmin = 10000.0f;
+  float curvmax = -10000.0f; /* for compiler warnings */
+  for (int k = 0; k < vnum; k++) {
+    int i;
+    fread2(&i, fp);
+    float curv = i / 100.0;
+
+    if (k == 0) {
+      curvmin = curvmax = curv;
+    }
+    if (curv > curvmax) {
+      curvmax = curv;
+    }
+    if (curv < curvmin) {
+      curvmin = curv;
+    }
+    mris->vertices[k].curv = curv;
+    if (curvmri != NULL)
+      MRIsetVoxVal(curvmri, k, 0, 0, 0, curv);
+  }
+  mris->max_curv = curvmax;
+  mris->min_curv = curvmin;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "done. min=%2.3f max=%2.3f\n", curvmin, curvmax);
+  }
+  fclose(fp);
+
+  return NO_ERROR;
+}
+
 
 /*-----------------------------------------------------
   Parameters:

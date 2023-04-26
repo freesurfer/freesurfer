@@ -1386,6 +1386,8 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels,
 
 float MRIvolumeDeterminant(MRI *mri);
 
+MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
+
 int mriio_command_line(int argc, char *argv[]);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);
 int MRIgetVolumeName(const char *string, char *name_only);

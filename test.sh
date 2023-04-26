@@ -25,6 +25,7 @@
 #
 # Test output can be compared against reference data with the following functions:
 #
+#     compare_bin   - wraps unix cmp command
 #     compare_file  - wraps the standard unix diff command
 #     compare_vol   - wraps mri_diff
 #     compare_surf  - wraps mris_diff
@@ -251,6 +252,11 @@ function run_comparison {
     else
         eval_cmd "$@"
     fi
+}
+
+# runs cmp on an output and reference file - all extra opts are passed to diff
+function compare_bin {
+    run_comparison cmp $@
 }
 
 # runs a standard diff on an output and reference file - all extra opts are passed to diff

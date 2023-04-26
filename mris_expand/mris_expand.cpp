@@ -134,7 +134,7 @@ main(int argc, char *argv[])
     else
       printf("expanding surface %s by percentages in %s "
 	     "and writing it to %s\n",
-	     in_fname, tmap_fname, out_fname) ;
+	     in_fname, FZERO(tmap_std) ? tmap_fname : "random", out_fname) ;
   }
   else
     printf("expanding surface %s by %2.1f mm and writing it to %s\n",

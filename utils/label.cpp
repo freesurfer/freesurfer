@@ -4232,3 +4232,13 @@ LABEL *LabelRemoveHolesAndIslandsSurf(MRIS *surf, LABEL *lb)
   free(stat);
   return(tmplabel2);
 }
+
+
+// sort LV label vertex table by vertex number in increasing order
+int LabelVertexTableSortByVtxno(const void *p1, const void *p2)
+{
+  int vno1 = ((LV*)p1)->vno;
+  int vno2 = ((LV*)p2)->vno;
+
+  return (vno1 > vno2) ? 1 : 0;
+}

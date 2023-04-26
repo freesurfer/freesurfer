@@ -53,6 +53,13 @@ typedef struct
 static ATABLE_ELT *atable;
 static int num_entries = 0;
 
+struct AnnotTable
+{
+  int vtxno;
+  int annot;
+};
+
+
 /*-----------------------------------------------*/
 int print_annotation_table(FILE *fp)
 {
@@ -357,6 +364,140 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   }
   return (label);
 }
+
+
+// sort AnnotTable by annot value in decreasing order
+static int AnnotTableSortByAnnot(const void *p1, const void *p2)
+{
+  int annot1 = ((AnnotTable*)p1)->annot;
+  int annot2 = ((AnnotTable*)p2)->annot;
+
+  return (annot1 > annot2) ? 0 : 1;
+}
+
+
+/*
+ * Return extracted label files as LABEL **, # of label files is returned in *nlabels.
+ * 
+ * The function implements extract label files from annotations.
+ *   1. build annotation table - nvertices x (vtxno, annotation)
+ *   2. sort the table by annotation in decreasing order,
+ *      after the sort, vertices with same annotation are grouped together
+ *   3. count # of unique labels (annotations), and # of points per label
+ *   4. build LABEL array for each label found, vertices are sorted in increasing order
+ *      if annotation is not found in given LUT, name it 'UnknownLabel#N'
+ */
+LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *nlabels)
+{
+  MRI  *Stat = NULL;
+
+  // Load statistic file
+  if (statfile)
+  {
+    printf("Loading stat file %s\n", statfile);
+    Stat = MRIread(statfile);
+    if (Stat == NULL)
+      exit(1);
+
+    if(Stat->width != Surf->nvertices)
+    {
+      printf("ERROR: dimension mismatch between surface (%d) and stat (%d)\n", Surf->nvertices, Stat->width);
+      exit(1);
+    }
+  }
+
+  // build annotation table
+  AnnotTable annotTable[Surf->nvertices];
+  memset(annotTable, 0, sizeof(AnnotTable) * Surf->nvertices);
+
+  for (int vtxno = 0; vtxno < Surf->nvertices; vtxno++)
+  {
+    // unassigned vertices annot <= 0
+    int annot = Surf->vertices[vtxno].annotation;
+
+    annotTable[vtxno].vtxno = vtxno;
+    annotTable[vtxno].annot  = annot;
+  }
+
+  // sort annotTable by annot in decreasing order
+  qsort(annotTable, Surf->nvertices, sizeof(AnnotTable), AnnotTableSortByAnnot);
+
+  // count # of unique labels (annotations), and # of points per label
+  *nlabels = 0;   // reset the counter
+  int npoints = 0, prev_annot = -1, curr_annot = -1;
+  std::vector<int> npointsPerLabel;
+  for (int n = 0; n < Surf->nvertices; n++)
+  {
+    curr_annot = annotTable[n].annot;
+    if (prev_annot != curr_annot)
+    {
+      // save number of points for the label if we got one already
+      if (*nlabels > 0)
+      {
+        npointsPerLabel.push_back(npoints);
+        npoints = 0;
+      }
+
+      // check if we are at the last assigned vertex yet
+      if (curr_annot <= 0)
+        break;   // found all the labels, done processing
+
+      (*nlabels)++;
+      prev_annot = curr_annot;
+    }
+
+    npoints++;
+  }
+
+  // build label files
+  LABEL **labels = new LABEL*[*nlabels];
+  int annotTable_index = 0;
+  for (int nlabel = 0; nlabel < *nlabels; nlabel++)
+  {
+    labels[nlabel] = NULL;
+
+    // labelindex = -1 if annot is not found in Surf->ct
+    int labelindex = -1;
+    CTABfindAnnotation(Surf->ct, annotTable[annotTable_index].annot, &labelindex);
+    if (lbindex >=0 && lbindex != labelindex)
+    {
+      annotTable_index += npointsPerLabel[nlabel];
+      continue;
+    }
+
+    // Allocate the label
+    labels[nlabel] = LabelAlloc(npointsPerLabel[nlabel], "", "");
+    labels[nlabel]->n_points = npointsPerLabel[nlabel];
+
+    if (labelindex < 0)  // annotation not found in given LUT
+      sprintf(labels[nlabel]->name, "UnknownLabel#%d", nlabel);
+    else
+      sprintf(labels[nlabel]->name, "%s", Surf->ct->entries[labelindex]->name);
+
+    // assign next labels[nlabel]->n_points annotations in sorted annotTable to current label
+    for (int n = 0; n < labels[nlabel]->n_points; n++)
+    {
+      int vno = annotTable[annotTable_index].vtxno;
+      VERTEX *vtx = &(Surf->vertices[vno]);
+
+      labels[nlabel]->lv[n].vno = vno;
+      labels[nlabel]->lv[n].x = vtx->x;
+      labels[nlabel]->lv[n].y = vtx->y;
+      labels[nlabel]->lv[n].z = vtx->z;
+
+      if (Stat != NULL)
+        labels[nlabel]->lv[n].stat = MRIgetVoxVal(Stat, vno, 0, 0, 0);
+
+      annotTable_index++;
+    } // n_points
+
+    // sort labels[nlabel]->lv in increasing order
+    qsort(labels[nlabel]->lv, labels[nlabel]->n_points, sizeof(LV), LabelVertexTableSortByVtxno);
+  } // nlabels
+
+  return labels;
+}
+
 
 int set_atable_from_ctable(COLOR_TABLE *pct)
 {

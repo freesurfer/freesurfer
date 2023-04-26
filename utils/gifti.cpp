@@ -391,6 +391,10 @@ static COLOR_TABLE *makeColorTable(std::map<int, float*> &unique_annot_map, cons
         ct->entries[label_index]->ai = 255;
       }
 
+      printf("%d %s %d (%d %d %d %d)\n",
+             label_index, ct->entries[label_index]->name, it->first,
+             ct->entries[label_index]->ri, ct->entries[label_index]->gi, ct->entries[label_index]->bi, ct->entries[label_index]->ai);
+
       it++;
       label_index++;
     }
@@ -415,7 +419,7 @@ static COLOR_TABLE *makeColorTable(std::map<int, float*> &unique_annot_map, cons
                  if daNum is not -1, then read only the
                  data in data array number daNum
   -------------------------------------------------------------------*/
-MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, int *frame, std::vector<OverlayInfoStruct> *poverlayinfo)
+MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<OverlayInfoStruct> *poverlayinfo)
 {
   /*
    * attempt to read the file
@@ -676,7 +680,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
 
     /* Set some meta data in the mris. */
     strcpy(mris->fname, fname);
-    mris->type = MRIS_TRIANGULAR_SURFACE;
+    mris->type = MRIS_TRIANGULAR_SURFACE;  // ??? is this correct ???
     char *hemi = gifti_get_meta_value(&coords->meta, "AnatomicalStructurePrimary");
     if (hemi && (strcmp(hemi, "CortexRight") == 0)) {
       mris->hemisphere = RIGHT_HEMISPHERE;
@@ -951,10 +955,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
    * Now re-parse the DataArrays looking for all the other data type (except
    * coordinate and face data arrays) and fill-in mris structure as needed.
    */
+  int nOverlay = 0;                 // track if multiple shape, stat/val data arrays exits
+  MRI *overlayMRI = NULL;           // allocated for each overlay
+  OverlayInfoStruct statInfo;
+  int nStatIntentFrame = 0;         // track number of MRI frames belonging to same stat
+
   int found_curv_data = 0;          // track if multiple shape data arrays exist
   int found_statval_data = 0;       // track if multiple stat/val data arrays exist
   int prev_stat_intent = -1;
-  OverlayInfoStruct statInfo;
   giiDataArray *node_index = NULL;  // support for sparse data storage
   long long num_index_nodes = 0;    // support for sparse data storage
   int startDAnum = 0;
@@ -1054,7 +1062,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
      */
     if (darray->intent == NIFTI_INTENT_SHAPE) {
       // 'shape' data goes in our 'curv' data element of mris
-      if (found_curv_data && outmri == NULL) {
+      if (found_curv_data && poverlayinfo == NULL) {
         fprintf(stderr,
                 "WARNING: a prior data array of shape data has already "
                 "been read!  Skipping data in array #%d in file %s\n",
@@ -1064,9 +1072,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       else {
         found_curv_data++;
 
-        if (outmri != NULL)
-          fprintf(stderr, "INFO: %s data in array #%d in file %s saved as MRI frame #%d\n",
-                          gifti_intent_to_string(darray->intent), numDA, fname, *frame);
+        if (poverlayinfo != NULL)
+	{
+          fprintf(stderr, "INFO: %s data in array #%d in file %s saved as MRI\n",
+                          gifti_intent_to_string(darray->intent), numDA, fname);
+
+          std::vector<int> shape{mris->nvertices, 1, 1, 1};
+          overlayMRI = new MRI(shape, MRI_FLOAT);
+	}
 
         if (node_index)  // sparse data storage
         {
@@ -1077,8 +1090,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
               continue;
             }
             mris->vertices[vno].curv = (float)gifti_get_DA_value_2D(darray, nindex, 0);
-            if (outmri != NULL)
-              MRIsetVoxVal(outmri, vno, 0, 0, *frame, mris->vertices[vno].curv);
+            if (overlayMRI != NULL)
+              MRIsetVoxVal(overlayMRI, vno, 0, 0, 0, mris->vertices[vno].curv);
           }
         }
         else  // regular indexing
@@ -1089,12 +1102,12 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
               continue;
             }
             mris->vertices[vno].curv = (float)gifti_get_DA_value_2D(darray, vno, 0);
-            if (outmri != NULL)
-              MRIsetVoxVal(outmri, vno, 0, 0, *frame, mris->vertices[vno].curv);
+            if (overlayMRI != NULL)
+              MRIsetVoxVal(overlayMRI, vno, 0, 0, 0, mris->vertices[vno].curv);
           }
         }
 
-        if (outmri == NULL)
+        if (poverlayinfo == NULL)
           continue;
 
         
@@ -1127,12 +1140,11 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         if (metashapedatatype != NULL)
           strcpy(overlayInfo.__shapedatatype, metashapedatatype);
         overlayInfo.__format = GIFTI_FILE;
-        overlayInfo.__stframe = *frame;
-        overlayInfo.__numframe = 1;
+        overlayInfo.__overlaymri = overlayMRI;
 
         (*poverlayinfo).push_back(overlayInfo);
 
-        (*frame)++;
+        nOverlay++;
       }
     } // NIFTI_INTENT_SHAPE
     else if (darray->intent == NIFTI_INTENT_LABEL) {
@@ -1241,8 +1253,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         int r, g, b;
 
         float red = (float)gifti_get_DA_value_2D(darray, vno, 0);
-        float green = (float)gifti_get_DA_value_2D(darray, vno, 0);
-        float blue = (float)gifti_get_DA_value_2D(darray, vno, 0);
+        float green = (float)gifti_get_DA_value_2D(darray, vno, 1);
+        float blue = (float)gifti_get_DA_value_2D(darray, vno, 2);
 
         if (red > 1) {
           r = (int)red;
@@ -1276,6 +1288,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
         std::map<int, float*>::iterator it = unique_annot_map.find(mris->vertices[vno].annotation);
         if (it == unique_annot_map.end())
 	{
+          // map key/value pair: annotation/(r, g, b)
           float *rgb = new float[3];
           rgb[0] = red; rgb[1] = green; rgb[2] = blue;
           unique_annot_map[mris->vertices[vno].annotation] = rgb;
@@ -1283,7 +1296,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       }
 
       // make a color lookup table with unique annotation from dataarray
-      makeColorTable(unique_annot_map, fname);
+      mris->ct = makeColorTable(unique_annot_map, fname);
     } // NIFTI_INTENT_RGB_VECTOR || NIFTI_INTENT_RGBA_VECTOR
     else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
       fprintf(stderr,
@@ -1294,7 +1307,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
     else {
       // 'statistics' and all other kinds of data we'll put in both our
       // 'stat' and 'val' data elements of the mris structure
-      if (found_statval_data && outmri == NULL) {
+      if (found_statval_data && poverlayinfo == NULL) {
         fprintf(stderr,
                 "WARNING: a prior data array of stat/val data has already "
                 "been read!  Skipping data in array #%d in file %s\n",
@@ -1304,9 +1317,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
       else {
         found_statval_data++;
 
-        if (outmri != NULL)
-          fprintf(stderr, "INFO: %s data in array #%d in file %s saved as MRI frame #%d\n",
-                          gifti_intent_to_string(darray->intent), numDA, fname, *frame);
+        if (poverlayinfo != NULL)
+	{
+          fprintf(stderr, "INFO: %s data in array #%d in file %s saved as MRI\n",
+                          gifti_intent_to_string(darray->intent), numDA, fname);
+
+          std::vector<int> shape{mris->nvertices, 1, 1, 1};
+          overlayMRI = new MRI(shape, MRI_FLOAT);
+	}
 
         if (node_index)  // sparse data storage
         {
@@ -1318,8 +1336,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
             }
             mris->vertices[vno].val = (float)gifti_get_DA_value_2D(darray, nindex, 0);
             mris->vertices[vno].stat = (float)gifti_get_DA_value_2D(darray, nindex, 0);
-            if (outmri != NULL)
-              MRIsetVoxVal(outmri, vno, 0, 0, *frame, mris->vertices[vno].stat);
+            if (overlayMRI != NULL)
+              MRIsetVoxVal(overlayMRI, vno, 0, 0, nStatIntentFrame, mris->vertices[vno].stat);
           }
         }
         else  // regular indexing
@@ -1331,17 +1349,19 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
             }
             mris->vertices[vno].val = (float)gifti_get_DA_value_2D(darray, vno, 0);
             mris->vertices[vno].stat = (float)gifti_get_DA_value_2D(darray, vno, 0);
-            if (outmri != NULL)
-              MRIsetVoxVal(outmri, vno, 0, *frame, 0, mris->vertices[vno].stat);
+            if (overlayMRI != NULL)
+              MRIsetVoxVal(overlayMRI, vno, 0, nStatIntentFrame, 0, mris->vertices[vno].stat);
           }
         }
 
-        if (outmri == NULL)
+        if (poverlayinfo == NULL)
           continue;
 
         if (prev_stat_intent != darray->intent)
 	{
-          // save SHAPE information
+          nStatIntentFrame = 0;   // reset
+
+          // save STAT information
           if (prev_stat_intent != -1)
             (*poverlayinfo).push_back(statInfo);
 
@@ -1351,15 +1371,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
           statInfo.__giftiIntent = darray->intent;
           memset(statInfo.__shapedatatype, 0, sizeof(statInfo.__shapedatatype));
           statInfo.__format = GIFTI_FILE;
-          statInfo.__stframe = *frame;
-          statInfo.__numframe = 1;
+          statInfo.__overlaymri = overlayMRI;
 
           prev_stat_intent = darray->intent;
 	}
         else
-          statInfo.__numframe++;
+          nStatIntentFrame++;
 
-        (*frame)++;
+        nOverlay++;
       }
     } // 'statistics' and all other kinds of data
   } // for each DAnum
@@ -1385,10 +1404,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, MRI *outmri, 
      first <STATS> is saved in mris->val and mris->stat;
      all SHAPE and <STATS> data arrays are saved as multi-frame MRI
   -----------------------------------------------------------*/
-MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, MRI *outmri, int *frame, std::vector<OverlayInfoStruct> *poverlayinfo)
+MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, std::vector<OverlayInfoStruct> *poverlayinfo)
 {
   // default read routine (read all data arrays)
-  return mrisReadGIFTIdanum(fname, mris, -1, outmri, frame, poverlayinfo);
+  return mrisReadGIFTIdanum(fname, mris, -1, poverlayinfo);
 }
 
 /*-----------------------------------------------------------
@@ -1767,6 +1786,15 @@ int MRISwriteGIFTIIntent(MRIS *mris, int intent_code, gifti_image *image, const 
   }  // end of if NIFTI_INTENT_LABEL
 
   /* -------------------------------------------------------
+   * RGBA file
+   */
+  if (intent_code == NIFTI_INTENT_RGBA_VECTOR) {
+    int error = MRISwriteGIFTIRGBAVector(mris, image, intent_code); 
+    if (error != NO_ERROR)
+      return error;    
+  }  // end of if NIFTI_INTENT_RGBA_VECTOR
+
+  /* -------------------------------------------------------
    * Statistics file
    */
   if (intent_code == NIFTI_INTENT_CORREL || intent_code == NIFTI_INTENT_TTEST || intent_code == NIFTI_INTENT_FTEST ||
@@ -2115,6 +2143,75 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
 
     return NO_ERROR;
 } // end of MRISwriteGIFTILabel()
+
+
+/*
+ * RGBA file
+ *       output NIFTI_INTENT_RGBA_VECTOR
+ */
+int MRISwriteGIFTIRGBAVector(MRIS *mris, gifti_image *image, int intent_code)
+{
+    /*
+     * RGBA
+     */
+    giiDataArray *rgba = gifti_alloc_and_add_darray(image);
+    if (NULL == rgba) {
+      fprintf(stderr, "MRISwriteGIFTIRGBAVector(): couldn't allocate giiDataArray\n");
+      gifti_free_image(image);
+      return ERROR_NOMEMORY;
+    }
+
+    /* Set its attributes. */
+    rgba->intent = NIFTI_INTENT_RGBA_VECTOR;
+    rgba->datatype = NIFTI_TYPE_FLOAT32;
+    rgba->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+    rgba->num_dim = 2;
+    rgba->dims[0] = mris->nvertices;        /* In highest first, dim0 = rows */
+    rgba->dims[1] = 4;                      /* In highest first, dim1 = cols */
+    rgba->encoding = GIFTI_ENCODING_B64GZ;  // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+    rgba->endian = GIFTI_ENDIAN_LITTLE;
+#else
+    rgba->endian = GIFTI_ENDIAN_BIG;
+#endif
+
+    rgba->coordsys = NULL;             // empty, unless we find something here...
+    rgba->nvals = gifti_darray_nvals(rgba);
+    gifti_datatype_sizes(rgba->datatype, &rgba->nbyper, NULL);
+
+    /* Allocate the data array. */
+    rgba->data = NULL;
+    rgba->data = (void *)calloc(rgba->nvals, rgba->nbyper);
+    if (NULL == rgba->data) {
+      fprintf(stderr,
+              "MRISwriteGIFTIRGBAVector(): couldn't allocate rgba data of "
+              "length %d, element size %d\n",
+              (int)rgba->nvals,
+              rgba->nbyper);
+      gifti_free_image(image);
+      return ERROR_NOMEMORY;
+    }
+
+    /* Copy in all our data. */
+    int vertex_index;
+    for (vertex_index = 0; vertex_index < mris->nvertices; vertex_index++) {
+      if (mris->vertices[vertex_index].ripflag)
+        continue;
+
+      int annot = mris->vertices[vertex_index].annotation;
+
+      int r, g, b;
+      MRISAnnotToRGB(annot, r, g, b);
+
+      gifti_set_DA_value_2D(rgba, vertex_index, 0, (float)r/255.0);
+      gifti_set_DA_value_2D(rgba, vertex_index, 1, (float)g/255.0);
+      gifti_set_DA_value_2D(rgba, vertex_index, 2, (float)b/255.0);
+      gifti_set_DA_value_2D(rgba, vertex_index, 3, 1.0f);
+    }
+
+    return NO_ERROR;
+} // end of MRISwriteGIFTIRGBAVector()
+
 
 
 /*
@@ -2513,7 +2610,7 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
 
 
 
-int MRISwriteGIFTI(MRIS* mris, const MRI *mri, int stframe, int endframe, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype)
+int MRISwriteGIFTI(MRIS* mris, const MRI *mri, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype)
 {
   if (NULL == mris || NULL == out_fname) {
     fprintf(stderr, "MRISwriteGIFTI: invalid parameter\n");
@@ -2533,7 +2630,7 @@ int MRISwriteGIFTI(MRIS* mris, const MRI *mri, int stframe, int endframe, int in
   }
 
   // 
-  int error = MRISwriteGIFTIIntent(mris, mri, stframe, endframe, image, intent_code, out_fname, curv_fname, datatype);
+  int error = MRISwriteGIFTIIntent(mris, mri, image, intent_code, out_fname, curv_fname, datatype);
   if (error != NO_ERROR)
     return error;
 
@@ -2564,7 +2661,7 @@ int MRISwriteGIFTI(MRIS* mris, const MRI *mri, int stframe, int endframe, int in
 } // end of MRISwriteGIFTI(MRIS *mris, const MRI *mri, ...)
 
 
-int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *out_fname)
+int MRISwriteGIFTICombined(MRIS *mris, std::vector<OverlayInfoStruct> *poverlays, const char *out_fname)
 {
   if (NULL == mris || NULL == out_fname) {
     fprintf(stderr, "MRISwriteGIFTICombined: invalid parameter\n");
@@ -2589,21 +2686,18 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
     return error;  
 
   // write overlays
-  MRI *overlaymri = poverlays->getOverlayMRI();
-  int noverlay = poverlays->getNumOverlay();
+  int noverlay = (*poverlays).size();
   for (int n = 0; n < noverlay; n++)
   {
-    int overlaytype = poverlays->getOverlayType(n);
-    int giftiintent = poverlays->getGIFTIIntent(overlaytype);
-    int stFrame = poverlays->getFirstFrameNo(n);
-    int endFrame = poverlays->getNumFrames(n);
-    for (int f = stFrame; f < endFrame; f++)
-    {
-      const char *shapedatatype = poverlays->getShapeDataType(n);
-      int error = MRISwriteGIFTIIntent(mris, overlaymri, f, f+1, image, giftiintent, out_fname, poverlays->getOverlayFilename(n), shapedatatype);
-      if (error != NO_ERROR)
-        return error;
-    }
+    MRI *overlaymri = (*poverlays)[n].__overlaymri;
+
+    int overlaytype = (*poverlays)[n].__type;
+    int giftiintent = MRISurfOverlay::getGIFTIIntent(overlaytype);
+
+    const char *shapedatatype = (*poverlays)[n].__shapedatatype;
+    int error = MRISwriteGIFTIIntent(mris, overlaymri, image, giftiintent, out_fname, (*poverlays)[n].__foverlay, shapedatatype);
+    if (error != NO_ERROR)
+      return error;
   }
 
   // make sure version is recoded before validation
@@ -2633,7 +2727,7 @@ int MRISwriteGIFTICombined(MRIS *mris, MRISurfOverlay *poverlays, const char *ou
 } // end of MRISwriteGIFTICombined()
 
 
-int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype)
+int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, gifti_image *image, int intent_code, const char *out_fname, const char *curv_fname, const char *datatype)
 {
   /* -------------------------------------------------------
    * Surface file
@@ -2646,7 +2740,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
    * Shape file
    */
   if (intent_code == NIFTI_INTENT_SHAPE) {
-    return MRISwriteGIFTIShape(mris, mri, stframe, endframe, image, intent_code, curv_fname, datatype);
+    return MRISwriteGIFTIShape(mris, mri, image, intent_code, curv_fname, datatype);
   }  // end of if NIFTI_INTENT_SHAPE
 
   /* -------------------------------------------------------
@@ -2669,7 +2763,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
       intent_code == NIFTI_INTENT_CHI || intent_code == NIFTI_INTENT_INVGAUSS || intent_code == NIFTI_INTENT_EXTVAL ||
       intent_code == NIFTI_INTENT_PVAL || intent_code == NIFTI_INTENT_LOGPVAL ||
       intent_code == NIFTI_INTENT_LOG10PVAL || intent_code == NIFTI_INTENT_ESTIMATE) {
-    return MRISwriteGIFTIStats(mris, mri, stframe, endframe, image, intent_code, curv_fname, datatype); 
+    return MRISwriteGIFTIStats(mris, mri, image, intent_code, curv_fname, datatype); 
   }  // end of if NIFTI_INTENT_<stats>
 
   return NO_ERROR;
@@ -2680,7 +2774,7 @@ int MRISwriteGIFTIIntent(MRIS *mris, const MRI *mri, int stframe, int endframe, 
  * Shape file
  *       intent_code = NIFTI_INTENT_SHAPE
  */
-int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *shapedatatype)
+int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, gifti_image *image, int intent_code, const char *curv_fname, const char *shapedatatype)
 {
 #if 0
     // data is in mri
@@ -2692,12 +2786,6 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
       return ERROR_BADFILE;
     }
 #endif
-
-    if ((endframe - stframe) > 1)
-    {
-      printf("ERROR MRISwriteGIFTIShape() MRI have more than one frame (%d - %d)\n", endframe, stframe);
-      return ERROR_BADFILE;
-    }
 
     giiDataArray *shape = gifti_alloc_and_add_darray(image);
     if (NULL == shape) {
@@ -2725,27 +2813,6 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 
     /* include some metadata describing this shape */
     gifti_add_to_meta(&shape->meta, "Name", curv_fname, 1);
-#if 0
-    const char *meta = shapedatatype;
-    if (strstr(curv_fname, ".thickness")) {
-      meta = "Thickness";
-    }
-    if (strstr(curv_fname, ".curv")) {
-      meta = "CurvatureRadial";
-    }
-    if (strstr(curv_fname, ".sulc")) {
-      meta = "SulcalDepth";
-    }
-    if (strstr(curv_fname, ".area")) {
-      meta = "Area";
-    }
-    if (strstr(curv_fname, ".volume")) {
-      meta = "Volume";
-    }
-    if (strstr(curv_fname, ".jacobian")) {
-      meta = "Jacobian";
-    }
-#endif
     if (shapedatatype) {
       gifti_add_to_meta(&shape->meta, "ShapeDataType", shapedatatype, 1);
     }
@@ -2765,20 +2832,17 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
 
     /* Copy in all our data. */
     // loop through MRI crs
-    for (int f = stframe; f < endframe; f++)
+    for (int s = 0; s < mri->depth; s++)
     {
-      for (int s = 0; s < mri->depth; s++)
+      for (int r = 0; r < mri->height; r++)
       {
-        for (int r = 0; r < mri->height; r++)
+        for (int c = 0; c < mri->width; c++)
         {
-          for (int c = 0; c < mri->width; c++)
-	  {
-            if (mris->vertices[c].ripflag)
-              continue;
+          if (mris->vertices[c].ripflag)
+            continue;
 
-            float curv = MRIgetVoxVal(mri, c, r, s, f);
-            gifti_set_DA_value_2D(shape, c, 0, curv);
-          }
+          float curv = MRIgetVoxVal(mri, c, r, s, 0);
+          gifti_set_DA_value_2D(shape, c, 0, curv);
         }
       }
     }
@@ -2800,14 +2864,8 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, int stframe, int endframe, g
  * Statistics file
  *       intent_code = NIFTI_INTENT_<stats>
  */
-int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, gifti_image *image, int intent_code, const char *curv_fname, const char *statsdatatype)
+int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, gifti_image *image, int intent_code, const char *curv_fname, const char *statsdatatype)
 {
-    if ((endframe - stframe) > 1)
-    {
-      printf("ERROR MRISwriteGIFTIStats() MRI have more than one frame (%d - %d)\n", endframe, stframe);
-      return ERROR_BADFILE;
-    }
-
     giiDataArray *stats = gifti_alloc_and_add_darray(image);
     if (NULL == stats) {
       fprintf(stderr, "MRISwriteGIFTIStats: couldn't allocate giiDataArray\n");
@@ -2815,47 +2873,47 @@ int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, g
       return ERROR_NOMEMORY;
     }
 
-    /* Set its attributes. */
-    stats->intent = intent_code;
-    stats->datatype = NIFTI_TYPE_FLOAT32;
-    stats->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
-    stats->num_dim = 1;
-    stats->dims[0] = mris->nvertices;
-    stats->dims[1] = 0;
-    stats->encoding = GIFTI_ENCODING_B64GZ;  // data stored in gzip'd base64
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-    stats->endian = GIFTI_ENDIAN_LITTLE;
-#else
-    stats->endian = GIFTI_ENDIAN_BIG;
-#endif
-    stats->coordsys = NULL;
-    stats->nvals = gifti_darray_nvals(stats);
-    gifti_datatype_sizes(stats->datatype, &stats->nbyper, NULL);
-
-    /* include some metadata describing this thing */
-    gifti_add_to_meta(&stats->meta, "Intent_code", gifti_intent_to_string(intent_code), 1);
-    if (intent_code == NIFTI_INTENT_UNIFORM) {
-      gifti_add_to_meta(&stats->meta, "Intent_p1", "0", 1);  // lower end
-      gifti_add_to_meta(&stats->meta, "Intent_p2", "1", 1);  // upper end
-    }
-
-    /* Allocate the data array. */
-    stats->data = NULL;
-    stats->data = (void *)calloc(stats->nvals, stats->nbyper);
-    if (NULL == stats->data) {
-      fprintf(stderr,
-              "MRISwriteGIFTIStats: couldn't allocate stats data of "
-              "length %d, element size %d\n",
-              (int)stats->nvals,
-              stats->nbyper);
-      gifti_free_image(image);
-      return ERROR_NOMEMORY;
-    }
-
-    /* Copy in all our data. */
-    // loop through MRI crs
-    for (int f = stframe; f < endframe; f++)
+    for (int f = 0; f < mri->nframes; f++)
     {
+      /* Set its attributes. */
+      stats->intent = intent_code;
+      stats->datatype = NIFTI_TYPE_FLOAT32;
+      stats->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+      stats->num_dim = 1;
+      stats->dims[0] = mris->nvertices;
+      stats->dims[1] = 0;
+      stats->encoding = GIFTI_ENCODING_B64GZ;  // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+      stats->endian = GIFTI_ENDIAN_LITTLE;
+#else
+      stats->endian = GIFTI_ENDIAN_BIG;
+#endif
+      stats->coordsys = NULL;
+      stats->nvals = gifti_darray_nvals(stats);
+      gifti_datatype_sizes(stats->datatype, &stats->nbyper, NULL);
+
+      /* include some metadata describing this thing */
+      gifti_add_to_meta(&stats->meta, "Intent_code", gifti_intent_to_string(intent_code), 1);
+      if (intent_code == NIFTI_INTENT_UNIFORM) {
+        gifti_add_to_meta(&stats->meta, "Intent_p1", "0", 1);  // lower end
+        gifti_add_to_meta(&stats->meta, "Intent_p2", "1", 1);  // upper end
+      }
+
+      /* Allocate the data array. */
+      stats->data = NULL;
+      stats->data = (void *)calloc(stats->nvals, stats->nbyper);
+      if (NULL == stats->data) {
+        fprintf(stderr,
+                "MRISwriteGIFTIStats: couldn't allocate stats data of "
+                "length %d, element size %d\n",
+                (int)stats->nvals,
+                stats->nbyper);
+        gifti_free_image(image);
+        return ERROR_NOMEMORY;
+     }
+
+     /* Copy in all our data. */
+     // loop through MRI crs
       for (int s = 0; s < mri->depth; s++)
       {
         for (int r = 0; r < mri->height; r++)
@@ -2870,16 +2928,16 @@ int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, int stframe, int endframe, g
           }
         }
       }
-    }
 #if 0
-    int vno;
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      if (mris->vertices[vno].ripflag) {
-        continue;
+      int vno;
+      for (vno = 0; vno < mris->nvertices; vno++) {
+        if (mris->vertices[vno].ripflag) {
+          continue;
+        }
+        gifti_set_DA_value_2D(stats, vno, 0, mris->vertices[vno].stat);
       }
-      gifti_set_DA_value_2D(stats, vno, 0, mris->vertices[vno].stat);
-    }
 #endif
+    }
 
     return NO_ERROR;
 } // end of MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, ...)
