@@ -25,3 +25,13 @@ install(FILES synthseg_qc_names_2.0.npy DESTINATION models)
 
 install(FILES synthseg_topological_classes.npy DESTINATION models)
 install(FILES synthseg_topological_classes_2.0.npy DESTINATION models)
+
+
+install_symlinks(TYPE files DESTINATION models synthseg_photo_both_1.0.h5)
+install_symlinks(TYPE files DESTINATION models synthseg_photo_single_1.0.h5)
+install(FILES synthseg_segmentation_labels_photo_both_1.0.npy DESTINATION models)
+install(FILES synthseg_segmentation_labels_photo_single_1.0.npy DESTINATION models)
+install(FILES synthseg_segmentation_names_photo_both_1.0.npy DESTINATION models)
+install(FILES synthseg_segmentation_names_photo_single_1.0.npy DESTINATION models)
+install(FILES synthseg_topological_classes_photo_both_1.0.npy DESTINATION models)
+install(FILES synthseg_topological_classes_photo_single_1.0.npy DESTINATION models)

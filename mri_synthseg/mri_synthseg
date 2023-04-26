@@ -52,26 +52,95 @@ def main():
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
     parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
+    parser.add_argument("--photo", help="(optional) Photo-SynthSeg: segment 3D reconstructed stack of coronal dissection photos of the cerebrum; must be left, right, or both")
 
     # check for no arguments
     if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(1)
 
+    # check that freesurfer has been sourced
+    if not os.environ.get('FREESURFER_HOME'):
+        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+    synthseg_home = os.environ.get('FREESURFER_HOME')
+
     # parse commandline
     args = parser.parse_args()
 
-    # print SynthSeg version and checks boolean params for SynthSeg-robust
-    if args.robust:
+    # path labels
+    labels_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_segmentation_labels_2.0.npy')
+    labels_denoiser = os.path.join(synthseg_home, 'models', 'synthseg_denoiser_labels_2.0.npy')
+    labels_parcellation = os.path.join(synthseg_home, 'models', 'synthseg_parcellation_labels.npy')
+    labels_qc = os.path.join(synthseg_home, 'models', 'synthseg_qc_labels_2.0.npy')
+    names_segmentation_labels = os.path.join(synthseg_home, 'models', 'synthseg_segmentation_names_2.0.npy')
+    names_parcellation_labels = os.path.join(synthseg_home, 'models', 'synthseg_parcellation_names.npy')
+    names_qc_labels = os.path.join(synthseg_home, 'models', 'synthseg_qc_names_2.0.npy')
+    topology_classes = os.path.join(synthseg_home, 'models', 'synthseg_topological_classes_2.0.npy')
+    n_neutral_labels = 19
+
+    # print SynthSeg version, checks that parameters are valid, and get paths to models
+    path_model_parcellation = os.path.join(synthseg_home, 'models', 'synthseg_parc_2.0.h5')
+    path_model_qc = os.path.join(synthseg_home, 'models', 'synthseg_qc_2.0.h5')
+
+    if args.photo is not None:
+        if args.robust:
+            sf.system.fatal('The flag --robust is not compatible with Photo-SynthSeg (--photo).')
+        if args.v1:
+            sf.system.fatal('The flag --v1 is not compatible with Photo-SynthSeg (--photo).')
+        if args.ct:
+            sf.system.fatal('The flag --ct is not compatible with Photo-SynthSeg (--photo).')
+        if args.qc is not None:
+            sf.system.fatal('The flag --qc is not compatible with Photo-SynthSeg (--photo).')
+        version = 'Photo-SynthSeg 1.0'
+        if args.photo=='both':
+            path_mode_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_both_1.0.h5')
+        elif (args.photo=='left' or args.photo=='right'):
+            path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_single_1.0.h5')
+            if args.parc:
+                disp('Warning: the flag --parc is not well tested with single hemispheres.')
+        else:
+            sf.system.fatal('The argument of --photo must be left, right, or both.')
+
+    elif args.robust:
         args.fast = True
         if args.v1:
             sf.system.fatal('The flag --v1 cannot be used with --robust since SynthSeg-robust only came out with 2.0.')
         version = 'SynthSeg-robust 2.0'
+        path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_robust_2.0.h5')
     else:
-        version = 'SynthSeg 1.0' if args.v1 else 'SynthSeg 2.0'
+        if args.v1:
+            path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_1.0.h5')
+            version = 'SynthSeg 1.0'
+        else:
+            path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_2.0.h5')
+            version = 'SynthSeg 2.0'
         if args.fast:
             version += ' (fast)'
+
+
     print(version)
+
+    # use v1 labels if needed
+    if args.v1:
+        labels_segmentation = labels_segmentation.replace('_2.0.npy', '.npy')
+        labels_qc = labels_qc.replace('_2.0.npy', '.npy')
+        names_segmentation_labels = names_segmentation_labels.replace('_2.0.npy', '.npy')
+        names_qc_labels = names_qc_labels.replace('_2.0.npy', '.npy')
+        topology_classes = topology_classes.replace('_2.0.npy', '.npy')
+        n_neutral_labels = 18
+
+    # use photo labels if needed
+    if args.photo=='both':
+        labels_segmentation = labels_segmentation.replace('_2.0.npy', '_photo_both_1.0.npy')
+        names_segmentation_labels = names_segmentation_labels.replace('_2.0.npy', '_photo_both_1.0.npy')
+        topology_classes = topology_classes.replace('_2.0.npy', '_photo_both_1.0.npy')
+        n_neutral_labels = 5
+
+    elif (args.photo=='left' or args.photo=='right'):
+        labels_segmentation = labels_segmentation.replace('_2.0.npy', '_photo_single_1.0.npy')
+        names_segmentation_labels = names_segmentation_labels.replace('_2.0.npy', '_photo_single_1.0.npy')
+        topology_classes = topology_classes.replace('_2.0.npy', '_photo_single_1.0.npy')
+        n_neutral_labels = 5
 
     # enforce CPU processing if necessary
     if args.cpu:
@@ -86,39 +155,8 @@ def main():
     tf.config.threading.set_inter_op_parallelism_threads(args.threads)
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
-    # check that freesurfer has been sourced
-    if not os.environ.get('FREESURFER_HOME'):
-        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
-    synthseg_home = os.environ.get('FREESURFER_HOME')
 
-    # path models
-    if args.robust:
-        path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_robust_2.0.h5')
-    else:
-        path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_2.0.h5')
-    path_model_parcellation = os.path.join(synthseg_home, 'models', 'synthseg_parc_2.0.h5')
-    path_model_qc = os.path.join(synthseg_home, 'models', 'synthseg_qc_2.0.h5')
 
-    # path labels
-    labels_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_segmentation_labels_2.0.npy')
-    labels_denoiser = os.path.join(synthseg_home, 'models', 'synthseg_denoiser_labels_2.0.npy')
-    labels_parcellation = os.path.join(synthseg_home, 'models', 'synthseg_parcellation_labels.npy')
-    labels_qc = os.path.join(synthseg_home, 'models', 'synthseg_qc_labels_2.0.npy')
-    names_segmentation_labels = os.path.join(synthseg_home, 'models', 'synthseg_segmentation_names_2.0.npy')
-    names_parcellation_labels = os.path.join(synthseg_home, 'models', 'synthseg_parcellation_names.npy')
-    names_qc_labels = os.path.join(synthseg_home, 'models', 'synthseg_qc_names_2.0.npy')
-    topology_classes = os.path.join(synthseg_home, 'models', 'synthseg_topological_classes_2.0.npy')
-    n_neutral_labels = 19
-
-    # use v1 model if needed
-    if args.v1:
-        path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_1.0.h5')  # to modify
-        labels_segmentation = labels_segmentation.replace('_2.0.npy', '.npy')
-        labels_qc = labels_qc.replace('_2.0.npy', '.npy')
-        names_segmentation_labels = names_segmentation_labels.replace('_2.0.npy', '.npy')
-        names_qc_labels = names_qc_labels.replace('_2.0.npy', '.npy')
-        topology_classes = topology_classes.replace('_2.0.npy', '.npy')
-        n_neutral_labels = 18
 
     # run prediction
     predict(
@@ -129,6 +167,7 @@ def main():
         robust=args.robust,
         fast=args.fast,
         v1=args.v1,
+        photo=args.photo,
         do_parcellation=args.parc,
         n_neutral_labels=n_neutral_labels,
         names_segmentation=names_segmentation_labels,
@@ -161,6 +200,7 @@ def predict(path_images,
             robust,
             fast,
             v1,
+            photo,
             n_neutral_labels,
             names_segmentation,
             labels_denoiser,
@@ -196,7 +236,7 @@ def predict(path_images,
 
     # get label lists
     labels_segmentation, _ = get_list_labels(label_list=labels_segmentation)
-    if (n_neutral_labels is not None) & (not fast) & (not robust):
+    if (n_neutral_labels is not None) & (not fast) & (not robust) & (photo!='left') & (photo!='right'):
         labels_segmentation, flip_indices, unique_idx = get_flip_indices(labels_segmentation, n_neutral_labels)
     else:
         labels_segmentation, unique_idx = np.unique(labels_segmentation, return_index=True)
@@ -214,7 +254,7 @@ def predict(path_images,
     else:
         labels_volumes = labels_segmentation
         names_volumes = names_segmentation
-    if not v1:
+    if (not v1) & (photo is None):
         labels_volumes = np.concatenate([labels_volumes, np.array([np.max(labels_volumes + 1)])])
         names_volumes = np.concatenate([names_volumes, np.array(['total intracranial'])])
     do_qc = True if path_qc_scores[0] is not None else False
@@ -231,7 +271,7 @@ def predict(path_images,
 
     # prepare volume/QC files if necessary
     if unique_vol_file & (path_volumes[0] is not None):
-        write_csv(path_volumes[0], None, True, labels_volumes, names_volumes, last_first=(not v1))
+        write_csv(path_volumes[0], None, True, labels_volumes, names_volumes, last_first=((not v1) & (photo is None)))
     if unique_qc_file & do_qc:
         write_csv(path_qc_scores[0], None, True, labels_qc, names_qc)
 
@@ -268,6 +308,9 @@ def predict(path_images,
 
             # prediction
             shape_input = add_axis(np.array(image.shape[1:-1]))
+            if photo=='right':
+                image = np.flip(image, axis=1)
+
             if do_parcellation & do_qc:
                 post_patch_segmentation, post_patch_parcellation, qc_score = net.predict([image, shape_input])
             elif do_parcellation & (not do_qc):
@@ -279,6 +322,12 @@ def predict(path_images,
             else:
                 post_patch_segmentation = net.predict(image)
                 post_patch_parcellation = qc_score = None
+
+            if photo=='right':
+                image = np.flip(image, axis=0)
+                post_patch_segmentation = np.flip(post_patch_segmentation, axis=1)
+                if post_patch_parcellation is not None:
+                    post_patch_parcellation = np.flip(post_patch_parcellation, axis=1)
 
             # postprocessing
             seg, posteriors, volumes = postprocess(post_patch_seg=post_patch_segmentation,
@@ -292,7 +341,7 @@ def predict(path_images,
                                                    im_res=im_res,
                                                    fast=fast,
                                                    topology_classes=topology_classes,
-                                                   v1=v1)
+                                                   v1=(v1 or (photo is not None)))
 
             # write predictions to disc
             save_volume(seg, aff, h, path_segmentations[i], dtype='int32')
@@ -302,7 +351,7 @@ def predict(path_images,
             # write volumes to disc if necessary
             if path_volumes[i] is not None:
                 row = [os.path.basename(path_images[i]).replace('.nii.gz', '')] + [str(vol) for vol in volumes]
-                write_csv(path_volumes[i], row, unique_vol_file, labels_volumes, names_volumes, last_first=(not v1))
+                write_csv(path_volumes[i], row, unique_vol_file, labels_volumes, names_volumes, last_first=((not v1) & (photo is None)))
 
             # write QC scores to disc if necessary
             if path_qc_scores[i] is not None:
@@ -356,6 +405,10 @@ def predict(path_images,
             print('\nRobust machine learning segmentation for large-scale analysis of heterogeneous clinical brain MRI datasets')
             print('B. Billot, C. Magdamo, Y. Cheng, S.E. Arnold, S. Das, J.E. Iglesias')
             print('PNAS, accepted for publication.')
+        if photo is not None:
+            print('\n3D analysis of dissection photographs with surface scanning and machine learning for quantitative neuropathology')
+            print('H. Gazula, H. Tregidgo, B. Billot, Y. Balbastre, ..., & J.E. Iglesias')
+            print('Under revision') #TODO: add arxiv link here
 
 
 def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, out_volumes, out_qc):
@@ -507,8 +560,8 @@ def preprocess(path_image, ct, n_levels=5, crop=None, min_pad=None, path_resampl
     elif n_dims > 3:
         sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_channels > 1:
-        print('WARNING: detected more than 1 channel, only keeping the first channel.')
-        im = im[..., 0]
+        print('Detected more than 1 channel, we keep the average.')
+        im = np.mean(im, axis=-1)
 
     # resample image if necessary
     if np.any((im_res > 1.05) | (im_res < 0.95)):
