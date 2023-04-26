@@ -133,6 +133,7 @@ double round(double x);
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "macros.h"
 #include "utils.h"
