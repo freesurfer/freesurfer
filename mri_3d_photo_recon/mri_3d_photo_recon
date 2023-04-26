@@ -470,15 +470,20 @@ def main():
         P, T, meta = nib.freesurfer.read_geometry(
             input_mesh_converted, read_metadata=True
         )
-        if meta["valid"][0] == "0":
-            meta["valid"] = "1  # volume info valid"
-            meta["filename"] = ""
-            meta["volume"] = np.array([256, 256, 256]).astype(int)
-            meta["voxelsize"] = np.array([1.0, 1.0, 1.0])
-            meta["xras"] = np.array([-1.0, 0.0, 0.0])
-            meta["yras"] = np.array([0.0, 0.0, -1.0])
-            meta["zras"] = np.array([0.0, 1.0, 0.0])
-            meta["cras"] = np.array([0.0, 0.0, 0.0])
+        flipX = False
+        if (meta is not None) and (meta["valid"][0] == '1'):
+            A = np.stack([meta["xras"], meta["yras"], meta["zras"]])
+            flipX = (np.linalg.det(A))>0
+        meta = dict()
+        meta["head"] = np.array([ 2,  0, 20], dtype=np.int32)
+        meta["valid"] = "1  # volume info valid"
+        meta["filename"] = ""
+        meta["volume"] = np.array([256, 256, 256]).astype(int)
+        meta["voxelsize"] = np.array([1.0, 1.0, 1.0])
+        meta["xras"] = np.array([-1.0, 0.0, 0.0])
+        meta["yras"] = np.array([0.0, 0.0, -1.0])
+        meta["zras"] = np.array([0.0, 1.0, 0.0])
+        meta["cras"] = np.array([0.0, 0.0, 0.0])
 
         # Apply rotation using provided key vertices, if provided
         # https://towardsdatascience.com/the-definitive-procedure-for-aligning-two-sets-of-3d-points-with-the-kabsch-algorithm-a7ec2126c87e
@@ -527,7 +532,9 @@ def main():
 
             P = P - np.mean(P, axis=0)
             P = P @ R
-            meta["cras"][:] = 0
+            if flipX:
+                P[:, 0] = - P[:, 0]
+
             nib.freesurfer.write_geometry(
                 input_mesh_reoriented, P, T, volume_info=meta
             )
