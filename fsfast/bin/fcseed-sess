@@ -7,6 +7,7 @@ set cmdargs = ($argv);
 set fcconfig = ();
 set MakeMask = ();
 set funcstem = fmcpr
+set b0dcmapstem = b0dcmap
 
 set maskfile = ();
 set segidlist = ();
@@ -70,6 +71,16 @@ cat $fcconfig >> $LF
 foreach sess ($SessList)
   set sessid = `basename $sess`;
   set subject = `cat $sess/subjectname`
+
+  set b0dcmap = ();
+  if($UseB0DC) then
+    set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
+    if($status) then
+      echo "$b0dcmap"|& tee -a $LF
+      exit 1;
+    endif
+  endif
+
   set RunList = (`getrunlist $sess/$fsd $rlf`);
   foreach Run ($RunList)
     set rundir = $sess/$fsd/$Run
@@ -149,30 +160,32 @@ foreach sess ($SessList)
         set seganat = $SUBJECTS_DIR/$subject/mri/$segstem.mgz
       endif
 
-      # Convert segmentation to native functional space
-      # Note: label2vol cannot take a b0 map yet
-      set seg = $tmpdir/seg.$FSF_OUTPUT_FORMAT
-      set pvf = $tmpdir/pvf.$FSF_OUTPUT_FORMAT; # output
-      set cmd = (mri_label2vol --seg $seganat \
-         --reg $reg --temp $template --fillthresh $FillThresh \
-         --o $seg --pvf $pvf);
-      echo $cmd | tee -a $LLF
-      $cmd | tee -a $LLF
-      if($status) exit 1;
+      if(! $UseExtract) then
+        # Convert segmentation to native functional space
+        # Note: label2vol cannot take a b0 map yet
+        set seg = $tmpdir/seg.$FSF_OUTPUT_FORMAT
+        set pvf = $tmpdir/pvf.$FSF_OUTPUT_FORMAT; # output
+        set cmd = (mri_label2vol --seg $seganat \
+           --reg $reg --temp $template --fillthresh $FillThresh \
+           --o $seg --pvf $pvf);
+        echo $cmd | tee -a $LLF
+        $cmd | tee -a $LLF
+        if($status) exit 1;
 
-      # Create a binary mask of the union of all the segmentations IDs
-      if($#maskfile) then
-        set mask = $rundir/$maskfile.$FSF_OUTPUT_FORMAT
-      else
-        set mask = $tmpdir/mask.$FSF_OUTPUT_FORMAT
-      endif
-      set cmd = (mri_binarize --i $seg --o $mask )
-      foreach id ($segidlist)
-        set cmd = ($cmd --match $id)
-      end
-      echo $cmd | tee -a $LLF
-      $cmd | tee -a $LLF
-      if($status) exit 1;
+        # Create a binary mask of the union of all the segmentations IDs
+        if($#maskfile) then
+          set mask = $rundir/$maskfile.$FSF_OUTPUT_FORMAT
+        else
+          set mask = $tmpdir/mask.$FSF_OUTPUT_FORMAT
+        endif
+        set cmd = (mri_binarize --i $seg --o $mask )
+        foreach id ($segidlist)
+          set cmd = ($cmd --match $id)
+        end
+        echo $cmd | tee -a $LLF
+        $cmd | tee -a $LLF
+        if($status) exit 1;
+      endif # !UseExtract
     else
       # ROI configuration
       set mask = `stem2fname $sess/$ROIfsd/$ROIanalysis/$ROIname`
@@ -188,26 +201,35 @@ foreach sess ($SessList)
     endif
  
     if($DoMean) then
-      # Compute mean time course inside the mask
-      set cmd = (mri_segstats --i $f --seg $mask --id 1 \
-        --sum $tmpdir/junk.sum --avgwfvol $tmpdir/avgwf.mgh)
-      echo $cmd | tee -a $LLF
-      $cmd | tee -a $LLF
-      if($status) exit 1;
+      if(! $UseExtract) then
+        # Compute mean time course inside the mask
+        set cmd = (mri_segstats --i $f --seg $mask --id 1 \
+          --sum $tmpdir/junk.sum --avgwfvol $tmpdir/avgwf.mgh)
+        echo $cmd | tee -a $LLF
+        $cmd | tee -a $LLF
+        if($status) exit 1;
 
-      # Remove mean and 1st and 2nd order trends
-      set cmd = (mri_glmfit --y $tmpdir/avgwf.mgh --qa \
-         --glmdir $tmpdir/glm --save-eres --no-est-fwhm)
-      echo $cmd | tee -a $LLF
-      $cmd | tee -a $LLF
-      if($status) exit 1;
+        # Remove mean and 1st and 2nd order trends
+        set cmd = (mri_glmfit --y $tmpdir/avgwf.mgh --qa \
+           --glmdir $tmpdir/glm --save-eres --no-est-fwhm)
+        echo $cmd | tee -a $LLF
+        $cmd | tee -a $LLF
+        if($status) exit 1;
 
-      # Convert to ascii/text
-      set cmd = (mri_convert $tmpdir/glm/eres.mgh \
-        --ascii $rundir/$fcname)
-      echo $cmd | tee -a $LLF
-      $cmd | tee -a $LLF
-      if($status) exit 1;
+        # Convert to ascii/text
+        set cmd = (mri_convert $tmpdir/glm/eres.mgh \
+          --ascii $rundir/$fcname)
+        echo $cmd | tee -a $LLF
+        $cmd | tee -a $LLF
+        if($status) exit 1;
+      else
+        set cmd = (extract_seg_waveform --seg $seganat --i $f --id $segidlist\
+          --reg $reg --demean --o $rundir/$fcname)
+        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        echo $cmd | tee -a $LLF
+        $cmd | tee -a $LLF
+        if($status) exit 1;
+      endif
     endif
 
     if($DoSqr) then
@@ -359,11 +381,16 @@ check_params:
   set tmp = `cat $fcconfig | awk '{if($1 == "funcstem") print $2}'`
   if($#tmp) set funcstem = $tmp;
 
-  # Note: Imperfect for B0DC because label2vol cannot take a b0 map yet
-  # This just uses the reg computed with B0DC so that it does not die
+  # Note: Unless UseExtract, this is imperfect for B0DC because
+  # label2vol cannot take a b0 map yet This just uses the reg computed
+  # with B0DC so that it does not die
   set UseB0DC = 0;
   set tmp = `cat $fcconfig | awk '{if($1 == "UseB0DC") print $0}'`
   if($#tmp) set UseB0DC = $tmp[2];
+
+  set UseExtract = 0;
+  set tmp = `cat $fcconfig | awk '{if($1 == "UseExtract") print $0}'`
+  if($#tmp) set UseExtract = $tmp[2];
 
   if($MakeMask) set maskfile = $fcname.mask
 

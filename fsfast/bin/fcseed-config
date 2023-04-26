@@ -12,6 +12,7 @@ set segstem    = "aparc+aseg";
 set segidlist  = ()
 set RegDOF = 6;
 set FillThresh = .5;
+set FillThreshSet = 0;
 set DoMean = 1;
 set DoSVD = 0;
 set DoSqr = 0;
@@ -21,6 +22,7 @@ set DoWM = 0;
 set WMErode = 0;
 set SVDSynth = 0;
 set UseB0DC = 0;
+set UseExtract = 0
 set funcstem = (); # default fmcpr set in fcseed-sess
 
 set Overwrite = 0;
@@ -67,6 +69,7 @@ echo "WMErode $WMErode"   >> $fcconfig
 echo "SVDSynth $SVDSynth" >> $fcconfig
 echo "DoWM $DoWM"         >> $fcconfig
 echo "UseB0DC $UseB0DC"   >> $fcconfig
+echo "UseExtract $UseExtract"   >> $fcconfig
 if($#funcstem) echo "funcstem $funcstem"   >> $fcconfig
 if($#rlf)       echo "RunListFile $rlf"     >> $fcconfig
 if($#roicfg)    echo "roicfg $roicfg"       >> $fcconfig
@@ -142,6 +145,7 @@ while( $#argv != 0 )
     case "-fillthresh":
       if ( $#argv < 1) goto arg1err;
       set FillThresh = $argv[1]; shift;
+      set FillThreshSet = 1
       breaksw
 
     case "-wm":
@@ -189,8 +193,15 @@ while( $#argv != 0 )
     case "-b0dcor":
     case "-vsm":
       # Note: Imperfect for B0DC because label2vol cannot take a b0 map yet
-      # This just uses the reg computed with B0DC so that it does not die
+      # This just uses the reg computed with B0DC so that it does not die.
+      # Unless -extract is used, then the B0DC is used properly
       set UseB0DC = 1;
+      breaksw
+
+    case "-extract":
+      # use extract_seg_waveform, which can use B0DC and handles
+      # partial volume better. Can only work with mean
+      set UseExtract = 1;
       breaksw
 
     case "-nolog":
@@ -259,6 +270,17 @@ check_params:
   endif
   echo "fcname is $fcname"
 
+  if($UseExtract) then
+    if(! $DoMean) then
+      echo "ERROR: can only use -extract with -mean"
+      exit 1
+    endif
+    if($FillThreshSet) then
+      echo "ERROR: -fillthresh does not apply to -extract"
+      exit 1
+    endif
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -287,19 +309,20 @@ usage_exit:
   echo "  -funcstem funcstem : default is fmcpr"
   echo "  -rlf RunListFile"
   echo "  -b0dc : use B0 distortion correction (must have been done as part of preproc)"
+  echo "    unless -extract is used, this really does not have an effect"
+  echo "  -extract : use extract_seg_waveform "
+  echo "    has better PVC and can use b0dc and does not need a fill thresh; only with -mean"
   echo ""
   echo "  -mean : compute the mean waveform over the voxels of the ROI"
   echo "  -pca  : compute the PCA/SVD of the waveforms over the voxels of the ROI (or -svd)"
   echo ""
+  echo " -fcname fcname : name of output file (default is configname)"
+  echo " -mask  : create a mask for segmentation-based. Good for checking"
+  echo " -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
+  echo " -overwrite : delete and overwrite any existing files"
+  echo ""
   echo "Functional ROI-based options"
   echo "  -roi fcconfig : as created by funcroi-confg"
-  echo ""
-  echo "   -fcname fcname : name of output file (default is configname)"
-  echo "   -mask  : create a mask for segmentation-based. Good for checking"
-  echo "   -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
-  echo "   -overwrite : delete and overwrite any existing files"
-  echo "   -pca       : compute pca instead of a spatial mean"
-  echo "   -mean      : compute spatial mean instead of PCA"
   echo ""
   echo "   -help      : "
   echo "   -version   : print version and exit"
