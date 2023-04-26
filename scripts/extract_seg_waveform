@@ -1,0 +1,401 @@
+#!/bin/tcsh -f
+# extract_seg_waveform - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outwf = ();
+set seg = ();
+set invol = ();
+set reg = ();
+set vsm = ();
+set regheader = 0;
+set indexlist = ()
+set ForceUpdate = 0
+set demean = 0
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $outwf`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.extract_seg_waveform.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.extract_seg_waveform.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outwf.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for extract_seg_waveform" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+# Binarize seg
+set segbin = $tmpdir/seg.bin.mgh
+set ud = `UpdateNeeded $segbin $seg`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_binarize --i $seg --match $indexlist --o $segbin)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Create a bounding box around the seg in subject space
+set segbb = $tmpdir/seg.bin.bb.mgh
+set segbbreg = $tmpdir/seg.bin.bb.lta
+set ud = `UpdateNeeded $segbbreg $seg`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_mask -bb 1 $segbin $segbin $segbb)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Compute the registration from the input to the bounding box
+  set seg2bbreg = $tmpdir/seg2bb.lta
+  set cmd = (tkregister2 --mov $seg --targ $segbb --regheader \
+   --ltaout $seg2bbreg  --noedit --reg /tmp/deleteme.$$.dat)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  rm -f /tmp/deleteme.$$.dat
+  set cmd = (mri_concatenate_lta $reg $seg2bbreg $segbbreg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Map input volume into the bounding box FoV
+set fsegbb = $tmpdir/f.seg.bb.nii.gz
+set ud = `UpdateNeeded $fsegbb $invol $segbbreg  $vsm`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_vol2vol --mov $invol --reg $segbbreg \
+    --targ $segbb --o $fsegbb --interp nearest)
+  if($#vsm ) set cmd = ($cmd --vsm $vsm)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Compute average over seg
+set avgwfmri = $tmpdir/avgwf.mgh
+set ud = `UpdateNeeded $avgwfmri $fsegbb $segbb`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_segstats --i $fsegbb --seg $segbb --id 1 --avgwfvol $avgwfmri)
+  if(! $demean) set cmd = ($cmd --avgwf $outwf)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+if($demean) then
+  # Remove mean and 1st and 2nd order trends
+  set cmd = (mri_glmfit --y $avgwfmri --qa \
+    --glmdir $tmpdir/glm --save-eres --no-est-fwhm)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  # Convert to ascii/text
+  set cmd = (mri_convert $tmpdir/glm/eres.mgh --ascii $outwf)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Extract_Seg_Waveform-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Extract_Seg_Waveform-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Extract_Seg_Waveform-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "extract_seg_waveform Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outwf = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set seg = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "--vsm":
+      if($#argv < 1) goto arg1err;
+      set vsm = $argv[1]; shift;
+      breaksw
+
+    case "--id":
+      if($#argv < 1) goto arg1err;
+      while(1)
+        set indexlist = ($indexlist $argv[1]); shift;
+        if(`isargflag $argv[1]`) break;
+      end
+      breaksw
+
+    case "--regheader":
+      set regheader = 1
+      breaksw
+
+    case "--demean":
+      set demean = 1
+      breaksw
+    case "--no-demean":
+      set demean = 0
+      breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outwf == 0) then
+  echo "ERROR: must spec output waveform file"
+  exit 1;
+endif
+if($#seg == 0) then
+  echo "ERROR: must spec seg"
+  exit 1;
+endif
+if($#invol == 0) then
+  echo "ERROR: must spec invol"
+  exit 1;
+endif
+if($regheader && $#reg) then
+  echo "ERROR: cannot spec both regheader and reg"
+  exit 1;
+endif
+if(! $regheader && $#reg == 0) then
+  echo "ERROR: must spec either regheader and reg"
+  exit 1;
+endif
+if($regheader && $#vsm) then
+  echo "ERROR: cannot spec both regheader and vsm"
+  exit 1;
+endif
+if( $#vsm && $#reg == 0) then
+  echo "ERROR: must spec reg with vsm"
+  exit 1;
+endif
+if($#indexlist == 0) then
+  echo "ERROR: must at least one index"
+  exit 1;
+endif
+if(! -e $seg) then
+  echo "ERROR: cannot find $seg"
+  exit 1
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1
+endif
+if($#vsm) then
+  if(! -e $vsm) then
+    echo "ERROR: cannot find $vsm"
+    exit 1
+  endif
+endif
+if($#reg && ! -e $reg) then
+  echo "ERROR: cannot find $reg"
+  exit 1
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "extract_seg_waveform"
+  echo " --seg "
+  echo " --id index <--id index2> or --id index1 index2 ..."
+  echo " --i inputvol"
+  echo " --reg reg.lta"
+  echo " --vsm vsm.nii.gz : voxel shift map for B0 distortion correction"
+  echo " --regheader"
+  echo " --demean : remove mean, first, and second order trends"
+  echo " --o waveform.dat"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program extracts an average waveform from an input volume where
+the average is computed over the voxels in the given segmentation
+indices. The input volume is mapped to the space of the segmentation
+given the registration; if a voxel shift map (VSM) is supply, then
+that is applied simultanetously as part of the transform. Nearest
+neighbor interpolation is used. Once in the segmentation space, the
+voxels in the desired indicies of the segmentation are averaged.
+To reduce computational complexity, a bounding box volume around
+the segmentation is created. This will yield exactly the same results
+as using the full FoV, but does not require mapping fMRI volumes with
+100s of time points into the (often) 256^3 segmentation space. 
+
+This method is better than mapping the segmentation into the input
+volume space for two reasons: (1) partial volume correction is a
+little bit better and no need to specify a fill parameter, and (2) it
+can apply the VSM for B0 correction.
+
+
