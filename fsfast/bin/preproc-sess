@@ -919,6 +919,7 @@ usage_exit:
   echo "  -mni305-2mm    : sample raw data to mni305 at 2mm (same as -mni305)"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
   echo "  -cvs : sample raw data to cvs_avg35_inMNI152 at 2mm (not with -mni305)"
+  echo "  -b0dc : apply B0 distortion correction (looks for fsd/b0dcmap.nii.gz); see epidewarp.fsl"
   echo ""
   echo "Session Arguments (some combination required)"
   echo "  -sf sessidfile  ..."
