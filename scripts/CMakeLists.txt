@@ -192,6 +192,7 @@ install_configured(
   rcbf-prep
   rebuild_gca_atlas.csh
   rca-base-init
+  rca-fix-ento
   rca-long-tp-init
   recon-all
   recon-all-exvivo

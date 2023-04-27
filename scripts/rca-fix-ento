@@ -1,0 +1,318 @@
+#!/bin/tcsh -f
+# rca-fix-ento - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set subject = ();
+set threads = 1
+set RunIt = 1
+set ForceUpdate = 0
+set FixEntoWM = 1;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+echo "Sourcing dev env"
+set path = (/bin /usr/bin /usr/local/bin  \
+             /usr/sbin /usr/bin/X11  /usr/bin/X11R6/bin \
+             /sbin  $MATLAB/bin /usr/pubsw/bin )
+source /usr/local/freesurfer/nmr-dev-env
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+# Set up log file
+set logdir = $SUBJECTS_DIR/$subject/scripts/log
+mkdir -p $logdir
+if($#LF == 0) set LF = $logdir/rca-fix-ento.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for rca-fix-ento" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+set mdir = $SUBJECTS_DIR/$subject/mri
+cd $mdir
+
+if($FixEntoWM) then
+  echo "#--------------------------------------"|& tee -a $LF
+  echo "\n#@# EntoWM Segmentation `date`" |& tee -a $LF
+  set nu = nu.mgz
+  set entowm = entowm.mgz  
+  set ud = `UpdateNeeded $entowm $nu`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_entowm_seg --i $nu --o $entowm --threads $threads)
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "EntoWM Segmentation does not need to be updated" |& tee -a $LF
+  endif
+
+  # Do this on base and long because it needs to be in wm.mgz; if not
+  # the edits in brainmask.finalsurfs might be ignored
+  # Can't use UpdateNeeded since input and output are the same
+  set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 3 255 255 wm.mgz wm.mgz)
+  echo "cd `pwd`" | tee -a $LF
+  echo $cmd | tee -a $LF
+  if($RunIt) $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  if(0) then
+    # Should not need to do this as the wm medit should work
+    # There won't be a filled.mgz in long
+    set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 3 255 127 filled.mgz filled.mgz)
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+  set bfs = brain.finalsurfs.mgz
+  if(-e brain.finalsurfs.manedit.mgz) then
+    cp brain.finalsurfs.manedit.mgz backup.brain.finalsurfs.manedit.mgz
+    set bfs = brain.finalsurfs.manedit.mgz
+  endif
+  set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 2 255 255 \
+    $bfs brain.finalsurfs.manedit.mgz)
+  echo "cd `pwd`" | tee -a $LF
+  echo $cmd | tee -a $LF
+  if($RunIt) $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Rca-Fix-Ento-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Rca-Fix-Ento-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Rca-Fix-Ento-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "rca-fix-ento Done" |& tee -a $LF
+exit 0
+
+###############################################
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if(! $#subject) then
+  echo "ERROR: must specify subject with --s"
+  exit 1
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+set wm = $SUBJECTS_DIR/$subject/mri/wm.mgz
+set filled = $SUBJECTS_DIR/$subject/mri/filled.mgz
+set bfs = $SUBJECTS_DIR/$subject/mri/brain.finalsurfs.mgz
+foreach f ($wm $filled $bfs)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1
+  endif
+end
+
+set efile = $SUBJECTS_DIR/$subject/scripts/rca-fix-ento.txt
+if(-e $efile) then
+  echo "ERROR: rca-fix-ento has already been run"
+  echo "If you want to re-run it, then delete $efile"
+  ls -l $efile
+  exit 1
+endif
+date > $efile
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "rca-fix-ento (note: dev env will be sourced automatically)"
+  echo " --s subject"
+  echo " --threads threads"
+  echo ""
+  echo "After this is done, run recon-all with -autorecon2-cp -autorecon3"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Note: this program is a temporary fix for FS version 7.3 and earlier. For
+later versions, you can run recon-all with -fix-ento-wm.
+
+This program attempts to fix the entorhinal white matter in
+FreeSurfer.  Typically, this WM is very thin and often not visible;
+consequently, the white and pial surfaces are generally not
+accurate. This script will segment this WM using a deep learning
+network. The output will be subject/mri/entowm.mgz. This segmentation
+differentiates between the generic WM around ento and the WM in gyrus
+ambiens (GA). The WM in GA is the most problematic. This sementation
+is then used to edit wm.mgz and brain.finalsurfs.manedit.mgz.  For
+wm.mgz, it adds the ento WM as 255 to make it look like manual
+edits. For brain.finalsurfs.manedit.mgz, it will set the GA WM to 255
+so that looks like a manual edit. If brain.finalsurfs.manedit.mgz does
+not exist, then it is created from brain.finalsurfs.mgz and the
+manedit is edited with entowm. If brain.finalsurfs.manedit.mgz does
+exist, then it copies it to backup.brain.finalsurfs.manedit.mgz and
+then edits brain.finalsurfs.manedit.mgz. This scripts uses a deep
+learning model that may require as much as 20GB (GPU not needed).
+
+
+
+
+
+
+
+
