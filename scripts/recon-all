@@ -3115,7 +3115,7 @@ if($DoSegmentation) then
     set xopts = `fsr-getxopts mri_edit_wm_with_aseg $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_edit_wm_with_aseg)
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
-    if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 250 250)
+    if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 255 255)
     set cmd = ($cmd $xopts wm.seg.mgz brain.mgz aseg.presurf.mgz wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3142,7 +3142,7 @@ if($DoSegmentation) then
   if($status) goto error_exit;
   if($FixEntoWM) then
     echo "Fixing entowm in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
-    set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 3 250 250 wm.mgz wm.mgz)
+    set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 3 255 255 wm.mgz wm.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;

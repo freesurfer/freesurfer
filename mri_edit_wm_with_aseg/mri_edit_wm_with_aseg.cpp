@@ -301,7 +301,7 @@ get_option(int argc, char *argv[])
     // is often so thin that it looks like GM. entowm.mgz is the output of mri_entowm_seg
     // mri_edit_wm_with_aseg -fix-entowm entowm.mgz level lhsetval rhsetval
     // mri_edit_wm_with_aseg -sa-fix-entowm entowm.mgz level lhsetval rhsetval invol outvol
-    // for wm.seg.mgz/wm.asegedit.mgz use level=3 and setval=250 for both lh and rh
+    // for wm.seg.mgz/wm.asegedit.mgz use level=3 and setval=255 for both lh and rh
     // for brain.finalsurfs use level=2 and setval=255 for both lh and rh
     // for filled use level=3 and setval =255 for lh and =127 for rh
     // level=1 only fill entowm without gyrus ambiens (probably not useful)

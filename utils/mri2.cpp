@@ -6724,7 +6724,7 @@ MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol)
   from there. When using it to fix the brain.finalsurfs, then just
   using gyrus ambiens might be called for because the fix will be very
   heavy-handed. Eg, when fixing the wm.mgz or wm.seg.mgz or
-  wm.asegedit.mgz, set lhVal=rhVal=250 (this is the same value that is
+  wm.asegedit.mgz, set lhVal=rhVal=255 (this is the same value that is
   used to fill the ventricles, etc).  For brain.finalsurf, use
   lhVal=rhVal=255. For filled, use lhVal=255 and rhVal=127. Currently,
   the entowm.mgz can be created using mri_entowm_seg (a DL seg
