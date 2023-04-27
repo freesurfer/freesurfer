@@ -490,10 +490,15 @@ if(DoGLMFit)
     end
     if(abs(yrun.tr/1000 - flac.TR) > .01)
       fprintf('\n\n');
-      fprintf('ERROR: TR mismatch between analysis and data\n');
-      fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
-      if(flac.OverrideTR == 0) return; end
-      fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
+      if(flac.OverrideTR == 0) 
+	fprintf('ERROR: TR mismatch between analysis and data\n');
+	fprintf('TR mismatch: analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
+	return; 
+      end
+      fprintf('WARNING: TR mismatch: analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
+      %fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
+      fprintf('  BUT you have specified to continue anyway with data TR = %g.\n',yrun.tr/1000);
+      flac.TR = yrun.tr/1000;
       fprintf('\n\n');
     end
     if(yrun.volsize(1) ~= mask.volsize(1) | ...
