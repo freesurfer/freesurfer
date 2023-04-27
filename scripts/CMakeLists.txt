@@ -45,6 +45,7 @@ install_configured(
   dmrirc.multiscan.example
   dt_recon
   epidewarp.fsl
+  extract_seg_waveform
   extract_talairach_avi_QA.awk
   exvivo-hemi-proc
   feat2segstats
