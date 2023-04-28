@@ -35,12 +35,6 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-echo "Sourcing dev env"
-set path = (/bin /usr/bin /usr/local/bin  \
-             /usr/sbin /usr/bin/X11  /usr/bin/X11R6/bin \
-             /sbin  $MATLAB/bin /usr/pubsw/bin )
-source /usr/local/freesurfer/nmr-dev-env
-
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 set year  = `date +%Y`
@@ -295,18 +289,20 @@ later versions, you can run recon-all with -fix-ento-wm.
 This program attempts to fix the entorhinal white matter in
 FreeSurfer.  Typically, this WM is very thin and often not visible;
 consequently, the white and pial surfaces are generally not
-accurate. This script will segment this WM using a deep learning
-network. The output will be subject/mri/entowm.mgz. This segmentation
-differentiates between the generic WM around ento and the WM in gyrus
-ambiens (GA). The WM in GA is the most problematic. This sementation
-is then used to edit wm.mgz and brain.finalsurfs.manedit.mgz.  For
-wm.mgz, it adds the ento WM as 255 to make it look like manual
-edits. For brain.finalsurfs.manedit.mgz, it will set the GA WM to 255
-so that looks like a manual edit. If brain.finalsurfs.manedit.mgz does
-not exist, then it is created from brain.finalsurfs.mgz and the
-manedit is edited with entowm. If brain.finalsurfs.manedit.mgz does
-exist, then it copies it to backup.brain.finalsurfs.manedit.mgz and
-then edits brain.finalsurfs.manedit.mgz. This scripts uses a deep
+accurate. This script will segment the WM around ento using a deep
+learning network. The output will be subject/mri/entowm.mgz. This
+segmentation differentiates between the generic WM around ento and the
+WM in gyrus ambiens (GA). The WM in GA is the most problematic. This
+sementation is then used to edit wm.mgz and
+brain.finalsurfs.manedit.mgz.  For wm.mgz, it adds the ento WM as 255
+to make it look like manual edits. For brain.finalsurfs.manedit.mgz,
+it will set the GA WM to 255 so that looks like a manual edit. If
+brain.finalsurfs.manedit.mgz does not exist, then it is created from
+brain.finalsurfs.mgz and the manedit is edited with entowm. If
+brain.finalsurfs.manedit.mgz does exist, then it copies it to
+backup.brain.finalsurfs.manedit.mgz and then edits
+brain.finalsurfs.manedit.mgz. Existing edits in manedit will be kept
+unless they conflict with the entowm edits. This scripts uses a deep
 learning model that may require as much as 20GB (GPU not needed).
 
 
