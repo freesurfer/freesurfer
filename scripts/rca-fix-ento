@@ -12,6 +12,7 @@ set threads = 1
 set RunIt = 1
 set ForceUpdate = 0
 set FixEntoWM = 1;
+set submit = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -35,6 +36,21 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+set logdir = $SUBJECTS_DIR/$subject/scripts/log
+mkdir -p $logdir
+
+if($submit) then
+  set LF = $SUBJECTS_DIR/$subject/scripts/log/rca-fix-ento-sbatch.$$.log
+  set sbatch = (sbatch --partition=basic --nodes=1  \
+    --account=fsm --ntasks-per-node=1 \
+    --cpus-per-task=1 --mem=14GB --output=$LF \
+    --job-name=$subject.fixento --time=0-00:10 \
+    rca-fix-ento $inputargs --threads 1 --no-submit)
+  echo $sbatch
+  $sbatch
+  exit 
+endif
+
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 set year  = `date +%Y`
@@ -44,8 +60,6 @@ set hour   = `date +%H`
 set min    = `date +%M`
 
 # Set up log file
-set logdir = $SUBJECTS_DIR/$subject/scripts/log
-mkdir -p $logdir
 if($#LF == 0) set LF = $logdir/rca-fix-ento.Y$year.M$month.D$day.H$hour.M$min.log
 if($LF != /dev/null) rm -f $LF
 echo "Log file for rca-fix-ento" >> $LF
@@ -118,6 +132,10 @@ if($FixEntoWM) then
   if($RunIt) $cmd | tee -a $LF
   if($status) goto error_exit;
 endif
+
+# Mark as complete
+date > $efile
+
 #========================================================
 
 # Cleanup
@@ -177,6 +195,13 @@ while( $#argv != 0 )
      breaksw
     case "--no-force":
      set ForceUpdate = 0
+     breaksw
+
+    case "--submit":
+     set submit = 1
+     breaksw
+    case "--no-submit":
+     set submit = 0
      breaksw
 
     case "--log":
@@ -250,7 +275,6 @@ if(-e $efile) then
   ls -l $efile
   exit 1
 endif
-date > $efile
 
 goto check_params_return;
 ############--------------##################
@@ -271,6 +295,7 @@ usage_exit:
   echo "rca-fix-ento (note: dev env will be sourced automatically)"
   echo " --s subject"
   echo " --threads threads"
+  echo " --submit : submit to sbatch with 1 threads and 14GB of mem"
   echo ""
   echo "After this is done, run recon-all with -autorecon2-cp -autorecon3"
   echo ""
