@@ -120,6 +120,11 @@ if($FixEntoWM) then
     if($status) goto error_exit;
   endif
 
+  # Should this be done in long if already getting ento edits from
+  # base?  Ideally, the entowm seg should be run on the long and
+  # applied to the long brainmask creating two entowm edits (one at
+  # base and one at long) This will add voxels, so it will tend to
+  # thicken the structures. In the end, I think this is probably ok.
   set bfs = brain.finalsurfs.mgz
   if(-e brain.finalsurfs.manedit.mgz) then
     cp brain.finalsurfs.manedit.mgz backup.brain.finalsurfs.manedit.mgz
@@ -261,7 +266,7 @@ endif
 set wm = $SUBJECTS_DIR/$subject/mri/wm.mgz
 set filled = $SUBJECTS_DIR/$subject/mri/filled.mgz
 set bfs = $SUBJECTS_DIR/$subject/mri/brain.finalsurfs.mgz
-foreach f ($wm $filled $bfs)
+foreach f ($wm $bfs) #$filled won't be there for long
   if(! -e $f) then
     echo "ERROR: cannot find $f"
     exit 1
