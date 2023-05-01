@@ -63,6 +63,8 @@ char *SDCMStatusFile = 0;
 char *SDCMListFile = 0;
 int  UseDICOMRead2 = 1; // use new dicom reader by default
 int  UseDCM2NIIX = 1; // changed to 1 on 4/06/2023
+const char *DCM2NIIX_outdir = NULL;
+int  DCM2NIIX_createBIDS = 0;
 /* These variables allow the user to change the first tag checked to
    get the slice thickness.  This is needed with siemens mag res
    angiogram (MRAs) */
@@ -74,6 +76,8 @@ extern char *SDCMStatusFile;
 extern char *SDCMListFile;
 extern int  UseDICOMRead2;
 extern int  UseDCM2NIIX;
+extern const char *DCM2NIIX_outdir;
+extern int  DCM2NIIX_createBIDS;
 extern long SliceResElTag1;
 extern long SliceResElTag2;
 extern int AutoSliceResElTag;

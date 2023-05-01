@@ -1168,11 +1168,14 @@ int main(int argc, char *argv[])
     {
       UseDCM2NIIX = 0;
     }
-    else if (strcmp(argv[i], "-createBIDS") == 0 || strcmp(argv[i], "--createBIDS") == 0)
+    else if (strcmp(argv[i], "-createBIDS") == 0          || strcmp(argv[i], "--createBIDS") == 0 || 
+             strcmp(argv[i], "-dcm2niix-createBIDS") == 0 || strcmp(argv[i], "--dcm2niix-createBIDS") == 0)
     {
-     // set environment variable FS_DCM2NIIX_CREATEBIDS to 1,
-     // DICOMRead3() will pick up the variable, and pass it to dcm2niix_fswrapper::setOpts() 
-     setenv("FS_DCM2NIIX_CREATEBIDS", "1", 1);
+     DCM2NIIX_createBIDS = 1;
+    }
+    else if (strcmp(argv[i], "-dcm2niix-outdir") == 0 || strcmp(argv[i], "--dcm2niix-outdir") == 0)
+    {
+     DCM2NIIX_outdir = argv[++i];
     }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {
@@ -1550,6 +1553,19 @@ int main(int argc, char *argv[])
   }
   /**** Finished parsing command line ****/
   /* option inconsistency checks */
+  // -dcm2niix-createBIDS is only valid with -dcm2niix     
+  if (!UseDCM2NIIX && 
+      (DCM2NIIX_outdir != NULL || DCM2NIIX_createBIDS))
+  {
+    fprintf(stderr, "ERROR: option --dcm2niix-outdir <>, -dcm2niix-createBIDS are only valid with -dcm2niix\n");
+    exit(1);
+  }
+  if (DCM2NIIX_createBIDS && DCM2NIIX_outdir == NULL)
+  {
+    fprintf(stderr, "ERROR: use --dcm2niix-outdir <> to specify output directory for BIDS\n");
+    exit(1);
+  }
+
   if (antialias_flag == TRUE && voxel_size_flag == FALSE)
   {
     fprintf(stderr, "ERROR: use --voxsize to specify voxel size for --antialias\n");

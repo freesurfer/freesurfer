@@ -438,12 +438,9 @@ foreach run ($RunNos)
       if($#ikd) set cmd = ($cmd -ikd $ikd);
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
       if($UseDCM2NIIX) then
-        # environment variable FS_DCM2NIIX_OUTDIR
-        # this will be picked up in DICOMRead3(), and passed to dcm2niix_fswrapper()
-        setenv FS_DCM2NIIX_OUTDIR $outdir 
         set cmd = ($cmd -dcm2niix)
         if($CreateBIDS) then
-          set cmd = ($cmd -createBIDS)
+          set cmd = ($cmd -dcm2niix-createBIDS --dcm2niix-outdir $outdir)
         endif
       endif
       if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
@@ -770,6 +767,8 @@ while( $#argv != 0 )
 
     case "--createBIDS":
     case "-createBIDS":
+    case "--dcm2niix-createBIDS":
+    case "-dcm2niix-createBIDS":
       set CreateBIDS = 1;
       breaksw
 
@@ -1053,7 +1052,7 @@ usage_exit:
     echo "   -no-dcm2niix : Turn it off"
   else
     echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
-    echo "   -createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
+    echo "   -dcm2niix-createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
   endif
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""
