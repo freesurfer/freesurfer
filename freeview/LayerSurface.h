@@ -124,6 +124,11 @@ public:
     m_sPatchFilename = fn;
   }
 
+  QString GetPatchFileName()
+  {
+    return m_sPatchFilename;
+  }
+
   void SetVectorFileName( const QString& fn )
   {
     m_sVectorFilename = fn;
@@ -480,6 +485,7 @@ Q_SIGNALS:
   void ActiveSplineChanged( int n );
   void CurrentVertexChanged(int n);
   void RGBMapChanged();
+  void FlattenedPatchLoaded();
 
 protected slots:
   void UpdateOpacity();

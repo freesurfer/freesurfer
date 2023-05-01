@@ -3016,6 +3016,8 @@ bool LayerSurface::LoadPatch(const QString &filename)
   if (m_surfaceSource->LoadPatch(filename))
   {
     m_sPatchFilename = filename;
+    if (filename.contains("flat"))
+      emit FlattenedPatchLoaded();
     emit ActorUpdated();
     return true;
   }
