@@ -765,7 +765,7 @@ while( $#argv != 0 )
     case "--no-dcm2niix":
     case "-no-dcm2niix":
     case "-no-dcr3":
-      set UseDCM2NIIX = 1;
+      set UseDCM2NIIX = 0;
       breaksw
 
     case "--createBIDS":
