@@ -132,8 +132,10 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>Do NOT apply DICOM rescale intercept and slope based on (0028,1052) (0028,1053). Same as setenv FS_RESCALE_DICOM 0</explanation>
       <argument>--dcm2niix</argument>
       <explanation>use internal version of dcm2niix to convert DICOM</explanation>
-      <argument>--createBIDS</argument>
-      <explanation>This option only applies to --dcm2niix. Create BIDS sidecar files in JSON text format. The option can also be turned on by setting environment variable FS_DCM2NIIX_CREATEBIDS to 1</explanation>
+      <argument>--dcm2niix-createBIDS</argument>
+      <explanation>This option only applies to --dcm2niix. Create BIDS sidecar files in JSON text format.</explanation>
+      <argument>--dcm2niix-outdir &lt;bids-out-dir&gt;</argument>
+      <explanation>This option only applies to --dcm2niix-createBIDS. Specify BIDS sidecar files output directory.</explanation>
       <intro>APPLYING TRANSFORMS (INCLUDING TALAIRACH) </intro>
       <argument>--apply_transform xfmfile (-T or -at) </argument>
       <explanation>apply tranform given by xfm or m3z files </explanation> 
