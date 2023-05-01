@@ -6574,6 +6574,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   connect(this, SIGNAL(SlicePositionChanged(bool)), layer, SLOT(OnSlicePositionChanged3D()), Qt::UniqueConnection);
   connect(layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), m_wndTimeCourse, SLOT(UpdateUI()), Qt::UniqueConnection);
   connect(layer, SIGNAL(ActiveOverlayChanged(int)), m_wndTimeCourse, SLOT(UpdateAll()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(FlattenedPatchLoaded()), this, SLOT(OnFlattendSurfacePatchLoaded()), Qt::QueuedConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -6903,6 +6904,9 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     }
 
     LoadSphereLeftRightIfNeeded(sf);
+
+    if (sf->GetPatchFileName().contains("flat"))
+      OnFlattendSurfacePatchLoaded();
   }
   else if ( jobtype == ThreadIOWorker::JT_LoadSurfaceOverlay && layer->IsTypeOf("Surface") )
   {
@@ -9988,4 +9992,12 @@ void MainWindow::OnShowLabelOutline(bool bShow)
   {
     mri->GetProperty()->SetShowLabelOutline(bShow);
   }
+}
+
+void MainWindow::OnFlattendSurfacePatchLoaded()
+{
+  if (m_nViewLayout == VL_1x1)
+    SetMainView(MV_3D);
+
+  ((RenderView3D*)m_views[3])->ResetViewSuperior();
 }

@@ -319,6 +319,8 @@ public slots:
 
   void SetNeurologicalView(bool b);
 
+  void OnFlattendSurfacePatchLoaded();
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
