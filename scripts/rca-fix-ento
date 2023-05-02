@@ -13,6 +13,8 @@ set RunIt = 1
 set ForceUpdate = 0
 set FixEntoWM = 1;
 set submit = 0
+set account = fhs
+set DoBrainMask = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -42,7 +44,7 @@ mkdir -p $logdir
 if($submit) then
   set LF = $SUBJECTS_DIR/$subject/scripts/log/rca-fix-ento-sbatch.$$.log
   set sbatch = (sbatch --partition=basic --nodes=1  \
-    --account=fsm --ntasks-per-node=1 \
+    --account=$account --ntasks-per-node=1 \
     --cpus-per-task=1 --mem=14GB --output=$LF \
     --job-name=$subject.fixento --time=0-00:10 \
     rca-fix-ento $inputargs --threads 1 --no-submit)
@@ -120,22 +122,27 @@ if($FixEntoWM) then
     if($status) goto error_exit;
   endif
 
-  # Should this be done in long if already getting ento edits from
-  # base?  Ideally, the entowm seg should be run on the long and
-  # applied to the long brainmask creating two entowm edits (one at
-  # base and one at long) This will add voxels, so it will tend to
-  # thicken the structures. In the end, I think this is probably ok.
-  set bfs = brain.finalsurfs.mgz
-  if(-e brain.finalsurfs.manedit.mgz) then
-    cp brain.finalsurfs.manedit.mgz backup.brain.finalsurfs.manedit.mgz
-    set bfs = brain.finalsurfs.manedit.mgz
+  if($DoBrainMask) then
+    # This has to be turned off unless --restore255 can be added to
+    # mris_place_surfaces, otherwise, it will clip them to 0.
+
+    # Should this be done in long if already getting ento edits from
+    # base?  Ideally, the entowm seg should be run on the long and
+    # applied to the long brainmask creating two entowm edits (one at
+    # base and one at long) This will add voxels, so it will tend to
+    # thicken the structures. In the end, I think this is probably ok.
+    set bfs = brain.finalsurfs.mgz
+    if(-e brain.finalsurfs.manedit.mgz) then
+      cp brain.finalsurfs.manedit.mgz backup.brain.finalsurfs.manedit.mgz
+      set bfs = brain.finalsurfs.manedit.mgz
+    endif
+    set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 2 255 255 \
+      $bfs brain.finalsurfs.manedit.mgz)
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
   endif
-  set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 2 255 255 \
-    $bfs brain.finalsurfs.manedit.mgz)
-  echo "cd `pwd`" | tee -a $LF
-  echo $cmd | tee -a $LF
-  if($RunIt) $cmd | tee -a $LF
-  if($status) goto error_exit;
 endif
 
 # Mark as complete
@@ -202,12 +209,24 @@ while( $#argv != 0 )
      set ForceUpdate = 0
      breaksw
 
+    case "--brain-mask":
+     set DoBrainMask = 1
+     breaksw
+    case "--no-brain-mask":
+     set DoBrainMask = 0
+     breaksw
+
     case "--submit":
      set submit = 1
      breaksw
     case "--no-submit":
      set submit = 0
      breaksw
+
+    case "--account":
+      if($#argv < 1) goto arg1err;
+      set account = $argv[1]; shift
+      breaksw
 
     case "--log":
       if($#argv < 1) goto arg1err;
@@ -301,6 +320,8 @@ usage_exit:
   echo " --s subject"
   echo " --threads threads"
   echo " --submit : submit to sbatch with 1 threads and 14GB of mem"
+  echo " --account account : use account when submitting to sbatch (default is $account)"
+  echo " --brain-mask : apply the ento fix to the brain.finalsurfs; turned off because of 255"
   echo ""
   echo "After this is done, run recon-all with -autorecon2-cp -autorecon3"
   echo ""
