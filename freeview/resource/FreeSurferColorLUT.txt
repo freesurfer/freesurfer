@@ -371,36 +371,44 @@
 600 Tumor                                   254 254 254 0
 
 
-# Cerebellar parcellation labels from SUIT (matches labels in cma.h)
+# Cerebellar parcellation labels from SUIT (matches labels in cma.h),
+# FastSurfer-CerebNet builds on top of these SUITS labels and adds two aggregated labels (see below)
+# See https://doi.org/10.1016/j.neuroimage.2022.119703
 #No. Label Name:                            R   G   B   A
-601  Cbm_Left_I_IV                          70  130 180 0
-602  Cbm_Right_I_IV                         245 245 245 0
+601  Cbm_Left_I_IV                          0   69  190 0
+602  Cbm_Right_I_IV                         70  170 180 0
 603  Cbm_Left_V                             205 62  78  0
-604  Cbm_Right_V                            120 18  134 0
+604  Cbm_Right_V                            205 102 78  0
 605  Cbm_Left_VI                            196 58  250 0
 606  Cbm_Vermis_VI                          0   148 0   0
-607  Cbm_Right_VI                           220 248 164 0
+607  Cbm_Right_VI                           196 98  250 0
 608  Cbm_Left_CrusI                         230 148 34  0
 609  Cbm_Vermis_CrusI                       0   118 14  0
-610  Cbm_Right_CrusI                        0   118 14  0
-611  Cbm_Left_CrusII                        122 186 220 0
+610  Cbm_Right_CrusI                        230 188 34  0
+611  Cbm_Left_CrusII                        122 200 120 0
 612  Cbm_Vermis_CrusII                      236 13  176 0
-613  Cbm_Right_CrusII 12                    48  255 0
-614  Cbm_Left_VIIb                          204 182 142 0
+613  Cbm_Right_CrusII                       122 240 120 0
+614  Cbm_Left_VIIb                          0   149 208 0
 615  Cbm_Vermis_VIIb                        42  204 164 0
-616  Cbm_Right_VIIb                         119 159 176 0
-617  Cbm_Left_VIIIa                         220 216 20  0
+616  Cbm_Right_VIIb                         0   189 208 0
+617  Cbm_Left_VIIIa                         220 205 20  0
 618  Cbm_Vermis_VIIIa                       103 255 255 0
-619  Cbm_Right_VIIIa                        80  196 98  0
+619  Cbm_Right_VIIIa                        220 245 20  0
 620  Cbm_Left_VIIIb                         60  58  210 0
 621  Cbm_Vermis_VIIIb                       60  58  210 0
-622  Cbm_Right_VIIIb                        60  58  210 0
-623  Cbm_Left_IX                            60  58  210 0
-624  Cbm_Vermis_IX                          60  60  60  0
-625  Cbm_Right_IX                           255 165 0   0
-626  Cbm_Left_X                             255 165 0   0
+622  Cbm_Right_VIIIb                        60  98  210 0
+623  Cbm_Left_IX                            90  135 35  0
+624  Cbm_Vermis_IX                          225 60  160 0
+625  Cbm_Right_IX                           158 233 19  0
+626  Cbm_Left_X                             165 42  42  0
 627  Cbm_Vermis_X                           0   255 127 0
-628  Cbm_Right_X                            165 42  42  0
+628  Cbm_Right_X                            165 82  42  0
+
+# Cerebellar aggregated labels extended for FastSurfer-CerebNet
+# See https://doi.org/10.1016/j.neuroimage.2022.119703
+630  Cbm_Vermis_VII                         230 73  25  0
+631  Cbm_Vermis_VIII                        103 255 255 0
+632  Cbm_Vermis                             230 73  25  0
 
 # Cerebellar lobule parcellations
 640  Cbm_Right_I_V_med                      204  0  0   0
@@ -461,6 +469,45 @@
 808 R_hypothalamus_posterior                255 160 0   0
 809 R_hypothalamus_tubular_inferior         255 160 200 0
 810 R_hypothalamus_tubular_superior         20  180 130 0
+
+# Below is the color table for the hypothalamic subregions and
+# adjancent structures on High-Resolutional T1w and T2w images. 
+#See : TBD
+
+901  R-N.opticus                            70  130 180 0
+902  L-N.opticus                            130 180 70  0
+903  R-C.mammilare                          205 62  78  0
+904  R-Optic-tract                          80  120 134 0
+905  L-Optic-tract                          196 58  250 0
+906  L-C.mammilare                          0   148 0   0
+907  R-Chiasma-Opticum                      220 248 164 0
+908  L-Chiasma-Opticum                      230 148 34  0
+909  Ant-Commisure                          10  180 225 0
+910  3rd-Ventricle                          118 0   100 0
+911  R-Fornix                               122 200 120 0
+912  L-Fornix                               236 13  176 0
+914  Epiphysis                              204 182 142 0
+916  Hypophysis                             119 159 176 0
+917  Infundibulum                           220 216 20  0
+922  Tuberal-Region                         120 60  110 0
+926  L-Med-Hypothalamus                     165 255 0   0
+927  L-Lat-Hypothalamus                     0   255 127 0
+928  L-Ant-Hypothalamus                     165 42  42  0
+929  L-Post-Hypothalamus                    255 215 0   0
+936  R-Med-Hypothalamus                     115 255 0   0
+937  R-Lat-Hypothalamus                     60  255 127 0
+938  R-Ant-Hypothalamus                     165 142 42  0
+939  R-Post-Hypothalamus                    255 170 20  0
+
+# Below is the color table for olfactory bulb structures. 
+# See: Automated Olfactory Bulb Segmentation on High Resolutional T2-Weighted MRI
+# Estrada et al. Neuroimage 2021. 
+# https://doi.org/10.1016/j.neuroimage.2021.118464
+  
+951  L-olfactory-bulb                       0   0   255 0
+952  R-olfactory-bulb                       255 0   0   0
+
+
 
 999 SUSPICIOUS                              255 100 100 0
 
