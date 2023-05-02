@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import os
 
 def fsrealpath(path):
@@ -22,3 +23,10 @@ def fsrealpath(path):
     """
     return os.path.realpath(path)
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Resolve symbolic links in a path.')
+    parser.add_argument('path', type=str, help='the path to resolve')
+    args = parser.parse_args()
+
+    resolved_path = fsrealpath(args.path)
+    print(resolved_path)
