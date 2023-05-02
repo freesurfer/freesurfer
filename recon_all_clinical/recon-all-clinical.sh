@@ -9,8 +9,10 @@ if ("$tcsh61706" != "") then
   set anyerror
 endif
 
-set PYTHON_SCRIPT_DIR=`./python`
-set MODEL=`mri_model.h5`
+set rootdir=`dirname $0`
+set abs_rootdir=`cd $rootdir && pwd`
+set PYTHON_SCRIPT_DIR=$abs_rootdir/python
+set MODEL="$abs_rootdir/synthsurf_v10_230420.h5"
 
 # If no arguments given
 # If requesting help
@@ -216,7 +218,6 @@ endif
 echo " " |& tee -a $LogFile
 
 # SynthSurf (Karthik's) code
-# TODO: change directory of script
 set cmd="fspython $PYTHON_SCRIPT_DIR/mri_synth_surf.py --subject_mri_dir $PWD   --input_image ./native.mgz --input_synthseg ./synthseg.mgz  --cpu --threads $THREADS --pad 5   --model_file $MODEL"
 $cmd |& tee -a $LogFile
 if ($status) then

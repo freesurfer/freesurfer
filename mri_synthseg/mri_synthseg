@@ -93,7 +93,7 @@ def main():
             sf.system.fatal('The flag --qc is not compatible with Photo-SynthSeg (--photo).')
         version = 'Photo-SynthSeg 1.0'
         if args.photo=='both':
-            path_mode_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_both_1.0.h5')
+            path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_both_1.0.h5')
         elif (args.photo=='left' or args.photo=='right'):
             path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_single_1.0.h5')
             if args.parc:
