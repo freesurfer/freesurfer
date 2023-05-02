@@ -12,6 +12,11 @@ set longbaseid = (); # lnog base  subject name
 set subjid = (); # eventually, subjid = $tpNid.long.$longbaseid
 set DoConf2Hires = 0;
 
+# Set this up to force update by default until I have a chance to 
+# test it more thoroughly
+if($?RCA_LONGMC_FORCE_UPDATE == 0) setenv RCA_LONGMC_FORCE_UPDATE 1
+set ForceUpdate = $RCA_LONGMC_FORCE_UPDATE
+
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
@@ -94,43 +99,57 @@ if($#CrossList == 1) then
   # directly from the rawavg. But with one input, srcvol
   # and rawavg are the same in the cross.
   # Always use cubic here?
-  set cmd = (mri_convert -at $tpNtobase_regfile \
-    -odt uchar -rt cubic $srcvol $origvol)
-  echo "\n $cmd \n" |& tee -a $LF 
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  # Create rawavg image. 
-  if(! $DoConf2Hires) then
-    # Use cubic here? Might not matter
-    set cmd = (mri_convert -at $tpNtobase_regfile -rt cubic $srcvol $rawvol)
+  set ud = `UpdateNeeded $origvol $tpNtobase_regfile $srcvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert -at $tpNtobase_regfile -odt uchar -rt cubic $srcvol $origvol)
     echo "\n $cmd \n" |& tee -a $LF 
     $cmd |& tee -a $LF
     if($status) goto error_exit;
+  else
+    echo "Update not needed for $origvol" | tee -a $LF
+  endif
+  # Create rawavg image. 
+  if(! $DoConf2Hires) then
+    set ud = `UpdateNeeded $rawvol $tpNtobase_regfile $srcvol`
+    if($ud || $ForceUpdate) then
+      # Use cubic here? Might not matter
+      set cmd = (mri_convert -at $tpNtobase_regfile -rt cubic $srcvol $rawvol)
+      echo "\n $cmd \n" |& tee -a $LF 
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "Update not needed for $rawvol" | tee -a $LF
+    endif
   else
     # Normally, rawavg not used for anything, but in conf2hires it is
     # Create rawavg image (not used by the long stream but used by conf2hires)
     # Need to compute the reg that takes rawavg into template space
     # and then change the header, not the pix, to make it in reg with base
     set raw2confreg = $subjdir/mri/transforms/rawavgcross2conf.lta
-    set tmpfile = `fs_temp_file --suffix .dat`
-    set cmd = (tkregister2_cmdl --noedit --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
-      --targ ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz --regheader --reg $tmpfile \
-      --ltaout $raw2confreg)
-    echo "\n $cmd \n" |& tee -a $LF 
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    rm -f $tmpfile
-    set raw2basereg = $subjdir/mri/transforms/rawavgcross2base.lta
-    set cmd = (mri_concatenate_lta $raw2confreg $tpNtobase_regfile $raw2basereg)
-    echo "\n $cmd \n" |& tee -a $LF 
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set rawvol  = $subjdir/mri/rawavg.mgz
-    set cmd = (mri_vol2vol --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
-     --targ $SUBJECTS_DIR/$longbaseid/mri/orig.mgz --reg $raw2basereg --no-resample --o $rawvol)
-    echo "\n $cmd \n" |& tee -a $LF 
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    set ud = `UpdateNeeded $rawvol $raw2confreg $srcvol`
+    if($ud || $ForceUpdate) then
+      set tmpfile = `fs_temp_file --suffix .dat`
+      set cmd = (tkregister2_cmdl --noedit --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
+        --targ ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz --regheader --reg $tmpfile \
+        --ltaout $raw2confreg)
+      echo "\n $cmd \n" |& tee -a $LF 
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      rm -f $tmpfile
+      set raw2basereg = $subjdir/mri/transforms/rawavgcross2base.lta
+      set cmd = (mri_concatenate_lta $raw2confreg $tpNtobase_regfile $raw2basereg)
+      echo "\n $cmd \n" |& tee -a $LF 
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set rawvol  = $subjdir/mri/rawavg.mgz
+      set cmd = (mri_vol2vol --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
+       --targ $SUBJECTS_DIR/$longbaseid/mri/orig.mgz --reg $raw2basereg --no-resample --o $rawvol)
+      echo "\n $cmd \n" |& tee -a $LF 
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "Update not needed for $rawvol" | tee -a $LF
+    endif
   endif
 else
   # Multiple inputs in cross subject
@@ -152,26 +171,35 @@ else
     set LongIscales = ($LongIscales $SUBJECTS_DIR/$tpNid/mri/orig/$stembase-iscale.txt)
     # create a new lta to the base template
     set concatlta = $stem-to-base.lta
-    set cmd = (mri_concatenate_lta $lta $tpNtobase_regfile $concatlta)
-    echo "\n $cmd \n" |& tee -a $LF 
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    set ud = `UpdateNeeded $concatlta $lta $tpNtobase_regfile`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_concatenate_lta $lta $tpNtobase_regfile $concatlta)
+      echo "\n $cmd \n" |& tee -a $LF 
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "Update not needed for $concatlta" | tee -a $LF
+    endif
     set ConcatLtas = ($ConcatLtas $concatlta)
   end
 
   # Use mri_robust_template to create the rawavg (as with cross stream)
   # Do this even for conf2hires because it has to be resampled anyway
-  set cmd = (mri_robust_template --mov $CrossList --ixforms $ConcatLtas --average 1 \
-    --noit --template $rawvol --iscalein $LongIscales)
-  echo "\n $cmd \n" |& tee -a $LF 
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
-
-  # Convert the rawavg to orig (as with cross stream)
-  set cmd = (mri_convert -odt uchar $rawvol $origvol)
-  echo "\n $cmd \n" |& tee -a $LF 
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded $origvol $CrossList $concatLtas`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_robust_template --mov $CrossList --ixforms $ConcatLtas --average 1 \
+      --noit --template $rawvol --iscalein $LongIscales)
+    echo "\n $cmd \n" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # Convert the rawavg to orig (as with cross stream)
+    set cmd = (mri_convert -odt uchar $rawvol $origvol)
+    echo "\n $cmd \n" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "Update not needed for $origvol"
+  endif
 
 endif
 
@@ -247,6 +275,15 @@ while( $#argv != 0 )
     case "--no-conf2hires":
     case "-no-conf2hires":
       set DoConf2Hires = 0;
+      breaksw
+
+    case "--force-update":
+    case "-force-update":
+      set ForceUpdate = 1;
+      breaksw
+    case "--no-force-update":
+    case "-no-force-update":
+      set ForceUpdate = 0;
       breaksw
 
     case "--log":
@@ -361,6 +398,7 @@ usage_exit:
   echo " -conf2hires, -no-conf2hires"
   echo " -sd SUBJECTS_DIR"
   echo " -s subjectname : override, must be after -long"
+  echo " -no-force-update : or setenv RCA_LONGMC_FORCE_UPDATE 0"
   echo ""
 
   if(! $PrintHelp) exit 1;
