@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+
+import os
+
+def fsrealpath(path):
+    """
+    Return the canonical path of a given file or directory.
+
+    This function resolves symbolic links, "." and ".." components in the
+    path, and returns the absolute path. The resulting path is free of symbolic links and redundant "." and ".." components.
+
+    Args:
+        path (str): The path to resolve.
+
+    Returns:
+        str: The canonical path of the file or directory.
+
+    Raises:
+        FileNotFoundError: If the file or directory specified by path
+            does not exist.
+        OSError: If an error occurs while resolving the path.
+    """
+    return os.path.realpath(path)
+

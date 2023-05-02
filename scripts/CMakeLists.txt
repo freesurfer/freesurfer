@@ -304,6 +304,7 @@ install_pyscript(
   rca-config
   rca-config2csh
   slicedelay
+  fsrealpath
 )
 
 install(FILES mri_nu_correct.mni.help.xml DESTINATION docs/xml)
