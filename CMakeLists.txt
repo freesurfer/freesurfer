@@ -796,6 +796,7 @@ if(NOT MINIMAL)
     ventfix
     pointset2label
     recon_all_clinical
+    mri_segmentThalamicNucleiDTI_CNN
   )
 endif()
 

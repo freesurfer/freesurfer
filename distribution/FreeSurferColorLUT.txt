@@ -1268,6 +1268,8 @@
 8130 Left-VM 85 255 0 0
 8133 Left-VPL 255 0 255 0
 8134 Left-PaV 120 18  134 0
+8135 Left-PuMm 170 255 255 0
+8136 Left-PuMl 140  240 255 0
 
 8203 Right-AV 0 85 0 0
 8204 Right-CeM 170 85 0 0
@@ -1296,6 +1298,8 @@
 8230 Right-VM 85 255 0 0
 8233 Right-VPL 255 0 255 0
 8234 Right-PaV 120 18  134 0
+8235 Right-PuMm 170 255 255 0
+8236 Right-PuMl 140  240 255 0
 
 #
 # Labels for thalamus parcellation using probabilistic tractography. See:
