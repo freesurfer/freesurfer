@@ -9,10 +9,8 @@ if ("$tcsh61706" != "") then
   set anyerror
 endif
 
-set rootdir=`dirname $0`
-set abs_rootdir=`cd $rootdir && pwd`
-set PYTHON_SCRIPT_DIR=$abs_rootdir/python
-set MODEL="$abs_rootdir/synthsurf_v10_230420.h5"
+set PYTHON_SCRIPT_DIR=$FREESURFER_HOME/python/scripts
+set MODEL=$FREESURFER_HOME/models/synthsurf_v10_230420.h5
 
 # If no arguments given
 # If requesting help

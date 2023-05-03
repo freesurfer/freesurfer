@@ -795,6 +795,7 @@ if(NOT MINIMAL)
     tridec
     ventfix
     pointset2label
+    recon_all_clinical
   )
 endif()
 
