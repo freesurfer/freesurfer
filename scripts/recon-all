@@ -2687,7 +2687,7 @@ if($FixEntoWM) then
   set ud = `UpdateNeeded $entowm $nu`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts mri_entowm_seg $XOptsFile $GlobXOptsFile`;
-    set cmd = (mri_entowm_seg --i $nu --o $entowm --threads $OMP_NUM_THREADS $xopts)
+    set cmd = (mri_entowm_seg --i $nu --o $entowm --conform --threads $OMP_NUM_THREADS $xopts)
     echo $cmd | tee -a $LF
     if($RunIt) $cmd | tee -a $LF
     if($status) goto error_exit;
