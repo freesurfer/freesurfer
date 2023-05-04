@@ -1501,7 +1501,7 @@ int main(int argc, char **argv) {
     mriglmtmp->y = mriglm->y;
     mriglmtmp->w = mriglm->w;
     mriglmtmp->Xg = MatrixHorCat(mriglm->Xg,Xselfreg,NULL);
-    for (n=0; n < mriglm->npvr; n++) mriglmtmp->pvr[n] = mriglmtmp->pvr[n];
+    for (n=0; n < mriglm->npvr; n++) mriglmtmp->pvr[n] = MRIcopy(mriglm->pvr[n],NULL);
     //MRIglmFree(&mriglm);
     mriglm = mriglmtmp;
   }
