@@ -9,10 +9,8 @@ if ("$tcsh61706" != "") then
   set anyerror
 endif
 
-set rootdir=`dirname $0`
-set abs_rootdir=`cd $rootdir && pwd`
-set PYTHON_SCRIPT_DIR=$abs_rootdir/python
-set MODEL="$abs_rootdir/synthsurf_v10_230420.h5"
+set PYTHON_SCRIPT_DIR=$FREESURFER_HOME/python/scripts
+set MODEL=$FREESURFER_HOME/models/synthsurf_v10_230420.h5
 
 # If no arguments given
 # If requesting help
@@ -40,15 +38,21 @@ if( $1 == "--help") then
   echo " "
   echo "If you use this stream for your analysis, please cite:"
   echo " "
+  echo "K Gopinath, DN Greeve, S Das, S Arnold, C Magdamo, JE Iglesias:"
+  echo "Cortical analysis of heterogeneous clinical brain MRI scans for large-scale neuroimaging studies"
+  echo "https://arxiv.org/abs/2305.01827"
+  echo " "
   echo "B Billot, DN Greve, O Puonti, A Thielscher, K Van Leemput, B Fischl, AV Dalca, JE Iglesias:"
-  echo "SynthSeg: Domain Randomisation for Segmentation of Brain Scans of any Contrast and Resolution"
-  echo "https://arxiv.org/abs/2107.09559"
+  echo "SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining"
+  echo "Medical Image Analysis, 83, 102789 (2023)"
   echo " "
   echo "B Billot, C Magdamo, SE Arnold, S Das, JE Iglesias:"
   echo "Robust machine learning segmentation for large-scale analysis of heterogeneous clinical brain MRI datasets"
-  echo "https://arxiv.org/abs/2209.02032"
+  echo "PNAS, 120(9), e2216399120 (2023)"
   echo " "
-  echo "TODO: add Karthik's preprint here!"
+  echo "SynthSR: a public AI tool to turn heterogeneous clinical brain scans into high-resolution T1-weighted images for 3D morphometry"
+  echo "JE Iglesias, B Billot, Y Balbastre, C Magdamo, S Arnold, S Das, B Edlow, D Alexander, P Golland, B Fischl"
+  echo "Science Advances, 9(5), eadd3607 (2023)"
   echo " "
   exit 0
 endif
@@ -688,15 +692,21 @@ echo "All done!"
 echo " "
 echo "If you have used results from this software for a publication, please cite:"
 echo " "
+echo "K Gopinath, DN Greeve, S Das, S Arnold, C Magdamo, JE Iglesias:"
+echo "Cortical analysis of heterogeneous clinical brain MRI scans for large-scale neuroimaging studies"
+echo "https://arxiv.org/abs/2305.01827"
+echo " "
 echo "B Billot, DN Greve, O Puonti, A Thielscher, K Van Leemput, B Fischl, AV Dalca, JE Iglesias:"
-echo "SynthSeg: Domain Randomisation for Segmentation of Brain Scans of any Contrast and Resolution"
-echo "https://arxiv.org/abs/2107.09559"
+echo "SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining"
+echo "Medical Image Analysis, 83, 102789 (2023)"
 echo " "
 echo "B Billot, C Magdamo, SE Arnold, S Das, JE Iglesias:"
 echo "Robust machine learning segmentation for large-scale analysis of heterogeneous clinical brain MRI datasets"
-echo "https://arxiv.org/abs/2209.02032"
+echo "PNAS, 120(9), e2216399120 (2023)"
 echo " "
-echo "TODO: add Karthik's preprint here!"
+echo "SynthSR: a public AI tool to turn heterogeneous clinical brain scans into high-resolution T1-weighted images for 3D morphometry"
+echo "JE Iglesias, B Billot, Y Balbastre, C Magdamo, S Arnold, S Das, B Edlow, D Alexander, P Golland, B Fischl"
+echo "Science Advances, 9(5), eadd3607 (2023)"
 echo " "
 
 exit 0

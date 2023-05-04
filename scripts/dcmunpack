@@ -35,6 +35,7 @@ set UseDCM2NIIX = 1; # changed this to 1 on 4/06/2023
 set CreateBIDS  = 0
 set DoPhase = 0;
 set DoSiemensAscii = 1;
+set KeepScouts = 0;
 set ForceUpdate = 0;
 
 set RunNos = ();
@@ -335,7 +336,9 @@ foreach series ($SeriesNos)
     if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
        "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
        "$descr" == AAHScout_tra || "$descr" == AAScout || \
-       "$descr" == T1w_setter || "$descr" == T2w_setter) continue
+       "$descr" == T1w_setter || "$descr" == T2w_setter) then
+       if(! $KeepScouts) continue
+    endif
     set AutoRunNos = ($AutoRunNos $series)
     set AutoSubDirs = ($AutoSubDirs ".")
     set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
@@ -693,6 +696,10 @@ while( $#argv != 0 )
       set FSFAST = 0;
       breaksw     
 
+    case "-keep-scouts"
+      set KeepScouts = 1;
+      breaksw     
+
     case "-no-rescale-dicom"
       setenv FS_RESCALE_DICOM 0
       breaksw     
@@ -1019,6 +1026,7 @@ usage_exit:
   echo "   -targ targetdir"
   echo "   -run run subdir format stemname <<nskip> ndrop>"
   echo "   -auto-runseq format : save all scans in the targetdir as runo.seqname.format"
+  echo "     -keep-scouts : unpack series with 'scout' or 'setter' in the name"
   echo "   -scanonly file : only scan the directory and put result in file"
   echo "   -one-per-dir : assume that there is only one dicom series in each subdir"
   echo "   -gedcm : same as -one-per-dir -ext dcm"
