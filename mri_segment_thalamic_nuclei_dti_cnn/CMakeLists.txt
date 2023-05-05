@@ -1,6 +1,6 @@
 project(mri_segmentThalamicNucleiDTI_CNN)
 
-install_pyscript(mri_segmentThalamicNucleiDTI_CNN)
+install_pyscript(mri_segment_thalamic_nuclei_dti_cnn)
 
 install_symlinks(TYPE files DESTINATION models thalseg_1.0.h5)
 
