@@ -1,4 +1,4 @@
-project(mri_segmentThalamicNucleiDTI_CNN)
+project(mri_segment_thalamic_nuclei_dti_cnn)
 
 install_pyscript(mri_segment_thalamic_nuclei_dti_cnn)
 
