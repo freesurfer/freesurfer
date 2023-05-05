@@ -4194,6 +4194,7 @@ if($DoConf2Hires && ! $LongSamseg) then
   if($DoFLAIRpial == 1) set cmd = ($cmd --FLAIR)
   if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
   if($UseHighMyelin)      set cmd = ($cmd --high-myelin $HighMyelinFactor)
+  if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
   if($longitudinal) then
     set cmd = ($cmd --longitudinal $tpNid $longbaseid)
   else

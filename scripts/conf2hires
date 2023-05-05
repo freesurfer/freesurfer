@@ -24,6 +24,8 @@ set DoFLAIR = 0
 set DoFLAIRpial = 0
 set MMnormSigma = 8; 
 set MMBBRcon = t2;
+set UseStopMaskSCM = 0
+set stopmaskscm = ()
 set CBVfindFirstPeakD1 = 0;
 set CBVfindFirstPeakD2 = 0;
 set DoSurfVolume = 0;
@@ -794,6 +796,12 @@ while( $#argv != 0 )
       set UseHighMyelin = 1
       breaksw
 
+    case "--stopmask"
+      if($#argv < 1) goto arg1err;
+      set UseStopMaskSCM = 1
+      set stopmaskscm = $argv[1]; shift
+      breaksw
+
     case "--longitudinal":
     case "--long":
       if ( $#argv < 2) goto arg1err;
@@ -979,6 +987,7 @@ usage_exit:
   echo "  --bbr-t2 : set BBR contrast type to t2"
   echo "  --first-peak-d1 : refine surface targets in MRIScomputeBorderValues()"
   echo "  --first-peak-d2 : refine surface targets in MRIScomputeBorderValues()"
+  echo "  --stopmask stopmaskscm"
   echo "  --expert xopts (or -expert)"
   echo "  --force-update"
   echo ""
