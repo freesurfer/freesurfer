@@ -59,7 +59,9 @@ set SynthSeed = -1;
 set ReduceToMask = 1;
 set threads = "-singleCompThread"; # one single thread
 if(! $?FS_SXA3_USE_BIN)  setenv FS_SXA3_USE_BIN 0
-if(! $?FS_MCRROOT) setenv FS_MCRROOT $FREESURFER_HOME/MCRv97
+
+# Force this to 97. Can be changed with -mcr
+setenv FS_MCRROOT $FREESURFER_HOME/MCRv97
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then
@@ -742,6 +744,7 @@ usage_exit:
   echo "   -log logfile   : specify log file explicitly"
   echo "   -outparent dir : save output to this dir instead of in session"
   echo "   -max-threads   : use all CPUs (default is to use 1)"
+  echo "   -mcr FS_MCRROOT : default is $FS_MCRROOT"
   echo ""
 
   if(! $PrintHelp) exit 1;
