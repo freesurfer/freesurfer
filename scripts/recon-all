@@ -3483,7 +3483,11 @@ if($DoFix && ( ! $longitudinal )) then
     foreach hemi ($hemilist)
       echo "#@# Fix Topology $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile $GlobXOptsFile`;
-      set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix \
+      # At some point, mris_fix_topology became nondeterministic with
+      # multiple threads so force it to use a single thread. The
+      # non-deterministicness only happens on 3 of the buckner 40, so
+      # not every time, and not most of the time.
+      set cmd = (mris_fix_topology -threads 1 -mgz -sphere qsphere.nofix \
         -inflated inflated.nofix -orig orig.nofix -out $origsurf)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
