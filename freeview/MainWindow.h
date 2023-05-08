@@ -421,7 +421,7 @@ protected:
   void CommandSetSurfaceVertexColor ( const QStringList& cmd );
   void CommandSetSurfaceLabelColor  ( const QStringList& cmd );
   void CommandSetSurfaceLabelThreshold  ( const QStringList& cmd );
-  void CommandHideSurfaceLabel (const QStringList& cmd );
+  void CommandHideSurfaceLabel (const QStringList& cmd = QStringList());
   void CommandSetPointSetColor ( const QStringList& cmd );
   void CommandSetPointSetRadius( const QStringList& cmd );
   void CommandSetPointSetHeatmap( const QStringList& cmd );
