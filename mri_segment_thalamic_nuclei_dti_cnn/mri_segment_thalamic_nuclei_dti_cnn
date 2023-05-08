@@ -265,7 +265,7 @@ def predict(path_t1,
             '\nDomain-agnostic segmentation of thalamic nuclei from joint structural and diffusion MRI')
         print('H.F.J. Tregidgo, S.Soskic, M.D. Olchanyi, J. Althonayan, B. Billot, C. Maffei, P. Golland,'
               '\n A. Yendiki, D.C. Alexander, M. Bocchetta, J.D. Rohrer, J.E. Iglesias')
-        print('arXiv preprint')
+        print('arXiv preprint: https://arxiv.org/abs/2305.03413')
 
 
 def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_posteriors,
