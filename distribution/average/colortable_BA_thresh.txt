@@ -1,0 +1,15 @@
+  0  unknown                                   25  5   25  0
+  1  BA1_exvivo.thresh                         0   92  23  0
+  2  BA2_exvivo.thresh                         131 148 255 0
+  3  BA3a_exvivo.thresh                        0   0   255 0
+  4  BA3b_exvivo.thresh                        255 102 51  0
+  5  BA4a_exvivo.thresh                        196 255 20  0
+  6  BA4p_exvivo.thresh                        255 51  204 0
+  7  BA6_exvivo.thresh                         1   38  153 0
+  8  BA44_exvivo.thresh                        153 0   38  0
+  9  BA45_exvivo.thresh                        115 153 0   0
+ 10  V1_exvivo.thresh                          153 15  0   0
+ 11  V2_exvivo.thresh                          0   214 129 0
+ 12  MT_exvivo.thresh                          155 0   153 0
+ 13  perirhinal_exvivo.thresh                  33  150 250 0
+ 14  entorhinal_exvivo.thresh                  150 33  250 0

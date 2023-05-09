@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
   // Set up something to keep track of max stat for that vertex
   if (maxstatwinner) maxstat = MRIalloc(mris->nvertices,1,1,MRI_FLOAT);
 
-  label2annotation();
+  label2annotationV2();
 
   int nunhit = 0;
   if (MapUnhitToUnknown) {
@@ -605,10 +605,17 @@ static void check_options(void) {
       sprintf(tmpstr,"%s/%s/label",SUBJECTS_DIR,subject);
       labeldir = strcpyalloc(tmpstr);
     }
-    // ctab2 is a shorter version of ctab
-    // each label in ctab2 has its corresponding label file in labeldir
+
+    /* ctab2 is a shorter version of ctab
+     * each label in ctab2 has its corresponding label file in labeldir
+     *
+     * the logic implemented here is different from the code path for --l <label-file>:
+     * 1. here we go through each ctab entry to find corresponding label file in --ldir;
+     * 2. for --l <>, we go through each label file specified and search it in ctab
+     * 3. ?? make them behave the same ??
+     */
     ctab2 = CTABalloc(ctab->nentries);
-    nlabels = 0;  // ??? should we start from 1 ??? 0 is reserved for unknown/annotation=0
+    nlabels = 0;
     for (n=0; n<ctab->nentries; n++) {
       if(ctab->entries[n] == NULL) continue;
       if (strlen(ctab->entries[n]->name) == 0) continue;
@@ -619,15 +626,18 @@ static void check_options(void) {
       if(!fio_FileExistsReadable(tmpstr)) continue;
       printf("%2d %s\n",n,tmpstr);
       LabelFiles[nlabels] = strcpyalloc(tmpstr);
-      strcpy(ctab2->entries[nlabels]->name,ctab->entries[n]->name);
-      ctab2->entries[nlabels]->ri = ctab->entries[n]->ri;
-      ctab2->entries[nlabels]->gi = ctab->entries[n]->gi;
-      ctab2->entries[nlabels]->bi = ctab->entries[n]->bi;
-      ctab2->entries[nlabels]->ai = ctab->entries[n]->ai;
-      ctab2->entries[nlabels]->rf = ctab->entries[n]->rf;
-      ctab2->entries[nlabels]->gf = ctab->entries[n]->gf;
-      ctab2->entries[nlabels]->bf = ctab->entries[n]->bf;
-      ctab2->entries[nlabels]->af = ctab->entries[n]->af;
+
+      // make ctab2 starting from 1, 0 is reserved for unknown/annotation=0
+      int labelid = nlabels+1; 
+      strcpy(ctab2->entries[labelid]->name,ctab->entries[n]->name);
+      ctab2->entries[labelid]->ri = ctab->entries[n]->ri;
+      ctab2->entries[labelid]->gi = ctab->entries[n]->gi;
+      ctab2->entries[labelid]->bi = ctab->entries[n]->bi;
+      ctab2->entries[labelid]->ai = ctab->entries[n]->ai;
+      ctab2->entries[labelid]->rf = ctab->entries[n]->rf;
+      ctab2->entries[labelid]->gf = ctab->entries[n]->gf;
+      ctab2->entries[labelid]->bf = ctab->entries[n]->bf;
+      ctab2->entries[labelid]->af = ctab->entries[n]->af;
       nlabels ++;
     }
     CTABfree(&ctab);
@@ -753,14 +763,14 @@ static void label2annotation()
 /*
  * The implementation assumes the given label files [?h.]label-name.label indicate the labels intended.
  * When retrieving the label name, [?h.] is discarded if it is present.
- * If a label doesn't exist in CTAB, add it to CTAB with randomly generated RGB.
+ * If a label doesn't exist in CTAB, exit with error.
  */
 static void label2annotationV2()
 {
   printf("convert labels to annotation with label2annotationV2() ...\n");
 
   // create MRI (nvertices x (nlabels+4) x 1 x 1) to track labels assigned to each vertex
-  // the MRI is used a 2D int array with these columns:
+  // the MRI is used as a 2D int array with these columns:
   //      col 0      col 1            col 2               col 3       col 4    ...   col (4+nlabels) 
   //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat     labelno.  ...     labelno.
   //   
@@ -809,21 +819,9 @@ static void label2annotationV2()
       CTABannotationAtIndex(ctab, label_index, &label_annot);
     else
     {
-      // the label doesn't exist in CTAB
-      // add it to CTAB with randomly generated RGB
-
-      // set environment variable FREESURFER_SEED to have reproducible outcome
-      // setenv("FREESURFER_SEED", "12", 1);
-      setRandomSeed(12);  // gifti.cpp is using seed 12
-      CTABaddUniqueEntryAtEnd(ctab, labelname, &label_index);
-      if (label_index < -1)
-      {
-        printf("WARN: failed to add %s to colortab. It is not included in generated .annot!\n", labelname);
-        continue;
-      }
-
-      printf("INFO: Added label %s to colortab index %d\n", labelname, label_index);
-      CTABannotationAtIndex(ctab, label_index, &label_annot);
+      // the label doesn't exist in CTAB, exit with error.
+      printf("ERROR: %s not found in CTAB %s\n", labelname, ctab->fname);
+      exit(1);
     }
 
     printf("%2d %2d %s (%d %d %d %d)\n",
