@@ -49,6 +49,9 @@ static int __mrisreadannot(const char *fannot, MRIS *mris);
 static int __mrisreadseg2annot(const char *fannot, MRIS *mris);
 static int __mriswriteannot(MRIS *mris, const char *outfannot);
 
+static void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype);
+static void __MRISapplyFSGIIwrite(char *file_to_write, const char *fname, int *filetype);
+
 static int mris_readval_frame = -1;
 
 /*--------------------------------------------------------
@@ -348,11 +351,25 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_na
   if (mristype == MRIS_ASCII_FILE)
     mritype = ASCII_FILE;
 
+  // it needs to read NEW_VERSION_MAGIC_NUMBER to determine type MRI_CURV_FILE
+  // it is the write function, file doesn't exist yet, it can't be MRI_CURV_FILE
+  if (mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE &&
+      mritype != ASCII_FILE    && mritype != VTK_FILE) 
+    mritype = MRI_VOLUME_TYPE_UNKNOWN;
+#if 0
   if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
        mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
       (mritype != ASCII_FILE && mritype != VTK_FILE)) 
     mritype = MRI_VOLUME_TYPE_UNKNOWN;
+#endif
 
+  char curv_to_write[1024] = {'\0'};
+  strcpy(curv_to_write, fname);
+
+  if (mritype == MRI_VOLUME_TYPE_UNKNOWN)
+    __MRISapplyFSGIIwrite(curv_to_write, fname, &mritype);
+
+  printf("[DEBUG] write %s\n", curv_to_write);
   int error = NO_ERROR;
   if (mritype == MRI_MGH_FILE)
   {
@@ -369,24 +386,24 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_na
       MRIsetVoxVal(TempMRI, vno, 0, 0, 0, v->curv);
     }
 
-    MRIwrite(TempMRI, fname);
+    MRIwrite(TempMRI, curv_to_write);
     MRIfree(&TempMRI);
   }
   else if (mritype == VTK_FILE)
   {
-    MRISwriteVTK(mris, fname);
-    MRISwriteCurvVTK(mris, fname);
+    MRISwriteVTK(mris, curv_to_write);
+    MRISwriteCurvVTK(mris, curv_to_write);
   }
   else if (mritype == ASCII_FILE)
-    error = mrisWriteAsciiCurvatureFile(mris, fname);
+    error = mrisWriteAsciiCurvatureFile(mris, curv_to_write);
   else if (mritype == GIFTI_FILE)
-    error = MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, fname, curv_name);
+    error = MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, curv_to_write, curv_name);
   else
   {
     // output curv new format
-    FILE *fp = fopen(fname, "wb");
+    FILE *fp = fopen(curv_to_write, "wb");
     if (fp == NULL)
-      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", fname));
+      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", curv_to_write));
 
     fwrite3(-1, fp); /* same old trick - mark it as new format */
     fwriteInt(mris->nvertices, fp);
@@ -1511,19 +1528,26 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
     mritype = MGH_ANNOT;
   }
 
+  char annot_to_read[1024] = {'\0'};
+  strcpy(annot_to_read, fname);
+
   if (mritype == MGH_ANNOT)
-    error = __mrisreadannot(fname, mris);
+    __MRISapplyFSGIIread(annot_to_read, fname, &mritype);
+
+  printf("[DEBUG] read %s\n", annot_to_read);
+  if (mritype == MGH_ANNOT)
+    error = __mrisreadannot(annot_to_read, mris);
   else if (mritype == MRI_MGH_FILE)
-    error = __mrisreadseg2annot(fname, mris);
+    error = __mrisreadseg2annot(annot_to_read, mris);
   else if (mritype == GIFTI_FILE)
   {
-    mris = mrisReadGIFTIfile(fname, mris);
+    mris = mrisReadGIFTIfile(annot_to_read, mris);
     if (mris == NULL)
       error = ERROR_BADFILE;
   }
   else
   {
-    printf("ERROR: unknown annotation file format %s\n", fname);
+    printf("ERROR: unknown annotation file format %s\n", annot_to_read);
     error = ERROR_BADFILE;
   }
 
@@ -1926,16 +1950,23 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
     mritype = MGH_ANNOT;
   }
 
+  char annot_to_write[1024] = {'\0'};
+  strcpy(annot_to_write, fname);
+
   if (mritype == MGH_ANNOT)
-    error = __mriswriteannot(mris, fname);
+    __MRISapplyFSGIIwrite(annot_to_write, fname, &mritype);
+
+  printf("[DEBUG] write %s\n", annot_to_write);
+  if (mritype == MGH_ANNOT)
+    error = __mriswriteannot(mris, annot_to_write);
   else if (mritype == GIFTI_FILE)
   {
     int gifti_intent = (writect) ? NIFTI_INTENT_LABEL : NIFTI_INTENT_RGBA_VECTOR; 
-    error = MRISwriteGIFTI(mris, gifti_intent, fname, NULL);
+    error = MRISwriteGIFTI(mris, gifti_intent, annot_to_write, NULL);
   }
   else if (mritype == MRI_MGH_FILE)
   {
-    printf("MRISurfAnnotation::writeAnnotation((): writing %s as a surface seg\n", fname);
+    printf("MRISurfAnnotation::writeAnnotation((): writing %s as a surface seg\n", annot_to_write);
  
    /*
      * MRI *MRISannot2seg(MRIS *surf, int base)
@@ -1949,12 +1980,12 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
     if(surfseg == NULL)
       return ERROR_NOFILE;
 
-    error = MRIwrite(surfseg, fname);
+    error = MRIwrite(surfseg, annot_to_write);
     MRIfree(&surfseg);
   }
   else
   {
-    printf("ERROR: unknown output annotation file format %s\n", fname);
+    printf("ERROR: unknown output annotation file format %s\n", annot_to_write);
     error = ERROR_BADFILE;
   }
 
@@ -4513,7 +4544,22 @@ MRI_SURFACE *MRISfastRead(const char *fname)
   ------------------------------------------------------*/
 MRIS * MRISread(const char *fname, bool dotkrRasConvert)
 {
-  MRIS *mris = MRISreadOverAlloc(fname, 1.0);
+  /* FS_GII read:
+   * default type is MRIS_BINARY_QUADRANGLE_FILE
+   * if it is MRIS_BINARY_QUADRANGLE_FILE,
+   *   call __MRISapplyFSGIIread() to determine which surface file to read
+   */
+  char surf_to_read[1024] = {'\0'};
+  strcpy(surf_to_read, fname);
+
+  int type = MRISfileNameType(surf_to_read);  /* using extension to get type */
+  if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
+      type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE        && 
+      type != MRI_MGH_FILE)
+    __MRISapplyFSGIIread(surf_to_read, fname, &type);
+
+  printf("[DEBUG] read %s\n", surf_to_read);
+  MRIS *mris = MRISreadOverAlloc(surf_to_read, 1.0);
   if (mris == NULL) return (NULL);
 
   // save xyz coordinates space because mris->useRealRAS is changed after conversion
@@ -4525,7 +4571,7 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
   {
     if (!mris->vg.valid)
     {
-      printf("ERROR: Surface %s doesn't have valid volume geometry!\n", fname);
+      printf("ERROR: Surface %s doesn't have valid volume geometry!\n", surf_to_read);
       MRISfree(&mris);
       return NULL;
     }
@@ -4582,9 +4628,23 @@ int MRISwrite(MRIS *mris, const char *name)
     }
   }
   
+  /* FS_GII write:
+   * default type is MRIS_BINARY_QUADRANGLE_FILE
+   * if it is MRIS_BINARY_QUADRANGLE_FILE, 
+   *   call __MRISapplyFSGIIwrite() to determine which surface file to write
+   */
+  char surf_to_write[1024] = {'\0'};
+  strcpy(surf_to_write, name);
+
+  int type = MRISfileNameType(surf_to_write);  /* using extension to get type */
+  if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
+      type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE)
+    __MRISapplyFSGIIwrite(surf_to_write, name, &type);
+
+  printf("[DEBUG] write %s\n", surf_to_write);
   return useOldBehaviour
-    ? MRISwrite_old(mris, name)
-    : MRISwrite_new(mris, name);
+    ? MRISwrite_old(mris, surf_to_write)
+    : MRISwrite_new(mris, surf_to_write);
 }
 
 static bool quadCombine(int quad[4], int vA[3], int vB[3])
@@ -4657,6 +4717,9 @@ static bool quadCombine(int quad[4], int vA[3], int vB[3])
   return qi == 4;                           // built a valid quad?
 }
 
+// the following file types are handled:
+// MRIS_ASCII_TRIANGLE_FILE, MRIS_VTK_FILE, MRIS_GEO_TRIANGLE_FILE, MRIS_ICO_FILE, MRIS_STL_FILE, MRIS_GIFTI_FILE, 
+// MRIS_TRIANGULAR_SURFACE (mris->type)
 static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
 {
   int k, type;
@@ -4688,10 +4751,12 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
     return MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fname, NULL);
   }
 
+  // based on mris->type not type
   if (mris->type == MRIS_TRIANGULAR_SURFACE) {
     return (MRISwriteTriangularSurface(mris, fname));
   }
 
+  // ??? when will we get here ???
   fp = fopen(fname, "w");
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
 
@@ -5232,17 +5297,24 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, st
       (mritype != ASCII_FILE && mritype != VTK_FILE)) 
     mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
+  char curv_to_read[1024] = {'\0'};
+  strcpy(curv_to_read, fname);
+
+  if (mritype == MRI_CURV_FILE || mritype == MRI_VOLUME_TYPE_UNKNOWN)
+    __MRISapplyFSGIIread(curv_to_read, fname, &mritype);
+
+  printf("[DEBUG] read %s\n", curv_to_read);
   int error = NO_ERROR;
   if (mritype == VTK_FILE)
-    mris = MRISreadVTK(mris, fname);
+    mris = MRISreadVTK(mris, curv_to_read);
   else if (mritype == MRI_MGH_FILE || mritype == MRI_CURV_FILE)
-    error = __mrisreadcurvmri(mris, fname, mritype, read_volume, curvmri);
+    error = __mrisreadcurvmri(mris, curv_to_read, mritype, read_volume, curvmri);
   else if (mritype == ASCII_FILE)
-    error = mrisReadAsciiCurvatureFile(mris, fname, curvmri);
+    error = mrisReadAsciiCurvatureFile(mris, curv_to_read, curvmri);
   else if (mritype == GIFTI_FILE)
-    mris = mrisReadGIFTIfile(fname, mris, poverlayinfo);
+    mris = mrisReadGIFTIfile(curv_to_read, mris, poverlayinfo);
   else
-    error = __mrisreadcurvoldformat(mris, fname, curvmri);
+    error = __mrisreadcurvoldformat(mris, curv_to_read, curvmri);
 
   if (mris == NULL)
     error = ERROR_BADFILE;
@@ -6686,3 +6758,97 @@ int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *out
 }
 
 
+/* 1. when reading curvature, these file types are respected:
+ *      MRI_MGH_FILE
+ *      ASCII_FILE
+ *      VTK_FILE
+ *      GIFTI_FILE
+ * 2. when reading .annot, these file types are respected:
+ *      MRI_MGH_FILE
+ *      GIFTI_FILE
+ * 3. when reading surface, these file types are respected:
+ *      MRIS_ASCII_TRIANGLE_FILE
+ *      MRIS_ICO_FILE
+ *      MRIS_GEO_TRIANGLE_FILE
+ *      MRIS_STL_FILE
+ *      MRIS_VTK_FILE
+ *      MRI_MGH_FILE
+ *      MRIS_GIFTI_FILE
+ * 4. __MRISapplyFSGIIread() is called for 
+ *      MGH_ANNOT (.annot)
+ *      MRI_CURV_FILE/MRI_VOLUME_TYPE_UNKNOWN (new/old curv format)
+ *      MRIS_BINARY_QUADRANGLE_FILE (assumed surface file type)
+ *
+ *    return error, if both regular and .gii files exits
+ *    if FS_GII = '.gii', read GIFTI_FILE
+ *    otherwise, file type unchanged (read regular format)
+ */
+void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
+{
+  // one time conversion will be performed when changing FS_GII setting
+  // ??? maybe saving previous FS_GII setting in .surfformat ???
+  char gii[1024];
+  sprintf(gii, "%s.gii", fname);
+  if (fio_FileExistsReadable(fname) && fio_FileExistsReadable(gii))
+  {
+    printf("[ERROR] both %s and %s exist. Check FS_GII setting, remove unused files\n", fname, gii);
+    exit(1);
+  }
+
+  const char *fs_gii = getenv("FS_GII");
+  if (fs_gii != NULL && strcmp(fs_gii, ".gii") == 0)
+  {
+    sprintf(file_to_read, "%s%s", fname, fs_gii);
+    *filetype = GIFTI_FILE;
+  }
+}
+
+/* 1. when writing curvature, these file types are respected:
+ *      MRI_MGH_FILE
+ *      ASCII_FILE
+ *      VTK_FILE
+ *      GIFTI_FILE
+ * 2. when writing .annot, these file types are respected:
+ *      MRI_MGH_FILE
+ *      GIFTI_FILE
+ * 3. when writing surface, these file types are respected:
+ *      MRIS_ASCII_TRIANGLE_FILE
+ *      MRIS_ICO_FILE
+ *      MRIS_GEO_TRIANGLE_FILE
+ *      MRIS_STL_FILE
+ *      MRIS_VTK_FILE
+ *      GIFTI_FILE
+ * 4. __MRISapplyFSGIIwrite() is called for
+*       MGH_ANNOT (.annot)
+ *      MRI_CURV_FILE (assumed curv format)
+ *      MRIS_BINARY_QUADRANGLE_FILE (assumed surface file type)
+ *
+ *    if FS_GII = '.gii', write GIFTI_FILE, error if its regular form exits
+ *    otherwise, filetype is unchanged (write regular format), error if its GIFTI form exists
+ */
+void __MRISapplyFSGIIwrite(char *file_to_write, const char *fname, int *filetype)
+{
+  const char *fs_gii = getenv("FS_GII");
+  if (fs_gii != NULL && strcmp(fs_gii, ".gii") == 0)
+  {
+    sprintf(file_to_write, "%s%s", fname, fs_gii);
+    printf("[WARN] write, FS_GII set, write as %s (%s)\n", file_to_write, fname);
+    *filetype = GIFTI_FILE;
+
+    if (fio_FileExistsReadable(fname))
+    {
+      printf("[ERROR] attemp to write GIFTI %s, its regular form %s exists\n", file_to_write, fname);
+      exit(1);
+    }
+  }
+  else // write in regular format
+  {
+    char gii[1024];
+    sprintf(gii, "%s.gii", fname);
+    if (fio_FileExistsReadable(gii))
+    {
+      printf("[ERROR] attemp to write %s, its GIFTI form %s exists\n", fname, gii);
+      exit(1);
+    }
+  }
+}
