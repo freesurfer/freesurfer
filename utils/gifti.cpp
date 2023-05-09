@@ -831,8 +831,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
 
       for (int ncmd = 0; ncmd < numcmds; ncmd++)
       {
-        char tag[20] = {'\0'};
-        sprintf(tag, "%s#%d", "TAG_CMDLINE", ncmd);
+        char tag[24] = {'\0'};
+        sprintf(tag, "TAG_CMDLINE#%d", ncmd);
 
         char *cmdline = gifti_get_meta_value(&coords->meta, tag);
         if (cmdline == NULL)
@@ -2599,8 +2599,8 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
         char cmdline[TAG_CMDLINE_LEN] = {'\0'};
         snprintf(cmdline, sizeof(cmdline), "%s", mris->cmdlines[ncmd]);
 
-        char tag[20] = {'\0'};
-        sprintf(tag, "%s#%d", "TAG_CMDLINE", ncmd);
+        char tag[24] = {'\0'};
+        sprintf(tag, "TAG_CMDLINE#%d", ncmd);
         gifti_add_to_meta(&coords->meta, tag, cmdline, 1);
       }
     }
