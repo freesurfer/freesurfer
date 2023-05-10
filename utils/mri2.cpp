@@ -6758,3 +6758,71 @@ int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double 
   return(nchanged);
 }
 
+/*!
+  \fn MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap)
+  \brief Shifts the source mri in the given dimension by nshift.
+  dim={1,2,3}, nshift can be pos or negative. If wrap != 0, then
+  voxels will be wrapped around.
+ */
+MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap)
+{
+  printf("MRIshiftDim() dim = %d nshift = %d  wrap = %d\n",dim,nshift,wrap);
+
+  if(dim < 1 || dim > 3) {
+    printf("MRIshiftDim() dim out of range\n");
+    return(NULL);
+  }
+  MRI *out = MRIallocSequence(src->width,src->height,src->depth,src->type,src->nframes);
+  if(!out) return(NULL);
+  MRIcopyPulseParameters(src,out);
+  if(src->ct) out->ct = CTABdeepCopy(src->ct);
+
+  for(int c=0; c < src->width; c++){
+    int c2 = c;
+    if(dim==1){
+      c2 = c + nshift;
+      if(c2 < 0){
+	if(!wrap) continue;
+	c2 += src->width;
+      }
+      if(c2 >= src->width){
+	if(!wrap) continue;
+	c2 -= src->width;
+      }
+    }
+    for(int r=0; r < src->height; r++){
+      int r2 = r;
+      if(dim==2){
+	r2 = r + nshift;
+	if(r2 < 0){
+	  if(!wrap) continue;
+	  r2 += src->width;
+	}
+	if(r2 >= src->width){
+	  if(!wrap) continue;
+	  r2 -= src->width;
+	}
+      }
+      for(int s=0; s < src->depth; s++){
+	int s2 = s;
+	if(dim==3){
+	  s2 = s + nshift;
+	  if(s2 < 0){
+	    if(!wrap) continue;
+	    s2 += src->width;
+	  }
+	  if(s2 >= src->width){
+	    if(!wrap) continue;
+	    s2 -= src->width;
+	  }
+	}
+	for(int f=0; f < src->nframes; f++){
+	  double val = MRIgetVoxVal(src,c,r,s,f);
+	  MRIsetVoxVal(out,c2,r2,s2,f,val);
+	}
+      } // slice
+    } // row
+  } // col
+
+  return(out);
+}

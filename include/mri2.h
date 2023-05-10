@@ -173,6 +173,7 @@ MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
 int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal);
 MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol);
 int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double rhVal);
+MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap);
 
 /*!
   \fn class FixSubCortMassHA
