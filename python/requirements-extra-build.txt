@@ -6,7 +6,7 @@ scikit-image==0.20.0
 tensorflow==2.12.0
 tensorflow-estimator==2.12.0
 tensorflow-io-gcs-filesystem==0.32.0
-torch==2.0.0
+torch==2.0.1
 transforms3d==0.4.1
 trimesh==3.21.6
 git+https://github.com/adalca/pystrum.git@6422922af2607bf740a78526c6be83c388b25c1c
