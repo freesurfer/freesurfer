@@ -5335,7 +5335,7 @@ if ($DoBaLabels) then
     set cmd=(mris_label2annot \
         --s $subjid \
         --hemi $hemi \
-        --ctab $FREESURFER_HOME/average/colortable_BA.txt \
+        --ctab $FREESURFER_HOME/average/colortable_BA_thresh.txt \
         --l $hemi.BA1_exvivo.thresh.label \
         --l $hemi.BA2_exvivo.thresh.label \
         --l $hemi.BA3a_exvivo.thresh.label \

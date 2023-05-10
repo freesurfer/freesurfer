@@ -5,11 +5,11 @@
 # R., Grill-Spector, K. (2017). A cross-validated cytoarchitectonic
 # atlas of the human ventral visual stream. NeuroImage,
 # http://dx.doi.org/10.1016/j.neuroimage.2017.02.040 
- 1  FG1     57   255    20     0
- 2  FG2    255     0   255     0
- 3  FG3      0     0   255     0
- 4  FG4    109     7    26     0
- 5  hOc1     0   100     0     0
- 6  hOc2   255     0     0     0
- 7  hOc3v    0   255   255     0
- 8  hOc4v  255   255     0     0
+ 1  FG1.mpm.vpnl     57   255    20     0
+ 2  FG2.mpm.vpnl    255     0   255     0
+ 3  FG3.mpm.vpnl      0     0   255     0
+ 4  FG4.mpm.vpnl    109     7    26     0
+ 5  hOc1.mpm.vpnl     0   100     0     0
+ 6  hOc2.mpm.vpnl   255     0     0     0
+ 7  hOc3v.mpm.vpnl    0   255   255     0
+ 8  hOc4v.mpm.vpnl  255   255     0     0
