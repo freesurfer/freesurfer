@@ -369,7 +369,6 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_na
   if (mritype == MRI_VOLUME_TYPE_UNKNOWN)
     __MRISapplyFSGIIwrite(curv_to_write, fname, &mritype);
 
-  printf("[DEBUG] write %s\n", curv_to_write);
   int error = NO_ERROR;
   if (mritype == MRI_MGH_FILE)
   {
@@ -1534,7 +1533,6 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   if (mritype == MGH_ANNOT)
     __MRISapplyFSGIIread(annot_to_read, fname, &mritype);
 
-  printf("[DEBUG] read %s\n", annot_to_read);
   if (mritype == MGH_ANNOT)
     error = __mrisreadannot(annot_to_read, mris);
   else if (mritype == MRI_MGH_FILE)
@@ -1956,7 +1954,6 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
   if (mritype == MGH_ANNOT)
     __MRISapplyFSGIIwrite(annot_to_write, fname, &mritype);
 
-  printf("[DEBUG] write %s\n", annot_to_write);
   if (mritype == MGH_ANNOT)
     error = __mriswriteannot(mris, annot_to_write);
   else if (mritype == GIFTI_FILE)
@@ -4558,7 +4555,6 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
       type != MRI_MGH_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
-  printf("[DEBUG] read %s\n", surf_to_read);
   MRIS *mris = MRISreadOverAlloc(surf_to_read, 1.0);
   if (mris == NULL) return (NULL);
 
@@ -4641,7 +4637,6 @@ int MRISwrite(MRIS *mris, const char *name)
       type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE)
     __MRISapplyFSGIIwrite(surf_to_write, name, &type);
 
-  printf("[DEBUG] write %s\n", surf_to_write);
   return useOldBehaviour
     ? MRISwrite_old(mris, surf_to_write)
     : MRISwrite_new(mris, surf_to_write);
@@ -5303,7 +5298,6 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, st
   if (mritype == MRI_CURV_FILE || mritype == MRI_VOLUME_TYPE_UNKNOWN)
     __MRISapplyFSGIIread(curv_to_read, fname, &mritype);
 
-  printf("[DEBUG] read %s\n", curv_to_read);
   int error = NO_ERROR;
   if (mritype == VTK_FILE)
     mris = MRISreadVTK(mris, curv_to_read);
