@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
   MRI *mri, *mri2, *mri_template, *mri_in_like;
   int i,err=0;
   int reorder_vals[3];
+  int shift_dim[3];
   float invert_val;
   int in_info_flag, out_info_flag;
   int template_info_flag;
@@ -95,6 +96,7 @@ int main(int argc, char *argv[])
   int reorder_flag;
   int reorder4_vals[4];
   int reorder4_flag;
+  int shiftdim_flag = FALSE;
   int in_stats_flag, out_stats_flag;
   int read_only_flag, no_write_flag;
   char in_name[STRLEN], out_name[STRLEN];
@@ -294,6 +296,7 @@ int main(int argc, char *argv[])
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
   reorder4_flag = FALSE;
+  shiftdim_flag = FALSE;
   in_stats_flag = FALSE;
   out_stats_flag = FALSE;
   read_only_flag = FALSE;
@@ -367,6 +370,11 @@ int main(int argc, char *argv[])
     {
       get_ints(argc, argv, &i, reorder4_vals, 4);
       reorder4_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--shift")==0)
+    {
+      get_ints(argc, argv, &i, shift_dim, 3);
+      shiftdim_flag = TRUE;
     }
     else if(strcmp(argv[i], "-ut") == 0 || strcmp(argv[i], "--upper_thresh") == 0)
     {
@@ -3346,6 +3354,16 @@ int main(int argc, char *argv[])
     {
       exit(1);
     }
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
+  /* ----- reorder if necessary ----- */
+  if(shiftdim_flag)
+  {
+    printf("shifting dim ...\n");
+    mri2 = MRIshiftDim(mri, shift_dim[0], shift_dim[1], shift_dim[2]);
+    if(mri2==NULL) exit(1);
     MRIfree(&mri);
     mri = mri2;
   }
