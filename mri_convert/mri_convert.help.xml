@@ -244,7 +244,7 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
      Example: 2 1 3 will swap rows and cols. 
   If using -r4, the output geometry will likely be wrong. It is best to re-run mri_convert and specify a correctly oriented volume through the --in_like option.  </explanation>
       <argument>--shift dim nshift wrap01</argument>
-      <explanation>Shift along dim by nshift (can be + or -) voxels. If wrap=1, then wrap the voxels around</explanation>
+      <explanation>Shift along dim (1,2,3) by nshift (can be + or -) voxels. If wrap=1, then wrap the voxels around</explanation>
       <argument>--invert_contrast threshold</argument>
       <explanation>All voxels in volume greater than threshold are replaced with 255-value. Only makes sense for 8 bit images. Only operates on the first frame. </explanation>
       <argument>-ut, --uppert_thresh threshold</argument>
