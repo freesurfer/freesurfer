@@ -80,9 +80,7 @@ tqdm==4.65.0
 triton==2.0.0
 typing-extensions==4.5.0
 tzdata==2023.3
-# capping urllib to avoid this conflict with OpenSSL:
-# https://github.com/urllib3/urllib3/issues/2168
-urllib3<=1.26.15
+urllib3==1.26.15
 voxelmorph==0.2
 wheel==0.40.0
 wrapt==1.14.1

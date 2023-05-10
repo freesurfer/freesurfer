@@ -1,7 +1,10 @@
 
-# Some of these package revisions have already changed since the 7.3.2
-# release if you look at the version currently installed with no version
-# listed here.
+# Use this file to list version specifications for modules that may/may not be fixed.
+# Nightly builds and releases will query what module revisions were installed
+# into fspython (including use of this file) and subseuqently re-generate the
+# requirmeents-build* files to list the current explicit revisions (and update
+# the requirements-build* files in git). So requirments-build* files should not
+# be manually edited and should be self-updating snapshots of foo==revision specs.
 
 charset_normalizer
 google_auth
@@ -16,19 +19,7 @@ six
 surfa @ git+https://github.com/freesurfer/surfa.git@master
 tensorboard
 Werkzeug
+# capping urllib to avoid this conflict with OpenSSL:
+# https://github.com/urllib3/urllib3/issues/2168
+urllib3<=1.26.15
 
-# Packages necessary to reproudce the 7.3.2 release from 8/04/2022
-
-# charset_normalizer==2.1.0
-# google_auth==2.9.1
-# imageio==2.21.0
-# nibabel==3.2.2
-# numpy==1.19.5
-# pytz==2022.1
-# pyyaml==6.0
-# scikit-learn==1.1.1
-# scipy==1.5.4
-# six==1.15.0
-# surfa==0.0.12
-# tensorboard==2.9.1
-# Werkzeug==2.2.1
