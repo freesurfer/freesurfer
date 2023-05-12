@@ -23,7 +23,6 @@ extern "C" {
     };
 #endif
 
-#ifdef USING_DCM2NIIXFSWRAPPER 
 typedef struct 
 {
   struct nifti_1_header hdr0;
@@ -39,7 +38,6 @@ typedef struct
 
 MRIFSSTRUCT* nii_getMrifsStruct();
 void nii_clrMrifsStruct();
-#endif
 
 #define kNAME_CONFLICT_SKIP 0 //0 = write nothing for a file that exists with desired name
 #define kNAME_CONFLICT_OVERWRITE 1 //1 = overwrite existing file with same name
@@ -52,14 +50,17 @@ void nii_clrMrifsStruct();
 #define kSaveFormatNIfTI 0
 #define kSaveFormatNRRD 1
 #define kSaveFormatMGH 2
+#define kSaveFormatJNII 3
+#define kSaveFormatBNII 4
 
 #define MAX_NUM_SERIES 16
+#define kOptsStr 512
 
     struct TDCMopts {
         bool isDumpNotConvert;
         bool isIgnoreTriggerTimes, isTestx0021x105E, isAddNamePostFixes, isSaveNativeEndian, isOneDirAtATime, isRenameNotConvert, isSave3D, isGz, isPipedGz, isFlipY,  isCreateBIDS, isSortDTIbyBVal, isAnonymizeBIDS, isOnlyBIDS, isCreateText, isForceOnsetTimes,isIgnoreDerivedAnd2D, isPhilipsFloatNotDisplayScaling, isTiltCorrect, isRGBplanar, isOnlySingleFile, isForceStackDCE, isIgnoreSeriesInstanceUID, isRotate3DAcq, isCrop;
-        int saveFormat, isMaximize16BitRange, isForceStackSameSeries, nameConflictBehavior, isVerbose, isProgress, compressFlag, dirSearchDepth, gzLevel; //support for compressed data 0=none,
-        char filename[512], outdir[512], indir[512], pigzname[512], optsname[512], indirParent[512], imageComments[24];
+        int saveFormat, isMaximize16BitRange, isForceStackSameSeries, nameConflictBehavior, isVerbose, isProgress, compressFlag, dirSearchDepth, onlySearchDirForDICOM, gzLevel, diffCyclingModeGE; //support for compressed data 0=none,
+        char filename[kOptsStr], outdir[kOptsStr], indir[kOptsStr], pigzname[kOptsStr], optsname[kOptsStr], indirParent[kOptsStr], imageComments[24];
         double seriesNumber[MAX_NUM_SERIES]; //requires double must store -1 (report but do not convert) as well as seriesUidCrc (uint32)
         long numSeries;
 #ifdef USING_R

@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 2.8.11)
+
 project(dcm2niix)
 
 # Option Choose whether to use static runtime
@@ -19,7 +21,7 @@ endif()
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     # using Clang
     add_definitions(-fno-caret-diagnostics)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip -Wl,-stack_size -Wl,0x1000000")
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GCC
     if(NOT (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 7.1.0))
@@ -45,7 +47,7 @@ elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4800")   # 'uint32_t' : forcing value to bool 'true' or 'false'
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4819")   # The file contains a character that cannot be represented in the current code page
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4996")   # 'access': The POSIX name for this item is deprecated
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:8388608")  # set "Stack Reserve Size" to 8MB (default value is 1MB)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:16388608")  # set "Stack Reserve Size" to 16MB (default value is 1MB)
 endif()
 
 # Compiler dependent flags
@@ -64,6 +66,20 @@ endif()
 
 set(PROGRAMS dcm2niix)
 
+option(USE_TURBOJPEG "Use TurboJPEG to decode classic JPEG" OFF)
+option(USE_JASPER "Build with JPEG2000 support using Jasper" OFF)
+option(USE_OPENJPEG "Build with JPEG2000 support using OpenJPEG" OFF)
+option(USE_JPEGLS "Build with JPEG-LS support using CharLS" OFF)
+
+option(BATCH_VERSION "Build dcm2niibatch for multiple conversions" OFF)
+
+option(BUILD_DCM2NIIXFSLIB "Build libdcm2niixfs.a" ON)
+
+if(USE_OPENJPEG OR USE_TURBOJPEG OR USE_JASPER)
+    message("-- Set BUILD_DCM2NIIXFSLIB to OFF since USE_TURBOJPEG/USE_JASPER/USE_OPENJPEG is ON.")
+    set(BUILD_DCM2NIIXFSLIB OFF CACHE BOOL "Build libdcm2niixfs.a" FORCE)
+endif()
+
 set(DCM2NIIX_SRCS
     main_console.cpp
     nii_dicom.cpp
@@ -74,13 +90,38 @@ set(DCM2NIIX_SRCS
     nii_ortho.cpp
     nii_dicom_batch.cpp)
 
-option(USE_JPEGLS "Build with JPEG-LS support using CharLS" OFF)
+
+option(USE_JNIfTI "Build with JNIfTI support" ON)
+if(USE_JNIfTI)
+    add_definitions(-DmyEnableJNIfTI)
+    set(DCM2NIIX_SRCS ${DCM2NIIX_SRCS} cJSON.cpp base64.cpp)
+endif()
+
+if(BUILD_DCM2NIIXFSLIB)
+    set(DCM2NIIXFSLIB dcm2niixfs)
+    set(DCM2NIIXFSLIB_SRCS
+        dcm2niix_fswrapper.cpp
+        nii_dicom.cpp
+        jpg_0XC3.cpp
+        ujpeg.cpp
+        nifti1_io_core.cpp
+        nii_foreign.cpp
+        nii_ortho.cpp
+        nii_dicom_batch.cpp)
+
+    if(USE_JNIfTI)
+        message("-- Build with JNIfTI support, USE_JNIfTI is ON")
+        set(DCM2NIIXFSLIB_SRCS ${DCM2NIIXFSLIB_SRCS} cJSON.cpp base64.cpp)
+    endif()
+endif()
+
 if(USE_JPEGLS)
     add_definitions(-DmyEnableJPEGLS)
     if(MSVC)
         add_definitions(-DCHARLS_STATIC)
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
     endif()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
     set(CHARLS_SRCS
         charls/jpegls.cpp
@@ -89,8 +130,16 @@ if(USE_JPEGLS)
         charls/jpegstreamwriter.cpp
         charls/jpegstreamreader.cpp)
     #add_executable(dcm2niix ${DCM2NIIX_SRCS} ${CHARLS_SRCS})
+
+    if(BUILD_DCM2NIIXFSLIB)
+        add_library(${DCM2NIIXFSLIB} STATIC ${DCM2NIIXFSLIB_SRCS} ${CHARLS_SRCS})
+    endif()
 else()
     #add_executable(dcm2niix ${DCM2NIIX_SRCS})
+
+    if(BUILD_DCM2NIIXFSLIB)
+        add_library(${DCM2NIIXFSLIB} STATIC ${DCM2NIIXFSLIB_SRCS})
+    endif()
 endif()
 
 set(ZLIB_IMPLEMENTATION "Miniz" CACHE STRING "Choose zlib implementation.")
@@ -108,7 +157,6 @@ if(NOT ${ZLIB_IMPLEMENTATION} STREQUAL "Miniz")
     target_link_libraries(dcm2niix ${ZLIB_LIBRARIES})
 endif()
 
-option(USE_TURBOJPEG "Use TurboJPEG to decode classic JPEG" OFF)
 if(USE_TURBOJPEG)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(TURBOJPEG REQUIRED libturbojpeg)
@@ -117,7 +165,6 @@ if(USE_TURBOJPEG)
     target_link_libraries(dcm2niix ${TURBOJPEG_LIBRARIES})
 endif()
 
-option(USE_JASPER "Build with JPEG2000 support using Jasper" OFF)
 if(USE_JASPER)
     find_package(Jasper REQUIRED)
     add_definitions(-DmyEnableJasper)
@@ -125,7 +172,6 @@ if(USE_JASPER)
     target_link_libraries(dcm2niix ${JASPER_LIBRARIES})
 endif()
 
-option(USE_OPENJPEG "Build with JPEG2000 support using OpenJPEG" OFF)
 if(USE_OPENJPEG)
     set(OpenJPEG_DIR "${OpenJPEG_DIR}" CACHE PATH "Path to OpenJPEG configuration file" FORCE)
 
@@ -145,7 +191,6 @@ else ()
     add_definitions(-DmyDisableOpenJPEG)
 endif()
 
-option(BATCH_VERSION "Build dcm2niibatch for multiple conversions" OFF)
 if(BATCH_VERSION)
     set(DCM2NIIBATCH_SRCS
         main_console_batch.cpp
@@ -157,6 +202,10 @@ if(BATCH_VERSION)
         nii_ortho.cpp
         nii_dicom_batch.cpp)
 
+    if(USE_JNIFTI)
+        set(DCM2NIIBATCH_SRCS ${DCM2NIIBATCH_SRCS} cJSON.cpp base64.cpp)
+    endif()
+
     if(USE_JPEGLS)
         add_executable(dcm2niibatch ${DCM2NIIBATCH_SRCS} ${CHARLS_SRCS})
     else()
@@ -167,6 +216,10 @@ if(BATCH_VERSION)
     set(YAML-CPP_DIR ${YAML-CPP_DIR} CACHE PATH "Path to yaml-cpp configuration file" FORCE)
 
     find_package(YAML-CPP REQUIRED)
+    if(YAML-CPP_FOUND AND NOT YAML_CPP_LIBRARIES)
+        # workaround for yaml-cpp-devel-0.7.0-1.fc38 on Fedora Rawhide
+        set(YAML_CPP_LIBRARIES yaml-cpp)
+    endif()
     target_include_directories(dcm2niibatch PRIVATE ${YAML_CPP_INCLUDE_DIR})
     target_link_libraries(dcm2niibatch ${YAML_CPP_LIBRARIES})
 
@@ -193,9 +246,12 @@ if(BATCH_VERSION)
     list(APPEND PROGRAMS dcm2niibatch)
 endif()
 
+if(BUILD_DCM2NIIXFSLIB)
+    target_compile_definitions(${DCM2NIIXFSLIB} PUBLIC -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
+endif()
 
 if(APPLE)
-    # message(STATUS "Adding Apple plist")
+    # message("--   Adding Apple plist")
     # set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
     #Apple notarization requires a Info.plist
     # For .app bundles, the Info.plist is a separate file, for executables it is appended as a section
@@ -204,19 +260,8 @@ if(APPLE)
     # launchctl plist ./dcm2niix
 endif()
 
-### start of addition for FREESURFER
-set(DCM2NIIXFSLIB dcm2niixfs)
-add_library(${DCM2NIIXFSLIB} STATIC
-    dcm2niix_fswrapper.cpp
-    nii_dicom.cpp
-    jpg_0XC3.cpp
-    ujpeg.cpp
-    nifti1_io_core.cpp
-    nii_foreign.cpp
-    nii_ortho.cpp
-    nii_dicom_batch.cpp)
-target_compile_definitions(${DCM2NIIXFSLIB} PUBLIC -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
-### end of addition for FREESURFER
-
 #install(TARGETS ${PROGRAMS} DESTINATION bin)
 
+#if(BUILD_DCM2NIIXFSLIB)
+#    install(TARGETS ${DCM2NIIXFSLIB} DESTINATION lib)
+#endif()

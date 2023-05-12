@@ -32,8 +32,7 @@
 #include "print.h"
 
 
-#ifndef USING_R
-#ifndef USING_MGH_NIFTI_IO
+#if !defined(USING_R) && !defined(USING_MGH_NIFTI_IO)
 void nifti_swap_8bytes( size_t n , void *ar )    // 4 bytes at a time
 {
     size_t ii ;
@@ -87,7 +86,7 @@ void nifti_swap_2bytes( size_t n , void *ar )    // 2 bytes at a time
     If is_nifti, swap all (even UNUSED) fields of NIfTI header.
     Else, swap as a nifti_analyze75 struct.
 *//*---------------------------------------------------------------------- */
-void swap_nifti_header( struct nifti_1_header *h )
+void swap_nifti_header( struct nifti_1_header *h  )
 {
 
    /* otherwise, swap all NIFTI fields */
@@ -136,7 +135,6 @@ void swap_nifti_header( struct nifti_1_header *h )
 
    return ;
 }
-#endif
 #endif
 
 bool littleEndianPlatform ()
@@ -227,16 +225,6 @@ vec4 nifti_vect44mat44_mul(vec4 v, mat44 m ) { //multiply vector * 4x4matrix
 }
 
 mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4]) {
-#ifdef USING_DCM2NIIXFSWRAPPER
-  if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
-  {
-    printf("nifti_dicom2mat() row direction cosine: %f %f %f\n", orient[1], orient[2], orient[3]);
-    printf("nifti_dicom2mat() col direction cosine: %f %f %f\n", orient[4], orient[5], orient[6]);
-    printf("nifti_dicom2mat() patient position: %f %f %f\n", patientPosition[1], patientPosition[2], patientPosition[3]);
-  }
-#endif
-
-
     //create NIfTI header based on values from DICOM header
     //note orient has 6 values, indexed from 1, patient position and xyzMM have 3 values indexed from 1
     mat33 Q, diagVox;
@@ -264,68 +252,22 @@ mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4])
     Q.m[2][1] = Q.m[0][2]*Q.m[1][0] - Q.m[0][0]*Q.m[1][2] ;  /* product */
     Q.m[2][2] = Q.m[0][0]*Q.m[1][1] - Q.m[0][1]*Q.m[1][0] ;
     Q = nifti_mat33_transpose(Q);
-
-#ifdef USING_DCM2NIIXFSWRAPPER
-    if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
-    {
-      printf("nifti_dicom2mat() transposed mat33 Q: \n");
-      for (int i = 0; i < 3; i++)
-        printf("\t%f %f %f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2]);
-    }
-#endif
-
     if (nifti_mat33_determ(Q) < 0.0) {
         Q.m[0][2] = -Q.m[0][2];
         Q.m[1][2] = -Q.m[1][2];
         Q.m[2][2] = -Q.m[2][2];
-
-#ifdef USING_DCM2NIIXFSWRAPPER
-       if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
-       {
-         printf("nifti_dicom2mat() (MATRIX_DEBUG) det(mat33 Q) < 0, flip column [][2] (slice direction)\n");
-         for (int i = 0; i < 3; i++)
-           printf("%f %f %f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2]);
-       }
-#endif
     }
-
-#ifdef USING_DCM2NIIXFSWRAPPER
-    if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
-      printf("nifti_dicom2mat() xyzMM: %f, %f, %f\n", xyzMM[1], xyzMM[2], xyzMM[3]);
-#endif
- 
     //next scale matrix
     LOAD_MAT33(diagVox, xyzMM[1],0.0l,0.0l, 0.0l,xyzMM[2],0.0l, 0.0l,0.0l, xyzMM[3]);
     Q = nifti_mat33_mul(Q,diagVox);
-
-#ifdef USING_DCM2NIIXFSWRAPPER
-    if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
-    {
-      printf("nifti_dicom2mat() mat33 Q multiply diagVox: \n");
-      for (int i = 0; i < 3; i++)
-        printf("\t%f %f %f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2]);
-    }
-#endif
-
     mat44 Q44; //4x4 matrix includes translations
     LOAD_MAT44(Q44, Q.m[0][0],Q.m[0][1],Q.m[0][2],patientPosition[1],
                Q.m[1][0],Q.m[1][1],Q.m[1][2],patientPosition[2],
                Q.m[2][0],Q.m[2][1],Q.m[2][2],patientPosition[3]);
-
-#ifdef USING_DCM2NIIXFSWRAPPER
-    if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
-    {
-      printf("nifti_dicom2mat() mat44 Q44: \n");
-      for (int i = 0; i < 4; i++)
-        printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
-    }
-#endif
-
     return Q44;
 }
 
-#ifndef USING_R
-#ifndef USING_MGH_NIFTI_IO
+#if !defined(USING_R) && !defined(USING_MGH_NIFTI_IO)
 float nifti_mat33_determ( mat33 R )   /* determinant of 3x3 matrix */
 {
     double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
@@ -348,7 +290,6 @@ mat33 nifti_mat33_mul( mat33 A , mat33 B )  /* multiply 2 3x3 matrices */
             + A.m[i][2] * B.m[2][j] ;
     return C ;
 }
-#endif
 #endif
 
 mat44 nifti_mat44_mul( mat44 A , mat44 B )  /* multiply 2 3x3 matrices */
@@ -373,8 +314,7 @@ mat33 nifti_mat33_transpose( mat33 A )  /* transpose 3x3 matrix */
     return B;
 }
 
-#ifndef USING_R
-#ifndef USING_MGH_NIFTI_IO
+#if !defined(USING_R) && !defined(USING_MGH_NIFTI_IO)
 mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
 {
     double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
@@ -397,7 +337,6 @@ mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
     Q.m[2][2] = deti*( r11*r22-r21*r12) ;
     return Q ;
 }
-
 
 float nifti_mat33_rownorm( mat33 A )  // max row norm of 3x3 matrix
 {
@@ -463,7 +402,6 @@ mat33 nifti_mat33_polar( mat33 A )
     }
     return Z ;
 }
-
 
 void nifti_mat44_to_quatern( mat44 R ,
                             float *qb, float *qc, float *qd,
@@ -633,7 +571,6 @@ mat44 nifti_mat44_inverse( mat44 R )
     Q.m[3][3] = (deti == 0.0l) ? 0.0l : 1.0l ; // failure flag if deti == 0
     return Q ;
 }
-#endif
 #endif
 
 // Eigen decomposition for symmetric 3x3 matrices, port of public domain Java Matrix library JAMA.
@@ -918,10 +855,3 @@ vec3 nifti_mat33_eig3(double bxx, double bxy, double bxz, double byy, double byz
     //printf("bvec = [%g 0 0; 0 %g 0; 0 0 %g]\n", v3.v[0], v3.v[1], v3.v[2]);
     return v3;
 }
-
-
-
-
-
-
-
