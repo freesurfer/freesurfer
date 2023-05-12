@@ -6762,7 +6762,8 @@ int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double 
   \fn MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap)
   \brief Shifts the source mri in the given dimension by nshift.
   dim={1,2,3}, nshift can be pos or negative. If wrap != 0, then
-  voxels will be wrapped around.
+  voxels will be wrapped around. Does not change the geometry
+  to account for the shift.
  */
 MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap)
 {
@@ -6774,6 +6775,7 @@ MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap)
   }
   MRI *out = MRIallocSequence(src->width,src->height,src->depth,src->type,src->nframes);
   if(!out) return(NULL);
+  MRIcopyHeader(src,out);
   MRIcopyPulseParameters(src,out);
   if(src->ct) out->ct = CTABdeepCopy(src->ct);
 
