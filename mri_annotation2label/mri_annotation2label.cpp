@@ -254,7 +254,7 @@ int main(int argc, char **argv)
     exit(0);
   }
 
-  __annotation2label();
+  __annotation2labelV2();
 
   return(0);
 }
