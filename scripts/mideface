@@ -307,7 +307,7 @@ set maxsurf = $tmpdir/max.surf
 set distdat = $tmpdir/dist.samples
 set distlab = $tmpdir/dist.bounds.dat
 set stats   = $tmpdir/stats.dat
-set facemask = $tmpdir/face.mask.mgz
+#set facemask = $tmpdir/face.mask.mgz
 set ud = (`UpdateNeeded $outvol $templatesurfsubj $invol $headmask $xmask $labellist $watermark`)
 if($ud || $ForceUpdate) then
   set cmd = (mri_defacer --i $invol --ts $templatesurfsubj \
