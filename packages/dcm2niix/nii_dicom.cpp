@@ -5213,6 +5213,9 @@ const uint32_t kEffectiveTE = 0x0018 + uint32_t(0x9082 << 16); //FD
 			char transferSyntax[kDICOMStr];
 			strcpy(transferSyntax, "");
 			dcmStr(lLength, &buffer[lPos], transferSyntax);
+#ifdef USING_DCM2NIIXFSWRAPPER
+                        strcpy(d.transferSyntax, transferSyntax);
+#endif
 			if (strcmp(transferSyntax, "1.2.840.10008.1.2.1") == 0)
 				; //default isExplicitVR=true; //d.isLittleEndian=true
 			else if (strcmp(transferSyntax, "1.2.840.10008.1.2.4.50") == 0) {
