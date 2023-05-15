@@ -94,7 +94,7 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 #define INFO_FNAME "COR-.info"
 
 
-MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame);
+MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
 static int corWrite(MRI *mri, const char *fname);
 static MRI *siemensRead(const char *fname, int read_volume);
@@ -474,7 +474,7 @@ int MRIgetVolumeName(const char *string, char *name_only)
 
 } /* end MRIgetVolumeName() */
 
-MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame)
+MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mriVector)
 {
   MRI *mri, *mri2;
   IMAGE *I;
@@ -688,6 +688,22 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   }
   else if (type == DICOM_FILE) {  
     if (UseDCM2NIIX) {
+      std::vector<MRIFSSTRUCT> *mrifsStruct_vector = DICOMRead3(fname_copy, volume_flag);
+      if (mrifsStruct_vector == NULL)
+        return NULL;
+
+      int nitems = (*mrifsStruct_vector).size();
+      for (int n = 0; n < nitems; n++)
+      {
+        mri = niiReadFromMriFsStruct(&(*mrifsStruct_vector)[n]);
+        if (mri != NULL && mri->ti < 0)
+	  mri->ti = 0;
+
+        (*mriVector).push_back(mri);
+        free((*mrifsStruct_vector)[n].imgM);
+        free((*mrifsStruct_vector)[n].tdti);
+      }
+#if 0
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 
 	return NULL;
@@ -698,6 +714,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
 
       free(mrifsStruct->imgM);
       free(mrifsStruct->tdti);
+#endif
     }
     else if (!UseDICOMRead2){
       DICOMRead(fname_copy, &mri, volume_flag);
@@ -711,12 +728,27 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   else if (type == SIEMENS_DICOM_FILE) {
     if (UseDCM2NIIX) {
       printf("mriio.cpp: starting DICOMRead3()\n");
+      std::vector<MRIFSSTRUCT> *mrifsStruct_vector = DICOMRead3(fname_copy, volume_flag);
+      if (mrifsStruct_vector == NULL)
+        return NULL;
+
+      int nitems = (*mrifsStruct_vector).size();
+      for (int n = 0; n < nitems; n++)
+      {
+        mri = niiReadFromMriFsStruct(&(*mrifsStruct_vector)[n]);
+        (*mriVector).push_back(mri);
+        free((*mrifsStruct_vector)[n].imgM);
+        free((*mrifsStruct_vector)[n].tdti);
+      }
+      
+#if 0
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 
 	return NULL;
       mri = niiReadFromMriFsStruct(mrifsStruct);
       free(mrifsStruct->imgM);
       free(mrifsStruct->tdti);
+#endif
     } 
     else {
       printf("mriio.cpp: starting sdcmLoadVolume()\n");
@@ -959,7 +991,7 @@ MRI *MRIreadType(const char *fname, int type)
 
 } /* end MRIreadType() */
 
-MRI *MRIread(const char *fname)
+MRI *MRIread(const char *fname, std::vector<MRI*> *mrivector)
 {
   char buf[STRLEN];
   MRI *mri = NULL;
@@ -971,7 +1003,7 @@ MRI *MRIread(const char *fname)
   int nstart = global_progress_range[0];
   int nend = global_progress_range[1];
   global_progress_range[1] = nstart + (nend - nstart) * 2 / 3;
-  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
+  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1, mrivector);
 
   /* some volume format needs to read many
      different files for slices (GE DICOM or COR).
@@ -1266,10 +1298,10 @@ int MRIwriteFrame(MRI *mri, const char *fname, int frame)
   return (NO_ERROR);
 }
 
-int MRIwrite(MRI *mri, const char *fname)
+int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector)
 {
   int int_type = -1;
-  int error;
+  int error = NO_ERROR;
 
   chklc();
   if ((int_type = mri_identify(fname)) < 0) {
@@ -1277,7 +1309,43 @@ int MRIwrite(MRI *mri, const char *fname)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unknown file type for file (%s)", fname));
   }
 
-  error = MRIwriteType(mri, fname, int_type);
+  if (mriVector == NULL || (*mriVector).size() == 1)
+    error = MRIwriteType(mri, fname, int_type);
+  else
+  {
+    char *fname_copy = new char[strlen(fname)+1];
+    memset(fname_copy, 0, strlen(fname)+1);
+    memcpy(fname_copy, fname, strlen(fname));
+
+    // logic implemented here will handle .xxx[.gz] file format
+    // .gz is optional
+    char *ptr_gz = strstr(fname_copy, ".gz");
+    if (ptr_gz != NULL)
+      *ptr_gz = '\0';
+
+    char *ext = strrchr(fname_copy, '.');
+    if (ext != NULL)
+    {
+      *ext = '\0';
+      ext++;
+    }
+
+    if (ptr_gz != NULL)
+      *ptr_gz = '.';
+
+    int nitems = (*mriVector).size();
+    for (int n = 0; n < nitems; n++)
+    {
+      // add postfix for multi-echo images
+      char tmp[1024] = {'\0'};
+      if (((*mriVector)[n])->len_fnamePostFixes == 0 && nitems > 1)
+        sprintf(tmp, "%s_%d.%s", fname_copy, n, ext);
+      else
+        sprintf(tmp, "%s%s.%s", fname_copy, ((*mriVector)[n])->fnamePostFixes, ext);
+      error = MRIwriteType((*mriVector)[n], tmp, int_type);
+    }
+  }
+
   return (error);
 
 } /* end MRIwrite() */
@@ -9007,6 +9075,8 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
   }
   if (mri == NULL) return (NULL);
 
+  mri->len_fnamePostFixes = (STRLEN > 256) ? 256 : STRLEN;
+  memcpy(mri->fnamePostFixes, mrifsStruct->namePostFixes, mri->len_fnamePostFixes);
   mri->xsize = hdr->pixdim[1];
   mri->ysize = hdr->pixdim[2];
   mri->zsize = hdr->pixdim[3];

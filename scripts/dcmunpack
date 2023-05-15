@@ -32,7 +32,8 @@ set iid = ()
 set ijd = ()
 set ikd = ()
 set UseDCM2NIIX = 1; # changed this to 1 on 4/06/2023
-set CreateBIDS  = 0
+set dcm2niix_CreateBIDS  = 0
+set dcm2niix_no_ForceStackSameSeries = 0;
 set DoPhase = 0;
 set DoSiemensAscii = 1;
 set KeepScouts = 0;
@@ -182,6 +183,34 @@ else
   rm -f $infofile
 endif
 
+# Print out one line for each series:
+set AutoRunNos = ()
+set AutoSubDirs = ()
+set AutoFormats = ()
+set AutoFNames = ()
+set AutoNSkips = ()
+set AutoNSkips = ()
+set AutoNDrops = ()
+
+if($#SeriesInfo == 0) then
+  if($#TargetDir) then
+    set SeriesInfo = $TargetDir/log/series-info.dat
+    if(-e $SeriesInfo) mv $SeriesInfo $TargetDir/log/series-info.$$.dat
+  else
+    set SeriesInfo = `fs_temp_file --suffix .dat`
+  endif
+endif
+rm -f $SeriesInfo
+
+# for each dicom found, (mri_probedicom --i $f --d filetype)
+#   retrieve the following fields:  (mri_probedicom --i $f --no-siemens-ascii)
+#     SeriesNo|PatientName|StudyDate|StudyTime|Institution|EchoTime|RepetitionTime|FlipAngle|PixelSpacing|PhaseEncDir|PixelFrequency|ImageType
+#   print the information to $infofile=imagelist.dat in this order
+#      $Patient      $SeriesNo   $Date       $Time       $EchoTime $TR            $FlipAngle  $PixSpace             $PhaseEncDir      $PixFreq         $f     $PhaseStr
+#     (PatientName   SeriesNo    StudyDate   StudyTime   EchoTime  RepetitionTime FlipAngle   PixelSpacing          PhaseEncDir       PixelFrequency   fdicom if($DoPhase) 
+#     (d.patientName d.seriesNum d.studyDate d.studyTime d.TE      d.TR           d.flipAngle d.xyzMM[1],d.xyzMM[2] d.phaseEncodingRC d.pixelBandwidth fdicom d.imageType
+#
+# *these information can be retrieved from struct TDICOMdata (nii_dicom.h)
 set dumpfile = `fs_temp_file`
 rm -f $dumpfile 
 @ nth = 0;
@@ -257,6 +286,11 @@ if($mth == 0) then
   exit 1;
 endif
 
+# retrieve the extra information:
+#   PatientName   |StudyDate   |Manufacturer   |ScannerModel             |FieldStrength   |ScannerSerialNo
+#   d.patientName  d.studyDate  d.manufacturer  d.manufacturersModelName  d.fieldStrength  d.deviceSerialNumber
+# use the last $dumpfile (last dicom file)
+# these info is printed in series-info.dat
 set extra = ()
 if($DoExtraInfo) then
   set fieldstrength = `grep FieldStrength $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
@@ -277,6 +311,8 @@ endif
 
 rm -f $dumpfile
 
+# sort imagelist.dat
+# print all the unique series
 set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
 echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
 
@@ -285,25 +321,12 @@ echo "Date $Date" | tee -a $LF
 echo "Time $Time" | tee -a $LF
 echo "$Institution" | tee -a $LF
 
-
-# Print out one line for each series:
-set AutoRunNos = ()
-set AutoSubDirs = ()
-set AutoFormats = ()
-set AutoFNames = ()
-set AutoNSkips = ()
-set AutoNSkips = ()
-set AutoNDrops = ()
-
-if($#SeriesInfo == 0) then
-  if($#TargetDir) then
-    set SeriesInfo = $TargetDir/log/series-info.dat
-    if(-e $SeriesInfo) mv $SeriesInfo $TargetDir/log/series-info.$$.dat
-  else
-    set SeriesInfo = `fs_temp_file --suffix .dat`
-  endif
-endif
-rm -f $SeriesInfo
+# for each unique series
+#   run 'mri_probedicom --i $f --t 8 103e' to get descr (kSeriesDescription 0x0008 + (0x103E << 16) // '0008' '103E' 'LO' 'SeriesDescription')
+#   print descr + extra info to $SeriesInfo=series-info.dat
+#   set AutoRunNos, AutoSubDirs, AutoFormats, FName, AutoFNames, AutoNSkips, AutoNDrops, skipping certain descr
+#
+# *if($GetMax) set max = (`mri_probedicom --i $f --max`) (kImageStart 0x7FE0 + (0x0010 << 16))
 foreach series ($SeriesNos)
   set r = `cat $infofile | awk -v s=$series '{if($2 == s) print $0;if($2 == s) exit;}'`;
   if($DoPhase == 0) set rexpected = 11
@@ -318,8 +341,9 @@ foreach series ($SeriesNos)
     set f = $r[$aa];
   endif
 
-  set max = ();
+  set max = ();  # kImageStart 0x7FE0 + (0x0010 << 16)
   if($GetMax) set max = (`mri_probedicom --i $f --max`)
+  # kSeriesDescription 0x0008 + (0x103E << 16)  // '0008' '103E' 'LO' 'SeriesDescription'
   # Create a trap in case tag 8 103e is not present (eg, in philips)
   mri_probedicom --i $f --t 8 103e >& /dev/null
   if($status) then 
@@ -330,6 +354,8 @@ foreach series ($SeriesNos)
   set fname = $r[11];
   if($DoBase) set fname = `basename $f`
 
+  # $Key SeriesNo     SeriesDescription    EchoTime RepetitionTime FlipAngle   PixelSpacing          PhaseEncDir       PixelFrequency   dicom-file $max PatientName|StudyDate|Manufacturer|ScannerModel|FieldStrength|ScannerSerialNo
+  # $Key d.seriesNum  d.seriesDescription  d.TE     d.TR           d.flipAngle d.xyzMM[1],d.xyzMM[2] d.phaseEncodingRC d.pixelBandwidth dicom-file $max d.patientName|d.studyDate|d.manufacturer|d.manufacturersModelName|d.fieldStrength|d.deviceSerialNumber
   echo $Key $r[2] "$descr" $r[5-10] $fname $max $extra | tee -a $SeriesInfo
 
   if($DoAutoRunSeq) then
@@ -349,6 +375,7 @@ foreach series ($SeriesNos)
   endif
 end
 
+# cat series-info.dat to log file
 cat $SeriesInfo >> $LF
 
 if($DoAutoRunSeq) then
@@ -442,8 +469,11 @@ foreach run ($RunNos)
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
       if($UseDCM2NIIX) then
         set cmd = ($cmd -dcm2niix)
-        if($CreateBIDS) then
+        if($dcm2niix_CreateBIDS) then
           set cmd = ($cmd -dcm2niix-createBIDS --dcm2niix-outdir $outdir)
+        endif
+        if($dcm2niix_no_ForceStackSameSeries) then
+          set cmd = ($cmd -dcm2niix-no-ForceStackSameSeries)
         endif
       endif
       if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
@@ -487,6 +517,7 @@ foreach run ($RunNos)
     end
   endif
 
+  # mri_probedicom --i $f --no-siemens-ascii
   if($DoInfoDump) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set dumpfile = $outdir/log/$FName-infodump.dat
@@ -776,7 +807,12 @@ while( $#argv != 0 )
     case "-createBIDS":
     case "--dcm2niix-createBIDS":
     case "-dcm2niix-createBIDS":
-      set CreateBIDS = 1;
+      set dcm2niix_CreateBIDS = 1;
+      breaksw
+
+    case "--dcm2niix-no-ForceStackSameSeries":
+    case "-dcm2niix-no-ForceStackSameSeries":
+      set dcm2niix_no_ForceStackSameSeries = 1;
       breaksw
 
     case "-siemensBVecsCross"
@@ -1061,6 +1097,7 @@ usage_exit:
   else
     echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
     echo "   -dcm2niix-createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
+    echo "   -dcm2niix-no-ForceStackSameSeries : don't stack same series slice." 
   endif
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""

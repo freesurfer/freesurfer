@@ -5932,7 +5932,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 /*--------------------------------------------------------------
   DICOMRead3() - generic dicom reader using dcm2niix_fswrapper. 
   --------------------------------------------------------------*/
-MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume)
+std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume)
 {
   printf("Starting DICOMRead3()\n");
 
@@ -5954,16 +5954,26 @@ MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume)
   if (DCM2NIIX_createBIDS)
     createBIDS = true;
 
-  dcm2niix_fswrapper::setOpts(dcmdir, DCM2NIIX_outdir, createBIDS);
+  int ForceStackSameSeries = 1;
+  if (DCM2NIIX_no_ForceStackSameSeries)
+    ForceStackSameSeries = 0;
+
+  dcm2niix_fswrapper::setOpts(dcmdir, DCM2NIIX_outdir, createBIDS, ForceStackSameSeries);
   int ret = dcm2niix_fswrapper::dcm2NiiOneSeries(dcmfile);
 
+#if 0
   MRIFSSTRUCT *mrifsStruct = NULL;
   if (ret == EXIT_SUCCESS) {
     mrifsStruct = dcm2niix_fswrapper::getMrifsStruct();
     //dcm2fsWrapper::saveNii("fs.nii");
   }
+#endif
 
-  return mrifsStruct;
+  std::vector<MRIFSSTRUCT> *mrifsStruct_vector = NULL;
+  if (ret == EXIT_SUCCESS)
+    mrifsStruct_vector = dcm2niix_fswrapper::getMrifsStructVector();
+
+  return mrifsStruct_vector;
 }
 
 
