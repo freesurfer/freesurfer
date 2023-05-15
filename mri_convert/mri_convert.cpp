@@ -72,6 +72,8 @@ int DeleteCMDs = 0;
 char NewTransformFname[2000];
 int DoNewTransformFname=0;
 
+std::vector<MRI*> mri_vector;
+
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
@@ -1176,14 +1178,18 @@ int main(int argc, char *argv[])
     {
       UseDCM2NIIX = 0;
     }
-    else if (strcmp(argv[i], "-createBIDS") == 0          || strcmp(argv[i], "--createBIDS") == 0 || 
+    else if (strcmp(argv[i], "-createBIDS") == 0          || strcmp(argv[i], "--createBIDS") == 0 ||
              strcmp(argv[i], "-dcm2niix-createBIDS") == 0 || strcmp(argv[i], "--dcm2niix-createBIDS") == 0)
     {
-     DCM2NIIX_createBIDS = 1;
+      DCM2NIIX_createBIDS = 1;
     }
     else if (strcmp(argv[i], "-dcm2niix-outdir") == 0 || strcmp(argv[i], "--dcm2niix-outdir") == 0)
     {
-     DCM2NIIX_outdir = argv[++i];
+      DCM2NIIX_outdir = argv[++i];
+    }
+    else if (strcmp(argv[i], "-dcm2niix-no-ForceStackSameSeries") == 0 || strcmp(argv[i], "--dcm2niix-no-ForceStackSameSeries") == 0)
+    {
+      DCM2NIIX_no_ForceStackSameSeries = 1;
     }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {
@@ -1561,11 +1567,11 @@ int main(int argc, char *argv[])
   }
   /**** Finished parsing command line ****/
   /* option inconsistency checks */
-  // -dcm2niix-createBIDS is only valid with -dcm2niix     
+  // -dcm2niix-createBIDS, --dcm2niix-outdir <> , -dcm2niix-no-ForceStackSameSeries are only valid with -dcm2niix
   if (!UseDCM2NIIX && 
-      (DCM2NIIX_outdir != NULL || DCM2NIIX_createBIDS))
+      (DCM2NIIX_outdir != NULL || DCM2NIIX_createBIDS || DCM2NIIX_no_ForceStackSameSeries))
   {
-    fprintf(stderr, "ERROR: option --dcm2niix-outdir <>, -dcm2niix-createBIDS are only valid with -dcm2niix\n");
+    fprintf(stderr, "ERROR: option --dcm2niix-outdir <>, -dcm2niix-createBIDS, -dcm2niix-no-ForceStackSameSeries are only valid with -dcm2niix\n");
     exit(1);
   }
   if (DCM2NIIX_createBIDS && DCM2NIIX_outdir == NULL)
@@ -2040,7 +2046,7 @@ int main(int argc, char *argv[])
       }
       else {
         if(nthframe < 0) {
-	  if(InStatTableFlag == 0)  mri = MRIread(in_name);
+	  if(InStatTableFlag == 0)  mri = MRIread(in_name, (UseDCM2NIIX) ? &mri_vector : NULL);
 	  else {
 	    printf("Loading in stat table %s\n",in_name);
 	    StatTable = LoadStatTable(in_name);
@@ -3705,7 +3711,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        err = MRIwrite(mri, out_name);
+        err = MRIwrite(mri, out_name, (UseDCM2NIIX) ? &mri_vector : NULL);
         if (err != NO_ERROR)
         {
           printf("ERROR: failure writing %s\n",out_name);
@@ -3734,6 +3740,7 @@ int main(int argc, char *argv[])
       }
     }
   }
+
   // free memory
   //MRIfree(&mri); // This causes a seg fault with change of type
   MRIfree(&mri_template);

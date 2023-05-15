@@ -301,6 +301,8 @@ public:
 
   // ---- file metadata ----
   //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
+  char fnamePostFixes[STRLEN];    // used in MRIwrite(), append to output file name
+  int  len_fnamePostFixes;
   char fname_format[STRLEN];    // file extension
   char subject_name[STRLEN];    // fs subject name
   char path_to_t1[STRLEN];      // NOT USED
@@ -1391,13 +1393,13 @@ MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
 int mriio_command_line(int argc, char *argv[]);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);
 int MRIgetVolumeName(const char *string, char *name_only);
-MRI *MRIread(const char *fname);
+MRI *MRIread(const char *fname, std::vector<MRI*> *mriVector=NULL);
 MRI *MRIreadEx(const char *fname, int nthframe);
 MRI *MRIreadType(const char *fname, int type);
 MRI *MRIreadInfo(const char *fname);
 MRI *MRIreadHeader(const char *fname, int type);
 int GetSPMStartFrame(void);
-int MRIwrite(MRI *mri,const  char *fname);
+int MRIwrite(MRI *mri,const  char *fname, std::vector<MRI*> *mriVector=NULL);
 int MRIwriteFrame(MRI *mri,const  char *fname, int frame) ;
 int MRIwriteType(MRI *mri,const  char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);

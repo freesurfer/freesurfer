@@ -65,6 +65,7 @@ int  UseDICOMRead2 = 1; // use new dicom reader by default
 int  UseDCM2NIIX = 1; // changed to 1 on 4/06/2023
 const char *DCM2NIIX_outdir = NULL;
 int  DCM2NIIX_createBIDS = 0;
+int  DCM2NIIX_no_ForceStackSameSeries = 0;
 /* These variables allow the user to change the first tag checked to
    get the slice thickness.  This is needed with siemens mag res
    angiogram (MRAs) */
@@ -78,6 +79,7 @@ extern int  UseDICOMRead2;
 extern int  UseDCM2NIIX;
 extern const char *DCM2NIIX_outdir;
 extern int  DCM2NIIX_createBIDS;
+extern int  DCM2NIIX_no_ForceStackSameSeries;
 extern long SliceResElTag1;
 extern long SliceResElTag2;
 extern int AutoSliceResElTag;
@@ -295,7 +297,8 @@ int CompareDCMFileInfo(const void *a, const void *b);
 int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist);
 int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist);
 MRI *DICOMRead2(const char *dcmfile, int LoadVolume);
-MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume);
+//MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume);
+std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume);
 
 DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid);
 int AllocElementData(DCM_ELEMENT *e);
