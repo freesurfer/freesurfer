@@ -113,6 +113,7 @@ const char kFileSep[2] = "/";
 // create the struct to save nifti header, image data, TDICOMdata, & TDTI information.
 // no .nii, .bval, .bvec are created.
 MRIFSSTRUCT mrifsStruct;
+std::vector<MRIFSSTRUCT> mrifsStruct_vector;
 
 // retrieve the struct
 MRIFSSTRUCT* nii_getMrifsStruct()
@@ -125,6 +126,23 @@ void nii_clrMrifsStruct()
 {
 	free(mrifsStruct.imgM);
 	free(mrifsStruct.tdti);
+}
+
+// retrieve the struct
+std::vector<MRIFSSTRUCT>* nii_getMrifsStructVector()
+{
+  return &mrifsStruct_vector;
+}
+
+// free the memory used for the image and dti
+void nii_clrMrifsStructVector()
+{
+  int nitem = mrifsStruct_vector.size();
+  for (int n = 0; n < nitem; n++)
+  {
+    free(mrifsStruct_vector[n].imgM);
+    free(mrifsStruct_vector[n].tdti);
+  }
 }
 #endif
 
@@ -3391,6 +3409,9 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 		//strcat (outname,newstr);
 		strcat(outname, "_c");
 		strcat(outname, dcm.coilName);
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s_c%s", mrifsStruct.namePostFixes, dcm.coilName);
+#endif
 	}
 // myMultiEchoFilenameSkipEcho1 https://github.com/rordenlab/dcm2niix/issues/237
 #ifdef myMultiEchoFilenameSkipEcho1
@@ -3404,15 +3425,24 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 			snprintf(newstr, PATH_MAX, "_e%d", dcm.echoNum);
 		strcat(outname, newstr);
 		isEchoReported = true;
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s%s", mrifsStruct.namePostFixes, newstr);
+#endif
 	}
 	if ((isAddNamePostFixes) && (!isSeriesReported) && (!isEchoReported) && (dcm.echoNum > 1)) { //last resort: user provided no method to disambiguate echo number in filename
 		snprintf(newstr, PATH_MAX, "_e%d", dcm.echoNum);
 		strcat(outname, newstr);
 		isEchoReported = true;
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s%s", mrifsStruct.namePostFixes, newstr);
+#endif
 	}
 	if ((dcm.isNonParallelSlices) && (!isImageNumReported)) {
 		snprintf(newstr, PATH_MAX, "_i%05d", dcm.imageNum);
 		strcat(outname, newstr);
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s%s", mrifsStruct.namePostFixes, newstr);
+#endif
 	}
 	/*if (dcm.maxGradDynVol > 0) { //Philips segmented
 	snprintf(newstr, PATH_MAX, "_v%04d", dcm.gradDynVol+1); //+1 as indexed from zero
@@ -3420,21 +3450,36 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 	}*/
 	if ((isAddNamePostFixes) && (dcm.isHasImaginary)) {
 		strcat(outname, "_imaginary"); //has phase map
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s_imaginary", mrifsStruct.namePostFixes);
+#endif
 	}
 	if ((isAddNamePostFixes) && (dcm.isHasReal) && (dcm.isRealIsPhaseMapHz)) {
 		strcat(outname, "_fieldmaphz"); //has field map
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s_fieldmaphz", mrifsStruct.namePostFixes);
+#endif
 	}
 	if ((isAddNamePostFixes) && (dcm.isHasReal) && (!dcm.isRealIsPhaseMapHz)) {
 		strcat(outname, "_real"); //has phase map
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s_real", mrifsStruct.namePostFixes);
+#endif
 	}
 	if ((isAddNamePostFixes) && (dcm.isHasPhase)) {
 		strcat(outname, "_ph"); //has phase map
 		if (dcm.isHasMagnitude)
 			strcat(outname, "Mag"); //Philips enhanced with BOTH phase and Magnitude in single file
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s_ph", mrifsStruct.namePostFixes);
+#endif
 	}
 	if ((isAddNamePostFixes) && (dcm.aslFlags == kASL_FLAG_NONE) && (dcm.triggerDelayTime >= 1) && (dcm.manufacturer != kMANUFACTURER_GE)) { //issue 336 GE uses this for slice timing
 		snprintf(newstr, PATH_MAX, "_t%d", (int)roundf(dcm.triggerDelayTime));
 		strcat(outname, newstr);
+#ifdef USING_DCM2NIIXFSWRAPPER
+		sprintf(mrifsStruct.namePostFixes, "%s%s", mrifsStruct.namePostFixes, newstr);
+#endif
 	}
 	//could add (isAddNamePostFixes) to these next two, but consequences could be catastrophic
 	if (dcm.isRawDataStorage) //avoid name clash for Philips XX_ files
@@ -5125,10 +5170,11 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 	fwrite(&pad, sizeof(pad), 1, fp);
 	fwrite(&im[0], imgsz, 1, fp);
 	fclose(fp);
-#endif
 
 	if (!opts.isSaveNativeEndian)
 		swapEndian(&hdr, im, false); //unbyte-swap endian (e.g. big->little)
+#endif
+
 	if ((opts.isGz) && (strlen(opts.pigzname) > 0)) {
 #ifndef myDisableGzSizeLimits
 		if ((imgsz + hdr.vox_offset) > kMaxPigz) {
@@ -6684,6 +6730,7 @@ void loadOverlay(char *imgname, unsigned char *img, int offset, int x, int y, in
 } //loadOverlay()
 
 int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D, int segVol) {
+#if 0
 #ifdef USING_DCM2NIIXFSWRAPPER
 	double seriesNum = (double) dcmList[dcmSort[0].indx].seriesUidCrc;
 	int segVolEcho = segVol;
@@ -6694,6 +6741,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 
 	if (!isSameDouble(opts.seriesNumber[0], seriesNum))
 		return EXIT_SUCCESS;
+#endif
 #endif
 
 	bool iVaries = intensityScaleVaries(nConvert, dcmSort, dcmList);
@@ -7188,6 +7236,8 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		free(imgM);
 		return EXIT_FAILURE;
 	}
+
+#ifndef USING_DCM2NIIXFSWRAPPER 
 	// skip converting if user has specified one or more series, but has not specified this one
 	if (opts.numSeries > 0) { //issue453: moved to before saveBIDS
 		int i = 0;
@@ -7204,6 +7254,12 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		if (i == opts.numSeries)
 			return EXIT_SUCCESS;
 	}
+#else
+        double seriesNum = (double)dcmList[dcmSort[0].indx].seriesUidCrc;
+        if (!isSameDouble(opts.seriesNumber[0], seriesNum))
+            return EXIT_SUCCESS;
+#endif
+
 	if (opts.numSeries >= 0) //issue453
 		nii_SaveBIDSX(pathoutname, dcmList[dcmSort[0].indx], opts, &hdr0, nameList->str[dcmSort[0].indx], dti4D);
 	if (opts.isOnlyBIDS) {
@@ -7500,6 +7556,8 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	mrifsStruct.hdr0 = hdr0;
 	mrifsStruct.imgsz = nii_ImgBytes(hdr0);
 	mrifsStruct.imgM = imgM;
+
+        mrifsStruct_vector.push_back(mrifsStruct);
 #else  
 	free(imgM);
 #endif
@@ -7510,6 +7568,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 
 int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D) {
 #ifdef USING_DCM2NIIXFSWRAPPER
+  memset(&mrifsStruct, 0, sizeof(mrifsStruct));
   if (opts.isDumpNotConvert) {
     int indx0 = dcmSort[0].indx;
     if (opts.isIgnoreSeriesInstanceUID)

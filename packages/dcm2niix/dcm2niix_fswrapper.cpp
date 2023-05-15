@@ -52,7 +52,7 @@ numSeries = 0
  */
 
 // set TDCMopts defaults, overwrite settings to output in mgz orientation
-void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir, bool createBIDS)
+void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir, bool createBIDS, int ForceStackSameSeries)
 {
   memset(&tdcmOpts, 0, sizeof(tdcmOpts));
   setDefaultOpts(&tdcmOpts, NULL);
@@ -62,7 +62,9 @@ void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir, bo
   if (niioutdir != NULL)
     strcpy(tdcmOpts.outdir, niioutdir);
 
-  strcpy(tdcmOpts.filename, "%4s.%p");
+  // dcmunpack actually uses seriesDescription, set FName = `printf %04d.$descr $series`
+  // change it from "%4s.%p" to "%4s.%d"
+  strcpy(tdcmOpts.filename, "%4s.%d");
 
   // set the options for freesurfer mgz orientation
   tdcmOpts.isRotate3DAcq = false;
@@ -70,7 +72,7 @@ void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir, bo
   tdcmOpts.isIgnoreSeriesInstanceUID = true;
   tdcmOpts.isCreateBIDS = createBIDS;
   tdcmOpts.isGz = false;
-  tdcmOpts.isForceStackSameSeries = 1; // merge 2D slice '-m y'
+  tdcmOpts.isForceStackSameSeries = ForceStackSameSeries; // merge 2D slice '-m y', tdcmOpts.isForceStackSameSeries = 1
   tdcmOpts.isForceStackDCE = false;
   //tdcmOpts.isForceOnsetTimes = false;
 }
@@ -105,6 +107,12 @@ int dcm2niix_fswrapper::dcm2NiiOneSeries(const char* dcmfile)
 MRIFSSTRUCT* dcm2niix_fswrapper::getMrifsStruct(void)
 {
   return nii_getMrifsStruct();
+}
+
+// interface to nii_getMrifsStructVector()
+std::vector<MRIFSSTRUCT>* dcm2niix_fswrapper::getMrifsStructVector(void)
+{
+  return nii_getMrifsStructVector();
 }
 
 // return nifti header saved in MRIFSSTRUCT
