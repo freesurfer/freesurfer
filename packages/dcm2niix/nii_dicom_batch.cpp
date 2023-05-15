@@ -7569,22 +7569,19 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D) {
 #ifdef USING_DCM2NIIXFSWRAPPER
   memset(&mrifsStruct, 0, sizeof(mrifsStruct));
-  if (opts.isDumpNotConvert) {
-    int indx0 = dcmSort[0].indx;
-    if (opts.isIgnoreSeriesInstanceUID)
-      printMessage("%d %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
-    else
-      printMessage("%d %ld %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].seriesNum, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
 
-#if 1
-    for (int i = 0; i < nConvert; i++) {
-      int indx = dcmSort[i].indx;
-      if (opts.isIgnoreSeriesInstanceUID)
-	printMessage("\t#\%d: %d %s\n", i+1, dcmList[indx].seriesUidCrc, nameList->str[indx]);
-      else
-	printMessage("\t#\%d: %d %ld %s\n", i+1, dcmList[indx].seriesUidCrc, dcmList[indx].seriesNum, nameList->str[indx]);
-    }
-#endif
+  int indx0 = dcmSort[0].indx;
+
+  int len_dicomfile = strlen(nameList->str[indx0]);
+  mrifsStruct.dicomfile = (char*)malloc(len_dicomfile+1);
+  memset(mrifsStruct.dicomfile, 0, len_dicomfile+1);
+  memcpy(mrifsStruct.dicomfile, nameList->str[indx0], len_dicomfile);
+
+  if (opts.isDumpNotConvert) {
+    mrifsStruct.tdicomData = dcmList[indx0];  // first in sorted list dcmSort
+    mrifsStruct_vector.push_back(mrifsStruct);
+
+    dcmListDump(nConvert, dcmSort, dcmList, nameList, opts);
 
     return 0;
   }
@@ -9226,4 +9223,20 @@ void saveIniFile(struct TDCMopts opts) {
 	fclose(fp);
 } //saveIniFile()
 
+#endif
+
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+// this function outputs information in imageList.dat for dcmunpack
+// the following fields from struct TDICOMdata are printed:
+//   patientName  seriesNum  studyDate  studyTime  TE  TR  flipAngle  xyzMM[1]\xyzMM[2]  phaseEncodingRC  pixelBandwidth  dicom-file  imageType
+void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts) {
+    for (int i = 0; i < nConvert; i++) {
+      int indx = dcmSort[i].indx;
+      printMessage("%s %ld %s %s %f %f %f %f\\%f %c %f %s %s\n",
+                   dcmList[indx].patientName, dcmList[indx].seriesNum, dcmList[indx].studyDate, dcmList[indx].studyTime,
+                   dcmList[indx].TE, dcmList[indx].TR, dcmList[indx].flipAngle, dcmList[indx].xyzMM[1], dcmList[indx].xyzMM[2], 
+                   dcmList[indx].phaseEncodingRC, dcmList[indx].pixelBandwidth, nameList->str[indx], dcmList[indx].imageType);
+    }
+}
 #endif

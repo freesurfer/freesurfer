@@ -18,6 +18,7 @@ typedef struct
 
   struct TDICOMdata tdicomData;
   char namePostFixes[256];
+  char *dicomfile;
 
   struct TDTI *tdti;
   int numDti;
@@ -28,6 +29,8 @@ void nii_clrMrifsStruct();
 
 std::vector<MRIFSSTRUCT>* nii_getMrifsStructVector();
 void nii_clrMrifsStructVector();
+
+void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts);
 #endif
 
 #ifdef  __cplusplus

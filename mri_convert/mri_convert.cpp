@@ -1191,6 +1191,18 @@ int main(int argc, char *argv[])
     {
       DCM2NIIX_no_ForceStackSameSeries = 1;
     }
+    else if (strcmp(argv[i], "-dcm2niix-info-dump") == 0 || strcmp(argv[i], "--dcm2niix-info-dump") == 0)
+    {
+      DCM2NIIX_INFO_DUMP = argv[++i];
+    }
+    else if (strcmp(argv[i], "-siemens-ascii-dump") == 0)
+    {
+      DoSiemensAsciiDump = 1;
+    }
+    else if (strcmp(argv[i], "-siemens-ascii-alt-dump") == 0)
+    {
+      DoSiemensAsciiAltDump = 1;
+    }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {
       UseDICOMRead2 = 1;
@@ -1567,11 +1579,11 @@ int main(int argc, char *argv[])
   }
   /**** Finished parsing command line ****/
   /* option inconsistency checks */
-  // -dcm2niix-createBIDS, --dcm2niix-outdir <> , -dcm2niix-no-ForceStackSameSeries are only valid with -dcm2niix
+  // -dcm2niix-createBIDS, --dcm2niix-outdir <> , -dcm2niix-no-ForceStackSameSeries, --dcm2niix-info-dump <> are only valid with -dcm2niix
   if (!UseDCM2NIIX && 
-      (DCM2NIIX_outdir != NULL || DCM2NIIX_createBIDS || DCM2NIIX_no_ForceStackSameSeries))
+      (DCM2NIIX_outdir != NULL || DCM2NIIX_createBIDS || DCM2NIIX_no_ForceStackSameSeries || DCM2NIIX_INFO_DUMP != NULL))
   {
-    fprintf(stderr, "ERROR: option --dcm2niix-outdir <>, -dcm2niix-createBIDS, -dcm2niix-no-ForceStackSameSeries are only valid with -dcm2niix\n");
+    fprintf(stderr, "ERROR: option --dcm2niix-outdir <>, -dcm2niix-createBIDS, -dcm2niix-no-ForceStackSameSeries, --dcm2niix-info-dump <> are only valid with -dcm2niix\n");
     exit(1);
   }
   if (DCM2NIIX_createBIDS && DCM2NIIX_outdir == NULL)

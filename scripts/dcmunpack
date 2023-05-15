@@ -31,6 +31,7 @@ set RunNoSkip = ()
 set iid = ()
 set ijd = ()
 set ikd = ()
+set dcm2niix_dicom_dump = 0
 set UseDCM2NIIX = 1; # changed this to 1 on 4/06/2023
 set dcm2niix_CreateBIDS  = 0
 set dcm2niix_no_ForceStackSameSeries = 0;
@@ -147,7 +148,7 @@ foreach d ($SrcDirList2)
   set flist = ($flist $flist0);
 end
 
-date | tee -a $LF
+#date | tee -a $LF
 
 echo "Found $#flist total files." | tee -a $LF
 if($#flist == 0) then
@@ -202,178 +203,220 @@ if($#SeriesInfo == 0) then
 endif
 rm -f $SeriesInfo
 
-# for each dicom found, (mri_probedicom --i $f --d filetype)
-#   retrieve the following fields:  (mri_probedicom --i $f --no-siemens-ascii)
-#     SeriesNo|PatientName|StudyDate|StudyTime|Institution|EchoTime|RepetitionTime|FlipAngle|PixelSpacing|PhaseEncDir|PixelFrequency|ImageType
-#   print the information to $infofile=imagelist.dat in this order
-#      $Patient      $SeriesNo   $Date       $Time       $EchoTime $TR            $FlipAngle  $PixSpace             $PhaseEncDir      $PixFreq         $f     $PhaseStr
-#     (PatientName   SeriesNo    StudyDate   StudyTime   EchoTime  RepetitionTime FlipAngle   PixelSpacing          PhaseEncDir       PixelFrequency   fdicom if($DoPhase) 
-#     (d.patientName d.seriesNum d.studyDate d.studyTime d.TE      d.TR           d.flipAngle d.xyzMM[1],d.xyzMM[2] d.phaseEncodingRC d.pixelBandwidth fdicom d.imageType
-#
-# *these information can be retrieved from struct TDICOMdata (nii_dicom.h)
-set dumpfile = `fs_temp_file`
-rm -f $dumpfile 
-@ nth = 0;
-@ mth = 0;
-foreach f ($flist)
-  @ nth = $nth + 1;
-  set filetype = `mri_probedicom --i $f --d filetype`
-  if($filetype == notdicom) continue;
-  @ mth = $mth + 1;
-  #echo "#@# $nth/$#flist `date`" >>& $LF
+#################################################################################
+# if --dcm2niix, use mri_probedicom --dcm2niix-dicom-dump dicom-dir $SeriesInfo #
+#################################################################################
+if($dcm2niix_dicom_dump) then
+  foreach d ($SrcDirList)  # dcm2niix should exam all the subdirectories
+    set cmd = (mri_probedicom --dcm2niix-dicom-dump $d $SeriesInfo)
+    if($DoExtraInfo) set cmd = ($cmd --extra-info)
+    echo $cmd | tee -a $LF
+    $cmd  >& $infofile  # redirect to save as imagelist.dat
 
-  set cmd = (mri_probedicom --i $f)
-  if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
-  $cmd  >& $dumpfile
-  if($status) then
-    cat $dumpfile | tee -a $LF
+    # print all the unique series
+    set SeriesNos = (`cat $SeriesInfo | awk '{print $1}' | sort -n | uniq`)
+    echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
+
+    ##### ???
+    #echo "Subject $Patient" | tee -a $LF
+    #echo "Date $Date" | tee -a $LF
+    #echo "Time $Time" | tee -a $LF
+    #echo "$Institution" | tee -a $LF
+    ##### ???
+
+    foreach series ($SeriesNos)
+      set descr = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}'`
+      if($DoAutoRunSeq) then
+        if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
+           "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
+           "$descr" == AAHScout_tra || "$descr" == AAScout || \
+           "$descr" == T1w_setter || "$descr" == T2w_setter) continue
+        set AutoRunNos = ($AutoRunNos $series)
+        set AutoSubDirs = ($AutoSubDirs ".")
+        set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
+        set FName = `printf %04d.$descr $series`
+        set AutoFNames = ($AutoFNames $FName)
+        set AutoNSkips = ($AutoNSkips 0)
+        set AutoNDrops = ($AutoNDrops 0)
+      endif
+    end  # foreach series ($SeriesNos)
+  end # foreach d ($SrcDirList2)
+else
+  # for each dicom found, (mri_probedicom --i $f --d filetype)
+  #   retrieve the following fields:  (mri_probedicom --i $f --no-siemens-ascii)
+  #     SeriesNo|PatientName|StudyDate|StudyTime|Institution|EchoTime|RepetitionTime|FlipAngle|PixelSpacing|PhaseEncDir|PixelFrequency|ImageType
+  #   print the information to $infofile=imagelist.dat in this order
+  #      $Patient      $SeriesNo   $Date       $Time       $EchoTime $TR            $FlipAngle  $PixSpace             $PhaseEncDir      $PixFreq         $f     $PhaseStr
+  #     (PatientName   SeriesNo    StudyDate   StudyTime   EchoTime  RepetitionTime FlipAngle   PixelSpacing          PhaseEncDir       PixelFrequency   fdicom if($DoPhase) 
+  #     (d.patientName d.seriesNum d.studyDate d.studyTime d.TE      d.TR           d.flipAngle d.xyzMM[1],d.xyzMM[2] d.phaseEncodingRC d.pixelBandwidth fdicom d.imageType
+  #
+  # *these information can be retrieved from struct TDICOMdata (nii_dicom.h)
+  set dumpfile = `fs_temp_file`
+  rm -f $dumpfile 
+  @ nth = 0;
+  @ mth = 0;
+  foreach f ($flist)
+    @ nth = $nth + 1;
+    set filetype = `mri_probedicom --i $f --d filetype`
+    if($filetype == notdicom) continue;
+    @ mth = $mth + 1;
+    #echo "#@# $nth/$#flist `date`" >>& $LF
+
+    set cmd = (mri_probedicom --i $f)
+    if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
+    $cmd  >& $dumpfile
+    if($status) then
+      cat $dumpfile | tee -a $LF
+      exit 1;
+    endif
+
+    set SeriesNo  = `cat $dumpfile | awk '{if($1 == "SeriesNo") print $2}'`
+    if($status) then
+      echo "ERROR: cannot find series number in $dumpfile" | tee -a $LF
+      exit 1;
+    endif
+
+    set Patient = (`cat $dumpfile | awk '{if($1 == "PatientName") print $2}'`)
+    if($#Patient == 0) set Patient = 'unknown'
+    set Date  = (`cat $dumpfile | awk '{if($1 == "StudyDate") print $2}'`)
+    if($#Date == 0) set Date = 'unknown';
+    set Time  = (`cat $dumpfile | awk '{if($1 == "StudyTime") print $2}'`)
+    if($#Time == 0) set Time = 'unknown';
+    set Institution  = (`cat $dumpfile | awk '{if($1 == "Institution") print $0}'`)
+    if($#Institution == 0) set Institution = 'Institution unknown';
+
+    set EchoTime = (`cat $dumpfile | awk '{if($1 == "EchoTime") print $2}'`)
+    if($#EchoTime == 0) set EchoTime = 'unknown';
+    set TR  = (`cat $dumpfile | awk '{if($1 == "RepetitionTime") print $2}'`)
+    if($#TR == 0) set TR = 'unknown';
+    set FlipAngle  = (`cat $dumpfile | awk '{if($1 == "FlipAngle") print $2}'`)
+    if($#FlipAngle == 0) set FlipAngle = 'unknown';
+    #------------------------------------------------------------------------#
+    # Special case for PixSpace. Found a file where pixel spacing had some funny
+    # binary character in it, and it messed everything up
+    set PixSpace  = (`cat $dumpfile | awk '{if($1 == "PixelSpacing") print $2}' | strings`)
+    set tmpdat = `fs_temp_file --suffix .dat`
+    echo $PixSpace > $tmpdat
+    set PixSpace = (`cat $tmpdat`)
+    rm $tmpdat
+    if($#PixSpace == 0) set PixSpace = 'unknown';
+    #------------------------------------------------------------------------#
+    set PhaseEncDir  = (`cat $dumpfile | awk '{if($1 == "PhaseEncDir") print $2}'`)
+    if($#PhaseEncDir == 0) set PhaseEncDir = 'unknown';
+    set PixFreq  = (`cat $dumpfile | awk '{if($1 == "PixelFrequency") print $2}'`)
+    if($#PixFreq == 0) set PixFreq = 'unknown';
+
+    set PhaseStr = ()
+    if($DoPhase) then
+      set ImageType = (`cat $dumpfile | awk '{if($1 == "ImageType") print $2}'`)
+      if($#ImageType == 1) then
+        if($ImageType == "ORIGINAL\PRIMARY\P\ND") set PhaseStr = "_phase"
+      endif
+      if($#PhaseStr == 0) set PhaseStr = NotPhase
+    endif
+
+    if($#SrcInfo) break;
+    echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f $PhaseStr" >> $infofile
+
+  end
+
+  if($mth == 0) then
+    echo "ERROR: could not find any dicom files in"
+    echo "  $SrcDirList2"
     exit 1;
   endif
 
-  set SeriesNo  = `cat $dumpfile | awk '{if($1 == "SeriesNo") print $2}'`
-  if($status) then
-    echo "ERROR: cannot find series number in $dumpfile" | tee -a $LF
-    exit 1;
+  # retrieve the extra information:
+  #   PatientName   |StudyDate   |Manufacturer   |ScannerModel             |FieldStrength   |ScannerSerialNo
+  #   d.patientName  d.studyDate  d.manufacturer  d.manufacturersModelName  d.fieldStrength  d.deviceSerialNumber
+  # use the last $dumpfile (last dicom file)
+  # these info is printed in series-info.dat
+  set extra = ()
+  if($DoExtraInfo) then
+    set fieldstrength = `grep FieldStrength $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+    if($#fieldstrength == 0) set fieldstrength = unknown
+    set manufacturer = `grep Manufacturer $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+    if($#manufacturer == 0) set manufacturer = unknown
+    set scannermodel = `grep ScannerModel $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+    if($#scannermodel == 0) set scannermodel = unknown
+    set scannerserialno = `grep ScannerSerialNo $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+    if($#scannerserialno == 0) set scannerserialno = unknown
+    set studydate = `grep StudyDate $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+    if($#studydate == 0) set studydate = unknown
+    set patient = `grep PatientName $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+    if($#patient == 0) set patient = unknown
+    set extra = ($patient $studydate $manufacturer $scannermodel $fieldstrength $scannerserialno )
+    echo "ExtraInfo: $extra"
   endif
 
-  set Patient = (`cat $dumpfile | awk '{if($1 == "PatientName") print $2}'`)
-  if($#Patient == 0) set Patient = 'unknown'
-  set Date  = (`cat $dumpfile | awk '{if($1 == "StudyDate") print $2}'`)
-  if($#Date == 0) set Date = 'unknown';
-  set Time  = (`cat $dumpfile | awk '{if($1 == "StudyTime") print $2}'`)
-  if($#Time == 0) set Time = 'unknown';
-  set Institution  = (`cat $dumpfile | awk '{if($1 == "Institution") print $0}'`)
-  if($#Institution == 0) set Institution = 'Institution unknown';
+  rm -f $dumpfile
 
-  set EchoTime = (`cat $dumpfile | awk '{if($1 == "EchoTime") print $2}'`)
-  if($#EchoTime == 0) set EchoTime = 'unknown';
-  set TR  = (`cat $dumpfile | awk '{if($1 == "RepetitionTime") print $2}'`)
-  if($#TR == 0) set TR = 'unknown';
-  set FlipAngle  = (`cat $dumpfile | awk '{if($1 == "FlipAngle") print $2}'`)
-  if($#FlipAngle == 0) set FlipAngle = 'unknown';
-  #------------------------------------------------------------------------#
-  # Special case for PixSpace. Found a file where pixel spacing had some funny
-  # binary character in it, and it messed everything up
-  set PixSpace  = (`cat $dumpfile | awk '{if($1 == "PixelSpacing") print $2}' | strings`)
-  set tmpdat = `fs_temp_file --suffix .dat`
-  echo $PixSpace > $tmpdat
-  set PixSpace = (`cat $tmpdat`)
-  rm $tmpdat
-  if($#PixSpace == 0) set PixSpace = 'unknown';
-  #------------------------------------------------------------------------#
-  set PhaseEncDir  = (`cat $dumpfile | awk '{if($1 == "PhaseEncDir") print $2}'`)
-  if($#PhaseEncDir == 0) set PhaseEncDir = 'unknown';
-  set PixFreq  = (`cat $dumpfile | awk '{if($1 == "PixelFrequency") print $2}'`)
-  if($#PixFreq == 0) set PixFreq = 'unknown';
+  # sort imagelist.dat
+  # print all the unique series
+  set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
+  echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
 
-  set PhaseStr = ()
-  if($DoPhase) then
-    set ImageType = (`cat $dumpfile | awk '{if($1 == "ImageType") print $2}'`)
-    if($#ImageType == 1) then
-      if($ImageType == "ORIGINAL\PRIMARY\P\ND") set PhaseStr = "_phase"
+
+  echo "Subject $Patient" | tee -a $LF
+  echo "Date $Date" | tee -a $LF
+  echo "Time $Time" | tee -a $LF
+  echo "$Institution" | tee -a $LF
+
+
+  # for each unique series
+  #   run 'mri_probedicom --i $f --t 8 103e' to get descr (kSeriesDescription 0x0008 + (0x103E << 16) // '0008' '103E' 'LO' 'SeriesDescription')
+  #   print descr + extra info to $SeriesInfo=series-info.dat
+  #   set AutoRunNos, AutoSubDirs, AutoFormats, FName, AutoFNames, AutoNSkips, AutoNDrops, skipping certain descr
+  #
+  # *if($GetMax) set max = (`mri_probedicom --i $f --max`) (kImageStart 0x7FE0 + (0x0010 << 16))
+  foreach series ($SeriesNos)
+    set r = `cat $infofile | awk -v s=$series '{if($2 == s) print $0;if($2 == s) exit;}'`;
+    if($DoPhase == 0) set rexpected = 11
+    if($DoPhase == 1) set rexpected = 12
+    if($#r != $rexpected) then
+      echo $r
+      continue;
     endif
-    if($#PhaseStr == 0) set PhaseStr = NotPhase
-  endif
-
-  if($#SrcInfo) break;
-  echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f $PhaseStr" >> $infofile
-
-end
-
-if($mth == 0) then
-  echo "ERROR: could not find any dicom files in"
-  echo "  $SrcDirList2"
-  exit 1;
-endif
-
-# retrieve the extra information:
-#   PatientName   |StudyDate   |Manufacturer   |ScannerModel             |FieldStrength   |ScannerSerialNo
-#   d.patientName  d.studyDate  d.manufacturer  d.manufacturersModelName  d.fieldStrength  d.deviceSerialNumber
-# use the last $dumpfile (last dicom file)
-# these info is printed in series-info.dat
-set extra = ()
-if($DoExtraInfo) then
-  set fieldstrength = `grep FieldStrength $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
-  if($#fieldstrength == 0) set fieldstrength = unknown
-  set manufacturer = `grep Manufacturer $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
-  if($#manufacturer == 0) set manufacturer = unknown
-  set scannermodel = `grep ScannerModel $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
-  if($#scannermodel == 0) set scannermodel = unknown
-  set scannerserialno = `grep ScannerSerialNo $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
-  if($#scannerserialno == 0) set scannerserialno = unknown
-  set studydate = `grep StudyDate $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
-  if($#studydate == 0) set studydate = unknown
-  set patient = `grep PatientName $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
-  if($#patient == 0) set patient = unknown
-  set extra = ($patient $studydate $manufacturer $scannermodel $fieldstrength $scannerserialno )
-  echo "ExtraInfo: $extra"
-endif
-
-rm -f $dumpfile
-
-# sort imagelist.dat
-# print all the unique series
-set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
-echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
-
-echo "Subject $Patient" | tee -a $LF
-echo "Date $Date" | tee -a $LF
-echo "Time $Time" | tee -a $LF
-echo "$Institution" | tee -a $LF
-
-# for each unique series
-#   run 'mri_probedicom --i $f --t 8 103e' to get descr (kSeriesDescription 0x0008 + (0x103E << 16) // '0008' '103E' 'LO' 'SeriesDescription')
-#   print descr + extra info to $SeriesInfo=series-info.dat
-#   set AutoRunNos, AutoSubDirs, AutoFormats, FName, AutoFNames, AutoNSkips, AutoNDrops, skipping certain descr
-#
-# *if($GetMax) set max = (`mri_probedicom --i $f --max`) (kImageStart 0x7FE0 + (0x0010 << 16))
-foreach series ($SeriesNos)
-  set r = `cat $infofile | awk -v s=$series '{if($2 == s) print $0;if($2 == s) exit;}'`;
-  if($DoPhase == 0) set rexpected = 11
-  if($DoPhase == 1) set rexpected = 12
-  if($#r != $rexpected) then
-    echo $r
-    continue;
-  endif
-  if($DoPhase == 0) set f = $r[$#r];
-  if($DoPhase == 1) then
-    @ aa = $#r - 1;
-    set f = $r[$aa];
-  endif
-
-  set max = ();  # kImageStart 0x7FE0 + (0x0010 << 16)
-  if($GetMax) set max = (`mri_probedicom --i $f --max`)
-  # kSeriesDescription 0x0008 + (0x103E << 16)  // '0008' '103E' 'LO' 'SeriesDescription'
-  # Create a trap in case tag 8 103e is not present (eg, in philips)
-  mri_probedicom --i $f --t 8 103e >& /dev/null
-  if($status) then 
-    set descr = "unknown"
-  else
-    set descr = `mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'| sed 's/\]//g'|sed 's/\[//g'`
-  endif
-  set fname = $r[11];
-  if($DoBase) set fname = `basename $f`
-
-  # $Key SeriesNo     SeriesDescription    EchoTime RepetitionTime FlipAngle   PixelSpacing          PhaseEncDir       PixelFrequency   dicom-file $max PatientName|StudyDate|Manufacturer|ScannerModel|FieldStrength|ScannerSerialNo
-  # $Key d.seriesNum  d.seriesDescription  d.TE     d.TR           d.flipAngle d.xyzMM[1],d.xyzMM[2] d.phaseEncodingRC d.pixelBandwidth dicom-file $max d.patientName|d.studyDate|d.manufacturer|d.manufacturersModelName|d.fieldStrength|d.deviceSerialNumber
-  echo $Key $r[2] "$descr" $r[5-10] $fname $max $extra | tee -a $SeriesInfo
-
-  if($DoAutoRunSeq) then
-    if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
-       "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
-       "$descr" == AAHScout_tra || "$descr" == AAScout || \
-       "$descr" == T1w_setter || "$descr" == T2w_setter) then
-       if(! $KeepScouts) continue
+    if($DoPhase == 0) set f = $r[$#r];
+    if($DoPhase == 1) then
+      @ aa = $#r - 1;
+      set f = $r[$aa];
     endif
-    set AutoRunNos = ($AutoRunNos $series)
-    set AutoSubDirs = ($AutoSubDirs ".")
-    set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
-    set FName = `printf %04d.$descr $series`
-    set AutoFNames = ($AutoFNames $FName)
-    set AutoNSkips = ($AutoNSkips 0)
-    set AutoNDrops = ($AutoNDrops 0)
-  endif
-end
+
+    set max = ();  # kImageStart 0x7FE0 + (0x0010 << 16)
+    if($GetMax) set max = (`mri_probedicom --i $f --max`)
+    # kSeriesDescription 0x0008 + (0x103E << 16)  // '0008' '103E' 'LO' 'SeriesDescription'
+    # Create a trap in case tag 8 103e is not present (eg, in philips)
+    mri_probedicom --i $f --t 8 103e >& /dev/null
+    if($status) then 
+      set descr = "unknown"
+    else
+      set descr = `mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'| sed 's/\]//g'|sed 's/\[//g'`
+    endif
+    set fname = $r[11];
+    if($DoBase) set fname = `basename $f`
+
+    # $Key SeriesNo     SeriesDescription    EchoTime RepetitionTime FlipAngle   PixelSpacing          PhaseEncDir       PixelFrequency   dicom-file $max PatientName|StudyDate|Manufacturer|ScannerModel|FieldStrength|ScannerSerialNo
+    # $Key d.seriesNum  d.seriesDescription  d.TE     d.TR           d.flipAngle d.xyzMM[1],d.xyzMM[2] d.phaseEncodingRC d.pixelBandwidth dicom-file $max d.patientName|d.studyDate|d.manufacturer|d.manufacturersModelName|d.fieldStrength|d.deviceSerialNumber
+    echo $Key $r[2] "$descr" $r[5-10] $fname $max $extra | tee -a $SeriesInfo
+
+    if($DoAutoRunSeq) then
+      if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
+         "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
+         "$descr" == AAHScout_tra || "$descr" == AAScout || \
+         "$descr" == T1w_setter || "$descr" == T2w_setter) then
+         if(! $KeepScouts) continue
+      endif
+      set AutoRunNos = ($AutoRunNos $series)
+      set AutoSubDirs = ($AutoSubDirs ".")
+      set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
+      set FName = `printf %04d.$descr $series`
+      set AutoFNames = ($AutoFNames $FName)
+      set AutoNSkips = ($AutoNSkips 0)
+      set AutoNDrops = ($AutoNDrops 0)
+    endif
+  end
+endif  # dcm2niix_dicom_dump=0
 
 # cat series-info.dat to log file
 cat $SeriesInfo >> $LF
@@ -451,12 +494,32 @@ foreach run ($RunNos)
   mkdir -p $outdir/log
 
   if($DoConvert) then
-    set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+    if ($dcm2niix_dicom_dump) then
+      set f = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $9}'`
+      # PatientName is printed out differently in imagelist.dat, can't use imagelist.dat to retrieve dicom file
+      #set f = `cat $infofile | awk -v r=$run '{if($4 == r) print $13}' | head -n 1`
+    else
+      set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+    endif
+
     set PhaseStr = ()
     if($DoPhase) then
-      set PhaseStr = `cat $infofile | awk -v r=$run '{if($2 == r) print $12}' | head -n 1`
-      if($PhaseStr == NotPhase) set PhaseStr = ""
+      if($dcm2niix_dicom_dump) then
+        # imagetype is available in series-info.dat
+        # example output:
+        # ORIGINAL_PRIMARY_M_ND_NORM
+        # ORIGINAL_PRIMARY_DIFFUSION_NONE_ND_NORM_MFSPLIT
+        set PhaseStr = ""
+        set ImageType = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $10}'`
+        if($#ImageType == 1) then
+          if($ImageType == "ORIGINAL_PRIMARY_P_ND") set PhaseStr = "_phase"
+        endif
+      else
+        set PhaseStr = `cat $infofile | awk -v r=$run '{if($2 == r) print $12}' | head -n 1`
+        if($PhaseStr == NotPhase) set PhaseStr = ""
+      endif
     endif
+
     set outfname = $outdir/$FName$PhaseStr.$Format
     echo "" |& tee -a $LF
     echo "#@# Run $run `date` ==================================" |& tee -a $LF
@@ -474,6 +537,12 @@ foreach run ($RunNos)
         endif
         if($dcm2niix_no_ForceStackSameSeries) then
           set cmd = ($cmd -dcm2niix-no-ForceStackSameSeries)
+        endif
+        if($dcm2niix_dicom_dump) then
+          set dumpfile = $outdir/log/$FName-infodump.dat
+          set cmd = ($cmd --dcm2niix-info-dump $dumpfile)
+
+          if($DoSiemensAscii) set cmd = ($cmd -siemens-ascii-dump)
         endif
       endif
       if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
@@ -517,18 +586,20 @@ foreach run ($RunNos)
     end
   endif
 
-  # mri_probedicom --i $f --no-siemens-ascii
-  if($DoInfoDump) then
-    set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
-    set dumpfile = $outdir/log/$FName-infodump.dat
-    set ud = (`UpdateNeeded $dumpfile $f`)
-    if($ud || $ForceUpdate) then
-      set cmd = (mri_probedicom --i $f)
-      if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
-      $cmd >& $dumpfile 
-      if($status) cat $dumpfile | tee -a $LF
-    else
-      echo "$dumpfile does not need updating" | tee -a $LF
+  if(! $dcm2niix_dicom_dump) then
+    # mri_probedicom --i $f --no-siemens-ascii
+    if($DoInfoDump) then
+      set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+      set dumpfile = $outdir/log/$FName-infodump.dat
+      set ud = (`UpdateNeeded $dumpfile $f`)
+      if($ud || $ForceUpdate) then
+        set cmd = (mri_probedicom --i $f)
+        if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
+        $cmd >& $dumpfile 
+        if($status) cat $dumpfile | tee -a $LF
+      else
+        echo "$dumpfile does not need updating" | tee -a $LF
+      endif
     endif
   endif
 
@@ -729,7 +800,7 @@ while( $#argv != 0 )
 
     case "-keep-scouts"
       set KeepScouts = 1;
-      breaksw     
+      breaksw
 
     case "-no-rescale-dicom"
       setenv FS_RESCALE_DICOM 0
@@ -794,7 +865,7 @@ while( $#argv != 0 )
     case "-dcm2niix":
     case "-dcr3":
       set UseDCM2NIIX = 1;
-      set DoSiemensAscii = 0; # Newer dicoms do not have ascii
+      set DoSiemensAscii = 1; # Newer dicoms do not have ascii
       breaksw
 
     case "--no-dcm2niix":
@@ -813,6 +884,12 @@ while( $#argv != 0 )
     case "--dcm2niix-no-ForceStackSameSeries":
     case "-dcm2niix-no-ForceStackSameSeries":
       set dcm2niix_no_ForceStackSameSeries = 1;
+      breaksw
+
+    # mri_probedicom --dcm2niix-dicom-dump <dicomdir> <series_info-dat> 
+    case "--dcm2niix-dicom-dump":
+    case "-dcm2niix-dicom-dump":
+      set dcm2niix_dicom_dump = 1;
       breaksw
 
     case "-siemensBVecsCross"
@@ -1097,7 +1174,8 @@ usage_exit:
   else
     echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
     echo "   -dcm2niix-createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
-    echo "   -dcm2niix-no-ForceStackSameSeries : don't stack same series slice." 
+    echo "   -dcm2niix-no-ForceStackSameSeries : don't stack same series slice."
+    echo "   -dcm2niix-dicom-dump : call mri_probedicom --dcm2niix-dicom-dump."
   endif
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""

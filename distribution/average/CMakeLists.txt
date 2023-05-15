@@ -25,6 +25,7 @@ install_symlinks(
   # txt
   colortable_desikan_killiany.txt
   colortable_BA.txt
+  colortable_BA_thresh.txt
   colortable_vpnl.txt
   # mgz
   mni305.cor.mgz

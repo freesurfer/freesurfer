@@ -60,6 +60,8 @@
 #include "version.h"
 #include "cmdargs.h"
 
+#include "dcm2niix_fswrapper.h"
+
 int main(int argc, char *argv[]) ;
 
 const char *Progname = NULL;
@@ -85,6 +87,12 @@ int GetDimLength(char *dicomfile, int dimtype);
 #define QRY_HAS_PIXEL_DATA  7
 #define QRY_DWI             8
 
+// these are for --dcm2niix-dicom-dump
+int dcm2niix_dicom_dump = 0;
+bool dicom_extra_info = false;
+const char *dicomdir = NULL;
+const char *series_info = NULL;
+
 char* dicomfile = NULL;
 const char* directivestring = NULL;
 int   directive;
@@ -106,15 +114,15 @@ int DoSiemensAscii = 1;
 int DumpElement(FILE *fp, DCM_ELEMENT *e);
 const char *RepString(int RepCode);
 int PartialDump(const char *dicomfile, FILE *fp);
-int DumpSiemensASCII(const char *dicomfile, FILE *fpout);
-int DumpSiemensASCIIAlt(const char *dicomfile, FILE *fpout);
+int doSiemensAsciiDump(const char *dicomfile, FILE *fpout);
+int doSiemensASCIIAltDump(const char *dicomfile, FILE *fpout);
 
 /*size_t RepSize(int RepCode);*/
 const char *ElementValueFormat(DCM_ELEMENT *e);
 int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh);
 double DCMCompareThresh = .00001;
 
-#define TMPSTRLEN 10000
+//#define TMPSTRLEN 10000  // moved to DICOMRead.h
 static char tmpstr[TMPSTRLEN];
 
 double ConvertTimeStringToSec(char *tstring);
@@ -167,6 +175,15 @@ int main(int argc, char **argv) {
 
   parse_commandline(argc, argv);
   check_options();
+
+  if (dcm2niix_dicom_dump)
+  {
+    dcm2niix_fswrapper::setOpts(dicomdir);
+    dcm2niix_fswrapper::dicomDump(dicomdir, series_info, (GetMax) ? true : false, dicom_extra_info);
+
+    exit(0);
+  }
+
 
   /*--------------------------------------------------------------*/
   if (directive == QRY_FILETYPE) {
@@ -401,6 +418,7 @@ static int parse_commandline(int argc, char **argv) {
       DoPartialDump = 0;
     } 
     else if (!strcmp(option, "--max")) {
+      // kImageStart 0x7FE0 + (0x0010 << 16)
       grouptag = 0x7FE0;
       elementtag = 0x10;
       DoPartialDump = 0;
@@ -468,7 +486,16 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       exit(0);
-    } else {
+    } else if (!strcmp(option, "--dcm2niix-dicom-dump")) {
+      if (nargc < 2) argnerr(option, 2);
+      nargsused = 2;
+
+      dcm2niix_dicom_dump = 1;
+      dicomdir = pargv[0];
+      series_info = pargv[1];
+    } else if (!strcmp(option, "--extra-info")) {
+      dicom_extra_info = true;
+    }else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -662,6 +689,9 @@ static int singledash(char *flag) {
 /* --------------------------------------------- */
 static void check_options(void) {
 
+  if (dcm2niix_dicom_dump)
+    return;
+
   if (dicomfile == NULL) {
     fprintf(stderr,"ERROR: no file name supplied\n");
     exit(1);
@@ -677,8 +707,8 @@ static void check_options(void) {
     }
     PartialDump(dicomfile,stdout);
     if(DoSiemensAscii){
-      DumpSiemensASCII(dicomfile, stdout);
-      if(DoAltDump) DumpSiemensASCIIAlt(dicomfile, stdout);
+      doSiemensAsciiDump(dicomfile, stdout);
+      if(DoAltDump) doSiemensASCIIAltDump(dicomfile, stdout);
     }
     exit(0);
   }
@@ -839,6 +869,8 @@ int GetDimLength(char *dicomfile, int dimtype) {
   object = GetObjectFromFile(dicomfile, 0);
   if (object == NULL) exit(1);
 
+  // kDim1 0x0028 + (0x0011 << 16)
+  // kDim2 0x0028 + (0x0010 << 16)
   if (dimtype == 0) tag=DCM_MAKETAG(0x28,0x11); /* ncols */
   else             tag=DCM_MAKETAG(0x28,0x10); /* nrows */
 
@@ -865,6 +897,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
 {
   DCM_ELEMENT *e;
 
+  // kManufacturer 0x0008 + (0x0070 << 16)
+  // d.manufacturer
   e = GetElementFromFile(dicomfile, 0x8, 0x70);
   if (e != NULL) {
     fprintf(fp,"Manufacturer %s\n",e->d.string);
@@ -872,6 +906,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kManufacturersModelName 0x0008 + (0x1090 << 16)
+  // d.manufacturersModelName
   e = GetElementFromFile(dicomfile, 0x8, 0x1090);
   if (e != NULL) {
     fprintf(fp,"ScannerModel %s\n",e->d.string);
@@ -879,6 +915,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kSoftwareVersions 0x0018 + (0x1020 << 16) //LO
+  // d.softwareVersions
   e = GetElementFromFile(dicomfile, 0x18, 0x1020);
   if (e != NULL) {
     fprintf(fp,"SoftwareVersion %s\n",e->d.string);
@@ -886,6 +924,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kDeviceSerialNumber 0x0018 + (0x1000 << 16) //LO
+  // d.deviceSerialNumber
   e = GetElementFromFile(dicomfile, 0x18, 0x1000);
   if (e != NULL) {
     fprintf(fp,"ScannerSerialNo %s\n",e->d.string);
@@ -893,6 +933,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kInstitutionName 0x0008 + (0x0080 << 16)
+  // d.institutionName
   e = GetElementFromFile(dicomfile, 0x8, 0x80);
   if (e != NULL) {
     fprintf(fp,"Institution %s\n",e->d.string);
@@ -900,6 +942,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kSeriesDescription 0x0008 + (0x103E << 16) // '0008' '103E' 'LO' 'SeriesDescription'
+  // d.seriesDescription
   // This should be "MoCoSeries" for on-scanner motion cor
   e = GetElementFromFile(dicomfile, 0x8, 0x103e);
   if (e != NULL) {
@@ -908,6 +952,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kStudyInstanceUID 0x0020 + (0x000D << 16)
+  // d.studyInstanceUID
   e = GetElementFromFile(dicomfile, 0x20, 0xd);
   if (e != NULL) {
     fprintf(fp,"StudyUID %s\n",e->d.string);
@@ -915,6 +961,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kStudyDate 0x0008 + (0x0020 << 16)
+  // d.studyDate
   e = GetElementFromFile(dicomfile, 0x8, 0x20);
   if (e != NULL) {
     fprintf(fp,"StudyDate %s\n",e->d.string);
@@ -922,6 +970,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kStudyTime 0x0008 + (0x0030 << 16)
+  // d.studyTime
   e = GetElementFromFile(dicomfile, 0x8, 0x30);
   if (e != NULL) {
     fprintf(fp,"StudyTime %s\n",e->d.string);
@@ -929,6 +979,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kPatientName 0x0010 + (0x0010 << 16)
+  // d.patientName
   if (DoPatientName) {
     e = GetElementFromFile(dicomfile, 0x10, 0x10);
     if (e != NULL) {
@@ -938,6 +990,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     }
   }
 
+  // kSeriesNum 0x0020 + (0x0011 << 16)
+  // d.seriesNum
   e = GetElementFromFile(dicomfile, 0x20, 0x11);
   if (e != NULL) {
     fprintf(fp,"SeriesNo %s\n",e->d.string);
@@ -945,6 +999,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kImageNum 0x0020 + (0x0013 << 16)
+  // d.imageNum
   e = GetElementFromFile(dicomfile, 0x20, 0x13);
   if (e != NULL) {
     fprintf(fp,"ImageNo %s\n",e->d.string);
@@ -952,6 +1008,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kMRAcquisitionType 0x0018 + (0x0023 << 16)
+  // d.is2DAcq, d.is3DAcq
   e = GetElementFromFile(dicomfile, 0x18, 0x23);
   if (e != NULL) {
     fprintf(fp,"AcquisitionType %s\n",e->d.string);
@@ -959,6 +1017,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kImageTypeTag 0x0008 + (0x0008 << 16)
+  // d.imageType
   e = GetElementFromFile(dicomfile, 0x8, 0x8);
   if (e != NULL) {
     fprintf(fp,"ImageType %s\n",e->d.string);
@@ -966,6 +1026,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kImagingFrequency 0x0018 + (0x0084 << 16) //DS
+  // d.imagingFrequency
   e = GetElementFromFile(dicomfile, 0x18, 0x84);
   if (e != NULL) {
     fprintf(fp,"ImagingFrequency %s\n",e->d.string);
@@ -973,6 +1035,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kPixelBandwidth 0x0018 + (0x0095 << 16) //'DS' 'PixelBandwidth'
+  // d.pixelBandwidth
   e = GetElementFromFile(dicomfile, 0x18, 0x95);
   if (e != NULL) {
     fprintf(fp,"PixelFrequency %s\n",e->d.string);
@@ -980,6 +1044,7 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // dcm2niix doesn't seem to retrieve this
   e = GetElementFromFile(dicomfile, 0x18, 0x85);
   if (e != NULL) {
     fprintf(fp,"ImagedNucleus %s\n",e->d.string);
@@ -987,6 +1052,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kEchoNum 0x0018 + (0x0086 << 16) //IS
+  // d.echoNum
   e = GetElementFromFile(dicomfile, 0x18, 0x86);
   if (e != NULL) {
     fprintf(fp,"EchoNumber %s\n",e->d.string);
@@ -994,6 +1061,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kMagneticFieldStrength 0x0018 + (0x0087 << 16) //DS
+  // d.fieldStrength
   e = GetElementFromFile(dicomfile, 0x18, 0x87);
   if (e != NULL) {
     fprintf(fp,"FieldStrength %s\n",e->d.string);
@@ -1001,6 +1070,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kSequenceName 0x0018 + (0x0024 << 16)
+  // d.sequenceName
   e = GetElementFromFile(dicomfile, 0x18, 0x24);
   if (e != NULL) {
     fprintf(fp,"PulseSequence %s\n",e->d.string);
@@ -1008,6 +1079,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kProtocolName 0x0018 + (0x1030 << 16)
+  // d.protocolName
   e = GetElementFromFile(dicomfile, 0x18, 0x1030);
   if (e != NULL) {
     if(strlen(e->d.string) != 0)
@@ -1018,6 +1091,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kScanningSequence 0x0018 + (0x0020 << 16)
+  // d.scanningSequence
   e = GetElementFromFile(dicomfile, 0x18, 0x20);
   if (e != NULL) {
     fprintf(fp,"ScanningSequence %s\n",e->d.string);
@@ -1025,6 +1100,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kTransmitCoilName 0x0018 + (0x1251 << 16) // SH issue527
+  // dcm2niix doesn't seem to retrieve this
   e = GetElementFromFile(dicomfile, 0x18, 0x1251);
   if (e != NULL) {
     fprintf(fp,"TransmittingCoil %s\n",e->d.string);
@@ -1032,6 +1109,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kPatientOrient 0x0018 + (0x5100 << 16) //0018,5100. patient orientation - 'HFS'
+  // d.patientOrient
   e = GetElementFromFile(dicomfile, 0x18, 0x5100);
   if (e != NULL) {
     fprintf(fp,"PatientPosition %s\n",e->d.string);
@@ -1039,6 +1118,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kFlipAngle 0x0018 + (0x1314 << 16)
+  // d.flipAngle
   e = GetElementFromFile(dicomfile, 0x18, 0x1314);
   if (e != NULL) {
     fprintf(fp,"FlipAngle %s\n",e->d.string);
@@ -1046,6 +1127,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kTE 0x0018 + (0x0081 << 16)
+  // d.TE
   e = GetElementFromFile(dicomfile, 0x18, 0x81);
   if (e != NULL) {
     fprintf(fp,"EchoTime %s\n",e->d.string);
@@ -1053,6 +1136,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kTR 0x0018 + (0x0080 << 16)
+  // d.TR
   e = GetElementFromFile(dicomfile, 0x18, 0x80);
   if (e != NULL) {
     fprintf(fp,"RepetitionTime %s\n",e->d.string);
@@ -1060,6 +1145,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kTI 0x0018 + (0x0082 << 16) // Inversion time
+  // d.TI
   e = GetElementFromFile(dicomfile, 0x18, 0x82);
   if (e != NULL) {
     fprintf(fp,"InversionTime %s\n",e->d.string);
@@ -1067,6 +1154,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kPhaseEncodingSteps 0x0018 + (0x0089 << 16) //'IS'
+  // d.phaseEncodingSteps
   e = GetElementFromFile(dicomfile, 0x18, 0x89);
   if (e != NULL) {
     fprintf(fp,"NPhaseEnc %s\n",e->d.string);
@@ -1074,6 +1163,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kInPlanePhaseEncodingDirection 0x0018 + (0x1312 << 16) //CS
+  // d.phaseEncodingRC
   e = GetElementFromFile(dicomfile, 0x18, 0x1312);
   if (e != NULL) {
     fprintf(fp,"PhaseEncDir %s\n",e->d.string);
@@ -1081,6 +1172,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kZSpacing 0x0018 + (0x0088 << 16) //'DS' 'SpacingBetweenSlices'
+  // d.zSpacing
   e = GetElementFromFile(dicomfile, 0x18, 0x88);
   if (e != NULL) {
     fprintf(fp,"SliceDistance %s\n",e->d.string);
@@ -1088,6 +1181,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kZThick 0x0018 + (0x0050 << 16)
+  // d.zThick=d.xyzMM[3]
   e = GetElementFromFile(dicomfile, 0x18, 0x50);
   if (e != NULL) {
     fprintf(fp,"SliceThickness %s\n",e->d.string);
@@ -1095,6 +1190,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kXYSpacing 0x0028 + (0x0030 << 16) //DS 'PixelSpacing'
+  // d.xyzMM[1], d.xyzMM[2]
   e = GetElementFromFile(dicomfile, 0x28, 0x30);
   if (e != NULL) {
     fprintf(fp,"PixelSpacing %s\n",e->d.string);
@@ -1102,6 +1199,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kDim2 0x0028 + (0x0010 << 16)
+  // d.xyzDim[2]
   e = GetElementFromFile(dicomfile, 0x28, 0x10);
   if (e != NULL) {
     fprintf(fp,"NRows %d\n",*(e->d.us));
@@ -1109,6 +1208,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kDim1 0x0028 + (0x0011 << 16)
+  // d.xyzDim[1]
   e = GetElementFromFile(dicomfile, 0x28, 0x11);
   if (e != NULL) {
     fprintf(fp,"NCols %d\n",*(e->d.us));
@@ -1116,6 +1217,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kBitsAllocated 0x0028 + (0x0100 << 16)
+  // d.bitsAllocated
   e = GetElementFromFile(dicomfile, 0x28, 0x100);
   if (e != NULL) {
     fprintf(fp,"BitsPerPixel %d\n",*(e->d.us));
@@ -1123,6 +1226,7 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // dcm2niix doesn't seem to retrieve this
   e = GetElementFromFile(dicomfile, 0x28, 0x102);
   if (e != NULL) {
     fprintf(fp,"HighBit %d\n",*(e->d.us));
@@ -1130,6 +1234,7 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // dcm2niix doesn't seem to retrieve this
   e = GetElementFromFile(dicomfile, 0x28, 0x106);
   if (e != NULL) {
     fprintf(fp,"SmallestValue %d\n",*(e->d.us));
@@ -1137,6 +1242,7 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // dcm2niix doesn't seem to retrieve this
   e = GetElementFromFile(dicomfile, 0x28, 0x107);
   if (e != NULL) {
     fprintf(fp,"LargestValue %d\n",*(e->d.us));
@@ -1144,6 +1250,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kOrientation 0x0020 + (0x0037 << 16)
+  // d.orient
   e = GetElementFromFile(dicomfile, 0x20, 0x37);
   if (e != NULL) {
     fprintf(fp,"ImageOrientation %s\n",e->d.string);
@@ -1151,6 +1259,8 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kImagePositionPatient 0x0020 + (0x0032 << 16) // Actually !
+  // d.patientPosition, d.patientPositionLast
   e = GetElementFromFile(dicomfile, 0x20, 0x32);
   if (e != NULL) {
     fprintf(fp,"ImagePosition %s\n",e->d.string);
@@ -1158,6 +1268,11 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kSliceLocation 0x0020+(0x1041 << 16 ) //DS would be useful if not optional type 3
+  // dcm2niix doesn't seem to retrieve this
+  //case kSliceLocation : //optional so useless, infer from image position patient (0020,0032) and image orientation (0020,0037)
+  //	sliceLocation = dcmStrFloat(lLength, &buffer[lPos]);
+  //	break;
   e = GetElementFromFile(dicomfile, 0x20, 0x1041);
   if (e != NULL) {
     fprintf(fp,"SliceLocation %s\n",e->d.string);
@@ -1165,12 +1280,16 @@ int PartialDump(const char *dicomfile, FILE *fp)
     free(e);
   }
 
+  // kTransferSyntax 0x0002 + (0x0010 << 16)
+  // d.compressionScheme
   e = GetElementFromFile(dicomfile, 0x2, 0x10);
   if (e != NULL) {
     fprintf(fp,"TransferSyntax %s\n",e->d.string);
     FreeElementData(e);
     free(e);
   }
+
+  // dcm2niix doesn't seem to retrieve this
   if(GetSiemensCrit){
     e = GetElementFromFile(dicomfile, 0x51, 0x1016);
     if (e != NULL) {
@@ -1183,19 +1302,10 @@ int PartialDump(const char *dicomfile, FILE *fp)
   return(0);
 }
 /*---------------------------------------------------------------*/
-int DumpSiemensASCII(const char *dicomfile, FILE *fpout) {
+int doSiemensAsciiDump(const char *dicomfile, FILE *fpout) {
 
-  DCM_ELEMENT *e;
-  FILE *fp;
-  // declared at top of file: char tmpstr[TMPSTRLEN];
-  int dumpline, nthchar;
-  char *rt;
-  const char *BeginStr;
-  int LenBeginStr;
-  char *TestStr;
-  int nTest;
-
-  e = GetElementFromFile(dicomfile, 0x8, 0x70);
+  // kManufacturer 0x0008 + (0x0070 << 16)
+  DCM_ELEMENT *e = GetElementFromFile(dicomfile, 0x8, 0x70);
   if (e == NULL) {
     printf("ERROR: reading dicom Siemens ASCII tag 0x8 0x70 from %s\n",dicomfile);
     exit(1);
@@ -1213,81 +1323,20 @@ int DumpSiemensASCII(const char *dicomfile, FILE *fpout) {
   FreeElementData(e);
   free(e);
 
-  fp = fopen(dicomfile,"r");
-  if (fp == NULL) {
-    printf("ERROR: could not open dicom file %s\n",dicomfile);
-    exit(1);
-  }
-
-  //BeginStr = "### ASCCONV BEGIN ###";
-  BeginStr = "### ASCCONV BEGIN";
-  LenBeginStr = strlen(BeginStr);
-  TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
-
-  /* This section steps through the file char-by-char until
-     the BeginStr is matched */
-  dumpline = 0;
-  nthchar = 0;
-  while (1) {
-    fseek(fp,nthchar, SEEK_SET);
-    nTest = fread(TestStr,sizeof(char),LenBeginStr,fp);
-    if (nTest != LenBeginStr) break;
-    if (strcmp(TestStr,BeginStr)==0) {
-      //printf("Turning Dump On\n");
-      fseek(fp,nthchar, SEEK_SET);
-      dumpline = 1;
-      break;
-    }
-    nthchar ++;
-  }
-  free(TestStr);
-
-  /* No match found */
-  if (! dumpline) {
-    fprintf(fpout,"ERROR: this looks like a SIEMENS DICOM File,\n");
-    fprintf(fpout,"       but I can't find the start of the ASCII Header\n");
-    return(1);
-  }
-
-
-  /* Once the Begin String has been matched, this section
-     prints each line until the End String is matched */
-  while (1) {
-    rt = fgets(tmpstr,TMPSTRLEN,fp);
-    if (rt == NULL) break;
-
-    if (strncmp(tmpstr,"### ASCCONV END ###",19)==0) {
-      //printf("Turning Dump Off\n");
-      break;
-    }
-
-    if (dumpline ) fprintf(fpout,"%s",tmpstr);
-  }
-
-  fclose(fp);
+  DumpSiemensAscii(dicomfile, fpout);
 
   return(0);
 }
 
 
 /*---------------------------------------------------------------
-  int DumpSiemensASCIIAlt() - in newer dicoms there is a 2nd ascii
+  int doSiemensASCIIAltDump() - in newer dicoms there is a 2nd ascii
   header that begins with "### ASCCONV BEGIN #" and ends with
   "### ASCCONV BEGIN ###".
   ---------------------------------------------------------------*/
-int DumpSiemensASCIIAlt(const char *dicomfile, FILE *fpout) {
+int doSiemensASCIIAltDump(const char *dicomfile, FILE *fpout) {
 
-  DCM_ELEMENT *e;
-  FILE *fp;
-  // declared at top of file: char tmpstr[TMPSTRLEN];
-  int dumpline, nthchar;
-  char *rt;
-  const char *BeginStr;
-  int LenBeginStr;
-  char *TestStr;
-  int nTest;
-
-  e = GetElementFromFile(dicomfile, 0x8, 0x70);
+  DCM_ELEMENT *e = GetElementFromFile(dicomfile, 0x8, 0x70);
   if (e == NULL) {
     printf("ERROR: reading dicom Siemens ASCII (Alt) tag 0x8 0x70 from %s\n",dicomfile);
     exit(1);
@@ -1305,64 +1354,7 @@ int DumpSiemensASCIIAlt(const char *dicomfile, FILE *fpout) {
   FreeElementData(e);
   free(e);
 
-  fp = fopen(dicomfile,"r");
-  if (fp == NULL) {
-    printf("ERROR: could not open dicom file %s\n",dicomfile);
-    exit(1);
-  }
-
-  BeginStr = "### ASCCONV BEGIN #";
-  LenBeginStr = strlen(BeginStr);
-  TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
-
-  /* This section steps through the file char-by-char until
-     the BeginStr is matched */
-  dumpline = 0;
-  nthchar = 0;
-  while (1) {
-    fseek(fp,nthchar, SEEK_SET);
-    nTest = fread(TestStr,sizeof(char),LenBeginStr,fp);
-    if (nTest != LenBeginStr) break;
-    if (strcmp(TestStr,BeginStr)==0) {
-      //printf("Turning Dump On\n");
-      fseek(fp,nthchar, SEEK_SET);
-      dumpline = 1;
-      break;
-    }
-    nthchar ++;
-  }
-  free(TestStr);
-
-  /* No match found */
-  if (! dumpline) {
-    fprintf(fpout,"ERROR: this looks like a SIEMENS DICOM File,\n");
-    fprintf(fpout,"       but I can't find the start of the ASCII Header\n");
-    return(1);
-  }
-
-
-  /* Once the Begin String has been matched, this section
-     prints each line until the End String is matched */
-  while (1) {
-    rt = fgets(tmpstr,TMPSTRLEN,fp);
-    if (rt == NULL) break;
-
-    if (strncmp(tmpstr,"### ASCCONV BEGIN ###",21)==0) {
-      //printf("Turning Dump Off\n");
-      break;
-    }
-
-    if(dumpline){
-      for(nthchar=0; nthchar < strlen(tmpstr); nthchar++){
-	if(tmpstr[nthchar] == '\b') tmpstr[nthchar] = ' ';
-	if(tmpstr[nthchar] == '\r') tmpstr[nthchar] = '\n';
-	if(!isprint(tmpstr[nthchar])) tmpstr[nthchar] = '\n';
-      }
-      fprintf(fpout,"%s",tmpstr);
-    }
-  }
-
-  fclose(fp);
+  DumpSiemensAsciiAlt(dicomfile, fpout);
 
   return(0);
 }
