@@ -2712,6 +2712,130 @@ int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
   return (0);
 }
 
+int DumpSiemensAscii(const char *dicomfile, FILE *fpout)
+{
+  FILE *fp = fopen(dicomfile,"r");
+  if (fp == NULL) {
+    printf("ERROR: could not open dicom file %s\n",dicomfile);
+    exit(1);
+  }
+
+  //BeginStr = "### ASCCONV BEGIN ###";
+  const char *BeginStr = "### ASCCONV BEGIN";
+  int LenBeginStr = strlen(BeginStr);
+  char *TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
+
+  /* This section steps through the file char-by-char until
+     the BeginStr is matched */
+  int dumpline = 0, nthchar = 0;
+  while (1) {
+    fseek(fp,nthchar, SEEK_SET);
+    int nTest = fread(TestStr,sizeof(char),LenBeginStr,fp);
+    if (nTest != LenBeginStr) break;
+    if (strcmp(TestStr,BeginStr)==0) {
+      //printf("Turning Dump On\n");
+      fseek(fp,nthchar, SEEK_SET);
+      dumpline = 1;
+      break;
+    }
+    nthchar ++;
+  }
+  free(TestStr);
+
+  /* No match found */
+  if (! dumpline) {
+    fprintf(fpout,"ERROR: this looks like a SIEMENS DICOM File,\n");
+    fprintf(fpout,"       but I can't find the start of the ASCII Header\n");
+    return(1);
+  }
+
+  char tmpstr[TMPSTRLEN];
+
+  /* Once the Begin String has been matched, this section
+     prints each line until the End String is matched */
+  while (1) {
+    char *rt = fgets(tmpstr,TMPSTRLEN,fp);
+    if (rt == NULL) break;
+
+    if (strncmp(tmpstr,"### ASCCONV END ###",19)==0) {
+      //printf("Turning Dump Off\n");
+      break;
+    }
+
+    if (dumpline ) fprintf(fpout,"%s",tmpstr);
+  }
+
+  fclose(fp);
+
+  return(0);
+}
+
+
+int DumpSiemensAsciiAlt(const char *dicomfile, FILE *fpout)
+{
+  FILE *fp = fopen(dicomfile,"r");
+  if (fp == NULL) {
+    printf("ERROR: could not open dicom file %s\n",dicomfile);
+    exit(1);
+  }
+
+  const char *BeginStr = "### ASCCONV BEGIN #";
+  int LenBeginStr = strlen(BeginStr);
+  char *TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
+
+  /* This section steps through the file char-by-char until
+     the BeginStr is matched */
+  int dumpline = 0, nthchar = 0;
+  while (1) {
+    fseek(fp,nthchar, SEEK_SET);
+    int nTest = fread(TestStr,sizeof(char),LenBeginStr,fp);
+    if (nTest != LenBeginStr) break;
+    if (strcmp(TestStr,BeginStr)==0) {
+      //printf("Turning Dump On\n");
+      fseek(fp,nthchar, SEEK_SET);
+      dumpline = 1;
+      break;
+    }
+    nthchar ++;
+  }
+  free(TestStr);
+
+  /* No match found */
+  if (! dumpline) {
+    fprintf(fpout,"ERROR: this looks like a SIEMENS DICOM File,\n");
+    fprintf(fpout,"       but I can't find the start of the ASCII Header\n");
+    return(1);
+  }
+
+  char tmpstr[TMPSTRLEN];
+
+  /* Once the Begin String has been matched, this section
+     prints each line until the End String is matched */
+  while (1) {
+    char *rt = fgets(tmpstr,TMPSTRLEN,fp);
+    if (rt == NULL) break;
+
+    if (strncmp(tmpstr,"### ASCCONV BEGIN ###",21)==0) {
+      //printf("Turning Dump Off\n");
+      break;
+    }
+
+    if(dumpline){
+      for(nthchar=0; nthchar < strlen(tmpstr); nthchar++){
+	if(tmpstr[nthchar] == '\b') tmpstr[nthchar] = ' ';
+	if(tmpstr[nthchar] == '\r') tmpstr[nthchar] = '\n';
+	if(!isprint(tmpstr[nthchar])) tmpstr[nthchar] = '\n';
+      }
+      fprintf(fpout,"%s",tmpstr);
+    }
+  }
+
+  fclose(fp);
+
+  return(0);
+}
+
+
 /*-----------------------------------------------------------------*/
 int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi)
 {
@@ -5972,6 +6096,34 @@ std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume)
   std::vector<MRIFSSTRUCT> *mrifsStruct_vector = NULL;
   if (ret == EXIT_SUCCESS)
     mrifsStruct_vector = dcm2niix_fswrapper::getMrifsStructVector();
+
+  if (DCM2NIIX_INFO_DUMP != NULL)
+  {
+    FILE *fp = fopen(DCM2NIIX_INFO_DUMP, "w");
+    if (fp == NULL)
+    {
+      printf("WARN: couldn't open %s for write\n", DCM2NIIX_INFO_DUMP);
+      return mrifsStruct_vector;
+    }
+
+    // the vector will have multiple elements if we don't stack multi-echo scan
+    // create the dump using first element in the vector
+    dcm2niix_fswrapper::seriesInfoDump(fp, &(*mrifsStruct_vector)[0]);
+
+    const char *mfr = dcm2niix_fswrapper::mfrCode2Str((*mrifsStruct_vector)[0].tdicomData.manufacturer);
+    if (strcmp(mfr, "SIEMENS") != 0)
+    {
+      printf("Not Siemens --%s--\n", mfr);
+    }
+    else if (DoSiemensAsciiDump)  // default is 0, turn on using mri_convert -siemens-ascii-dump
+    {
+      DumpSiemensAscii((*mrifsStruct_vector)[0].dicomfile, fp);
+      if (DoSiemensAsciiAltDump)  // default is 0, turn on using mri_convert -siemens-ascii-alt-dump
+        DumpSiemensAsciiAlt((*mrifsStruct_vector)[0].dicomfile, fp);
+    }
+
+    fclose(fp);
+  }
 
   return mrifsStruct_vector;
 }

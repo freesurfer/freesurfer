@@ -138,6 +138,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>This option only applies to --dcm2niix-createBIDS. Specify BIDS sidecar files output directory.</explanation>
       <argument>--dcm2niix-no-ForceStackSameSeries</argument>
       <explanation>This option only applies to --dcm2niix. Don't stack same series slice.</explanation>
+      <argument>--dcm2niix-info-dump &lt;dicom-info-dump&gt;</argument>
+      <explanation>This option only applies to --dcm2niix. Output dicom info dump for the series converted.</explanation>
       <intro>APPLYING TRANSFORMS (INCLUDING TALAIRACH) </intro>
       <argument>--apply_transform xfmfile (-T or -at) </argument>
       <explanation>apply tranform given by xfm or m3z files </explanation> 

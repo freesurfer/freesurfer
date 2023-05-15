@@ -41,6 +41,8 @@
 #define DCM_NODICOMFILES 1
 #define DCM_MULTIPLESTUDIES 2
 
+#define TMPSTRLEN 10000
+
 typedef unsigned short int BOOL;
 // typedef unsigned short int bool;
 
@@ -66,6 +68,9 @@ int  UseDCM2NIIX = 1; // changed to 1 on 4/06/2023
 const char *DCM2NIIX_outdir = NULL;
 int  DCM2NIIX_createBIDS = 0;
 int  DCM2NIIX_no_ForceStackSameSeries = 0;
+const char *DCM2NIIX_INFO_DUMP = NULL;
+int DoSiemensAsciiDump = 0;
+int DoSiemensAsciiAltDump = 0;
 /* These variables allow the user to change the first tag checked to
    get the slice thickness.  This is needed with siemens mag res
    angiogram (MRAs) */
@@ -80,6 +85,9 @@ extern int  UseDCM2NIIX;
 extern const char *DCM2NIIX_outdir;
 extern int  DCM2NIIX_createBIDS;
 extern int  DCM2NIIX_no_ForceStackSameSeries;
+extern const char *DCM2NIIX_INFO_DUMP;
+extern int DoSiemensAsciiDump;
+extern int DoSiemensAsciiAltDump;
 extern long SliceResElTag1;
 extern long SliceResElTag2;
 extern int AutoSliceResElTag;
@@ -324,6 +332,8 @@ int sdcmIsMosaic(const char *dcmfile,
                  int *pNframes);
 MATRIX *sdcmAutoAlignMatrix(const char *dcmfile);
 
+int DumpSiemensAscii(const char *dicomfile, FILE *fpout);
+int DumpSiemensAsciiAlt(const char *dicomfile, FILE *fpout);
 int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi);
 int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi);
 SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile);
