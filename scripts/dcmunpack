@@ -225,7 +225,7 @@ if($dcm2niix_dicom_dump) then
     ##### ???
 
     foreach series ($SeriesNos)
-      set descr = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}'`
+      set descr = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}' | head -n 1`
       if($DoAutoRunSeq) then
         if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
            "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
@@ -495,7 +495,7 @@ foreach run ($RunNos)
 
   if($DoConvert) then
     if ($dcm2niix_dicom_dump) then
-      set f = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $9}'`
+      set f = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $9}' | head -n 1`
       # PatientName is printed out differently in imagelist.dat, can't use imagelist.dat to retrieve dicom file
       #set f = `cat $infofile | awk -v r=$run '{if($4 == r) print $13}' | head -n 1`
     else
