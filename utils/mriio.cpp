@@ -1309,7 +1309,8 @@ int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unknown file type for file (%s)", fname));
   }
 
-  if (mriVector == NULL || (*mriVector).size() == 1)
+  // (*mriVector).size() == 0, use MRI passed in
+  if (mriVector == NULL || (*mriVector).size() <= 1)
     error = MRIwriteType(mri, fname, int_type);
   else
   {
