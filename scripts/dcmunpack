@@ -541,8 +541,9 @@ foreach run ($RunNos)
           set cmd = ($cmd -dcm2niix-no-ForceStackSameSeries)
         endif
         if($dcm2niix_dicom_dump) then
+	  set dicomflst = $outdir/log/$run-dicomflst.txt
           set dumpfile = $outdir/log/$FName-infodump.dat
-          set cmd = ($cmd --dcm2niix-info-dump $dumpfile)
+          set cmd = ($cmd --dcm2niix-dicom-flist $dicomflst --dcm2niix-info-dump $dumpfile)
 
           if($DoSiemensAscii) set cmd = ($cmd -siemens-ascii-dump)
         endif

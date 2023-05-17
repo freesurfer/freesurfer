@@ -6064,9 +6064,17 @@ std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume)
     printf("ERROR: file %s does not exist.\n", dcmfile);
     exit(1);
   }
-  char *dcmdir = fio_dirname(dcmfile);
-  printf("dcmfile = %s\n", dcmfile);
-  printf("dcmdir = %s\n", dcmdir);
+
+  // if DCM2NIIX_DICOM_FLIST != NULL, pass it as dcmdir to dcm2niix;
+  // dcm2niix will convert dicom files listed in DCM2NIIX_DICOM_FLIST instead of parsing the directory
+  const char *dcmdir = (DCM2NIIX_DICOM_FLIST != NULL) ? DCM2NIIX_DICOM_FLIST : fio_dirname(dcmfile);
+  
+  printf("dicomfile = %s\n", dcmfile);
+  if (DCM2NIIX_DICOM_FLIST == NULL)
+    printf("dicomdir = %s\n", dcmdir);
+  else
+    printf("dicomlist = %s\n", DCM2NIIX_DICOM_FLIST);
+  
   if (!dcm2niix_fswrapper::isDICOM(dcmfile)) {
     setenv("FS_DICOM_DEBUG", "1", 1);
     //dcm2niix_fswrapper::isDICOM(dcmfile);
