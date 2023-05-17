@@ -230,7 +230,9 @@ if($dcm2niix_dicom_dump) then
         if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
            "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
            "$descr" == AAHScout_tra || "$descr" == AAScout || \
-           "$descr" == T1w_setter || "$descr" == T2w_setter) continue
+           "$descr" == T1w_setter || "$descr" == T2w_setter) then
+	  if(! $KeepScouts) continue
+	endif	    
         set AutoRunNos = ($AutoRunNos $series)
         set AutoSubDirs = ($AutoSubDirs ".")
         set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
