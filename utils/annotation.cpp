@@ -372,7 +372,8 @@ static int AnnotTableSortByAnnot(const void *p1, const void *p2)
   int annot1 = ((AnnotTable*)p1)->annot;
   int annot2 = ((AnnotTable*)p2)->annot;
 
-  return (annot1 > annot2) ? 0 : 1;
+  // change it to return 3 possible values
+  return (annot2 > annot1);  // return (annot1 > annot2) ? 0 : 1;
 }
 
 
