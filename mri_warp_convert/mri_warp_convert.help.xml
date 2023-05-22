@@ -61,12 +61,22 @@
       <explanation>specify source image geometry (moving volume)</explanation>
       <argument>-d, --downsample</argument>
       <explanation>Downsample output M3Z to spacing of 2.</explanation>
+      <argument>-lta1 LTA (or -lta1-inv)</argument>
+      <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
+      <argument>-lta2 LTA (or -lta2-inv)</argument>
+      <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):
     mri_warp_convert --infsl fsl.nii.gz --outm3z out.m3z</example>
   <example>Convert ITK warp (e.g. ANTs) to M3Z (FreeSurfer):
     mri_warp_convert --initk itk.nii.gz --outm3z out.m3z --insrcgeom src.nii.gz</example>
+  <example>Convert ANTS antsRegistrationSyNQuick.sh output to M3Z (FreeSurfer):
+    antsRegistrationSyNQuick.sh -d 3 -m mov.mgz -f targ.mgz -o reg. 
+    ConvertTransformFile 3 ants.reg0GenericAffine.mat      ants.reg0GenericAffine.txt --hm --ras
+    lta_convert --src mov.mgz --trg targ.mgz --inniftyreg ants.reg0GenericAffine.txt --outlta ants.reg0GenericAffine.lta
+    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outm3z out.m3z --insrcgeom mov.mgz
+  </example>
   <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
     warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
 </help>

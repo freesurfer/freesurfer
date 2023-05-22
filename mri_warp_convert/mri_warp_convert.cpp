@@ -43,10 +43,13 @@ struct Parameters
   filetypes::FileType in_type;
   filetypes::FileType out_type;
   bool downsample;
+  LTA *lta1;
+  LTA *lta2;
 };
 
+
 static struct Parameters P =
-{ "", "", "", filetypes::UNKNOWN, filetypes::UNKNOWN, false};
+  { "", "", "", filetypes::UNKNOWN, filetypes::UNKNOWN, false,NULL,NULL};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -464,6 +467,17 @@ int main(int argc, char *argv[])
               Progname, P.in_warp.c_str());
   }
 
+  if(P.lta1 || P.lta2){
+    // Create composite morph for warping a 
+    // source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image
+    // The LTAs can be any type as they will be converted to VOX2VOX inside concat3
+    printf("Applying LTAs to the GCAM\n");
+    GCA_MORPH *gcam2 = GCAMconcat3(P.lta1, gcam, P.lta2, NULL);
+    if(!gcam2) exit(1);
+    GCAMfree(&gcam);
+    gcam = gcam2;
+  }
+
   switch (P.out_type) {
     case filetypes::M3Z:
       writeM3Z(P.out_warp.c_str(), gcam, P.downsample);
@@ -677,6 +691,28 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--insrcgeom: " << P.in_src_geom
          << " source image (geometry)." << endl;
+  }
+  else if (!strcmp(option, "LTA1")) {
+    P.lta1 = LTAread(argv[1]);
+    if(!P.lta1) exit(1);
+    nargs = 1;
+  }
+  else if (!strcmp(option, "LTA1-INV")) {
+    P.lta1 = LTAread(argv[1]);
+    if(!P.lta1) exit(1);
+    P.lta1 = LTAinvert(P.lta1,P.lta1);
+    nargs = 1;
+  }
+  else if (!strcmp(option, "LTA2"))  {
+    P.lta2 = LTAread(argv[1]);
+    if(!P.lta2) exit(1);
+    nargs = 1;
+  }
+  else if (!strcmp(option, "LTA2-INV")) {
+    P.lta2 = LTAread(argv[1]);
+    if(!P.lta2) exit(1);
+    P.lta2 = LTAinvert(P.lta2,P.lta2);
+    nargs = 1;
   }
   else if (!strcmp(option, "DOWNSAMPLE") || !strcmp(option, "D"))
   {
