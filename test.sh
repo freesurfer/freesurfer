@@ -67,6 +67,11 @@ get_os()
       name=`sw_vers | grep "^ProductName" | sed 's/^.*://' | sed 's; ;;g' | tr '[:upper:]' '[:lower:]' | sed 's;osx;os;'` 
    fi
 
+
+   # rocky linux should be treated as centos
+   if [ "$name" == "rocky" ]; then
+      name="centos"
+   fi
    # example output: centos7 centos8 ubuntu18 ubuntu20 macos10 macos11
    if [[ "$version" != "" ]] && [[ "$name" != "" ]]; then host_os=${name}${version}; fi
    echo $host_os
