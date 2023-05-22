@@ -225,12 +225,14 @@ if($dcm2niix_dicom_dump) then
     ##### ???
 
     foreach series ($SeriesNos)
-      set descr = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}'`
+      set descr = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}' | head -n 1`
       if($DoAutoRunSeq) then
         if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
            "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
            "$descr" == AAHScout_tra || "$descr" == AAScout || \
-           "$descr" == T1w_setter || "$descr" == T2w_setter) continue
+           "$descr" == T1w_setter || "$descr" == T2w_setter) then
+	  if(! $KeepScouts) continue
+	endif	    
         set AutoRunNos = ($AutoRunNos $series)
         set AutoSubDirs = ($AutoSubDirs ".")
         set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
@@ -495,7 +497,7 @@ foreach run ($RunNos)
 
   if($DoConvert) then
     if ($dcm2niix_dicom_dump) then
-      set f = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $9}'`
+      set f = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $9}' | head -n 1`
       # PatientName is printed out differently in imagelist.dat, can't use imagelist.dat to retrieve dicom file
       #set f = `cat $infofile | awk -v r=$run '{if($4 == r) print $13}' | head -n 1`
     else
@@ -539,8 +541,9 @@ foreach run ($RunNos)
           set cmd = ($cmd -dcm2niix-no-ForceStackSameSeries)
         endif
         if($dcm2niix_dicom_dump) then
+	  set dicomflst = $outdir/log/$run-dicomflst.txt
           set dumpfile = $outdir/log/$FName-infodump.dat
-          set cmd = ($cmd --dcm2niix-info-dump $dumpfile)
+          set cmd = ($cmd --dcm2niix-dicom-flist $dicomflst --dcm2niix-info-dump $dumpfile)
 
           if($DoSiemensAscii) set cmd = ($cmd -siemens-ascii-dump)
         endif

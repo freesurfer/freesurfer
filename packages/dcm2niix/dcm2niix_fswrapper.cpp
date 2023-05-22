@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <libgen.h>
 
 #include "nii_dicom.h"
 #include "dcm2niix_fswrapper.h"
@@ -135,6 +136,10 @@ void dcm2niix_fswrapper::dicomDump(const char* dicomdir, const char *series_info
   tdcmOpts.isDumpNotConvert = true;
   nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
 
+  char fnamecopy[2048] = {'\0'};
+  memcpy(fnamecopy, series_info, strlen(series_info));
+  char *logdir = dirname(fnamecopy);
+  
   FILE *fpout = fopen(series_info, "w");
 
   std::vector<MRIFSSTRUCT> *mrifsStruct_vector = dcm2niix_fswrapper::getMrifsStructVector();
@@ -142,6 +147,16 @@ void dcm2niix_fswrapper::dicomDump(const char* dicomdir, const char *series_info
   for (int n = 0; n < nitems; n++)
   {
     struct TDICOMdata *tdicomData = &(*mrifsStruct_vector)[n].tdicomData;
+
+    // output the dicom list for the series into seriesNum-dicomflst.txt
+    char dicomflst[2048] = {'\0'};
+    sprintf(dicomflst, "%s/%ld-dicomflst.txt", logdir, tdicomData->seriesNum);
+    FILE *fp_dcmLst = fopen(dicomflst, "w");
+    for (int nDcm = 0; nDcm < (*mrifsStruct_vector)[n].nDcm; nDcm++)
+      fprintf(fp_dcmLst, "%s\n", (*mrifsStruct_vector)[n].dicomlst[nDcm]);
+    fclose(fp_dcmLst);
+
+    // output series_info
     fprintf(fpout, "%ld %s %f %f %f %f\\%f %c %f %s %s", 
                    tdicomData->seriesNum, tdicomData->seriesDescription,
                    tdicomData->TE, tdicomData->TR, tdicomData->flipAngle, tdicomData->xyzMM[1], tdicomData->xyzMM[2],

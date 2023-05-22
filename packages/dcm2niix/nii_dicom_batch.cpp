@@ -126,6 +126,13 @@ void nii_clrMrifsStruct()
 {
 	free(mrifsStruct.imgM);
 	free(mrifsStruct.tdti);
+	
+	for (int n = 0; n < mrifsStruct.nDcm; n++)
+	  free(mrifsStruct.dicomlst[n]);
+	
+	if (mrifsStruct.dicomlst != NULL)
+	  free(mrifsStruct.dicomlst);
+		 
 }
 
 // retrieve the struct
@@ -142,6 +149,12 @@ void nii_clrMrifsStructVector()
   {
     free(mrifsStruct_vector[n].imgM);
     free(mrifsStruct_vector[n].tdti);
+
+    for (int n = 0; n < mrifsStruct.nDcm; n++)
+        free(mrifsStruct_vector[n].dicomlst[n]);
+    
+    if (mrifsStruct_vector[n].dicomlst != NULL)
+	free(mrifsStruct_vector[n].dicomlst);
   }
 }
 #endif
@@ -7579,9 +7592,12 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmLi
 
   if (opts.isDumpNotConvert) {
     mrifsStruct.tdicomData = dcmList[indx0];  // first in sorted list dcmSort
-    mrifsStruct_vector.push_back(mrifsStruct);
+    mrifsStruct.dicomlst = new char*[nConvert];
+    mrifsStruct.nDcm  = nConvert;
 
     dcmListDump(nConvert, dcmSort, dcmList, nameList, opts);
+
+    mrifsStruct_vector.push_back(mrifsStruct);
 
     return 0;
   }
@@ -9233,6 +9249,10 @@ void saveIniFile(struct TDCMopts opts) {
 void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts) {
     for (int i = 0; i < nConvert; i++) {
       int indx = dcmSort[i].indx;
+      mrifsStruct.dicomlst[i] = new char[strlen(nameList->str[indx])+1];
+      memset(mrifsStruct.dicomlst[i], 0, strlen(nameList->str[indx])+1);
+      memcpy(mrifsStruct.dicomlst[i], nameList->str[indx], strlen(nameList->str[indx]));
+      
       printMessage("%s %ld %s %s %f %f %f %f\\%f %c %f %s %s\n",
                    dcmList[indx].patientName, dcmList[indx].seriesNum, dcmList[indx].studyDate, dcmList[indx].studyTime,
                    dcmList[indx].TE, dcmList[indx].TR, dcmList[indx].flipAngle, dcmList[indx].xyzMM[1], dcmList[indx].xyzMM[2], 

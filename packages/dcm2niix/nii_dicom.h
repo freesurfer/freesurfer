@@ -276,6 +276,9 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
     int headerDcm2Nii2(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_header *h, int isVerbose);
     int headerDcm2Nii(struct TDICOMdata d, struct nifti_1_header *h, bool isComputeSForm) ;
     unsigned char * nii_loadImgXL(char* imgname, struct nifti_1_header *hdr, struct TDICOMdata dcm, bool iVaries, int compressFlag, int isVerbose, struct TDTI4D *dti4D);
+#ifdef USING_DCM2NIIXFSWRAPPER
+    void remove_specialchars(char *buf);
+#endif
 #ifdef  __cplusplus
 }
 #endif

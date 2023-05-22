@@ -4240,5 +4240,6 @@ int LabelVertexTableSortByVtxno(const void *p1, const void *p2)
   int vno1 = ((LV*)p1)->vno;
   int vno2 = ((LV*)p2)->vno;
 
-  return (vno1 > vno2) ? 1 : 0;
+  // change it to return 3 possible values
+  return (vno1 - vno2);  // return (vno1 > vno2) ? 1 : 0;
 }

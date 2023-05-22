@@ -20,6 +20,9 @@ typedef struct
   char namePostFixes[256];
   char *dicomfile;
 
+  int nDcm;
+  char **dicomlst;
+
   struct TDTI *tdti;
   int numDti;
 } MRIFSSTRUCT;

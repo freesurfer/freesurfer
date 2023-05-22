@@ -1195,6 +1195,10 @@ int main(int argc, char *argv[])
     {
       DCM2NIIX_INFO_DUMP = argv[++i];
     }
+    else if (strcmp(argv[i], "-dcm2niix-dicom-flist") == 0 || strcmp(argv[i], "--dcm2niix-dicom-flist") == 0)
+    {
+      DCM2NIIX_DICOM_FLIST = argv[++i];
+    }    
     else if (strcmp(argv[i], "-siemens-ascii-dump") == 0)
     {
       DoSiemensAsciiDump = 1;
