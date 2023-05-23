@@ -252,15 +252,15 @@ int main(int argc, char *argv[]) {
   }
 
   int fileType1 = mri_identify(InVol1File);
-  int fileType2 = mri_identify(InVol2File);
-  if (CheckType && fileType1 != fileType2)
-  {
-    printf("Input files %s and %s are different types\n", InVol1File, InVol2File); 
-    exit(1);
-  }
-
   if (fileType1 == MGH_MORPH)
   {
+    int fileType2 = mri_identify(InVol2File);
+    if (fileType1 != fileType2)
+    {
+      printf("Input files %s and %s are different types\n", InVol1File, InVol2File); 
+      exit(1);
+    }
+    
     diff_mgh_morph(InVol1File, InVol2File);
     exit(ExitStatus);
   }
