@@ -71,11 +71,12 @@
     mri_warp_convert --infsl fsl.nii.gz --outm3z out.m3z</example>
   <example>Convert ITK warp (e.g. ANTs) to M3Z (FreeSurfer):
     mri_warp_convert --initk itk.nii.gz --outm3z out.m3z --insrcgeom src.nii.gz</example>
-  <example>Convert ANTS antsRegistrationSyNQuick.sh output to M3Z (FreeSurfer):
+  <example>Convert ANTS antsRegistrationSyN.sh or antsRegistrationSyNQuick.sh output to M3Z (FreeSurfer):
     antsRegistrationSyNQuick.sh -d 3 -m mov.mgz -f targ.mgz -o reg. 
     ConvertTransformFile 3 ants.reg0GenericAffine.mat      ants.reg0GenericAffine.txt --hm --ras
     lta_convert --src mov.mgz --trg targ.mgz --inniftyreg ants.reg0GenericAffine.txt --outlta ants.reg0GenericAffine.lta
-    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outm3z out.m3z --insrcgeom mov.mgz
+    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outm3z out.m3z --insrcgeom targ.mgz
+      Note that the insrcgeom is the target, not the mov; this is needed to work with --lta1-inv.
   </example>
   <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
     warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
