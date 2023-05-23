@@ -196,6 +196,7 @@ MRI *nhits;
 char *NHitsFile=NULL;
 MRI *maxstat;
 int maxstatwinner=0;
+int DoUnknownStat = 0;
 int MapUnhitToUnknown=1;
 const char *labeldir=NULL;
 int labeldirdefault=0;
@@ -263,10 +264,10 @@ int main(int argc, char *argv[]) {
   int nunhit = 0;
   if (MapUnhitToUnknown) {
     printf("Mapping unhit to unknown\n");
+    int annot_unknown = index_to_annotation(0);
     for (int vtxno = 0; vtxno < mris->nvertices; vtxno++) {
       if (MRIgetVoxVal(nhits,vtxno,0,0,0) == 0) {
-        int ano = index_to_annotation(0);
-        mris->vertices[vtxno].annotation = ano;
+        mris->vertices[vtxno].annotation = annot_unknown;
         nunhit ++;
       }
     }
@@ -313,6 +314,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--ldir-default")) labeldirdefault = 1;
     else if (!strcmp(option, "--noverbose")) verbose = 0;
     else if (!strcmp(option, "--maxstatwinner")) maxstatwinner = 1;
+    else if (!strcmp(option, "--do-unknown-stat")) DoUnknownStat = 1; 
     else if (!strcmp(option, "--dilate-into-unknown")) 
     {
       dilate_label_name = pargv[0] ;
@@ -754,7 +756,7 @@ static void label2annotation()
 
       mris->vertices[vtxno].annotation = ano;
       //printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
-    } // label ponts
+    } // label points
     LabelFree(&label);
   }// Label
 }
@@ -769,31 +771,48 @@ static void label2annotationV2()
 {
   printf("convert labels to annotation with label2annotationV2() ...\n");
 
-  // create MRI (nvertices x (nlabels+4) x 1 x 1) to track labels assigned to each vertex
+  // create MRI (nvertices x (nlabels+5) x 1 x 1) to track labels assigned to each vertex
   // the MRI is used as a 2D int array with these columns:
-  //      col 0      col 1            col 2               col 3       col 4    ...   col (4+nlabels) 
-  //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat     labelno.  ...     labelno.
+  //      col 0      col 1            col 2               col 3       col 4      col 5    ...   col (5+nlabels-1) 
+  //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat  unknown-stat  labelno.  ...     labelno.
   //   
-  //   col 0 and col 1 is the final annotation and labelno. assigned to the vertex;
-  //   col 4 to (4+nlabels) record all labelno. assigned to the vertex
-  //   * col 3 should be float
+  //   col 0 - the final annotation assigned
+  //   col 1 - labelno. assigned
+  //   col 2 - no. of labels assinged
+  //   col 3 - label maxstat selected
+  //   col 4 - calculated unknown-stat [1 - sum(all-other-label-stat)]
+  //   col 5 to (5+nlabels-1) - record all labelno. assigned to the vertex
   //
-  std::vector<int> shape{mris->nvertices, (nlabels+4), 1, 1};
-  MRI *labelStat =  new MRI(shape, MRI_INT);
+  std::vector<int> shape{mris->nvertices, (nlabels+5), 1, 1};
+  MRI *labelStat =  new MRI(shape, MRI_FLOAT);
   if (labelStat == NULL)
   {
     printf("ERROR: failed to create labelStat MRI struct\n");
     exit(1);
   }
 
-  // initialize col 4 to (4+nlabels) to -1 (not assigned to any labels)
-  for (int r = 4; r < labelStat->height; r++)
-    for (int c = 0; c < labelStat->width; c++)
-      MRIsetVoxVal(labelStat, c, r, 0, 0, -1);
+  // initialize col 5 to (5+nlabels-1) to -1 (not assigned to any labels)
+  for (int c = 0; c < labelStat->width; c++)
+  {
+    for (int r = 0; r < labelStat->height; r++)
+    {
+      if (r == 0 || r == 1 || r >= 5)
+        MRIsetVoxVal(labelStat, c, r, 0, 0, -1);
+      else if (r == 2 || r == 3)
+        MRIsetVoxVal(labelStat, c, r, 0, 0, 0);
+      else if (r == 4)
+      {
+        if (DoUnknownStat)
+          MRIsetVoxVal(labelStat, c, 4, 0, 0, 1);  // init unknown-stat to 1
+	else
+	  MRIsetVoxVal(labelStat, c, 4, 0, 0, 0);
+      }
+    }
+  }
 
   // Go thru each label
   for (int nthlabel = 0; nthlabel < nlabels; nthlabel++) {
-    printf("%d reading %s\n", nthlabel, LabelFiles[nthlabel]);    
+    printf("%2d reading %s\n", nthlabel, LabelFiles[nthlabel]);    
     label = LabelRead(subject, LabelFiles[nthlabel]);
     if (label == NULL) {
       printf("ERROR: reading %s\n", LabelFiles[nthlabel]);
@@ -824,7 +843,7 @@ static void label2annotationV2()
       exit(1);
     }
 
-    printf("%2d %2d %s (%d %d %d %d)\n",
+    printf("   %d %d %s (%d %d %d %d)\n",
            label_index, label_annot, ctab->entries[label_index]->name,
            ctab->entries[label_index]->ri, ctab->entries[label_index]->gi, ctab->entries[label_index]->bi, ctab->entries[label_index]->ai);
 
@@ -835,42 +854,42 @@ static void label2annotationV2()
         exit(1);
       }
 
-      if(DoLabelThresh && label->lv[n].stat < LabelThresh) continue;
+      // don't apply LabelThresh if DoUnknownStat
+      if (DoLabelThresh && !DoUnknownStat && label->lv[n].stat < LabelThresh) continue;
 
-      if (maxstatwinner) {
-        float stat = MRIgetVoxVal(maxstat, vtxno, 0, 0, 0);
-        if (label->lv[n].stat < stat) {
+      /****** BEGIN setting labelStat table ******/      
+      //      col 0      col 1            col 2               col 3       col 4      col 5    ...   col (5+nlabels-1)
+      //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat  unknown-stat  labelno.  ...     labelno.
+      if (maxstatwinner)
+      {
+        // calculate unknown-stat
+	if (DoUnknownStat)
+          MRIsetVoxVal(labelStat, vtxno, 4, 0, 0, (MRIgetVoxVal(labelStat, vtxno, 4, 0, 0) - label->lv[n].stat));
+
+        float stat =  MRIgetVoxVal(labelStat, vtxno, 3, 0, 0);
+	if (label->lv[n].stat < stat)
+	{
           if (verbose)
-            printf("Keeping prior label for vtxno %d (old_stat=%f > this_stat=%f)\n", vtxno,stat,label->lv[n].stat);
+            printf("Keeping prior label for vtxno %d (old_stat=%f > this_stat=%f)\n", vtxno, stat, label->lv[n].stat);
 
           continue;
         }
 
-        MRIsetVoxVal(maxstat, vtxno, 0, 0, 0, label->lv[n].stat);
+        MRIsetVoxVal(labelStat, vtxno, 3, 0, 0, label->lv[n].stat);
       }
 
-      //if (verbose) {
-      //  if (MRIgetVoxVal(nhits,vtxno,0,0,0) > 0)
-      //    printf("WARNING: vertex %d maps to multiple labels! (overwriting)\n", vtxno);
-      //}
+      MRIsetVoxVal(labelStat, vtxno, 0, 0, 0, label_annot);
+      MRIsetVoxVal(labelStat, vtxno, 1, 0, 0, nthlabel);
+      MRIsetVoxVal(labelStat, vtxno, 2, 0, 0, MRIgetVoxVal(labelStat, vtxno, 2, 0, 0)+1);
+
+      MRIsetVoxVal(labelStat, vtxno, 5+nthlabel, 0, 0, nthlabel);
+
+      /****** END setting labelStat table ******/
 
       MRIsetVoxVal(nhits, vtxno, 0, 0, 0, MRIgetVoxVal(nhits, vtxno, 0, 0, 0)+1);
 
-      if (labelStat != NULL)
-      {
-        MRIsetVoxVal(labelStat, vtxno, 0, 0, 0, label_annot);
-        MRIsetVoxVal(labelStat, vtxno, 1, 0, 0, nthlabel);
-        MRIsetVoxVal(labelStat, vtxno, 2, 0, 0, MRIgetVoxVal(labelStat, vtxno, 2, 0, 0)+1);
-
-        // this should be a float
-        int stat =  MRIgetVoxVal(labelStat, vtxno, 3, 0, 0);
-        MRIsetVoxVal(labelStat, vtxno, 3, 0, 0, (label->lv[n].stat > stat) ?  label->lv[n].stat : stat);
-
-        MRIsetVoxVal(labelStat, vtxno, 4+nthlabel, 0, 0, nthlabel);
-      }
-
       mris->vertices[vtxno].annotation = label_annot;
-    } // label ponts
+    } // label points
     LabelFree(&label);
   }// Label
 
@@ -878,40 +897,71 @@ static void label2annotationV2()
   if (newCTabFile != NULL)
     CTABwriteFileASCII(ctab, newCTabFile);
 
-  if (labelStat != NULL && verbose)
+  int unknownStatWinner = 0;
+  if (maxstatwinner && DoUnknownStat && !DoLabelThresh)
   {
-    int nunmapped = 0;
-
-    // generate report from MRI* labelStat for vertex mapped to multiple labels
-    printf("\n\n****** vertex mapped to multiple labels ******\n");
+    printf("\nApply unknown stat ...\n");
+    int annot_unknown = index_to_annotation(0);
     for (int vtxno = 0; vtxno < mris->nvertices; vtxno++)
     {
-      int nmapped = MRIgetVoxVal(labelStat, vtxno, 2, 0, 0);
+      int nmapped = (int)MRIgetVoxVal(labelStat, vtxno, 2, 0, 0);
       if (nmapped == 0)
+	continue;
+      
+      float unknownstat  = MRIgetVoxVal(labelStat, vtxno, 4, 0, 0);
+      float maxlabelstat = MRIgetVoxVal(labelStat, vtxno, 3, 0, 0);
+      if (unknownstat > maxlabelstat)
       {
-        nunmapped++;
-      }
-      else if (nmapped > 1)
-      {
-        int mapped_count = 0;
-        char report[1024] = {'\0'};
-        sprintf(report, "vertex #%8d mapped to %d labels: ", vtxno, nmapped);
-        for (int nthlabel = 0; nthlabel < nlabels; nthlabel++)
-	{
-          int labelmapped = MRIgetVoxVal(labelStat, vtxno, 4+nthlabel, 0, 0);
-          if (labelmapped >= 0)
-	  {
-            sprintf(report, "%s%s%d", report, (mapped_count) ? ", " : " ", labelmapped);
-            mapped_count++;
-          }
-        }
+	if (verbose)
+	  printf("unknown-stat-winner: vtxno=%d, unknown-stat=%f, maxlabel-stat=%f\n", vtxno, unknownstat, maxlabelstat);
+	
+	mris->vertices[vtxno].annotation = annot_unknown;
+	unknownStatWinner++;
 
-        printf("%s\n", report);
+	// set nhits at this vertex to 0
+	// col 2 of labelStat is unchanged
+	MRIsetVoxVal(nhits, vtxno, 0, 0, 0, 0);
       }
     }
-    printf("Found %d unmapped vertices out of %d\n", nunmapped, mris->nvertices);
-    printf("**********************************************\n\n");
-
-    MRIfree(&labelStat);
   }
+
+  // begin multiple label mapping report
+  //      col 0      col 1            col 2               col 3       col 4      col 5    ...   col (5+nlabels-1)
+  //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat  unknown-stat  labelno.  ...     labelno.
+  // generate report from MRI* labelStat for vertex mapped to multiple labels
+  printf("\n\n****** Vertices Mapped To Multiple Labels ******\n");
+  int nunmapped = 0;
+  for (int vtxno = 0; vtxno < mris->nvertices; vtxno++)
+  {
+    int nmapped = (int)MRIgetVoxVal(labelStat, vtxno, 2, 0, 0);
+    if (nmapped == 0)
+    {
+      nunmapped++;
+    }
+    else if (verbose && nmapped > 1)
+    {
+      char report[1024] = {'\0'};
+      sprintf(report, "vertex #%8d mapped to %d labels: ", vtxno, nmapped);
+      
+      int mapped_count = 0;
+      for (int nthlabel = 0; nthlabel < nlabels; nthlabel++)
+      {
+        int labelmapped = (int)MRIgetVoxVal(labelStat, vtxno, 5+nthlabel, 0, 0);
+        if (labelmapped >= 0)
+        {
+          sprintf(report, "%s%s%d", report, (mapped_count) ? ", " : " ", labelmapped);
+          mapped_count++;
+        }
+      }
+      printf("%s\n", report);
+    }
+  }
+    
+  printf("Found %d unmapped vertices out of %d\n", nunmapped, mris->nvertices);
+  if (unknownStatWinner > 0)
+    printf("Found %d unknown stat winners!!!\n", unknownStatWinner);
+  printf("**********************************************\n\n");
+
+  MRIfree(&labelStat);
+  // end multiple label mapping report
 }
