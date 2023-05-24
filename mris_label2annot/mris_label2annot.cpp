@@ -752,6 +752,9 @@ static void label2annotation()
              vtxno);
         }
       }
+
+      // this is the no. of labels assigned to the vertex after applying LabelThresh and maxstat
+      // the nhits counts don't reflect all label assignments
       MRIsetVoxVal(nhits,vtxno,0,0,0,MRIgetVoxVal(nhits,vtxno,0,0,0)+1);
 
       mris->vertices[vtxno].annotation = ano;
@@ -776,8 +779,8 @@ static void label2annotationV2()
   //      col 0      col 1            col 2               col 3       col 4      col 5    ...   col (5+nlabels-1) 
   //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat  unknown-stat  labelno.  ...     labelno.
   //   
-  //   col 0 - the final annotation assigned
-  //   col 1 - labelno. assigned
+  //   col 0 - final annotation assigned
+  //   col 1 - final labelno. assigned
   //   col 2 - no. of labels assinged
   //   col 3 - label maxstat selected
   //   col 4 - calculated unknown-stat [1 - sum(all-other-label-stat)]
@@ -854,10 +857,14 @@ static void label2annotationV2()
         exit(1);
       }
 
+      // record all labels assigned to the vertex before applying LabelThresh and maxstat
+      MRIsetVoxVal(labelStat, vtxno, 2, 0, 0, MRIgetVoxVal(labelStat, vtxno, 2, 0, 0)+1);
+      MRIsetVoxVal(labelStat, vtxno, 5+nthlabel, 0, 0, nthlabel);
+
       // don't apply LabelThresh if DoUnknownStat
       if (DoLabelThresh && !DoUnknownStat && label->lv[n].stat < LabelThresh) continue;
 
-      /****** BEGIN setting labelStat table ******/      
+      /****** BEGIN applying maxstat and setting labelStat table ******/      
       //      col 0      col 1            col 2               col 3       col 4      col 5    ...   col (5+nlabels-1)
       //    annotation  labelno.   nlabel-mapped-to-vertex   maxstat  unknown-stat  labelno.  ...     labelno.
       if (maxstatwinner)
@@ -878,14 +885,13 @@ static void label2annotationV2()
         MRIsetVoxVal(labelStat, vtxno, 3, 0, 0, label->lv[n].stat);
       }
 
+      // annot and label assinged to the vertex after applying LabelThresh and maxstat
       MRIsetVoxVal(labelStat, vtxno, 0, 0, 0, label_annot);
       MRIsetVoxVal(labelStat, vtxno, 1, 0, 0, nthlabel);
-      MRIsetVoxVal(labelStat, vtxno, 2, 0, 0, MRIgetVoxVal(labelStat, vtxno, 2, 0, 0)+1);
+      /****** END applying maxstat and setting labelStat table ******/
 
-      MRIsetVoxVal(labelStat, vtxno, 5+nthlabel, 0, 0, nthlabel);
-
-      /****** END setting labelStat table ******/
-
+      // this is the no. of labels assigned to the vertex after applying LabelThresh and maxstat
+      // the nhits counts don't reflect all label assignments
       MRIsetVoxVal(nhits, vtxno, 0, 0, 0, MRIgetVoxVal(nhits, vtxno, 0, 0, 0)+1);
 
       mris->vertices[vtxno].annotation = label_annot;
@@ -897,11 +903,12 @@ static void label2annotationV2()
   if (newCTabFile != NULL)
     CTABwriteFileASCII(ctab, newCTabFile);
 
+  /****** BEGIN applying unknown stat ******/
   int unknownStatWinner = 0;
   if (maxstatwinner && DoUnknownStat && !DoLabelThresh)
   {
-    printf("\nApply unknown stat ...\n");
     int annot_unknown = index_to_annotation(0);
+    printf("\nApply unknown stat ... (annot_unknown=%d (%d))\n", annot_unknown, 0);    
     for (int vtxno = 0; vtxno < mris->nvertices; vtxno++)
     {
       int nmapped = (int)MRIgetVoxVal(labelStat, vtxno, 2, 0, 0);
@@ -915,15 +922,22 @@ static void label2annotationV2()
 	if (verbose)
 	  printf("unknown-stat-winner: vtxno=%d, unknown-stat=%f, maxlabel-stat=%f\n", vtxno, unknownstat, maxlabelstat);
 	
+	// re-assign annot at this vertex
 	mris->vertices[vtxno].annotation = annot_unknown;
 	unknownStatWinner++;
 
+        // we already re-assigned annot at this vertex (??? do we still need to unset nhits ???)
 	// set nhits at this vertex to 0
-	// col 2 of labelStat is unchanged
 	MRIsetVoxVal(nhits, vtxno, 0, 0, 0, 0);
+
+	// re-assign final annot and label at this vertex
+	// col 2 remains unchanged (no. of labels assinged to the vertext before applying LabelThresh and maxstat)
+	MRIsetVoxVal(labelStat, vtxno, 0, 0, 0, annot_unknown);
+        MRIsetVoxVal(labelStat, vtxno, 1, 0, 0, -1);
       }
     }
   }
+  /****** END applying unknown stat ******/
 
   // begin multiple label mapping report
   //      col 0      col 1            col 2               col 3       col 4      col 5    ...   col (5+nlabels-1)
@@ -953,7 +967,7 @@ static void label2annotationV2()
           mapped_count++;
         }
       }
-      printf("%s\n", report);
+      printf("%s (label %d selected)\n", report, (int)MRIgetVoxVal(labelStat, vtxno, 1, 0, 0));
     }
   }
     
