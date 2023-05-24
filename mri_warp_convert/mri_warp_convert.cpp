@@ -32,7 +32,7 @@
 using namespace std;
 
 namespace filetypes {
-enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX, RAS };
+  enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX, RAS, SPM };
 }
 
 struct Parameters
@@ -69,6 +69,51 @@ GCAM* readM3Z(const string& warp_file)
   return gcam;
 }
 
+GCAM* readSPM(const string& warp_file, const string& src_geom)
+{
+  // This version should properly handle all voxel sizes in the warp and the source
+  // See also MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out)
+  printf("readSPM()\n");
+  MRI *warp = MRIread(warp_file.c_str()) ;
+  if(warp == NULL) ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n", Progname, warp_file.c_str()) ;
+  MRI *src = MRIread(src_geom.c_str()) ;
+  if(src == NULL) ErrorExit(ERROR_NOFILE, "%s: could not source volume %s\n", Progname, src_geom.c_str()) ;
+
+  MATRIX *vox2ras1 = MRIxfmCRS2XYZ(src, 1); // spm crs base=1
+  MATRIX *ras2vox1 = MatrixInverse(vox2ras1,NULL);
+  MATRIX *spmras = MatrixAlloc(4,1,MATRIX_REAL);
+  spmras->rptr[4][1] = 1;
+  MATRIX *crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+
+  // use 1 to N-1 instead of 1 to N because edge voxels are invalid in the warp
+  for(int c=1; c < warp->width-1; c++){
+    for(int r=1; r < warp->height-1; r++){
+      for(int s=1; s < warp->depth-1; s++){
+	// Get the RAS in the spm input/source space
+	for(int k=0; k<3; k++) spmras->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
+	// Get the 1-based CRS in the spm input/source space (usually a conformed space)
+	crs = MatrixMultiplyD(ras2vox1,spmras,crs);
+	// Subtract 1 to make 0-based (could do this in ras2vox1)
+	for(int k=0; k<3; k++) MRIsetVoxVal(warp, c,r,s,k, crs->rptr[k+1][1]-1);
+      }
+    }
+  }
+  MatrixFree(&vox2ras1);
+  MatrixFree(&ras2vox1);
+  MatrixFree(&spmras);
+  MatrixFree(&crs);
+
+  //Now copy the warp into a GCAM
+  GCA_MORPH* gcam = GCAMalloc(warp->width, warp->height, warp->depth) ;
+  GCAMinitVolGeom(gcam, src, warp) ;
+  GCAMreadWarpFromMRI(gcam, warp, 0) ; //0 = absolute source CRS coords
+
+  MRIfree(&warp);
+  MRIfree(&src);
+
+  return(gcam);
+}
 GCAM* readFSL2(const string& warp_file, const string& src_geom)
 {
   // This version should properly handle all voxel sizes in the warp and the source
@@ -513,6 +558,13 @@ int main(int argc, char *argv[])
       if(P.in_src_geom.empty()) gcam = readFSL(P.in_warp.c_str());
       else                      gcam = readFSL2(P.in_warp.c_str(),P.in_src_geom);
       break;
+    case filetypes::SPM:
+      if(P.in_src_geom.empty()){
+	printf("ERROR: --inspm needs source geometry --insrcgeom or -g\n");
+	exit(1);
+      }
+      gcam = readSPM(P.in_warp.c_str(),P.in_src_geom);
+      break;
     case filetypes::ITK:
       is_lps = true;
       gcam = read_world(P.in_warp.c_str(), P.in_src_geom, is_lps);
@@ -632,6 +684,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.in_type = filetypes::FSL;
     nargs = 1;
     cout << "--infsl: " << P.in_warp << " input FSL warp." << endl;
+  }
+  else if (!strcmp(option, "INSPM"))
+  {
+    if (have_input) {
+      cerr << endl << endl << "ERROR: Only one input warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_input = true;
+
+    P.in_warp = string(argv[1]);
+    P.in_type = filetypes::SPM;
+    nargs = 1;
+    cout << "--inspm: " << P.in_warp << " input SPM warp." << endl;
   }
   else if (!strcmp(option, "INITK") || !strcmp(option, "INLPS"))
   {

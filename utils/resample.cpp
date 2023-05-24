@@ -2789,7 +2789,7 @@ static int CompareAVIndices(const void *i1, const void *i2)
   needed. This will only work when the column of the warp input is in
   the left-right direction. Interp: SAMPLE_NEAREST=0 or
   SAMPLE_TRILINEAR=1.  Handles multiple frames.  The output will be in
-  the warp space.
+  the warp space. See also GCAM* readSPM(const string& warp_file, const string& src_geom).
  */
 MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out)
 {
