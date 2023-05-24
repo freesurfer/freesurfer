@@ -15136,7 +15136,7 @@ char *MRIcheckOrientationString(const char *ostr)
   important, but upper case is used here. If ras_good_flag == 0,
   then ostr = ??? and 1 is returned.
   ------------------------------------------------------------------*/
-int MRIdircosToOrientationString(MRI *mri, char *ostr)
+int MRIdircosToOrientationString(VOL_GEOM *mri, char *ostr)
 {
   int c;
   float Mdc[3][3], sag, cor, ax;

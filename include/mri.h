@@ -179,14 +179,20 @@ struct VOL_GEOM
   float         xsize = 1; // Added =1 because that is what MRI does
   float         ysize = 1;
   float         zsize = 1;
+
+  int ras_good_flag = 0;  // indicates whether the RAS coordinates are accurate
   float x_r = -1, x_a = 0, x_s =  0;
   float y_r =  0, y_a = 0, y_s = -1;
   float z_r =  0, z_a = 1, z_s =  0;
   float c_r =  0, c_a = 0, c_s =  0;
   char          fname[STRLEN];  // volume filename
+
+  // i_to_r__, r_to_i__, register_mat were moved here from MRI in this commit:
+  // https://github.com/freesurfer/freesurfer/commit/d7b80d733e96380543093e1bb0c11f0123f97132
   AffineMatrix *i_to_r__ = nullptr;  // cached i->r transform
   MATRIX *r_to_i__ = nullptr;        // cached r->i transform
   MATRIX *register_mat = nullptr;
+  
   // The functions below compute these matrices on-the-fly
   // RAS = scanner RAS (sometimes known as "real" RAS in surface contexts)
   // TkregRAS = RAS used by tkregister; surface coords are by default in this TkregRAS space
@@ -264,7 +270,7 @@ public:
   //float y_r =  0, y_a = 0, y_s = -1;
   //float z_r =  0, z_a = 1, z_s =  0;
   //float c_r =  0, c_a = 0, c_s =  0;
-  int ras_good_flag = 0;  // indicates whether the RAS coordinates are accurate
+  //int ras_good_flag = 0;  // indicates whether the RAS coordinates are accurate
   
   // ---- transforms ----
   char transform_fname[STRLEN];
@@ -1536,7 +1542,7 @@ extern int MRIIO_Strip_Pound;
 #endif
 
 float MRIfovCol(MRI *mri);
-int MRIdircosToOrientationString(MRI *mri, char *ostr);
+int MRIdircosToOrientationString(VOL_GEOM *mri, char *ostr);
 int MRIorientationStringToDircos(MRI *mri, const char *ostr);
 char *MRIcheckOrientationString(const char *ostr);
 char *MRIsliceDirectionName(MRI *mri);
