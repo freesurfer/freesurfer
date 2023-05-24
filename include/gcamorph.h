@@ -141,7 +141,7 @@ typedef struct
   GMN  ***nodes ;
   int  neg ;
   double exp_k ;
-  int  spacing ;
+  int  spacing ; // poor choice to make this an int
   MRI  *mri_xind ;    /* MRI ->gcam transform */
   MRI  *mri_yind ;
   MRI  *mri_zind ;
@@ -546,7 +546,7 @@ int GCAMreadPositionsFromMRI( GCA_MORPH *gcam, const MRI *mri_warp );
 MRI *GCAMwritePositionsToMRI( const GCA_MORPH *gcam, MRI *mri_warp );
 
 
-int GCAMreadWarpFromMRI( GCA_MORPH *gcam, const MRI *mri_warp );
+int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp, int DeformationFlag);
 MRI *GCAMwriteWarpToMRI( const GCA_MORPH *gcam, MRI *mri_warp );
 
 int GCAMreadInverseWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;

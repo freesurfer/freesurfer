@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
 #if 1
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam1, mri) ;
 #else
-  GCAMreadWarpFromMRI(gcam1, mri) ;
+  GCAMreadWarpFromMRI(gcam1, mri, 1) ;
 #endif
 
   GCAMfree(&gcam1);

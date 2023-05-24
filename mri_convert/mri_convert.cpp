@@ -1976,7 +1976,7 @@ int main(int argc, char *argv[])
 	ErrorExit(ERROR_UNSUPPORTED, "%s: input volume must have 3 frames not %d to write to warp", Progname, mri->nframes) ;
       gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
       GCAMinit(gcam, mri, NULL, NULL, 0) ;
-      GCAMreadWarpFromMRI( gcam, mri );
+      GCAMreadWarpFromMRI( gcam, mri,1 );
       GCAMwrite(gcam, out_name) ;
       exit(0) ;
     }

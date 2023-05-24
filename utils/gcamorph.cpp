@@ -1288,7 +1288,7 @@ GCA_MORPH *GCAMalloc(const int width, const int height, const int depth)
   gcam->width = width;
   gcam->height = height;
   gcam->depth = depth;
-  gcam->spacing = 1; // may be changed by the user later
+  gcam->spacing = 1; // may be changed by the user later; must be an int
   gcam->type = GCAM_VOX;
 
   gcam->nodes = (GCA_MORPH_NODE ***)calloc(width, sizeof(GCA_MORPH_NODE **));
@@ -1343,16 +1343,11 @@ GCA_MORPH *GCAMalloc(const int width, const int height, const int depth)
 
 int GCAMinitVolGeom(GCAM *gcam, MRI *mri_image, MRI *mri_atlas)
 {
-  if (gcam->type == GCAM_VOX) /* in some other voxel coords */
-  {
-    GCAMrasToVox(gcam, mri_image);
-  }
-
+  // Not clear why it needs to be converted to vox when it is already vox
+  if(gcam->type == GCAM_VOX) GCAMrasToVox(gcam, mri_image);
   getVolGeom(mri_image, &gcam->image);
   getVolGeom(mri_atlas, &gcam->atlas);
-  if (gcam->gca) {
-    GCAreinit(mri_atlas, gcam->gca);
-  }
+  if(gcam->gca) GCAreinit(mri_atlas, gcam->gca);
   return (NO_ERROR);
 }
 
@@ -11113,7 +11108,7 @@ int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
   VECTOR *v1, *v2;
 
   if (gcam->type == GCAM_VOX) {
-    GCAMvoxToRas(gcam); /* convert it to RAS coords */
+    GCAMvoxToRas(gcam); /* convert it to RAS coords so that it can be converted back(?)*/
   }
 
   if (mri == NULL) {
@@ -14810,7 +14805,7 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       MRI *mri_morphed, *mri_warp2;
 
-      GCAMreadWarpFromMRI(gcam, mri_warp);
+      GCAMreadWarpFromMRI(gcam, mri_warp, 1);
       mri_warp2 = MRIclone(mri_warp, NULL);
       GCAMwriteWarpToMRI(gcam, mri_warp2);
 
@@ -14908,7 +14903,7 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
       }
       if (parms->write_fname) {
         MRI *mri;
-        GCAMreadWarpFromMRI(gcam, mri_warp);
+        GCAMreadWarpFromMRI(gcam, mri_warp, 1);
         printf("writing results of level to %s...\n", parms->write_fname);
         //            GCAMvoxToRas(gcam) ;
         GCAMwrite(gcam, parms->write_fname);
@@ -14928,7 +14923,7 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
           MRIfree(&gcam->mri_yind);
           MRIfree(&gcam->mri_zind);
         }
-        GCAMreadWarpFromMRI(gcam, mri_warp);
+        GCAMreadWarpFromMRI(gcam, mri_warp, 1);
         GCAMinvert(gcam, mri_source_labels);
         mri_morphed = GCAMmorphFromAtlas(mri_atlas_labels, gcam, NULL, SAMPLE_NEAREST);
 	fname << parms->base_name << "_atlas"
@@ -14959,7 +14954,7 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   }
   parms->start_t = (step);
   parms->last_sse = new_sse;
-  //  GCAMreadWarpFromMRI(gcam, mri_warp) ;
+  //  GCAMreadWarpFromMRI(gcam, mri_warp, 1) ;
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri_warp);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     std::string fname;
@@ -15019,15 +15014,25 @@ int GCAMcompose(GCA_MORPH *gcam, MRI *mri_warp)
   }
   return (NO_ERROR);
 }
-int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp)
+
+/*!
+  \fn int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp, int DeformationFlag)
+  \brief Fills GCAM with values from mri_warp. If DeformationFlag=1, then it assumes
+  that mri_warp has deltas which are added to gcamn->orig{xyz} to get gcamn->{xyz}. DeformationFlag=0
+  then gcamn->{xyz} is simply set to the value of the MRI at that CRS. The
+  DeformationFlag was added on 5/24/2023. You will replicate the previous behavior
+  if you DeformationFlag=1.
+ */
+int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp, int DeformationFlag)
 {
   int xp, yp, zp, xv, yv, zv;
   double dx, dy, dz;
   GCA_MORPH_NODE *gcamn;
 
   if (gcam->width == mri_warp->width && gcam->height == mri_warp->height && gcam->depth == mri_warp->depth) {
-    for (xp = 0; xp < gcam->width; xp++)
-      for (yp = 0; yp < gcam->height; yp++)
+    printf("GCAMreadWarpFromMRI(): warp and gcam have the same dims\n");
+    for (xp = 0; xp < gcam->width; xp++){
+      for (yp = 0; yp < gcam->height; yp++){
         for (zp = 0; zp < gcam->depth; zp++) {
           if (xp == Gx && yp == Gy && zp == Gz) {
             DiagBreak();
@@ -15036,13 +15041,23 @@ int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp)
           dx = MRIgetVoxVal(mri_warp, xp, yp, zp, 0);
           dy = MRIgetVoxVal(mri_warp, xp, yp, zp, 1);
           dz = MRIgetVoxVal(mri_warp, xp, yp, zp, 2);
-          gcamn->x = gcamn->origx + dx;
-          gcamn->y = gcamn->origy + dy;
-          gcamn->z = gcamn->origz + dz;
+	  if(DeformationFlag){
+	    gcamn->x = gcamn->origx + dx;
+	    gcamn->y = gcamn->origy + dy;
+	    gcamn->z = gcamn->origz + dz;
+	  }
+	  else {
+	    gcamn->x = dx;
+	    gcamn->y = dy;
+	    gcamn->z = dz;
+	  }
         }
+      }
+    }
     return (NO_ERROR);
   }
 
+  printf("GCAMreadWarpFromMRI(): warp and gcam do not have the same dims\n");
   for (xp = 0; xp < gcam->width; xp++) {
     xv = (xp * gcam->spacing);
     for (yp = 0; yp < gcam->height; yp++) {
@@ -15057,9 +15072,16 @@ int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp)
         MRIsampleVolumeFrameType(mri_warp, xv, yv, zv, 0, SAMPLE_TRILINEAR, &dx);
         MRIsampleVolumeFrameType(mri_warp, xv, yv, zv, 1, SAMPLE_TRILINEAR, &dy);
         MRIsampleVolumeFrameType(mri_warp, xv, yv, zv, 2, SAMPLE_TRILINEAR, &dz);
-        gcamn->x = xv + dx;
-        gcamn->y = yv + dy;
-        gcamn->z = zv + dz;
+	if(DeformationFlag){
+	  gcamn->x = gcamn->origx + dx;
+	  gcamn->y = gcamn->origy + dy;
+	  gcamn->z = gcamn->origz + dz;
+	}
+	else {
+	  gcamn->x = dx;
+	  gcamn->y = dy;
+	  gcamn->z = dz;
+	}
       }
     }
   }

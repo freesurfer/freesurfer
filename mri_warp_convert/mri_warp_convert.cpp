@@ -133,7 +133,7 @@ GCAM* readFSL(const string& warp_file)
 #if 1
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri) ;
 #else
-  GCAMreadWarpFromMRI(gcam, mri) ;
+  GCAMreadWarpFromMRI(gcam, mri, 1) ;
 #endif
 
   return gcam;

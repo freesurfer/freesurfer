@@ -369,7 +369,7 @@ main(int argc, char *argv[])
   gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
   GCAMinitVolGeom(gcam, mri, mri) ;
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri) ;
-//  GCAMreadWarpFromMRI(gcam, mri) ;
+//  GCAMreadWarpFromMRI(gcam, mri, 1) ;
   //  GCAsetVolGeom(gca, &gcam->atlas);
 #if 0
   gcam->gca = gcaAllocMax(1, 1, 1,

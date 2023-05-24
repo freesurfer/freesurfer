@@ -1176,7 +1176,7 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
     gcam = GCAMalloc(mri->width, mri->height, mri->depth);
     GCAMinitVolGeom(gcam, mri, mri);
     GCAMinit(gcam, mri, NULL, NULL, 0);
-    GCAMreadWarpFromMRI(gcam, mri);
+    GCAMreadWarpFromMRI(gcam, mri, 1);
     GCAMwrite(gcam, fname);
     GCAMfree(&gcam);
   }
