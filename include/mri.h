@@ -1489,8 +1489,8 @@ int setDirectionCosine(MRI *mri, int orientation);
 int getSliceDirection(MRI *mri);
 int mriOKforSurface(MRI *mri); // check whether the volume is conformed or not
 int mriConformed(MRI *mri) ;
-int MRIfindRightSize(MRI *mri, float conform_size);
-float MRIfindMinSize(MRI *mri, int *conform_width);
+int MRIfindRightSize(VOL_GEOM *mri, float conform_size);
+float MRIfindMinSize(VOL_GEOM *mri, int *conform_width);
 
 void setMRIforSurface(MRI *mri); // set c_(r,a,s) = 0 for a conformed volume
 MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;

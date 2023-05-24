@@ -306,7 +306,7 @@ int mriConformed(MRI *mri)
     return 1;
 }
 
-float MRIfindMinSize(MRI *mri, int *conform_width)
+float MRIfindMinSize(VOL_GEOM *mri, int *conform_width)
 {
   double xsize, ysize, zsize, minsize;
   double fwidth, fheight, fdepth, fmax;
@@ -354,7 +354,7 @@ float MRIfindMinSize(MRI *mri, int *conform_width)
 }
 
 // this function is called when conform is done
-int MRIfindRightSize(MRI *mri, float conform_size)
+int MRIfindRightSize(VOL_GEOM *mri, float conform_size)
 {
   // user gave the conform_size
   double xsize, ysize, zsize;
