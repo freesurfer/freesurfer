@@ -69,10 +69,77 @@ GCAM* readM3Z(const string& warp_file)
   return gcam;
 }
 
+GCAM* readFSL2(const string& warp_file, const string& src_geom)
+{
+  // This version should properly handle all voxel sizes in the warp and the source
+  printf("readFSL2()\n");
+  MRI *warp = MRIread(warp_file.c_str()) ;
+  if(warp == NULL) ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n", Progname, warp_file.c_str()) ;
+  MRI *src = MRIread(src_geom.c_str()) ;
+  if(src == NULL) ErrorExit(ERROR_NOFILE, "%s: could not source volume %s\n", Progname, src_geom.c_str()) ;
+
+  MATRIX *vox2ras = MRIgetVoxelToRasXform(warp) ;
+  double det = MatrixDeterminant(vox2ras);
+  MatrixFree(&vox2ras);
+  printf("det = %g\n",det);
+  if(det > 0) printf("non-negative Jacobian determinant -- converting to radiological ordering\n");
+
+  MATRIX *vox2fslras_warp = MRIxfmCRS2XYZfsl(warp);
+  MATRIX *vox2fslras_src = MRIxfmCRS2XYZfsl(src);
+  MATRIX *fslras2vox_src = MatrixInverse(vox2fslras_src,NULL);
+  MatrixFree(&vox2fslras_src);
+
+  // The FSL warp is delta in FSL RAS. Change it to absolute CRS in the source space
+  MATRIX *fslras = MatrixAlloc(4,1,MATRIX_REAL);
+  fslras->rptr[4][1] = 1;
+  MATRIX *crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+  int c=0,r=0,s=0;
+  for(c=0; c < warp->width; c++){
+    for(r=0; r < warp->height; r++){
+      for(s=0; s < warp->depth; s++){
+	crs->rptr[1][1] = c;
+	crs->rptr[2][1] = r;
+	crs->rptr[3][1] = s;
+	// Get the FSL RAS coords in the warp volume at this voxel
+	fslras = MatrixMultiply(vox2fslras_warp,crs,fslras);
+	// Add the warp value at this voxel to get the FSL RAS in the source space
+	for(int k=0; k<3; k++) {
+	  double w = MRIgetVoxVal(warp, c,r,s,k);
+	  if(det > 0) w *= -1; // only flip first frame (by negating relative shifts)
+	  fslras->rptr[k+1][1] += w;
+	}
+	// Now compute vox indices in the source space from the voxel coords
+	crs = MatrixMultiply(fslras2vox_src,fslras,crs);
+	for(int k=0; k<3; k++) MRIsetVoxVal(warp, c,r,s,k, crs->rptr[k+1][1]);
+      }
+    }
+  }
+  MatrixFree(&fslras);
+  MatrixFree(&crs);
+  MatrixFree(&fslras2vox_src);
+  MatrixFree(&vox2fslras_warp);
+
+  //Now copy the warp into a GCAM
+  GCA_MORPH* gcam = GCAMalloc(warp->width, warp->height, warp->depth) ;
+  GCAMinitVolGeom(gcam, src, warp) ;
+  GCAMreadWarpFromMRI(gcam, warp, 0) ; //0 = absolute source CRS coords
+
+  // In the first incarnation of this function, this was run. If it is to be run
+  // here, then the function needs to be changed to handle an absolute warp
+  // GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri) ;
+
+  MRIfree(&warp);
+  MRIfree(&src);
+
+  return(gcam);
+}
+
 GCAM* readFSL(const string& warp_file)
 // Read in an FSL warp. This is the code that used to reside in
 // mri_warp_convert.c.
 {
+  printf("readFSL()\n");
   MRI* mri = MRIread(warp_file.c_str()) ;
   if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n",
@@ -129,7 +196,7 @@ GCAM* readFSL(const string& warp_file)
   GCA_MORPH* gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
   GCAMinitVolGeom(gcam, mri, mri) ;
 
-  // not sure if removing singularities is ever a bad thing
+  // not sure if removing singularities is ever a bad thing. But takes 10min
 #if 1
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri) ;
 #else
@@ -443,7 +510,8 @@ int main(int argc, char *argv[])
       gcam = readM3Z(P.in_warp.c_str());
       break;
     case filetypes::FSL:
-      gcam = readFSL(P.in_warp.c_str());
+      if(P.in_src_geom.empty()) gcam = readFSL(P.in_warp.c_str());
+      else                      gcam = readFSL2(P.in_warp.c_str(),P.in_src_geom);
       break;
     case filetypes::ITK:
       is_lps = true;

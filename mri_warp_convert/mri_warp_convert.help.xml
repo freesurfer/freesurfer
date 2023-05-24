@@ -36,7 +36,7 @@
       <argument>--inm3z &lt;in.m3z&gt;</argument>
       <explanation>input M3Z warp</explanation>
       <argument>--infsl &lt;in.nii.gz&gt;</argument>
-      <explanation>input FSL warp</explanation>
+      <explanation>input FSL warp (recommend to use with --insrcgeom)</explanation>
       <argument>--inlps, --initk &lt;in.nii.gz&gt;</argument>
       <explanation>input LPS-to-LPS displacement field (e.g. ITK, ANTs)</explanation>
       <argument>--inras &lt;in.nii.gz&gt;</argument>
@@ -68,7 +68,7 @@
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):
-    mri_warp_convert --infsl fsl.nii.gz --outm3z out.m3z</example>
+    mri_warp_convert --infsl fsl.nii.gz --outm3z out.m3z --insrcgeom src.nii.gz</example>
   <example>Convert ITK warp (e.g. ANTs) to M3Z (FreeSurfer):
     mri_warp_convert --initk itk.nii.gz --outm3z out.m3z --insrcgeom src.nii.gz</example>
   <example>Convert ANTS antsRegistrationSyN.sh or antsRegistrationSyNQuick.sh output to M3Z (FreeSurfer):
