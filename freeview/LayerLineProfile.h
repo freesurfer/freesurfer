@@ -3,7 +3,10 @@
 
 #include "Layer.h"
 #include "vtkSmartPointer.h"
+
+#if !defined(ARM64)
 #include "LineProf.h"
+#endif 
 
 class vtkActor;
 class vtkPolyDataMapper;

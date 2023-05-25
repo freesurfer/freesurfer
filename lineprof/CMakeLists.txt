@@ -11,7 +11,9 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
 
   # temporary macro to deal with BoundingBoxType
   # todo: this should be removed once we updgrade everything
+  # if(NOT APPLE_ARM64)
   add_definitions(-DHAVE_ITK45)
+  # endif()
 
   set(SOURCES
     Tracer.cpp
@@ -28,7 +30,10 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
   endif()
 
-  add_test_executable(lineprof_test LineProfTest.cpp)
+  # if(FREEVIEW_LINEPROF)
+  if(NOT APPLE_ARM64)
+     add_test_executable(lineprof_test LineProfTest.cpp)
+  endif()
   target_link_libraries(lineprof_test
     lineprof
     ${ZLIB_LIBRARIES}

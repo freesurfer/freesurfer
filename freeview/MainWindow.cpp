@@ -91,8 +91,12 @@
 #include "DialogLoadSurfaceOverlay.h"
 #include "DialogReloadLayer.h"
 #include "DialogSmoothSurface.h"
+
+#if !defined(ARM64)
 #include "DialogLineProfile.h"
 #include "LayerLineProfile.h"
+#endif
+
 #include "DialogLoadConnectome.h"
 #include "LayerConnectomeMatrix.h"
 #include "LayerFCD.h"
@@ -338,6 +342,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
   connect(m_layerCollections["ROI"], SIGNAL(ActiveLayerChanged(Layer*)), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
 
+#if !defined(ARM64)
   m_dlgLineProfile = new DialogLineProfile(this);
   m_dlgLineProfile->hide();
   connect(m_layerCollections["PointSet"], SIGNAL(LayerAdded(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
@@ -348,6 +353,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(this->m_views[i], SIGNAL(LineProfileIdPicked(LayerLineProfile*, int)),
             m_dlgLineProfile, SLOT(OnLineProfileIdPicked(LayerLineProfile*,int)));
   }
+#endif
 
   m_dlgSetCamera = new DialogSetCamera(this);
   m_dlgSetCamera->hide();
@@ -8339,8 +8345,10 @@ void MainWindow::OnShowLabelStats()
 
 void MainWindow::OnLineProfile()
 {
+#if !defined(ARM64)
   m_dlgLineProfile->show();
   m_dlgLineProfile->raise();
+#endif
 }
 
 void MainWindow::OnSaveIsoSurface(const QString& fn_in)
@@ -9555,9 +9563,11 @@ bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVari
 
   if (lines.size() > 1)
   {
+#if !defined(ARM64)
     LayerLineProfile* lp = new LayerLineProfile(GetMainViewId(), this, lines.first(), lines.last());
     lines.removeFirst();
     lines.removeLast();
+#endif
 
     double dVoxelSize = 1.0;
     LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
@@ -9579,6 +9589,7 @@ bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVari
     if (opts.contains("segments"))
       samples = opts["segments"].toInt();
 
+#if !defined(ARM64)
     if (!lp->Solve(spacing, dVoxelSize, resolution, offset))
     {
       cerr << "Could not solve line profile\n";
@@ -9593,6 +9604,7 @@ bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVari
     }
     else
       lp->deleteLater();
+#endif
   }
   return true;
 }
