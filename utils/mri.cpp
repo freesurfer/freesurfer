@@ -119,6 +119,43 @@ MRI::Shape::Shape(const std::vector<int>& shape) {
 
 
 /**
+  Constructs an MRI from VOL_GEOM.
+*/
+MRI::MRI(const VOL_GEOM& vg, int dtype, int nframes, int HeaderOnly)
+{
+  if (HeaderOnly)
+    MRI({vg.width, vg.height, vg.depth, nframes}, type, false);
+  else
+    MRI({vg.width, vg.height, vg.depth, nframes}, dtype);
+
+  ras_good_flag = 1;
+  width = vg.width;
+  height = vg.height;
+  depth = vg.depth;
+  xsize = vg.xsize;
+  ysize = vg.ysize;
+  zsize = vg.zsize;
+  x_r = vg.x_r;
+  x_a = vg.x_a;
+  x_s = vg.x_s;
+  y_r = vg.y_r;
+  y_a = vg.y_a;
+  y_s = vg.y_s;
+  z_r = vg.z_r;
+  z_a = vg.z_a;
+  z_s = vg.z_s;
+  c_r = vg.c_r;
+  c_a = vg.c_a;
+  c_s = vg.c_s;
+  strcpy(fname, vg.fname);
+  
+  // now we cache transform and thus we have to do the following whenever
+  // we change direction cosines
+  MRIreInitCache(this);
+}
+
+
+/**
   Constructs an MRI from a volume file.
 */
 MRI::MRI(const std::string& filename)

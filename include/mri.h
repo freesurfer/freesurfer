@@ -225,6 +225,7 @@ public:
     friend bool operator != (const Shape &l, const Shape &r) { return !(l == r); }
   };
 
+  MRI(const VOL_GEOM& vg, int dtype, int nframes=1, int HeaderOnly=1);
   MRI(const Shape volshape, int dtype, bool alloc = true);
   MRI(const std::string& filename);
   ~MRI();
