@@ -3710,7 +3710,7 @@ int MRIworldToVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, doub
  *
  * @return NO_ERROR
  */
-int MRIreInitCache(MRI *mri)
+int MRIreInitCache(VOL_GEOM *mri)
 {
   MATRIX *tmp;
 

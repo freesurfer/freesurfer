@@ -810,7 +810,7 @@ int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
 /*
   MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 */
-int   MRIreInitCache(MRI *mri); /* when header is modified,
+int   MRIreInitCache(VOL_GEOM *mri); /* when header is modified,
                                    you must call this function
                                    to update cached info */
 int   MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
