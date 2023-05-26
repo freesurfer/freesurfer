@@ -28,7 +28,11 @@
 #include <QStyleFactory>
 #include "CursorFactory.h"
 #include "vtkObject.h"
+
+#if !defined(ARM64)
 #include "LineProf.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fenv.h>

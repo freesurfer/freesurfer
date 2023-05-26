@@ -9,11 +9,10 @@ endif()
 if(APPLE)
    set(CMAKE_C_COMPILER "/usr/bin/clang")
    set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-   # add -DAPPLE_ARM64=ON to cmake command line
+   # set -DAPPLE_ARM64=ON on cmake command line for arm64 build
    if(APPLE_ARM64)
-      # add -DCMAKE_OSX_ARCHITECTURES="arm64" to cmake command line (generates "-arch arm64" on compile line)
-      add_definitions(-DARM64)
-      add_definitions(-DPNG_ARM_NEON_OPT=0)
+      set(CMAKE_OSX_ARCHITECTURES "arm64")
+      add_definitions(-DARM64 -DPNG_ARM_NEON_OPT=0)
    endif()
 endif()
 
@@ -469,8 +468,21 @@ set(FS_INCLUDE_DIRS
 # build the freesurfer static libraries
 add_subdirectory(utils)
 
+# Although the default is to set LINEPROF off as listed above, lineprof.a is actually built
+# and linked against, e.g., with only function definitions changing in freeview.  For newer
+# contexts like darwin_arm64, we do not have compatible version of petsc (which lineprof depends
+# upon).  Therefore we actually defeat building with lineprof/petsc for darwin_arm64 (as one
+# might reasonably expect for the default of LINEPROF disabled).   This in turn adds some
+# ifdefs to freeview files for darwin_arm64 such that: (1) with LINEPROF disabled freeview
+# will not build with lineprof/petsc; (2) with LINEPROF enabled the freeview build will fail.
+# Backwards compatibility for building and linking against lineprof.a (with LINEPROF disabled
+# by default) is maintained for darwin_x86_64 and all linux contexts.
+
 # the following utility libraries are required for freeview
-add_subdirectories(vtkutils lineprof)
+if(NOT APPLE_ARM64)
+   add_subdirectory(lineprof)
+endif()
+add_subdirectory(vtkutils)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)

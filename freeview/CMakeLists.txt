@@ -1,6 +1,7 @@
 project(freeview)
 
-if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
+# if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
+if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -162,8 +163,6 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     DialogLoadSurfaceOverlay.cpp
     DialogReloadLayer.cpp
     DialogSmoothSurface.cpp
-    LayerLineProfile.cpp
-    DialogLineProfile.cpp
     LayerPropertyLineProfile.cpp
     LayerConnectomeMatrix.cpp
     LayerPropertyConnectomeMatrix.cpp
@@ -207,6 +206,10 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     DialogSaveAllVolumes.cpp
     freeview.qrc
   )
+
+  if(PETSC_FOUND AND NOT APPLE_ARM64)
+     set(SOURCES ${SOURCES} DialogLineProfile.cpp LayerLineProfile.cpp)
+  endif()
 
   # build the QVTKWidget utilities
   if(${VTK_MAJOR_VERSION} LESS 7)
@@ -267,20 +270,36 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
   endif()
 
   add_executable(freeview ${SOURCES})
-  target_link_libraries(freeview
-    vtkutils
-    lineprof
-    ${VTK_LIBRARIES}
-    ${PETSC_LIBRARIES}
-    ${ITK_LIBRARIES}
-    utils
-    ${QT_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${BLAS_LIBRARIES}
-    ${GFORTRAN_LIBRARIES}
-    ${QUADMATH_LIBRARIES}
-  )
+
+  if(PETSC_FOUND AND NOT ARM64)
+     target_link_libraries(freeview
+       vtkutils
+       lineprof
+       ${VTK_LIBRARIES}
+       ${PETSC_LIBRARIES}
+       ${ITK_LIBRARIES}
+       utils
+       ${QT_LIBRARIES}
+       ${OPENGL_LIBRARIES}
+       ${LAPACK_LIBRARIES}
+       ${BLAS_LIBRARIES}
+       ${GFORTRAN_LIBRARIES}
+       ${QUADMATH_LIBRARIES}
+     )
+  else()
+     target_link_libraries(freeview
+       vtkutils
+       ${VTK_LIBRARIES}
+       ${ITK_LIBRARIES}
+       utils
+       ${QT_LIBRARIES}
+       ${OPENGL_LIBRARIES}
+       ${LAPACK_LIBRARIES}
+       ${BLAS_LIBRARIES}
+       ${GFORTRAN_LIBRARIES}
+       ${QUADMATH_LIBRARIES}
+     )
+  endif()
 
   if(NOT APPLE)
     target_link_libraries(freeview glut ${X11_LIBRARIES})

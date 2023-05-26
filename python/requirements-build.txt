@@ -17,7 +17,7 @@ filelock==3.12.0
 flatbuffers==23.5.9
 fonttools==4.39.4
 gast==0.4.0
-google-auth==2.18.1
+google-auth==2.19.0
 google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
 grpcio==1.54.2
@@ -78,7 +78,7 @@ threadpoolctl==3.1.0
 tifffile==2023.4.12
 tqdm==4.65.0
 triton==2.0.0
-typing-extensions==4.6.1
+typing-extensions==4.6.2
 tzdata==2023.3
 urllib3==1.26.15
 voxelmorph==0.2

@@ -38,11 +38,13 @@
 
 #define INDIVIDUAL_TIMERS 0
 
-#define FAST_GCAsourceVoxelToPrior 1
 
 /* #ifndef powerpc */
 #if !defined(powerpc) && !defined(ARM64)
+#define FAST_GCAsourceVoxelToPrior 1
 #include "affine.hpp"
+#else
+#define FAST_GCAsourceVoxelToPrior 0
 #endif
 
 #include "affine.h"
