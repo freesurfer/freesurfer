@@ -527,33 +527,18 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
 // scanner space vox2ras from vol geom
 MATRIX *vg_i_to_r(const VOL_GEOM *vg)
 {
-  MATRIX *mat = 0;
-  MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR, 1);
-  useVolGeomToMRI(vg, tmp);
-  mat = extract_i_to_r(tmp);
-  MRIfree(&tmp);
+  MATRIX *mat = extract_i_to_r(vg);
   return mat;
 }
 MATRIX *vg_r_to_i(const VOL_GEOM *vg)
 {
-  MATRIX *mat = 0;
-  MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR, 1);
-  useVolGeomToMRI(vg, tmp);
-  mat = extract_r_to_i(tmp);
-  MRIfree(&tmp);
+  MATRIX *mat = extract_r_to_i(vg);
   return mat;
 }
 // tkregister space vox2ras from vol geom
 MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg)
 {
-  MATRIX *mat = NULL;
-  MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR, 1);
-  useVolGeomToMRI(vg, tmp);
-  mat = MRIxfmCRS2XYZtkreg(tmp);
-  MRIfree(&tmp);
+  MATRIX *mat = MRIxfmCRS2XYZtkreg(vg);
   return (mat);
 }
 // tkregister space ras2vox from vol geom
@@ -1686,17 +1671,10 @@ static int ltaMNIwrite(const LTA *lta, const char *fname)
     MATRIX *rasFromVoxel = 0;
     MATRIX *tmp = 0;
     MATRIX *rasToRAS = 0;
-    MRI *src = 0;
-    MRI *dst = 0;
-    LT *lt = 0;
-    lt = &lta->xforms[0];
-    src = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 1);
-    useVolGeomToMRI(&lt->src, src);
-    dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
-    useVolGeomToMRI(&lt->dst, dst);
-    voxFromRAS = extract_r_to_i(src);
+    LT *lt = &lta->xforms[0];
+    voxFromRAS = extract_r_to_i(&lt->src);
     tmp = MatrixMultiply(lta->xforms[0].m_L, voxFromRAS, NULL);
-    rasFromVoxel = extract_i_to_r(dst);
+    rasFromVoxel = extract_i_to_r(&lt->dst);
     rasToRAS = MatrixMultiply(rasFromVoxel, tmp, NULL);
     for (row = 1; row <= 3; row++) {
       fprintf(fp,
@@ -1712,8 +1690,6 @@ static int ltaMNIwrite(const LTA *lta, const char *fname)
     MatrixFree(&rasFromVoxel);
     MatrixFree(&tmp);
     MatrixFree(&rasToRAS);
-    MRIfree(&src);
-    MRIfree(&dst);
   }
   fclose(fp);
   return (NO_ERROR);
@@ -3773,15 +3749,9 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
              up around it. */
           lt = &lta->xforms[i];  // movsrc->refdst
           m_L = lt->m_L;
-          movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 1);
-          refmri = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
-          useVolGeomToMRI(&lt->src, movmri);
-          useVolGeomToMRI(&lt->dst, refmri);
-          mreg = MRItkRegMtx(refmri, movmri, m_L);  // refdst->movsrc
+          mreg = MRItkRegMtx(&lt->dst, &lt->src, m_L);  // refdst->movsrc
           MatrixCopy(mreg, m_L);
           MatrixFree(&mreg);
-          MRIfree(&movmri);
-          MRIfree(&refmri);
         }
         lta->type = REGISTER_DAT;
         break;
@@ -3789,17 +3759,11 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
         for (i = 0; i < lta->num_xforms; ++i) {
           lt = &lta->xforms[i];
           m_L = lt->m_L;
-          movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 1);
-          refmri = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
-          useVolGeomToMRI(&lt->src, movmri);
-          useVolGeomToMRI(&lt->dst, refmri);
-          mreg = MRItkRegMtx(refmri, movmri, m_L);
-          mfsl = MRItkreg2FSL(refmri, movmri, mreg);
+          mreg = MRItkRegMtx(&lt->dst, &lt->src, m_L);
+          mfsl = MRItkreg2FSL(&lt->dst, &lt->src, mreg);
           MatrixCopy(mfsl, m_L);
           MatrixFree(&mreg);
           MatrixFree(&mfsl);
-          MRIfree(&movmri);
-          MRIfree(&refmri);
         }
         lta->type = FSLREG_TYPE;
         break;
@@ -3983,15 +3947,9 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
         for (i = 0; i < lta->num_xforms; ++i) {
           lt = &lta->xforms[i];
           m_L = lt->m_L;
-          movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 1);
-          refmri = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
-          useVolGeomToMRI(&lt->src, movmri);
-          useVolGeomToMRI(&lt->dst, refmri);
-          mfsl = MRItkreg2FSL(refmri, movmri, m_L);
+          mfsl = MRItkreg2FSL(&lt->dst, &lt->src, m_L);
           MatrixCopy(mfsl, m_L);
           MatrixFree(&mfsl);
-          MRIfree(&movmri);
-          MRIfree(&refmri);
         }
         lta->type = FSLREG_TYPE;
         break;
@@ -4058,15 +4016,9 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
         for (i = 0; i < lta->num_xforms; ++i) {
           lt = &lta->xforms[i];
           m_L = lt->m_L;
-          movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 1);
-          refmri = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
-          useVolGeomToMRI(&lt->src, movmri);
-          useVolGeomToMRI(&lt->dst, refmri);
-          mreg = MRIfsl2TkReg(refmri, movmri, m_L);
+          mreg = MRIfsl2TkReg(&lt->dst, &lt->src, m_L);
           MatrixCopy(mreg, m_L);
           MatrixFree(&mreg);
-          MRIfree(&movmri);
-          MRIfree(&refmri);
         }
         lta->type = REGISTER_DAT;
         break;

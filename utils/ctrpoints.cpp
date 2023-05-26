@@ -181,24 +181,18 @@ MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
   if (!lta->xforms[0].src.valid) ErrorExit(ERROR_BADPARM, "MRImapControlPoints LTA src geometry not valid!\n");
   if (!lta->xforms[0].dst.valid) ErrorExit(ERROR_BADPARM, "MRImapControlPoints LTA dst geometry not valid!\n");
 
-  // create face src and target mri from lta:
-  MRI *mri_src = MRIallocHeader(1, 1, 1, MRI_UCHAR, 1);
-  useVolGeomToMRI(&lta->xforms[0].src, mri_src);
-  MRI *mri_trg = MRIallocHeader(1, 1, 1, MRI_UCHAR, 1);
-  useVolGeomToMRI(&lta->xforms[0].dst, mri_trg);
-
   // set vox ras transforms depending on flag:
   MATRIX *src_ras2vox, *src_vox2ras, *trg_vox2ras;
   switch (useRealRAS) {
     case 0:
-      src_vox2ras = MRIxfmCRS2XYZtkreg(mri_src);
+      src_vox2ras = MRIxfmCRS2XYZtkreg(&lta->xforms[0].src);
       src_ras2vox = MatrixInverse(src_vox2ras, NULL);
       MatrixFree(&src_vox2ras);
-      trg_vox2ras = MRIxfmCRS2XYZtkreg(mri_trg);
+      trg_vox2ras = MRIxfmCRS2XYZtkreg(&lta->xforms[0].dst);
       break;
     case 1:
-      src_ras2vox = extract_r_to_i(mri_src);
-      trg_vox2ras = extract_i_to_r(mri_trg);
+      src_ras2vox = extract_r_to_i(&lta->xforms[0].src);
+      trg_vox2ras = extract_i_to_r(&lta->xforms[0].dst);
       break;
     default:
       ErrorExit(ERROR_BADPARM, "MRImapControlPoints has bad useRealRAS flag %d\n", useRealRAS);
@@ -219,8 +213,6 @@ MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
   }
 
   // clenup some stuff:
-  MRIfree(&mri_src);
-  MRIfree(&mri_trg);
   MatrixFree(&src_ras2vox);
   MatrixFree(&trg_vox2ras);
 

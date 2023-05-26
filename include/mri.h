@@ -225,6 +225,7 @@ public:
     friend bool operator != (const Shape &l, const Shape &r) { return !(l == r); }
   };
 
+  MRI(const VOL_GEOM& vg, int dtype, int nframes=1, int HeaderOnly=1);
   MRI(const Shape volshape, int dtype, bool alloc = true);
   MRI(const std::string& filename);
   ~MRI();
@@ -809,7 +810,7 @@ int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
 /*
   MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 */
-int   MRIreInitCache(MRI *mri); /* when header is modified,
+int   MRIreInitCache(VOL_GEOM *mri); /* when header is modified,
                                    you must call this function
                                    to update cached info */
 int   MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,

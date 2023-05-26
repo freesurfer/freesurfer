@@ -610,7 +610,7 @@ get_option(int argc, char *argv[])
     MAXVERTICES = atol(argv[2]) ;
     MAXFACES = 2*MAXVERTICES ;
     fprintf(stderr,"setting max vertices = %ld, and max faces = %ld\n", MAXVERTICES, MAXFACES);
-    nargs = 2 ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "new")) UseMRIStessellate=1;
   else switch (toupper(*option))

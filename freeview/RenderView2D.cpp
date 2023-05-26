@@ -20,7 +20,11 @@
 #include "LayerCollection.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+
+#if !defined(ARM64)
 #include "LayerLineProfile.h"
+#endif
+
 #include "LayerSurface.h"
 #include "LayerMRI.h"
 // #undef isfinite
@@ -868,9 +872,11 @@ bool RenderView2D::PickLineProfile(int x, int y)
   {
     if (layer->IsTypeOf("LineProfile"))
     {
+#if !defined(ARM64)
       LayerLineProfile* l = qobject_cast<LayerLineProfile*>(layer);
       if (l->GetPlane() == this->m_nViewPlane)
         lineprofs << l;
+#endif
     }
   }
   if (lineprofs.isEmpty())
@@ -878,6 +884,7 @@ bool RenderView2D::PickLineProfile(int x, int y)
 
   foreach (LayerLineProfile* lp, lineprofs)
   {
+#if !defined(ARM64)
     int nId = this->PickCell(lp->GetLineProfileActor(), x, y);
     if (nId >= 0)
     {
@@ -886,6 +893,7 @@ bool RenderView2D::PickLineProfile(int x, int y)
       lp->SetActiveLineId(nId);
       return true;
     }
+#endif
   }
   return false;
 }
