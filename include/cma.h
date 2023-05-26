@@ -740,8 +740,8 @@ public:
   COLOR_TABLE *ctab=NULL;
   std::vector<int> seglist;
   char *seg1file=NULL, *seg2file=NULL;
-  std::vector<double> dice, tpr, fdr;
-  std::vector<int> count1, count2, count12, countFD;
+  std::vector<double> dice, tpr, fdr, jaccard;
+  std::vector<int> count1, count2, count12/*intersection*/, countFD;
   std::vector<int> excludelist;
   int ReportEmpty = 0;
   int Ctab2SegList();
