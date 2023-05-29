@@ -2,8 +2,6 @@
 #%autoreload 2
 
 import os, socket
-import copy
-import scipy
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -12,12 +10,18 @@ from tqdm import tqdm
 
 import voxelmorph as vxm
 import neurite_sandbox as nes
+import neurite as ne
 import voxelmorph_sandbox as vxms
 
-import surfa as sf
+use_surfa = True
+use_surfa = False
+from neurite_sandbox.tf.utils.utils import plot_fit_callback as pfc
+
+if use_surfa:
+    import surfa as sf
 import fsdeeplearn as fsd
-from fsdeeplearn import surf_utils, prep
-#from cnn_sphere_register import losspad, prep
+import freesurfer as fs
+from fsdeeplearn import surf_utils
 
 # small ones
 enc_nf = [32, 32, 32, 32]
@@ -49,86 +53,73 @@ batch_size = 16
 model_dir = 'models'
 gpu_id = -1
 host = socket.gethostname()
+hemi = 'lh'
 hemi = 'rh'
 atlas_dir='/autofs/space/pac_001/tiamat_copy/3/users/subjects/aparc_atlas'
 
-if os.getenv('NGPUS'):
-    ngpus = int(os.getenv('NGPUS'))
-    ngpus=1
-    gpu_str = '0'
-    for g in range(1,ngpus):
-        gpu_str += ',%d' % g
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
-    print('reading %d GPUS from env and setting CUDA_VISIBLE_DEVICES to %s' % (ngpus, gpu_str))
-elif os.getenv('CUDA_VISIBLE_DEVICES'):
-    gpu_list = os.getenv('CUDA_VISIBLE_DEVICES')
-    ngpus = len(gpu_list.split(','))
-elif os.getenv('NGPUS'):
-    ngpus = int(os.getenv('NGPUS'))
-    gpu_str = '0'
-    for g in range(1,ngpus):
-        gpu_str += ',%d' % g
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
-    print('reading %d GPUS from env and setting CUDA_VISIBLE_DEVICES to %s' % (ngpus, gpu_str))
-elif host.startswith('tebo'):
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
-elif host.startswith('A100'):
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4,5,6,7'
-elif host.startswith('rtx-02'):
-    if hemi == 'lh':
-        os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2'
-    else:
-        os.environ["CUDA_VISIBLE_DEVICES"] = '3,4,5'
-    batch_size=16
-elif host.startswith('rtx-0'):
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4,5'
-    batch_size=18
-elif host.startswith('mlscgpu1'):
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2,3,4,5,9'
-    batch_size = 15
-elif host.startswith('mlscgpu1'):
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
-elif host.startswith('A100'):
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
+print(f'host name {socket.gethostname()}')
+
+ngpus = 1 if os.getenv('NGPUS') is None else int(os.getenv('NGPUS'))
+
+print(f'using {ngpus} gpus')
+if ngpus > 1:
+    model_device = '/gpu:0'
+    synth_device = '/gpu:1'
+    synth_gpu = 1
+    dev_str = "0, 1"
 else:
-    gpu_id = 0
-    fsd.configure(gpu=gpu_id)
+    model_device = '/gpu:0'
+    synth_device = '/cpu:0'
+    synth_gpu = -1
+    dev_str = "0"
 
-if gpu_id >= 0:
-    print('using gpu %d on host %s' % (gpu_id, host))
-else:
-    gpu_list = os.environ["CUDA_VISIBLE_DEVICES"]
-    ngpus = len(gpu_list.split(','))
-    batch_size = (batch_size // ngpus) * ngpus
-    print('using %d gpus %s on host %s with batch_size %d' % (ngpus,gpu_list, host, batch_size))
+os.environ["CUDA_VISIBLE_DEVICES"] = dev_str
 
 
+fit1=True
+fit2=True
+fit3=True
+
+fit1=False
+fit2=False
+fit3=False
 
 
+print(f'model_device {model_device}, synth_device {synth_device}, dev_str {dev_str}')
+print(f'fit1 {fit1}, fit2 {fit2}, fit3 {fit3}, hemi {hemi}')
 
-strategy = tf.distribute.MirroredStrategy()
-ngpus = strategy.num_replicas_in_sync
+print(f'physical GPU # is {os.getenv("SLURM_STEP_GPUS")}')
+ret = ne.utils.setup_device(dev_str)
+
+#strategy = tf.distribute.MirroredStrategy()
+#ngpus = strategy.num_replicas_in_sync
 batch_size = (batch_size // ngpus) * ngpus
 print('found %d gpus after configuring device, resetting batch_size to %d' % (ngpus, batch_size))
 
-print('processing %s' % hemi)
 sphere_name='sphere.rot'
 curv_name='sulc'
 adir = os.path.join(os.getenv('FREESURFER_HOME'), 'average')
 fs_atlas_fname = os.path.join(adir, hemi+'.average.curvature.filled.buckner40.tif')
 tf.config.get_visible_devices()
+if 'inited' not in locals():
+    inited = False
 
-if 'fs_atlas' not in locals() and 'fs_atlas' not in globals():
+
+if not inited:
     # data loading
     fp = open(os.path.join(atlas_dir, 'aparc-SUBJECTS'))
     subjects = fp.read().split('\n')[:-1]
     fp.close()
 
-    fs_atlas = sf.load_slice(fs_atlas_fname)
-
     fsdir = os.path.join(os.getenv('FREESURFER_HOME'), 'subjects')
-    fsa_surf = sf.load_mesh(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.sphere'))
-    fsa_inf = sf.load_mesh(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.inflated'))
+    if use_surfa:   # disabling surfa as it fails
+        fs_atlas = sf.load_slice(fs_atlas_fname)
+        fsa_surf = sf.load_mesh(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.sphere'))
+        fsa_inf = sf.load_mesh(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.inflated'))
+    else:
+        fs_atlas = fs.Image.read(fs_atlas_fname)
+        fsa_surf = fs.Surface.read(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.sphere'))
+        fsa_inf = fs.Surface.read(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.inflated'))
 
 
     mrisps_geom = []
@@ -161,6 +152,8 @@ if 'fs_atlas' not in locals() and 'fs_atlas' not in globals():
         atlas_mean = np.pad(atlas_mean, ((0,0),(pad,pad),(0,0)),'reflect')
         atlas_sigma = np.pad(atlas_sigma, ((pad,pad),(0,0),(0,0)),'wrap')
         atlas_sigma = np.pad(atlas_sigma, ((0,0),(pad,pad),(0,0)),'reflect')
+        
+    inited = True
 
 lr=1e-4
 
@@ -185,10 +178,6 @@ if 0:
 gen = surf_utils.fsgen(mrisps_geom, atlas_mean, batch_size=batch_size, mean_stream=False)
 
 
-
-#with strategy.scope():
-
-
 dkt_dir = os.path.join(atlas_dir, 'DKTatlas')
 parc_name = 'labels.DKT31.manual.annot'
 parc_name = 'labels.DKT31.manual.2.annot'
@@ -206,11 +195,19 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
     dkt_subjects = [parc_fname.split('/')[-3] for parc_fname in parc_fnames]
     dkt_sphere_fnames = [os.path.join(dkt_dir, subject, 'surf', hemi+'.'+sphere_name) for subject in dkt_subjects]
 
-    parcs = [sf.load_overlay(parc_fname) for parc_fname in tqdm(parc_fnames)]
-    dkt_spheres = [sf.load_mesh(sphere_fname) for sphere_fname in tqdm(dkt_sphere_fnames)]
+    if use_surfa:
+        parcs = [sf.load_overlay(parc_fname) for parc_fname in tqdm(parc_fnames)]
+        dkt_spheres = [sf.load_mesh(sphere_fname) for sphere_fname in tqdm(dkt_sphere_fnames)]
 
-    # load the entire dataset to determine labels that exist and compact them
-    parcs_all = [sf.load_overlay(parc_fname) for parc_fname in tqdm(parc_fnames_all)]
+        # load the entire dataset to determine labels that exist and compact them
+        parcs_all = [sf.load_overlay(parc_fname) for parc_fname in tqdm(parc_fnames_all)]
+    else:
+        parcs = [fs.Overlay.read(parc_fname) for parc_fname in tqdm(parc_fnames)]
+        dkt_spheres = [fs.Surface.read(sphere_fname) for sphere_fname in tqdm(dkt_sphere_fnames)]
+
+        # load the entire dataset to determine labels that exist and compact them
+        parcs_all = [fs.Overlay.read(parc_fname) for parc_fname in tqdm(parc_fnames_all)]
+
     all_labels = nes.py.utils.flatten_lists([list(np.where(parc.data < 0, 0, parc.data)) for parc in parcs_all])
     al = [l if l >= 0 else 0 for l in all_labels]
     lab_to_ind, ind_to_lab = fsd.utils.rebase_labels(al) 
@@ -230,7 +227,10 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
             else:
                 mrisp = np.concatenate((mrisp, mrisp_tmp[...,np.newaxis]), axis=-1)
         dkt_mrisps_geom.append(mrisp)
-        mrisp_annot = np.transpose(sf.sphere.SphericalMapNearest(dkt_spheres[sno]).parameterize(parcs_training[sno]),(1,0)).data
+        if use_surfa:
+            mrisp_annot = np.transpose(sf.sphere.SphericalMapNearest(dkt_spheres[sno]).parameterize(parcs_training[sno]),(1,0)).data
+        else:
+            mrisp_annot = np.transpose(dkt_spheres[sno].parameterize(parcs_training[sno], interp='nearest'),(1,0))
         if pad > 0:
             mrisp_annot = np.pad(mrisp_annot, ((pad,pad),(0,0)),'wrap')
             mrisp_annot = np.pad(mrisp_annot, ((0,0),(pad,pad)),'reflect')
@@ -266,12 +266,7 @@ geom_match_wt = 1
 which_smooth_loss = 'lap' 
 which_smooth_loss = 'grad'
 
-fit1=True
-fit2=True
-fit3=True
-
-import tensorflow.keras.initializers as KI
-with strategy.scope():
+with tf.device(model_device):
     model_semi = vxms.networks.TemplateCreationSemiSupervised(mrisp_shape, nclasses=nclasses, atlas_feats=len(feats), src_feats=len(feats), nb_unet_features=unet_nfeats, mean_cap=100)
 
     stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=500)
@@ -281,10 +276,12 @@ with strategy.scope():
     else:
         smooth_loss = warp_sphere_loss.gradientLoss(penalty='l2')
 
-    model_semi_fname = '%s/%s.fs_atlas.warp%2.2f.geom%2.2f.dice%2.2f.%s.semi.test.h5' % (model_dir, hemi, warp_smooth_wt, geom_match_wt, dice_wt, which_smooth_loss)
+    model_semi_name = '%s/%s.fs_atlas.warp%2.2f.geom%2.2f.dice%2.2f.%s.semi.test' % (model_dir, hemi, warp_smooth_wt, geom_match_wt, dice_wt, which_smooth_loss)
+    model_semi_fname = model_semi_name + '.h5'
+    initial_epoch = 0
+    write_cb1 = nes.callbacks.WriteHist(model_semi_name+f'.fit1.txt', mode='w' if initial_epoch == 0 else 'a')
     mc = tf.keras.callbacks.ModelCheckpoint(model_semi_fname, monitor='val_loss', mode='min', save_best_only=True, save_weights_only=True)
-    callbacks = [stopping_callback, lr_callback]
-    print('saving model weights to %s' % model_semi_fname)
+    callbacks1 = [stopping_callback, lr_callback, write_cb1]
 
     # create a likelihood loss for all the geometric measures
     # and split it into different channels so that they can be weighted
@@ -300,38 +297,53 @@ with strategy.scope():
     # weight sulc in frame 1 more heavily
     channel_loss = nes.losses.channelwise_losses_decorator([0,1,2], [l2_loss_c0, l2_loss_c1, l2_loss_c2], loss_weights=[.1,1,.1],norm_weights=True)
 
-    linear_losses = [channel_loss, l2_loss_inv, smooth_loss, l2_loss]
-    linear_loss_weights = [geom_match_wt, geom_match_wt/5, warp_smooth_wt, 1.0/100] # scale down to account for log-loss
+    linear_losses = [channel_loss, l2_loss_inv, l2_loss, smooth_loss]
+    linear_loss_weights = [geom_match_wt, geom_match_wt/5, dice_wt/100, warp_smooth_wt] # scale down to account for log-loss
 
     if fit1:   # do first round of fitting with linear outputs to init things
-        nes.tf.utils.check_and_compile(model_semi.references.model_linear, check_losses=True, optimizer=keras.optimizers.Adam(lr=lr), loss=linear_losses, loss_weights=linear_loss_weights)
-        fhist1 = model_semi.references.model_linear.fit(lgen, epochs=30, steps_per_epoch=100, callbacks=callbacks, validation_data=lvgen, validation_steps=1)
-
-    if fit2:  # use softmax as output and dice as loss after init
-        losses =        [channel_loss, l2_loss_inv, smooth_loss, dice_loss]
-        loss_weights = [geom_match_wt, geom_match_wt/5, warp_smooth_wt, dice_wt]
-        callbacks = [mc, lr_callback, stopping_callback]
-        nes.tf.utils.check_and_compile(model_semi, check_losses=True, optimizer=keras.optimizers.Adam(lr=lr), loss=losses, loss_weights=loss_weights)
-        # losses, compile and fit
-        fhist2 = model_semi.fit(gen, epochs=5000, steps_per_epoch=100, callbacks=callbacks, validation_data=vgen, validation_steps=1)
+        print(f'FIT1: saving model weights to {write_cb1.fname}')
+        nes.tf.utils.check_and_compile(model_semi.references.model_linear, check_losses=True, optimizer=keras.optimizers.Adam(learning_rate=lr), loss=linear_losses, loss_weights=linear_loss_weights)
+        fhist1 = model_semi.references.model_linear.fit(lgen, epochs=30, steps_per_epoch=100, callbacks=callbacks1, validation_data=lvgen, validation_steps=1)
     else:
-        fhist2 = []
-        model_semi.load_weights(model_semi_fname)
+        if fit2:
+            print(f'FIT1: loading model weights from {write_cb1.fname}')
+            model_semi.load_weights(mc.filepath)
 
+    model_semi_name = '%s/%s.fs_atlas.warp%2.2f.geom%2.2f.dice%2.2f.%s.semi.test' % (model_dir, hemi, warp_smooth_wt, geom_match_wt, dice_wt, which_smooth_loss)
+    model_semi_fname = model_semi_name + '.h5'
+    initial_epoch = 0
+    write_cb2 = nes.callbacks.WriteHist(model_semi_name+f'.fit2.txt', mode='w' if initial_epoch == 0 else 'a')
+    if fit2:  # use softmax as output and dice as loss after init
+        losses =        [channel_loss, l2_loss_inv, dice_loss, smooth_loss]
+        loss_weights = [geom_match_wt, geom_match_wt/5, dice_wt, warp_smooth_wt]
+        callbacks2 = [mc, lr_callback, stopping_callback, write_cb2]
+        nes.tf.utils.check_and_compile(model_semi, check_losses=True, optimizer=keras.optimizers.Adam(learning_rate=lr), loss=losses, loss_weights=loss_weights)
+        # losses, compile and fit
+        print(f'FIT2: saving model weights to {write_cb2.fname}')
+        fhist2 = model_semi.fit(gen, epochs=5000, steps_per_epoch=100, callbacks=callbacks2, validation_data=vgen, validation_steps=1)
+    else:
+        if fit3:
+            print(f'FIT2: loading model weights from {mc.filepath}')
+            model_semi.load_weights(mc.filepath)
+
+    model_semi_name = '%s/%s.fs_atlas.warp%2.2f.geom%2.2f.dice%2.2f.%s.semi.finetune' % (model_dir, hemi, warp_smooth_wt, geom_match_wt, dice_wt, which_smooth_loss)
+    model_semi_fname = model_semi_name + '..h5'
+    write_cb3 = nes.callbacks.WriteHist(model_semi_name+f'.fit3..txt', mode='w' if initial_epoch == 0 else 'a')
     if fit3:  # only train atlas
-        losses =        [channel_loss, l2_loss_inv, smooth_loss, dice_loss]
-        loss_weights = [0, 0, 0, 1]
-        model_semi_fname = '%s/%s.fs_atlas.warp%2.2f.geom%2.2f.dice%2.2f.%s.semi.finetune.h5' % (model_dir, hemi, warp_smooth_wt, geom_match_wt, dice_wt, which_smooth_loss)
+        losses =        [channel_loss, l2_loss_inv, dice_loss, smooth_loss]
+        loss_weights = [0, 0, 1, 0]
         mc = tf.keras.callbacks.ModelCheckpoint(model_semi_fname, monitor='val_loss', mode='min', save_best_only=True, save_weights_only=True)
-        callbacks = [stopping_callback, lr_callback, mc]
-        print('saving model weights to %s' % model_semi_fname)
+        callbacks3 = [stopping_callback, lr_callback, mc, write_cb3]
+        print(f'FIT3: saving model weights to {write_cb3.fname}')
 
         for layer in model_semi.layers:
             layer.trainable=True if layer.name == 'parc_atlas' else False
 
-        nes.tf.utils.check_and_compile(model_semi, check_losses=True, optimizer=keras.optimizers.Adam(lr=lr), loss=losses, loss_weights=loss_weights)
-        fhist3 = model_semi.fit(gen, epochs=5000, steps_per_epoch=100, callbacks=callbacks, validation_data=vgen, validation_steps=1)
-
+        nes.tf.utils.check_and_compile(model_semi, check_losses=True, optimizer=keras.optimizers.Adam(learning_rate=lr), loss=losses, loss_weights=loss_weights)
+        fhist3 = model_semi.fit(gen, epochs=5000, steps_per_epoch=100, callbacks=callbacks3, validation_data=vgen, validation_steps=1)
+    else:
+        print(f'FIT3: loading model weights from {mc.filepath}')
+        model_semi.load_weights(mc.filepath)
 
  
 warp_model = tf.keras.Model(model_semi.inputs, model_semi.references.pos_flow)
@@ -340,17 +352,28 @@ y_img = vxm.layers.SpatialTransformer(interp_method='linear', fill_value=None)([
 xform_model = tf.keras.Model(warp_model.inputs + [img_input], y_img)
 inputs = [np.array(dkt_mrisps_geom), np.array(dkt_mrisps_onehot)]
 prior_atlas = xform_model.predict(inputs)
-sf.Slice(np.array(prior_atlas).mean(axis=0)).save(hemi + '.' + 'DKTatlas.priors.mgz')
+#sf.Slice(np.array(prior_atlas).mean(axis=0)).save(hemi + '.' + 'DKTatlas.priors.mgz')
 
-if fit3:
-    fh = fhist3
-else:
-    fh = fhist2
+outputs = model_semi.predict([np.array(dkt_mrisps_geom)])
+atlas_mean_in_sub = outputs[0][:,pad:-pad, pad:-pad, :]
+sub_in_atlas = outputs[1][:, pad:-pad, pad:-pad, :]
+atlas_in_sub_seg = ind_to_lab[np.argmax(outputs[2], axis=-1)[:, pad:-pad, pad:-pad][..., np.newaxis]]
+fv = fs.Freeview(swap_batch_dim=True)
+fv.vol(np.array(dkt_mrisps_geom)[:, pad:-pad, pad:-pad, :], name='sub geom')
+fv.vol(sub_in_atlas, name='sub in atlas geom')
+fv.vol(atlas_mean_in_sub, name='atlas geom in sub')
+fv.vol(atlas_in_sub_seg, name='atlas seg in sub', opts=':colormap=lut')
+fv.show() 
 
-plt.close('all')
-plt.plot(fh.history['val_loss'])
-plt.plot(fh.history['val_atlas_out_loss'])
-plt.plot(fh.history['val_vxm_dense_transformer_loss'])
-plt.legend(['loss', 'seg loss', 'xform loss'])
-plt.grid()
-plt.show(block=False)
+#pfc([write_cb.fname], keys=['val_loss', 'val_atlas_seg_in_sub_lin_loss'],
+#    close_all=True, smooth=5, remove_outlier_thresh=2, outlier_whalf=4, plot_block=True)
+
+pfc([write_cb3.fname], keys=['val_loss', 'val_sub_in_atlas_loss', 'val_atlas_in_sub_seg_loss'], 
+    close_all=True, smooth=5, remove_outlier_thresh=2, outlier_whalf=4, plot_block=True)
+#plt.close('all')
+#plt.plot(fh.history['val_loss'])
+#plt.plot(fh.history['val_atlas_out_loss'])
+#plt.plot(fh.history['val_vxm_dense_transformer_loss'])
+#plt.legend(['loss', 'seg loss', 'xform loss'])
+#plt.grid()
+#plt.show(block=False)
