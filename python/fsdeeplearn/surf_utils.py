@@ -1,4 +1,8 @@
-import surfa as sf
+use_surfa = True
+use_surfa = False
+if use_surfa:
+    import surfa as sf
+
 import numpy as np
 import sys,os
 import voxelmorph_sandbox as vxms
@@ -9,6 +13,8 @@ import tensorflow as tf
 from tensorflow.keras import layers as KL
 from tqdm import tqdm
 import copy
+import freesurfer as fs
+
 
 def build_atlas(model, wt_fname, sphere_gen, target_atlas, feature_names = ['sulc', 'curv'], pad=8):
     model.load_weights(wt_fname)
@@ -136,13 +142,22 @@ def warp_all_inputs(model_semi, train_sphere_gen, atlas_target_mrisp_mean, pad=8
     return features_warped, overlays_warped
 
 def load_atlas(nfeats, hemi='lh', overlay_name = None, atlas_surf = None, pad=8):
-    atlas_target_mrisp_mean_ov = sf.load_overlay('%s.atlas_means.mrisp.nfeats%d.mgz' % (hemi, nfeats))
-    atlas_target_mrisp_std_ov = sf.load_overlay('%s.atlas_stds.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+    if 0:
+        atlas_target_mrisp_mean_ov = sf.load_overlay('%s.atlas_means.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+        atlas_target_mrisp_std_ov = sf.load_overlay('%s.atlas_stds.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+    else:
+        atlas_target_mrisp_mean_ov = fs.Image.read('%s.atlas_means.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+        atlas_target_mrisp_std_ov = fs.Image.read('%s.atlas_stds.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+
     atlas_target_mrisp_mean = atlas_target_mrisp_mean_ov.data
     atlas_target_mrisp_std = atlas_target_mrisp_std_ov.data
 
     if (overlay_name is not None):
-        atlas_overlay = sf.load_overlay(overlay_name)
+        if use_surfa:
+            atlas_overlay = sf.load_overlay(overlay_name)
+        else:
+            atlas_overlay = sf.Image.read(overlay_name)
+
         atlas_overlay_mrisp = np.pad(atlas_surf.parameterize(atlas_overlay).data.transpose(), ((pad,pad),(0,0)),'wrap')[np.newaxis,...,np.newaxis]
     else:
         atlas_overlay_mrisp = None
@@ -242,7 +257,10 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
         sdir = os.path.join(spath, 'surf')
         fdir = os.path.join(base_dir, sdir1, sname)
         sphere_fname = os.path.join(sdir, sphere_name)
-        sphere = sf.load_mesh(sphere_fname)
+        if use_surfa:
+            sphere = sf.load_mesh(sphere_fname)
+        else:
+            sphere = fs.Surface.read(sphere_fname)
         geoms = []
         for geom_name in geom_names:
             geom_fname = os.path.join(sdir, hemi + '.' + geom_name)
@@ -250,7 +268,10 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
             geoms.append(geom)
 
         spheres.append(sphere)
-        func = sf.load_overlay(os.path.join(fdir, func_dir))
+        if use_surfa:
+            func = sf.load_overlay(os.path.join(fdir, func_dir))
+        else:
+            func = fs.Overlay.read(os.path.join(fdir, func_dir))
 #        funcs.append(func)
         if ((sphere.nvertices != geoms[0].shape[0]) or
             (geoms[0].shape[0] != func.shape[0])):
@@ -261,8 +282,12 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
         if smooth_steps is not None:
             func = sphere.smooth_overlay(func, smooth_steps, 0.8)
 
-        smap = sf.sphere.SphericalMapBarycentric(sphere)
-        mrisp_geom = smap.parameterize(np.transpose(np.array(geoms)))
+        if use_surfa:
+            smap = sf.sphere.SphericalMapBarycentric(sphere)
+            mrisp_geom = smap.parameterize(np.transpose(np.array(geoms)))
+        else:
+            mrisp_geom = sphere.parameterize(np.array(geoms))
+
         mrisp_geom = (mrisp_geom - mrisp_geom.mean()) / np.std(mrisp_geom)
         mrisp_func = smap.parameterize(func)
 
@@ -523,7 +548,10 @@ class PatchModel2D(LoadableModel):
 def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thresh=3):
 
     if isinstance(curvFileName, str):
-        curv = sf.load_overlay(curvFileName).data
+        if use_surfa:
+            curv = sf.load_overlay(curvFileName).data
+        else:
+            curv = fs.Overlay.Read(curvFileName).data
     else:  # if not a string assume it is the curvature vector itself
         curv = curvFileName
         
@@ -782,11 +810,12 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
 
     zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
 
-    if use_logprob:  # expand annots to be [-10:00] instead of [0,1]
+    if use_logprob:  # expand annots to be [-10, 10] instead of [0,1]
         mrisps_annot_log = np.ones((len(mrisps_annot),) + mrisps_annot[0].shape) * log_target
         for mno, mrisp in enumerate(tqdm(mrisps_annot_log)):
             ind0 = np.nonzero(mrisps_annot[mno] == 0)
-            mrisp[ind0] = -log_target
+            mrisp *= log_target         # set 1 --> log_target
+            mrisp[ind0] = -log_target   # set 0 --> -log_target
 
     while True:
         for bno in range(batch_size):
@@ -1016,7 +1045,10 @@ class PatchModel2D(LoadableModel):
 def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thresh=3):
 
     if isinstance(curvFileName, str):
-        curv = sf.load_overlay(curvFileName).data
+        if use_surfa:
+            curv = sf.load_overlay(curvFileName).data
+        else:
+            curv = fs.Overlay.read(curvFileName).data
     else:  # if not a string assume it is the curvature vector itself
         curv = curvFileName
         
@@ -1034,21 +1066,33 @@ def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thr
 
 
 def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median', interp='barycentric'):
-    if isinstance(surfName, sf.Mesh):
-        surf = surfName   # surface specified instead of a file name to load one from
-    else:
-        surf = sf.load_mesh(surfName)
-    curv = normCurvature(curvFileName, which_norm)
-    
-    if interp == 'barycentric':
-        smap = sf.sphere.SphericalMapBarycentric(surf)
-    elif interp == 'nearest':
-        smap = sf.sphere.SphericalMapNearest(surf)
-    else:
-        raise ValueError(f'unknown spherical interp type {interp}')
 
-    mrisp = smap.parameterize(curv)
-    data = mrisp.data.squeeze().transpose()
+    if use_surfa:
+        if isinstance(surfName, sf.Mesh):
+            surf = surfName   # surface specified instead of a file name to load one from
+        else:
+            surf = sf.load_mesh(surfName)
+    else:
+        if isinstance(surfName, fs.Surface):
+            surf = surfName   # surface specified instead of a file name to load one from
+        else:
+            surf = fs.Surface.read(surfName)
+
+    curv = normCurvature(curvFileName, which_norm)
+
+    if use_surfa:
+        if interp == 'barycentric':
+            smap = sf.sphere.SphericalMapBarycentric(surf)
+        elif interp == 'nearest':
+            smap = sf.sphere.SphericalMapNearest(surf)
+        else:
+            raise ValueError(f'unknown spherical interp type {interp}')
+
+        mrisp = smap.parameterize(curv)
+        data = mrisp.data.squeeze().transpose()
+    else:
+        mrisp = surf.parameterize(curv)
+        data = mrisp.squeeze().transpose()
     
     paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
     paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
