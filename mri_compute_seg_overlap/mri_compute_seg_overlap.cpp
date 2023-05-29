@@ -497,7 +497,7 @@ static int get_option(int argc, char *argv[])
     // ExcludeId - exclude this seg (eg, 0 to exclude Unknown)
     // datfile - save the dice for each seg on a single line without anymore info
     // tablefile - save as a table with each seg on a row followed by 
-    //   count1 count2 dice tpr fdr 
+    //   count1 count2 dice tpr fdr jaccard
     SegDice sd;
     sd.seg1 = MRIread(argv[2]);
     if(sd.seg1==NULL) exit(1);

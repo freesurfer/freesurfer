@@ -1955,6 +1955,8 @@ int SegDice::ComputeDice()
   tpr.resize(seglist.size());
   fdr.clear();
   fdr.resize(seglist.size());
+  jaccard.clear();
+  jaccard.resize(seglist.size());
 
   int c;
   for(c=0; c < seg1->width; c++){
@@ -1985,6 +1987,7 @@ int SegDice::ComputeDice()
     dice[c] = 2.0*count12[c]/(count1[c]+count2[c]+FLT_EPSILON);
     tpr[c]  = count12[c]/(count1[c]+FLT_EPSILON);
     fdr[c]  = countFD[c]/(count2[c]+FLT_EPSILON);
+    jaccard[c]  = count12[c]/(count1[c]+count2[c]-count12[c]+FLT_EPSILON);
     c++;
   }
   return(0);
@@ -2028,9 +2031,9 @@ int SegDice::PrintDiceTable(FILE *fp)
     std::vector<int>::iterator ind = std::find(excludelist.begin(), excludelist.end(), seglist[c]);
     if(ind != excludelist.end()) continue;
     int segid = seglist[c];
-    fprintf(fp,"%4d %-30s %6d %6d %6.5lf %6.5lf %6.5lf\n",
+    fprintf(fp,"%4d %-30s %6d %6d %6.5lf %6.5lf %6.5lf %6.5lf\n",
 	    segid,ctab->entries[segid]->name,count1[c],count2[c],
-	    dice[c],tpr[c],fdr[c]);
+	    dice[c],tpr[c],fdr[c],jaccard[c]);
   }
   fprintf(fp,"\n");
   return(0);
