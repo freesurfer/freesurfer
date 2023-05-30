@@ -525,23 +525,27 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
 }
 
 // scanner space vox2ras from vol geom
+// call to this function is equivalent to vg->get_Vox2RAS();
 MATRIX *vg_i_to_r(const VOL_GEOM *vg)
 {
   MATRIX *mat = extract_i_to_r(vg);
   return mat;
 }
+// call to this function is equivalent to vg->get_RAS2Vox();
 MATRIX *vg_r_to_i(const VOL_GEOM *vg)
 {
   MATRIX *mat = extract_r_to_i(vg);
   return mat;
 }
 // tkregister space vox2ras from vol geom
+// call to this function is equivalent to vg->get_Vox2TkregRAS();
 MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg)
 {
   MATRIX *mat = MRIxfmCRS2XYZtkreg(vg);
   return (mat);
 }
 // tkregister space ras2vox from vol geom
+// call to this function is equivalent to vg->get_TkregRAS2Vox();
 MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg)
 {
   MATRIX *mat = NULL;
@@ -3218,8 +3222,8 @@ int LTAprint(FILE *fp, const LTA *lta)
   // fprintf(fp, "type      = %d\n", lta->type) ;
   fprintf(fp, "type      = %d ", lta->type);
   if (lta->type == LINEAR_VOX_TO_VOX) fprintf(fp, "# LINEAR_VOX_TO_VOX");
-  if (lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
-  if (lta->type == REGISTER_DAT) fprintf(fp, "# REGISTER_DAT");
+  else if (lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
+  else if (lta->type == REGISTER_DAT) fprintf(fp, "# REGISTER_DAT");
   fprintf(fp, "\n");
   fprintf(fp, "nxforms   = %d\n", lta->num_xforms);
   for (i = 0; i < lta->num_xforms; i++) {
@@ -4307,6 +4311,8 @@ int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst)
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
+// this function is same as MATRIX *MRIxfmCRS2XYZ(const VOL_GEOM *mri, int base)
+// call to this function is equivalent to vg->get_Vox2RAS(base);
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *PxyzOffset, *Pcrs;
@@ -4368,6 +4374,7 @@ MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
   return (m);
 }
 
+// call to this function is equivalent to vg->get_RAS2Vox(base)
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *m_inv;

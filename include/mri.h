@@ -196,12 +196,47 @@ struct VOL_GEOM
   // The functions below compute these matrices on-the-fly
   // RAS = scanner RAS (sometimes known as "real" RAS in surface contexts)
   // TkregRAS = RAS used by tkregister; surface coords are by default in this TkregRAS space
-  MATRIX *get_Vox2RAS(void){       return(MRIxfmCRS2XYZ(this,0));}
-  MATRIX *get_RAS2Vox(void){       return(MatrixInverse(get_Vox2RAS(),NULL));}
+  MATRIX *get_Vox2RAS(int base=0){       return(MRIxfmCRS2XYZ(this,base));}
+  MATRIX *get_RAS2Vox(int base=0){       return(MatrixInverse(get_Vox2RAS(base),NULL));}
   MATRIX *get_Vox2TkregRAS(void){  return(MRIxfmCRS2XYZtkreg(this));}
   MATRIX *get_TkregRAS2Vox(void){  return(MatrixInverse(get_Vox2TkregRAS(),NULL));}
   MATRIX *get_RAS2TkregRAS(void){  return(VGras2tkreg(this, NULL));}
   MATRIX *get_TkregRAS2RAS(void){  return(VGtkreg2RAS(this, NULL));}
+
+  // return 1 if two VOL_GEOMs equal;
+  // otherwise, return 0
+  int operator== (const VOL_GEOM& vg)
+  {
+    extern double vg_isEqual_Threshold;
+    int rt = isNotEqualThresh(this, &vg, vg_isEqual_Threshold);
+    return (rt == 0) ? 1 : 0;
+  }
+
+  // if two VOL_GEOMs equal, return 0;
+  // otherwise, return number > 0
+  static int isNotEqualThresh(const VOL_GEOM *vg1, const VOL_GEOM *vg2, const double thresh)
+  {
+    if (vg1->valid != vg2->valid) return (1);
+    if (vg1->width != vg2->width) return (2);
+    if (vg1->height != vg2->height) return (3);
+    if (vg1->depth != vg2->depth) return (4);
+    if (!FZEROTHR(vg1->xsize - vg2->xsize, thresh)) return (5);
+    if (!FZEROTHR(vg1->ysize - vg2->ysize, thresh)) return (6);
+    if (!FZEROTHR(vg1->zsize - vg2->zsize, thresh)) return (7);
+    if (!FZEROTHR(vg1->x_r - vg2->x_r, thresh)) return (8);
+    if (!FZEROTHR(vg1->x_a - vg2->x_a, thresh)) return (9);
+    if (!FZEROTHR(vg1->x_s - vg2->x_s, thresh)) return (10);
+    if (!FZEROTHR(vg1->y_r - vg2->y_r, thresh)) return (11);
+    if (!FZEROTHR(vg1->y_a - vg2->y_a, thresh)) return (12);
+    if (!FZEROTHR(vg1->y_s - vg2->y_s, thresh)) return (13);
+    if (!FZEROTHR(vg1->z_r - vg2->z_r, thresh)) return (14);
+    if (!FZEROTHR(vg1->z_a - vg2->z_a, thresh)) return (15);
+    if (!FZEROTHR(vg1->z_s - vg2->z_s, thresh)) return (16);
+    if (!FZEROTHR(vg1->c_r - vg2->c_r, thresh)) return (17);
+    if (!FZEROTHR(vg1->c_a - vg2->c_a, thresh)) return (18);
+    if (!FZEROTHR(vg1->c_s - vg2->c_s, thresh)) return (19);
+    return (0);
+  };
 };
 
 typedef VOL_GEOM VG;
