@@ -1517,7 +1517,7 @@ static int parse_commandline(int argc, char **argv) {
       exit(0);
     }
     else if(istringnmatch(option, "--gcam",0) || istringnmatch(option, "--gcam0",0)) {
-      LTA *srclta, *dstlta;
+      LTA *srclta, *dstlta=NULL;
       if(nargc < 7){
 	printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 	argnerr(option,7);
@@ -1535,8 +1535,10 @@ static int parse_commandline(int argc, char **argv) {
 	gcam = GCAMread(pargv[2]);
 	if(gcam == NULL) exit(1);
       } else gcam = NULL;
-      printf("Loading destination LTA %s\n",pargv[3]);
-      dstlta = LTAread(pargv[3]);
+      if(strcmp(pargv[2],"0")!=0){
+	printf("Loading destination LTA %s\n",pargv[3]);
+	dstlta = LTAread(pargv[3]);
+      }
       if(strcmp(pargv[4],"0")!=0){
 	vsm = MRIread(pargv[4]);
 	if(vsm == NULL) exit(1);
@@ -1667,6 +1669,7 @@ printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov 
 printf("\n");
 printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 printf("     srclta, gcam, or vsm can be set to 0 to indicate identity (not regheader)\n");
+printf("     if dstlta is 0, then uses gcam atlas geometry as output target\n");
 printf("     direction is automatically determined from srclta and dstlta\n");
 printf("     interp 0=nearest, 1=trilin, 5=cubicbspline\n");
 printf("     DestVol -> dstLTA -> CVSVol -> gcam -> AnatVol -> srcLTA -> B0UnwarpedVol -> VSM -> MovVol (b0Warped)\n");
@@ -2338,6 +2341,16 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
       return(NULL);
     }
   }
+  int free_dstlta = 0;
+  if(!dstlta){
+    if(gcam==NULL){
+      printf("ERROR: MRIvol2volGCAM(): both dstlta and gcam are NULL\n");
+      return(NULL);
+    }
+    printf("Dst LTA is null, so just using gcam atas as output target\n");
+    dstlta = TransformRegDat2LTA(&gcam->atlas, &gcam->atlas, NULL); // nothing to do with reg.dat
+    free_dstlta = 1;
+  }
 
   // Make sure that the source lta points in the right direction
   LTA *srcltacopy = srclta;
@@ -2534,6 +2547,7 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
   MatrixFree(&crsSrc);
   MatrixFree(&Vdst);
   MatrixFree(&Vsrc);
+  if(free_dstlta) LTAfree(&dstlta);
   if(bspline) MRIfreeBSpline(&bspline);
   free(valvect);
   if(srcltacopy) LTAfree(&srcltacopy);
