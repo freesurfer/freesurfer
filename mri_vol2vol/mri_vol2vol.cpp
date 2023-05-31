@@ -1535,7 +1535,7 @@ static int parse_commandline(int argc, char **argv) {
 	gcam = GCAMread(pargv[2]);
 	if(gcam == NULL) exit(1);
       } else gcam = NULL;
-      if(strcmp(pargv[2],"0")!=0){
+      if(strcmp(pargv[3],"0")!=0){
 	printf("Loading destination LTA %s\n",pargv[3]);
 	dstlta = LTAread(pargv[3]);
       }
