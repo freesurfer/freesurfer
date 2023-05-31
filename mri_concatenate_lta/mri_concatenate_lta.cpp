@@ -253,9 +253,9 @@ int main(int argc, char *argv[])
           volume of lta2",Progname);*/
     printf("Warning: dst volume of lta1 doesn't match src volume of lta2\n");
     printf("Volume geometry for lta1-dst: \n");
-    vg_print(&lta1->xforms[0].dst);
+    lta1->xforms[0].dst.vgprint();
     printf("Volume geometry for lta2-src:\n");
-    vg_print(&lta2->xforms[0].src);
+    lta2->xforms[0].src.vgprint();
   }
 
   printf("Combining the two LTAs to get a RAS-to-RAS from src "

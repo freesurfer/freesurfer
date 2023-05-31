@@ -1090,9 +1090,9 @@ int main(int argc, char *argv[])
           printf("%s: WARNING: dst volume of lta "
                  "doesn't match that of input volume\n",Progname);
           printf("Volume geometry for lta-dst:\n");
-          vg_print(&lta->xforms[0].dst);
+          lta->xforms[0].dst.vgprint();
           printf("Volume geometry for input volume is:\n");
-          vg_print(&vgm_in);
+          vgm_in.vgprint();
         }
 
         getVolGeom(mri_labeled, &vgm_in);
@@ -1101,9 +1101,9 @@ int main(int argc, char *argv[])
           printf("%s: WARNING: src volume of lta "
                  "doesn't match that of tp1 label volume\n",Progname);
           printf("Volume geometry for lta-src:\n");
-          vg_print(&lta->xforms[0].src);
+          lta->xforms[0].src.vgprint();
           printf("Volume geometry for tp1 label volume is:\n");
-          vg_print(&vgm_in);
+          vgm_in.vgprint();
 
         }
 

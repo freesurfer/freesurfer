@@ -203,6 +203,26 @@ struct VOL_GEOM
   MATRIX *get_RAS2TkregRAS(void){  return(VGras2tkreg(this, NULL));}
   MATRIX *get_TkregRAS2RAS(void){  return(VGtkreg2RAS(this, NULL));}
 
+  void vgprint(bool nocheck=false)
+  {
+    if (valid == 1 || nocheck) {
+      fprintf(stderr, "volume geometry:\n");
+      if (nocheck)
+        fprintf(stderr, "valid   : %d\n", valid);
+      fprintf(stderr, "extent  : (%d, %d, %d)\n", width, height, depth);
+      fprintf(stderr, "voxel   : (%7.4f, %7.4f, %7.4f)\n", xsize, ysize, zsize);
+      fprintf(stderr, "x_(ras) : (%7.4f, %7.4f, %7.4f)\n", x_r, x_a, x_s);
+      fprintf(stderr, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", y_r, y_a, y_s);
+      fprintf(stderr, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", z_r, z_a, z_s);
+      fprintf(stderr, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", c_r, c_a, c_s);
+      fprintf(stderr, "file    : %s\n", fname);
+    }
+    else
+      fprintf(stderr, "volume geometry: info is either not contained or not valid.\n");
+
+    fflush(stderr);    
+  }
+  
   // return 1 if two VOL_GEOMs equal;
   // otherwise, return 0
   int operator== (const VOL_GEOM& vg)

@@ -2085,7 +2085,7 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
 	// If this fails a lot, try setting vg_isEqual_Threshold higher
 	printf("vg surf ------------------------\n");
 	fflush(stdout);	fflush(stderr);
-	vg_print(&surf->vg);
+	surf->vg.vgprint();
 	fflush(stdout);	fflush(stderr);
 	printf("LTA ------------------------\n");
 	LTAprint(stdout,lta);

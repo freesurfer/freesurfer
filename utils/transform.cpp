@@ -279,6 +279,7 @@ int LTAdiff(LTA *lta1, LTA *lta2, double thresh)
   return (ret);
 }
 
+// this function is obsolete. Use vg->vgprint() instead.
 void vg_print(const VOL_GEOM *vg)
 {
   if (vg->valid == 1) {
@@ -3581,8 +3582,8 @@ int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst)
                   "INFO: src volume info "
                   "differs from the one stored in lta. "
                   "gets modified now.\n");
-          vg_print(&svg);
-          vg_print(&lt->src);
+          svg.vgprint();
+          lt->src.vgprint();
           getVolGeom(src, &lt->src);
         }
       }
@@ -3602,8 +3603,8 @@ int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst)
           fprintf(stderr,
                   "INFO: dst volume info differs "
                   "from the one stored in lta.  gets modified now.\n");
-          vg_print(&dvg);
-          vg_print(&lt->dst);
+          dvg.vgprint();
+          lt->dst.vgprint();
           getVolGeom(dst, &lt->dst);
         }
       }
@@ -4486,9 +4487,9 @@ MATRIX *TransformLTA2RegDat(LTA *lta)
   if (Gdiag_no > 0) {
     printf("TransformLTA2RegDat() -----------");
     printf("src/targ Vol Geom");
-    vg_print(&lta->xforms[0].src);
+    lta->xforms[0].src.vgprint();
     printf("dst/mov  Vol Geom");
-    vg_print(&lta->xforms[0].dst);
+    lta->xforms[0].dst.vgprint();
     printf("Vox2Vox---------------------------\n");
     MatrixPrint(stdout, Vox2Vox);
     printf("Tmov ---------------------------\n");

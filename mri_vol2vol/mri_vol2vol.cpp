@@ -2350,7 +2350,7 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
     else if(!LTAmriIsTarget(srcltacopy, src)){
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Source LTA matches the mov vol geom\n");
       printf("mov vol geom ======================\n");
-      vg_print(src);
+      src->vgprint();
       printf("Source LTA ======================\n");
       LTAprint(stdout, srcltacopy);
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Source LTA matches the mov vol geom\n");
@@ -2360,7 +2360,7 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
       // make sure that the gcam->image matches the src of the Source LTA
       printf("ERROR: MRIvol2volGCAM(): gcam image vol geom does not match Source LTA src vol geom\n");
       printf("gcam image vol geom ======================\n");
-      vg_print(&gcam->image);
+      gcam->image.vgprint();
       printf("Source LTA ======================\n");
       LTAprint(stdout, srcltacopy);
       printf("ERROR: MRIvol2volGCAM(): gcam image vol geom does not match Source LTA src vol geom\n");
@@ -2387,7 +2387,7 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
     else {
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the atlas vol geom in the GCAM\n");
       printf("gcam atlas vol geom ======================\n");
-      vg_print(&gcam->atlas);
+      gcam->atlas.vgprint();
       printf("Dest LTA ======================\n");
       LTAprint(stdout, dstlta);
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the atlas vol geom in the GCAM\n");
@@ -2400,7 +2400,7 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
     else {
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the src vol geom of the Source LTA\n");
       printf("Source LTA src vol geom ======================\n");
-      vg_print(&srcltacopy->xforms[0].src);
+      srcltacopy->xforms[0].src.vgprint();
       printf("Dest LTA ======================\n");
       LTAprint(stdout, dstlta);
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the src vol geom of the Source LTA\n");
@@ -2413,7 +2413,7 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
     else {
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the mov/src vol geom\n");
       printf("mov vol geom ======================\n");
-      vg_print(src);
+      src->vgprint();
       printf("Dest LTA ======================\n");
       LTAprint(stdout, dstlta);
       printf("ERROR: MRIvol2volGCAM(): neither src nor dst of Dest LTA matches the mov/src vol geom\n");
