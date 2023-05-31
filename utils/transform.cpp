@@ -325,10 +325,11 @@ void initVolGeom(VOL_GEOM *vg)
 }
 
 /*!
-\fn void getVolGeom(const MRI *src, VOL_GEOM *dst)
-\brief Copy Volume Geometry from MRI
+\fn void getVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
+\brief Copy Volume Geometry from VOL_GEOM. This used to have an MRI
+as an input. Now it seems kinda silly.
  */
-void getVolGeom(const MRI *src, VOL_GEOM *dst)
+void getVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   if (!src) ErrorExit(ERROR_BADPARM, "must have a valid MRI (src)");
   if (!dst) ErrorExit(ERROR_BADPARM, "must have a valid VOL_GEOM (dst)");
@@ -372,9 +373,10 @@ MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly)
 
 /*
 \fn void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
-\brief Copy geometry info from VOL_GEOM to an MRI structure
+\brief Copy geometry info from VOL_GEOM to a VOL_GEOM. 
+This used to have an MRI as an output. Now it seems kinda silly. structure
 */
-void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
+void useVolGeomToMRI(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   if (!src) ErrorExit(ERROR_BADPARM, "must have a valid VOL_GEOM (src)");
   if (!dst) ErrorExit(ERROR_BADPARM, "must have a valid MRI (dst)");
@@ -4391,7 +4393,7 @@ MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
    The LTA will be LINEAR_VOX_TO_VOX that maps target vox to
    mov vox. If R=NULL, then computes the LTA based on header geometry.
 */
-LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
+LTA *TransformRegDat2LTA(VOL_GEOM *targ, VOL_GEOM *mov, MATRIX *R)
 {
   LTA *lta;
   MATRIX *vox2vox;  // Targ->Mov
