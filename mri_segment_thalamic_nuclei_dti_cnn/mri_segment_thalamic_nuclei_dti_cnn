@@ -48,6 +48,10 @@ def main():
                                      "headers, do NOT resample when registering; see instructions on FreeSurfer wiki)")
     parser.add_argument("--fa", help="FA image(s). Must be a folder if --t1 designates a folder. ")
     parser.add_argument("--v1", help="V1 image(s). Must be a folder if --t1 designates a folder. ")
+    parser.add_argument("--lta", default=None, help="Optional transform lta file(s) from T1 to FA. "
+                                                          "Must be a folder if --t1 designates a folder.")
+    parser.add_argument("--lta_inv", default=None, help="Optional transform lta file(s) from FA to T1. "
+                                                          "Must be a folder if --t1 designates a folder.")
     parser.add_argument("--o", help="Segmentation output(s). Must be a folder if --t1 designates a folder.")
     parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
     parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --t1 designates a folder.")
@@ -109,7 +113,9 @@ def main():
         names_segmentation=names_segmentation_labels,
         path_posteriors=args.post,
         path_volumes=args.vol,
-        topology_classes=topology_classes
+        topology_classes=topology_classes,
+        path_xfrm=args.lta,
+        path_xfrm_inv=args.lta_inv
     )
 
 
@@ -129,14 +135,26 @@ def predict(path_t1,
             names_segmentation,
             path_posteriors,
             path_volumes,
-            topology_classes):
+            topology_classes,
+            path_xfrm=None,
+            path_xfrm_inv=None):
     '''
     Prediction pipeline.
     '''
+    invert_transform = False
+
+    if path_xfrm_inv is not None:
+        if path_xfrm is not None:
+            raise Exception('Can only supply forward or inverse lta transform.')
+        else :
+            path_xfrm = path_xfrm_inv
+            invert_transform = True
+
 
     # prepare input/output filepaths
     outputs = prepare_output_files(path_t1, path_aseg, path_fa, path_v1,
-                                   path_segmentations, path_posteriors, path_volumes)
+                                   path_segmentations, path_posteriors, path_volumes,
+                                   path_xfrm=path_xfrm)
     path_t1 = outputs[0]
     path_aseg = outputs[1]
     path_fa = outputs[2]
@@ -145,6 +163,8 @@ def predict(path_t1,
     path_posteriors = outputs[5]
     path_volumes = outputs[6]
     unique_vol_file = outputs[7]
+    if path_xfrm is not None:
+        path_xfrm = outputs[8]
 
     # get label lists
     labels_segmentation, _ = get_list_labels(label_list=labels_segmentation)
@@ -192,7 +212,10 @@ def predict(path_t1,
                                                                          path_fa=path_fa[i],
                                                                          path_v1=path_v1[i],
                                                                          crop=128,
-                                                                         min_pad=min_pad)
+                                                                         min_pad=min_pad,
+                                                                         xfrm_aff=path_xfrm[i],
+                                                                         path_output=path_segmentations[i],
+                                                                         invert_transform=invert_transform)
 
             # prediction
             shape_input = add_axis(np.array(image.shape[1:-1]))
@@ -265,11 +288,11 @@ def predict(path_t1,
             '\nDomain-agnostic segmentation of thalamic nuclei from joint structural and diffusion MRI')
         print('H.F.J. Tregidgo, S.Soskic, M.D. Olchanyi, J. Althonayan, B. Billot, C. Maffei, P. Golland,'
               '\n A. Yendiki, D.C. Alexander, M. Bocchetta, J.D. Rohrer, J.E. Iglesias')
-        print('arXiv preprint: https://arxiv.org/abs/2305.03413')
+        print('arXiv preprint: https://arxiv.org/abs/2305.03413 (Accepted to MICCAI 2023)')
 
 
 def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_posteriors,
-                         out_volumes):
+                         out_volumes, path_xfrm=None):
     '''
     Prepare output files.
     '''
@@ -325,6 +348,7 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
         path_aseg, _, _ = text_helper(path_aseg, 'path_aseg')
         path_fa, _, _ = text_helper(path_fa, 'path_fa')
         path_v1, _, _ = text_helper(path_v1, 'path_v1')
+        path_xfrm, _, _ = text_helper(path_xfrm, 'path_xfrm')
 
         # use helper on all outputs
         out_seg, recompute_seg, _ = text_helper(out_seg, 'path_segmentations')
@@ -370,6 +394,7 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
         path_aseg, _, _ = helper_dir(path_aseg, 'path_aseg', '', '')
         path_fa, _, _ = helper_dir(path_fa, 'path_fa', '', '')
         path_v1, _, _ = helper_dir(path_v1, 'path_v1', '', '')
+        path_xfrm, _, _ = helper_dir(path_xfrm, 'path_xfrm', '', '')
 
         # use helper on all outputs
         out_seg, recompute_seg, _ = helper_dir(out_seg, 'path_segmentations', '', 'synthseg')
@@ -415,6 +440,7 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
         path_aseg, _, _ = helper_im(path_aseg, 'path_aseg', '', '')
         path_fa, _, _ = helper_im(path_fa, 'path_fa', '', '')
         path_v1, _, _ = helper_im(path_v1, 'path_v1', '', '')
+        path_xfrm = [path_xfrm]
 
         # use helper on all outputs
         out_seg, recompute_seg, _ = helper_im(out_seg, 'path_segmentations', '', 'synthseg')
@@ -423,10 +449,18 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
 
 
     return path_t1, path_aseg, path_fa, path_v1, out_seg, out_posteriors, \
-           out_volumes, unique_volume_file
+           out_volumes, unique_volume_file, path_xfrm
 
 
-def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_pad=None, path_resample=None):
+def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_pad=None, path_resample=None,
+               xfrm_aff=None,path_output=None,invert_transform=False):
+
+    # set transform application behaviour
+    trans_flag = ' --lta '
+
+    if invert_transform :
+        trans_flag = ' --lta-inv '
+
     # read image and corresponding info
     im_fa, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_fa, True)
     if n_dims < 3:
@@ -455,11 +489,37 @@ def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_
     shape = list(im_fa.shape[:n_dims])
 
     # Read and resample ASEG
-    aseg, aff, _ = load_volume(path_aseg, im_only=False)
+    if xfrm_aff is not None:
+        temp_file = path_output +'.tmp.mgz'
+        temp_os = os.system('mri_vol2vol --mov ' +  path_aseg + ' --o ' + temp_file + trans_flag + xfrm_aff + ' --no-resample'
+                  + ' --targ ' + path_fa + ' > /dev/null')
+
+        if temp_os != 0 :
+            raise Exception('mri_vol2vol failed. Is FreeSurfer sourced?')
+
+        aseg, aff, _ = load_volume(temp_file, im_only=False)
+
+        os.system('rm -rf ' + temp_file)
+    else:
+        aseg, aff, _ = load_volume(path_aseg, im_only=False)
+
     aseg = resample_like(im_fa, aff2, aseg, aff, method='nearest')
 
     # Read and resample T1
-    im_t1, aff, _ = load_volume(path_t1, im_only=False)
+    if xfrm_aff is not None:
+        temp_file = path_output +'.tmp.mgz'
+        temp_os = os.system('mri_vol2vol --mov ' +  path_t1 + ' --o ' + temp_file + trans_flag + xfrm_aff + ' --no-resample'
+                  + ' --targ ' + path_fa  + ' > /dev/null')
+
+        if temp_os != 0 :
+            raise Exception('mri_vol2vol failed. Is FreeSurfer sourced?')
+
+        im_t1, aff, _ = load_volume(temp_file, im_only=False)
+
+        os.system('rm -rf ' + temp_file)
+    else:
+        im_t1, aff, _ = load_volume(path_t1, im_only=False)
+
     im_t1 = resample_like(im_fa, aff2, im_t1, aff)
 
     # Normalize the T1
