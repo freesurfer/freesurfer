@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source "$(dirname $0)/../test.sh"
 
-test_command ../../mri_convert/mri_convert -ds 6 6 6 -i T1.mgz -o T1_downsample.mgz && AntsN4BiasFieldCorrectionFs -i T1_downsample.mgz -o T1.out.mgz
+test_command ../../mri_convert/mri_convert -dsold 6 6 6 -i T1.mgz -o T1_downsample.mgz && AntsN4BiasFieldCorrectionFs -i T1_downsample.mgz -o T1.out.mgz
 
 # FIX ME - this exception for ubuntu18 should not ne necessary ?
 
