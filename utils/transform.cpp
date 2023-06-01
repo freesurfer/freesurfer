@@ -195,8 +195,10 @@ LINEAR_TRANSFORM *LTcopy(const LT *lt, LT *ltcp)
   MatrixCopy(lt->m_L, ltcp->m_L);
   MatrixCopy(lt->m_dL, ltcp->m_dL);
   MatrixCopy(lt->m_last_dL, ltcp->m_last_dL);
-  memcpy(&ltcp->src, &lt->src, sizeof(VOL_GEOM));
-  memcpy(&ltcp->dst, &lt->dst, sizeof(VOL_GEOM));
+  //memcpy(&ltcp->src, &lt->src, sizeof(VOL_GEOM));
+  ltcp->src = lt->src;
+  //memcpy(&ltcp->dst, &lt->dst, sizeof(VOL_GEOM));
+  ltcp->dst = lt->dst;
   return (ltcp);
 }
 
@@ -3491,9 +3493,11 @@ LTA *LTAreduce(const LTA *lta0)
     MatrixMultiply(M, lt0->m_L, lt0->m_L);  // new = M*old, M must be on left
   }
   if (DoInv == 0)
-    memcpy(&lt0->dst, &lt->dst, sizeof(VOL_GEOM));
+    //memcpy(&lt0->dst, &lt->dst, sizeof(VOL_GEOM));
+    lt0->dst = lt->dst;
   else
-    memcpy(&lt0->dst, &lt->src, sizeof(VOL_GEOM));
+    //memcpy(&lt0->dst, &lt->src, sizeof(VOL_GEOM));
+    lt0->dst = lt->src;
 
   LTAfree(&lta);
   return (ltar);
@@ -3552,8 +3556,10 @@ LTA *LTAfillInverse(LTA *lta)
   for (i = 0; i < lta->num_xforms; ++i) {
     if (MatrixInverse(lta->xforms[i].m_L, lta->inv_xforms[i].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible");
-    memmove(&lta->inv_xforms[i].src, &lta->xforms[i].dst, sizeof(VOL_GEOM));
-    memmove(&lta->inv_xforms[i].dst, &lta->xforms[i].src, sizeof(VOL_GEOM));
+    //memmove(&lta->inv_xforms[i].src, &lta->xforms[i].dst, sizeof(VOL_GEOM));
+    lta->inv_xforms[i].src = lta->xforms[i].dst;
+    //memmove(&lta->inv_xforms[i].dst, &lta->xforms[i].src, sizeof(VOL_GEOM));
+    lta->inv_xforms[i].dst = lta->xforms[i].src;
   }
   return lta;
 }

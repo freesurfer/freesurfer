@@ -185,7 +185,7 @@ struct VOL_GEOM
   float y_r =  0, y_a = 0, y_s = -1;
   float z_r =  0, z_a = 1, z_s =  0;
   float c_r =  0, c_a = 0, c_s =  0;
-  char          fname[STRLEN];  // volume filename
+  char  fname[STRLEN] = {'\0'};  // volume filename
 
   // i_to_r__, r_to_i__, register_mat were moved here from MRI in this commit:
   // https://github.com/freesurfer/freesurfer/commit/d7b80d733e96380543093e1bb0c11f0123f97132
@@ -203,6 +203,66 @@ struct VOL_GEOM
   MATRIX *get_RAS2TkregRAS(void){  return(VGras2tkreg(this, NULL));}
   MATRIX *get_TkregRAS2RAS(void){  return(VGtkreg2RAS(this, NULL));}
 
+  VOL_GEOM() {}
+  
+  // copy constructor
+  VOL_GEOM(const VOL_GEOM& vg)
+  {
+    valid = vg.valid;
+    width = vg.width;
+    height = vg.height;
+    depth = vg.depth;
+    xsize = vg.xsize;
+    ysize = vg.ysize;
+    zsize = vg.zsize;
+
+    ras_good_flag = vg.ras_good_flag;
+    x_r = vg.x_r;
+    x_a = vg.x_a;
+    x_s = vg.x_s;
+    y_r = vg.y_r;
+    y_a = vg.y_a;
+    y_s = vg.y_s;
+    z_r = vg.z_r;
+    z_a = vg.z_a;
+    z_s = vg.z_s;
+    c_r = vg.c_r;
+    c_a = vg.c_a;
+    c_s = vg.c_s;
+    
+    strcpy(fname, vg.fname);
+  }
+
+  // copy assignment
+  VOL_GEOM& operator= (const VOL_GEOM& other)
+  {
+    valid = other.valid;
+    width = other.width;
+    height = other.height;
+    depth = other.depth;
+    xsize = other.xsize;
+    ysize = other.ysize;
+    zsize = other.zsize;
+
+    ras_good_flag = other.ras_good_flag;
+    x_r = other.x_r;
+    x_a = other.x_a;
+    x_s = other.x_s;
+    y_r = other.y_r;
+    y_a = other.y_a;
+    y_s = other.y_s;
+    z_r = other.z_r;
+    z_a = other.z_a;
+    z_s = other.z_s;
+    c_r = other.c_r;
+    c_a = other.c_a;
+    c_s = other.c_s;
+    
+    strcpy(fname, other.fname);
+
+    return *this;
+  }
+  
   void vgprint(bool nocheck=false)
   {
     if (valid == 1 || nocheck) {
