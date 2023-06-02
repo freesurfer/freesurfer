@@ -57,6 +57,7 @@ def main():
     parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --t1 designates a folder.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
+    parser.add_argument("--version1", action="store_true", help="(optional) Use version 1.0 of the model (defaults to 1.1 updated 1st Jun 2023).")
     parser.add_argument("--model", default=None, help="(optional) Use a different model file.")
 
     # check for no arguments
@@ -87,11 +88,16 @@ def main():
 
     # path models
     if args.model is None:
-        path_model_segmentation = os.path.join(thalseg_home, 'models', 'thalseg_1.0.h5')
-
+        if args.version1:
+            path_model_segmentation = os.path.join(thalseg_home, 'models', 'thalseg_1.0.h5')
+            suffix_vrsn = 'thalseg.v1.0'
+        else:
+            path_model_segmentation = os.path.join(thalseg_home, 'models', 'thalseg_1.1.h5')
+            suffix_vrsn = 'thalseg.v1.1'
     else:
         print('Using user-specified model: ' + args.model)
         path_model_segmentation = args.model
+        suffix_vrsn = 'thalseg.user.specified'
 
 
     # path labels
@@ -115,7 +121,8 @@ def main():
         path_volumes=args.vol,
         topology_classes=topology_classes,
         path_xfrm=args.lta,
-        path_xfrm_inv=args.lta_inv
+        path_xfrm_inv=args.lta_inv,
+        suffix=suffix_vrsn
     )
 
 
@@ -137,7 +144,8 @@ def predict(path_t1,
             path_volumes,
             topology_classes,
             path_xfrm=None,
-            path_xfrm_inv=None):
+            path_xfrm_inv=None,
+            suffix=None):
     '''
     Prediction pipeline.
     '''
@@ -154,7 +162,7 @@ def predict(path_t1,
     # prepare input/output filepaths
     outputs = prepare_output_files(path_t1, path_aseg, path_fa, path_v1,
                                    path_segmentations, path_posteriors, path_volumes,
-                                   path_xfrm=path_xfrm)
+                                   path_xfrm=path_xfrm, vers_suffix=suffix)
     path_t1 = outputs[0]
     path_aseg = outputs[1]
     path_fa = outputs[2]
@@ -205,6 +213,10 @@ def predict(path_t1,
         loop_info.update(i)
 
         try:
+            if path_xfrm is not None:
+                xfrm_i = path_xfrm[i]
+            else:
+                xfrm_i = None
 
             # preprocessing
             image, aff, h, im_res, shape, pad_idx, crop_idx = preprocess(path_t1=path_t1[i],
@@ -213,7 +225,7 @@ def predict(path_t1,
                                                                          path_v1=path_v1[i],
                                                                          crop=128,
                                                                          min_pad=min_pad,
-                                                                         xfrm_aff=path_xfrm[i],
+                                                                         xfrm_aff=xfrm_i,
                                                                          path_output=path_segmentations[i],
                                                                          invert_transform=invert_transform)
 
@@ -282,7 +294,7 @@ def predict(path_t1,
         print('H.F.J. Tregidgo, S.Soskic, J. Althonayan, C. Maffei, K. Van Leemput, P. Golland, R. Insausti,'
               '\n G. Lerma-Usabiaga, C. Caballero-Gaudes, P.M. Paz-Alonso, A. Yendiki, D.C. Alexander, M. Bocchetta,'
               '\n J.D. Rohrer, J.E. Iglesias')
-        print('NeuroImage, accepted for publication.')
+        print('NeuroImage, 274 (2023): 120129.')
 
         print(
             '\nDomain-agnostic segmentation of thalamic nuclei from joint structural and diffusion MRI')
@@ -292,20 +304,20 @@ def predict(path_t1,
 
 
 def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_posteriors,
-                         out_volumes, path_xfrm=None):
+                         out_volumes, path_xfrm=None, vers_suffix='thalseg'):
     '''
     Prepare output files.
     '''
 
     # check inputs
     if path_t1 is None:
-        sf.system.fatal('please specify an input t1 file/folder (--i)')
+        sf.system.fatal('please specify an input t1 file/folder (--t1)')
     if path_aseg is None:
-        sf.system.fatal('please specify an input aseg file/folder (--i)')
+        sf.system.fatal('please specify an input aseg file/folder (--aseg)')
     if path_fa is None:
-        sf.system.fatal('please specify an input fa file/folder (--i)')
+        sf.system.fatal('please specify an input fa file/folder (--fa)')
     if path_v1 is None:
-        sf.system.fatal('please specify an input v1 file/folder (--i)')
+        sf.system.fatal('please specify an input v1 file/folder (--v1)')
     if out_seg is None:
         sf.system.fatal('please specify an output file/folder (--o)')
 
@@ -397,8 +409,8 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
         path_xfrm, _, _ = helper_dir(path_xfrm, 'path_xfrm', '', '')
 
         # use helper on all outputs
-        out_seg, recompute_seg, _ = helper_dir(out_seg, 'path_segmentations', '', 'synthseg')
-        out_posteriors, recompute_post, _ = helper_dir(out_posteriors, 'path_posteriors', '', 'posteriors')
+        out_seg, recompute_seg, _ = helper_dir(out_seg, 'path_segmentations', '', vers_suffix)
+        out_posteriors, recompute_post, _ = helper_dir(out_posteriors, 'path_posteriors', '', 'thalamusposteriors')
         out_volumes, recompute_volume, unique_volume_file = helper_dir(out_volumes, 'path_volumes', 'csv', '')
 
 
@@ -443,8 +455,8 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
         path_xfrm = [path_xfrm]
 
         # use helper on all outputs
-        out_seg, recompute_seg, _ = helper_im(out_seg, 'path_segmentations', '', 'synthseg')
-        out_posteriors, recompute_post, _ = helper_im(out_posteriors, 'path_posteriors', '', 'posteriors')
+        out_seg, recompute_seg, _ = helper_im(out_seg, 'path_segmentations', '', vers_suffix)
+        out_posteriors, recompute_post, _ = helper_im(out_posteriors, 'path_posteriors', '', 'thalamusposteriors')
         out_volumes, recompute_volume, unique_volume_file = helper_im(out_volumes, 'path_volumes', 'csv', '')
 
 
