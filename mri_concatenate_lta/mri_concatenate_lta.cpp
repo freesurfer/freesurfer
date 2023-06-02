@@ -125,9 +125,12 @@ int main(int argc, char *argv[])
       (stderr,
        "WARNING:********************************************************\n");
     }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);
+    //copyVolGeom(&lt->dst, &vgtmp);
+    vgtmp = lt->dst;
+    //copyVolGeom(&lt->src, &lt->dst);
+    lt->dst = lt->src;
+    //copyVolGeom(&vgtmp, &lt->src);
+    lt->src = vgtmp;
   }
 
   if (strcmp(ltafn2,"identity.nofile") == 0)
@@ -226,9 +229,12 @@ int main(int argc, char *argv[])
       (stderr,
        "WARNING:********************************************************\n");
     }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);
+    //copyVolGeom(&lt->dst, &vgtmp);
+    vgtmp = lt->dst;
+    //copyVolGeom(&lt->src, &lt->dst);
+    lt->dst = lt->src;
+    //copyVolGeom(&vgtmp, &lt->src);
+    lt->src = vgtmp;
   }
 
   if(DoRMSDiff){

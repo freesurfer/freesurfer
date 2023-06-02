@@ -847,9 +847,12 @@ int main(int argc, char *argv[])
       cerr << "WARNING: dst or src volume is invalid.  Inverse likely wrong.\n";
       cerr << "WARNING:********************************************************\n";
     }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);
+    //copyVolGeom(&lt->dst, &vgtmp);
+    vgtmp = lt->dst;
+    //copyVolGeom(&lt->src, &lt->dst);
+    lt->dst = lt->src;
+    //copyVolGeom(&vgtmp, &lt->src);
+    lt->src = vgtmp;
   }
   if (P.invert2 )
   {
@@ -871,9 +874,12 @@ int main(int argc, char *argv[])
       cerr << "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n";
       cerr << "WARNING:********************************************************\n";
     }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);
+    //copyVolGeom(&lt->dst, &vgtmp);
+    vgtmp = lt->dst;
+    //copyVolGeom(&lt->src, &lt->dst);
+    lt->dst = lt->src;
+    //copyVolGeom(&vgtmp, &lt->src);
+    lt->src = vgtmp;
   }
 
   //LTAchangeType(lta1,LINEAR_VOX_TO_VOX);

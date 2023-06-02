@@ -336,9 +336,12 @@ main(int argc, char *argv[])
             printf( "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
             printf( "WARNING:***************************************************************\n");
           }
-          copyVolGeom(&lt->dst, &vgtmp);
-          copyVolGeom(&lt->src, &lt->dst);
-          copyVolGeom(&vgtmp, &lt->src);
+          //copyVolGeom(&lt->dst, &vgtmp);
+	  vgtmp = lt->dst;
+          //copyVolGeom(&lt->src, &lt->dst);
+	  lt->dst = lt->sr;
+          //copyVolGeom(&vgtmp, &lt->src);
+	  lt->src = vgtmp;
         }
       }
 #endif

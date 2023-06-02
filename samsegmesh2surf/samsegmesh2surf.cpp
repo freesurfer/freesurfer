@@ -396,7 +396,9 @@ static void __getTemplateVolgeom(const MRI *niiVol, LTA *lta, int invert, VOL_GE
   if (niiVol != NULL)
   {
     // use template as source image
-    copyVolGeom(niiVol, template_vg);
+    //copyVolGeom(niiVol, template_vg);
+    // niiVol is MRI*, this will copy only vol geometry
+    *template_vg = *niiVol;
   }
   else
   {
@@ -409,7 +411,8 @@ static void __getTemplateVolgeom(const MRI *niiVol, LTA *lta, int invert, VOL_GE
     // get it from LTA src volume geom
     printf("INFO: Use LTA src volume geometry\n");
 
-    copyVolGeom(&(lta->xforms[0].src), template_vg);
+    //copyVolGeom(&(lta->xforms[0].src), template_vg);
+    *template_vg = lta->xforms[0].src;
   }
 }
 

@@ -2132,7 +2132,8 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
   }
 
   // Copy the volume geometry of the destination volume
-  copyVolGeom(&(ltacopy->xforms[0].dst), &(surf->vg));
+  //copyVolGeom(&(ltacopy->xforms[0].dst), &(surf->vg));
+  surf->vg = ltacopy->xforms[0].dst;
 
   LTAfree(&ltacopy);
   return(0);
@@ -13124,7 +13125,8 @@ MRIS* MRISunion(MRIS const * mris, MRIS const * mris2) {
 
     mris3->useRealRAS = mris->useRealRAS;
 
-    copyVolGeom(&mris->vg,&mris3->vg);
+    //copyVolGeom(&mris->vg,&mris3->vg);
+    mris3->vg = mris->vg;
     for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
     {
       MRISsetXYZ(mris3,vno3,
@@ -13309,7 +13311,8 @@ MRIS* MRISclone(MRIS const * mris_src)
   mrisCheckVertexFaceTopology(mris_dst);
 
   // copy geometry info
-  copyVolGeom(&mris_src->vg, &mris_dst->vg);
+  //copyVolGeom(&mris_src->vg, &mris_dst->vg);
+  mris_dst->vg = mris_src->vg;
 
   return (mris_dst);
 }

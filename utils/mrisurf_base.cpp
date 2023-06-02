@@ -655,7 +655,8 @@ MRIS* MRIScopyMetadata(MRIS const * source, MRIS * target)
   target->status = source->status;
   target->hemisphere = source->hemisphere;
 
-  copyVolGeom(&source->vg, &target->vg);
+  //copyVolGeom(&source->vg, &target->vg);
+  target->vg = source->vg;
 
   if (source->lta) target->lta = LTAcopy(source->lta, nullptr);
   if (source->SRASToTalSRAS_) target->SRASToTalSRAS_ = MatrixCopy(source->SRASToTalSRAS_, nullptr);

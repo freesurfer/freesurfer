@@ -320,8 +320,10 @@ LTA * shallowCopyLTA(const LTA * lta)
 {
   LTA * ltatmp = LTAalloc(1,NULL);
   ltatmp->xforms[0].m_L=MatrixCopy(lta->xforms[0].m_L,NULL);
-  copyVolGeom(&lta->xforms[0].src,&ltatmp->xforms[0].src);
-  copyVolGeom(&lta->xforms[0].dst,&ltatmp->xforms[0].dst);
+  //copyVolGeom(&lta->xforms[0].src,&ltatmp->xforms[0].src);
+  ltatmp->xforms[0].src = lta->xforms[0].src;
+  //copyVolGeom(&lta->xforms[0].dst,&ltatmp->xforms[0].dst);
+  ltatmp->xforms[0].dst = lta->xforms[0].dst;
   ltatmp->type = lta->type;
   ltatmp->fscale = lta->fscale;
   strcpy(ltatmp->subject, lta->subject); 
@@ -1109,9 +1111,12 @@ int main(int argc, char *argv[])
       cerr << "WARNING: dst or src volume is invalid.  Inverse likely wrong.\n";
       cerr << "WARNING:********************************************************\n";
     }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);  
+    //copyVolGeom(&lt->dst, &vgtmp);
+    vgtmp = lt->dst;
+    //copyVolGeom(&lt->src, &lt->dst);
+    lt->dst = lt->src;
+    //copyVolGeom(&vgtmp, &lt->src);
+    lt->src = vgtmp;
   }
 
   if(P.subject.size() > 0){

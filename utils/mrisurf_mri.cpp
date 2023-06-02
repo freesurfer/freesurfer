@@ -6369,8 +6369,10 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
     getVolGeom(dst, &lta->xforms[0].dst);
     getVolGeom(dst, &lta->inv_xforms[0].src);
     if (mris->vg.valid == 1) {
-      copyVolGeom(&mris->vg, &lta->xforms[0].src);
-      copyVolGeom(&mris->vg, &lta->inv_xforms[0].dst);
+      //copyVolGeom(&mris->vg, &lta->xforms[0].src);
+      lta->xforms[0].src = mris->vg;
+      //copyVolGeom(&mris->vg, &lta->inv_xforms[0].dst);
+      lta->inv_xforms[0].dst = mris->vg;
     }
   }
   src = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN, 1);
@@ -6429,8 +6431,10 @@ int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta)
     getVolGeom(dst, &lta->xforms[0].dst);
     getVolGeom(dst, &lta->inv_xforms[0].src);
     if (mris->vg.valid == 1) {
-      copyVolGeom(&mris->vg, &lta->xforms[0].src);
-      copyVolGeom(&mris->vg, &lta->inv_xforms[0].dst);
+      //copyVolGeom(&mris->vg, &lta->xforms[0].src);
+      lta->xforms[0].src = mris->vg;
+      //copyVolGeom(&mris->vg, &lta->inv_xforms[0].dst);
+      lta->inv_xforms[0].dst = mris->vg;
     }
   }
   src = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN, 1);

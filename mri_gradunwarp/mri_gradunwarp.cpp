@@ -118,7 +118,8 @@ int main(int argc, char *argv[])
     if (m3zonly)
       unwarpsurf = 0;
 
-    copyVolGeom(&origsurf->vg, &vg);
+    //copyVolGeom(&origsurf->vg, &vg);
+    vg = origsurf->vg;
   }  
 
   vox2ras_orig     = vg_i_to_r(&vg);

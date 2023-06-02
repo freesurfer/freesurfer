@@ -423,6 +423,8 @@ int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri)
   return (NO_ERROR);
 }
 
+// obsolete, use VOL_GEOM assignment operator=
+// dst = src;
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   dst->valid = src->valid;
@@ -1620,8 +1622,10 @@ static int ltaFSLwrite(const LTA *lta, const char *fname)
   // create shallow copy of LTA
   LTA *ltatmp = LTAalloc(1, NULL);
   ltatmp->xforms[0].m_L = MatrixCopy(lta->xforms[0].m_L, NULL);
-  copyVolGeom(&lta->xforms[0].src, &ltatmp->xforms[0].src);
-  copyVolGeom(&lta->xforms[0].dst, &ltatmp->xforms[0].dst);
+  //copyVolGeom(&lta->xforms[0].src, &ltatmp->xforms[0].src);
+  ltatmp->xforms[0].src = lta->xforms[0].src;
+  //copyVolGeom(&lta->xforms[0].dst, &ltatmp->xforms[0].dst);
+  ltatmp->xforms[0].dst = lta->xforms[0].dst;
   ltatmp->type = lta->type;
 
   // convert to FSL matrix if necessary
@@ -3551,9 +3555,7 @@ LTA *LTAinvert(LTA *lta, LTA *ltainv)
 */
 LTA *LTAfillInverse(LTA *lta)
 {
-  int i;
-
-  for (i = 0; i < lta->num_xforms; ++i) {
+  for (int i = 0; i < lta->num_xforms; ++i) {
     if (MatrixInverse(lta->xforms[i].m_L, lta->inv_xforms[i].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible");
     //memmove(&lta->inv_xforms[i].src, &lta->xforms[i].dst, sizeof(VOL_GEOM));
@@ -4830,8 +4832,10 @@ LTA *LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst)
 {
   if (lta_dst == NULL) {
     lta_dst = LTAalloc(1, NULL);
-    copyVolGeom(&lta_src->xforms[0].src, &lta_dst->xforms[0].src);
-    copyVolGeom(&lta_src->xforms[0].dst, &lta_dst->xforms[0].dst);
+    //copyVolGeom(&lta_src->xforms[0].src, &lta_dst->xforms[0].src);
+    lta_dst->xforms[0].src = lta_src->xforms[0].src;
+    //copyVolGeom(&lta_src->xforms[0].dst, &lta_dst->xforms[0].dst);
+    lta_dst->xforms[0].dst = lta_src->xforms[0].dst;
   }
   if (m_left) MatrixMultiply(m_left, lta_src->xforms[0].m_L, lta_dst->xforms[0].m_L);
   if (m_right) MatrixMultiply(lta_src->xforms[0].m_L, m_right, lta_dst->xforms[0].m_L);

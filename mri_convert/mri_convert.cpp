@@ -2810,9 +2810,12 @@ int main(int argc, char *argv[])
                          "      The inverse c_(ras) may not be valid.\n",
                          buf);
         } // end not valid
-        copyVolGeom(&lt->dst, &vgtmp);
-        copyVolGeom(&lt->src, &lt->dst);
-        copyVolGeom(&vgtmp, &lt->src);
+        //copyVolGeom(&lt->dst, &vgtmp);
+	vgtmp = lt->dst;
+        //copyVolGeom(&lt->src, &lt->dst);
+	lt->dst = lt->src;
+        //copyVolGeom(&vgtmp, &lt->src);
+	lt->src = vgtmp;
       } // end invert_transform_flag
 
     } // end transform type
