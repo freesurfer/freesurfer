@@ -48,6 +48,8 @@ def main():
                                      "headers, do NOT resample when registering; see instructions on FreeSurfer wiki)")
     parser.add_argument("--fa", help="FA image(s). Must be a folder if --t1 designates a folder. ")
     parser.add_argument("--v1", help="V1 image(s). Must be a folder if --t1 designates a folder. ")
+    parser.add_argument("--s", default=None, help="Subject in SUBJECT_DIR to be processed. Assumes the subject has "
+                                                  "been processed through the recon-all and trac-all -prep pipelines.")
     parser.add_argument("--lta", default=None, help="Optional transform lta file(s) from T1 to FA. "
                                                           "Must be a folder if --t1 designates a folder.")
     parser.add_argument("--lta_inv", default=None, help="Optional transform lta file(s) from FA to T1. "
@@ -90,10 +92,10 @@ def main():
     if args.model is None:
         if args.version1:
             path_model_segmentation = os.path.join(thalseg_home, 'models', 'thalseg_1.0.h5')
-            suffix_vrsn = 'thalseg.v1.0'
+            suffix_vrsn = 'thalseg_dti_cnn_v1.0'
         else:
             path_model_segmentation = os.path.join(thalseg_home, 'models', 'thalseg_1.1.h5')
-            suffix_vrsn = 'thalseg.v1.1'
+            suffix_vrsn = 'thalseg_dti_cnn_v1.1'
     else:
         print('Using user-specified model: ' + args.model)
         path_model_segmentation = args.model
@@ -105,6 +107,57 @@ def main():
     names_segmentation_labels = os.path.join(thalseg_home, 'models', 'thalseg_segmentation_names_1.0.npy')
     topology_classes = os.path.join(thalseg_home, 'models', 'thalseg_topological_classes_1.0.npy')
     n_neutral_labels = 1
+
+    # handle subject specification
+    if args.s:
+        if not os.environ.get('SUBJECTS_DIR'):
+            sf.system.fatal('SUBJECTS_DIR is not set. Please set to use subject id input.')
+        # get freesurfer subjects dir
+        subjects_dir_top = os.environ.get('SUBJECTS_DIR')
+
+        # check for conflicting inputs
+        if (args.t1!=None) | (args.aseg!=None) | (args.fa!=None) | (args.v1!=None) | (args.lta!=None) \
+                | (args.lta_inv!=None):
+            Exception("No other input flags may be specified alongside --s.")
+
+        subject_dir = os.path.join(subjects_dir_top,args.s)
+
+        if not os.path.isdir(subject_dir):
+            Exception("Subject specified by --s does not exist in SUBJECTS_DIR."
+                      "Please check subject ID.")
+
+        # set default inputs for subjects run through recon all and trac all
+        args.t1 = os.path.join(subject_dir,'mri','norm.mgz')
+        args.aseg = os.path.join(subject_dir,'mri','aseg.mgz')
+
+        if (not os.path.exists(args.t1)) | (not os.path.exists(args.aseg)):
+            Exception("norm.mgz/aseg.mgz do not exist in subject folder. "
+                      "Please run recon-all to use subject input (--s). ")
+
+        # set default DTI inputs
+        args.fa = os.path.join(subject_dir,'dmri','dtifit_FA.nii.gz')
+        args.v1 = os.path.join(subject_dir,'dmri','dtifit_V1.nii.gz')
+
+        if (not os.path.exists(args.t1)) | (not os.path.exists(args.aseg)):
+            Exception("dtifit_FA/dtifit_v1 do not exist in subject folder. "
+                      "Please run trac-all -prep to use subject input (--s). ")
+
+        # get lta file
+        args.lta = os.path.join(subject_dir,'dmri','xfms','anatorig2diff.bbr.lta')
+        if not os.path.exists(args.lta):
+            print('anatorig2diff.bbr.lta not found. Searching for alternative.')
+            lta_list = sorted(glob.glob(os.path.join(subject_dir,'dmri','xfms')
+                                        + '/anatorig2diff.*.lta'))
+            if len(lta_list)<1:
+                Exception('Transform between structural and DTI missing.'
+                          'Please check registration method in trac-all -prep.')
+            else:
+                args.lta = lta_list[0]
+                print('using %s' %os.path.basename(args.lta))
+
+
+        if args.o == None:
+            args.o = os.path.join(subject_dir,'dmri')
 
     # run prediction
     predict(
