@@ -385,7 +385,14 @@ add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)
   # link to an external python binary if fspython won't be distributed
-  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/python/bin/python3)
+  if(APPLE_ARM64)
+     # link to system /usr/bin/python3 until have arm64 version of fspython
+     symlink(/usr/bin/python3 ${CMAKE_INSTALL_PREFIX}/python/bin/python3)
+     set(INSTALL_PYTHON_DEPENDENCIES OFF)
+  else() 
+     # creates a link to python in NFS = /space/freesurfer/python/linux/bin/python3
+     symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/python/bin/python3)
+   endif()
 endif()
 
 add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cmake_install.cmake)
