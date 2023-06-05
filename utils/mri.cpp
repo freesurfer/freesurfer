@@ -3297,7 +3297,7 @@ int MRItalairachVoxelToWorld(MRI *mri, double xtv, double ytv, double ztv, doubl
   ------------------------------------------------------*/
 #define V4_LOAD(v, x, y, z, r) (VECTOR_ELT(v, 1) = x, VECTOR_ELT(v, 2) = y, VECTOR_ELT(v, 3) = z, VECTOR_ELT(v, 4) = r);
 
-int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv, double *pxw, double *pyw, double *pzw)
+int MRIvoxelToWorld(VOL_GEOM *mri, double xv, double yv, double zv, double *pxw, double *pyw, double *pzw)
 {
   AffineVector vw, vv;
 
@@ -3365,7 +3365,7 @@ int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, 
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-int MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw, int *pxv, int *pyv, int *pzv)
+int MRIworldToVoxelIndex(VOL_GEOM *mri, double xw, double yw, double zw, int *pxv, int *pyv, int *pzv)
 {
   double xv, yv, zv;
   MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
@@ -3389,7 +3389,7 @@ int MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw, int *pxv, in
   surface RAS is wrong otherwise.
 */
 
-MATRIX *surfaceRASFromVoxel_(MRI *mri)
+MATRIX *surfaceRASFromVoxel_(VOL_GEOM *mri)
 {
   MATRIX *vox2ras;
 
@@ -3436,7 +3436,7 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   is compute the tkregister-style Vox2RAS/RAS2Vox, so now it simply
   invertes the matrix from MRIxfmCRS2XYZtkreg(mri).
   *-------------------------------------------------------------------*/
-MATRIX *voxelFromSurfaceRAS_(MRI *mri)
+MATRIX *voxelFromSurfaceRAS_(VOL_GEOM *mri)
 {
   MATRIX *vox2ras, *ras2vox;
   // Compute i_to_r and r_to_i if it has not been done yet. This is
@@ -3477,7 +3477,7 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   intermediate matrices are alloced, inverted, and dealloced, so
   it might not be a good thing to have inside a loop.
   --------------------------------------------------------------*/
-MATRIX *surfaceRASFromRAS_(MRI const *mri)
+MATRIX *surfaceRASFromRAS_(VOL_GEOM const *mri)
 {
   MATRIX *sRASFromRAS;
   MATRIX *Vox2TkRAS, *Vox2RAS;
@@ -3508,7 +3508,7 @@ MATRIX *surfaceRASFromRAS_(MRI const *mri)
   it might not be a good thing to have inside a loop. Another name
   for this might have been MRItkreg2RAS().
   --------------------------------------------------------------*/
-MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS)
+MATRIX *RASFromSurfaceRAS_(VOL_GEOM const *mri, MATRIX *RASFromSRAS)
 {
   MATRIX *Vox2TkRAS, *Vox2RAS;
   Vox2RAS   = MRIxfmCRS2XYZ(mri, 0);      // scanner vox2ras
@@ -3535,7 +3535,7 @@ MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS)
   and dealloced, so it might not be a good thing to have inside a
   loop.
   -------------------------------------------------------------*/
-int MRIRASToSurfaceRAS(MRI *mri, double xr, double yr, double zr, double *xsr, double *ysr, double *zsr)
+int MRIRASToSurfaceRAS(VOL_GEOM *mri, double xr, double yr, double zr, double *xsr, double *ysr, double *zsr)
 {
   MATRIX *surfaceRASFromRAS = 0;
   VECTOR *v, *sr;
@@ -3556,7 +3556,7 @@ int MRIRASToSurfaceRAS(MRI *mri, double xr, double yr, double zr, double *xsr, d
   scanner RAS. Note: intermediate matrices are alloced, inverted, and
   dealloced, so it might not be a good thing to have inside a loop.
   -------------------------------------------------------------*/
-int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr, double *xr, double *yr, double *zr)
+int MRIsurfaceRASToRAS(VOL_GEOM *mri, double xsr, double ysr, double zsr, double *xr, double *yr, double *zr)
 {
   MATRIX *RASFromSurfaceRAS = 0;
   VECTOR *v, *r;
@@ -3574,7 +3574,7 @@ int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr, double *xr,
 }
 
 //--------------------------------------------------------------
-int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv, double *xs, double *ys, double *zs)
+int MRIvoxelToSurfaceRAS(VOL_GEOM *mri, double xv, double yv, double zv, double *xs, double *ys, double *zs)
 {
   MATRIX *sRASFromVoxel;
   VECTOR *vv, *sr;
@@ -3596,9 +3596,9 @@ int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv, double *xs, 
 }
 
 /* extract the RASToVoxel Matrix */
-MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri) { return voxelFromSurfaceRAS_(mri); }
+MATRIX *GetSurfaceRASToVoxelMatrix(VOL_GEOM *mri) { return voxelFromSurfaceRAS_(mri); }
 
-int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
+int MRIsurfaceRASToVoxel(VOL_GEOM *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
 {
   MATRIX *voxelFromSRAS;
   static VECTOR *sr = NULL, *vv = NULL;
@@ -3617,7 +3617,7 @@ int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, 
 
   return (NO_ERROR);
 }
-int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
+int MRIscannerRASToVoxel(VOL_GEOM *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
 {
   MATRIX *voxelFromRAS, *rasFromVoxel;
   static VECTOR *sr = NULL, *vv = NULL;
@@ -3639,7 +3639,7 @@ int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, 
 }
 
 // same as above, but don't free matrix. Won't work if mri is changing
-int MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
+int MRIsurfaceRASToVoxelCached(VOL_GEOM *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
 {
   static MATRIX *voxelFromSRAS = NULL;
   static VECTOR *sr = NULL, *vv = NULL;
@@ -3658,7 +3658,7 @@ int MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr, double
 }
 
 /*------------------------------------------------------*/
-int MRIworldToVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
+int MRIworldToVoxel(VOL_GEOM *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
 {
   /*
     These internal workspaces are now static.

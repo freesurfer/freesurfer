@@ -928,11 +928,11 @@ int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
 int   MRIreInitCache(VOL_GEOM *mri); /* when header is modified,
                                    you must call this function
                                    to update cached info */
-int   MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
+int   MRIvoxelToWorld(VOL_GEOM *mri, double xv, double yv, double zv,
                       double *xw, double *yw, double *zw) ;
-int   MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
+int   MRIworldToVoxel(VOL_GEOM *mri, double xw, double yw, double zw,
                       double *pxv, double *pyv, double *pzv) ;
-int   MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw,
+int   MRIworldToVoxelIndex(VOL_GEOM *mri, double xw, double yw, double zw,
                            int *pxv, int *pyv, int *pzv) ;
 MRI *MRItoTalairach(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIfromTalairach(MRI *mri_src, MRI *mri_dst) ;
@@ -1071,21 +1071,21 @@ MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes);
 
 /* surfaceRAS and voxel routines */
-MATRIX *surfaceRASFromVoxel_(MRI *mri);
-MATRIX *voxelFromSurfaceRAS_(MRI *mri);
-MATRIX *surfaceRASFromRAS_(MRI const *mri);
-MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS);
+MATRIX *surfaceRASFromVoxel_(VOL_GEOM *mri);
+MATRIX *voxelFromSurfaceRAS_(VOL_GEOM *mri);
+MATRIX *surfaceRASFromRAS_(VOL_GEOM const *mri);
+MATRIX *RASFromSurfaceRAS_(VOL_GEOM const *mri, MATRIX *RASFromSRAS);
 
-int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
-int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,
+int MRIscannerRASToVoxel(VOL_GEOM *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
+int MRIvoxelToSurfaceRAS(VOL_GEOM *mri, double xv, double yv, double zv,
                          double *xs, double *ys, double *zs);
-int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr,
+int MRIsurfaceRASToVoxel(VOL_GEOM *mri, double xr, double yr, double zr,
                          double *xv, double *yv, double *zv);
-int MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr,
+int MRIsurfaceRASToVoxelCached(VOL_GEOM *mri, double xr, double yr, double zr,
                                double *xv, double *yv, double *zv);
-int MRIRASToSurfaceRAS(MRI *mri, double xr, double yr, double zr,
+int MRIRASToSurfaceRAS(VOL_GEOM *mri, double xr, double yr, double zr,
                        double *xsr, double *ysr, double *zsr);
-int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr,
+int MRIsurfaceRASToRAS(VOL_GEOM *mri, double xsr, double ysr, double zsr,
                        double *xr, double *yr, double *zr);
 
 /* bitmap image access macros */
@@ -1640,7 +1640,7 @@ MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias,
 MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
 
 /* extract the RASToVoxeMatrix from an MRI */
-MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
+MATRIX *GetSurfaceRASToVoxelMatrix(VOL_GEOM *mri);
 
 // functions read/write MRI_MGH_FILE
 MRI *mghRead(const char *fname, int read_volume, int frame);

@@ -514,10 +514,10 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var);
 //////////////////////////////////////////////////////////////////
 // declare global function pointers
 // initialized at init_parms(). reset when -useSRAS is set
-int (*myWorldToVoxel)(MRI *mri,
+int (*myWorldToVoxel)(VOL_GEOM *mri,
                       double xw, double yw, double zw,
                       double *xv, double *yv, double *zv);
-int (*myVoxelToWorld)(MRI *mri,
+int (*myVoxelToWorld)(VOL_GEOM *mri,
                       double xv, double yv, double zv,
                       double *xw, double *yw, double *zw);
 ///////////////////////////////////////////////////////////////////
