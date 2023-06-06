@@ -27,6 +27,7 @@ set outdir = ()
 set FillType = 1;
 set FillConstIn = ()
 set FillConstOut = ()
+set fhi = ()
 set DoEars = 1;
 set DoForehead = 0;
 set DoBackOfHead = 0
@@ -294,6 +295,7 @@ if($ud || $ForceUpdate) then
   # Adding samseg here makes the whole thing much more robust
   # because samseg is bascially provides a head mask
   if($UseOrMask && $DoSamsegXMask) set cmd = ($cmd -or-mask $samsegdir/seg.mgz)
+  if($#fhi) set cmd = ($cmd -fhi $fhi);
   set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
   set cmd = ($cmd $xopts);
   echo $cmd | tee -a $LF
@@ -354,6 +356,7 @@ if($DoPostHeadSurf) then
     set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
     set cmd = (mkheadsurf -i $outvol -o $posthead -surf $postheadsurf \
       -rescale -no-inflate -fill-holes-islands -mc -no-curv $xopts)
+    if($#fhi) set cmd = ($cmd -fhi $fhi);
     # can't do samseg here, duh, but can use xmask if there
     if($UseOrMask && $#xmask) set cmd = ($cmd -or-mask $xmask)
     echo $cmd | tee -a $LF
@@ -651,6 +654,12 @@ while( $#argv != 0 )
       set BBRDoF = 12
       breaksw
 
+    case "--fhi":
+    case "-fhi":
+      if($#argv < 1) goto arg1err;
+      set fhi = $argv[1]; shift
+      breaksw
+
     case "--no-xvfb":
       set UseXvfb = 0
       breaksw
@@ -867,13 +876,14 @@ usage_exit:
   echo " --odir outputdir (turns on PostHeadSurf)"
   echo " --xmask xmask (exclusion mask)"
   echo " --xmask-samseg ndilations : segment input using samseg (14GB, +~20-40min)"
-  echo "   --samseg-json json: configure samseg"
+  echo " --samseg-json json: configure samseg"
   echo " --samseg-fast : configure samseg to run quickly; sets ndil=1 (default)"
   echo " --no-samseg-fast : do NOT configure samseg to run quickly"
   echo " --init-reg reg.lta : initialize samseg with reg (good in case samseg reg fails)"
   echo " --xmask-synthseg ndilations : segment input using synthseg (35GB, +~20min)"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
+  echo " --fhi fhi : fhi value to use in MRIchangeType(); default is to use that in mri_seghead"
   echo " --no-ears : do not include ears in the defacing"
   echo " --back-of-head : include back of head in the defacing"
   echo " --forehead : include forehead in the defacing (risks removing brain)"
