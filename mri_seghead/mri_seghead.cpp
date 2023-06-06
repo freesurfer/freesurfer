@@ -187,7 +187,7 @@ int MakeSkullSurface(char *subject, double *params, char *innername, char *outer
 int rescale = 0;
 int FillHolesIslands = 0;
 MRI *ormask=NULL;
-double fhi = 255; // should be .999, but keep at 255 until ready to change
+double fhi = .999; // should be .999, was at 255 until 6/6/2023
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
