@@ -187,6 +187,7 @@ int MakeSkullSurface(char *subject, double *params, char *innername, char *outer
 int rescale = 0;
 int FillHolesIslands = 0;
 MRI *ormask=NULL;
+double fhi = 255; // should be .999, but keep at 255 until ready to change
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -224,8 +225,10 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  printf("Changing type, rescale = %d\n",rescale);
-  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,255,!rescale);
+  printf("Changing type, rescale = %d, fhi=%g\n",rescale,fhi);
+  // The fhi had been set to 255, which probably does nothing. 
+  // Changing to .999 helped some problem data sets. 
+  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,fhi,!rescale);
   if (invol == NULL) {
     printf("ERROR: MRIchangeType\n");
     return(1);
@@ -532,11 +535,18 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&a);
       fillval = (unsigned char) a;
       nargsused = 1;
-    } else if (stringmatch(option, "--thresh1")) {
+    } 
+    else if (stringmatch(option, "--thresh1")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&thresh1);
       nargsused = 1;
-    } else if (stringmatch(option, "--thresh2")) {
+    } 
+    else if (stringmatch(option, "--fhi")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fhi);
+      nargsused = 1;
+    } 
+    else if (stringmatch(option, "--thresh2")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&thresh2);
       nargsused = 1;
@@ -611,6 +621,7 @@ static void print_usage(void) {
   printf("   --invol     input volume id (eg, T1)\n");
   printf("   --outvol    input volume id\n");
   printf("   --fill      fill value  (255)\n");
+  printf("   --fhi       fhi : fhi value when running MRIchangeType(); default is %g\n",fhi);
   printf("   --thresh1   threshold value  (eg, 20)\n");
   printf("   --thresh2   threshold value  (eg, 20)\n");
   printf("   --thresh    single threshold value for 1 and 2 \n");
