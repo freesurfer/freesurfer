@@ -110,7 +110,7 @@ def createScreenshots(SUBJECT, SUBJECTS_DIR, OUTFILE, INTERACTIVE = True, LAYOUT
                       header=None,
                       skipinitialspace=True,
                       skip_blank_lines=True,
-                      error_bad_lines=False,
+                      on_bad_lines='skip',
                       warn_bad_lines=True
                       )
 
