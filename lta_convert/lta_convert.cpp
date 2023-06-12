@@ -130,7 +130,7 @@ void conformGeom(VOL_GEOM *vg, bool conform_min, float conform_size0, bool confk
   {
     char ostr[4];
     int conform_FoV = conform_width * conform_size;
-    MRIdircosToOrientationString(vg, ostr);
+    MRIdircosToOrientationString(&vg_src, ostr);
 
     int iLR, iIS, iAP;
     for (iLR = 0; iLR < 3; iLR++)
@@ -146,12 +146,12 @@ void conformGeom(VOL_GEOM *vg, bool conform_min, float conform_size0, bool confk
     int Nvox[3], FoV[3];
     double delta[3];
     
-    Nvox[0] = vg->width;
-    Nvox[1] = vg->height;
-    Nvox[2] = vg->depth;
-    delta[0] = vg->xsize;
-    delta[1] = vg->ysize;
-    delta[2] = vg->zsize;
+    Nvox[0] = vg_src.width;
+    Nvox[1] = vg_src.height;
+    Nvox[2] = vg_src.depth;
+    delta[0] = vg_src.xsize;
+    delta[1] = vg_src.ysize;
+    delta[2] = vg_src.zsize;
     
     for (int c = 0; c < 3; c++)
       FoV[c] = Nvox[c] * delta[c];
@@ -357,7 +357,10 @@ LTA * readLTA(const string& xfname, const string& sname, const string& tname)
       cerr << "ERROR readLTA: cannot read src MRI" << sname << endl;
       exit(1);
     }
-    getVolGeom(src, &lta->xforms[0].src);
+    //getVolGeom(src, &lta->xforms[0].src);
+    lta->xforms[0].src = *src;
+    // getVolGeom() set valid = 1;
+    lta->xforms[0].src.valid = 1;  // ??? valid and ras_good_flag mean the same thing ???
     MRIfree(&src);
   }
   if (tname != "")
@@ -368,7 +371,10 @@ LTA * readLTA(const string& xfname, const string& sname, const string& tname)
       cerr << "ERROR readFSL: cannot read trg MRI" << tname << endl;
       exit(1);
     }
-    getVolGeom(trg, &lta->xforms[0].dst);
+    //getVolGeom(trg, &lta->xforms[0].dst);
+    lta->xforms[0].dst = *trg;
+    // getVolGeom() set valid = 1;
+    lta->xforms[0].dst.valid = 1;  // ??? valid and ras_good_flag mean the same thing ???
     MRIfree(&trg);
   }
   return lta;
