@@ -5,10 +5,8 @@ import voxelmorph as vxm
 import torch
 import surfa as sf
 import nibabel as nib
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, distance_transform_edt, binary_fill_holes
 from scipy.ndimage import label as scipy_label
-from scipy.linalg import logm
-from scipy.spatial import Delaunay
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
@@ -16,6 +14,7 @@ import tensorflow as tf
 import keras
 import keras.backend as K
 import keras.layers as KL
+
 
 # set tensorflow logging
 tf.get_logger().setLevel('ERROR')
@@ -35,8 +34,7 @@ def main():
     parser.add_argument("--flo_reg", help="(optional) Registetred floating images (in space of reference).")
     parser.add_argument("--fwd_field", help="(optional) Forward field")
     parser.add_argument("--bak_field", help="(optional) Inverse field")
-    parser.add_argument("--polyaffine", action="store_true", help="(optional) Uses log-Euclidean poylyaffine instead of affine")
-    parser.add_argument("--skip_network", action="store_true", help="(optional) Skips nonlinear deformation estimated by neural network (i.e., affine or polyaffine only)")
+    parser.add_argument("--affine_only", action="store_true", help="(optional) Skips nonlinear part")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1. You can use -1 to use all available cores")
 
     # parse commandline
@@ -77,11 +75,11 @@ def main():
     path_model_parcellation = fs_home + '/models/synthseg_parc_2.0.h5'
     path_model_registration_trained = fs_home + '/models/easyreg_v10_230103.h5'
 
-    # # path labels
+    # path labels
     labels_segmentation = fs_home +  '/models/synthseg_segmentation_labels_2.0.npy'
     labels_parcellation = fs_home +  '/models/synthseg_parcellation_labels.npy'
     atlas_volsize = [160, 160, 192]
-    atlas_aff = np.array([[-1.0, 0, 0, 79], [0, 0, 1, -104], [0, -1, 0, 79], [0, 0, 0, 1]])
+    atlas_aff = np.matrix([[-1, 0, 0, 79], [0, 0, 1, -104], [0, -1, 0, 79], [0, 0, 0, 1]])
 
     # get label lists
     labels_segmentation, _ = get_list_labels(label_list=labels_segmentation)
@@ -155,17 +153,20 @@ def main():
         flo_seg_aff = flo_aff
         save_volume(flo_seg_buffer, flo_seg_aff, flo_h, args.flo_seg, dtype='int32')
 
+    # Now the linear registration part
+    print('Linear registration')
 
-
-    print('  Computing centroids and volumes')
-    # we ignore white matter and CSF
-    labels = np.array([4,5,7,8,10,11,12,13,14,15,16,17,18,26,28,43,44,46,47,49,50,51,52,53,54,58,60,1001,1002,1003,1005,1006,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,2001,2002,2003,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035])
+    print('  Computing centroids and estimating affine transform')
+    labels = np.array([2,4,5,7,8,10,11,12,13,14,15,16,17,18,26,28,41,43,44,46,47,49,50,51,52,53,54,58,60,
+                                    1001,1002,1003,1005,1006,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,
+                                    2001,2002,2003,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035])
     nlab = len(labels)
-    ok = np.ones(nlab)
+    atlasCOG = np.array([[-28.,-18.,-37.,-19.,-27.,-19.,-23.,-31.,-26.,-2.,-3.,-3.,-29.,-26.,-14.,-14.,24.,14.,31.,12.,18.,14.,19.,26.,21.,25.,22.,11.,8.,-52.,-6.,-36.,-7.,-24.,-37.,-39.,-52.,-9.,-27.,-26.,-14.,-8.,-59.,-28.,-7.,-49.,-43.,-47.,-12.,-46.,-6.,-43.,-10.,-7.,-33.,-11.,-23.,-55.,-50.,-10.,-29.,-46.,-38.,48.,4.,31.,3.,21.,33.,37.,47.,3.,24.,20.,8.,4.,54.,21.,5.,45.,38.,46.,8.,45.,3.,38.,6.,4.,29.,9.,19.,51.,49.,10.,24.,43.,33.],
+                        [-30.,-17.,-13.,-36.,-40.,-22.,-3.,-5.,-9.,-14.,-31.,-21.,-15.,-1.,3.,-16.,-32.,-20.,-14.,-37.,-42.,-24.,-3.,-6.,-10.,-15.,-2.,3.,-17.,-44.,-5.,-15.,-71.,2.,-29.,-70.,-23.,-44.,-73.,22.,-57.,27.,-19.,-23.,-45.,4.,31.,20.,-68.,-38.,-33.,-26.,-60.,23.,22.,0.,-72.,-12.,-49.,49.,17.,-25.,-3.,-42.,-1.,-16.,-76.,0.,-34.,-69.,-16.,-44.,-73.,22.,-56.,28.,-18.,-25.,-45.,-3.,30.,14.,-69.,-37.,-32.,-30.,-60.,21.,21.,0.,-72.,-11.,-49.,48.,15.,-27.,-3.],
+                        [12.,14.,-13.,-41.,-51.,1.,13.,3.,1.,0.,-40.,-28.,-15.,-10.,2.,-7.,11.,14.,-12.,-40.,-51.,2.,14.,4.,2.,-14.,-10.,4.,-7.,-8.,32.,40.,-14.,-21.,-28.,-4.,-28.,-3.,-35.,3.,-29.,4.,-17.,-21.,35.,18.,9.,20.,-24.,28.,25.,34.,7.,18.,35.,48.,16.,-5.,12.,22.,-18.,1.,4.,-12.,32.,43.,-11.,-21.,-29.,-3.,-27.,0.,-34.,3.,-25.,6.,-18.,-20.,36.,18.,11.,20.,-20.,26.,25.,34.,4.,24.,34.,47.,17.,-5.,10.,20.,-18.,0.,4.]])
 
     refCOG = np.zeros([4, nlab])
-    refVols = np.zeros(nlab) # we don't really use this at the moment, but Antoine said maybe in a future version?
-    volsize = np.abs(np.linalg.det(ref_seg_aff))
+    ok = np.ones(nlab)
     for l in range(nlab):
         aux = np.where(ref_seg_buffer == labels[l])
         if len(aux[0]) > 50:
@@ -173,14 +174,13 @@ def main():
             refCOG[1, l] = np.median(aux[1])
             refCOG[2, l] = np.median(aux[2])
             refCOG[3, l] = 1
-            refVols[l] = len(aux[0]) * volsize
         else:
             ok[l] = 0
     refCOG = np.matmul(ref_seg_aff, refCOG)[:-1, :]
+    Mref = getM(atlasCOG[:, ok > 0], refCOG[:, ok > 0])
 
     floCOG = np.zeros([4, nlab])
-    floVols = np.zeros(nlab) # we don't really use this at the moment, but Antoine said maybe in a future version?
-    volsize = np.abs(np.linalg.det(flo_seg_aff))
+    ok = np.ones(nlab)
     for l in range(nlab):
         aux = np.where(flo_seg_buffer == labels[l])
         if len(aux[0]) > 50:
@@ -188,126 +188,62 @@ def main():
             floCOG[1, l] = np.median(aux[1])
             floCOG[2, l] = np.median(aux[2])
             floCOG[3, l] = 1
-            floVols[l] = len(aux[0]) * volsize
         else:
             ok[l] = 0
     floCOG = np.matmul(flo_seg_aff, floCOG)[:-1, :]
-
-    # For the atlas, there's no point in recomputing every time we run the code... we just hard code it (great practice, right?)
-    atlasCOG = np.array([[-18.0, -37., -19., -27., -19., -23., -31., -26.,  -2.,  -3.,  -3., -29., -26., -14., -14., 14.,31.,12.,18.,14.,19.,26.,21.,25.,22.,11.,8.,-52.,-6.,-36.,-7.,-24.,-37.,-39.,-52.,-9.,-27.,-26.,-14.,-8.,-59.,-28.,-7.,-49.,-43.,-47.,-12.,-46.,-6.,-43.,-10.,-7.,-33.,-11.,-23.,-55.,-50.,-10.,-29.,-46.,-38.,48.,4.,31.,3.,21.,33.,37.,47.,3.,24.,20.,8.,4.,54.,21.,5.,45.,38.,46.,8.,45.,3.,38.,6.,4.,29.,9.,19.,51.,49.,10.,24.,43.,33.],
-                         [-17., -13., -36., -40., -22.,  -3.,  -5.,  -9., -14., -31., -21., -15.,  -1.,   3., -16., -20.,-14.,-37.,-42.,-24.,-3.,-6.,-10.,-15.,-2.,3.,-17.,-44.,-5.,-15.,-71.,2.,-29.,-70.,-23.,-44.,-73.,22.,-57.,27.,-19.,-23.,-45.,4.,31.,20.,-68.,-38.,-33.,-26.,-60.,23.,22.,0.,-72.,-12.,-49.,49.,17.,-25.,-3.,-42.,-1.,-16.,-76.,0.,-34.,-69.,-16.,-44.,-73.,22.,-56.,28.,-18.,-25.,-45.,-3.,30.,14.,-69.,-37.,-32.,-30.,-60.,21.,21.,0.,-72.,-11.,-49.,48.,15.,-27.,-3.],
-                         [ 14., -13., -41., -51.,   1.,  13.,   3.,   1.,   0., -40., -28., -15., -10.,   2.,  -7., 14.,-12.,-40.,-51.,2.,14.,4.,2.,-14.,-10.,4.,-7.,-8.,32.,40.,-14.,-21.,-28.,-4.,-28.,-3.,-35.,3.,-29.,4.,-17.,-21.,35.,18.,9.,20.,-24.,28.,25.,34.,7.,18.,35.,48.,16.,-5.,12.,22.,-18.,1.,4.,-12.,32.,43.,-11.,-21.,-29.,-3.,-27.,0.,-34.,3.,-25.,6.,-18.,-20.,36.,18.,11.,20.,-20.,26.,25.,34.,4.,24.,34.,47.,17.,-5.,10.,20.,-18.,0.,4.]])
-
-    atlasVols = np.array([ 27239, 2505, 9399, 39123, 4222, 2026, 2877, 898, 3537, 2588, 15633, 3014, 1183, 297, 2860, 22199, 1748, 9823, 37875, 4180, 2002, 2818, 965, 2972, 1216, 325, 2859, 1731, 1237, 3489, 2482, 1603, 8083, 9734, 10020, 2579, 10056, 7665, 5654, 5049, 10759, 1763, 2966, 2678, 2443, 3394, 1967, 8313, 2095, 10638, 8427, 2149, 13607, 21216, 10686, 10084, 8727, 1225, 2680, 1025, 5270, 1497, 1423, 5061, 3446, 1706, 8581, 11215, 7830, 2404, 10805, 7095, 5672, 5638, 10884, 1669, 3400, 3169, 2943, 4263, 2068, 7224, 2063, 9738, 8691, 2080, 12688, 18432, 11221, 9910, 8475, 1376, 3158, 888, 5429])
-
-    # keep only points that are reliably segmented
-    refCOG = refCOG[:, ok>0]
-    refVols = refVols[ok>0]
-    floCOG = floCOG[:, ok>0]
-    floVols = floVols[ok>0]
-    atlasCOG = atlasCOG[:, ok>0]
-    atlasVols = atlasVols[ok>0]
-
-    # mesh grid that we reuse a bunch of times
-    II, JJ, KK = np.meshgrid(np.arange(atlas_volsize[0]), np.arange(atlas_volsize[1]), np.arange(atlas_volsize[2]), indexing='ij')
-    II = torch.tensor(II, device='cpu')
-    JJ = torch.tensor(JJ, device='cpu')
-    KK = torch.tensor(KK, device='cpu')
-
-    # Now polyaffine stuff
-    if args.polyaffine is False:
-        print('Estimating affine transform')
-        transfo_aff_ref = getM(atlasCOG, refCOG)
-        transfo_aff_flo = getM(atlasCOG, floCOG)
-
-    else:
-        print('Estimating affine and log-Euclidean polyaffine transforms')
-
-        sigma = 15.0
-        weight_bg = 1e-5
-        tri = Delaunay(atlasCOG.transpose())
-        DT = np.zeros_like(tri.simplices)
-        for i, lab in enumerate(labels):
-            DT[tri.simplices == i] = lab
-        input_integrator = tf.keras.Input(shape=(*atlas_volsize, 3))
-        output_integrator = vxm.layers.VecInt(method='ss', int_steps=8)(input_integrator)
-        model_integrator = tf.keras.Model(inputs=[input_integrator], outputs=[output_integrator])
-
-        # Reference image
-        transfo_aff_ref, polyAff_svf_ref = estimate_affine_and_polyaffine_svf(atlasCOG, refCOG, atlas_aff, atlas_volsize, labels, DT, II, JJ, KK, sigma, weight_bg)
-        polyAff_def_ref = torch.tensor(np.squeeze(model_integrator.predict(polyAff_svf_ref.detach().numpy()[np.newaxis, ...])))
-        polyAff_def_ref_inv = torch.tensor(np.squeeze(model_integrator.predict(-(polyAff_svf_ref.detach().numpy()[np.newaxis, ...]))))
-
-        # Floating image
-        transfo_aff_flo, polyAff_svf_flo = estimate_affine_and_polyaffine_svf(atlasCOG, floCOG, atlas_aff, atlas_volsize, labels, DT, II, JJ, KK, sigma, weight_bg)
-        polyAff_def_flo = torch.tensor(np.squeeze(model_integrator.predict(polyAff_svf_flo.detach().numpy()[np.newaxis, ...])))
-        polyAff_def_flo_inv = torch.tensor(np.squeeze(model_integrator.predict(-(polyAff_svf_flo.detach().numpy()[np.newaxis, ...]))))
+    Mflo = getM(atlasCOG[:, ok > 0], floCOG[:, ok > 0])
 
     print('  Reading reference image')
     R, Raff, Rh = load_volume(args.ref, im_only=False, squeeze=True, dtype=None, aff_ref=None)
     R = torch.tensor(R, device='cpu')
     print('  Deforming reference image to reference space')
-    if args.polyaffine is False:
-        II2 = II
-        JJ2 = JJ
-        KK2 = KK
-    else:
-        II2 = II + polyAff_def_ref[:, :, :, 0]
-        JJ2 = JJ + polyAff_def_ref[:, :, :, 1]
-        KK2 = KK + polyAff_def_ref[:, :, :, 2]
-    affine = torch.tensor(np.matmul(np.linalg.inv(Raff), np.matmul(transfo_aff_ref, atlas_aff)), device='cpu')
-    II3 = affine[0, 0] * II2 + affine[0, 1] * JJ2 + affine[0, 2] * KK2 + affine[0, 3]
-    JJ3 = affine[1, 0] * II2 + affine[1, 1] * JJ2 + affine[1, 2] * KK2 + affine[1, 3]
-    KK3 = affine[2, 0] * II2 + affine[2, 1] * JJ2 + affine[2, 2] * KK2 + affine[2, 3]
-    Rlin = fast_3D_interp_torch(R, II3, JJ3, KK3, 'linear')
+    II, JJ, KK = np.meshgrid(np.arange(atlas_volsize[0]), np.arange(atlas_volsize[1]), np.arange(atlas_volsize[2]), indexing='ij')
+    II = torch.tensor(II, device='cpu')
+    JJ = torch.tensor(JJ, device='cpu')
+    KK = torch.tensor(KK, device='cpu')
+    affine = torch.tensor(np.matmul(np.linalg.inv(Raff), np.matmul(Mref, atlas_aff)), device='cpu')
+    II2 = affine[0, 0] * II + affine[0, 1] * JJ + affine[0, 2] * KK + affine[0, 3]
+    JJ2 = affine[1, 0] * II + affine[1, 1] * JJ + affine[1, 2] * KK + affine[1, 3]
+    KK2 = affine[2, 0] * II + affine[2, 1] * JJ + affine[2, 2] * KK + affine[2, 3]
+    Rlin = fast_3D_interp_torch(R, II2, JJ2, KK2, 'linear')
 
     print('  Deforming reference segmentation to reference space')
-    affine = torch.tensor(np.matmul(np.linalg.inv(ref_seg_aff), np.matmul(transfo_aff_ref, atlas_aff)), device='cpu')
-    II3 = affine[0, 0] * II2 + affine[0, 1] * JJ2 + affine[0, 2] * KK2 + affine[0, 3]
-    JJ3 = affine[1, 0] * II2 + affine[1, 1] * JJ2 + affine[1, 2] * KK2 + affine[1, 3]
-    KK3 = affine[2, 0] * II2 + affine[2, 1] * JJ2 + affine[2, 2] * KK2 + affine[2, 3]
-    RSlin = fast_3D_interp_torch(torch.tensor(ref_seg_buffer.copy(), device='cpu'), II3, JJ3, KK3, 'nearest')
+    affine = torch.tensor(np.matmul(np.linalg.inv(ref_seg_aff), np.matmul(Mref, atlas_aff)), device='cpu')
+    II2 = affine[0, 0] * II + affine[0, 1] * JJ + affine[0, 2] * KK + affine[0, 3]
+    JJ2 = affine[1, 0] * II + affine[1, 1] * JJ + affine[1, 2] * KK + affine[1, 3]
+    KK2 = affine[2, 0] * II + affine[2, 1] * JJ + affine[2, 2] * KK + affine[2, 3]
+    RSlin = fast_3D_interp_torch(torch.tensor(ref_seg_buffer.copy(), device='cpu'), II2, JJ2, KK2, 'nearest')
 
     print('  Normalizing intensities of reference image')
     Rlin[RSlin == 0] = 0
     Rlin = Rlin / torch.max(Rlin)
 
-
     print('  Reading floating image')
     F, Faff, Fh = load_volume(args.flo, im_only=False, squeeze=True, dtype=None, aff_ref=None)
     F = torch.tensor(F, device='cpu')
     print('  Deforming floating image to reference space')
-    if args.polyaffine is False:
-        II2 = II
-        JJ2 = JJ
-        KK2 = KK
-    else:
-        II2 = II + polyAff_def_flo[:, :, :, 0]
-        JJ2 = JJ + polyAff_def_flo[:, :, :, 1]
-        KK2 = KK + polyAff_def_flo[:, :, :, 2]
-    affine = torch.tensor(np.matmul(np.linalg.inv(Faff), np.matmul(transfo_aff_flo, atlas_aff)), device='cpu')
-    II3 = affine[0, 0] * II2 + affine[0, 1] * JJ2 + affine[0, 2] * KK2 + affine[0, 3]
-    JJ3 = affine[1, 0] * II2 + affine[1, 1] * JJ2 + affine[1, 2] * KK2 + affine[1, 3]
-    KK3 = affine[2, 0] * II2 + affine[2, 1] * JJ2 + affine[2, 2] * KK2 + affine[2, 3]
-    Flin = fast_3D_interp_torch(F, II3, JJ3, KK3, 'linear')
+    affine = torch.tensor(np.matmul(np.linalg.inv(Faff), np.matmul(Mflo, atlas_aff)), device='cpu')
+    II2 = affine[0, 0] * II + affine[0, 1] * JJ + affine[0, 2] * KK + affine[0, 3]
+    JJ2 = affine[1, 0] * II + affine[1, 1] * JJ + affine[1, 2] * KK + affine[1, 3]
+    KK2 = affine[2, 0] * II + affine[2, 1] * JJ + affine[2, 2] * KK + affine[2, 3]
+    Flin = fast_3D_interp_torch(F, II2, JJ2, KK2, 'linear')
 
     print('  Deforming floating segmentation to reference space')
-    affine = torch.tensor(np.matmul(np.linalg.inv(flo_seg_aff), np.matmul(transfo_aff_flo, atlas_aff)), device='cpu')
-    II3 = affine[0, 0] * II2 + affine[0, 1] * JJ2 + affine[0, 2] * KK2 + affine[0, 3]
-    JJ3 = affine[1, 0] * II2 + affine[1, 1] * JJ2 + affine[1, 2] * KK2 + affine[1, 3]
-    KK3 = affine[2, 0] * II2 + affine[2, 1] * JJ2 + affine[2, 2] * KK2 + affine[2, 3]
-    FSlin = fast_3D_interp_torch(torch.tensor(flo_seg_buffer.copy(), device='cpu'), II3, JJ3, KK3, 'nearest')
+    affine = torch.tensor(np.matmul(np.linalg.inv(flo_seg_aff), np.matmul(Mflo, atlas_aff)), device='cpu')
+    II2 = affine[0, 0] * II + affine[0, 1] * JJ + affine[0, 2] * KK + affine[0, 3]
+    JJ2 = affine[1, 0] * II + affine[1, 1] * JJ + affine[1, 2] * KK + affine[1, 3]
+    KK2 = affine[2, 0] * II + affine[2, 1] * JJ + affine[2, 2] * KK + affine[2, 3]
+    FSlin = fast_3D_interp_torch(torch.tensor(flo_seg_buffer.copy(), device='cpu'), II2, JJ2, KK2, 'nearest')
 
     print('  Normalizing intensities of floating image')
     Flin[FSlin == 0] = 0
     Flin = Flin / torch.max(Flin)
 
     # Now the nonlinear registration part (if needed)
-    if args.skip_network:
+    if args.affine_only:
         print('Skipping nonlinear registration')
 
     else:
-        print('Nonlinear registration with SynthMorph')
 
         source = tf.keras.Input(shape=(*atlas_volsize, 1))
         target = tf.keras.Input(shape=(*atlas_volsize, 1))
@@ -344,57 +280,35 @@ def main():
         II = torch.tensor(II, device='cpu')
         JJ = torch.tensor(JJ, device='cpu')
         KK = torch.tensor(KK, device='cpu')
-        affine = torch.tensor(np.matmul(np.linalg.inv(atlas_aff), np.matmul(np.linalg.inv(transfo_aff_ref), Raff)), device='cpu')
+        affine = torch.tensor(np.matmul(np.linalg.inv(atlas_aff), np.matmul(np.linalg.inv(Mref), Raff)), device='cpu')
         II2 = affine[0, 0] * II + affine[0, 1] * JJ + affine[0, 2] * KK + affine[0, 3]
         JJ2 = affine[1, 0] * II + affine[1, 1] * JJ + affine[1, 2] * KK + affine[1, 3]
         KK2 = affine[2, 0] * II + affine[2, 1] * JJ + affine[2, 2] * KK + affine[2, 3]
-        if args.polyaffine is False:
+        if args.affine_only:
             II3 = II2
             JJ3 = JJ2
             KK3 = KK2
         else:
-            FIELD = fast_3D_interp_field_torch(polyAff_def_ref_inv, II2, JJ2, KK2)
+            FIELD = fast_3D_interp_field_torch(f2r_field, II2, JJ2, KK2)
             II3 = II2 + FIELD[:, :, :, 0]
             JJ3 = JJ2 + FIELD[:, :, :, 1]
             KK3 = KK2 + FIELD[:, :, :, 2]
-
-        if args.skip_network:
-            II4 = II3
-            JJ4 = JJ3
-            KK4 = KK3
-        else:
-            FIELD = fast_3D_interp_field_torch(f2r_field, II3, JJ3, KK3)
-            II4 = II3 + FIELD[:, :, :, 0]
-            JJ4 = JJ3 + FIELD[:, :, :, 1]
-            KK4 = KK3 + FIELD[:, :, :, 2]
-
-        if args.polyaffine is False:
-            II5 = II4
-            JJ5 = JJ4
-            KK5 = KK4
-        else:
-            FIELD = fast_3D_interp_field_torch(polyAff_def_flo, II4, JJ4, KK4)
-            II5 = II4 + FIELD[:, :, :, 0]
-            JJ5 = JJ4 + FIELD[:, :, :, 1]
-            KK5 = KK4 + FIELD[:, :, :, 2]
-
-        affine = torch.tensor(np.matmul(transfo_aff_flo, atlas_aff), device='cpu')
-        RAS_X = affine[0, 0] * II5 + affine[0, 1] * JJ5 + affine[0, 2] * KK5 + affine[0, 3]
-        RAS_Y = affine[1, 0] * II5 + affine[1, 1] * JJ5 + affine[1, 2] * KK5 + affine[1, 3]
-        RAS_Z = affine[2, 0] * II5 + affine[2, 1] * JJ5 + affine[2, 2] * KK5 + affine[2, 3]
+        affine = torch.tensor(np.matmul(Mflo, atlas_aff), device='cpu')
+        RAS_X = affine[0, 0] * II3 + affine[0, 1] * JJ3 + affine[0, 2] * KK3 + affine[0, 3]
+        RAS_Y = affine[1, 0] * II3 + affine[1, 1] * JJ3 + affine[1, 2] * KK3 + affine[1, 3]
+        RAS_Z = affine[2, 0] * II3 + affine[2, 1] * JJ3 + affine[2, 2] * KK3 + affine[2, 3]
         if args.fwd_field is not None:
             print('  Saving forward field')
             save_volume(torch.stack([RAS_X, RAS_Y, RAS_Z], axis=-1), Raff, Rh, args.fwd_field, n_dims=3)
         if args.flo_reg is not None:
             print('  Deforming floating image')
             affine = torch.tensor(np.linalg.inv(Faff), device='cpu')
-            II6 = affine[0, 0] * RAS_X + affine[0, 1] * RAS_Y + affine[0, 2] * RAS_Z + affine[0, 3]
-            JJ6 = affine[1, 0] * RAS_X + affine[1, 1] * RAS_Y + affine[1, 2] * RAS_Z + affine[1, 3]
-            KK6 = affine[2, 0] * RAS_X + affine[2, 1] * RAS_Y + affine[2, 2] * RAS_Z + affine[2, 3]
-            registered = fast_3D_interp_torch(F, II6, JJ6, KK6, 'linear')
+            II4 = affine[0, 0] * RAS_X + affine[0, 1] * RAS_Y + affine[0, 2] * RAS_Z + affine[0, 3]
+            JJ4 = affine[1, 0] * RAS_X + affine[1, 1] * RAS_Y + affine[1, 2] * RAS_Z + affine[1, 3]
+            KK4 = affine[2, 0] * RAS_X + affine[2, 1] * RAS_Y + affine[2, 2] * RAS_Z + affine[2, 3]
+            registered = fast_3D_interp_torch(F, II4, JJ4, KK4, 'linear')
             print('  Saving deformed floating image')
             save_volume(registered, Raff, Rh, args.flo_reg)
-
 
     if (args.bak_field is not None) or (args.ref_reg is not None):
         print('  Computing backward field')
@@ -402,54 +316,33 @@ def main():
         II = torch.tensor(II, device='cpu')
         JJ = torch.tensor(JJ, device='cpu')
         KK = torch.tensor(KK, device='cpu')
-        affine = torch.tensor(np.matmul(np.linalg.inv(atlas_aff), np.matmul(np.linalg.inv(transfo_aff_flo), Faff)), device='cpu')
+        affine = torch.tensor(np.matmul(np.linalg.inv(atlas_aff), np.matmul(np.linalg.inv(Mflo), Faff)), device='cpu')
         II2 = affine[0, 0] * II + affine[0, 1] * JJ + affine[0, 2] * KK + affine[0, 3]
         JJ2 = affine[1, 0] * II + affine[1, 1] * JJ + affine[1, 2] * KK + affine[1, 3]
         KK2 = affine[2, 0] * II + affine[2, 1] * JJ + affine[2, 2] * KK + affine[2, 3]
-        if args.polyaffine is False:
+        if args.affine_only:
             II3 = II2
             JJ3 = JJ2
             KK3 = KK2
         else:
-            FIELD = fast_3D_interp_field_torch(polyAff_def_flo_inv, II2, JJ2, KK2)
+            FIELD = fast_3D_interp_field_torch(r2f_field, II2, JJ2, KK2)
             II3 = II2 + FIELD[:, :, :, 0]
             JJ3 = JJ2 + FIELD[:, :, :, 1]
             KK3 = KK2 + FIELD[:, :, :, 2]
-
-        if args.skip_network:
-            II4 = II3
-            JJ4 = JJ3
-            KK4 = KK3
-        else:
-            FIELD = fast_3D_interp_field_torch(r2f_field, II3, JJ3, KK3)
-            II4 = II3 + FIELD[:, :, :, 0]
-            JJ4 = JJ3 + FIELD[:, :, :, 1]
-            KK4 = KK3 + FIELD[:, :, :, 2]
-
-        if args.polyaffine is False:
-            II5 = II4
-            JJ5 = JJ4
-            KK5 = KK4
-        else:
-            FIELD = fast_3D_interp_field_torch(polyAff_def_ref, II4, JJ4, KK4)
-            II5 = II4 + FIELD[:, :, :, 0]
-            JJ5 = JJ4 + FIELD[:, :, :, 1]
-            KK5 = KK4 + FIELD[:, :, :, 2]
-
-        affine = torch.tensor(np.matmul(transfo_aff_ref, atlas_aff), device='cpu')
-        RAS_X = affine[0, 0] * II5 + affine[0, 1] * JJ5 + affine[0, 2] * KK5 + affine[0, 3]
-        RAS_Y = affine[1, 0] * II5 + affine[1, 1] * JJ5 + affine[1, 2] * KK5 + affine[1, 3]
-        RAS_Z = affine[2, 0] * II5 + affine[2, 1] * JJ5 + affine[2, 2] * KK5 + affine[2, 3]
+        affine = torch.tensor(np.matmul(Mref, atlas_aff), device='cpu')
+        RAS_X = affine[0, 0] * II3 + affine[0, 1] * JJ3 + affine[0, 2] * KK3 + affine[0, 3]
+        RAS_Y = affine[1, 0] * II3 + affine[1, 1] * JJ3 + affine[1, 2] * KK3 + affine[1, 3]
+        RAS_Z = affine[2, 0] * II3 + affine[2, 1] * JJ3 + affine[2, 2] * KK3 + affine[2, 3]
         if args.bak_field is not None:
             print('  Saving backward field')
             save_volume(torch.stack([RAS_X, RAS_Y, RAS_Z], axis=-1), Faff, Fh, args.bak_field, n_dims=3)
         if args.ref_reg is not None:
             print('  Deforming reference image')
             affine = torch.tensor(np.linalg.inv(Raff), device='cpu')
-            II6 = affine[0, 0] * RAS_X + affine[0, 1] * RAS_Y + affine[0, 2] * RAS_Z + affine[0, 3]s
-            JJ6 = affine[1, 0] * RAS_X + affine[1, 1] * RAS_Y + affine[1, 2] * RAS_Z + affine[1, 3]
-            KK6 = affine[2, 0] * RAS_X + affine[2, 1] * RAS_Y + affine[2, 2] * RAS_Z + affine[2, 3]
-            registered = fast_3D_interp_torch(R, II6, JJ6, KK6, 'linear')
+            II4 = affine[0, 0] * RAS_X + affine[0, 1] * RAS_Y + affine[0, 2] * RAS_Z + affine[0, 3]
+            JJ4 = affine[1, 0] * RAS_X + affine[1, 1] * RAS_Y + affine[1, 2] * RAS_Z + affine[1, 3]
+            KK4 = affine[2, 0] * RAS_X + affine[2, 1] * RAS_Y + affine[2, 2] * RAS_Z + affine[2, 3]
+            registered = fast_3D_interp_torch(R, II4, JJ4, KK4, 'linear')
             print('  Saving deformed reference image')
             save_volume(registered, Faff, Fh, args.ref_reg)
 
@@ -460,12 +353,7 @@ def main():
     print('JE Iglesias. Scientific Reports, accepted for publication.')
     print('https://www.nature.com/articles/s41598-023-33781-0')
     print(' ')
-    if args.polyaffine:
-        print('If you use the log-Euclidean polyaffine mode, please also cite:')
-        print('POLAFFINI: Efficient Feature-Based Polyaffine Initialization for Improved Non-linear Image Registration.')
-        print('Legouhy, A., Callaghan, R., Azadbakht, H., Zhang, H.. Proceedings of IPMI 2023.')
-        print('https://doi.org/10.1007/978-3-031-34048-2_47')
-        print(' ')
+
 
 #######################
 # Auxiliary functions #
@@ -1282,14 +1170,15 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
 
 def mkdir(path_dir):
 
-    if path_dir[-1] == '/':
-        path_dir = path_dir[:-1]
-    if not os.path.isdir(path_dir):
-        list_dir_to_create = [path_dir]
-        while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
-            list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
-        for dir_to_create in reversed(list_dir_to_create):
-            os.mkdir(dir_to_create)
+    if len(path_dir)>0:
+        if path_dir[-1] == '/':
+            path_dir = path_dir[:-1]
+        if not os.path.isdir(path_dir):
+            list_dir_to_create = [path_dir]
+            while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
+                list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
+            for dir_to_create in reversed(list_dir_to_create):
+                os.mkdir(dir_to_create)
 
 
 def getM(ref, mov):
@@ -1312,41 +1201,10 @@ def getM(ref, mov):
         [x[0], x[1], x[2], x[9]],
         [x[3], x[4], x[5], x[10]],
         [x[6], x[7], x[8], x[11]],
-        [0.0, 0.0, 0.0, 1.0]])
+        [0, 0, 0, 1]])
 
     return M
 
-def estimate_affine_and_polyaffine_svf(atlasCOG, movCOG, atlas_aff, atlas_volsize, labels, DT, II, JJ, KK, sigma=15, weight_bg=1e-5):
-    transfo_aff = getM(atlasCOG, movCOG)
-    transfo_aff_inv = np.linalg.inv(transfo_aff)
-    atlas_aff_inv = np.linalg.inv(atlas_aff)
-    mov_pts_ras = transfo_aff_inv @ (np.concatenate([movCOG, np.ones([1, movCOG.shape[1]])], axis=0))
-    mov_pts_vox = atlas_aff_inv @ mov_pts_ras
-    ref_pts_vox = atlas_aff_inv @ (np.concatenate([atlasCOG, np.ones([1, atlasCOG.shape[1]])], axis=0))
-
-    weight_map_sum = torch.zeros(atlas_volsize) + weight_bg * sigma * np.sqrt(2 * np.pi)
-    polyAff_svf = torch.zeros([*atlas_volsize, 3])
-
-    for l in range(len(labels)):
-        lab = labels[l]
-        rows_l, _ = np.where(DT == lab)
-        connected_labs = np.unique(DT[rows_l])
-        ind = [i in connected_labs for i in labels]
-        loc_mat = torch.tensor(logm(getM(ref_pts_vox[:-1, ind], mov_pts_vox[:-1, ind])), device='cpu')
-        IIc = II - ref_pts_vox[0, l]
-        JJc = JJ - ref_pts_vox[1, l]
-        KKc = KK - ref_pts_vox[2, l]
-        DD = IIc * IIc + JJc * JJc + KKc * KKc
-        weight_map = torch.exp(-DD / (2 * sigma * sigma))
-        weight_map_sum += weight_map
-        for c in range(3):
-            polyAff_svf[:, :, :, c] += (
-                        weight_map * (loc_mat[c, 0] * II + loc_mat[c, 1] * JJ + loc_mat[c, 2] * KK + loc_mat[c, 3]))
-
-    for c in range(3):
-        polyAff_svf[:, :, :, c] /= weight_map_sum
-
-    return transfo_aff, polyAff_svf
 
 def fast_3D_interp_torch(X, II, JJ, KK, mode):
     if mode=='nearest':
