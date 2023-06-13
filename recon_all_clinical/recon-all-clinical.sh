@@ -560,7 +560,7 @@ set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsavera
 $cmd |& tee -a $LogFile
 set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsaverage/label/lh.hOc4v.mpm.vpnl.label --trgsubject $SNAME --trglabel ./lh.hOc4v.mpm.vpnl.label --hemi lh --regmethod surface"
 $cmd |& tee -a $LogFile
-set cmd="mris_label2annot --s $SNAME --ctab /usr/local/freesurfer/dev/average/colortable_vpnl.txt --hemi lh --a mpm.vpnl --maxstatwinner --noverbose --l lh.FG1.mpm.vpnl.label --l lh.FG2.mpm.vpnl.label --l lh.FG3.mpm.vpnl.label --l lh.FG4.mpm.vpnl.label --l lh.hOc1.mpm.vpnl.label --l lh.hOc2.mpm.vpnl.label --l lh.hOc3v.mpm.vpnl.label --l lh.hOc4v.mpm.vpnl.label"
+set cmd="mris_label2annot --s $SNAME --ctab $FREESURFER_HOME/average/colortable_vpnl.txt --hemi lh --a mpm.vpnl --maxstatwinner --noverbose --l lh.FG1.mpm.vpnl.label --l lh.FG2.mpm.vpnl.label --l lh.FG3.mpm.vpnl.label --l lh.FG4.mpm.vpnl.label --l lh.hOc1.mpm.vpnl.label --l lh.hOc2.mpm.vpnl.label --l lh.hOc3v.mpm.vpnl.label --l lh.hOc4v.mpm.vpnl.label"
 $cmd |& tee -a $LogFile
 set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsaverage/label/lh.BA1_exvivo.thresh.label --trgsubject $SNAME --trglabel ./lh.BA1_exvivo.thresh.label --hemi lh --regmethod surface"
 $cmd |& tee -a $LogFile
@@ -590,9 +590,9 @@ set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsavera
 $cmd |& tee -a $LogFile
 set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsaverage/label/lh.perirhinal_exvivo.thresh.label --trgsubject $SNAME --trglabel ./lh.perirhinal_exvivo.thresh.label --hemi lh --regmethod surface"
 $cmd |& tee -a $LogFile
-set cmd="mris_label2annot --s $SNAME --hemi lh --ctab /usr/local/freesurfer/dev/average/colortable_BA.txt --l lh.BA1_exvivo.label --l lh.BA2_exvivo.label --l lh.BA3a_exvivo.label --l lh.BA3b_exvivo.label --l lh.BA4a_exvivo.label --l lh.BA4p_exvivo.label --l lh.BA6_exvivo.label --l lh.BA44_exvivo.label --l lh.BA45_exvivo.label --l lh.V1_exvivo.label --l lh.V2_exvivo.label --l lh.MT_exvivo.label --l lh.perirhinal_exvivo.label --l lh.entorhinal_exvivo.label --a BA_exvivo --maxstatwinner --noverbose"
+set cmd="mris_label2annot --s $SNAME --hemi lh --ctab $FREESURFER_HOME/average/colortable_BA.txt --l lh.BA1_exvivo.label --l lh.BA2_exvivo.label --l lh.BA3a_exvivo.label --l lh.BA3b_exvivo.label --l lh.BA4a_exvivo.label --l lh.BA4p_exvivo.label --l lh.BA6_exvivo.label --l lh.BA44_exvivo.label --l lh.BA45_exvivo.label --l lh.V1_exvivo.label --l lh.V2_exvivo.label --l lh.MT_exvivo.label --l lh.perirhinal_exvivo.label --l lh.entorhinal_exvivo.label --a BA_exvivo --maxstatwinner --noverbose"
 $cmd |& tee -a $LogFile
-set cmd="mris_label2annot --s $SNAME --hemi lh --ctab /usr/local/freesurfer/dev/average/colortable_BA.txt --l lh.BA1_exvivo.thresh.label --l lh.BA2_exvivo.thresh.label --l lh.BA3a_exvivo.thresh.label --l lh.BA3b_exvivo.thresh.label --l lh.BA4a_exvivo.thresh.label --l lh.BA4p_exvivo.thresh.label --l lh.BA6_exvivo.thresh.label --l lh.BA44_exvivo.thresh.label --l lh.BA45_exvivo.thresh.label --l lh.V1_exvivo.thresh.label --l lh.V2_exvivo.thresh.label --l lh.MT_exvivo.thresh.label --l lh.perirhinal_exvivo.thresh.label --l lh.entorhinal_exvivo.thresh.label --a BA_exvivo.thresh --maxstatwinner --noverbose"
+set cmd="mris_label2annot --s $SNAME --hemi lh --ctab $FREESURFER_HOME/average/colortable_BA_thresh.txt --l lh.BA1_exvivo.thresh.label --l lh.BA2_exvivo.thresh.label --l lh.BA3a_exvivo.thresh.label --l lh.BA3b_exvivo.thresh.label --l lh.BA4a_exvivo.thresh.label --l lh.BA4p_exvivo.thresh.label --l lh.BA6_exvivo.thresh.label --l lh.BA44_exvivo.thresh.label --l lh.BA45_exvivo.thresh.label --l lh.V1_exvivo.thresh.label --l lh.V2_exvivo.thresh.label --l lh.MT_exvivo.thresh.label --l lh.perirhinal_exvivo.thresh.label --l lh.entorhinal_exvivo.thresh.label --a BA_exvivo.thresh --maxstatwinner --noverbose"
 $cmd |& tee -a $LogFile
 set cmd="mris_anatomical_stats -th3 -mgz -f ../stats/lh.BA_exvivo.stats -b -a ./lh.BA_exvivo.annot -c ./BA_exvivo.ctab $SNAME lh white"
 $cmd |& tee -a $LogFile
@@ -642,7 +642,7 @@ set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsavera
 $cmd |& tee -a $LogFile
 set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsaverage/label/rh.hOc4v.mpm.vpnl.label --trgsubject $SNAME --trglabel ./rh.hOc4v.mpm.vpnl.label --hemi rh --regmethod surface"
 $cmd |& tee -a $LogFile
-set cmd="mris_label2annot --s $SNAME --ctab /usr/local/freesurfer/dev/average/colortable_vpnl.txt --hemi rh --a mpm.vpnl --maxstatwinner --noverbose --l rh.FG1.mpm.vpnl.label --l rh.FG2.mpm.vpnl.label --l rh.FG3.mpm.vpnl.label --l rh.FG4.mpm.vpnl.label --l rh.hOc1.mpm.vpnl.label --l rh.hOc2.mpm.vpnl.label --l rh.hOc3v.mpm.vpnl.label --l rh.hOc4v.mpm.vpnl.label"
+set cmd="mris_label2annot --s $SNAME --ctab $FREESURFER_HOME/average/colortable_vpnl.txt --hemi rh --a mpm.vpnl --maxstatwinner --noverbose --l rh.FG1.mpm.vpnl.label --l rh.FG2.mpm.vpnl.label --l rh.FG3.mpm.vpnl.label --l rh.FG4.mpm.vpnl.label --l rh.hOc1.mpm.vpnl.label --l rh.hOc2.mpm.vpnl.label --l rh.hOc3v.mpm.vpnl.label --l rh.hOc4v.mpm.vpnl.label"
 $cmd |& tee -a $LogFile
 set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsaverage/label/rh.BA1_exvivo.thresh.label --trgsubject $SNAME --trglabel ./rh.BA1_exvivo.thresh.label --hemi rh --regmethod surface"
 $cmd |& tee -a $LogFile
@@ -672,9 +672,9 @@ set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsavera
 $cmd |& tee -a $LogFile
 set cmd="mri_label2label --srcsubject fsaverage --srclabel $SUBJECTS_DIR/fsaverage/label/rh.perirhinal_exvivo.thresh.label --trgsubject $SNAME --trglabel ./rh.perirhinal_exvivo.thresh.label --hemi rh --regmethod surface"
 $cmd |& tee -a $LogFile
-set cmd="mris_label2annot --s $SNAME --hemi rh --ctab /usr/local/freesurfer/dev/average/colortable_BA.txt --l rh.BA1_exvivo.label --l rh.BA2_exvivo.label --l rh.BA3a_exvivo.label --l rh.BA3b_exvivo.label --l rh.BA4a_exvivo.label --l rh.BA4p_exvivo.label --l rh.BA6_exvivo.label --l rh.BA44_exvivo.label --l rh.BA45_exvivo.label --l rh.V1_exvivo.label --l rh.V2_exvivo.label --l rh.MT_exvivo.label --l rh.perirhinal_exvivo.label --l rh.entorhinal_exvivo.label --a BA_exvivo --maxstatwinner --noverbose"
+set cmd="mris_label2annot --s $SNAME --hemi rh --ctab $FREESURFER_HOME/average/colortable_BA.txt --l rh.BA1_exvivo.label --l rh.BA2_exvivo.label --l rh.BA3a_exvivo.label --l rh.BA3b_exvivo.label --l rh.BA4a_exvivo.label --l rh.BA4p_exvivo.label --l rh.BA6_exvivo.label --l rh.BA44_exvivo.label --l rh.BA45_exvivo.label --l rh.V1_exvivo.label --l rh.V2_exvivo.label --l rh.MT_exvivo.label --l rh.perirhinal_exvivo.label --l rh.entorhinal_exvivo.label --a BA_exvivo --maxstatwinner --noverbose"
 $cmd |& tee -a $LogFile
-set cmd="mris_label2annot --s $SNAME --hemi rh --ctab /usr/local/freesurfer/dev/average/colortable_BA.txt --l rh.BA1_exvivo.thresh.label --l rh.BA2_exvivo.thresh.label --l rh.BA3a_exvivo.thresh.label --l rh.BA3b_exvivo.thresh.label --l rh.BA4a_exvivo.thresh.label --l rh.BA4p_exvivo.thresh.label --l rh.BA6_exvivo.thresh.label --l rh.BA44_exvivo.thresh.label --l rh.BA45_exvivo.thresh.label --l rh.V1_exvivo.thresh.label --l rh.V2_exvivo.thresh.label --l rh.MT_exvivo.thresh.label --l rh.perirhinal_exvivo.thresh.label --l rh.entorhinal_exvivo.thresh.label --a BA_exvivo.thresh --maxstatwinner --noverbose"
+set cmd="mris_label2annot --s $SNAME --hemi rh --ctab $FREESURFER_HOME/average/colortable_BA_thresh.txt --l rh.BA1_exvivo.thresh.label --l rh.BA2_exvivo.thresh.label --l rh.BA3a_exvivo.thresh.label --l rh.BA3b_exvivo.thresh.label --l rh.BA4a_exvivo.thresh.label --l rh.BA4p_exvivo.thresh.label --l rh.BA6_exvivo.thresh.label --l rh.BA44_exvivo.thresh.label --l rh.BA45_exvivo.thresh.label --l rh.V1_exvivo.thresh.label --l rh.V2_exvivo.thresh.label --l rh.MT_exvivo.thresh.label --l rh.perirhinal_exvivo.thresh.label --l rh.entorhinal_exvivo.thresh.label --a BA_exvivo.thresh --maxstatwinner --noverbose"
 $cmd |& tee -a $LogFile
 set cmd="mris_anatomical_stats -th3 -mgz -f ../stats/rh.BA_exvivo.stats -b -a ./rh.BA_exvivo.annot -c ./BA_exvivo.ctab $SNAME rh white"
 $cmd |& tee -a $LogFile
