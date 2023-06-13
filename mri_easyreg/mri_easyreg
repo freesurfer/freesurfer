@@ -446,7 +446,7 @@ def main():
         if args.ref_reg is not None:
             print('  Deforming reference image')
             affine = torch.tensor(np.linalg.inv(Raff), device='cpu')
-            II6 = affine[0, 0] * RAS_X + affine[0, 1] * RAS_Y + affine[0, 2] * RAS_Z + affine[0, 3]
+            II6 = affine[0, 0] * RAS_X + affine[0, 1] * RAS_Y + affine[0, 2] * RAS_Z + affine[0, 3]s
             JJ6 = affine[1, 0] * RAS_X + affine[1, 1] * RAS_Y + affine[1, 2] * RAS_Z + affine[1, 3]
             KK6 = affine[2, 0] * RAS_X + affine[2, 1] * RAS_Y + affine[2, 2] * RAS_Z + affine[2, 3]
             registered = fast_3D_interp_torch(R, II6, JJ6, KK6, 'linear')
