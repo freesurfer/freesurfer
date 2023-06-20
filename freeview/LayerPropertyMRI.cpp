@@ -1500,6 +1500,9 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
     SetLUTCTAB( source->GetEmbeddedColorTable() );
   }
 
+  MRI* mri = source->GetMRI();
+  m_mapMeanValues[0] = MRImeanFrame(mri, 0);
+
   // Set up our initial tables.
   this->OnColorMapChanged();
 }
@@ -1971,3 +1974,19 @@ void LayerPropertyMRI::SetBinaryColor(const QColor &color)
   }
 }
 
+double LayerPropertyMRI::GetFrameMeanValue(int frame)
+{
+  LayerMRI* layer = qobject_cast<LayerMRI*>(parent());
+  if (frame < 0)
+    frame = layer->GetActiveFrame();
+
+  if (m_mapMeanValues.contains(frame))
+    return m_mapMeanValues[frame];
+  else
+  {
+    MRI* mri = layer->GetSourceVolume()->GetMRI();
+    double val = MRImeanFrame(mri, frame);
+    m_mapMeanValues[frame] = val;
+    return val;
+  }
+}
