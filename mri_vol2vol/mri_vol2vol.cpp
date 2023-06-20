@@ -1270,8 +1270,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
       if(stricmp(FileNameExtension(regfile, tmp), "LTA")){
-        printf("LTA registration file needs to have .lta extension!\n");
-        exit(1);        
+	if (stricmp(FileNameExtension(regfile, tmp), "identity.nofile")){
+	  printf("LTA registration file needs to have .lta extension!\n");
+	  exit(1);        
+	}
       }
       lta = LTAread(regfile) ;
       if(lta == NULL){
