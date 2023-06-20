@@ -136,5 +136,11 @@ CblumFromSynthSeg:
     flags: -cblum-from-synthseg
     action: enable
     descr: Run mri_synthseg and insert the cerebellum wm and gm into the aseg
+
+SkipDone:
+    value: False
+    flags: -skip-done
+    action: enable
+    descr: When recon-all.done exists and recon-all.error does not exist, do not process
     
 
