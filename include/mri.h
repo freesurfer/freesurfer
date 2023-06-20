@@ -185,7 +185,7 @@ struct VOL_GEOM
   float y_r =  0, y_a = 0, y_s = -1;
   float z_r =  0, z_a = 1, z_s =  0;
   float c_r =  0, c_a = 0, c_s =  0;
-  char          fname[STRLEN];  // volume filename
+  char  fname[STRLEN] = {'\0'};  // volume filename
 
   // i_to_r__, r_to_i__, register_mat were moved here from MRI in this commit:
   // https://github.com/freesurfer/freesurfer/commit/d7b80d733e96380543093e1bb0c11f0123f97132
@@ -196,12 +196,127 @@ struct VOL_GEOM
   // The functions below compute these matrices on-the-fly
   // RAS = scanner RAS (sometimes known as "real" RAS in surface contexts)
   // TkregRAS = RAS used by tkregister; surface coords are by default in this TkregRAS space
-  MATRIX *get_Vox2RAS(void){       return(MRIxfmCRS2XYZ(this,0));}
-  MATRIX *get_RAS2Vox(void){       return(MatrixInverse(get_Vox2RAS(),NULL));}
+  MATRIX *get_Vox2RAS(int base=0){       return(MRIxfmCRS2XYZ(this,base));}
+  MATRIX *get_RAS2Vox(int base=0){       return(MatrixInverse(get_Vox2RAS(base),NULL));}
   MATRIX *get_Vox2TkregRAS(void){  return(MRIxfmCRS2XYZtkreg(this));}
   MATRIX *get_TkregRAS2Vox(void){  return(MatrixInverse(get_Vox2TkregRAS(),NULL));}
   MATRIX *get_RAS2TkregRAS(void){  return(VGras2tkreg(this, NULL));}
   MATRIX *get_TkregRAS2RAS(void){  return(VGtkreg2RAS(this, NULL));}
+
+  VOL_GEOM() {}
+  
+  // copy constructor
+  VOL_GEOM(const VOL_GEOM& vg)
+  {
+    valid = vg.valid;
+    width = vg.width;
+    height = vg.height;
+    depth = vg.depth;
+    xsize = vg.xsize;
+    ysize = vg.ysize;
+    zsize = vg.zsize;
+
+    ras_good_flag = vg.ras_good_flag;
+    x_r = vg.x_r;
+    x_a = vg.x_a;
+    x_s = vg.x_s;
+    y_r = vg.y_r;
+    y_a = vg.y_a;
+    y_s = vg.y_s;
+    z_r = vg.z_r;
+    z_a = vg.z_a;
+    z_s = vg.z_s;
+    c_r = vg.c_r;
+    c_a = vg.c_a;
+    c_s = vg.c_s;
+    
+    strcpy(fname, vg.fname);
+  }
+
+  // copy assignment
+  VOL_GEOM& operator= (const VOL_GEOM& other)
+  {
+    valid = other.valid;
+    width = other.width;
+    height = other.height;
+    depth = other.depth;
+    xsize = other.xsize;
+    ysize = other.ysize;
+    zsize = other.zsize;
+
+    ras_good_flag = other.ras_good_flag;
+    x_r = other.x_r;
+    x_a = other.x_a;
+    x_s = other.x_s;
+    y_r = other.y_r;
+    y_a = other.y_a;
+    y_s = other.y_s;
+    z_r = other.z_r;
+    z_a = other.z_a;
+    z_s = other.z_s;
+    c_r = other.c_r;
+    c_a = other.c_a;
+    c_s = other.c_s;
+    
+    strcpy(fname, other.fname);
+
+    return *this;
+  }
+  
+  void vgprint(bool nocheck=false)
+  {
+    if (valid == 1 || nocheck) {
+      fprintf(stderr, "volume geometry:\n");
+      if (nocheck)
+        fprintf(stderr, "valid   : %d\n", valid);
+      fprintf(stderr, "extent  : (%d, %d, %d)\n", width, height, depth);
+      fprintf(stderr, "voxel   : (%7.4f, %7.4f, %7.4f)\n", xsize, ysize, zsize);
+      fprintf(stderr, "x_(ras) : (%7.4f, %7.4f, %7.4f)\n", x_r, x_a, x_s);
+      fprintf(stderr, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", y_r, y_a, y_s);
+      fprintf(stderr, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", z_r, z_a, z_s);
+      fprintf(stderr, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", c_r, c_a, c_s);
+      fprintf(stderr, "file    : %s\n", fname);
+    }
+    else
+      fprintf(stderr, "volume geometry: info is either not contained or not valid.\n");
+
+    fflush(stderr);    
+  }
+  
+  // return 1 if two VOL_GEOMs equal;
+  // otherwise, return 0
+  int operator== (const VOL_GEOM& vg)
+  {
+    extern double vg_isEqual_Threshold;
+    int rt = isNotEqualThresh(this, &vg, vg_isEqual_Threshold);
+    return (rt == 0) ? 1 : 0;
+  }
+
+  // if two VOL_GEOMs equal, return 0;
+  // otherwise, return number > 0
+  static int isNotEqualThresh(const VOL_GEOM *vg1, const VOL_GEOM *vg2, const double thresh)
+  {
+    if (vg1->valid != vg2->valid) return (1);
+    if (vg1->width != vg2->width) return (2);
+    if (vg1->height != vg2->height) return (3);
+    if (vg1->depth != vg2->depth) return (4);
+    if (!FZEROTHR(vg1->xsize - vg2->xsize, thresh)) return (5);
+    if (!FZEROTHR(vg1->ysize - vg2->ysize, thresh)) return (6);
+    if (!FZEROTHR(vg1->zsize - vg2->zsize, thresh)) return (7);
+    if (!FZEROTHR(vg1->x_r - vg2->x_r, thresh)) return (8);
+    if (!FZEROTHR(vg1->x_a - vg2->x_a, thresh)) return (9);
+    if (!FZEROTHR(vg1->x_s - vg2->x_s, thresh)) return (10);
+    if (!FZEROTHR(vg1->y_r - vg2->y_r, thresh)) return (11);
+    if (!FZEROTHR(vg1->y_a - vg2->y_a, thresh)) return (12);
+    if (!FZEROTHR(vg1->y_s - vg2->y_s, thresh)) return (13);
+    if (!FZEROTHR(vg1->z_r - vg2->z_r, thresh)) return (14);
+    if (!FZEROTHR(vg1->z_a - vg2->z_a, thresh)) return (15);
+    if (!FZEROTHR(vg1->z_s - vg2->z_s, thresh)) return (16);
+    if (!FZEROTHR(vg1->c_r - vg2->c_r, thresh)) return (17);
+    if (!FZEROTHR(vg1->c_a - vg2->c_a, thresh)) return (18);
+    if (!FZEROTHR(vg1->c_s - vg2->c_s, thresh)) return (19);
+    return (0);
+  };
 };
 
 typedef VOL_GEOM VG;
@@ -813,11 +928,11 @@ int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
 int   MRIreInitCache(VOL_GEOM *mri); /* when header is modified,
                                    you must call this function
                                    to update cached info */
-int   MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
+int   MRIvoxelToWorld(VOL_GEOM *mri, double xv, double yv, double zv,
                       double *xw, double *yw, double *zw) ;
-int   MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
+int   MRIworldToVoxel(VOL_GEOM *mri, double xw, double yw, double zw,
                       double *pxv, double *pyv, double *pzv) ;
-int   MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw,
+int   MRIworldToVoxelIndex(VOL_GEOM *mri, double xw, double yw, double zw,
                            int *pxv, int *pyv, int *pzv) ;
 MRI *MRItoTalairach(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIfromTalairach(MRI *mri_src, MRI *mri_dst) ;
@@ -956,21 +1071,21 @@ MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes);
 
 /* surfaceRAS and voxel routines */
-MATRIX *surfaceRASFromVoxel_(MRI *mri);
-MATRIX *voxelFromSurfaceRAS_(MRI *mri);
-MATRIX *surfaceRASFromRAS_(MRI const *mri);
-MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS);
+MATRIX *surfaceRASFromVoxel_(VOL_GEOM *mri);
+MATRIX *voxelFromSurfaceRAS_(VOL_GEOM *mri);
+MATRIX *surfaceRASFromRAS_(VOL_GEOM const *mri);
+MATRIX *RASFromSurfaceRAS_(VOL_GEOM const *mri, MATRIX *RASFromSRAS);
 
-int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
-int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,
+int MRIscannerRASToVoxel(VOL_GEOM *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
+int MRIvoxelToSurfaceRAS(VOL_GEOM *mri, double xv, double yv, double zv,
                          double *xs, double *ys, double *zs);
-int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr,
+int MRIsurfaceRASToVoxel(VOL_GEOM *mri, double xr, double yr, double zr,
                          double *xv, double *yv, double *zv);
-int MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr,
+int MRIsurfaceRASToVoxelCached(VOL_GEOM *mri, double xr, double yr, double zr,
                                double *xv, double *yv, double *zv);
-int MRIRASToSurfaceRAS(MRI *mri, double xr, double yr, double zr,
+int MRIRASToSurfaceRAS(VOL_GEOM *mri, double xr, double yr, double zr,
                        double *xsr, double *ysr, double *zsr);
-int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr,
+int MRIsurfaceRASToRAS(VOL_GEOM *mri, double xsr, double ysr, double zsr,
                        double *xr, double *yr, double *zr);
 
 /* bitmap image access macros */
@@ -1525,7 +1640,7 @@ MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias,
 MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
 
 /* extract the RASToVoxeMatrix from an MRI */
-MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
+MATRIX *GetSurfaceRASToVoxelMatrix(VOL_GEOM *mri);
 
 // functions read/write MRI_MGH_FILE
 MRI *mghRead(const char *fname, int read_volume, int frame);

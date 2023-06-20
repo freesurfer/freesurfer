@@ -436,9 +436,12 @@ int main(int argc, char *argv[])
         fprintf(stderr,
                 "WARNING:*************************************************\n");
       }
-      copyVolGeom(&lt->dst, &vgtmp);
-      copyVolGeom(&lt->src, &lt->dst);
-      copyVolGeom(&vgtmp, &lt->src);
+      //copyVolGeom(&lt->dst, &vgtmp);
+      vgtmp = lt->dst;
+      //copyVolGeom(&lt->src, &lt->dst);
+      lt->dst = lt->src;
+      //copyVolGeom(&vgtmp, &lt->src);
+      lt->src = vgtmp;
     }
 
     /* save the original cooridnates into orig */

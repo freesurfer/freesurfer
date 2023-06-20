@@ -188,6 +188,8 @@ For each segmentation, computes the average waveform across all the voxels in th
       <explanation>Set SUBJECTS_DIR env var</explanation>
       <argument>--seed N</argument>
       <explanation>set random number generator to seed N</explanation>
+      <argument>--rescale-by-seg invol seg targetmean outvol segid1 segid2 ...</argument>
+      <explanation>Stand-alone to rescale the volume so that the mean in the segids is targetmean</explanation>
     </optional-flagged>
   </arguments>
 	<example>mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --excludeid 0 --sum bert.aseg.sum

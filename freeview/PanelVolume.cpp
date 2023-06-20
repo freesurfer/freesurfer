@@ -123,7 +123,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                         << ui->checkBoxAutoSetMid
                         << ui->checkBoxInvert
                         << ui->labelMid
-                        << ui->labelOffset;
+                        << ui->labelOffset
+                        << ui->checkBoxOffsetToMean;
 
   m_widgetlistGenericColorMap << ui->lineEditMin
                               << ui->lineEditMax
@@ -293,6 +294,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)) );
   connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetMidToMin(bool)));
   connect( ui->checkBoxAutoSetMid, SIGNAL(toggled(bool)), SLOT(OnCheckBoxSetAutoMid(bool)));
+  connect( ui->checkBoxOffsetToMean, SIGNAL(toggled(bool)), SLOT(OnCheckBoxSetOffsetToMean(bool)));
   if ( layer->IsTypeOf( "DTI" ) )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
@@ -452,6 +454,8 @@ void PanelVolume::DoUpdateWidgets()
       range_min = 0;
       range_max = 100;
     }
+    ui->checkBoxOffsetToMean->setChecked(dHeatOffset == layer->GetProperty()->GetFrameMeanValue());
+
     ChangeLineEditNumber( ui->lineEditMax, dMaxTh );
     ChangeLineEditNumber( ui->lineEditMin, dMinTh );
     ui->sliderMin->setValue( (int)( ( dMinTh - range_min ) / ( range_max - range_min ) * 100 ) );
@@ -2110,5 +2114,20 @@ void PanelVolume::OnButtonContourUpdate()
   foreach (LayerMRI* layer, layers)
   {
     layer->RebuildContour();
+  }
+}
+
+void PanelVolume::OnCheckBoxSetOffsetToMean(bool b)
+{
+  if (!b)
+    return;
+
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    if ( layer )
+    {
+      layer->GetProperty()->SetHeatScaleOffset(layer->GetProperty()->GetFrameMeanValue());
+    }
   }
 }

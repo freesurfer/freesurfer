@@ -603,6 +603,7 @@ static void print_usage(void) {
   printf("   --o  defacedvol \n");
   printf("   --m  facemask \n");
   printf("   --fill-const ConstIn ConstOut\n");
+  printf("   --xmask xmask : exclude anything in this mask from defacing\n");
   printf("\n");
   printf("   --reg tempreg.lta : apply to surface\n");
   printf("   --min minsurfpath : output 'minimum surface'\n");

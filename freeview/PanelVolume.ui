@@ -27,7 +27,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>360</width>
+     <width>377</width>
      <height>1913</height>
     </rect>
    </property>
@@ -548,49 +548,41 @@ of each frame</string>
       </item>
       <item row="26" column="1">
        <layout class="QGridLayout" name="gridLayout">
-        <item row="3" column="0" colspan="2">
-         <widget class="QCheckBox" name="checkBoxClearHigher">
-          <property name="text">
-           <string>Clear higher values</string>
-          </property>
-         </widget>
+        <item row="2" column="0" colspan="3">
+         <layout class="QHBoxLayout" name="horizontalLayout_22">
+          <item>
+           <widget class="QCheckBox" name="checkBoxAutoSetMid">
+            <property name="text">
+             <string>Autoset Mid</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxSetMidToMin">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>Set Mid to Min</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_8">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>2</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
-        <item row="1" column="1">
-         <widget class="QCheckBox" name="checkBoxInvert">
-          <property name="text">
-           <string>Invert</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0" colspan="2">
-         <widget class="QCheckBox" name="checkBoxClearBackground">
-          <property name="text">
-           <string>Clear background</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QCheckBox" name="checkBoxTruncate">
-          <property name="text">
-           <string>Truncate</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0">
-         <widget class="QPushButton" name="pushButtonResetWindowLevel">
-          <property name="text">
-           <string>Reset</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0" colspan="2">
-         <widget class="QCheckBox" name="checkBoxPercentile">
-          <property name="text">
-           <string>Use percentile</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="2">
+        <item row="5" column="2">
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <property name="spacing">
            <number>0</number>
@@ -626,6 +618,34 @@ of each frame</string>
           </item>
          </layout>
         </item>
+        <item row="5" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBoxClearBackground">
+          <property name="text">
+           <string>Clear background</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QCheckBox" name="checkBoxInvert">
+          <property name="text">
+           <string>Invert</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBoxPercentile">
+          <property name="text">
+           <string>Use percentile</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="checkBoxTruncate">
+          <property name="text">
+           <string>Truncate</string>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="2">
          <spacer name="horizontalSpacer_2">
           <property name="orientation">
@@ -639,39 +659,26 @@ of each frame</string>
           </property>
          </spacer>
         </item>
-        <item row="2" column="0" colspan="3">
-         <layout class="QHBoxLayout" name="horizontalLayout_22">
-          <item>
-           <widget class="QCheckBox" name="checkBoxAutoSetMid">
-            <property name="text">
-             <string>Autoset Mid</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBoxSetMidToMin">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="text">
-             <string>Set Mid to Min</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_8">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
+        <item row="6" column="0">
+         <widget class="QPushButton" name="pushButtonResetWindowLevel">
+          <property name="text">
+           <string>Reset</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBoxClearHigher">
+          <property name="text">
+           <string>Clear higher values</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QCheckBox" name="checkBoxOffsetToMean">
+          <property name="text">
+           <string>Set offset to mean</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>

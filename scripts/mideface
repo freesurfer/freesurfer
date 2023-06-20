@@ -15,6 +15,7 @@ set ForceUpdate = 0
 set DoPostHeadSurf = 0
 set threads = 1
 set xmask = ()
+set MaskSegToHead = 1;
 set DoSamsegXMask = 1;
 set nSegDil = 1;
 set SamsegFast = 1
@@ -27,6 +28,7 @@ set outdir = ()
 set FillType = 1;
 set FillConstIn = ()
 set FillConstOut = ()
+set fhi = ()
 set DoEars = 1;
 set DoForehead = 0;
 set DoBackOfHead = 0
@@ -104,8 +106,8 @@ set outdir = `pwd`;
 popd > /dev/null
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.midefacer.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.midefacer.$$
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.mideface.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.mideface.$$
 endif
 mkdir -p $tmpdir/log
 set invol  = `getfullpath $invol`
@@ -114,9 +116,9 @@ set tmpdir = `getfullpath $tmpdir`
 
 # Set up log file
 set stem = `fname2stem $outvol`
-if($#LF == 0) set LF = $stem.midefacer.log
+if($#LF == 0) set LF = $stem.mideface.log
 if($LF != /dev/null) rm -f $LF
-echo "Log file for midefacer" >> $LF
+echo "Log file for mideface" >> $LF
 date  | tee -a $LF
 echo "" | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
@@ -208,24 +210,6 @@ if($DoSynthSegXMask) then
   set segidlist = ($segidlist 43 44 49 50 51 52 53 54 58 60 62 63)
 endif
 
-if($DoSynthSegXMask || $DoSamsegXMask) then
-  set segdil = $tmpdir/seg.bin.dil.mgz
-  # Binarize, and maybe dilate, the synthseg output. A subset of cerebral segids
-  # are selected to assure that only cerebral structures are excluded. At 
-  # the titme of writing, synthseg only produces cerebral structures, so it is
-  # not an issue, but at some point it might start segmenting extracerebral.
-  # Probably the only important seg is cortex, maybe skull and eyes.
-  set ud = (`UpdateNeeded $segdil $seg`)
-  if($ud || $ForceUpdate) then
-    set cmd = (mri_binarize --i $seg --match $segidlist --o $segdil)
-    if($nSegDil > 0) set cmd = ($cmd  --dilate $nSegDil)
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit
-  endif
-  set xmask = $segdil
-endif
-
 # Compute reg from the defacing atlas to the subject
 set atlas2inputlta = $tmpdir/atlas2input.lta
 set ud = (`UpdateNeeded $atlas2inputlta $samseglta`)
@@ -294,11 +278,43 @@ if($ud || $ForceUpdate) then
   # Adding samseg here makes the whole thing much more robust
   # because samseg is bascially provides a head mask
   if($UseOrMask && $DoSamsegXMask) set cmd = ($cmd -or-mask $samsegdir/seg.mgz)
+  if($#fhi) set cmd = ($cmd -fhi $fhi);
   set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
   set cmd = ($cmd $xopts);
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit
+endif
+
+# Create statistics of the head volume for QA
+set headstats = $tmpdir/headvol.stats
+set ud = (`UpdateNeeded $headstats $headmask`)
+if($ud || $ForceUpdate) then
+  set cmd = (mri_segstats --seg $headmask --id 1 --sum $headstats)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+if($DoSamsegXMask || $DoSynthSegXMask) then
+  set segdil = $tmpdir/seg.bin.dil.mgz
+  # Binarize, and maybe dilate, the samseg/synthseg output. A subset
+  # of cerebral segids are selected to assure that only cerebral
+  # structures are excluded. At the titme of writing, synthseg only
+  # produces cerebral structures, so it is not an issue, but at some
+  # point it might start segmenting extracerebral.  Probably the only
+  # important seg is cortex, maybe skull and eyes.
+  set ud = (`UpdateNeeded $segdil $seg`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_binarize --i $seg --match $segidlist --o $segdil)
+    if($nSegDil > 0) set cmd = ($cmd  --dilate $nSegDil)
+    # This will keep stray skull voxels from interfering
+    if($MaskSegToHead) set cmd = ($cmd --mask $headmask)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  set xmask = $segdil
 endif
 
 # Finally, perform the defacing
@@ -354,11 +370,32 @@ if($DoPostHeadSurf) then
     set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
     set cmd = (mkheadsurf -i $outvol -o $posthead -surf $postheadsurf \
       -rescale -no-inflate -fill-holes-islands -mc -no-curv $xopts)
+    if($#fhi) set cmd = ($cmd -fhi $fhi);
     # can't do samseg here, duh, but can use xmask if there
     if($UseOrMask && $#xmask) set cmd = ($cmd -or-mask $xmask)
     echo $cmd | tee -a $LF
     fs_time $cmd |& tee -a $LF
     if($status) goto error_exit
+  endif
+  # For QA, compute distance from true to new face
+  set dist = $tmpdir/dist-to-face.mgz
+  set distthresh = $tmpdir/dist-to-face.thresh.mgz
+  set ud = `UpdateNeeded $distthresh $headsurf $postheadsurf`
+  if($ud) then
+    # Compute the distance between the true and refaced surfaces
+    set cmd = (mris_diff --min-dist $headsurf $postheadsurf 1 $dist) #1=exact
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit 
+    # Threshold to exclude anything beyond 1mm
+    set cmd = (mri_binarize --min 0.01 --max 1 --i $dist --o $distthresh)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit 
+    set cmd = (mri_mask $dist $distthresh $dist)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit 
   endif
 endif
 
@@ -449,11 +486,11 @@ set tRunHours = `echo $tSecRun/3600|bc -l`
 set tRunHours = `printf %5.2f $tRunHours`
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
-echo "Midefacer-Run-Time-Sec $tSecRun" |& tee -a $LF
-echo "Midefacer-Run-Time-Min $tRunMin" |& tee -a $LF
-echo "Midefacer-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo "Mideface-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Mideface-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Mideface-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
-echo "midefacer Done" |& tee -a $LF
+echo "mideface Done" |& tee -a $LF
 exit 0
 
 ###############################################
@@ -651,6 +688,19 @@ while( $#argv != 0 )
       set BBRDoF = 12
       breaksw
 
+    case "--mask-seg-to-head":
+      set MaskSegToHead = 1;
+      breaksw
+    case "--no-mask-seg-to-head":
+      set MaskSegToHead = 0;
+      breaksw
+
+    case "--fhi":
+    case "-fhi":
+      if($#argv < 1) goto arg1err;
+      set fhi = $argv[1]; shift
+      breaksw
+
     case "--no-xvfb":
       set UseXvfb = 0
       breaksw
@@ -810,8 +860,8 @@ if($#outdir) then
   if($#tmpdir == 0) set tmpdir = $outdir
   if($#facemask == 0) set facemask = $outdir/face.mask.mgz
   if($#LF == 0) then
-    set LF = $outdir/log/midefacer.log
-    if(-e $LF) mv $LF $outdir/log/midefacer.$$.log
+    set LF = $outdir/log/mideface.log
+    if(-e $LF) mv $LF $outdir/log/mideface.$$.log
   endif
   set cleanup = 0
 endif
@@ -859,7 +909,7 @@ arg4err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "midefacer : minimally invasive defacing tool"
+  echo "mideface : minimally invasive defacing tool"
   echo ""
   echo " --i volume to deface"
   echo " --o defaced input"
@@ -867,13 +917,15 @@ usage_exit:
   echo " --odir outputdir (turns on PostHeadSurf)"
   echo " --xmask xmask (exclusion mask)"
   echo " --xmask-samseg ndilations : segment input using samseg (14GB, +~20-40min)"
-  echo "   --samseg-json json: configure samseg"
+  echo " --samseg-json json: configure samseg"
   echo " --samseg-fast : configure samseg to run quickly; sets ndil=1 (default)"
   echo " --no-samseg-fast : do NOT configure samseg to run quickly"
   echo " --init-reg reg.lta : initialize samseg with reg (good in case samseg reg fails)"
   echo " --xmask-synthseg ndilations : segment input using synthseg (35GB, +~20min)"
+  echo " --no-mask-seg-to-head : include stray skull voxels outside of the head mask"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
+  echo " --fhi fhi : fhi value to use in MRIchangeType(); default is to use that in mri_seghead"
   echo " --no-ears : do not include ears in the defacing"
   echo " --back-of-head : include back of head in the defacing"
   echo " --forehead : include forehead in the defacing (risks removing brain)"

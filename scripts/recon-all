@@ -460,6 +460,15 @@ endif
 # Allow editing of filled.mgz
 if(! $?FS_ALLOW_FILLED_EDIT) setenv FS_ALLOW_FILLED_EDIT 1
 
+# Error file. This is created when error_exit is run.
+set ErrorFile = $SUBJECTS_DIR/$subjid/scripts/recon-all.error
+# Done file. This is created when recon-all exits normally
+if($#DoneFile == 0) set DoneFile = $SUBJECTS_DIR/$subjid/scripts/recon-all.done
+if($SkipDone && -e $DoneFile && ! -e $ErrorFile) then
+  echo "Skipping $subjid because --skip-done specified and done file exists and error file does not exist"  
+  exit 0
+endif
+
 goto check_params;
 check_params_return:
 
@@ -749,14 +758,9 @@ skip_all_info:
 
 if($DoVersionsOnly) exit 0;
 
-# Delete the error file. This is created when error_exit is run.
-set ErrorFile = $subjdir/scripts/recon-all.error
+# Delete the error and done files
+rm -f $DoneFile
 rm -f $ErrorFile
-# Delete the done file. This is created when recon-all exits normally
-if($#DoneFile == 0) then
-  set DoneFile = $subjdir/scripts/recon-all.done
-  rm -f $DoneFile
-endif
 
 # ------------ Create the IsRunning File --------- #
 if($DoIsRunning) then

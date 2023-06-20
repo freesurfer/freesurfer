@@ -195,8 +195,10 @@ LINEAR_TRANSFORM *LTcopy(const LT *lt, LT *ltcp)
   MatrixCopy(lt->m_L, ltcp->m_L);
   MatrixCopy(lt->m_dL, ltcp->m_dL);
   MatrixCopy(lt->m_last_dL, ltcp->m_last_dL);
-  memcpy(&ltcp->src, &lt->src, sizeof(VOL_GEOM));
-  memcpy(&ltcp->dst, &lt->dst, sizeof(VOL_GEOM));
+  //memcpy(&ltcp->src, &lt->src, sizeof(VOL_GEOM));
+  ltcp->src = lt->src;
+  //memcpy(&ltcp->dst, &lt->dst, sizeof(VOL_GEOM));
+  ltcp->dst = lt->dst;
   return (ltcp);
 }
 
@@ -279,6 +281,7 @@ int LTAdiff(LTA *lta1, LTA *lta2, double thresh)
   return (ret);
 }
 
+// this function is obsolete. Use vg->vgprint() instead.
 void vg_print(const VOL_GEOM *vg)
 {
   if (vg->valid == 1) {
@@ -324,10 +327,11 @@ void initVolGeom(VOL_GEOM *vg)
 }
 
 /*!
-\fn void getVolGeom(const MRI *src, VOL_GEOM *dst)
-\brief Copy Volume Geometry from MRI
+\fn void getVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
+\brief Copy Volume Geometry from VOL_GEOM. This used to have an MRI
+as an input. Now it seems kinda silly.
  */
-void getVolGeom(const MRI *src, VOL_GEOM *dst)
+void getVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   if (!src) ErrorExit(ERROR_BADPARM, "must have a valid MRI (src)");
   if (!dst) ErrorExit(ERROR_BADPARM, "must have a valid VOL_GEOM (dst)");
@@ -371,9 +375,10 @@ MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly)
 
 /*
 \fn void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
-\brief Copy geometry info from VOL_GEOM to an MRI structure
+\brief Copy geometry info from VOL_GEOM to a VOL_GEOM. 
+This used to have an MRI as an output. Now it seems kinda silly. structure
 */
-void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
+void useVolGeomToMRI(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   if (!src) ErrorExit(ERROR_BADPARM, "must have a valid VOL_GEOM (src)");
   if (!dst) ErrorExit(ERROR_BADPARM, "must have a valid MRI (dst)");
@@ -418,6 +423,8 @@ int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri)
   return (NO_ERROR);
 }
 
+// obsolete, use VOL_GEOM assignment operator=
+// dst = src;
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   dst->valid = src->valid;
@@ -525,23 +532,27 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
 }
 
 // scanner space vox2ras from vol geom
+// call to this function is equivalent to vg->get_Vox2RAS();
 MATRIX *vg_i_to_r(const VOL_GEOM *vg)
 {
   MATRIX *mat = extract_i_to_r(vg);
   return mat;
 }
+// call to this function is equivalent to vg->get_RAS2Vox();
 MATRIX *vg_r_to_i(const VOL_GEOM *vg)
 {
   MATRIX *mat = extract_r_to_i(vg);
   return mat;
 }
 // tkregister space vox2ras from vol geom
+// call to this function is equivalent to vg->get_Vox2TkregRAS();
 MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg)
 {
   MATRIX *mat = MRIxfmCRS2XYZtkreg(vg);
   return (mat);
 }
 // tkregister space ras2vox from vol geom
+// call to this function is equivalent to vg->get_TkregRAS2Vox();
 MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg)
 {
   MATRIX *mat = NULL;
@@ -1611,8 +1622,10 @@ static int ltaFSLwrite(const LTA *lta, const char *fname)
   // create shallow copy of LTA
   LTA *ltatmp = LTAalloc(1, NULL);
   ltatmp->xforms[0].m_L = MatrixCopy(lta->xforms[0].m_L, NULL);
-  copyVolGeom(&lta->xforms[0].src, &ltatmp->xforms[0].src);
-  copyVolGeom(&lta->xforms[0].dst, &ltatmp->xforms[0].dst);
+  //copyVolGeom(&lta->xforms[0].src, &ltatmp->xforms[0].src);
+  ltatmp->xforms[0].src = lta->xforms[0].src;
+  //copyVolGeom(&lta->xforms[0].dst, &ltatmp->xforms[0].dst);
+  ltatmp->xforms[0].dst = lta->xforms[0].dst;
   ltatmp->type = lta->type;
 
   // convert to FSL matrix if necessary
@@ -3218,8 +3231,8 @@ int LTAprint(FILE *fp, const LTA *lta)
   // fprintf(fp, "type      = %d\n", lta->type) ;
   fprintf(fp, "type      = %d ", lta->type);
   if (lta->type == LINEAR_VOX_TO_VOX) fprintf(fp, "# LINEAR_VOX_TO_VOX");
-  if (lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
-  if (lta->type == REGISTER_DAT) fprintf(fp, "# REGISTER_DAT");
+  else if (lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
+  else if (lta->type == REGISTER_DAT) fprintf(fp, "# REGISTER_DAT");
   fprintf(fp, "\n");
   fprintf(fp, "nxforms   = %d\n", lta->num_xforms);
   for (i = 0; i < lta->num_xforms; i++) {
@@ -3484,9 +3497,11 @@ LTA *LTAreduce(const LTA *lta0)
     MatrixMultiply(M, lt0->m_L, lt0->m_L);  // new = M*old, M must be on left
   }
   if (DoInv == 0)
-    memcpy(&lt0->dst, &lt->dst, sizeof(VOL_GEOM));
+    //memcpy(&lt0->dst, &lt->dst, sizeof(VOL_GEOM));
+    lt0->dst = lt->dst;
   else
-    memcpy(&lt0->dst, &lt->src, sizeof(VOL_GEOM));
+    //memcpy(&lt0->dst, &lt->src, sizeof(VOL_GEOM));
+    lt0->dst = lt->src;
 
   LTAfree(&lta);
   return (ltar);
@@ -3540,13 +3555,13 @@ LTA *LTAinvert(LTA *lta, LTA *ltainv)
 */
 LTA *LTAfillInverse(LTA *lta)
 {
-  int i;
-
-  for (i = 0; i < lta->num_xforms; ++i) {
+  for (int i = 0; i < lta->num_xforms; ++i) {
     if (MatrixInverse(lta->xforms[i].m_L, lta->inv_xforms[i].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible");
-    memmove(&lta->inv_xforms[i].src, &lta->xforms[i].dst, sizeof(VOL_GEOM));
-    memmove(&lta->inv_xforms[i].dst, &lta->xforms[i].src, sizeof(VOL_GEOM));
+    //memmove(&lta->inv_xforms[i].src, &lta->xforms[i].dst, sizeof(VOL_GEOM));
+    lta->inv_xforms[i].src = lta->xforms[i].dst;
+    //memmove(&lta->inv_xforms[i].dst, &lta->xforms[i].src, sizeof(VOL_GEOM));
+    lta->inv_xforms[i].dst = lta->xforms[i].src;
   }
   return lta;
 }
@@ -3577,8 +3592,8 @@ int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst)
                   "INFO: src volume info "
                   "differs from the one stored in lta. "
                   "gets modified now.\n");
-          vg_print(&svg);
-          vg_print(&lt->src);
+          svg.vgprint();
+          lt->src.vgprint();
           getVolGeom(src, &lt->src);
         }
       }
@@ -3598,8 +3613,8 @@ int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst)
           fprintf(stderr,
                   "INFO: dst volume info differs "
                   "from the one stored in lta.  gets modified now.\n");
-          vg_print(&dvg);
-          vg_print(&lt->dst);
+          dvg.vgprint();
+          lt->dst.vgprint();
           getVolGeom(dst, &lt->dst);
         }
       }
@@ -4307,6 +4322,8 @@ int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst)
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
+// this function is same as MATRIX *MRIxfmCRS2XYZ(const VOL_GEOM *mri, int base)
+// call to this function is equivalent to vg->get_Vox2RAS(base);
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *PxyzOffset, *Pcrs;
@@ -4368,6 +4385,7 @@ MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
   return (m);
 }
 
+// call to this function is equivalent to vg->get_RAS2Vox(base)
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *m_inv;
@@ -4383,7 +4401,7 @@ MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
    The LTA will be LINEAR_VOX_TO_VOX that maps target vox to
    mov vox. If R=NULL, then computes the LTA based on header geometry.
 */
-LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
+LTA *TransformRegDat2LTA(VOL_GEOM *targ, VOL_GEOM *mov, MATRIX *R)
 {
   LTA *lta;
   MATRIX *vox2vox;  // Targ->Mov
@@ -4479,9 +4497,9 @@ MATRIX *TransformLTA2RegDat(LTA *lta)
   if (Gdiag_no > 0) {
     printf("TransformLTA2RegDat() -----------");
     printf("src/targ Vol Geom");
-    vg_print(&lta->xforms[0].src);
+    lta->xforms[0].src.vgprint();
     printf("dst/mov  Vol Geom");
-    vg_print(&lta->xforms[0].dst);
+    lta->xforms[0].dst.vgprint();
     printf("Vox2Vox---------------------------\n");
     MatrixPrint(stdout, Vox2Vox);
     printf("Tmov ---------------------------\n");
@@ -4814,8 +4832,10 @@ LTA *LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst)
 {
   if (lta_dst == NULL) {
     lta_dst = LTAalloc(1, NULL);
-    copyVolGeom(&lta_src->xforms[0].src, &lta_dst->xforms[0].src);
-    copyVolGeom(&lta_src->xforms[0].dst, &lta_dst->xforms[0].dst);
+    //copyVolGeom(&lta_src->xforms[0].src, &lta_dst->xforms[0].src);
+    lta_dst->xforms[0].src = lta_src->xforms[0].src;
+    //copyVolGeom(&lta_src->xforms[0].dst, &lta_dst->xforms[0].dst);
+    lta_dst->xforms[0].dst = lta_src->xforms[0].dst;
   }
   if (m_left) MatrixMultiply(m_left, lta_src->xforms[0].m_L, lta_dst->xforms[0].m_L);
   if (m_right) MatrixMultiply(lta_src->xforms[0].m_L, m_right, lta_dst->xforms[0].m_L);

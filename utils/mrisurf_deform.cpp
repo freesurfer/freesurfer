@@ -2885,7 +2885,8 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
   MRIS *mris_corrected = MRISalloc(mris->nvertices, mris->nfaces);
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
-  copyVolGeom(&mris->vg, &mris_corrected->vg);
+  //copyVolGeom(&mris->vg, &mris_corrected->vg);
+  mris_corrected->vg = mris->vg;
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
   mris_corrected->status         = mris->status;            // this should have been done
@@ -3577,7 +3578,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
   mris_corrected = MRISoverAlloc(nint(1.5*kept_vertices), nint(1.5*kept_faces), kept_vertices, kept_faces);
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
-  copyVolGeom(&mris->vg, &mris_corrected->vg);
+  //copyVolGeom(&mris->vg, &mris_corrected->vg);
+  mris_corrected->vg = mris->vg;
 
   mris_corrected->type           = MRIS_TRIANGULAR_SURFACE;
   mris_corrected->status         = mris->status;                // this should have been set, but wasn't
@@ -4000,7 +4002,8 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
 
   MRISsoapBubbleVertexPositions(mris_new, 100);
   MRISsoapBubbleOrigVertexPositions(mris_new, 100);
-  copyVolGeom(&mris->vg, &mris_new->vg);
+  //copyVolGeom(&mris->vg, &mris_new->vg);
+  mris_new->vg = mris->vg;
   return (NO_ERROR);
 }
 
@@ -4453,7 +4456,8 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
   mris->nsize = mris1->nsize;
   MRISsetNeighborhoodSizeAndDist(mris, mris->nsize);
 
-  memmove(&mris->vg, &mris1->vg, sizeof(mris1->vg));
+  //memmove(&mris->vg, &mris1->vg, sizeof(mris1->vg));
+  mris->vg = mris1->vg;
   MRIScomputeMetricProperties(mris);
   MRIScomputeSecondFundamentalForm(mris);
   strcpy(mris->fname, mris1->fname);

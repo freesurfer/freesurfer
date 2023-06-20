@@ -192,6 +192,7 @@ int UsePrintSegStat = 1; // use new way to print
 
 int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
 int GetCachedBrainVolStats = 1;
+MRI *MRIrescaleBySeg(MRI *invol, MRI *seg, std::vector<int> segids, double targetmean, MRI *outvol);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -1726,6 +1727,34 @@ static int parse_commandline(int argc, char **argv)
       }
       exit(0);
     }
+    else if(!strcmp(option, "--rescale-by-seg"))
+    {
+      // stand-alone --rescale-by-seg invol seg targmean outvol segid1 segid2 ...
+      if(nargc < 5) argnerr(option,5);
+      MRI *invol = MRIread(pargv[0]);
+      if(!invol) exit(1);
+      MRI *segvol = MRIread(pargv[1]);
+      if(!segvol) exit(1);
+      double targetmean;
+      sscanf(pargv[2],"%lf",&targetmean);
+      char *outvolpath = pargv[3];
+      nth = 4;
+      std::vector<int> segids;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	int segid;
+        sscanf(pargv[nth],"%d",&segid);
+	segids.push_back(segid);
+        nth ++;
+      }
+      if(segids.size() == 0){
+	printf("ERROR: no segids provided\n");
+	exit(1);
+      }
+      MRI *outvol = MRIrescaleBySeg(invol, segvol, segids, targetmean, NULL);
+      if(!outvol) exit(1);
+      int err = MRIwrite(outvol,outvolpath);
+      exit(err);
+    }
     else if ( !strcmp(option, "--in-intensity-name") )
     {
       if (nargc < 1)
@@ -2577,4 +2606,62 @@ float *WMAnatStats(const char *subject, const char *volname, int nErodes, float 
 
   return(stats);
 }
+
+MRI *MRIrescaleBySeg(MRI *invol, MRI *seg, std::vector<int> segids, double targetmean, MRI *outvol)
+{
+  if(outvol == NULL) {
+    outvol = MRIallocSequence(invol->width, invol->height, invol->depth, MRI_FLOAT, invol->nframes);
+    if(outvol== NULL) return (NULL);
+    MRIcopyHeader(invol, outvol);
+    MRIcopyPulseParameters(invol, outvol);
+  }
+  // should check that seg has the same dims as invol
+  printf("MRIrescaleBySeg() targetmean = %g, segids = ",targetmean);
+  for(int k=0; k < segids.size(); k++) printf("%2d ",segids[k]);
+  printf("\n");
+
+  double sum = 0;
+  int nhits = 0;
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	int segid = MRIgetVoxVal(seg,c,r,s,0);
+	int hit = 0;
+	for(int k=0; k < segids.size(); k++){
+	  if(segid == segids[k]){
+	    hit = 1;
+	    break;
+	  }
+	}
+	if(!hit) continue;
+	for(int f=0; f < invol->nframes; f++){
+	  double val = MRIgetVoxVal(invol,c,r,s,f);
+	  sum += val;
+	  nhits ++;
+	}
+      }
+    }
+  }
+  if(nhits == 0){
+    printf("ERROR: nhits = 0\n");
+    return(NULL);
+  }
+  double mean = sum/nhits;
+  double scale = targetmean/mean;
+  printf("nhits = %d, sum = %g, mean = %g, targetmean = %g, scale = %g\n",
+	 nhits,sum,mean,targetmean,scale);
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	for(int f=0; f < invol->nframes; f++){
+	  double val = MRIgetVoxVal(invol,c,r,s,f);
+	  MRIsetVoxVal(outvol,c,r,s,f,scale*val);
+	}
+      }
+    }
+  }
+
+  return(outvol);
+}
+
 

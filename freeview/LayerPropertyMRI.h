@@ -417,6 +417,8 @@ public:
 
   void SetBinaryColor(const QColor& color);
 
+  double GetFrameMeanValue(int frame = -1);
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -591,6 +593,7 @@ private:
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;
   QMap<int, QPair<double, double> > m_mapMinMaxValues;
+  QMap<int, double> m_mapMeanValues;
 
   int     m_dVectorLineWidth;
 

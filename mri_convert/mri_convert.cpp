@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
   int subsample_flag, SubSampStart, SubSampDelta, SubSampEnd;
   int downsample2_flag ;
   int downsample_flag;
+  int downsampleold_flag;
   float downsample_factor[3];
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
@@ -324,6 +325,7 @@ int main(int argc, char *argv[])
   subsample_flag = FALSE;
   downsample2_flag = FALSE;
   downsample_flag = FALSE;
+  downsampleold_flag = FALSE;
 
   transform_flag = FALSE;
   smooth_parcellation_flag = FALSE;
@@ -1003,6 +1005,13 @@ int main(int argc, char *argv[])
       get_floats(argc, argv, &i, downsample_factor, 3);
       downsample_flag = TRUE;
     }
+    else if(strcmp(argv[i], "-dsold") == 0 ||
+            strcmp(argv[i], "--downsampleold") == 0 ||
+            strcmp(argv[i], "-downsampleold") == 0)
+    {
+      get_floats(argc, argv, &i, downsample_factor, 3);
+      downsampleold_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-ds2") == 0 ||
             strcmp(argv[i], "--downsample2") == 0)
     {
@@ -1624,6 +1633,12 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  if (downsample_flag && downsampleold_flag)
+  {
+    fprintf(stderr, "ERROR: --downsample and --downsampleold are mutually exclusive\n");
+    exit(1);
+  }
+  
   /* ----- catch zero or negative voxel dimensions ----- */
 
   sizes_good_flag = TRUE;
@@ -2103,6 +2118,7 @@ int main(int argc, char *argv[])
     mritmp = MRIupsampleN(mri, NULL, UpsampleFactor);
     MRIfree(&mri);
     mri = mritmp;
+    mri->vgprint(true);
   }
 
   if(slice_crop_flag)
@@ -2794,9 +2810,12 @@ int main(int argc, char *argv[])
                          "      The inverse c_(ras) may not be valid.\n",
                          buf);
         } // end not valid
-        copyVolGeom(&lt->dst, &vgtmp);
-        copyVolGeom(&lt->src, &lt->dst);
-        copyVolGeom(&vgtmp, &lt->src);
+        //copyVolGeom(&lt->dst, &vgtmp);
+	vgtmp = lt->dst;
+        //copyVolGeom(&lt->src, &lt->dst);
+	lt->dst = lt->src;
+        //copyVolGeom(&vgtmp, &lt->src);
+	lt->src = vgtmp;
       } // end invert_transform_flag
 
     } // end transform type
@@ -2873,6 +2892,7 @@ int main(int argc, char *argv[])
         }
       }
       mri_template = MRIconformedTemplate(mri, conform_width, conform_size, ConfKeepDC);
+      mri_template->vgprint(true);
     }
     else if ( voxel_size_flag )
     {
@@ -2901,31 +2921,44 @@ int main(int argc, char *argv[])
       mri_template->zend   = mri_template->depth / 2;
 
     }
-    else if ( downsample_flag )
+    else if ( downsample_flag || downsampleold_flag)
     {
-      mri_template = MRIallocHeader(mri->width,
-                                mri->height,
-                                mri->depth,
-                                mri->type,
-                                mri->nframes);
-      MRIcopyHeader( mri, mri_template );
+      if (!downsampleold_flag)
+      {
+        printf("DownsampleFactor = %f, %f, %f\n", downsample_factor[0], downsample_factor[1], downsample_factor[2]);
 
-      mri_template->nframes = mri->nframes ;
+        // MRIdownsampleN() re-computes CRS0, it doesn't change [x|y|z]start, [x|y|z]end
+        mri_template = MRIdownsampleN(mri, NULL, downsample_factor[0], downsample_factor[1], downsample_factor[2], 1);
+      }
+      else
+      {
+	// old --downsample behavior
+        mri_template = MRIallocHeader(mri->width,
+                                  mri->height,
+                                  mri->depth,
+                                  mri->type,
+                                  mri->nframes);
+        MRIcopyHeader( mri, mri_template );
 
-      mri_template->width  = (int)ceil( mri->width  / downsample_factor[0] );
-      mri_template->height = (int)ceil( mri->height / downsample_factor[1] );
-      mri_template->depth  = (int)ceil( mri->depth  / downsample_factor[2] );
+        mri_template->nframes = mri->nframes ;
 
-      mri_template->xsize *= downsample_factor[0];
-      mri_template->ysize *= downsample_factor[1];
-      mri_template->zsize *= downsample_factor[2];
+        mri_template->width  = (int)ceil( mri->width  / downsample_factor[0] );
+        mri_template->height = (int)ceil( mri->height / downsample_factor[1] );
+        mri_template->depth  = (int)ceil( mri->depth  / downsample_factor[2] );
 
-      mri_template->xstart = -mri_template->xsize*mri_template->width  / 2;
-      mri_template->xend   =  mri_template->xsize*mri_template->width  / 2;
-      mri_template->ystart = -mri_template->ysize*mri_template->height / 2;
-      mri_template->yend   =  mri_template->ysize*mri_template->height / 2;
-      mri_template->zstart = -mri_template->zsize*mri_template->depth  / 2;
-      mri_template->zend   =  mri_template->zsize*mri_template->depth  / 2;
+        mri_template->xsize *= downsample_factor[0];
+        mri_template->ysize *= downsample_factor[1];
+        mri_template->zsize *= downsample_factor[2];
+
+        mri_template->xstart = -mri_template->xsize*mri_template->width  / 2;
+        mri_template->xend   =  mri_template->xsize*mri_template->width  / 2;
+        mri_template->ystart = -mri_template->ysize*mri_template->height / 2;
+        mri_template->yend   =  mri_template->ysize*mri_template->height / 2;
+        mri_template->zstart = -mri_template->zsize*mri_template->depth  / 2;
+        mri_template->zend   =  mri_template->zsize*mri_template->depth  / 2;
+      }
+
+      mri_template->vgprint(true);
     }
   }
 

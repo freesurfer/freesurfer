@@ -176,7 +176,8 @@ int main(int argc, char *argv[]) {
   VOL_GEOM vgIn;
   getVolGeom(mri, &vgIn);
   VOL_GEOM vgOut;
-  copyVolGeom(&vgIn, &vgOut);
+  //copyVolGeom(&vgIn, &vgOut);
+  vgOut = vgIn;
 
   int reinit = 0;
 

@@ -991,7 +991,8 @@ void MRIScopyHeader(MRIS *mris_src,MRIS *mris_dst)
       &mris_dst->vertices[mris_src->v_temporal_pole - mris_src->vertices] ;
 
   // copy geometry info
-  copyVolGeom(&mris_src->vg, &mris_dst->vg);
+  //copyVolGeom(&mris_src->vg, &mris_dst->vg);
+  mris_dst->vg = mris_src->vg;
 }
 
 static MRIS* SurfaceToMRISwkr_new(Surface *surface) 

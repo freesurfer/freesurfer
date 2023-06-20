@@ -1641,7 +1641,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
 
   MRI* rasMRI = NULL;
   MATRIX* m = MatrixZero( 4, 4, NULL );
-  if ( m_matReg && m_MRIRef && m_volumeRef )
+  if (m_matReg && m_MRIRef && m_volumeRef )
   {
     // if there is registration matrix, set target as the reference's target
     MRI* mri = m_volumeRef->m_MRITarget;

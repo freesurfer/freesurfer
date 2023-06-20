@@ -51,26 +51,56 @@ struct Parameters
   bool   invert;
   int    ltaouttype;
   bool   trgconform;
+  bool   trgconform_dc;
+  bool   trgconform_min;
+  float  trgconform_size;
   string subject;
   intypes::InputType intype;
+  bool  srcconform;
+  bool  srcconform_dc;
+  bool  srcconform_min;
+  float srcconform_size;
+  bool  srcupsample;
+  bool  srcdownsample;
+  int   srcupsampleFactor;
+  int   srcdownsampleFactor;
+  bool  trgupsample;
+  bool  trgdownsample;
+  int   trgupsampleFactor;
+  int   trgdownsampleFactor;
 };
 
 static struct Parameters P = {
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  false,
-  LINEAR_RAS_TO_RAS,
-  false,
-  "",
-  intypes::UNKNOWN,
+  "",                  // string transin
+  "",                  // string ltaout
+  "",                  // string fslout
+  "",                  // string mniout
+  "",                  // string regout
+  "",                  // string niftyregout
+  "",                  // string itkout
+  "",                  // string voxout
+  "",                  // string src
+  "",                  // string trg
+  false,               // bool   invert
+  LINEAR_RAS_TO_RAS,   // int    ltaouttype
+  false,               // bool   trgconform
+  false,               // bool   trgconform_dc
+  false,               // bool   trgconform_min
+  1.0,                 // float  trgconform_size
+  "",                  // string subject
+  intypes::UNKNOWN,    // intypes::InputType intype
+  false,               // bool  srcconform
+  false,               // bool  srcconform_dc
+  false,               // bool  srcconform_min
+  1.0,                 // float srcconform_size
+  false,               // bool  srcupsample
+  false,               // bool  srcdownsample
+  1,                   // int   srcupsampleFactor
+  1,                   // int   srcdownsampleFactor
+  false,               // bool  trgupsample
+  false,               // bool  trgdownsample  
+  1,                   // int   trgupsampleFactor
+  1,                   // int   trgdownsampleFactor
 };
 
 static void printUsage(void);
@@ -80,12 +110,220 @@ const char *Progname = NULL;
 
 static int do_sqrt = 0 ;
 
+// this function is modified from mri_convert if (conform_flag)
+void conformGeom(VOL_GEOM *vg, bool conform_min, float conform_size0, bool confkeepdc)
+{
+  // make a copy of source VOL_GEOM, input VOL_GEOM will be updated in place
+  VOL_GEOM vg_src = *vg;
+
+  int conform_width = 256;
+  float conform_size = conform_size0;
+  if (conform_min == TRUE)
+    conform_size = MRIfindMinSize(vg, &conform_width);
+  else
+    conform_width = MRIfindRightSize(vg, conform_size);
+  
+  // the following codes are modified from MRIconformedTemplate()
+  vg->width = vg->height = vg->depth = conform_width;
+  vg->xsize  = vg->ysize = vg->zsize = conform_size;
+  if (confkeepdc)
+  {
+    char ostr[4];
+    int conform_FoV = conform_width * conform_size;
+    MRIdircosToOrientationString(&vg_src, ostr);
+
+    int iLR, iIS, iAP;
+    for (iLR = 0; iLR < 3; iLR++)
+      if (ostr[iLR] == 'L' || ostr[iLR] == 'R') break;
+    for (iIS = 0; iIS < 3; iIS++)
+      if (ostr[iIS] == 'I' || ostr[iIS] == 'S') break;
+    for (iAP = 0; iAP < 3; iAP++)
+      if (ostr[iAP] == 'A' || ostr[iAP] == 'P') break;
+    
+    printf("keeping DC %d %d %d\n", iLR, iIS, iAP);
+    printf("ostr %s, width %d, size %g\n", ostr, conform_width, conform_size);
+
+    int Nvox[3], FoV[3];
+    double delta[3];
+    
+    Nvox[0] = vg_src.width;
+    Nvox[1] = vg_src.height;
+    Nvox[2] = vg_src.depth;
+    delta[0] = vg_src.xsize;
+    delta[1] = vg_src.ysize;
+    delta[2] = vg_src.zsize;
+    
+    for (int c = 0; c < 3; c++)
+      FoV[c] = Nvox[c] * delta[c];
+
+    // K maps voxels in mri to voxels in mri_template
+    MATRIX *K = MatrixAlloc(4, 4, MATRIX_REAL);
+    K->rptr[4][4] = 1;
+
+    // If the delta=conform_size, then no interpolation will result
+    // Otherwise, there will be interpolation that depends on voxel size
+    // Using round() forces no interpolation at the edge of the FoV
+    // pad is the number of conformed voxels of padding when Nvox != conform_width
+    // set pad this way makes the C_RASs be about the same under general conditions
+
+    double step = delta[iLR] / conform_size;
+    double pad = round(((conform_FoV - FoV[iLR]) / 2.0) / conform_size);
+    if (ostr[iLR] == 'L') {
+      K->rptr[1][iLR + 1] = step;
+      K->rptr[1][4] = pad;
+    }
+    else {
+      K->rptr[1][iLR + 1] = -step;
+      K->rptr[1][4] = conform_width - pad;
+    }
+
+    step = delta[iIS] / conform_size;
+    pad = round(((conform_FoV - FoV[iIS]) / 2.0) / conform_size);
+    if (ostr[iIS] == 'I') {
+      K->rptr[2][iIS + 1] = step;
+      K->rptr[2][4] = pad;
+    }
+    else {
+      K->rptr[2][iIS + 1] = -step;
+      K->rptr[2][4] = conform_width - pad;
+    }
+
+    step = delta[iAP] / conform_size;
+    pad = round(((conform_FoV - FoV[iAP]) / 2.0) / conform_size);
+    if (ostr[iAP] == 'A') {
+      K->rptr[3][iAP + 1] = step;
+      K->rptr[3][4] = pad;
+    }
+    else {
+      K->rptr[3][iAP + 1] = -step;
+      K->rptr[3][4] = conform_width - pad;
+    }
+
+    MATRIX *invK = MatrixInverse(K, NULL);
+    MATRIX *Smri = MRIxfmCRS2XYZ(&vg_src, 0);
+    MATRIX *Stemp = MatrixMultiplyD(Smri, invK, NULL);
+    MRIsetVox2RASFromMatrix(vg, Stemp);
+
+    printf("K ---------------\n");
+    MatrixPrint(stdout, K);
+    printf("Kinv ---------------\n");
+    MatrixPrint(stdout, invK);
+    printf("Smri ---------------\n");
+    MatrixPrint(stdout, Smri);
+    printf("Stemp ---------------\n");
+    MatrixPrint(stdout, Stemp);
+    printf("----------------------\n");
+
+    MatrixFree(&K);
+    MatrixFree(&invK);
+    MatrixFree(&Smri);
+    MatrixFree(&Stemp);
+  }
+  else
+  {
+    // replicates old method exactly
+    // these are the same as VOL_GEOM initial values
+    vg->x_r = -1.0;
+    vg->x_a = 0.0;
+    vg->x_s = 0.0;
+    vg->y_r = 0.0;
+    vg->y_a = 0.0;
+    vg->y_s = -1.0;
+    vg->z_r = 0.0;
+    vg->z_a = 1.0;
+    vg->z_s = 0.0;
+    // ??? what about c_[ras] ???
+  }
+}
+
+// this function is modified from MRIupsampleN()
+void upsampleGeom(VOL_GEOM *vg, int N)
+{
+  // Computes CRAS based on location of the 1st voxel in upsampled space
+  // The new location is 1/(2*Nth) of a voxel from the corner. The RAS of
+  // a voxel is at the center of the voxel (unfortunately), so the corner
+  // is located at CRS=[-.5 -.5 -.5]
+  MATRIX *Vox2RAS = MRIxfmCRS2XYZ(vg, 0);  // scanner vox2ras of source mri
+  MATRIX *CRS0 = MatrixZero(4, 1, NULL);
+  CRS0->rptr[1][1] = -0.5 + 1.0 / (2 * N);
+  CRS0->rptr[2][1] = -0.5 + 1.0 / (2 * N);
+  CRS0->rptr[3][1] = -0.5 + 1.0 / (2 * N);
+  CRS0->rptr[4][1] = 1.0;
+  
+  MATRIX *RAS0 = MatrixMultiply(Vox2RAS, CRS0, NULL);
+
+  // Recompute geometry for finer resolution
+  // Only the xsize and cras change
+  vg->width  *= N;
+  vg->height *= N;
+  vg->depth  *= N;
+  vg->xsize  /= N;
+  vg->ysize  /= N;
+  vg->zsize  /= N;
+  
+  MRIp0ToCRAS(vg, RAS0->rptr[1][1], RAS0->rptr[2][1], RAS0->rptr[3][1]);
+
+  MRIreInitCache(vg);
+
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&CRS0);
+  MatrixFree(&RAS0);
+}
+
+// this function is modified from MRIdownsampleN()
+void downsampleGeom(VOL_GEOM *vg, int N)
+{
+  if (vg->width % N != 0) {
+    printf("ERROR: MRIdownsampleN: width=%d, N=%d\n", vg->width, N);
+    return;
+  }
+  if (vg->height % N != 0) {
+    printf("ERROR: MRIdownsampleN: height=%d, N=%d\n", vg->height, N);
+    return;
+  }
+  if (vg->depth % N != 0) {
+    printf("ERROR: MRIdownsampleN: depth=%d, N=%d\n", vg->depth, N);
+    return;
+  }
+
+  // Compute P0 for dst
+  // CRS0 corresponds to the center of the 1st dst vox
+  MATRIX *CRS0 = MatrixZero(4, 1, NULL);
+  CRS0->rptr[1][1] = -0.5 + N / 2.0;
+  CRS0->rptr[2][1] = -0.5 + N / 2.0;
+  CRS0->rptr[3][1] = -0.5 + N / 2.0;
+  CRS0->rptr[4][1] = 1.0;
+  
+  MATRIX *Vox2RAS = MRIxfmCRS2XYZ(vg, 0);
+  MATRIX *RAS0 = MatrixMultiply(Vox2RAS, CRS0, NULL);
+
+  // Recompute geometry
+  // Only the xsize and cras change
+  vg->width  /= N;
+  vg->height /= N;
+  vg->depth  /= N;
+  vg->xsize  *= N;
+  vg->ysize  *= N;
+  vg->zsize  *= N;
+
+  // Compute New CRAS for dst
+  MRIp0ToCRAS(vg, RAS0->rptr[1][1], RAS0->rptr[2][1], RAS0->rptr[3][1]);
+
+  MRIreInitCache(vg);
+
+  MatrixFree(&RAS0);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&CRS0);
+}
+
 LTA * shallowCopyLTA(const LTA * lta)
 {
   LTA * ltatmp = LTAalloc(1,NULL);
   ltatmp->xforms[0].m_L=MatrixCopy(lta->xforms[0].m_L,NULL);
-  copyVolGeom(&lta->xforms[0].src,&ltatmp->xforms[0].src);
-  copyVolGeom(&lta->xforms[0].dst,&ltatmp->xforms[0].dst);
+  //copyVolGeom(&lta->xforms[0].src,&ltatmp->xforms[0].src);
+  ltatmp->xforms[0].src = lta->xforms[0].src;
+  //copyVolGeom(&lta->xforms[0].dst,&ltatmp->xforms[0].dst);
+  ltatmp->xforms[0].dst = lta->xforms[0].dst;
   ltatmp->type = lta->type;
   ltatmp->fscale = lta->fscale;
   strcpy(ltatmp->subject, lta->subject); 
@@ -119,7 +357,10 @@ LTA * readLTA(const string& xfname, const string& sname, const string& tname)
       cerr << "ERROR readLTA: cannot read src MRI" << sname << endl;
       exit(1);
     }
-    getVolGeom(src, &lta->xforms[0].src);
+    //getVolGeom(src, &lta->xforms[0].src);
+    lta->xforms[0].src = *src;
+    // getVolGeom() set valid = 1;
+    lta->xforms[0].src.valid = 1;  // ??? valid and ras_good_flag mean the same thing ???
     MRIfree(&src);
   }
   if (tname != "")
@@ -130,7 +371,10 @@ LTA * readLTA(const string& xfname, const string& sname, const string& tname)
       cerr << "ERROR readFSL: cannot read trg MRI" << tname << endl;
       exit(1);
     }
-    getVolGeom(trg, &lta->xforms[0].dst);
+    //getVolGeom(trg, &lta->xforms[0].dst);
+    lta->xforms[0].dst = *trg;
+    // getVolGeom() set valid = 1;
+    lta->xforms[0].dst.valid = 1;  // ??? valid and ras_good_flag mean the same thing ???
     MRIfree(&trg);
   }
   return lta;
@@ -177,6 +421,8 @@ LTA * readMNI(const string& xfname, const string& sname, const string& tname)
 
 
   LTA * lta = LTAreadExType(xfname.c_str(),MNI_TRANSFORM_TYPE);
+  if (lta == NULL)
+    ErrorExit(ERROR_BADFILE, "can't read input file %s", xfname.c_str());
 
   // read src and target mri header
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
@@ -579,6 +825,8 @@ LTA * readVOX(const string& xfname, const string& sname, const string& tname)
   MATRIX* ras_to_src = MatrixInverse(src_to_ras /*source*/, NULL /*target*/);
   mat = MatrixMultiplyD(mat, ras_to_src, mat /*target*/);
   mat = MatrixMultiplyD(src_to_ras, mat, mat /*target*/);
+
+  // after the inverse, RAS-to-RAS transforms from src to trg
   MatrixInverse(mat /*source*/, lt->m_L /*target*/);
 
   // cleanup
@@ -838,9 +1086,22 @@ int main(int argc, char *argv[])
   cout << " LTA read, type : " << lta->type << endl;
   MatrixPrint(stdout,lta->xforms[0].m_L);
   
+  // conform src
+  if (P.srcconform)
+    conformGeom(&lta->xforms[0].src, P.srcconform_min, P.srcconform_size, P.srcconform_dc);
+  if (P.srcupsample)
+    upsampleGeom(&lta->xforms[0].src, P.srcupsampleFactor);
+  else if (P.srcdownsample)
+    downsampleGeom(&lta->xforms[0].src, P.srcdownsampleFactor);
+    
   // conform trg
   if (P.trgconform)
-    initVolGeom(&lta->xforms[0].dst);
+    // initVolGeom(&lta->xforms[0].dst);
+    conformGeom(&lta->xforms[0].dst, P.trgconform_min, P.trgconform_size, P.trgconform_dc);
+  if (P.trgupsample)
+    upsampleGeom(&lta->xforms[0].dst, P.trgupsampleFactor);
+  else if (P.trgdownsample)
+    downsampleGeom(&lta->xforms[0].dst, P.trgdownsampleFactor);
   
   // invert if desired
   if (P.invert)
@@ -856,9 +1117,12 @@ int main(int argc, char *argv[])
       cerr << "WARNING: dst or src volume is invalid.  Inverse likely wrong.\n";
       cerr << "WARNING:********************************************************\n";
     }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);  
+    //copyVolGeom(&lt->dst, &vgtmp);
+    vgtmp = lt->dst;
+    //copyVolGeom(&lt->src, &lt->dst);
+    lt->dst = lt->src;
+    //copyVolGeom(&vgtmp, &lt->src);
+    lt->src = vgtmp;
   }
 
   if(P.subject.size() > 0){
@@ -870,10 +1134,11 @@ int main(int argc, char *argv[])
   // write final
   if (P.ltaout!="")
   {
-    if (lta->type != P.ltaouttype) // can only be ras2ras (default) or vox2vox here
+    if (lta->type != P.ltaouttype) // can only be ras2ras (default) or vox2vox here, ??? REGISTER_DAT too (--ltatkreg) ???
     {
       LTAchangeType(lta, P.ltaouttype);
     }
+
     cout << "Writing  LTA to file "<<P.ltaout.c_str()<<"...\n";
     FILE* fo = fopen(P.ltaout.c_str(),"w");
     if (fo==NULL)
@@ -1072,6 +1337,43 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--src: " << P.src << " src image (geometry)." << endl;
   }
+  else   if (!strcmp(option, "SRCCONFORM"))
+  {
+    P.srcconform = true;
+    cout << "--srcconform:: will conform source geometry." << endl;
+  }
+  else if (!strcmp(option, "SRCCONFORM-DC"))
+  {
+    P.srcconform = true;
+    P.srcconform_dc = true;
+    cout << "--srcconform-dc:: will keep source geometry dc." << endl;
+  }
+  else if (!strcmp(option, "SRCCONFORM-MIN"))
+  {
+    P.srcconform = true;
+    P.srcconform_min = true;
+    cout << "--srcconform-min:: will conform source geometry." << endl;
+  }
+  else if (!strcmp(option, "SRCCONFORM-SIZE"))
+  {
+    P.srcconform = true;
+    P.srcconform_size = atof(argv[1]);
+    cout << "--srcconform-size: " << P.srcconform_size << " input src conform size." << endl;
+  }
+  else if (!strcmp(option, "SRCUPSAMPLE"))
+  {
+    P.srcupsample = true;
+    P.srcupsampleFactor = atoi(argv[1]);
+    nargs = 1;
+    cout << "--srcupsample: " << P.srcupsampleFactor << " input src upsample factor." << endl;
+  }
+  else if (!strcmp(option, "SRCDOWNSAMPLE"))
+  {
+    P.srcdownsample = true;
+    P.srcdownsampleFactor = atoi(argv[1]);
+    nargs = 1;
+    cout << "--srcdownsample: " << P.srcdownsampleFactor << " input src downsample factor." << endl;
+  }
   else if (!strcmp(option, "TRG") )
   {
     P.trg = string(argv[1]);
@@ -1083,6 +1385,38 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.trgconform = true;
     cout << "--trgconform: will conform target geometry." << endl;
   }
+  else if (!strcmp(option, "TRGCONFORM-DC"))
+  {
+    P.trgconform = true;
+    P.trgconform_dc = true;
+    cout << "--trgconform-dc:: will keep target geometry dc." << endl;
+  }
+  else if (!strcmp(option, "TRGCONFORM-MIN"))
+  {
+    P.trgconform = true;
+    P.trgconform_min = true;
+    cout << "--trgconform-min:: will conform target geometry." << endl;
+  }
+  else if (!strcmp(option, "TRGCONFORM-SIZE"))
+  {
+    P.trgconform = true;
+    P.trgconform_size = atof(argv[1]);
+    cout << "--trgconform-size: " << P.trgconform_size << " input trg conform size." << endl;
+  }
+  else if (!strcmp(option, "TRGUPSAMPLE"))
+  {
+    P.trgupsample = true;
+    P.trgupsampleFactor = atoi(argv[1]);
+    nargs = 1;
+    cout << "--trgupsample: " << P.trgupsampleFactor << " input trg upsample factor." << endl;
+  }
+  else if (!strcmp(option, "TRGDOWNSAMPLE"))
+  {
+    P.trgdownsample = true;
+    P.trgdownsampleFactor = atoi(argv[1]);
+    nargs = 1;
+    cout << "--trgdownsample: " << P.trgdownsampleFactor << " input trg downsample factor." << endl;
+  }  
   else if (!strcmp(option, "LTAVOX2VOX") )
   {
     P.ltaouttype = LINEAR_VOX_TO_VOX;

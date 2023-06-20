@@ -642,10 +642,10 @@ static void do_file(char *fname)
     fprintf(fpout,"spacing : %d\n", gcam->spacing);
     fprintf(fpout,"\n");
     fprintf(fpout,"3D morph source geometry:\n");
-    vg_print(&gcam->image);
+    gcam->image.vgprint();
     fprintf(fpout,"\n");
     fprintf(fpout,"3D morph atlas geometry:\n");
-    vg_print(&gcam->atlas);
+    gcam->atlas.vgprint();
     
     GCAMfree(&gcam);
     return;

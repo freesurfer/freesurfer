@@ -377,7 +377,7 @@ int main(int argc, char *argv[]) {
     MatrixPrint(stdout, mris->TalSRASToSRAS_);
   }
   printf("Volume Geometry (vg)\n");
-  vg_print(&mris->vg);
+  mris->vg.vgprint();
 
   if (mris->vg.valid)
   {

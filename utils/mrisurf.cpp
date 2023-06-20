@@ -915,7 +915,8 @@ int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
 
   // also copy volgeom if it is valid
   if (surfcoords->vg.valid)
-    copyVolGeom(&surfcoords->vg, &surf->vg);
+    //copyVolGeom(&surfcoords->vg, &surf->vg);
+    surf->vg = surfcoords->vg;
 
   return(0);
 }

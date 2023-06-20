@@ -158,6 +158,8 @@ protected slots:
 
   void OnButtonContourUpdate();
 
+  void OnCheckBoxSetOffsetToMean(bool b);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );
   void DoUpdateWidgets();

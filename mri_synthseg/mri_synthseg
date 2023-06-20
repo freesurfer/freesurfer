@@ -97,7 +97,7 @@ def main():
         elif (args.photo=='left' or args.photo=='right'):
             path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_single_1.0.h5')
             if args.parc:
-                disp('Warning: the flag --parc is not well tested with single hemispheres.')
+                print('Warning: the flag --parc is not well tested with single hemispheres.')
         else:
             sf.system.fatal('The argument of --photo must be left, right, or both.')
 

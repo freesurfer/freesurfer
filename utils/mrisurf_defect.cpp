@@ -8176,7 +8176,8 @@ MRI_SURFACE *MRIScorrectTopology(
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
   mris_corrected->hemisphere = mris->hemisphere;
-  copyVolGeom(&mris->vg, &mris_corrected->vg);
+  //copyVolGeom(&mris->vg, &mris_corrected->vg);
+  mris_corrected->vg = mris->vg;
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
   mris_corrected->status         = mris->status;            // this should have been done

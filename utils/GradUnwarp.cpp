@@ -403,8 +403,10 @@ void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vo
 
   //GCAMinitVolGeom(gcam, origvol, origvol);
   // update gcam->image, gcam->atlas  
-  copyVolGeom(vg, &gcam->image);
-  copyVolGeom(vg, &gcam->atlas);
+  //copyVolGeom(vg, &gcam->image);
+  gcam->image = *vg;
+  //copyVolGeom(vg, &gcam->atlas);
+  gcam->atlas = *vg;
 
 #ifdef HAVE_OPENMP
   printf("\nSet OPEN MP NUM threads to %d (create_transtable)\n", nthreads);
@@ -1011,7 +1013,8 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
   }       // n
 
   // Copy the volume geometry
-  copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+  //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+  unwarpedsurf->vg = warpedsurf->vg;
 
   MatrixFree(&Q);
   MatrixFree(&M);
@@ -1190,7 +1193,8 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
   }       // n
 
   // Copy the volume geometry
-  copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+  //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+  unwarpedsurf->vg = warpedsurf->vg;
 
   MatrixFree(&T);
   MatrixFree(&Tinv);

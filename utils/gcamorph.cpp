@@ -5541,8 +5541,8 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam, int sampleInverse)
     MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
   // Copy the volume geometry of the destination=atlas or input=image volume to surf
-  if(sampleInverse) copyVolGeom(&(gcam->atlas), &(mris->vg));
-  else              copyVolGeom(&(gcam->image), &(mris->vg));
+  if(sampleInverse) mris->vg = gcam->atlas;  //copyVolGeom(&(gcam->atlas), &(mris->vg));
+  else              mris->vg = gcam->image;  //copyVolGeom(&(gcam->image), &(mris->vg));
 
   return (0);
 }
@@ -16201,8 +16201,9 @@ GCA_MORPH *GCAMconcat2(GCAM *gcam1, GCAM *gcam2, GCAM *out)
     printf("GCAMconcat2(): converting GCAM 2 from GCAM_RAS to GCAM_VOX\n");
     GCAMrasToVox(gcam2, NULL);
   }
-  copyVolGeom(/*from*/&gcam1->image, /*to*/&out->image);
-  if (out != gcam2) copyVolGeom(/*from*/&gcam2->atlas, /*to*/&out->atlas);
+  //copyVolGeom(/*from*/&gcam1->image, /*to*/&out->image);
+  out->image = gcam1->image;
+  if (out != gcam2) out->atlas = gcam2->atlas;  //copyVolGeom(/*from*/&gcam2->atlas, /*to*/&out->atlas);
   GCAMfreeInverse(out); // Will be invalid.
   out->spacing = gcam2->spacing;
   out->type = GCAM_VOX;
@@ -16304,8 +16305,10 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
     printf("GCAMconcat3(): converting from GCAM_RAS to GCAM_VOX\n");
     GCAMrasToVox(gcam, NULL);
   }
-  copyVolGeom(/*from*/&lta1->xforms[0].src, /*to*/&out->image);
-  copyVolGeom(/*from*/&lta2->xforms[0].dst, /*to*/&out->atlas);
+  //copyVolGeom(/*from*/&lta1->xforms[0].src, /*to*/&out->image);
+  out->image = lta1->xforms[0].src;
+  //copyVolGeom(/*from*/&lta2->xforms[0].dst, /*to*/&out->atlas);
+  out->atlas = lta2->xforms[0].dst;
   GCAMfreeInverse(out); // Will be invalid.
   out->spacing = gcam->spacing;
   out->type = GCAM_VOX;
@@ -17260,8 +17263,10 @@ GCA_MORPH *GCAMcopy(const GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst)
   else {
     gcamdst->mri_xind = gcamdst->mri_yind = gcamdst->mri_zind = NULL;
   }
-  copyVolGeom(/*from*/&gcamsrc->image, /*to*/&gcamdst->image);
-  copyVolGeom(/*from*/&gcamsrc->atlas, /*to*/&gcamdst->atlas);
+  //copyVolGeom(/*from*/&gcamsrc->image, /*to*/&gcamdst->image);
+  gcamdst->image = gcamsrc->image;
+  //copyVolGeom(/*from*/&gcamsrc->atlas, /*to*/&gcamdst->atlas);
+  gcamdst->atlas = gcamsrc->atlas;
   gcamdst->ninputs = gcamsrc->ninputs;
   gcamdst->type = gcamsrc->type;
   gcamdst->status = gcamsrc->status;
@@ -17299,7 +17304,8 @@ GCA_MORPH *GCAMchangeVolGeom(GCA_MORPH *gcam, MRI *mri_src, MRI *mri_dst)
     lt = &lta_src->xforms[0];
     lt->type = LINEAR_VOX_TO_VOX;
     getVolGeom(mri_src, &lt->src);
-    copyVolGeom(&gcam->image, &lt->dst);
+    //copyVolGeom(&gcam->image, &lt->dst);
+    lt->dst = gcam->image;
     src_i_to_r = vg_i_to_r(&lt->src);
     trg_r_to_i = vg_r_to_i(&lt->dst);
     lt->m_L = MatrixMultiplyD(trg_r_to_i, src_i_to_r, lt->m_L);
@@ -17308,7 +17314,8 @@ GCA_MORPH *GCAMchangeVolGeom(GCA_MORPH *gcam, MRI *mri_src, MRI *mri_dst)
     lta_dst = LTAalloc(1, NULL);
     lt = &lta_dst->xforms[0];
     lt->type = LINEAR_VOX_TO_VOX;
-    copyVolGeom(&gcam->atlas, &lt->src);
+    //copyVolGeom(&gcam->atlas, &lt->src);
+    lt->src = gcam->atlas;
     getVolGeom(mri_dst, &lt->dst);
     src_i_to_r = vg_i_to_r(&lt->src);
     trg_r_to_i = vg_r_to_i(&lt->dst);

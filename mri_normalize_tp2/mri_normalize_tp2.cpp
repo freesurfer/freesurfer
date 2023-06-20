@@ -272,9 +272,12 @@ int main(int argc, char *argv[]) {
         (stderr,
          "WARNING:***********************************************\n");
       }
-      copyVolGeom(&lt->dst, &vgtmp);
-      copyVolGeom(&lt->src, &lt->dst);
-      copyVolGeom(&vgtmp, &lt->src);
+      //copyVolGeom(&lt->dst, &vgtmp);
+      vgtmp = lt->dst;
+      //copyVolGeom(&lt->src, &lt->dst);
+      lt->dst = lt->src;
+      //copyVolGeom(&vgtmp, &lt->src);
+      lt->src = vgtmp;
     }
 
     //    LTAchangeType(lta, LINEAR_VOX_TO_VOX);
@@ -315,9 +318,12 @@ int main(int argc, char *argv[]) {
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
 
-      copyVolGeom(&lt->dst, &vgtmp);
-      copyVolGeom(&lt->src, &lt->dst);
-      copyVolGeom(&vgtmp, &lt->src);
+      //copyVolGeom(&lt->dst, &vgtmp);
+      vgtmp = lt->dst;
+      //copyVolGeom(&lt->src, &lt->dst);
+      lt->dst = lt->src;
+      //copyVolGeom(&vgtmp, &lt->src);
+      lt->src = vgtmp;
 
       mri_mask1 = MRIalloc(mri_T1->width,
                            mri_T1->height,

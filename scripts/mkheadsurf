@@ -32,6 +32,7 @@ set headvol    = seghead.mgz;
 set headsurf   = seghead;
 set smheadsurf = smseghead;
 set hemi = lh;
+set fhi = ();
 set thresh1 = 20;
 set thresh2 = 20;
 set nhitsmin = 2;
@@ -106,6 +107,7 @@ if(! $noseghead ) then
   set cmd = ($cmd --thresh1  $thresh1);
   set cmd = ($cmd --thresh2  $thresh2);
   set cmd = ($cmd --nhitsmin $nhitsmin);
+  if($#fhi) set cmd = ($cmd --fhi $fhi);
   if($Rescale) set cmd = ($cmd --rescale)
   if(! $Rescale) set cmd = ($cmd --no-rescale)
   if($FillHolesIslands) set cmd = ($cmd --fill-holes-islands)
@@ -252,6 +254,11 @@ while( $#argv != 0 )
     case "-nsmooth":
       if ( $#argv == 0) goto arg1err;
       set NSmooth = $argv[1]; shift;
+      breaksw
+
+    case "-fhi":
+      if ( $#argv == 0) goto arg1err;
+      set fhi = $argv[1]; shift;
       breaksw
 
     case "-thresh1":
@@ -468,6 +475,7 @@ usage_exit:
   echo "   -ndilate  N        : default is $ndilate"
   echo "   -nerode   N        : default is $nerode"
   echo "   -fillval value     : default is $fillval"
+  echo "   -fhi fhi           : fhi for MRIchangeType(); default is to use default in mri_seghead"
   echo "   -no-rescale        : do not  rescale input when converting to uchar (-no-rescale)"
   echo "   -no-fill-holes-islands : do not fill holes and remove islands"
   echo "   -or-mask ormask.mgz : include all voxels in ormask in the head seg (-no-or-mask)"

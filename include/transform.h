@@ -204,11 +204,11 @@ int     TransformSetMRIVolGeomToDst(const TRANSFORM *transform, MRI *mri) ;
 
 // VOL_GEOM utilities
 void initVolGeom(VOL_GEOM *vg);
-void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst);
+void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst);// once used MRI, now seems silly
 void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
 void readVolGeom(FILE *fp, VOL_GEOM *vg);
-void getVolGeom(const MRI *src, VOL_GEOM *vg);
-void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst);
+void getVolGeom(const VOL_GEOM *src, VOL_GEOM *vg);// once used MRI, now seems silly
+void useVolGeomToMRI(const VOL_GEOM *src, VOL_GEOM *dst);
 MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
@@ -236,7 +236,7 @@ int LTAdumpLinearTransform(FILE *fp, LT *lt);
 int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base) ;
-LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
+LTA *TransformRegDat2LTA(VOL_GEOM *targ, VOL_GEOM *mov, MATRIX *R);
 MATRIX *TransformLTA2RegDat(LTA *lta);
 int TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0, float nx, float ny, float nz,
                              float *pnx, float *pny, float *pnz);
