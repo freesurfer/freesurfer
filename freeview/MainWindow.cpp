@@ -2869,14 +2869,22 @@ void MainWindow::CommandSetHeatScaleOffset(const QStringList &sa)
 {
   if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
   {
-    bool bOK;
-    double dValue = sa[1].toDouble(&bOK);
-    if ( !bOK )
-    {
-      cerr << "Heatscale offset value is not valid.\n";
-      return;
-    }
     LayerPropertyMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperty();
+    double dValue;
+    if (sa[1].toLower() == "mean")
+    {
+      dValue = p->GetFrameMeanValue();
+    }
+    else
+    {
+      bool bOK;
+      dValue = sa[1].toDouble(&bOK);
+      if ( !bOK )
+      {
+        cerr << "Heatscale offset value is not valid.\n";
+        return;
+      }
+    }
     p->SetHeatScaleOffset(dValue);
   }
 }
