@@ -20,12 +20,12 @@ gast==0.4.0
 google-auth==2.20.0
 google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
-grpcio==1.54.2
+grpcio==1.56.0
 idna==3.4
 imageio==2.31.1
 importlib-metadata==6.7.0
 importlib-resources==5.12.0
-jax==0.4.12
+jax==0.4.13
 joblib==1.2.0
 keras==2.12.0
 kiwisolver==1.4.4
