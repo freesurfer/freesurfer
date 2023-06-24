@@ -18,10 +18,10 @@ if(NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS  "Debug;Release;RelWithDebInfo;MinSizeRel")
 endif()
 
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
     # using Clang
     add_definitions(-fno-caret-diagnostics)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip -Wl,-stack_size -Wl,0x1000000")
+    # no linker options used for static libs
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GCC
     if(NOT (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 7.1.0))

@@ -431,7 +431,7 @@ else ()
 endif()
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override -Wno-self-assign-field -Wno-tautological-overlap-compare -Wno-tautological-compare -Wno-unused-value -Wno-range-loop-analysis -Wno-return-stack-address -Wno-dangling-gsl")
 else()
   if(NOT NO_CXX_WARN)
@@ -443,7 +443,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 # linker options
 if(APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip")
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
   endif()
