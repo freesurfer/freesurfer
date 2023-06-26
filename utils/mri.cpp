@@ -122,12 +122,8 @@ MRI::Shape::Shape(const std::vector<int>& shape) {
   Constructs an MRI from VOL_GEOM.
 */
 MRI::MRI(const VOL_GEOM& vg, int dtype, int nframes, int HeaderOnly)
+  : MRI({vg.width, vg.height, vg.depth, nframes}, dtype, (HeaderOnly) ? false : true)
 {
-  if (HeaderOnly)
-    MRI({vg.width, vg.height, vg.depth, nframes}, type, false);
-  else
-    MRI({vg.width, vg.height, vg.depth, nframes}, dtype);
-
   ras_good_flag = 1;
   width = vg.width;
   height = vg.height;
