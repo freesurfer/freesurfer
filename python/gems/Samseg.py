@@ -502,15 +502,23 @@ class Samseg:
         volumeOfOneVoxel = np.abs(np.linalg.det(exampleImage.transform_matrix.as_numpy_array[:3, :3]))
         volumesInCubicMm = np.sum(posteriors, axis=0) * volumeOfOneVoxel
 
-        # Write structural volumes
-        with open(os.path.join(self.savePath, 'samseg.stats'), 'w') as fid:
-            for volume, name in zip(volumesInCubicMm, names):
-                fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
-
         # Write intracranial volume
         sbtiv = icv(zip(*[names, volumesInCubicMm]))
         with open(os.path.join(self.savePath, 'sbtiv.stats'), 'w') as fid:
             fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
+
+        # Write structural volumes
+        with open(os.path.join(self.savePath, 'samseg.stats'), 'w') as fid:
+            fid.write('# Measure %s, %.6f, mm^3\n' % ('Intra-Cranial', sbtiv))
+            for volume, name in zip(volumesInCubicMm, names):
+                fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
+
+        # Write structural volumes in a csv
+        with open(os.path.join(self.savePath, 'samseg.csv'), 'w') as fid:
+            fid.write('ROI,volume_mm3\n');
+            fid.write('%s,%.6f\n' % ('Intra-Cranial', sbtiv))
+            for volume, name in zip(volumesInCubicMm, names):
+                fid.write('%s,%.6f\n' % (name, volume))
 
         return volumesInCubicMm
 
