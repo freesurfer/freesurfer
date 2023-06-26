@@ -4232,12 +4232,10 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 
 /* Loop over the number of distinct elements in the symetric matrix. Using
    the LUT created above is better for load balancing.  */
-  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental) shared(c1list, c2list, ntot, cols, rows, mout, m)
+  #pragma omp parallel for shared(c1list, c2list, ntot, cols, rows, mout, m)
 #endif
   for (n = 0; n < ntot; n++) {
-    ROMP_PFLB_begin
     
     double v, v1, v2;
     int c1, c2, r;
@@ -4254,9 +4252,7 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
     }  // row
     mout->rptr[c1][c2] = v;
     mout->rptr[c2][c1] = v;
-    ROMP_PFLB_end
   }
-  ROMP_PF_end
 
   if (0) {
     // This is a built-in test. The difference should be 0.
@@ -4383,13 +4379,10 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
     }
   }
 
-  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental)
+  #pragma omp parallel for 
 #endif
   for (colA = 0; colA < A->cols; colA++) {
-    ROMP_PFLB_begin
-    
     int row, colB;
     double sum;
     for (colB = 0; colB < B->cols; colB++) {
@@ -4397,10 +4390,7 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
       for (row = 0; row < A->rows; row++) sum += (double)A->rptr[row + 1][colA + 1] * B->rptr[row + 1][colB + 1];
       mout->rptr[colA + 1][colB + 1] = sum;
     }
-    
-    ROMP_PFLB_end
   }
-  ROMP_PF_end
   
   if (0) {
     // In this test, dmax should be 0 because MatrixMultiplyD() is used
