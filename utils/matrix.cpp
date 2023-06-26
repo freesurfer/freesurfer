@@ -987,11 +987,11 @@ MATRIX *MatrixReadTxt(const char *fname, MATRIX *mat)
   nlinemax = 999;
 
   fp = fopen(fname, "r");
-  if (!fp) ErrorReturn(NULL, (ERROR_NO_FILE, "MatrixRead(%s) - file open failed\n", fname));
+  if (!fp) ErrorReturn(NULL, (ERROR_NO_FILE, "MatrixReadTxt(%s) - file open failed\n", fname));
 
   // Read in the first line, including the newline
   if (!fgets(line, nlinemax, fp))
-    ErrorReturn(NULL, (ERROR_BADPARM, "MatrixRead: could not read 1st line from %s\n", fname));
+    ErrorReturn(NULL, (ERROR_BADPARM, "MatrixReadTxt: could not read 1st line from %s\n", fname));
 
   // for(cols = 0,cp = strtok(line, " \t,") ; cp ; cp = strtok(NULL, " \t,"))
   //  cols++ ;
@@ -1037,7 +1037,7 @@ MATRIX *MatrixReadTxt(const char *fname, MATRIX *mat)
         ErrorReturn
         (NULL,
          (ERROR_BADPARM,
-          "MatrixRead: could not scan value [%d][%d]\n", row, col));
+          "MatrixReadTxt: could not scan value [%d][%d]\n", row, col));
       }
     }
   }
