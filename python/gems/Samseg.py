@@ -515,10 +515,24 @@ class Samseg:
 
         # Write structural volumes in a csv
         with open(os.path.join(self.savePath, 'samseg.csv'), 'w') as fid:
-            fid.write('ROI,volume_mm3\n');
-            fid.write('%s,%.6f\n' % ('Intra-Cranial', sbtiv))
+            fid.write('ROI,volume_mm3,volume_ICV_x1000\n');
+            fid.write('%s,%.6f,1000\n' % ('Intra-Cranial', sbtiv))
             for volume, name in zip(volumesInCubicMm, names):
-                fid.write('%s,%.6f\n' % (name, volume))
+                fid.write('%s,%.6f,%.6f\n' % (name, volume,1000*volume/sbtiv))
+
+        # Write out a freesurfer-style stats file (good for use with asegstats2table)
+        with open(os.path.join(self.savePath, 'samseg.fs.stats'), 'w') as fid:
+            fid.write('# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated Total Intracranial Volume, %0.6f, mm^3\n'%(sbtiv));
+            # Could add other measures here like total brain volume
+            fid.write('# # ColHeaders  Index SegId NVoxels Volume_mm3 StructName\n');
+            k = 0;
+            voxsize = self.voxelSpacing[0]*self.voxelSpacing[1]*self.voxelSpacing[2];
+            # It would be nice to sort this by index instead of compression
+            for volume, name in zip(volumesInCubicMm, names):
+                nvox = round(volume/voxsize,2);
+                idx = fslabels[k];
+                fid.write('%3d %4d %7d %9.1f %s\n' % (k+1,idx,nvox,volume,name));
+                k = k+1;
 
         return volumesInCubicMm
 
