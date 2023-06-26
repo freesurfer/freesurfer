@@ -299,7 +299,7 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   /* Make sure we can open the output summary table file*/
-  if(StatTableFile)
+  if(StatTableFile)  // --sum/--o/--sum-in <StatTableFile>
   {
     fp = fopen(StatTableFile,"w");
     if (fp == NULL)
@@ -552,7 +552,7 @@ int main(int argc, char **argv)
              frame,invol->nframes);
       exit(1);
     }
-    if(InVolReg || InVolRegHeader)
+    if(InVolReg || InVolRegHeader)  // --reg <InVolRegFile>, --regheader
     {
       if(InVolReg)
       {
