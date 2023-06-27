@@ -393,6 +393,14 @@ void MRI::write(const std::string& filename)
 }
 
 
+// set warpfield metadata
+void MRI::setWarpfieldMeta(MRI *mri, int version0, int warpFieldFormat0, const MATRIX *ras2vox)
+{
+  version = version0;
+  warpFieldFormat = warpFieldFormat0;
+  origRas2Vox = MatrixCopy(ras2vox, origRas2Vox);
+}
+
 /**
   Computes a hash of the MRI buffer data.
 */

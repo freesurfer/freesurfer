@@ -9,8 +9,10 @@
 // constructor
 Warpfield::Warpfield()
 {
-  __warpmap = NULL;
-  __dataformat = WARPFIELD_DTFMT_UNKNOWN;
+  __warpmap = NULL;  __warpmap_inv = NULL;
+  __mgzVersion = MGH_VERSION;
+  __dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
+  __srcRas2Vox = NULL;
 }
 
 
@@ -22,7 +24,7 @@ Warpfield::~Warpfield()
 }
 
 
-int Warpfield::convert(const char *fname, const WarpfieldDTFMT dataformat)
+int Warpfield::convert(const char *fname, const int dataformat)
 {
   int type = TransformFileNameType((char *)fname);
   if (type != MORPH_3D_TYPE)
@@ -31,15 +33,13 @@ int Warpfield::convert(const char *fname, const WarpfieldDTFMT dataformat)
     exit(1);
   }
     
-  __dataformat = dataformat;
-  
   GCA_MORPH *gcam = GCAMread(fname);
 
   return convert(gcam, __dataformat);
 }
 
 // convert GCAM
-int Warpfield::convert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
+int Warpfield::convert(GCA_MORPH *gcam, const int dataformat)
 {
   int (*nintfunc)( double );
   nintfunc = &nint;
@@ -47,6 +47,7 @@ int Warpfield::convert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
   // create MRI using atlas vol_geom
   __warpmap = new MRI(gcam->atlas, MRI_FLOAT, 3, 0);
   __dataformat = dataformat;
+  __srcRas2Vox = gcam->image.get_RAS2Vox();
   
   for (int c = 0; c < __warpmap->width; c++)
   {
@@ -61,21 +62,21 @@ int Warpfield::convert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
 	if (out_of_gcam)
 	  continue;
 	
-        if (__dataformat == WARPFIELD_DTFMT_ABS_CRS)
+        if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS)
         {
           MRIsetVoxVal(__warpmap, c, r, s, 0, fcs);
 	  MRIsetVoxVal(__warpmap, c, r, s, 1, frs);
 	  MRIsetVoxVal(__warpmap, c, r, s, 2, fss);
 	}
-	else if (__dataformat == WARPFIELD_DTFMT_DISP_CRS)
+	else if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS)
 	{
 	  // delta = image - atlas (src - dst)
 	  MRIsetVoxVal(__warpmap, c, r, s, 0, fcs - c);
 	  MRIsetVoxVal(__warpmap, c, r, s, 1, frs - r);
 	  MRIsetVoxVal(__warpmap, c, r, s, 2, fss - s);
 	}
-	else if (__dataformat == WARPFIELD_DTFMT_ABS_RAS ||
-                 __dataformat == WARPFIELD_DTFMT_DISP_RAS)
+	else if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS ||
+                 __dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS)
 	{
 	  // convert (fcs, frs, fss) to image_RAS
 	  MATRIX *image_CRS = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -87,7 +88,7 @@ int Warpfield::convert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
 	  MATRIX *image_RAS = MatrixAlloc(4, 1, MATRIX_REAL);	  
 	  image_RAS = MatrixMultiply(gcam->image.get_Vox2RAS(), image_CRS, image_RAS);
 
-	  if (__dataformat == WARPFIELD_DTFMT_ABS_RAS)
+	  if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS)
 	  {
 	    MRIsetVoxVal(__warpmap, c, r, s, 0, image_RAS->rptr[1][1]);
 	    MRIsetVoxVal(__warpmap, c, r, s, 1, image_RAS->rptr[2][1]);
@@ -120,7 +121,7 @@ int Warpfield::convert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
 
 
 // invert M3z into 3-fram MRI warp map
-int Warpfield::invert(const char *fname, const WarpfieldDTFMT dataformat)
+int Warpfield::invert(const char *fname, const int dataformat)
 {
   int type = TransformFileNameType((char *)fname);
   if (type != MORPH_3D_TYPE)
@@ -129,15 +130,13 @@ int Warpfield::invert(const char *fname, const WarpfieldDTFMT dataformat)
     exit(1);
   }
     
-  __dataformat = dataformat;
-  
   GCA_MORPH *gcam = GCAMread(fname);
 
   return invert(gcam, __dataformat);  
 }
 
 // invert GCAM
-int Warpfield::invert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
+int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 {
   int (*nintfunc)( double );
   nintfunc = &nint;
@@ -153,6 +152,7 @@ int Warpfield::invert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
   // create MRI using image vol_geom
   __warpmap = new MRI(gcam->image, MRI_FLOAT, 3, 0);
   __dataformat = dataformat;
+  __srcRas2Vox = gcam->atlas.get_RAS2Vox();
   
   for (int c = 0; c < __warpmap->width; c++)
   {
@@ -167,21 +167,21 @@ int Warpfield::invert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
 	if (out_of_gcam)
 	  continue;
 	
-        if (__dataformat == WARPFIELD_DTFMT_ABS_CRS)
+        if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS)
         {
           MRIsetVoxVal(__warpmap, c, r, s, 0, fct);
 	  MRIsetVoxVal(__warpmap, c, r, s, 1, frt);
 	  MRIsetVoxVal(__warpmap, c, r, s, 2, fst);
 	}
-	else if (__dataformat == WARPFIELD_DTFMT_DISP_CRS)
+	else if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS)
 	{
 	  // delta = src - dst
 	  MRIsetVoxVal(__warpmap, c, r, s, 0, c - fct);
 	  MRIsetVoxVal(__warpmap, c, r, s, 1, r - frt);
 	  MRIsetVoxVal(__warpmap, c, r, s, 2, s - fst);
 	}
-	else if (__dataformat == WARPFIELD_DTFMT_ABS_RAS ||
-                 __dataformat == WARPFIELD_DTFMT_DISP_RAS)
+	else if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS ||
+                 __dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS)
 	{
 	  // convert (fct, frt, fst) to dst_RAS
 	  MATRIX *dst_CRS = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -193,7 +193,7 @@ int Warpfield::invert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
 	  MATRIX *dst_RAS = MatrixAlloc(4, 1, MATRIX_REAL);	  
 	  dst_RAS = MatrixMultiply(gcam->atlas.get_Vox2RAS(), dst_CRS, dst_RAS);
 
-	  if (__dataformat == WARPFIELD_DTFMT_ABS_RAS)
+	  if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS)
 	  {
 	    MRIsetVoxVal(__warpmap, c, r, s, 0, dst_RAS->rptr[1][1]);
 	    MRIsetVoxVal(__warpmap, c, r, s, 1, dst_RAS->rptr[2][1]);
@@ -226,22 +226,31 @@ int Warpfield::invert(GCA_MORPH *gcam, const WarpfieldDTFMT dataformat)
 
 
 // read 3-frame MRI warp map into __warpmap
-int read(const char *fname)
+int Warpfield::read(const char *fname)
 {
-  // todo: modify mghRead(): recognize TAG_WARPFIELD_DTFMT, save WarpfieldDTFMT
-  return 0;
+  int ret = 0;
+  
+  __warpmap = MRIread(fname);
+  if (__warpmap == NULL)
+  {
+    printf("ERROR: Warpfield::read(%s)\n", fname);
+    ret = 1;
+  }
+  
+  return ret;
 }
 
 
 // write out the 3-frame MRI warping map
 int Warpfield::write(const char *fname)
 {
-  // todo: add method to MRI: setMGHVERSION()
-  // todo: add method to MRI: setOptionTags(TAG_WARPFIELD_DTFMT)  - new field in MRI
-  // todo: write src vol_geom
-  // todo: modify mghWrite(): recognize TAG_WARPFIELD_DTFMT, save WarpfieldDTFMT
-  MRIwrite(__warpmap, fname);
-  return 0;
+  __warpmap->setWarpfieldMeta(__warpmap, __mgzVersion, __dataformat, __srcRas2Vox);
+
+  int ret = MRIwrite(__warpmap, fname);
+  if (ret)
+    printf("ERROR: Warpfield::write(%s)\n", fname);
+  
+  return ret;
 }
 
 

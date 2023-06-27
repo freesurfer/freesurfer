@@ -334,6 +334,8 @@ struct VOL_GEOM
 
 typedef VOL_GEOM VG;
 
+#define MGH_VERSION 1
+
 class MRI : public VOL_GEOM
 {
 public:
@@ -366,6 +368,10 @@ public:
   // ITK image conversions
   ITKImageType::Pointer toITKImage(int frame = 0);
   void loadITKImage(ITKImageType::Pointer image, int frame = 0);
+
+  // set warpfield metadata
+  // this method will be called from class Warpfield
+  void setWarpfieldMeta(MRI *mri, int version0, int warpFieldFormat0, const MATRIX *ras2vox);
 
   // ---- image geometry ----
   //int width;        // number of columns // Now inherited from VOL_GEOM
@@ -436,7 +442,7 @@ public:
 
   // ---- file metadata ----
   //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
-  int  version;
+  int  version = MGH_VERSION;
   char fnamePostFixes[STRLEN];    // used in MRIwrite(), append to output file name
   int  len_fnamePostFixes;
   char fname_format[STRLEN];    // file extension
@@ -449,7 +455,7 @@ public:
   int tag_data_size = 0;        // size of tag data
 
   // ---- TAG_WARPFIELD_DTFMT ----
-  const Warpfield::WarpfieldDTFMT warpFieldFormat = Warpfield::WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
+  int warpFieldFormat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
 
   // ---- image buffer ----
   int type;                     // image data type
