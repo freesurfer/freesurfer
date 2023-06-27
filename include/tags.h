@@ -48,6 +48,8 @@
 #define TAG_FIELDSTRENGTH           43
 #define TAG_ORIG_RAS2VOX            44
 
+#define TAG_WARPFIELD_DTFMT         45
+
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
 int TAGwriteEnd(FILE *fp, long long there) ;

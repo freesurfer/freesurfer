@@ -151,6 +151,7 @@ MRI::MRI(const VOL_GEOM& vg, int dtype, int nframes, int HeaderOnly)
 }
 
 
+#if 0
 /**
   Constructs an MRI from a volume file.
 */
@@ -158,6 +159,7 @@ MRI::MRI(const std::string& filename)
 {
   *this = *MRIread(filename.c_str());
 }
+#endif
 
 
 /**
@@ -390,6 +392,14 @@ void MRI::write(const std::string& filename)
   MRIwrite(this, filename.c_str());
 }
 
+
+// set warpfield metadata
+void MRI::setWarpfieldMeta(MRI *mri, int version0, int warpFieldFormat0, const MATRIX *ras2vox)
+{
+  version = version0;
+  warpFieldFormat = warpFieldFormat0;
+  origRas2Vox = MatrixCopy(ras2vox, origRas2Vox);
+}
 
 /**
   Computes a hash of the MRI buffer data.

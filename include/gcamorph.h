@@ -134,7 +134,7 @@ typedef struct
 }
 GCA_MORPH_NODE, GMN ;
 
-typedef struct
+struct GCA_MORPH
 {
   int  width, height ,depth ;
   GCA  *gca ;          // using a separate GCA data (not saved)
@@ -153,8 +153,9 @@ typedef struct
   MATRIX   *m_affine ;         // affine transform to initialize with
   double   det ;               // determinant of affine transform
   void    *vgcam_ms ; // Not saved.
-}
-GCA_MORPH, GCAM ;
+};
+
+typedef GCA_MORPH GCAM;
 
 typedef struct
 {

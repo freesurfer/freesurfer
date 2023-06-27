@@ -84,6 +84,8 @@
 
 #include "fscnpy.h"
 
+#include "warpfield.h"
+
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
 // unix director separator
@@ -10792,8 +10794,6 @@ int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
 #define UNUSED_SPACE_SIZE 256
 #define USED_SPACE_SIZE (3 * sizeof(float) + 4 * 3 * sizeof(float))
 
-#define MGH_VERSION 1
-
 // declare function pointer
 // static int (*myclose)(FILE *stream);
 
@@ -10949,6 +10949,8 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
     mri = MRIallocSequence(width, height, depth, type, nframes);
     mri->dof = dof;
 
+    mri->version = version;
+    
     struct timespec begin, end;
     if (getenv("FS_MGZIO_TIMING"))
     {
@@ -11216,6 +11218,11 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
           znzTAGreadFloat(&(mri->FieldStrength), fp);
           break;
 
+        case TAG_WARPFIELD_DTFMT:
+          mri->warpFieldFormat = znzreadInt(fp);
+	  printf("[DEBUG] mghRead(): warpFieldFormat = %d (size=%ld)\n", mri->warpFieldFormat, sizeof(mri->warpFieldFormat)); 	  
+          break;
+
         default:
           znzTAGskip(fp, tag, (long long)len);
           break;
@@ -11295,7 +11302,7 @@ int mghWrite(MRI *mri, const char *fname, int frame)
   height = mri->height;
   depth = mri->depth;
   // printf("(w,h,d) = (%d,%d,%d)\n", width, height, depth);
-  znzwriteInt(MGH_VERSION, fp);
+  znzwriteInt(mri->version, fp);
   znzwriteInt(mri->width, fp);
   znzwriteInt(mri->height, fp);
   znzwriteInt(mri->depth, fp);
@@ -11503,6 +11510,12 @@ int mghWrite(MRI *mri, const char *fname, int frame)
     znzCTABwriteIntoBinary(mri->ct, fp);
   }
 
+  if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
+  {
+    printf("[DEBUG] mghWrite(): warpFieldFormat = %d (size=%ld)\n", mri->warpFieldFormat, sizeof(mri->warpFieldFormat));
+    znzTAGwrite(fp, TAG_WARPFIELD_DTFMT, (void *)(&mri->warpFieldFormat), sizeof(mri->warpFieldFormat));
+  }
+  
   // write other tags
   for (int i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
 
