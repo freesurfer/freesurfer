@@ -193,8 +193,11 @@
 180 Left-Cortical-Dysplasia                 73  61  139 0
 181 Right-Cortical-Dysplasia                73  62  139 0
 182 CblumNodulus                            10 100  176 0
-183 Left-Vermis                            119 100  176 0
-184 Right-Vermis                           100 119  176 0
+
+# Changed name to "Area" to indicate that this is not 
+# currently a fully vetted segmentation
+183 Left-Vermis-Area                            119 100  176 0
+184 Right-Vermis-Area                           100 119  176 0
 
 #192 Corpus_Callosum  listed after #85 above
 193 Left-hippocampal_fissure                0   196 255 0
@@ -276,6 +279,7 @@
 264 Right-Eustachian                      119 159 176 0
 265 Left-Eyeball                          60  60  60  0
 266 Right-Eyeball                         60  60  60  0
+267 Pons-Belly-Area                      206 195 58  0
 
 270 ctx-lh-infragranular                  205 70  78  0
 271 ctx-lh-layer1                         210 80  78  0
