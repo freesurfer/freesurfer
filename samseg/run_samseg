@@ -7,6 +7,7 @@ import scipy.io
 import argparse
 import surfa as sf
 import gems
+import platform
 
 
 # ------ Parse Command Line Arguments ------
@@ -63,6 +64,8 @@ parser.add_argument('--showfigs', action='store_true', default=False, help='Show
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp field.')
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
+parser.add_argument('--vmp', action='store_true', help='Enable printing of memory peak at the end.')
+parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
 
 args = parser.parse_args()
 
@@ -199,5 +202,18 @@ _, _, _, optimizationSummary = samseg.segment(
 with open(costfile, 'a') as file:
     for multiResolutionLevel, item in enumerate(optimizationSummary):
         file.write('atlasRegistrationLevel%d %d %f\n' % (multiResolutionLevel, item['numberOfIterations'], item['perVoxelCost']))
+
+# check memory usage
+if (args.debug or args.vmp) and platform.system() == 'Linux':
+    procstat = os.path.join('/proc', str(os.getpid()), 'status')
+    fp = open(procstat, 'r')
+    lines = fp.readlines()
+    for line in lines:
+        strs = line.split()
+        if(len(strs) < 3):
+            continue
+        if(strs[0] != 'VmPeak:'):
+            continue
+        print('run_samseg VmPeak:', int(strs[1]))
 
 timer.mark('run_samseg complete')
