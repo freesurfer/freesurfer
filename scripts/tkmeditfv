@@ -517,7 +517,7 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor red red);
       breaksw
 
-    case "-smoothwmnf":
+    case "-smoothwm.nofix":
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.smoothwm.nofix rh.smoothwm.nofix)
       set surfcolor = ($surfcolor green green);
