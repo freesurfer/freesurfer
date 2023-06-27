@@ -1,0 +1,13 @@
+# The format is: mergedName numberOfComponents searchStrings
+
+
+Unknown 1 Unknown Bone-Cortical
+GlobalWM 1 White Brain-Stem VentralDC Optic-Chiasm Thalamus Crowns Corpus_Callosum Pons
+GlobalGM 1 Cortex Caudate Hippocampus Amygdala Accumbens hypointensities Thalamus ctx Vermis
+GlobalCSF_messy 1 CSF vessel choroid-plexus Fluid
+GlobalCSF_clean 1 Ventricle Inf-Lat-Vent Fluid
+Veins 1 Vein
+Soft_Tissues 2 Other-Tissues Rectus-Muscles Mucosa Skin Artery undetermined Optic-Nerve Sinus Fat Bone-Cancellous
+Pallidum 1 Pallidum
+Putamen 1 Putamen
+Spine 1 Spinal-Cord
