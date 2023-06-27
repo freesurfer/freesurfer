@@ -173,6 +173,7 @@ add_library(utils STATIC
   MRISurfOverlay.cpp
   mriTransform.cpp
   mrivoxel.cpp
+  warpfield.cpp
   numerics.cpp
   offset.cpp
   path.cpp

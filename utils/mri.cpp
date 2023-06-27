@@ -151,6 +151,7 @@ MRI::MRI(const VOL_GEOM& vg, int dtype, int nframes, int HeaderOnly)
 }
 
 
+#if 0
 /**
   Constructs an MRI from a volume file.
 */
@@ -158,6 +159,7 @@ MRI::MRI(const std::string& filename)
 {
   *this = *MRIread(filename.c_str());
 }
+#endif
 
 
 /**

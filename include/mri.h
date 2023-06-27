@@ -37,6 +37,7 @@
 #include "fnvhash.h"
 #include "itkImage.h"
 
+#include "warpfield.h"
 
 #define BUFTYPE  unsigned char
 
@@ -231,7 +232,13 @@ struct VOL_GEOM
     c_s = vg.c_s;
     
     strcpy(fname, vg.fname);
-  }
+
+#if 0
+    // ??? valid and ras_good_flag mean the same thing ???
+    valid = (ras_good_flag) ? ras_good_flag : valid;
+    ras_good_flag = (valid) ? valid : ras_good_flag;
+#endif
+  } 
 
   // copy assignment
   VOL_GEOM& operator= (const VOL_GEOM& other)
@@ -259,6 +266,12 @@ struct VOL_GEOM
     c_s = other.c_s;
     
     strcpy(fname, other.fname);
+
+#if 0
+    // ??? valid and ras_good_flag mean the same thing ???
+    valid = (ras_good_flag) ? ras_good_flag : valid;
+    ras_good_flag = (valid) ? valid : ras_good_flag;
+#endif
 
     return *this;
   }
@@ -342,7 +355,7 @@ public:
 
   MRI(const VOL_GEOM& vg, int dtype, int nframes=1, int HeaderOnly=1);
   MRI(const Shape volshape, int dtype, bool alloc = true);
-  MRI(const std::string& filename);
+  //MRI(const std::string& filename);
   ~MRI();
 
   void initIndices();
@@ -423,6 +436,7 @@ public:
 
   // ---- file metadata ----
   //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
+  int  version;
   char fnamePostFixes[STRLEN];    // used in MRIwrite(), append to output file name
   int  len_fnamePostFixes;
   char fname_format[STRLEN];    // file extension
@@ -433,6 +447,9 @@ public:
   int ncmds = 0;                // number of commands run previously
   void *tag_data = nullptr;     // saved tag data
   int tag_data_size = 0;        // size of tag data
+
+  // ---- TAG_WARPFIELD_DTFMT ----
+  const Warpfield::WarpfieldDTFMT warpFieldFormat = Warpfield::WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
 
   // ---- image buffer ----
   int type;                     // image data type
