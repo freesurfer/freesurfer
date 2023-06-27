@@ -25,6 +25,8 @@ set SubSegCblumWM = 0;
 set AddPons = 1;
 set AddVermis = 1;
 set DoXCerSeg = ();
+set UseSamseg = 0
+set threads = 1
 
 set tmpdir = ();
 set cleanup = 1;
@@ -81,10 +83,11 @@ uname -a  | tee -a $LF
 
 #========================================================
 if($DoXCerSeg) then
-  set cmd = (xcerebralseg --s $subject)
+  set cmd = (xcerebralseg --s $subject --threads $threads)
   if(! $cleanup) set cmd = ($cmd --tmpdir $tmpdir/xcerebralseg)
   if($AddPons == 0)   set cmd = ($cmd --no-pons)
   if($AddVermis == 0) set cmd = ($cmd --no-vermis)
+  if($UseSamseg) set cmd = ($cmd --samseg)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -297,6 +300,18 @@ while( $#argv != 0 )
       set DoSegStats = 0;
       breaksw
 
+    case "--samseg":
+      set UseSamseg = 1;
+      breaksw
+    case "--no-samseg":
+      set UseSamseg = 0;
+      breaksw
+
+    case "--threads":
+    case "--nthreads":
+      set threads = $argv[1]; shift;
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -418,6 +433,8 @@ usage_exit:
   echo ""
   echo " --s subject     : subject to analyze (required)"
   echo " --xcerseg : run xcerebralseg on this subject to create $headseg"
+  echo " --samseg : use samseg to create whole head seg rather than GCA"
+  echo " --threads nthreads : only applies when running xcerseg"
   echo ""
   echo " --o outvol      : relative to subject/mri (default is $outvol)" 
   echo " --usf USF       : upsampling factor (default is $USF)"
