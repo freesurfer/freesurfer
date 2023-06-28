@@ -12874,9 +12874,46 @@ MATRIX *MRIvoxelXformToRasXform(MRI *mri_src, MRI *mri_dst, MATRIX *m_voxel_xfor
   return (m_ras_xform);
 }
 
+/*!
+  \fn int MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
+  \brief Change the volume geom parameters to reflect the passed vox2ras.
+  By default, it assumes that the vox2ras is 6 dof with scale=voxsize.
+  If this is not the case, then the output will be wrong. The voxelsize
+  can be changed with setenv FS_SetVoxToRasXform_Change_VoxSize thresh
+  where thresh is min diff neeed between the scale and the voxel size.
+*/
 int MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
 {
   float ci, cj, ck;
+
+  // This is a little bit of a hack to account for the fact that the
+  // vox2ras might have a scale. We should incorporate scales and
+  // shears into the volume geometry. Instead, we offer the ability to
+  // change the voxel size. Not pretty. Still no way to add shear.
+  MatrixPrint(stdout,m_vox2ras);
+  double xs=0, ys=0, zs=0;
+  for(int k=0; k < 3; k++){
+    xs += (m_vox2ras->rptr[k+1][1]*m_vox2ras->rptr[k+1][1]);
+    ys += (m_vox2ras->rptr[k+1][2]*m_vox2ras->rptr[k+1][2]);
+    zs += (m_vox2ras->rptr[k+1][3]*m_vox2ras->rptr[k+1][3]);
+  }
+  xs = sqrt(xs);
+  ys = sqrt(ys);
+  zs = sqrt(zs);
+  double thresh=.001;
+  char *a = getenv("FS_SetVoxToRasXform_Change_VoxSize");
+  if(a) sscanf(a,"%lf",&thresh);
+  if(fabs(mri->xsize-xs)>thresh || fabs(mri->ysize-ys)>thresh || fabs(mri->zsize-zs)>thresh){
+    printf("WARNING: MRIsetVoxelToRasXform(): voxel size is inconsistent with scale (thresh=%g)\n",thresh);
+    printf("  scale %g %g %g\n",xs,ys,zs);
+    printf("  vs %g %g %g\n",mri->xsize,mri->ysize,mri->zsize);
+    if(a != NULL){
+      printf("  changing voxel size to scale\n");
+      mri->xsize = xs;
+      mri->ysize = ys;
+      mri->zsize = zs;
+    }
+  }
 
   mri->x_r = *MATRIX_RELT(m_vox2ras, 1, 1) / mri->xsize;
   mri->y_r = *MATRIX_RELT(m_vox2ras, 1, 2) / mri->ysize;
