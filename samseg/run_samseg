@@ -7,8 +7,6 @@ import scipy.io
 import argparse
 import surfa as sf
 import gems
-import freesurfer.utils as fsutils
-
 
 # ------ Parse Command Line Arguments ------
 
@@ -203,8 +201,8 @@ with open(costfile, 'a') as file:
         file.write('atlasRegistrationLevel%d %d %f\n' % (multiResolutionLevel, item['numberOfIterations'], item['perVoxelCost']))
 
 # check memory usage
-vmpeak = fsutils.vmpeak();
+vmpeak = surfa.system.vmpeak();
 if(vmpeak is not None):
-    print('run_samseg VmPeak %s:' % vmpeak);
+    print('run_samseg VmPeak %s' % vmpeak);
 
 timer.mark('run_samseg complete')
