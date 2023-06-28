@@ -117,7 +117,7 @@ if($SubSegWM && $#wmannot == 0) then
   end
 endif
 
-set cmd = (mri_gtmseg --s $subject --usf $USF --o $outvol)
+set cmd = (mri_gtmseg --s $subject --usf $USF --o $outvol --threads $threads)
 set cmd = ($cmd --apas $headseg)
 if($#ctxannot)  set cmd = ($cmd --ctx-annot $ctxannot $ctxlhbase $ctxrhbase)
 if($#wmannot)   set cmd = ($cmd --wm-annot  $wmannot  $wmlhbase  $wmrhbase)
