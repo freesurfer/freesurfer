@@ -16,6 +16,7 @@ set seg1name = ()
 set DoStats = 1;
 set UseSamseg = 0
 set ForceUpdate = 0
+set SamsegRevert = 0
 
 # Seghead parameters
 set thresh = 35
@@ -116,15 +117,22 @@ if($#seg1name == 0) then
       set cmd = (mri_binarize --i $samsegseg --o $seg1 \
         --replaceonly 184 172  --replaceonly 183 172  --replaceonly 11300 3 \
         --replaceonly 12300 42 --replaceonly 915 165  --replaceonly 916 165 \
-        --replaceonly 262 130  --replaceonly 911 258  --replaceonly 908 258 \
+        --replaceonly 911 258  --replaceonly 907 258 --replaceonly 66 41 \
         --replaceonly 930 258  --replaceonly 259 258  --replaceonly 24 257 \
-        --replaceonly 914 257  --replaceonly 902 258  --replaceonly 907 258 \
-        --replaceonly 909 258  --replaceonly 126 16    --replaceonly 34 2 \
-        --replaceonly 66 41)
+        --replaceonly 909 258  --replaceonly 126 16    --replaceonly 34 2 )
+      set cmd = ($cmd --replaceonly 262 130); # Sinus becomes Air
+      set cmd = ($cmd --replaceonly 908 258); # Eye muscles
       # replace CC with left WM so that there are no residual 192 voxels
       set cmd = ($cmd --replaceonly 192 2)
       # replace 267 PonsBellyArea with 174 Pons so as not to confuse gtmseg
       set cmd = ($cmd --replaceonly 267 174)
+      if($SamsegRevert) then
+        # Up to this point, the new seg will have the samseg set of labels as
+        # the GCA seg. If SamsegRevert is set, then these last two will be replaced
+        # as well making the set of labels the same in both
+        set cmd = ($cmd --replaceonly 902 258); # Artery
+        set cmd = ($cmd --replaceonly 914 257); # Vein
+      endif
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) goto error_exit;
@@ -137,7 +145,8 @@ endif
 # in the merge anyway
 set seg2 = $tmpdir/seg2.mgh
 set cmd = (mri_binarize --i $seg1 --o $seg2 \
-  --replaceonly 3 257 --replaceonly 42 257 --replaceonly 2 257 --replaceonly 41 257)
+  --replaceonly 3 257 --replaceonly 42 257 --replaceonly 2 257 --replaceonly 41 257 \
+  --replaceonly 36 257 --replaceonly 66 257 --replaceonly 11300 257 --replaceonly 12300 257)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -152,7 +161,7 @@ if($status) goto error_exit;
 if($DoPons) then
   # Make a mask of pons
   set pons = $tmpdir/pons.mgh
-  set cmd = (mri_binarize --i $seg1 --match 174 --o $pons --binval 174)
+  set cmd = (mri_binarize --i $seg1 --match 174 267 --o $pons --binval 174)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -168,7 +177,7 @@ endif
 if($DoVermis) then
   # Make a mask of vermis
   set vermis = $tmpdir/vermis.mgh
-  set cmd = (mri_binarize --i $seg1 --match 172 --o $vermis --binval 172)
+  set cmd = (mri_binarize --i $seg1 --match 172 183 184 --o $vermis --binval 172)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -327,6 +336,10 @@ while( $#argv != 0 )
       # Note that if --samseg was used, this will not undo srcvol
       breaksw
 
+    case "--samseg-revert":
+      set SamsegRevert = 1
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -429,6 +442,8 @@ usage_exit:
   echo " --s subject (required)"
   echo " --o outvol (default: $outvol)"
   echo " --atlas headgca (default: $atlas)"
+  echo " --samseg : use samseg instead of GCA to provide the xcer seg"
+  echo " --samseg-revert : make labels of samseg seg same as that of the GCA"
   echo " --m mergevol : merge with mergevol (default is $mergevol)"
   echo " --srcvol source intensity volume (default is $srcvol)"
   echo " --no-stats : do not  run mri_segstats"
