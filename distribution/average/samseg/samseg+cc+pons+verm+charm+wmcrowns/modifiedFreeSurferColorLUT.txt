@@ -46,7 +46,7 @@
 184 Right-Vermis-Area 119 100 176 255
 192 Corpus_Callosum 170 255 255 255
 259 Eye-Fluid 60 60 60 255
-262 Sinus 196 160 128 255
+262 Sinus 85  85 127 255
 902 Artery 204 0 0 255
 907 Other-Tissues 85 85 0 255
 908 Rectus-Muscles 190 50 73 255
