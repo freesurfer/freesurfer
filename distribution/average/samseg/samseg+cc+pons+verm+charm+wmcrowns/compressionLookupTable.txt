@@ -6,8 +6,8 @@
 914 5 Vein 0 84 255 255
 126 6 Spinal-Cord 133 203 229 255
 902 7 Artery 204 0 0 255
-916 8 Bone-Cancellous 190 156 120 255
-262 9 Sinus 196 160 128 255
+916 8 Bone-Cancellous 170 170 0 255
+262 9 Sinus 85  85 127 255
 909 10 Mucosa 255 160 188 255
 16 11 Brain-Stem 119 159 176 255
 8 12 Left-Cerebellum-Cortex 230 148 34 255
@@ -55,6 +55,6 @@
 10 54 Left-Thalamus 0 118 14 255
 49 55 Right-Thalamus 0 118 14 255
 43 56 Right-Lateral-Ventricle 120 18 134 255
-192 57 Corpus_Callosum 246 246 246 255
+192 57 Corpus_Callosum 170 255 255 255
 4 58 Left-Lateral-Ventricle 120 18 134 255
 80 59 non-WM-hypointensities 164 108 226 255

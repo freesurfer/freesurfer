@@ -88,8 +88,8 @@
 82  Right-non-WM-hypointensities            164 108 226 0
 83  Left-F1                                 255 218 185 0
 84  Right-F1                                255 218 185 0
-85  Optic-Chiasm                            234 169 30  0
-192 Corpus_Callosum                         0   0   160 0
+85  Optic-Chiasm                            234 169  30 0
+192 Corpus_Callosum                         170 255 255 0
 
 86  Left_future_WMSA                        200 120  255 0
 87  Right_future_WMSA                       200 121  255 0
@@ -274,7 +274,7 @@
 259 Eye-Fluid                              60  60  60  0
 260 BoneOrAir                             119 159 176 0
 261 PossibleFluid                         120  18 134 0
-262 Sinus                                 196 160 128 0
+262 Sinus                                  85  85 127 0
 263 Left-Eustachian                       119 159 176 0
 264 Right-Eustachian                      119 159 176 0
 265 Left-Eyeball                          60  60  60  0
@@ -501,7 +501,7 @@
 912       Charm-Spinal-Cord                  0 187 169 255 
 914       Vein                             0 84 255 255 
 915       Bone-Cortical                    0 85 0 0
-916       Bone-Cancellous                  190 156 120 255
+916       Bone-Cancellous                  170 170 0 255
 917       Charm-Background                 0 168 255 255 
 920       Cortical-CSF                     120 133 217 255 
 930       Optic-Nerve                      0 191 122 255 
