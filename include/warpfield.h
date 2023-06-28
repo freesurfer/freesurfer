@@ -24,8 +24,8 @@ public:
   ~Warpfield();
 
   // convert M3z into 3-frame MRI warp map
-  int convert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
-  int convert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
+  int convert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, int doGCAMsampleMorph=1);
+  int convert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, int doGCAMsampleMorph=1);
 
   // invert M3z into 3-fram MRI warp map
   int invert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
@@ -43,7 +43,8 @@ public:
 
 private:
   int __mgzVersion;               // mgz version
-  int __dataformat;    // WarpfieldDT
+  int __dataformat;               // WarpfieldDT
+  int __invert;                   // __warpmap is inverted
   MATRIX *__srcRas2Vox;           // source image ras2vox matrix
   MRI *__warpmap;                 // 3-frame MRI warping map (dst => src)
   MRI *__warpmap_inv;             // inverted __warpmap (src => dst)

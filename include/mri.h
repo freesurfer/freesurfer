@@ -336,6 +336,15 @@ typedef VOL_GEOM VG;
 
 #define MGH_VERSION 1
 
+// version number in .mgz will be constructed using these defines
+// ex.  ((MGZ_WARPMAP     & 0xff ) << 8) | MGH_VERSION
+//      ((MGZ_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION
+#define MGZ_MRI_DATA     1
+#define MGZ_ANNOT        2
+#define MGZ_CURV         3
+#define MGZ_WARPMAP      4
+#define MGZ_WARPMAP_INV  5
+
 class MRI : public VOL_GEOM
 {
 public:
