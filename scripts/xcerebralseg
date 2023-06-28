@@ -101,10 +101,11 @@ if($#seg1name == 0) then
       if($status) goto error_exit;
     endif
   else
-    set samsegseg = $tmpdir/samseg/seg.mgz
+    set samsegoutdir = $SUBJECTS_DIR/$subject/mri/xcerebral.samseg
+    set samsegseg = $samsegoutdir/seg.mgz
     set ud = `UpdateNeeded $samsegseg $srcvolpath`
     if($ud || $ForceUpdate) then
-      set cmd = (fs_time samseg --i $srcvolpath --o $tmpdir/samseg --atlas $atlas --threads $threads --cpvcw)
+      set cmd = (fs_time samseg --i $srcvolpath --o $samsegoutdir --threads $threads --cpvcw)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) goto error_exit;
