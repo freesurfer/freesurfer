@@ -157,6 +157,10 @@ if(NOT APPLE)
   if(NOT QUADMATH_LIBRARIES)
     set(QUADMATH_LIBRARIES "")
   endif()
+elseif(APPLE_ARM64)
+  # use gfortran from gcc (otherwise use native clang)
+  find_library(GFORTRAN_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/12 /opt/homebrew/bin NAMES libgfortran.a gfortran)
+  find_library(QUADMATH_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/current NAMES libquadmath.a libquadmath.dylib libquadmath.0.dylib)
 endif()
 
 # commented out on 10/2022
@@ -203,12 +207,10 @@ if(APPLE)
   find_package(OpenMP)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_LIBRARY_SUFFIXES})
 
-  # With added security in MacOS 12.X (Monterey)
-  # and 13.X (Ventura), permissions may be broken under
-  # /usr/local for accessing gfortran/libs via Homebrew. So for
-  # now, turn off build/install of subdirs using gfortran.
+  # If no gfortran compiler, turn off using that in build.
   if(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
-     set(BUILD_FORTRAN OFF)
+     # set(BUILD_FORTRAN OFF)
+     set(BUILD_FORTRAN ON)
   endif()
 else()
   find_package(OpenMP)
