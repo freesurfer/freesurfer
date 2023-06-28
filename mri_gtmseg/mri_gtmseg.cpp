@@ -131,7 +131,6 @@ int main(int argc, char *argv[]) {
   }
   printf("master tissue type schema %s\n",ctMaster->TissueTypeSchema);
 
-  //err = CTABwriteFileASCIItt(ctMerge,"merge.copy.ctab");
   //err = CTABwriteFileASCIItt(ctMaster,"master.ctab");
   //if(err) exit(1);
 
@@ -143,6 +142,8 @@ int main(int argc, char *argv[]) {
   printf("Computing colortable\n");
   ct = GTMSEGctab(gtmseg, ctMaster);
   if(ct == NULL) exit(1);
+  //CTABwriteFileASCIItt(ct,"dng.ctab");
+  //printf("wrote dng.ctab\n\n\n");
 
   if(gtmseg->OutputUSF != gtmseg->USF){
     printf("Changing size of output to USF of %d\n",gtmseg->OutputUSF);
@@ -164,7 +165,8 @@ int main(int argc, char *argv[]) {
 
   // embed color table in segmentation
   // commenting out because ctabTissueType binary IO is not yet supported
-  // gtmseg->seg->ct = ct;
+  // including this ct generates an error
+  //gtmseg->seg->ct = ct;
 
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,OutVolFile);
   printf("Writing output file to %s\n",tmpstr);
@@ -426,12 +428,10 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
   MRIcopy(seg,outseg);
 
   wm = MRIallocSequence(seg->width, seg->height, seg->depth, MRI_INT, 1);
-  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental)
+  #pragma omp parallel for 
 #endif
   for(c=0; c < seg->width; c++) {
-    ROMP_PFLB_begin
     int r,s;
     int val;
     for(r=0; r < seg->height; r++) {
@@ -441,20 +441,16 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
 	MRIsetVoxVal(wm,c,r,s,0,1);
       }
     }
-    ROMP_PFLB_end
   }
-  ROMP_PF_end
   MRIwrite(wm,"wm0.mgh");
 
   for(n=0; n<nErode3d; n++) MRIerode(wm,wm);
   MRIwrite(wm,"wm.erode.mgh");
 
-  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental)
+  #pragma omp parallel for 
 #endif
   for(c=0; c < seg->width; c++) {
-    ROMP_PFLB_begin
     int r,s;
     int val;
     for(r=0; r < seg->height; r++) {
@@ -466,9 +462,7 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
 	if(val == 41) MRIsetVoxVal(outseg,c,r,s,0,5002);
       }
     }
-    ROMP_PFLB_end
   }
-  ROMP_PF_end
   
   MRIfree(&wm);
   return(outseg);
