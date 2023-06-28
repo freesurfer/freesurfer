@@ -27,6 +27,7 @@ set AddVermis = 1;
 set DoXCerSeg = ();
 set UseSamseg = 0
 set threads = 1
+set xcthresh = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -88,6 +89,7 @@ if($DoXCerSeg) then
   if($AddPons == 0)   set cmd = ($cmd --no-pons)
   if($AddVermis == 0) set cmd = ($cmd --no-vermis)
   if($UseSamseg) set cmd = ($cmd --samseg)
+  if($#xcthresh) set cmd = ($cmd --thresh $xcthresh)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -202,6 +204,11 @@ while( $#argv != 0 )
     case "--xcerseg":
       set headseg = apas+head.mgz
       set DoXCerSeg = 1;
+      breaksw
+
+    case "--xcthresh":
+      if($#argv < 1) goto arg1err;
+      set xcthresh = $argv[1]; shift
       breaksw
 
     case "--no-xcerseg":
@@ -451,6 +458,7 @@ usage_exit:
   echo " --no-vermis : do not add vermis segmentation when doing ---xcerseg":
   echo " --ctab colortable "
   echo " --no-seg-stats : do not compute segmentation stats"
+  echo " --xcthresh xcthresh : mri_seghead thresh"
   echo ""
   echo " --debug "
   echo " --help "
