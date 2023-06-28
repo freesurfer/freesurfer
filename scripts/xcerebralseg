@@ -44,16 +44,15 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set threads = $OMP_NUM_THREADS
-set thresh1 = $thresh
-set thresh2 = $thresh
-
 source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+set threads = $OMP_NUM_THREADS
+set thresh1 = $thresh
+set thresh2 = $thresh
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
