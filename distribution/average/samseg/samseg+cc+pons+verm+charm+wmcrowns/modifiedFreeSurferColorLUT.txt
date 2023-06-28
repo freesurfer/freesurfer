@@ -44,9 +44,9 @@
 267 Pons-Belly-Area                      206 195 58  0
 183 Left-Vermis-Area 100 119 176 255
 184 Right-Vermis-Area 119 100 176 255
-192 Corpus_Callosum Corpus_Callosum 255
+192 Corpus_Callosum 170 255 255 255
 259 Eye-Fluid 60 60 60 255
-262 Sinus 85  85 127 255
+262 Sinus 196 160 128 255
 902 Artery 204 0 0 255
 907 Other-Tissues 85 85 0 255
 908 Rectus-Muscles 190 50 73 255
@@ -54,7 +54,7 @@
 911 Skin 85 85 85 255
 914 Vein 0 84 255 255
 915 Bone-Cortical 0 85 0 0
-916 Bone-Cancellous 170 170 0 255
+916 Bone-Cancellous 190 156 120 255
 930 Optic-Nerve 0 191 122 255
 11300 ctx_lh_high_myelin 60 162 60 255
 12300 ctx_rh_high_myelin 60 200 60 255
