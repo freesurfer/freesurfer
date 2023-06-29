@@ -99,6 +99,8 @@ USAGE: ./mri_glmfit
 
    --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling
    --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling
+       Note: if the k2prime argument is a file, it will read the value from
+       that file; otherwise it inteprets the argument as a numeric value
 
    --perm-force : force perumtation test, even when design matrix is not orthog
    --diag Gdiag_no : set diagnositc level
@@ -712,6 +714,7 @@ IMAGE *I;
 int IllCondOK = 0;
 int NoContrastsOK = 0;
 int ComputeFWHM = 1;
+int acfNHops = 0;
 
 int UseStatTable = 0;
 STAT_TABLE *StatTable=NULL, *OutStatTable=NULL, *GammaStatTable=NULL;
@@ -816,6 +819,12 @@ int main(int argc, char **argv) {
     MRIScomputeMetricProperties(surf);
     InterVertexDistAvg    = surf->avg_vertex_dist;
     InterVertexDistStdDev = surf->std_vertex_dist;
+    if (surf->group_avg_surface_area > 0) {
+      // This should be ok even if metric properties have been scaled ??
+      // Always do this now (6/29/23)
+      InterVertexDistAvg *= sqrt(surf->group_avg_surface_area / surf->total_area);
+      InterVertexDistStdDev *= sqrt(surf->group_avg_surface_area / surf->total_area);
+    }
     avgvtxarea = surf->avg_vertex_area;
     printf("Number of vertices %d\n",surf->nvertices);
     printf("Number of faces    %d\n",surf->nfaces);
@@ -1982,7 +1991,7 @@ int main(int argc, char **argv) {
 
   if(ComputeFWHM) {
     // Compute fwhm of residual
-    if (surf != NULL) {
+    if(surf != NULL) {
       printf("Computing spatial AR1 on surface\n");
       ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
       sprintf(tmpstr,"%s/sar1.%s",GLMDir,format);
@@ -2000,7 +2009,37 @@ int main(int argc, char **argv) {
 	MRIfree(&fwhmmap);
       }
       MRIfree(&ar1);
-    } else {
+      if(acfNHops > 0){
+	// Compute the autocorrelation function
+	printf("Computing ACF\n");
+	MRI *acf;
+	printf("Computing acf over %d hops\n",acfNHops);
+	acf = MRISarN(surf, mriglm->eres, mriglm->mask, NULL, acfNHops);
+	sprintf(tmpstr,"%s/acf.%s",GLMDir,format);
+	MRIwrite(acf,tmpstr);
+	printf("Done Computing ACF map, computing spatial average ACF\n");
+	sprintf(tmpstr,"%s/acf.dat",GLMDir);
+	FILE *fp = fopen(tmpstr,"w");
+	for(int hop=0; hop < acfNHops; hop++){
+	  double sum = 0;
+	  int nhits = 0;
+	  for(int vno=0; vno < surf->nvertices; vno++){
+	    if(mriglm->mask && MRIgetVoxVal(mriglm->mask,vno,0,0,0)==0) continue;
+	    sum += MRIgetVoxVal(acf,vno,0,0,hop);
+	    nhits++;
+	  }
+	  // also compute the ACF expected from a Gaussian assumption
+	  double x = (double)hop*InterVertexDistAvg;
+	  double g0, g = exp(-(x*x)/(2*(eresgstd*eresgstd)));
+	  if(hop==0) g0 = g;
+	  g = sqrt(g/g0);
+	  fprintf(fp,"%6.4lf %12.5lf %12.5lf\n",x,sum/nhits,g);
+	}
+	fclose(fp);
+	MRIfree(&acf);
+      }
+    } 
+    else {
       printf("Computing spatial AR1 in volume.\n");
       ar1 = fMRIspatialAR1(mriglm->eres, mriglm->mask, NULL);
       if (ar1 == NULL) exit(1);
@@ -2749,6 +2788,12 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--no-fwhm-est")) ComputeFWHM = 0;
     else if (!strcasecmp(option, "--no-est-fwhm")) ComputeFWHM = 0;
+    else if (!strcasecmp(option, "--acf")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&acfNHops);
+      ComputeFWHM = 1;
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--sig-double"))    SigUseDouble=1;
     else if (!strcasecmp(option, "--no-sig-double")) SigUseDouble=0;
     else if (!strcasecmp(option, "--var-smooth") ||
@@ -2935,8 +2980,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 2;
     } 
     else if (!strcmp(option, "--mrtm2")) {
-      // --mrtm2 cr.dat time.sec.dat k2pmin 
+      // --mrtm2 cr.dat time.sec.dat k2prime
       // PET Kinetic Modeling, multilinear reference tissue model 2
+      // cr.dat - reference tac
+      // k2prime - as created by mrtm1. If the argument is a file, it will read 
+      //  it from the file, othewise it interprets the argument as a numeric value
       // k2 and k2a are per-min
       // R1 = k2/k2p --> not saved
       if(nargc < 3) CMDargNErr(option,1);
@@ -2948,7 +2996,13 @@ static int parse_commandline(int argc, char **argv) {
       RTM_TimeMin = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
       for(k=0; k < RTM_TimeSec->rows; k++)
 	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
-      sscanf(pargv[2],"%lf",&MRTM2_k2p);
+      if(fio_FileExistsReadable(pargv[2])){
+	printf("Reading k2' from file %s\n",pargv[2]);
+	FILE *fptmp = fopen(pargv[2],"r");
+	fscanf(fptmp,"%lf",&MRTM2_k2p);
+	fclose(fptmp);
+      }
+      else sscanf(pargv[2],"%lf",&MRTM2_k2p);
       printf("MRTM2 k2p %g\n",MRTM2_k2p);
       RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
       MRTM2_x1 = MatrixAlloc(RTM_Cr->rows,1,MATRIX_REAL);
@@ -3116,6 +3170,7 @@ printf("   --fwhm fwhm : smooth input by fwhm\n");
 printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
 printf("   --no-mask-smooth : do not mask when smoothing\n");
 printf("   --no-est-fwhm : turn off FWHM output estimation\n");
+printf("   --acf nhops : compute spatial autocorrelation function map and average out to nhops\n");
 printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
@@ -3157,6 +3212,8 @@ printf("   --profile     niters : test speed\n");
 printf("\n");
 printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
+printf("          Note: if the k2prime argument is a file, it will read the value from\n");
+printf("          that file; otherwise it inteprets the argument as a numeric value\n");
 printf("   --logan RefTac TimeSec tstar   : perform Logan kinetic modeling\n");
 printf("   --bp-clip-neg : set negative BP voxels to 0\n");
 printf("   --bp-clip-max maxval : set BP voxels above max to max\n");
