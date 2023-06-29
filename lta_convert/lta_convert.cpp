@@ -1352,7 +1352,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.srcconform = true;
     P.srcconform_min = true;
-    cout << "--srcconform-min:: will conform source geometry." << endl;
+    cout << "--srcconform-min:: will conform source geometry to min direction size." << endl;
   }
   else if (!strcmp(option, "SRCCONFORM-SIZE"))
   {
@@ -1395,7 +1395,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.trgconform = true;
     P.trgconform_min = true;
-    cout << "--trgconform-min:: will conform target geometry." << endl;
+    cout << "--trgconform-min:: will conform target geometry to min direction size." << endl;
   }
   else if (!strcmp(option, "TRGCONFORM-SIZE"))
   {
