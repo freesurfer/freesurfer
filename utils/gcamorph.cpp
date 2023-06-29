@@ -1343,8 +1343,10 @@ GCA_MORPH *GCAMalloc(const int width, const int height, const int depth)
 
 int GCAMinitVolGeom(GCAM *gcam, MRI *mri_image, MRI *mri_atlas)
 {
+#if 0  // commented out unnecessary conversion 06/29/2023
   // Not clear why it needs to be converted to vox when it is already vox
   if(gcam->type == GCAM_VOX) GCAMrasToVox(gcam, mri_image);
+#endif
   getVolGeom(mri_image, &gcam->image);
   getVolGeom(mri_atlas, &gcam->atlas);
   if(gcam->gca) GCAreinit(mri_atlas, gcam->gca);
@@ -11100,6 +11102,8 @@ GCA_MORPH *GCAMlinearTransform(GCA_MORPH *gcam_src, MATRIX *m_vox2vox, GCA_MORPH
   return (gcam_dst);
 }
 
+// gcam->image vol geom is used to convert both [origx, origy, origz] and [x, y, z]
+// both [origx, origy, origz] and [x, y, z] need to be in image space???
 int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
 {
   MATRIX *m;
@@ -11107,9 +11111,11 @@ int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
   GCA_MORPH_NODE *gcamn;
   VECTOR *v1, *v2;
 
+#if 0  // commented out unnecessary conversion 06/29/2023
   if (gcam->type == GCAM_VOX) {
     GCAMvoxToRas(gcam); /* convert it to RAS coords so that it can be converted back(?)*/
   }
+#endif
 
   if (mri == NULL) {
     // Before 10/2018, VGget*To*Xform() returned the inverse of the
@@ -11177,6 +11183,8 @@ int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
   return (NO_ERROR);
 }
 
+// gcam->image vol geom is used to convert both [origx, origy, origz] and [x, y, z]
+// both [origx, origy, origz] and [x, y, z] need to be in image space???
 int GCAMvoxToRas(GCA_MORPH *gcam)
 {
   MATRIX *m;
