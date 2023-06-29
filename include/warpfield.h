@@ -45,7 +45,12 @@ private:
   int __mgzVersion;               // mgz version
   int __dataformat;               // WarpfieldDT
   int __invert;                   // __warpmap is inverted
-  MATRIX *__srcRas2Vox;           // source image ras2vox matrix
+  
+  MATRIX *__srcRAS2Vox;           // source ras2vox
+  MATRIX *__srcVox2RAS;           // source vox2ras
+  MATRIX *__dstRAS2Vox;           // target ras2vox
+  MATRIX *__dstVox2RAS;           // target vox2ras
+  
   MRI *__warpmap;                 // 3-frame MRI warping map (dst => src)
   MRI *__warpmap_inv;             // inverted __warpmap (src => dst)
 };
