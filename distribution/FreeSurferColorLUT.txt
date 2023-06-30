@@ -29,13 +29,13 @@
 25  Left-Lesion                             255 165 0   0
 26  Left-Accumbens-area                     255 165 0   0
 27  Left-Substancia-Nigra                   0   255 127 0
-28  Left-VentralDC                          165 42  42  0
+28  Left-VentralDC                          145 42  42  0
 29  Left-undetermined                       135 206 235 0
 30  Left-vessel                             160 32  240 0
 31  Left-choroid-plexus                     0   200 200 0
 32  Left-F3orb                              100 50  100 0
 33  Left-aOg                                122 135 50  0
-34  Left-WMCrowns                           123 135 50  0
+34  Left-WMCrowns                           225 225 255  0
 35  Left-mOg                                51  50  135 0
 36  Left-pOg                                74  155 60  0
 37  Left-Stellate                           120 62  43  0
@@ -67,7 +67,7 @@
 63  Right-choroid-plexus                    0   200 221 0
 64  Right-F3orb                             100 50  100 0
 65  Right-lOg                               135 50  74  0
-66  Right-WMCrowns                          122 135 50  0
+66  Right-WMCrowns                          215 215 255  0
 67  Right-mOg                               51  50  135 0
 68  Right-pOg                               74  155 60  0
 69  Right-Stellate                          120 62  43  0
@@ -1416,7 +1416,7 @@
 11173  ctx_lh_S_temporal_inf                   21 180 180   0
 11174  ctx_lh_S_temporal_sup                  223 220  60   0
 11175  ctx_lh_S_temporal_transverse           221  60  60   0
-11300  ctx_lh_high_myelin                      60 162  60   0
+11300  ctx_lh_high_myelin                     235  62  78   0
 
 12100  ctx_rh_Unknown                           0   0   0   0
 12101  ctx_rh_G_and_S_frontomargin             23 220  60   0
@@ -1494,7 +1494,7 @@
 12173  ctx_rh_S_temporal_inf                   21 180 180   0
 12174  ctx_rh_S_temporal_sup                  223 220  60   0
 12175  ctx_rh_S_temporal_transverse           221  60  60   0
-12300  ctx_rh_high_myelin                     60  200  60   0
+12300  ctx_rh_high_myelin                     235  82  78   0
 
 #No.   Label Name:                              R   G   B   A
 13100  wm_lh_Unknown                            0   0   0   0

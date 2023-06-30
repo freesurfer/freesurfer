@@ -16,10 +16,10 @@
 18 Left-Amygdala 103 255 255 255
 24 CSF 60 60 60 255
 26 Left-Accumbens-area 255 165 0 255
-28 Left-VentralDC 65 42 42 255
+28  Left-VentralDC  145 42  42  0
 30 Left-vessel 160 32 240 255
 31 Left-choroid-plexus 0 200 200 255
-34 Left-WMCrowns 123 135 50 255
+34 Left-WMCrowns 225 225 255  0
 41 Right-Cerebral-White-Matter 245 245 245 255
 42 Right-Cerebral-Cortex 205 62 78 255
 43 Right-Lateral-Ventricle 120 18 134 255
@@ -36,7 +36,7 @@
 60 Right-VentralDC 165 42 42 255
 62 Right-vessel 160 32 240 255
 63 Right-choroid-plexus 0 200 221 255
-66 Right-WMCrowns 122 135 50 255
+66 Right-WMCrowns 215 215 255  0
 77 WM-hypointensities 200 70 255 255
 80 non-WM-hypointensities 164 108 226 255
 85 Optic-Chiasm 234 169 30 255
@@ -56,5 +56,5 @@
 915 Bone-Cortical 0 85 0 0
 916 Bone-Cancellous 190 156 120 255
 930 Optic-Nerve 0 191 122 255
-11300 ctx_lh_high_myelin 60 162 60 255
-12300 ctx_rh_high_myelin 60 200 60 255
+11300  ctx_lh_high_myelin  235  62  78   0
+12300  ctx_rh_high_myelin  235  82  78   0

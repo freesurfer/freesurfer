@@ -20,9 +20,9 @@
 42 19 Right-Cerebral-Cortex 205 62 78 255
 3 20 Left-Cerebral-Cortex 205 62 78 255
 184 21 Right-Vermis-Area 119 100 176 255
-66 22 Right-WMCrowns 122 135 50 255
+66 22 Right-WMCrowns 215 215 255 255
 267 23 Pons 122 186 220 255
-34 24 Left-WMCrowns 123 135 50 255
+34 24 Left-WMCrowns 225 225 255 255
 41 25 Right-Cerebral-White-Matter 245 245 245 255
 2 26 Left-Cerebral-White-Matter 245 245 245 255
 183 27 Left-Vermis-Area 100 119 176 255
@@ -38,10 +38,10 @@
 5 37 Left-Inf-Lat-Vent 196 58 250 255
 60 38 Right-VentralDC 165 42 42 255
 85 39 Optic-Chiasm 234 169 30 255
-28 40 Left-VentralDC 65 42 42 255
-11300 41 ctx_lh_high_myelin 60 162 60 255
+28 40 Left-VentralDC 145 42 42 255
+11300 41 ctx_lh_high_myelin 235  62  78 255
 14 42 3rd-Ventricle 204 182 142 255
-12300 43 ctx_rh_high_myelin 60 200 60 255
+12300 43 ctx_rh_high_myelin 235  82  78 255
 26 44 Left-Accumbens-area 255 165 0 255
 12 45 Left-Putamen 236 13 176 255
 58 46 Right-Accumbens-area 255 165 0 255
