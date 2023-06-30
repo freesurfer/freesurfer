@@ -11223,6 +11223,10 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 	  printf("[DEBUG] mghRead(): warpFieldFormat = %d (size=%ld)\n", mri->warpFieldFormat, sizeof(mri->warpFieldFormat)); 	  
           break;
 
+        case TAG_GCAMORPH_GEOM:
+	  mri->gcamorph_image_vg.read(fp);
+	  mri->gcamorph_atlas_vg.read(fp);
+	  break;
         default:
           znzTAGskip(fp, tag, (long long)len);
           break;
@@ -11512,6 +11516,12 @@ int mghWrite(MRI *mri, const char *fname, int frame)
 
   if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
+    // output TAG_GCAMORPH_GEOM
+    znzwriteInt(TAG_GCAMORPH_GEOM, fp);
+    mri->gcamorph_image_vg.write(fp);
+    mri->gcamorph_atlas_vg.write(fp);
+
+    // output TAG_WARPFIELD_DTFMT
     printf("[DEBUG] mghWrite(): warpFieldFormat = %d (size=%ld)\n", mri->warpFieldFormat, sizeof(mri->warpFieldFormat));
     znzTAGwrite(fp, TAG_WARPFIELD_DTFMT, (void *)(&mri->warpFieldFormat), sizeof(mri->warpFieldFormat));
   }

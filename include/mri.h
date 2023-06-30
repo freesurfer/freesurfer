@@ -38,6 +38,7 @@
 #include "itkImage.h"
 
 #include "warpfield.h"
+#include "fio.h"
 
 #define BUFTYPE  unsigned char
 
@@ -330,6 +331,63 @@ struct VOL_GEOM
     if (!FZEROTHR(vg1->c_s - vg2->c_s, thresh)) return (19);
     return (0);
   };
+
+  // write VOL_GEOM to znzFile
+  void write(znzFile fp)
+  {
+    char buf[512];
+
+    znzwriteInt(valid, fp);
+    znzwriteInt(width, fp);
+    znzwriteInt(height, fp);
+    znzwriteInt(depth, fp);
+    znzwriteFloat(xsize, fp);
+    znzwriteFloat(ysize, fp);
+    znzwriteFloat(zsize, fp);
+    znzwriteFloat(x_r, fp);
+    znzwriteFloat(x_a, fp);
+    znzwriteFloat(x_s, fp);
+    znzwriteFloat(y_r, fp);
+    znzwriteFloat(y_a, fp);
+    znzwriteFloat(y_s, fp);
+    znzwriteFloat(z_r, fp);
+    znzwriteFloat(z_a, fp);
+    znzwriteFloat(z_s, fp);
+    znzwriteFloat(c_r, fp);
+    znzwriteFloat(c_a, fp);
+    znzwriteFloat(c_s, fp);
+    
+    memset(buf, 0, 512 * sizeof(char));
+    strcpy(buf, fname);
+    znzwrite(buf, sizeof(char), 512, fp);    
+  }
+
+  // read VOL_GEOM from znzFile
+  void read(znzFile fp)
+  {
+    valid = znzreadInt(fp);
+    width = znzreadInt(fp);
+    height = znzreadInt(fp);
+    depth = znzreadInt(fp);
+    xsize = znzreadFloat(fp);
+    ysize = znzreadFloat(fp);
+    zsize = znzreadFloat(fp);
+    x_r = znzreadFloat(fp);
+    x_a = znzreadFloat(fp);
+    x_s = znzreadFloat(fp);
+    y_r = znzreadFloat(fp);
+    y_a = znzreadFloat(fp);
+    y_s = znzreadFloat(fp);
+    z_r = znzreadFloat(fp);
+    z_a = znzreadFloat(fp);
+    z_s = znzreadFloat(fp);
+    c_r = znzreadFloat(fp);
+    c_a = znzreadFloat(fp);
+    c_s = znzreadFloat(fp);
+    
+    memset(fname, 0, 512 * sizeof(char));
+    znzread(fname, sizeof(char), 512, fp);    
+  }
 };
 
 typedef VOL_GEOM VG;
@@ -380,7 +438,8 @@ public:
 
   // set warpfield metadata
   // this method will be called from class Warpfield
-  void setWarpfieldMeta(MRI *mri, int version0, int warpFieldFormat0, const MATRIX *ras2vox);
+  void setWarpfieldMeta(int version0, int warpFieldFormat0);
+  void setGCAMorphGeom(const VOL_GEOM *image_vg, const VOL_GEOM *atlas_vg);
 
   // ---- image geometry ----
   //int width;        // number of columns // Now inherited from VOL_GEOM
@@ -452,6 +511,8 @@ public:
   // ---- file metadata ----
   //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
   int  version = MGH_VERSION;
+  VOL_GEOM gcamorph_image_vg;
+  VOL_GEOM gcamorph_atlas_vg;
   char fnamePostFixes[STRLEN];    // used in MRIwrite(), append to output file name
   int  len_fnamePostFixes;
   char fname_format[STRLEN];    // file extension

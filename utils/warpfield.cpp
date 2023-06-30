@@ -9,6 +9,7 @@
 // constructor
 Warpfield::Warpfield()
 {
+  __imageVG = NULL;  __atlasVG = NULL;
   __warpmap = NULL;  __warpmap_inv = NULL;
   __invert = 0;
   __mgzVersion = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION;
@@ -85,8 +86,14 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
   printf("[INFO] Warpfield::convert(): gcam       [%d x %d x %d]\n", gcam->width, gcam->height, gcam->depth);
   printf("[INFO] Warpfield::convert(): gcam image [%d x %d x %d]\n", gcam->image.width, gcam->image.height, gcam->image.depth);
   printf("[INFO] Warpfield::convert(): gcam atlas [%d x %d x %d]\n", gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth);  
-    
+
+  __imageVG = new VOL_GEOM(gcam->image);
+  __atlasVG = new VOL_GEOM(gcam->atlas);
+  //*__imageVG = gcam->image;
+  //*__atlasVG = gcam->atlas;
+  
   // create MRI using atlas vol_geom
+  //__warpmap = new MRI({gcam->width, gcam->height, gcam->depth, 3}, MRI_FLOAT);
   __warpmap = new MRI(gcam->atlas, MRI_FLOAT, 3, 0);  //__warpmap = new MRI({gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, 3}, MRI_FLOAT);
   __dataformat = dataformat;
 
@@ -274,6 +281,12 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
   
   // create GCAM inverse
   gcam->spacing = 1;
+
+  // inverted???
+  __imageVG = new VOL_GEOM(gcam->atlas);
+  __atlasVG = new VOL_GEOM(gcam->image); 
+  //*__imageVG = gcam->atlas;
+  //*__atlasVG = gcam->image;
   
   // purpose of tempMri is just to pass image dimensions to GCAMinvert()
   MRI *tempMri = new MRI(gcam->image, MRI_FLOAT, 3, 0);
@@ -384,9 +397,10 @@ GCA_MORPH * Warpfield::read(const char *fname)
   if (gcam == NULL)
     return NULL;
   
-  gcam->image = *__warpmap;
-  gcam->atlas = *__warpmap;
+  gcam->image = __warpmap->gcamorph_image_vg;
+  gcam->atlas = __warpmap->gcamorph_atlas_vg;
 
+  // mri_warp_convert::readFSL2() uses GCAMreadWarpFromMRI()
   for (int c = 0; c < __warpmap->width; c++)
   {
     for (int r = 0; r < __warpmap->height; r++)
@@ -417,7 +431,8 @@ int Warpfield::write(const char *fname)
     __mgzVersion = ((MGZ_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION;
 
   //printf("[DEBUG] Warpfield::write(): __mgzVersion = %d\n", __mgzVersion);
-  __warpmap->setWarpfieldMeta(__warpmap, __mgzVersion, __dataformat, __srcRAS2Vox);
+  __warpmap->setWarpfieldMeta(__mgzVersion, __dataformat);
+  __warpmap->setGCAMorphGeom(__imageVG, __atlasVG);
 
   int ret = MRIwrite(__warpmap, fname);
   if (ret)

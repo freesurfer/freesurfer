@@ -3,7 +3,8 @@
 
 // forward declarations
 struct GCA_MORPH;
-class MRI;
+struct VOL_GEOM;
+class  MRI;
 struct MRIS;
 struct MATRIX;
 
@@ -50,6 +51,9 @@ private:
   MATRIX *__srcVox2RAS;           // source vox2ras
   MATRIX *__dstRAS2Vox;           // target ras2vox
   MATRIX *__dstVox2RAS;           // target vox2ras
+
+  VOL_GEOM *__imageVG;
+  VOL_GEOM *__atlasVG;
   
   MRI *__warpmap;                 // 3-frame MRI warping map (dst => src)
   MRI *__warpmap_inv;             // inverted __warpmap (src => dst)
