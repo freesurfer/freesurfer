@@ -201,7 +201,7 @@ with open(costfile, 'a') as file:
         file.write('atlasRegistrationLevel%d %d %f\n' % (multiResolutionLevel, item['numberOfIterations'], item['perVoxelCost']))
 
 # check memory usage
-vmpeak = surfa.system.vmpeak();
+vmpeak = sf.system.vmpeak();
 if(vmpeak is not None):
     print('run_samseg VmPeak %s' % vmpeak);
 

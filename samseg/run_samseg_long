@@ -144,7 +144,7 @@ else:
 samsegLongitudinal.segment(saveWarp=args.save_warp)
 
 # check memory usage
-vmpeak = surfa.system.vmpeak();
+vmpeak = sf.system.vmpeak();
 if(vmpeak is not None):
     print('run_samseg_long VmPeak %s' % vmpeak);
 
