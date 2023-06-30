@@ -1592,6 +1592,8 @@ int TransformFileNameType(const char *fname)
       return (MORPH_3D_TYPE);
     else if (!strcmp(dot, "M3Z"))
       return (MORPH_3D_TYPE);
+    else if (!strcmp(dot, "MGZ"))
+      return (MORPH_3D_TYPE);    
     else if (!strcmp(dot, "OCT"))
       return (TRANSFORM_ARRAY_TYPE);
     else if (!strcmp(dot, "XFM"))
