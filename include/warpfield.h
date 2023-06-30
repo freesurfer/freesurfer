@@ -32,7 +32,7 @@ public:
   int invert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
   
   // read 3-frame MRI warp map into __warpmap
-  int read(const char *fname);
+  GCA_MORPH *read(const char *fname);
   
   // write 3-frame MRI warp map saved in __warpmap to disk
   int write(const char *fname);

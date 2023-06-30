@@ -90,6 +90,12 @@ int dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label);
 MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst);
 int fix_borders(GCA_MORPH *gcam);
 
+static GCA_MORPH *__m3zRead(const char *fname);
+static GCA_MORPH *__warpfieldRead(const char *fname);
+static int __m3zWrite(const GCA_MORPH *gcam, const char *fname);
+static int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname);
+
+
 int gcam_write_grad = 0;
 int gcam_write_neg = 0;
 
@@ -335,13 +341,35 @@ void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
 
 int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
 {
+  printf("GCAMwrite\n");
+  char *fname_copy = new char[strlen(fname)+1];
+  memcpy(fname_copy, fname, strlen(fname));
+  
+  char *ext = strrchr(fname_copy, '.');
+  if (ext != NULL && (stricmp(ext, ".m3d") == 0 || stricmp(ext, ".m3z") == 0))
+    return __m3zWrite(gcam, fname);
+  else if (ext != NULL && stricmp(ext, ".mgz") == 0)
+    return __warpfieldWrite(gcam, fname);
+
+  return ERROR_BADPARM;  
+}
+
+int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname)
+{
+  Warpfield *warpfield = new Warpfield();
+  warpfield->convert((GCA_MORPH *)gcam);
+  warpfield->write(fname);
+  
+  return 0;
+}
+
+int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
+{
   znzFile file;
   // FILE            *fp=0 ;
   int x, y, z;
   GCA_MORPH_NODE *gcamn;
   int gzipped = 0;
-
-  printf("GCAMwrite\n");
 
   if (strstr(fname, ".m3z")) {
     //    printf("GCAMwrite:: m3z loop\n");
@@ -1131,6 +1159,32 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
 GCA_MORPH *GCAMread(const char *fname)
 {
+  if (!fio_FileExistsReadable(fname)) {
+    printf("ERROR: cannot find or read %s\n", fname);
+    return (NULL);
+  }
+
+  char *fname_copy = new char[strlen(fname)+1];
+  memcpy(fname_copy, fname, strlen(fname));
+  
+  char *ext = strrchr(fname_copy, '.');
+  if (ext != NULL && (stricmp(ext, ".m3d") == 0 || stricmp(ext, ".m3z") == 0))
+    return __m3zRead(fname);
+  else if (ext != NULL && stricmp(ext, ".mgz") == 0)
+    return __warpfieldRead(fname);
+
+  return NULL;
+}
+
+GCA_MORPH *__warpfieldRead(const char *fname)
+{
+  Warpfield *warpfield = new Warpfield();
+  
+  return warpfield->read(fname);
+}
+
+GCA_MORPH *__m3zRead(const char *fname)
+{
   GCA_MORPH *gcam;
   znzFile file;
   int x, y, z, width, height, depth;
@@ -1138,12 +1192,6 @@ GCA_MORPH *GCAMread(const char *fname)
   float version;
   int tag;
   int gzipped = 0;
-
-  if (!fio_FileExistsReadable(fname)) {
-    printf("ERROR: cannot find or read %s\n", fname);
-    return (NULL);
-  }
-
   if (strstr(fname, ".m3z")) {
     gzipped = 1;
   }

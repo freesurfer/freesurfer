@@ -13,7 +13,11 @@ Warpfield::Warpfield()
   __invert = 0;
   __mgzVersion = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION;
   __dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
+  
   __srcRAS2Vox = NULL;
+  __srcVox2RAS = NULL;
+  __dstRAS2Vox = NULL;
+  __dstVox2RAS = NULL; 
 }
 
 
@@ -22,6 +26,18 @@ Warpfield::~Warpfield()
 {
   if (__warpmap != NULL)
     MRIfree(&__warpmap);
+
+  if (__warpmap_inv != NULL)
+    MRIfree(&__warpmap_inv);
+
+  if (__srcRAS2Vox != NULL)
+    MatrixFree(&__srcRAS2Vox);
+  if (__srcVox2RAS != NULL)
+    MatrixFree(&__srcVox2RAS);
+  if (__dstRAS2Vox != NULL)
+    MatrixFree(&__dstRAS2Vox);
+  if (__dstVox2RAS != NULL)
+    MatrixFree(&__dstVox2RAS);
 }
 
 
@@ -203,6 +219,11 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
   }  // c
 
   printf("[INFO] Warpfield::convert(): total out of range voxel count: %d\n", out_of_gcam_count);
+
+  MatrixFree(&image_CRS);
+  MatrixFree(&image_RAS);
+  MatrixFree(&atlas_CRS0);
+  MatrixFree(&atlas_RAS0);
   
   return 0;
 }
@@ -339,24 +360,53 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
       }  // s
     }  // r
   }  // c
+
+  MatrixFree(&dst_CRS);
+  MatrixFree(&dst_RAS);
+  MatrixFree(&src_CRS0);
+  MatrixFree(&src_RAS0);
   
   return 0;
 }
 
 
 // read 3-frame MRI warp map into __warpmap
-int Warpfield::read(const char *fname)
-{
-  int ret = 0;
-  
+GCA_MORPH * Warpfield::read(const char *fname)
+{  
   __warpmap = MRIread(fname);
   if (__warpmap == NULL)
   {
     printf("ERROR: Warpfield::read(%s)\n", fname);
-    ret = 1;
+    return NULL;
   }
+
+  GCA_MORPH *gcam = GCAMalloc(__warpmap->width, __warpmap->height, __warpmap->depth);
+  if (gcam == NULL)
+    return NULL;
   
-  return ret;
+  gcam->image = *__warpmap;
+  gcam->atlas = *__warpmap;
+
+  for (int c = 0; c < __warpmap->width; c++)
+  {
+    for (int r = 0; r < __warpmap->height; r++)
+    {
+      for (int s = 0; s < __warpmap->depth; s++)
+      {
+	GCA_MORPH_NODE *gcamn = &gcam->nodes[c][r][s];
+	
+	gcamn->origx = c;
+	gcamn->origy = r;
+	gcamn->origz = s;
+	
+        gcamn->x = MRIgetVoxVal(__warpmap, c, r, s, 0);
+	gcamn->y = MRIgetVoxVal(__warpmap, c, r, s, 1);
+	gcamn->z = MRIgetVoxVal(__warpmap, c, r, s, 2);
+      } // s
+    } // r
+  } // c
+  
+  return gcam;
 }
 
 
@@ -380,6 +430,7 @@ int Warpfield::write(const char *fname)
 // apply warpmap to MRI
 int Warpfield::applyWarp(const MRI *inmri, MRI *outmri)
 {
+  printf("Warpfield::applyWarp(const MRI *, MRI*) is not implemented\n");
   return 0;
 }
 
@@ -388,5 +439,6 @@ int Warpfield::applyWarp(const MRI *inmri, MRI *outmri)
 // ?? apply the inverted __warpfield from scr to dst??
 int Warpfield::applyWarp(const MRIS *insurf, MRIS *outsurf)
 {
+  printf("Warpfield::applyWarp(const MRIS *, MRIS*) is not implemented\n");  
   return 0;
 }
