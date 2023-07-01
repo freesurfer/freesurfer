@@ -1171,7 +1171,7 @@ GCA_MORPH *GCAMread(const char *fname)
   memcpy(fname_copy, fname, strlen(fname));
   
   char *ext = strrchr(fname_copy, '.');
-  printf("[DEBUG] GCAMwrite(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");  
+  printf("[DEBUG] GCAMread(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");  
   if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
     return __m3zRead(fname);
   else if (ext != NULL && strcmp(ext, ".mgz") == 0)
