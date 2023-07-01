@@ -2030,7 +2030,7 @@ int main(int argc, char **argv) {
 	  }
 	  // also compute the ACF expected from a Gaussian assumption
 	  double x = (double)hop*InterVertexDistAvg;
-	  double g0, g = exp(-(x*x)/(2*(eresgstd*eresgstd)));
+	  double g0 = 1.0, g = exp(-(x*x)/(2*(eresgstd*eresgstd)));
 	  if(hop==0) g0 = g;
 	  g = sqrt(g/g0);
 	  fprintf(fp,"%6.4lf %12.5lf %12.5lf\n",x,sum/nhits,g);
