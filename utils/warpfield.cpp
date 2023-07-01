@@ -380,8 +380,10 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 }
 
 
-// read 3-frame MRI warp map into __warpmap
-GCA_MORPH * Warpfield::read(const char *fname)
+// read 3-frame MRI warp map into __warpmap,
+// copy the warp into a GCAM,
+// return GCAM created
+GCA_MORPH *Warpfield::read(const char *fname)
 {  
   __warpmap = MRIread(fname);
   if (__warpmap == NULL)
@@ -394,10 +396,23 @@ GCA_MORPH * Warpfield::read(const char *fname)
   if (gcam == NULL)
     return NULL;
   
+  gcam->type = GCAM_VOX;  
   gcam->image = __warpmap->gcamorph_image_vg;
   gcam->atlas = __warpmap->gcamorph_atlas_vg;
 
-  // mri_warp_convert::readFSL2() uses GCAMreadWarpFromMRI()
+  // pre-calulated transform matrix
+  __srcRAS2Vox = gcam->image.get_RAS2Vox();
+  __srcVox2RAS = gcam->image.get_Vox2RAS();
+  __dstRAS2Vox = gcam->atlas.get_RAS2Vox();
+  __dstVox2RAS = gcam->atlas.get_Vox2RAS();
+
+  // pre-allocated MATRIX
+  MATRIX *image_CRS  = MatrixAlloc(4, 1, MATRIX_REAL); 
+  MATRIX *image_RAS  = MatrixAlloc(4, 1, MATRIX_REAL); 
+  MATRIX *atlas_CRS0 = MatrixAlloc(4, 1, MATRIX_REAL);  
+  MATRIX *atlas_RAS0 = MatrixAlloc(4, 1, MATRIX_REAL);   
+  
+  // mri_warp_convert::readFSL2() uses GCAMreadWarpFromMRI(gcam, mri_warp, 0)
   for (int c = 0; c < __warpmap->width; c++)
   {
     for (int r = 0; r < __warpmap->height; r++)
@@ -405,18 +420,65 @@ GCA_MORPH * Warpfield::read(const char *fname)
       for (int s = 0; s < __warpmap->depth; s++)
       {
 	GCA_MORPH_NODE *gcamn = &gcam->nodes[c][r][s];
+        gcamn->origx = (float)c;
+        gcamn->origy = (float)r;
+        gcamn->origz = (float)s;
 	
-	gcamn->origx = c;
-	gcamn->origy = r;
-	gcamn->origz = s;
-	
-        gcamn->x = MRIgetVoxVal(__warpmap, c, r, s, 0);
-	gcamn->y = MRIgetVoxVal(__warpmap, c, r, s, 1);
-	gcamn->z = MRIgetVoxVal(__warpmap, c, r, s, 2);
+	if (__warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS ||
+	    __warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS)
+	{	  
+	  if (__warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS)
+	  {
+            gcamn->x = MRIgetVoxVal(__warpmap, c, r, s, 0);
+	    gcamn->y = MRIgetVoxVal(__warpmap, c, r, s, 1);
+	    gcamn->z = MRIgetVoxVal(__warpmap, c, r, s, 2);
+	  }
+	  else // WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS
+	  {
+            gcamn->x = MRIgetVoxVal(__warpmap, c, r, s, 0) + gcamn->origx;
+	    gcamn->y = MRIgetVoxVal(__warpmap, c, r, s, 1) + gcamn->origy;
+	    gcamn->z = MRIgetVoxVal(__warpmap, c, r, s, 2) + gcamn->origz;	  
+	  }	  
+	}
+	else if (__warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS ||
+		 __warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS)
+	{
+	  if (__warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS)
+	  {
+            image_RAS->rptr[1][1] = MRIgetVoxVal(__warpmap, c, r, s, 0);
+            image_RAS->rptr[2][1] = MRIgetVoxVal(__warpmap, c, r, s, 1);
+            image_RAS->rptr[3][1] = MRIgetVoxVal(__warpmap, c, r, s, 2);
+            image_RAS->rptr[4][1] = 1;
+	  }
+	  else // WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS
+	  {
+	    atlas_CRS0->rptr[1][1] = c;
+            atlas_CRS0->rptr[2][1] = r;
+            atlas_CRS0->rptr[3][1] = s;
+            atlas_CRS0->rptr[4][1] = 1;
+            MatrixMultiply(__dstVox2RAS, atlas_CRS0, atlas_RAS0);
+	    
+            image_RAS->rptr[1][1] = MRIgetVoxVal(__warpmap, c, r, s, 0) + atlas_RAS0->rptr[1][1];
+            image_RAS->rptr[2][1] = MRIgetVoxVal(__warpmap, c, r, s, 1) + atlas_RAS0->rptr[2][1];
+            image_RAS->rptr[3][1] = MRIgetVoxVal(__warpmap, c, r, s, 2) + atlas_RAS0->rptr[3][1];
+            image_RAS->rptr[4][1] = 1;
+	  }
+
+	  // compute image_CRS from image_RAS
+	  MatrixMultiply(__srcRAS2Vox, image_RAS, image_CRS);
+	  gcamn->x = image_CRS->rptr[1][1];
+	  gcamn->y = image_CRS->rptr[2][1];
+	  gcamn->z = image_CRS->rptr[3][1];
+	}
       } // s
     } // r
   } // c
-  
+
+  MatrixFree(&image_CRS);
+  MatrixFree(&image_RAS);
+  MatrixFree(&atlas_CRS0);
+  MatrixFree(&atlas_RAS0);
+     
   return gcam;
 }
 
