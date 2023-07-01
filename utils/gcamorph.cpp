@@ -342,13 +342,15 @@ void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
 int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
 {
   printf("GCAMwrite\n");
-  char *fname_copy = new char[strlen(fname)+1];
+  char fname_copy[strlen(fname)+1];
+  memset(fname_copy, 0, sizeof(fname_copy));
   memcpy(fname_copy, fname, strlen(fname));
   
   char *ext = strrchr(fname_copy, '.');
-  if (ext != NULL && (stricmp(ext, ".m3d") == 0 || stricmp(ext, ".m3z") == 0))
+  printf("[DEBUG] GCAMwrite(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");
+  if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
     return __m3zWrite(gcam, fname);
-  else if (ext != NULL && stricmp(ext, ".mgz") == 0)
+  else if (ext != NULL && strcmp(ext, ".mgz") == 0)
     return __warpfieldWrite(gcam, fname);
 
   return ERROR_BADPARM;  
@@ -1164,13 +1166,15 @@ GCA_MORPH *GCAMread(const char *fname)
     return (NULL);
   }
 
-  char *fname_copy = new char[strlen(fname)+1];
+  char fname_copy[strlen(fname)+1];
+  memset(fname_copy, 0, sizeof(fname_copy)); 
   memcpy(fname_copy, fname, strlen(fname));
   
   char *ext = strrchr(fname_copy, '.');
-  if (ext != NULL && (stricmp(ext, ".m3d") == 0 || stricmp(ext, ".m3z") == 0))
+  printf("[DEBUG] GCAMwrite(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");  
+  if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
     return __m3zRead(fname);
-  else if (ext != NULL && stricmp(ext, ".mgz") == 0)
+  else if (ext != NULL && strcmp(ext, ".mgz") == 0)
     return __warpfieldRead(fname);
 
   return NULL;
