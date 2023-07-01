@@ -89,12 +89,11 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
 
   __imageVG = new VOL_GEOM(gcam->image);
   __atlasVG = new VOL_GEOM(gcam->atlas);
-  //*__imageVG = gcam->image;
-  //*__atlasVG = gcam->atlas;
   
-  // create MRI using atlas vol_geom
-  //__warpmap = new MRI({gcam->width, gcam->height, gcam->depth, 3}, MRI_FLOAT);
-  __warpmap = new MRI(gcam->atlas, MRI_FLOAT, 3, 0);  //__warpmap = new MRI({gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, 3}, MRI_FLOAT);
+  // create MRI using gcam vol_geom
+  // gcam->image vol geom and gcam->atlas vol geom will be saved in mgz under TAG_GCAMORPH_GEOM
+  __warpmap = new MRI({gcam->width, gcam->height, gcam->depth, 3}, MRI_FLOAT);
+  //__warpmap = new MRI(gcam->atlas, MRI_FLOAT, 3, 0);  //__warpmap = new MRI({gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, 3}, MRI_FLOAT);
   __dataformat = dataformat;
 
   // pre-calulated transform matrix
@@ -285,8 +284,6 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
   // inverted???
   __imageVG = new VOL_GEOM(gcam->atlas);
   __atlasVG = new VOL_GEOM(gcam->image); 
-  //*__imageVG = gcam->atlas;
-  //*__atlasVG = gcam->image;
   
   // purpose of tempMri is just to pass image dimensions to GCAMinvert()
   MRI *tempMri = new MRI(gcam->image, MRI_FLOAT, 3, 0);
