@@ -5,7 +5,8 @@
 
 # point to freesurfer-installed packages and make sure that PYTHONPATH is entirely
 # overwritten, since we don't want any user packages to interfere with things
-export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+# export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+export PYTHONPATH="${FREESURFER_HOME}/python/packages:$PYTHONPATH"
 
 # futhermore, prevent local user packages from being accessed in fspython
 # since we want a very isolated environment
