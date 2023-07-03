@@ -6,6 +6,23 @@
 #include "gcamorph.h"
 #include "matrix.h"
 
+/* This class implements methods
+ *   1. reads mgz warp file into GCAM
+ *   2. converts GCAM to mgz warp format
+ *   3. writes warp in mgz format (version = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION).
+ *
+ * The warp file follows mgz format with these tags:
+ *   TAG_GCAMORPH_GEOM   followed by gcamorph image (source) geom and gcamorph atlas (target) geom
+ *   TAG_WARPFIELD_DTFMT followed by one of these - WARPFIELD_DTFMT_ABS_CRS|WARPFIELD_DTFMT_DISP_CRS|WARPFIELD_DTFMT_ABS_RAS|WARPFIELD_DTFMT_DISP_RAS
+ * 
+ * The 3-D data array is indexed by atlas crs.
+ * Here are the values for the 4 data formats supported: 
+ *   WARPFIELD_DTFMT_ABS_CRS   - crs coordinates in image space
+ *   WARPFIELD_DTFMT_DISP_CRS  - displacement crs, delta = image_crs - atlas_crs
+ *   WARPFIELD_DTFMT_ABS_RAS   - ras coordinates in image space
+ *   WARPFIELD_DTFMT_DISP_RAS  - displacement ras, delta = image_ras - atlas_ras
+ */
+
 // constructor
 Warpfield::Warpfield()
 {
@@ -385,6 +402,8 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 // return GCAM created
 GCA_MORPH *Warpfield::read(const char *fname)
 {  
+  __mgzVersion = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION;
+  
   __warpmap = MRIread(fname);
   if (__warpmap == NULL)
   {
@@ -392,6 +411,12 @@ GCA_MORPH *Warpfield::read(const char *fname)
     return NULL;
   }
 
+  if (__warpmap->version != __mgzVersion)
+  {
+    printf("ERROR: %s is not mgz warp file\n", fname);
+    return NULL;
+  }
+  
   GCA_MORPH *gcam = GCAMalloc(__warpmap->width, __warpmap->height, __warpmap->depth);
   if (gcam == NULL)
     return NULL;
