@@ -78,7 +78,7 @@ threadpoolctl==3.1.0
 tifffile==2023.4.12
 tqdm==4.65.0
 triton==2.0.0
-typing-extensions==4.7.0
+typing-extensions==4.7.1
 tzdata==2023.3
 urllib3==1.26.15
 voxelmorph==0.2
