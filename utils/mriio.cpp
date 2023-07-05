@@ -11145,7 +11145,6 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 
     while (1) {
       tag = znzTAGreadStart(fp, &len);
-      // printf("tag %d\n",tag);
       if (tag == 0) break;
 
       switch (tag) {
@@ -11220,12 +11219,13 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 
         case TAG_WARPFIELD_DTFMT:
           mri->warpFieldFormat = znzreadInt(fp);
-	  printf("[DEBUG] mghRead(): warpFieldFormat = %d (size=%ld)\n", mri->warpFieldFormat, sizeof(mri->warpFieldFormat)); 	  
           break;
 
         case TAG_GCAMORPH_GEOM:
 	  mri->gcamorph_image_vg.read(fp);
 	  mri->gcamorph_atlas_vg.read(fp);
+	  mri->gcamorph_image_vg.vgprint(true);
+	  mri->gcamorph_atlas_vg.vgprint(true);
 	  break;
         default:
           znzTAGskip(fp, tag, (long long)len);
@@ -11481,6 +11481,26 @@ int mghWrite(MRI *mri, const char *fname, int frame)
   znzwriteFloat(mri->ti, fp);
   znzwriteFloat(mri->fov, fp);
 
+  if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
+  {
+    // output TAG_GCAMORPH_GEOM
+    znzwriteInt(TAG_GCAMORPH_GEOM, fp);
+    mri->gcamorph_image_vg.write(fp);
+    mri->gcamorph_atlas_vg.write(fp);
+
+    mri->gcamorph_image_vg.vgprint();
+    mri->gcamorph_atlas_vg.vgprint();
+
+    // output TAG_WARPFIELD_DTFMT
+    znzwriteInt(TAG_WARPFIELD_DTFMT, fp);
+    znzwriteInt(mri->warpFieldFormat, fp);
+
+    znzclose(fp);
+
+    return (NO_ERROR);
+  }
+
+  
   // if mri->transform_fname has non-zero length
   // I write a tag with strlength and write it
   // I increase the tag_datasize with this amount
@@ -11514,18 +11534,6 @@ int mghWrite(MRI *mri, const char *fname, int frame)
     znzCTABwriteIntoBinary(mri->ct, fp);
   }
 
-  if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
-  {
-    // output TAG_GCAMORPH_GEOM
-    znzwriteInt(TAG_GCAMORPH_GEOM, fp);
-    mri->gcamorph_image_vg.write(fp);
-    mri->gcamorph_atlas_vg.write(fp);
-
-    // output TAG_WARPFIELD_DTFMT
-    printf("[DEBUG] mghWrite(): warpFieldFormat = %d (size=%ld)\n", mri->warpFieldFormat, sizeof(mri->warpFieldFormat));
-    znzTAGwrite(fp, TAG_WARPFIELD_DTFMT, (void *)(&mri->warpFieldFormat), sizeof(mri->warpFieldFormat));
-  }
-  
   // write other tags
   for (int i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
 
