@@ -5,6 +5,7 @@
 #include "warpfield.h"
 #include "gcamorph.h"
 #include "matrix.h"
+#include "mri_circulars.h"
 
 /* This class implements methods
  *   1. reads mgz warp file into GCAM
@@ -67,6 +68,7 @@ int Warpfield::convert(const char *fname, const int dataformat, int doGCAMsample
     exit(1);
   }
   
+  // ??? check if it is always in mgz warp format ???
   int type = TransformFileNameType((char *)fname);
   if (type != MORPH_3D_TYPE)
   {
@@ -79,7 +81,12 @@ int Warpfield::convert(const char *fname, const int dataformat, int doGCAMsample
   return convert(gcam, __dataformat);
 }
 
-// convert GCAM
+// convert GCAM to mgz warp
+//
+// similar functionality is also implemented in
+//   MRI *GCAMwriteWarpToMRI(const GCA_MORPH *gcam, MRI *mri_warp);         (gcamorph.cpp)
+//   void write_world(const string& fname, GCAM* gcam, bool is_lps=false);  (mri_warp_convert.cpp)
+//   void write_voxel(const string& fname, GCAM* gcam);                     (mri_warp_convert.cpp)
 int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMorph)
 {
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
@@ -105,8 +112,10 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
   __atlasVG = new VOL_GEOM(gcam->atlas);
   
   // create MRI using gcam dimensions
+  // copy geom from gcam->atlas to __warpmap (width, height, deph are not copied)
   // gcam->image vol geom and gcam->atlas vol geom will be saved in mgz under TAG_GCAMORPH_GEOM
   __warpmap = new MRI({gcam->width, gcam->height, gcam->depth, 3}, MRI_FLOAT);
+  MRIcopyVolGeomToMRI(__warpmap, &gcam->atlas);
   //__warpmap = new MRI(gcam->atlas, MRI_FLOAT, 3, 0);  //__warpmap = new MRI({gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, 3}, MRI_FLOAT);
   __dataformat = dataformat;
 
@@ -259,6 +268,7 @@ int Warpfield::invert(const char *fname, const int dataformat)
     exit(1);
   }
   
+  // ??? check if it is always in mgz warp format ??? 
   int type = TransformFileNameType((char *)fname);
   if (type != MORPH_3D_TYPE)
   {
@@ -394,10 +404,18 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 // read 3-frame MRI warp map into __warpmap,
 // copy the warp into a GCAM,
 // return GCAM created
+//
+// similar functionality is also implemented in
+//   int GCAMreadWarpFromMRI(GCA_MORPH *gcam, const MRI *mri_warp, int DeformationFlag)     (gcamorph.cpp)
+//   GCAM* read_voxel(const string& warp_file, const string& src_geom);                     (mri_warp_convert.cpp)
+//       [origx, origy, origz], [xn, yn, zn] are set to dst [c, r, s]
+//   GCAM* read_world(const string& warp_file, const string& src_geom, bool is_lps=false);  (mri_warp_convert.cpp)
+//       [origx, origy, origz], [xn, yn, zn] are set to dst [c, r, s]
 GCA_MORPH *Warpfield::read(const char *fname)
 {  
   __mgzVersion = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION;
-  
+
+  // ??? make sure it is .mgz ???
   __warpmap = MRIread(fname);
   if (__warpmap == NULL)
   {
@@ -442,6 +460,9 @@ GCA_MORPH *Warpfield::read(const char *fname)
         gcamn->origx = (float)c;
         gcamn->origy = (float)r;
         gcamn->origz = (float)s;
+	gcamn->xn = c;
+        gcamn->yn = r;
+        gcamn->zn = s;
 	
 	if (__warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS ||
 	    __warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS)
