@@ -8,25 +8,25 @@ if [ ! -e "${FREESURFER_HOME}/python/bin/python3" ]; then
     exit 1
 fi
 
-conda_base=`ls -l $FREESURFER_HOME/python/bin/python3 | sed 's;^.*-> ;;' | xargs dirname`
+# Installation of miniconda for Apple arm64 has already provided python3 above
+# as a relative soft link to arm64 python with Apple tensorflow, etc.
+conda_path=`readlink ${FREESURFER_HOME}/python/bin/python3 | sed 's;^\.\.\/;;' | sed 's;\/bin\/python3$;;'`
+conda_pkgs="${FREESURFER_HOME}/python/${conda_path}/lib/python3.8/site-packages"
 
-# Get additional PYTHONPATH entry from the conda disrtibution whose
-# installation changed the python3 soft link under./freesurfer/ python/bin
+# Append conda site packages to PYTHOMPATH
 #
-# export PYTHONPATH="$conda_base/../lib/python3.8/site-packages:${FREESURFER_HOME}/python/packages:$PYTHONPATH"
-export PYTHONPATH=${FREESURFER_HOME}/python/packages:"$conda_base/../lib/python3.8/site-packages:$PYTHONPATH"
+# export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+export PYTHONPATH=${FREESURFER_HOME}/python/packages:"${conda_pkgs}"
 
-# futhermore, prevent local user packages from being accessed in fspython
+# furthermore, prevent local user packages from being accessed in fspython
 # since we want a very isolated environment
-### export PYTHONNOUSERSITE=1
-### unset PYTHONUSERBASE
+# export PYTHONNOUSERSITE=1
+# unset PYTHONUSERBASE
 
 # don't check for pip upgrades, since it confuses people
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# run python
-#
-# no longer works to exec thru FREESURFRE_HOME
-# exec ${FREESURFER_HOME}/python/bin/python3 "$@"
-exec python3 "$@"
+# explicitly run python from FS distribution overrding what may be in PATH
+exec ${FREESURFER_HOME}/python/bin/python3 "$@"
+# exec /usr/bin/python3 "$@"
 
