@@ -25,6 +25,9 @@ set SubSegCblumWM = 0;
 set AddPons = 1;
 set AddVermis = 1;
 set DoXCerSeg = ();
+set UseSamseg = 0
+set threads = 1
+set xcthresh = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -81,10 +84,12 @@ uname -a  | tee -a $LF
 
 #========================================================
 if($DoXCerSeg) then
-  set cmd = (xcerebralseg --s $subject)
+  set cmd = (xcerebralseg --s $subject --threads $threads)
   if(! $cleanup) set cmd = ($cmd --tmpdir $tmpdir/xcerebralseg)
   if($AddPons == 0)   set cmd = ($cmd --no-pons)
   if($AddVermis == 0) set cmd = ($cmd --no-vermis)
+  if($UseSamseg) set cmd = ($cmd --samseg)
+  if($#xcthresh) set cmd = ($cmd --thresh $xcthresh)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -112,7 +117,7 @@ if($SubSegWM && $#wmannot == 0) then
   end
 endif
 
-set cmd = (mri_gtmseg --s $subject --usf $USF --o $outvol)
+set cmd = (mri_gtmseg --s $subject --usf $USF --o $outvol --threads $threads)
 set cmd = ($cmd --apas $headseg)
 if($#ctxannot)  set cmd = ($cmd --ctx-annot $ctxannot $ctxlhbase $ctxrhbase)
 if($#wmannot)   set cmd = ($cmd --wm-annot  $wmannot  $wmlhbase  $wmrhbase)
@@ -199,6 +204,11 @@ while( $#argv != 0 )
     case "--xcerseg":
       set headseg = apas+head.mgz
       set DoXCerSeg = 1;
+      breaksw
+
+    case "--xcthresh":
+      if($#argv < 1) goto arg1err;
+      set xcthresh = $argv[1]; shift
       breaksw
 
     case "--no-xcerseg":
@@ -295,6 +305,18 @@ while( $#argv != 0 )
 
     case "--no-seg-stats":
       set DoSegStats = 0;
+      breaksw
+
+    case "--samseg":
+      set UseSamseg = 1;
+      breaksw
+    case "--no-samseg":
+      set UseSamseg = 0;
+      breaksw
+
+    case "--threads":
+    case "--nthreads":
+      set threads = $argv[1]; shift;
       breaksw
 
     case "--log":
@@ -418,6 +440,8 @@ usage_exit:
   echo ""
   echo " --s subject     : subject to analyze (required)"
   echo " --xcerseg : run xcerebralseg on this subject to create $headseg"
+  echo " --samseg : use samseg to create whole head seg rather than GCA"
+  echo " --threads nthreads : only applies when running xcerseg"
   echo ""
   echo " --o outvol      : relative to subject/mri (default is $outvol)" 
   echo " --usf USF       : upsampling factor (default is $USF)"
@@ -434,6 +458,7 @@ usage_exit:
   echo " --no-vermis : do not add vermis segmentation when doing ---xcerseg":
   echo " --ctab colortable "
   echo " --no-seg-stats : do not compute segmentation stats"
+  echo " --xcthresh xcthresh : mri_seghead thresh"
   echo ""
   echo " --debug "
   echo " --help "

@@ -9,7 +9,7 @@
 #include "nii_dicom.h"
 #include <vector>
 
-typedef struct 
+struct MRIFSSTRUCT
 {
   struct nifti_1_header hdr0;
 
@@ -25,7 +25,7 @@ typedef struct
 
   struct TDTI *tdti;
   int numDti;
-} MRIFSSTRUCT;
+};
 
 MRIFSSTRUCT* nii_getMrifsStruct();
 void nii_clrMrifsStruct();

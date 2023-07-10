@@ -299,7 +299,7 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   /* Make sure we can open the output summary table file*/
-  if(StatTableFile)
+  if(StatTableFile)  // --sum/--o/--sum-in <StatTableFile>
   {
     fp = fopen(StatTableFile,"w");
     if (fp == NULL)
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
   }
 
   /* Load the segmentation */
-  if (SegVolFile){
+  if (SegVolFile){  // --seg <SegVolFile>
     printf("Loading %s\n",SegVolFile);
     seg = MRIread(SegVolFile);
     if (seg == NULL){
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
       }
     }
   }
-  else if(annot){
+  else if(annot){  // --annot <subject> <hemi> <annot>
     printf("Constructing seg from annotation\n");
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,whitesurfname);
     mris = MRISread(tmpstr);
@@ -462,7 +462,7 @@ int main(int argc, char **argv)
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
   }
-  else if(LabelFile){
+  else if(LabelFile){  // --slabel <subject> <hemi> <LabelFile>
     printf("Constructing seg from label\n");
     if(UseLabelThresh) printf(" Label Threshold = %g\n",LabelThresh);
     label = LabelRead(NULL, LabelFile);
@@ -483,7 +483,8 @@ int main(int argc, char **argv)
     MRIfree(&mritmp);
   }
 
-  if (ctabfile != NULL)
+  // different ways to get color table
+  if (ctabfile != NULL)  // mris->ct, --ctab <ctabfile>, --ctab-default
   {
     /* Load the color table file */
     ctab = CTABreadASCII(ctabfile);
@@ -535,7 +536,7 @@ int main(int argc, char **argv)
   }
 
   /* Load the input volume */
-  if (InVolFile != NULL)
+  if (InVolFile != NULL)  // --in/--i <InVolFile>
   {
     printf("Loading %s\n",InVolFile);
     fflush(stdout);
@@ -551,7 +552,7 @@ int main(int argc, char **argv)
              frame,invol->nframes);
       exit(1);
     }
-    if(InVolReg || InVolRegHeader)
+    if(InVolReg || InVolRegHeader)  // --reg <InVolRegFile>, --regheader
     {
       if(InVolReg)
       {
@@ -602,7 +603,7 @@ int main(int argc, char **argv)
   }
 
   /* Load the partial volume mri */
-  if (PVVolFile != NULL)
+  if (PVVolFile != NULL)  // --pv <PVVolFile>
   {
     printf("Loading %s\n",PVVolFile);
     fflush(stdout);
@@ -622,7 +623,7 @@ int main(int argc, char **argv)
   }
 
   /* Load the mask volume */
-  if (MaskVolFile != NULL)
+  if (MaskVolFile != NULL)  // --mask <MaskVolFile>
   {
     printf("Loading %s\n",MaskVolFile);
     fflush(stdout);
@@ -827,7 +828,7 @@ int main(int argc, char **argv)
       {
         ROMP_PFLB_continue;
       }
-    }
+    } // if(DoExclSegId)
 
     // Skip ones that are not represented
     skip = 1;
@@ -856,7 +857,7 @@ int main(int argc, char **argv)
           nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
 //          nhits = nint(vol/voxelvolume);
         }
-      }
+      }  // if (!mris)
       else
       {
         // Compute area here
@@ -876,9 +877,9 @@ int main(int argc, char **argv)
               vol += mris->vertices[c].area;
             }
           }
-        }
+        } // for (c=0; c < mris->nvertices; c++)
       }
-    }
+    }  // if (!dontrun)
     else
     {
       nhits = n;
@@ -915,9 +916,9 @@ int main(int argc, char **argv)
       if(DoAccumulate == 1) StatSumTable[n].mean  = mean*nhits;
       StatSumTable[n].std   = std;
       StatSumTable[n].snr   = snr;
-    }
+    }  // if (InVolFile != NULL && !dontrun)
     ROMP_PFLB_end
-  }
+  } // for (n=0; n < nsegid; n++)
   ROMP_PF_end
   
   /* print results ordered */
@@ -1048,7 +1049,7 @@ int main(int argc, char **argv)
       }
       printf("\n");
     }
-  }
+  } // if (debug)
 
   /* Print the table to the output file */
   if (StatTableFile != NULL)
@@ -1266,127 +1267,127 @@ int main(int argc, char **argv)
     else {
       printf("Not using PrintSegStat\n");
 
-    fprintf(fp,"# TableCol  1 ColHeader Index \n");
-    fprintf(fp,"# TableCol  1 FieldName Index \n");
-    fprintf(fp,"# TableCol  1 Units     NA \n");
+      fprintf(fp,"# TableCol  1 ColHeader Index \n");
+      fprintf(fp,"# TableCol  1 FieldName Index \n");
+      fprintf(fp,"# TableCol  1 Units     NA \n");
 
-    fprintf(fp,"# TableCol  2 ColHeader SegId \n");
-    fprintf(fp,"# TableCol  2 FieldName Segmentation Id\n");
-    fprintf(fp,"# TableCol  2 Units     NA\n");
-    if (!mris)
-    {
-      fprintf(fp,"# TableCol  3 ColHeader NVoxels \n");
-      fprintf(fp,"# TableCol  3 FieldName Number of Voxels\n");
-      fprintf(fp,"# TableCol  3 Units     unitless\n");
-      fprintf(fp,"# TableCol  4 ColHeader Volume_mm3\n");
-      fprintf(fp,"# TableCol  4 FieldName Volume\n");
-      fprintf(fp,"# TableCol  4 Units     mm^3\n");
-    }
-    else
-    {
-      fprintf(fp,"# TableCol  3 ColHeader NVertices \n");
-      fprintf(fp,"# TableCol  3 FieldName Number of Vertices\n");
-      fprintf(fp,"# TableCol  3 Units     unitless\n");
-      fprintf(fp,"# TableCol  4 ColHeader Area_mm2\n");
-      fprintf(fp,"# TableCol  4 FieldName Area\n");
-      fprintf(fp,"# TableCol  4 Units     mm^2\n");
-    }
-    n = 5;
-    if (ctab)
-    {
-      fprintf(fp,"# TableCol %2d ColHeader StructName\n",n);
-      fprintf(fp,"# TableCol %2d FieldName Structure Name\n",n);
-      fprintf(fp,"# TableCol %2d Units     NA\n",n);
-      n++;
-    }
-
-    if (InVolFile)
-    {
-      fprintf(fp,"# TableCol %2d ColHeader %sMean \n",n,InIntensityName);
-      fprintf(fp,"# TableCol %2d FieldName Intensity %sMean\n",
-              n,InIntensityName);
-      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
-      n++;
-
-      fprintf(fp,"# TableCol %2d ColHeader %sStdDev\n",n,InIntensityName);
-      fprintf(fp,"# TableCol %2d FieldName Intensity %sStdDev\n",
-              n,InIntensityName);
-      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
-      n++;
-
-      fprintf(fp,"# TableCol %2d ColHeader %sMin\n",n,InIntensityName);
-      fprintf(fp,"# TableCol %2d FieldName Intensity %sMin\n",
-              n,InIntensityName);
-      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
-      n++;
-
-      fprintf(fp,"# TableCol %2d ColHeader %sMax\n",n,InIntensityName);
-      fprintf(fp,"# TableCol %2d FieldName Intensity %sMax\n",
-              n,InIntensityName);
-      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
-      n++;
-
-      fprintf(fp,"# TableCol %2d ColHeader %sRange\n",n,InIntensityName);
-      fprintf(fp,"# TableCol %2d FieldName Intensity %sRange\n",
-              n,InIntensityName);
-      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
-      n++;
-
-    }
-    fprintf(fp,"# NRows %d \n",nsegid);
-    fprintf(fp,"# NTableCols %d \n",n-1);
-
-    fprintf(fp,"# ColHeaders  Index SegId ");
-    if (!mris)
-    {
-      fprintf(fp,"NVoxels Volume_mm3 ");
-    }
-    else
-    {
-      fprintf(fp,"NVertices Area_mm2 ");
-    }
-    fprintf(fp,"StructName ");
-    if(InVolFile)
-    {
-      fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
-              InIntensityName, InIntensityName,
-              InIntensityName,InIntensityName,
-              InIntensityName);
-      if(DoSNR)
+      fprintf(fp,"# TableCol  2 ColHeader SegId \n");
+      fprintf(fp,"# TableCol  2 FieldName Segmentation Id\n");
+      fprintf(fp,"# TableCol  2 Units     NA\n");
+      if (!mris)
       {
-        fprintf(fp,"%sSNR ",InIntensityName);
-      }
-    }
-    fprintf(fp,"\n");
-
-    for (n=0; n < nsegid; n++)
-    {
-      fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
-              StatSumTable[n].nhits, StatSumTable[n].vol);
-      if(ctab != NULL)
-      {
-        fprintf(fp,"%-30s ",StatSumTable[n].name);
+        fprintf(fp,"# TableCol  3 ColHeader NVoxels \n");
+        fprintf(fp,"# TableCol  3 FieldName Number of Voxels\n");
+        fprintf(fp,"# TableCol  3 Units     unitless\n");
+        fprintf(fp,"# TableCol  4 ColHeader Volume_mm3\n");
+        fprintf(fp,"# TableCol  4 FieldName Volume\n");
+        fprintf(fp,"# TableCol  4 Units     mm^3\n");
       }
       else
       {
-        fprintf(fp,"Seg%04d ",StatSumTable[n].id);
+        fprintf(fp,"# TableCol  3 ColHeader NVertices \n");
+        fprintf(fp,"# TableCol  3 FieldName Number of Vertices\n");
+        fprintf(fp,"# TableCol  3 Units     unitless\n");
+        fprintf(fp,"# TableCol  4 ColHeader Area_mm2\n");
+        fprintf(fp,"# TableCol  4 FieldName Area\n");
+        fprintf(fp,"# TableCol  4 Units     mm^2\n");
       }
-      if (InVolFile != NULL)
+      n = 5;
+      if (ctab)
       {
-        fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
-                StatSumTable[n].mean, StatSumTable[n].std,
-                StatSumTable[n].min, StatSumTable[n].max,
-                StatSumTable[n].range);
+        fprintf(fp,"# TableCol %2d ColHeader StructName\n",n);
+        fprintf(fp,"# TableCol %2d FieldName Structure Name\n",n);
+        fprintf(fp,"# TableCol %2d Units     NA\n",n);
+        n++;
+      }
+
+      if (InVolFile)
+      {
+        fprintf(fp,"# TableCol %2d ColHeader %sMean \n",n,InIntensityName);
+        fprintf(fp,"# TableCol %2d FieldName Intensity %sMean\n",
+                n,InIntensityName);
+        fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+        n++;
+
+        fprintf(fp,"# TableCol %2d ColHeader %sStdDev\n",n,InIntensityName);
+        fprintf(fp,"# TableCol %2d FieldName Intensity %sStdDev\n",
+                n,InIntensityName);
+        fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+        n++;
+
+        fprintf(fp,"# TableCol %2d ColHeader %sMin\n",n,InIntensityName);
+        fprintf(fp,"# TableCol %2d FieldName Intensity %sMin\n",
+                n,InIntensityName);
+        fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+        n++;
+
+        fprintf(fp,"# TableCol %2d ColHeader %sMax\n",n,InIntensityName);
+        fprintf(fp,"# TableCol %2d FieldName Intensity %sMax\n",
+                n,InIntensityName);
+        fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+        n++;
+
+        fprintf(fp,"# TableCol %2d ColHeader %sRange\n",n,InIntensityName);
+        fprintf(fp,"# TableCol %2d FieldName Intensity %sRange\n",
+                n,InIntensityName);
+        fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+        n++;
+
+      }
+      fprintf(fp,"# NRows %d \n",nsegid);
+      fprintf(fp,"# NTableCols %d \n",n-1);
+
+      fprintf(fp,"# ColHeaders  Index SegId ");
+      if (!mris)
+      {
+        fprintf(fp,"NVoxels Volume_mm3 ");
+      }
+      else
+      {
+        fprintf(fp,"NVertices Area_mm2 ");
+      }
+      fprintf(fp,"StructName ");
+      if(InVolFile)
+      {
+        fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
+                InIntensityName, InIntensityName,
+                InIntensityName,InIntensityName,
+                InIntensityName);
         if(DoSNR)
         {
-          fprintf(fp,"%10.4f ",StatSumTable[n].snr);
+          fprintf(fp,"%sSNR ",InIntensityName);
         }
       }
       fprintf(fp,"\n");
-    }
-    fclose(fp);
-  }
-}
+
+      for (n=0; n < nsegid; n++)
+      {
+        fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
+                StatSumTable[n].nhits, StatSumTable[n].vol);
+        if(ctab != NULL)
+        {
+          fprintf(fp,"%-30s ",StatSumTable[n].name);
+        }
+        else
+        {
+          fprintf(fp,"Seg%04d ",StatSumTable[n].id);
+        }
+        if (InVolFile != NULL)
+        {
+          fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
+                  StatSumTable[n].mean, StatSumTable[n].std,
+                  StatSumTable[n].min, StatSumTable[n].max,
+                  StatSumTable[n].range);
+          if(DoSNR)
+          {
+            fprintf(fp,"%10.4f ",StatSumTable[n].snr);
+          }
+        }
+        fprintf(fp,"\n");
+      }
+      fclose(fp);
+    } // !UsePrintSegStat
+  } // if (StatTableFile != NULL)
 
   if(ctabfileOut != NULL)
   {

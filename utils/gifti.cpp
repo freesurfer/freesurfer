@@ -2499,10 +2499,10 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
         geotype = "Inflated";
       }
       if (strstr(name, ".sphere")) {
-        geotype = "Sphere";
+        geotype = "Spherical";
       }
       if (strstr(name, ".qsphere")) {
-        geotype = "Sphere";
+        geotype = "Spherical";
       }
       if (strstr(name, "pial-outer")) {
         geotype = "Hull";

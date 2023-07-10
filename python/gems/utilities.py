@@ -105,6 +105,16 @@ def icv(structures, includeStructures=None):
             'Left-Thalamus',
             'non-WM-hypointensities',
             '5th-Ventricle',
-            'Lesions'
+            'Lesions',
+            'Left-WMCrowns',
+            'Right-WMCrowns',
+            'Left-Vermis-Area',
+            'Right-Vermis-Area',
+            'Corpus_Callosum',
+            'Pons',
+            'Pons-Belly-Area',
+            'Vein',
+            'ctx_lh_high_myelin',
+            'ctx_rh_high_myelin',
         ]
     return sum(structure[1] for structure in structures if structure[0] in includeStructures)

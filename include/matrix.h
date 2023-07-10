@@ -30,7 +30,7 @@
 /* matrices and vectors are the same data type, vector will only
    have one column (by default) or one row.
 */
-typedef struct
+struct MATRIX
 {
   short   type ;
   char    inBuf;	// The matrix is in a stack buffer (see below)
@@ -39,8 +39,9 @@ typedef struct
   float **rptr;    /* pointer to an array of rows */
   float *data;     /* pointer to base of data */
   FILE *mmapfile;
-}
-MATRIX, VECTOR ;
+};
+
+typedef MATRIX VECTOR ;
 
 
 typedef struct MatrixBuffer {

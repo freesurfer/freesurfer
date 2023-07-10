@@ -1946,12 +1946,13 @@ int GTMbuildX(GTM *gtm)
   Timer timer;
 
   err = 0;
-  ROMP_PF_begin
+  //ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : err)
+    //#pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : err)
+  #pragma omp parallel for reduction(+ : err)
 #endif
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
-    ROMP_PFLB_begin
+    //ROMP_PFLB_begin
     
     int segid, k, c, r, s;
     MRI *nthsegpvf = NULL, *nthsegpvfbb = NULL, *nthsegpvfbbsm = NULL, *nthsegpvfbbsmmb = NULL;
@@ -2028,9 +2029,9 @@ int GTMbuildX(GTM *gtm)
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
     
-    ROMP_PFLB_end
+    //ROMP_PFLB_end
   }
-  ROMP_PF_end
+  //ROMP_PF_end
   
   if (!gtm->Optimizing) printf(" Build time %6.4f, err = %d\n", timer.seconds(), err);
   fflush(stdout);
@@ -2698,13 +2699,14 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
   Timer timer;
 
   int c;
-  ROMP_PF_begin
+  //ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for if_ROMP(assume_reproducible)
+  //#pragma omp parallel for if_ROMP(assume_reproducible)
+#pragma omp parallel for 
 #endif
   for (c = 0; c < gtm->yvol->width; c++) {
-    ROMP_PFLB_begin
+    //ROMP_PFLB_begin
     
     MATRIX *X, *y, *beta = NULL, *Xt = NULL, *XtX = NULL, *Xty = NULL, *iXtX = NULL, *Xsum, *ytmp, *Xtmp;
     MATRIX *yhat, *eres;
@@ -2826,9 +2828,9 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
         MatrixFree(&iXtX);
       }  // s
     }    // r
-    ROMP_PFLB_end
+    //ROMP_PFLB_end
   }      // c
-  ROMP_PF_end
+  //ROMP_PF_end
   
   MRI * pvfpsf_nonconst = pvfpsf;     // don't use pvfpsf after here!
   MRIfree(&pvfpsf_nonconst);

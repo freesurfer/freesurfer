@@ -1,0 +1,14 @@
+# The format is: mergedName numberOfComponents searchStrings
+# samseg+cc+pons+vermis+wmcrowns. This GMM more-or-less replicates
+# that of charm.
+
+Unknown 1 Unknown Sinus Bone-Cortical 
+GlobalWM 2 White Brain-Stem VentralDC Optic-Chiasm Thalamus Optic-Nerve Crowns Corpus_Callosum Pons 
+GlobalGM 1 Cortex Caudate Hippocampus Amygdala Accumbens hypointensities Thalamus ctx Vermis
+GlobalCSF_messy 1 CSF vessel choroid-plexus 
+GlobalCSF_clean 1 Ventricle Inf-Lat-Vent Fluid
+Veins 1 Vein
+Soft_Tissues 2 Other-Tissues Rectus-Muscles Mucosa Skin Artery undetermined Bone-Cancellous
+Pallidum 1 Pallidum
+Putamen 1 Putamen
+Spine 1 Spinal-Cord

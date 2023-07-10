@@ -82,10 +82,35 @@ coordinates). For TKREG/register.dat type matrices, src=mov and trg=ref/targ.</i
       <explanation>specify src image geometry (mov volume for TKREG/register.dat)</explanation>
       <argument>--trg</argument>
       <explanation>specify trg image geometry</explanation>
-      <argument>--trgconform</argument>
-      <explanation>conform trg image geometry (COR standard). Will be done before inversion, if specified.</explanation>
       <argument>--subject</argument>
       <explanation>Specify subject name (overrides if input has subject name defined).</explanation>
+
+      <intro>LTA src/trg geometry options</intro>
+      <intro>LTA is converted to SCANNER_RAS to SCANNER_RAS. The source and/or target VOL_GEOM is changed depending upon the desired operation(s). None of the operations will change the RAS2RAS matrix.</intro>
+      <argument>--srcconform</argument>
+      <explanation>conform src image geometry (COR standard). Will be done before inversion, if specified.</explanation>
+      <argument>--srcconform-dc</argument>
+      <explanation>keep src image directional cosine</explanation>
+      <argument>--srcconform-min</argument>
+      <explanation>conform src image geometry to min direction size</explanation>
+      <argument>--srcconform-size size_in_mm</argument>
+      <explanation>conform src image geometry to the size given in mm</explanation>
+      <argument>--srcupsample N</argument>
+      <explanation>upsample src image geometry by factor of N</explanation>
+      <argument>--srcdownsample N</argument>
+      <explanation>downsample src image geometry by factor of N</explanation>            
+      <argument>--trgconform</argument>
+      <explanation>conform trg image geometry (COR standard). Will be done before inversion, if specified.</explanation>
+      <argument>--trgconform-dc</argument>
+      <explanation>keep trg image directional cosine</explanation>
+      <argument>--trgconform-min</argument>
+      <explanation>conform trg image geometry to min direction size</explanation>
+      <argument>--trgconform-size size_in_mm</argument>
+      <explanation>conform trg image geometry to the size given in mm</explanation>
+      <argument>--trgupsample N</argument>
+      <explanation>upsample trg image geometry by factor of N</explanation>
+      <argument>--trgdownsample N</argument>
+      <explanation>downsample trg image geometry by factor of N</explanation>      
     </optional-flagged>
   </arguments>
   <example>Convert FSL transform to LTA (FreeSurfer):

@@ -406,6 +406,8 @@ void writeFSL(const string& fname, const GCAM *gcam)
 }
 
 // Write warp as displacements in RAS or LPS space.
+// delta = src_RAS - dst_RAS
+// output warp is in ITK_MORPH format
 void write_world(const string& fname, GCAM* gcam, bool is_lps=false)
 {
   MATRIX* dst_vox2mm = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
@@ -474,6 +476,9 @@ void write_world(const string& fname, GCAM* gcam, bool is_lps=false)
 }
 
 // Write a warp file as displacements in source-voxel space.
+// ??? is this right to calculate src_CRS from dst_CRS as following:
+//     MatrixMultiplyD(dst2src_vox, dst_vox, src_vox); ???
+// ??? GCAMsampleMorph() (node->[x,y,z]) returns src_CRS for given dst_CRS ???
 void write_voxel(const string& fname, GCAM* gcam)
 {
   MATRIX* dst_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);

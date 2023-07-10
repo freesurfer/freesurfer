@@ -1592,6 +1592,8 @@ int TransformFileNameType(const char *fname)
       return (MORPH_3D_TYPE);
     else if (!strcmp(dot, "M3Z"))
       return (MORPH_3D_TYPE);
+    else if (!strcmp(dot, "MGZ"))
+      return (MORPH_3D_TYPE);    
     else if (!strcmp(dot, "OCT"))
       return (TRANSFORM_ARRAY_TYPE);
     else if (!strcmp(dot, "XFM"))
@@ -4323,6 +4325,7 @@ int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst)
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
 // this function is same as MATRIX *MRIxfmCRS2XYZ(const VOL_GEOM *mri, int base)
+// except intermediate results are doubles in MRIxfmCRS2XYZ().
 // call to this function is equivalent to vg->get_Vox2RAS(base);
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
 {

@@ -125,6 +125,8 @@
 #include "VolumeFilterOptimal.h"
 #include <QRegularExpression>
 #include "MigrationDefs.h"
+#include <QDragEnterEvent>
+#include <QMimeData>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -181,6 +183,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
 
   ui->setupUi(this);
+  setAcceptDrops(true);
+
   addAction(ui->actionReloadROI);
   addAction(ui->actionReloadPointSet);
   addAction(ui->actionLockOthers);
@@ -10022,4 +10026,72 @@ void MainWindow::OnFlattendSurfacePatchLoaded()
     SetMainView(MV_3D);
 
   ((RenderView3D*)m_views[3])->ResetViewSuperior();
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+  QList<QUrl> urls = event->mimeData()->urls();
+  for (int i = 0; i < urls.size(); i++)
+  {
+    if (!IsAcceptableUrl(urls[i]))
+    {
+      urls.removeAt(i);
+      i--;
+    }
+  }
+
+  if (!urls.isEmpty())
+    event->acceptProposedAction();
+}
+
+bool MainWindow::IsAcceptableUrl(const QUrl &url, int url_type) // -1: all, 0: volume, 1: surface
+{
+  if (url.scheme().toLower() == "file")
+  {
+    QFileInfo fi(url.toLocalFile());
+    QString suffix = fi.completeSuffix().toLower();
+    if (suffix.contains("nii") || suffix.contains("mgz") || suffix.contains("mgh") ||
+        suffix.contains("gii") || suffix == "dcm" || suffix == "hdr" ||
+        suffix == "img" || suffix == "tif" || suffix == "tiff" || suffix == "bmp")
+    {
+      if (url_type <= 0)
+        return true;
+      else
+        return false;
+    }
+    if (suffix == "orig" || suffix == "inflated" || suffix == "white" || suffix == "pial" ||
+        suffix == "3gp" || suffix == "3g2")
+    {
+      if (url_type != 0)
+        return true;
+      else
+        return false;
+    }
+  }
+  return false;
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+  const QMimeData* mimeData = event->mimeData();
+
+  if (mimeData->hasUrls())
+  {
+    QList<QUrl> urlList = mimeData->urls();
+    if (!urlList.isEmpty())
+    {
+      event->acceptProposedAction();
+      foreach (QUrl url, urlList)
+      {
+        if (IsAcceptableUrl(url, 0)) // volume
+        {
+          AddScript(QStringList("loadvolume") << url.toLocalFile());
+        }
+        else if (IsAcceptableUrl(url, 1)) // surface
+        {
+          AddScript(QStringList("loadsurface") << url.toLocalFile());
+        }
+      }
+    }
+  }
 }

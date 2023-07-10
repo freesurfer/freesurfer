@@ -87,6 +87,7 @@ mri_vol2vol
      interp 0=nearest, 1=trilin
 
   --no-resample : do not resample, just change vox2ras matrix
+  --no-resample-scale : do not resample, just change vox2ras matrix, using scale=voxsize
 
   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
   --trans Tx Ty Tz : translation (mm) to apply to reg matrix
@@ -1084,6 +1085,8 @@ int main(int argc, char **argv) {
     MRImultiplyConst(out, MultiplyVal, out);
   }
 
+  if(mov->ct) out->ct = CTABdeepCopy(mov->ct);
+
   err = MRIwrite(out,outvolfile);
   if(err){
     printf("ERROR: writing %s\n",outvolfile);
@@ -1172,6 +1175,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--tal"))      fstal = 1;
     else if (!strcasecmp(option, "--inv"))      invert = 1;
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
+    else if (!strcasecmp(option, "--no-resample-scale")){
+      if(nargc < 1) argnerr(option,1);
+      setenv("FS_SetVoxToRasXform_Change_VoxSize",pargv[0],1);
+      noresample = 1;
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
     else if (!strcasecmp(option, "--nomr"))      DoSaveInputMR = 1;
@@ -1183,7 +1192,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--soap"))   
     {
-      if (nargc < 2) argnerr(option,1);
+      if (nargc < 2) argnerr(option,2);
       nargsused = 2;
       mri_soap_ctrl  = MRIread(pargv[0]) ;
       if (mri_soap_ctrl == NULL)
@@ -1690,6 +1699,7 @@ printf("      same as --map-point but inverts the lta\n");
 printf("\n");
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
+printf("  --no-resample-scale : do not resample, just change vox2ras matrix, using scale=voxsize\n");
 printf("\n");
 printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
 printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");

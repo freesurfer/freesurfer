@@ -1,0 +1,74 @@
+----------------------------------------------------
+----------------------------------------------------
+Notes on how to build your own atlas in SAMSEG
+----------------------------------------------------
+----------------------------------------------------
+Requirements:
+----------------------------------------------------
+----------------------------------------------------
+- Code: FreeSurfer with gems installed with the flag GEMS_BUILD_EXECUTABLES ON. We also recommend to turn ON the flag GEMS_BUILD_GUI for visualizing the atlas (requires VTK).
+- Data: You will need to have labeled images affinely registered to some unbiased common space (e.g., an MNI space). In our experiments, we found 20 images to be optimal. We reccomend at least 10 images.
+----------------------------------------------------
+----------------------------------------------------
+Build the atlas:
+----------------------------------------------------
+----------------------------------------------------
+Building the atlas requires running gems_train_atlas.py, with the following parameters
+
+--num-upsamples: number of upsamples (e.g., 3)
+--mesh-sizes: mesh sizes (e.g., 10 9 10)
+--schedule-file: see below
+
+# The training shedule file format is:
+num_itr, stiffness, edgeCollaseFactor
+
+Stiffness is usually set to 0.1 for whole-brain or whole-head segmentations, while it's smaller for subfields???
+
+As we usually need 3 atlases (higher res, lower res, and affine) we can set a training schedule like the following:
+
+20, 0.1, 1.0
+20, 0.1, 1.05
+20, 0.1, 1.05
+
+and use the latest ouptut of each folder to our desired atlases.
+
+Note that the atlas building is a slow process and it might take several days or even weeks!
+
+Also note that typical atlas sizes are around 50k nodes at the highest resolution. Anything above 100k might be too slow. See also below on how to estimate the number of nodes in the mesh
+
+Debug: You can visualize the atlas (assuming gems was build with the flag GEMS_BUILD_GUI ON) by running kvlViewMeshCollectionWithGUI yourMesh.gz
+
+In order to figure out what the size of the resulting mesh will be, the effect of 1 times upsampling of n nodes (in one direction) is 2*n-1. Therefore, after z times upsampling there will be m = 2^z * n - ( 2*z + 1 ) nodes.
+In order to turn this around, if we want to have m nodes after z times upsampling, we should start with n = ( m + 2*z + 1 ) / 2^z nodes. Note that this is the number of nodes at the beginning of the algorithm. Even with edgecCollapseFactor to 1 we are going to remove some nodes from the mesh.
+
+----------------------------------------------------
+----------------------------------------------------
+Creating a SAMSEG atlas directory:
+----------------------------------------------------
+----------------------------------------------------
+
+Once you have successfully built the atlases. You can run the following script prepareAtlasDirectory.py with arguments:
+
+--atlas Name of the directory
+--mesh The mesh collection name with the highest number of nodes 
+--mesh_level_1 The mesh collection name with less number of nodes
+--mesh_level_affine The mesh collection name with even less number of nodes
+--template An image with the same header and image size as your affinely registered training data
+--compression_lut Compression lookup table from the output of the building atlas process
+--shared_gmm_params A shared GMM parameters file as in SAMSEG (look at the original SAMSEG directory folder)
+
+More arguments are available. Use --help for details.
+
+----------------------------------------------------
+----------------------------------------------------
+Testing your own version of SAMSEG:
+----------------------------------------------------
+----------------------------------------------------
+
+Testing your new atlas involves calling run_samseg or run_samseg_long with the flag --atlas pointing to your SAMSEG atlas directory (the output name used for --atlas in prepareAtlasDirectory.py)
+----------------------------------------------------
+----------------------------------------------------
+Refereces:
+- Atlas building: "Encoding probabilistic brain atlases using Bayesian inference." Van Leemput, Koen. IEEE Transactions on Medical Imaging 28.6 (2008): 822-837.
+- SAMSEG: "Fast and sequence-adaptive whole-brain segmentation using parametric Bayesian modeling." Puonti, Oula, Juan Eugenio Iglesias, and Koen Van Leemput. NeuroImage 143 (2016): 235-249.
+

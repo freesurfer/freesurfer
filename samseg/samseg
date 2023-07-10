@@ -220,6 +220,7 @@ set cmd = ($cmd0);
 if($DoValGrind) then
   set cmd = ($vg $cmd0)
 endif
+
 echo $cmd | tee -a $LF
 if($#Profile == 0) then
   fs_time $cmd |& tee -a $LF
@@ -706,6 +707,17 @@ while( $#argv != 0 )
       set DoCharm = 0
       breaksw
   
+    case "--cpvcw":
+      setenv SAMSEG_DATA_DIR $FREESURFER/average/samseg/samseg+cc+pons+verm+charm+wmcrowns
+      if(! -e $SAMSEG_DATA_DIR) then
+        echo "ERROR: cannot find $SAMSEG_DATA_DIR"
+        exit 1
+      endif
+      breaksw
+    case "--no-cpvcw":
+      unsetenv SAMSEG_DATA_DIR 
+      breaksw
+  
     case "--no-block-coordinate-descent":
     case "--no-bcd":
       setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1
@@ -880,6 +892,7 @@ usage_exit:
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
   echo "  --atlas SAMSEG_DATA_DIR"
+  echo "  --cpvcw : use the samseg+cc+pons+verm+charm+wmcrowns atlas"
   echo "  --gmm gmmfile"
   echo "  --no-block-coordinate-descent (or --no-bcd) :  sets SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1"
   echo "  --logdomain-costandgradient-calculator : sets SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1 (--no- to turn off)" 

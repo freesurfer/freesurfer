@@ -37,6 +37,8 @@
 #include "fnvhash.h"
 #include "itkImage.h"
 
+#include "warpfield.h"
+#include "fio.h"
 
 #define BUFTYPE  unsigned char
 
@@ -231,7 +233,13 @@ struct VOL_GEOM
     c_s = vg.c_s;
     
     strcpy(fname, vg.fname);
-  }
+
+#if 0
+    // ??? valid and ras_good_flag mean the same thing ???
+    valid = (ras_good_flag) ? ras_good_flag : valid;
+    ras_good_flag = (valid) ? valid : ras_good_flag;
+#endif
+  } 
 
   // copy assignment
   VOL_GEOM& operator= (const VOL_GEOM& other)
@@ -259,6 +267,12 @@ struct VOL_GEOM
     c_s = other.c_s;
     
     strcpy(fname, other.fname);
+
+#if 0
+    // ??? valid and ras_good_flag mean the same thing ???
+    valid = (ras_good_flag) ? ras_good_flag : valid;
+    ras_good_flag = (valid) ? valid : ras_good_flag;
+#endif
 
     return *this;
   }
@@ -317,9 +331,77 @@ struct VOL_GEOM
     if (!FZEROTHR(vg1->c_s - vg2->c_s, thresh)) return (19);
     return (0);
   };
+
+  // write VOL_GEOM to znzFile
+  void write(znzFile fp)
+  {
+    char buf[512];
+
+    znzwriteInt(valid, fp);
+    znzwriteInt(width, fp);
+    znzwriteInt(height, fp);
+    znzwriteInt(depth, fp);
+    znzwriteFloat(xsize, fp);
+    znzwriteFloat(ysize, fp);
+    znzwriteFloat(zsize, fp);
+    znzwriteFloat(x_r, fp);
+    znzwriteFloat(x_a, fp);
+    znzwriteFloat(x_s, fp);
+    znzwriteFloat(y_r, fp);
+    znzwriteFloat(y_a, fp);
+    znzwriteFloat(y_s, fp);
+    znzwriteFloat(z_r, fp);
+    znzwriteFloat(z_a, fp);
+    znzwriteFloat(z_s, fp);
+    znzwriteFloat(c_r, fp);
+    znzwriteFloat(c_a, fp);
+    znzwriteFloat(c_s, fp);
+    
+    memset(buf, 0, 512 * sizeof(char));
+    strcpy(buf, fname);
+    znzwrite(buf, sizeof(char), 512, fp);    
+  }
+
+  // read VOL_GEOM from znzFile
+  void read(znzFile fp)
+  {
+    valid = znzreadInt(fp);
+    width = znzreadInt(fp);
+    height = znzreadInt(fp);
+    depth = znzreadInt(fp);
+    xsize = znzreadFloat(fp);
+    ysize = znzreadFloat(fp);
+    zsize = znzreadFloat(fp);
+    x_r = znzreadFloat(fp);
+    x_a = znzreadFloat(fp);
+    x_s = znzreadFloat(fp);
+    y_r = znzreadFloat(fp);
+    y_a = znzreadFloat(fp);
+    y_s = znzreadFloat(fp);
+    z_r = znzreadFloat(fp);
+    z_a = znzreadFloat(fp);
+    z_s = znzreadFloat(fp);
+    c_r = znzreadFloat(fp);
+    c_a = znzreadFloat(fp);
+    c_s = znzreadFloat(fp);
+    
+    memset(fname, 0, 512 * sizeof(char));
+    znzread(fname, sizeof(char), 512, fp);    
+  }
 };
 
 typedef VOL_GEOM VG;
+
+#define MGH_VERSION 1
+
+// version number in .mgz will be constructed using these defines
+// ex.  ((MGZ_WARPMAP     & 0xff ) << 8) | MGH_VERSION
+//      ((MGZ_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION
+#define MGZ_MRI_DATA     1
+#define MGZ_ANNOT        2
+#define MGZ_CURV         3
+#define MGZ_WARPMAP      4
+#define MGZ_WARPMAP_INV  5
 
 class MRI : public VOL_GEOM
 {
@@ -342,7 +424,7 @@ public:
 
   MRI(const VOL_GEOM& vg, int dtype, int nframes=1, int HeaderOnly=1);
   MRI(const Shape volshape, int dtype, bool alloc = true);
-  MRI(const std::string& filename);
+  //MRI(const std::string& filename);
   ~MRI();
 
   void initIndices();
@@ -353,6 +435,11 @@ public:
   // ITK image conversions
   ITKImageType::Pointer toITKImage(int frame = 0);
   void loadITKImage(ITKImageType::Pointer image, int frame = 0);
+
+  // set warpfield metadata
+  // this method will be called from class Warpfield
+  void setWarpfieldMeta(int version0, int warpFieldFormat0);
+  void setGCAMorphGeom(const VOL_GEOM *image_vg, const VOL_GEOM *atlas_vg);
 
   // ---- image geometry ----
   //int width;        // number of columns // Now inherited from VOL_GEOM
@@ -423,6 +510,9 @@ public:
 
   // ---- file metadata ----
   //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
+  int  version = MGH_VERSION;
+  VOL_GEOM gcamorph_image_vg;
+  VOL_GEOM gcamorph_atlas_vg;
   char fnamePostFixes[STRLEN];    // used in MRIwrite(), append to output file name
   int  len_fnamePostFixes;
   char fname_format[STRLEN];    // file extension
@@ -433,6 +523,9 @@ public:
   int ncmds = 0;                // number of commands run previously
   void *tag_data = nullptr;     // saved tag data
   int tag_data_size = 0;        // size of tag data
+
+  // ---- TAG_WARPFIELD_DTFMT ----
+  int warpFieldFormat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
 
   // ---- image buffer ----
   int type;                     // image data type

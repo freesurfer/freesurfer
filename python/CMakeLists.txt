@@ -15,7 +15,12 @@ install(CODE "
 )
 
 # install the fspython script
-install(PROGRAMS fspython DESTINATION bin)
+if(APPLE_ARM64)
+   # Allow script to use local packages with the system or Apple recommended Anaconda python
+   install(PROGRAMS fspython.local DESTINATION bin RENAME fspython)
+else()
+   install(PROGRAMS fspython DESTINATION bin)
+endif()
 
 # install any package requirements
 if(INSTALL_PYTHON_DEPENDENCIES)

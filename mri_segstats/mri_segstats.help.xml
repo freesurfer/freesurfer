@@ -31,6 +31,7 @@
 
     </positional>
     <required-flagged>
+      <intro>Use one of the following to specify segmentation volume:</intro>
       <argument>--seg segvol</argument>
       <explanation>Input segmentation volume. A segmentation is a volume whose voxel values indicate a segmentation or class. This can be as complicated as a FreeSurfer automatic cortical or subcortial segmentation or as simple as a binary mask. The format of segvol can be anything that mri_convert accepts as input (eg, analyze, nifti, mgh, bhdr, bshort, bfloat).
 
@@ -57,43 +58,25 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <argument>--annot  subject hemi parc</argument>
 
 <explanation>Create a segmentation from hemi.parc.annot. subject is the name of the subject, not the full path to the subject. If parc is aparc or aparc.a2005s, then the segmentation numbers will match those in $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The numbering can also be altered with --segbase. If an input is used, it must be a surface ovelay with the same dimension as the parcellation. This functionality makes mri_segstats partially redundant with mris_anatomical_stats. If parc is a full path to an annotation, then that file is used instead. </explanation>
+      <argument>--slabel subject hemi full_path_to_label</argument>
+      <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside. Use '--label-thresh threshold' to select only those label points that have a stat value greater than threshol</explanation>
+      <argument>--o file (can also use --sum)</argument>
+      <explanation>ASCII file in which summary statistics are saved. See SUMMARY FILE below for more information.</explanation>
+    </required-flagged>
+
+    <optional-flagged>    
       <argument>--surf whitesurfname</argument>
       <explanation>Use this surface instead of ?h.white (with --annot), eg white.preaparc</explanation>
-      <argument>--slabel subject hemi full_path_to_label</argument>
-      <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside.</explanation>
       <argument>--label-thresh threshold</argument>
       <explanation>Select only those label points that have a stat value greater than threshold</explanation>
       <argument>--seg-from-input</argument>
       <explanation>Create a "segmentation" of all ones based on the size of the input. Use this when you just want to compute stats across all input voxels.</explanation>
-      <argument>--o file (can also use --sum)</argument>
-      <explanation>ASCII file in which summary statistics are saved. See SUMMARY FILE below for more information.</explanation>
-    </required-flagged>
-    <optional-flagged>
       <argument>--pv pvvol</argument>
       <explanation>Use pvvol to compensate for partial voluming. This should result in more accurate volumes. Usually, this is only done when computing anatomical statistics. Usually, the mri/norm.mgz volume is used. Not with --annot.</explanation>
-      <argument>--i invol</argument>
-      <explanation>Input volume from which to compute more statistics, including min, max, range, average, and standard deviation as measured spatially across each segmentation. The input volume must be the same size and dimension as the segmentation volume.</explanation>
       <argument>--seg-erode Nerodes</argument>
       <explanation>Erode segmentation boundaries by Nerodes.</explanation>
       <argument>--frame frame</argument>
       <explanation>Report statistics of the input volume at the 0-based frame number. Frame is 0 by default.</explanation>
-      <argument>--robust percent</argument>
-      <explanation> compute stats after excluding percent from high
-      and low values (volume reported is still full volume).</explanation>
-      <argument>--sqr</argument>
-      <explanation>compute the square of the input prior to computing stats.</explanation>
-      <argument>--sqrt</argument>
-      <explanation>compute the square root of the input prior to computing stats.</explanation>
-      <argument>--mul val</argument>
-      <explanation>multiply input by val</explanation>
-      <argument>--div val</argument>
-      <explanation>divide input by val</explanation>
-      <argument>--snr</argument>
-      <explanation>save mean/std as extra column in output table</explanation>
-      <argument>--abs</argument>
-      <explanation>compute absolute value of input before spatial average</explanation>
-      <argument>--accumulate</argument>
-      <explanation>save mean*nvoxels instead of mean</explanation>
       <argument>--ctab ctabfile</argument>
       <explanation>FreeSurfer color table file. This is a file used by FreeSurfer to specify how each segmentation index is mapped to a segmentation name and color. See $FREESURFER_HOME/FreeSurferColorLUT.txt for example. The ctab can be used to specify the segmentations to report on or simply to supply human-readable names to segmentations chosen with --id. Note: if no color table is specified and one is embedded in the segmentation, then it will use that one. See SPECIFYING SEGMENTATION IDS below.</explanation>
       <argument>--ctab-default</argument>
@@ -120,6 +103,28 @@ white surface. This is more accurate than from the aseg. The aseg values for the
       <explanation>Report on segmentations listed in the color table even if they are not found in the segmentation volume.</explanation>
       <argument>--ctab-out ctaboutput</argument>
       <explanation>Create an output color table (like FreeSurferColor.txt) with just the segmentations reported in the output.</explanation>
+
+      <intro>Input Volume options</intro>
+      <argument>--i invol</argument>
+      <explanation>Input volume from which to compute more statistics, including min, max, range, average, and standard deviation as measured spatially across each segmentation. The input volume must be the same size and dimension as the segmentation volume.</explanation>
+      <argument>--robust percent</argument>
+      <explanation> compute stats after excluding percent from high
+      and low values (volume reported is still full volume).</explanation>      
+      <argument>--sqr</argument>
+      <explanation>compute the square of the input prior to computing stats.</explanation>
+      <argument>--sqrt</argument>
+      <explanation>compute the square root of the input prior to computing stats.</explanation>
+      <argument>--mul val</argument>
+      <explanation>multiply input by val</explanation>
+      <argument>--div val</argument>
+      <explanation>divide input by val</explanation>
+      <argument>--snr</argument>
+      <explanation>save mean/std as extra column in output table</explanation>
+      <argument>--abs</argument>
+      <explanation>compute absolute value of input before spatial average</explanation>
+      <argument>--accumulate</argument>
+      <explanation>save mean*nvoxels instead of mean</explanation>
+
       <intro>Masking options</intro>
       <argument>--mask maskvol</argument>
       <explanation>Exlude voxels that are not in the mask. Voxels to be excluded are assigned a segid of 0. The mask volume may be binary or continuous.The masking criteria is set by the mask threshold, sign, frame, and invert parameters (see below). The mask volume must be the same size and dimension as the segmentation volume. If no voxels meet the masking criteria, then mri_segstats exits with an error.</explanation>

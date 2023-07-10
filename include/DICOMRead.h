@@ -27,8 +27,8 @@
 #include "dicom_objects.h"
 #include "condition.h"
 
-#include "nii_dicom.h"
-#include "nii_dicom_batch.h"
+// Forward declaration - it is defined in packages/dcm2niix/nii_dicom_batch.h
+struct MRIFSSTRUCT;
 
 #define NUMBEROFTAGS 24
 #define SHORTSIZE 16

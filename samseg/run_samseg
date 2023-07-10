@@ -8,7 +8,6 @@ import argparse
 import surfa as sf
 import gems
 
-
 # ------ Parse Command Line Arguments ------
 
 parser = argparse.ArgumentParser()
@@ -97,6 +96,7 @@ if not atlasDir:
     else:
         defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
     atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average', 'samseg', defaultAtlas)
+print('atlasDir %s' % atlasDir);
 
 # Setup the visualization tool
 visualizer = gems.initVisualizer(args.showfigs, args.movie)
@@ -199,5 +199,10 @@ _, _, _, optimizationSummary = samseg.segment(
 with open(costfile, 'a') as file:
     for multiResolutionLevel, item in enumerate(optimizationSummary):
         file.write('atlasRegistrationLevel%d %d %f\n' % (multiResolutionLevel, item['numberOfIterations'], item['perVoxelCost']))
+
+# check memory usage
+vmpeak = sf.system.vmpeak();
+if(vmpeak is not None):
+    print('run_samseg VmPeak %s' % vmpeak);
 
 timer.mark('run_samseg complete')

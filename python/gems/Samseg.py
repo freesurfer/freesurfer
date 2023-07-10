@@ -502,15 +502,50 @@ class Samseg:
         volumeOfOneVoxel = np.abs(np.linalg.det(exampleImage.transform_matrix.as_numpy_array[:3, :3]))
         volumesInCubicMm = np.sum(posteriors, axis=0) * volumeOfOneVoxel
 
-        # Write structural volumes
-        with open(os.path.join(self.savePath, 'samseg.stats'), 'w') as fid:
-            for volume, name in zip(volumesInCubicMm, names):
-                fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
-
         # Write intracranial volume
         sbtiv = icv(zip(*[names, volumesInCubicMm]))
         with open(os.path.join(self.savePath, 'sbtiv.stats'), 'w') as fid:
             fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
+
+        # Write structural volumes
+        with open(os.path.join(self.savePath, 'samseg.stats'), 'w') as fid:
+            fid.write('# Measure %s, %.6f, mm^3\n' % ('Intra-Cranial', sbtiv))
+            for volume, name in zip(volumesInCubicMm, names):
+                fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
+
+        # Write structural volumes in a csv
+        with open(os.path.join(self.savePath, 'samseg.csv'), 'w') as fid:
+            fid.write('ROI,volume_mm3,volume_ICV_x1000\n');
+            fid.write('%s,%.6f,1000\n' % ('Intra-Cranial', sbtiv))
+            for volume, name in zip(volumesInCubicMm, names):
+                fid.write('%s,%.6f,%.6f\n' % (name, volume,1000*volume/sbtiv))
+
+        # Write out a freesurfer-style stats file (good for use with asegstats2table)
+        with open(os.path.join(self.savePath, 'samseg.fs.stats'), 'w') as fid:
+            fid.write('# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated Total Intracranial Volume, %0.6f, mm^3\n'%(sbtiv));
+            # Could add other measures here like total brain volume
+            fid.write('# ColHeaders  Index SegId NVoxels Volume_mm3 StructName\n');
+            k = 0;
+            voxsize = self.voxelSpacing[0]*self.voxelSpacing[1]*self.voxelSpacing[2];
+            # Sort them by seg index like with the aseg.stats. Exclude Unknown, but keep WM and Cortex
+            seglist = [];
+            k = 0;
+            for volume, name in zip(volumesInCubicMm, names):
+                if(name == 'Unknown'): 
+                    k = k+1;
+                    continue
+                idx = fslabels[k];
+                seglist.append([idx,volume,name]);
+                k = k+1;
+            seglist.sort()
+            k = 0;
+            for seg in seglist:
+                idx = seg[0];
+                volume = seg[1];
+                name = seg[2];
+                nvox = round(volume/voxsize,2);
+                fid.write('%3d %4d %7d %9.1f %s\n' % (k+1,idx,nvox,volume,name));
+                k = k+1;
 
         return volumesInCubicMm
 

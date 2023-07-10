@@ -10,3 +10,8 @@ install_symlinks(
   samseg.talairach.lta.mrf.gca
   samseg.talairach.m3z.mrf.gca
 )
+
+add_subdirectories(
+  samseg+cc+pons+verm+charm+wmcrowns
+)
+
