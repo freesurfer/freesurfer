@@ -239,6 +239,10 @@ static int Galigned = 0;
 #define MIN_NODE_DIST (1)
 #define MIN_NODE_DIST_SQ (MIN_NODE_DIST * MIN_NODE_DIST)
 
+#if 0
+// this is replaced with two calls:
+// gcam->image.write(file);
+// gcam->atlas.write(file);
 void GCAMwriteGeom(const GCA_MORPH *gcam, znzFile file)
 {
   char buf[512];
@@ -291,6 +295,9 @@ void GCAMwriteGeom(const GCA_MORPH *gcam, znzFile file)
   znzwrite(buf, sizeof(char), 512, file);
 }
 
+// this is replaced with two calls:
+// gcam->image.read(file);
+// gcam->atlas.read(file);
 void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
 {
   // src volume info
@@ -338,6 +345,7 @@ void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
   memset(gcam->atlas.fname, 0, 512 * sizeof(char));
   znzread(gcam->atlas.fname, sizeof(char), 512, file);
 }
+#endif
 
 int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
 {
@@ -347,7 +355,7 @@ int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
   memcpy(fname_copy, fname, strlen(fname));
   
   char *ext = strrchr(fname_copy, '.');
-  printf("[DEBUG] GCAMwrite(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");
+  //printf("[DEBUG] GCAMwrite(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");
   if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
     return __m3zWrite(gcam, fname);
   else if (ext != NULL && strcmp(ext, ".mgz") == 0)
@@ -418,7 +426,10 @@ int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
     }
   }
   znzwriteInt(TAG_GCAMORPH_GEOM, file);
-  GCAMwriteGeom(gcam, file);
+  //GCAMwriteGeom(gcam, file);
+  printf("write TAG_GCAMORPH_GEOM ...\n");
+  ((VOL_GEOM*)&gcam->image)->write(file);
+  ((VOL_GEOM*)&gcam->atlas)->write(file);
 
   znzwriteInt(TAG_GCAMORPH_TYPE, file);
   znzwriteInt(gcam->type, file);
@@ -1169,15 +1180,35 @@ GCA_MORPH *GCAMread(const char *fname)
   char fname_copy[strlen(fname)+1];
   memset(fname_copy, 0, sizeof(fname_copy)); 
   memcpy(fname_copy, fname, strlen(fname));
+
+  GCA_MORPH *gcam = NULL;
   
   char *ext = strrchr(fname_copy, '.');
-  printf("[DEBUG] GCAMread(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");  
+  //printf("[DEBUG] GCAMread(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");  
   if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
-    return __m3zRead(fname);
+    gcam = __m3zRead(fname);
   else if (ext != NULL && strcmp(ext, ".mgz") == 0)
-    return __warpfieldRead(fname);
+    gcam =  __warpfieldRead(fname);
 
-  return NULL;
+  if (gcam->det > 0)  // reset gcamn->orig_area fields to be those of linear transform
+  {
+    int x, y, z;
+    double area;
+    area = gcam->spacing * gcam->spacing * gcam->spacing / gcam->det;
+    printf("setting orig areas to linear transform determinant scaled %2.2f\n", area);
+    for (x = 0; x < gcam->width; x++)
+      for (y = 0; y < gcam->height; y++)
+        for (z = 0; z < gcam->depth; z++) {
+          gcam->nodes[x][y][z].orig_area = area;
+          gcam->nodes[x][y][z].orig_area1 = area;
+          gcam->nodes[x][y][z].orig_area2 = area;
+        }
+  }
+  GCAMcomputeOriginalProperties(gcam);
+  gcamComputeMetricProperties(gcam);
+  GCAMcopyNodePositions(gcam, ORIGINAL_POSITIONS, SAVED_ORIGINAL_POSITIONS);
+  
+  return gcam;
 }
 
 GCA_MORPH *__warpfieldRead(const char *fname)
@@ -1281,7 +1312,10 @@ GCA_MORPH *__m3zRead(const char *fname)
         }
         break;
       case TAG_GCAMORPH_GEOM:
-        GCAMreadGeom(gcam, file);
+        //GCAMreadGeom(gcam, file);
+	printf("read TAG_GCAMORPH_GEOM ...\n");
+	gcam->image.read(file);
+        gcam->atlas.read(file);
         if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
           fprintf(stderr,
                   "GCAMORPH_GEOM tag found.  "
@@ -1308,6 +1342,7 @@ GCA_MORPH *__m3zRead(const char *fname)
 
   znzclose(file);
 
+#if 0  // moved to GCAMread() so that it can also be run after reading mgz warp
   if (gcam->det > 0)  // reset gcamn->orig_area fields to be those of linear transform
   {
     int x, y, z;
@@ -1325,6 +1360,7 @@ GCA_MORPH *__m3zRead(const char *fname)
   GCAMcomputeOriginalProperties(gcam);
   gcamComputeMetricProperties(gcam);
   GCAMcopyNodePositions(gcam, ORIGINAL_POSITIONS, SAVED_ORIGINAL_POSITIONS);
+#endif
 
   return (gcam);
 }

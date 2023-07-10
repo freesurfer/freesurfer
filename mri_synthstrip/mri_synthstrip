@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python 
 
 import os
 import sys
 import argparse
+import scipy
 
 ref = '''
 If you use SynthStrip in your analysis, please cite:
@@ -235,6 +236,15 @@ for f in range(image.nframes):
     with torch.no_grad():
         input_tensor = torch.from_numpy(conformed.data[np.newaxis, np.newaxis]).to(device)
         sdt = model(input_tensor).cpu().numpy().squeeze()
+
+    max_dist = sdt.max().astype(int)
+    if args.border >= max_dist:
+        print(f'specified border {args.border} greater than max dtrans {max_dist} - computing sdt')
+        dif = args.border - (max_dist-1)
+        mask1 = (sdt >= (max_dist-1))  # region that original sdt has real distances
+        dtrans = scipy.ndimage.morphology.distance_transform_edt(mask1) + (max_dist-2)
+        sdt = dtrans  # negative interior distances are lost, but doesn't matter
+
 
     # unconform the sdt and extract mask
     sdt = conformed.new(sdt).resample_like(image, fill=100)

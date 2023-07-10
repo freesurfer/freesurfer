@@ -5419,7 +5419,7 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, st
 
   fread3(&vnum, fp);
   if (vnum == NEW_VERSION_MAGIC_NUMBER) {
-    // If the first 4 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
+    // If the first 3 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
     // and mri_identify() identifies it as MRI_CURV_FILE, which should be handled earlier already.
     // this should be treated as an error if it reaches here
     fclose(fp);
@@ -5429,7 +5429,7 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, st
   // looks like the file format is
   // int vnum (nvertices)
   // int fnum (nfaces)
-  // int curv x nvertices), curv recalculated as curv/100.0
+  // int curv x nvertices, curv recalculated as float curv/100.0
   // ??? is this the old curv format ???
 
   // it will also reach here for MRIS_VOLUME_FILE, MRIS_GEO_TRIANGLE_FILE, MRIS_ICO_FILE, MRIS_STL_FILE, MRIS_ANNOT_FILE, MRIS_BINARY_QUADRANGLE_FILE
@@ -5557,7 +5557,7 @@ int __mrisreadcurvoldformat(MRIS *mris, const char *fname, MRI *curvmri)
   fread3(&vnum, fp);
   /*
    * if (vnum == NEW_VERSION_MAGIC_NUMBER) {
-   *  // If the first 4 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
+   *  // If the first 3 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
    *  // and mri_identify() identifies it as MRI_CURV_FILE, which should be handled earlier already.
    *  // this should be treated as an error if it reaches here
    *  fclose(fp);

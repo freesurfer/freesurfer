@@ -60,6 +60,7 @@ class WindowLayerInfo;
 class QFileSystemWatcher;
 class DialogTransformSurface;
 class DialogMovePoint;
+class QUrl;
 
 #define MAX_RECENT_FILES    10
 
@@ -326,6 +327,9 @@ protected:
   void resizeEvent  (QResizeEvent * event);
   void moveEvent    (QMoveEvent * event);
   void showEvent    (QShowEvent * event);
+  void dropEvent  (QDropEvent* event);
+  void dragEnterEvent (QDragEnterEvent *event);
+
   void LoadVolumeFile(  const QString& filename,
                         const QString& reg_filename = "",
                         bool bResample = false,
@@ -659,6 +663,8 @@ private:
   void UpdateSyncIds(bool bAdd = true);
 
   void TileWindow(int n);
+
+  bool IsAcceptableUrl(const QUrl &url, int url_type = -1);
 
   int m_nViewLayout;
   int m_nMainView;

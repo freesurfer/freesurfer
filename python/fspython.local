@@ -3,22 +3,30 @@
 # check for freesurfer home
 [ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
 
-# point to freesurfer-installed packages and make sure that PYTHONPATH is entirely
-# overwritten, since we don't want any user packages to interfere with things
-export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+if [ ! -e "${FREESURFER_HOME}/python/bin/python3" ]; then
+    echo "error: fspython has not been configured correctly - \$FREESURFER_HOME/python/bin/python3 does not exist"
+    exit 1
+fi
 
-# futhermore, prevent local user packages from being accessed in fspython
+# Installation of miniconda for Apple arm64 has already provided python3 above
+# as a relative soft link to arm64 python with Apple tensorflow, etc.
+conda_path=`readlink ${FREESURFER_HOME}/python/bin/python3 | sed 's;^\.\.\/;;' | sed 's;\/bin\/python3$;;'`
+conda_pkgs="${FREESURFER_HOME}/python/${conda_path}/lib/python3.8/site-packages"
+
+# Append conda site packages to PYTHOMPATH
+#
+# export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+export PYTHONPATH=${FREESURFER_HOME}/python/packages:"${conda_pkgs}"
+
+# furthermore, prevent local user packages from being accessed in fspython
 # since we want a very isolated environment
-### export PYTHONNOUSERSITE=1
-### unset PYTHONUSERBASE
+# export PYTHONNOUSERSITE=1
+# unset PYTHONUSERBASE
 
 # don't check for pip upgrades, since it confuses people
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# run python
-if [ -e "${FREESURFER_HOME}/python/bin/python3" ]; then
-    exec ${FREESURFER_HOME}/python/bin/python3 "$@"
-else
-    echo "error: fspython has not been configured correctly - \$FREESURFER_HOME/python/bin/python3 does not exist"
-    exit 1
-fi
+# explicitly run python from FS distribution overrding what may be in PATH
+exec ${FREESURFER_HOME}/python/bin/python3 "$@"
+# exec /usr/bin/python3 "$@"
+
