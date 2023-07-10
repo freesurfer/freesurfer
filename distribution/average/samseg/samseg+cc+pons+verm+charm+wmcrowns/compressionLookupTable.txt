@@ -21,7 +21,7 @@
 3 20 Left-Cerebral-Cortex 205 62 78 255
 184 21 Right-Vermis-Area 119 100 176 255
 66 22 Right-WMCrowns 215 215 255 255
-267 23 Pons 122 186 220 255
+267 23 Pons-Belly-Area 122 186 220 255
 34 24 Left-WMCrowns 225 225 255 255
 41 25 Right-Cerebral-White-Matter 245 245 245 255
 2 26 Left-Cerebral-White-Matter 245 245 245 255
