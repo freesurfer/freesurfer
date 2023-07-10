@@ -83,4 +83,4 @@ voxelmorph==0.2
 wheel==0.40.0
 wrapt==1.15.0
 xxhash==3.2.0
-zipp==3.15.0
+zipp==3.16.0
