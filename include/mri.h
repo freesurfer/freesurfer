@@ -171,6 +171,8 @@ MATRIX *MRIxfmCRS2XYZtkreg( const VOL_GEOM *mri );      // TkReg  Vox2RAS Matrix
 MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg);
 MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras);
 
+// transform.cpp::initVolGeom(VOL_GEOM *) : valid = 0; width = height = depth = 256
+// VOL_GEOM doesn’t initialize valid, width, height, depth
 struct VOL_GEOM
 {
   // NOTE: VOL_GEOM is subclassed by MRI, so take that into account when changing

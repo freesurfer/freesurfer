@@ -131,6 +131,7 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
   MATRIX *atlas_CRS0 = MatrixAlloc(4, 1, MATRIX_REAL);  
   MATRIX *atlas_RAS0 = MatrixAlloc(4, 1, MATRIX_REAL); 
   
+  // ??? what about gcamn->invalid ???
   int out_of_gcam_count = 0;
   for (int c = 0; c < __warpmap->width; c++)
   {
@@ -433,6 +434,7 @@ GCA_MORPH *Warpfield::read(const char *fname)
   if (gcam == NULL)
     return NULL;
   
+  // ???gcam->det = 1;
   gcam->type = GCAM_VOX;  
   gcam->image = __warpmap->gcamorph_image_vg;
   gcam->atlas = __warpmap->gcamorph_atlas_vg;
@@ -463,6 +465,9 @@ GCA_MORPH *Warpfield::read(const char *fname)
 	gcamn->xn = c;
         gcamn->yn = r;
         gcamn->zn = s;
+
+	// ??? mark invalid for each node
+	// gcamn->invalid = GCAM_POSITION_INVALID, GCAM_AREA_INVALID, GCAM_VALID
 	
 	if (__warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS ||
 	    __warpmap->warpFieldFormat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS)
@@ -533,6 +538,8 @@ int Warpfield::write(const char *fname)
   __warpmap->setWarpfieldMeta(__mgzVersion, __dataformat);
   __warpmap->setGCAMorphGeom(__imageVG, __atlasVG);
 
+  // ??? gcam->spacing, gcam->exp_k ???
+  
   int ret = MRIwrite(__warpmap, fname);
   if (ret)
     printf("ERROR: Warpfield::write(%s)\n", fname);
