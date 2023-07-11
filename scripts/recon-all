@@ -37,6 +37,7 @@ set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
 setenv FS_LOAD_DWI 0 # turn off trying to load DWI
+if($?FS_GII == 0) setenv FS_GII ""
 
 # commands to only process single hemispheres (e.g. for ex vivo)
 set LHonly = 0 ;
@@ -3491,8 +3492,8 @@ if($DoFix && ( ! $longitudinal )) then
       # multiple threads so force it to use a single thread. The
       # non-deterministicness only happens on 3 of the buckner 40, so
       # not every time, and not most of the time.
-      set cmd = (mris_fix_topology -threads 1 -mgz -sphere qsphere.nofix \
-        -inflated inflated.nofix -orig orig.nofix -out $origsurf)
+      set cmd = (mris_fix_topology -threads 1 -mgz -sphere qsphere.nofix$FS_GII \
+        -inflated inflated.nofix$FS_GII -orig orig.nofix$FS_GII -out $origsurf)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -3514,7 +3515,7 @@ if($DoFix && ( ! $longitudinal )) then
 
     foreach hemi ($hemilist)
       # check if total defect index != 0, meaning, euler # != 2 (surface bad)
-      set cmd = (mris_euler_number ../surf/$hemi.$origsurf)
+      set cmd = (mris_euler_number ../surf/$hemi.$origsurf$FS_GII)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $cmd >& mris_euler_number.${hemi}.log
@@ -3531,7 +3532,7 @@ if($DoFix && ( ! $longitudinal )) then
           set NewTopoFixHemiList = ($NewTopoFixHemiList $hemi)
           set UseOldTopoFix = 0
           # cannot use the failed ?h.orig surface, must revert to ?.orig.nofix
-          set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.$origsurf)
+          set cmd = (cp ../surf/$hemi.orig.nofix$FS_GII ../surf/$hemi.$origsurf$FS_GII)
           echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
           if($RunIt) $cmd |& tee -a $LF
           if($status) goto error_exit;
@@ -7986,6 +7987,8 @@ arg3err:
 #-------------------------------------------------#
 check_params:
 #-------------------------------------------------#
+  if($UseGifti) setenv FS_GII .gii
+
   if($DoT2pial && $DoFLAIRpial) then
     echo "Cannot specify both T2 and FLAIR for pial correction."
     goto error_exit;
