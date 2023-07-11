@@ -8113,8 +8113,10 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     // if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-    sprintf(tmpstr,"%s_labels",defectbase);
-    MRISwriteCurvature(mris, tmpstr);
+    const char *cc = "";
+    if(getenv("FS_GII")) cc = getenv("FS_GII");
+    sprintf(tmpstr,"%s_labels%s",defectbase,cc);
+    MRISwriteCurvature(mris, tmpstr,"defect_labels");
     for (i = 0; i < dl->ndefects; i++) {
       defect = &dl->defects[i];
       for (n = 0; n < defect->nborder; n++) {
@@ -8125,8 +8127,8 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     // if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-    sprintf(tmpstr,"%s_borders",defectbase);
-    MRISwriteCurvature(mris, tmpstr);
+    sprintf(tmpstr,"%s_borders%s",defectbase,cc);
+    MRISwriteCurvature(mris, tmpstr,"defect_borders");
     for (i = 0; i < dl->ndefects; i++) {
       defect = &dl->defects[i];
       for (n = 0; n < defect->nchull; n++) {
@@ -8143,8 +8145,8 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     // if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-    sprintf(tmpstr,"%s_chull",defectbase);
-    MRISwriteCurvature(mris, tmpstr);
+    sprintf(tmpstr,"%s_chull%s",defectbase,cc);
+    MRISwriteCurvature(mris, tmpstr,"defect_chull");
   }
   if (topology_fixing_exit_after_diag) {
     return (NULL);
@@ -12643,7 +12645,9 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       if (i == 0 && Gdiag & 0x1000000) {
         int i;
         char fname[STRLEN];
-        int req = snprintf(fname, STRLEN, "%s_defect%d_%03d", mris->fname.data(), dno - 1, sno++); 
+	const char *cc = "";
+	if(getenv("FS_GII")) cc = getenv("FS_GII");
+        int req = snprintf(fname, STRLEN, "%s_defect%d_%03d%s", mris->fname.data(), dno - 1, sno++,cc); 
 	if( req >= STRLEN ) {
 	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
 	}
