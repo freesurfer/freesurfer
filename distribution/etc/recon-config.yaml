@@ -143,4 +143,9 @@ SkipDone:
     action: enable
     descr: When recon-all.done exists and recon-all.error does not exist, do not process
     
+UseGifti:
+    value: False
+    flags: -gii
+    action: enable
+    descr: Use GIFTI (.gii) output. Experimental.
 
