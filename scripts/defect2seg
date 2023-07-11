@@ -6,6 +6,7 @@ endif
 
 set VERSION = 'defect2seg @FS_VERSION@';
 set scriptname = `basename $0`
+if($?FS_GII == 0) setenv FS_GII ""
 
 set subject = ();
 set lhsurf = ();
@@ -288,14 +289,14 @@ if($#subject)then
      set outputseg = $sd/mri/rh.surface.defects.mgz
   endif
   if($DoLH) then
-    set lhsurf     = $sd/surf/lh.orig.nofix
-    set lhdefects  = $sd/surf/lh.defect_labels
+    set lhsurf     = $sd/surf/lh.orig.nofix$FS_GII
+    set lhdefects  = $sd/surf/lh.defect_labels$FS_GII
     set lhpointset = $sd/surf/lh.defects.pointset
     set lhoffset   = 1000
   endif
   if($DoRH) then
-    set rhsurf     = $sd/surf/rh.orig.nofix
-    set rhdefects  = $sd/surf/rh.defect_labels
+    set rhsurf     = $sd/surf/rh.orig.nofix$FS_GII
+    set rhdefects  = $sd/surf/rh.defect_labels$FS_GII
     set rhpointset = $sd/surf/rh.defects.pointset
     set rhoffset   = 2000
   endif
