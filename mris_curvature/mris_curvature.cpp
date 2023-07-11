@@ -76,7 +76,7 @@ int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)  ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN],
+  char         **av, *in_fname,fname[STRLEN],curv_name[STRLEN],hemi[10], path[STRLEN],
                name[STRLEN],*cp ;
   int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
@@ -244,7 +244,7 @@ main(int argc, char *argv[])
       int req = snprintf(fname, STRLEN, "%s/%s%s.ratio", path,name,suffix) ;
       if( req >= STRLEN ) {
 	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-    }
+      }
       fprintf(stderr, "writing curvature ratio to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -381,6 +381,8 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
+      snprintf(curv_name, STRLEN, "%s%s.K%s", name, suffix,output_type) ;
+      MRISwriteCurvature(mris, fname,curv_name) ;
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
       if (cthresh > 0)
@@ -397,7 +399,8 @@ main(int argc, char *argv[])
 	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
-      MRISwriteCurvature(mris, fname) ;
+      snprintf(curv_name, STRLEN, "%s%s.H%s", name, suffix,output_type) ;
+      MRISwriteCurvature(mris, fname,curv_name) ;
 
       // write k1 and k2
       //MRI *mritmp = MRIcopyMRIS(NULL, mris, 0, "k1");
