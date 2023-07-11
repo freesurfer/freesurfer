@@ -1590,12 +1590,12 @@ static void insertCommonMetaData(giiMetaData *md)
 int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const char *curv_fname)
 {
   if (NULL == mris || NULL == out_fname) {
-    fprintf(stderr, "MRISwriteGIFTI: invalid parameter\n");
+    fprintf(stderr, "MRISwriteGIFTI: invalid parameter, surf or fname is NULL\n");
     return ERROR_BADPARM;
   }
 
   if (intent_code == NIFTI_INTENT_SHAPE && NULL == curv_fname) {
-    fprintf(stderr, "MRISwriteGIFTI: invalid parameter: curv_fname is NULL\n");
+    printf("MRISwriteGIFTI: invalid parameter: curv_fname is NULL %s:%d\n", __FILE__, __LINE__);
     return ERROR_BADPARM;
   }
 
@@ -1824,11 +1824,11 @@ int MRISwriteGIFTIShape(MRIS *mris, gifti_image *image, int intent_code, const c
 {
     // ??? input mris should have curvature information ???
     /// ??? why read again ??? 
-    if (MRISreadCurvatureFile(mris, curv_fname)) {
-      fprintf(stderr, "MRISwriteGIFTIShape: couldn't read %s\n", curv_fname);
-      gifti_free_image(image);
-      return ERROR_BADFILE;
-    }
+    //if (MRISreadCurvatureFile(mris, curv_fname)) {
+    //  fprintf(stderr, "MRISwriteGIFTIShape: couldn't read %s\n", curv_fname);
+    //  gifti_free_image(image);
+    //  return ERROR_BADFILE;
+    //}
 
     giiDataArray *shape = gifti_alloc_and_add_darray(image);
     if (NULL == shape) {
