@@ -11217,8 +11217,10 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
           znzTAGreadFloat(&(mri->FieldStrength), fp);
           break;
 
-        case TAG_WARPFIELD_DTFMT:
+        case TAG_GCAMORPH_META:
           mri->warpFieldFormat = znzreadInt(fp);
+	  mri->gcamorphSpacing = znzreadInt(fp);
+	  mri->gcamorphExp_k   = znzreadFloat(fp);
           break;
 
         case TAG_GCAMORPH_GEOM:
@@ -11491,9 +11493,11 @@ int mghWrite(MRI *mri, const char *fname, int frame)
     mri->gcamorph_image_vg.vgprint();
     mri->gcamorph_atlas_vg.vgprint();
 
-    // output TAG_WARPFIELD_DTFMT
-    znzwriteInt(TAG_WARPFIELD_DTFMT, fp);
+    // output TAG_GCAMORPH_META
+    znzwriteInt(TAG_GCAMORPH_META, fp);
     znzwriteInt(mri->warpFieldFormat, fp);
+    znzwriteInt(mri->gcamorphSpacing, fp);
+    znzwriteFloat(mri->gcamorphExp_k, fp);
 
     znzclose(fp);
 

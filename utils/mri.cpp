@@ -394,10 +394,12 @@ void MRI::write(const std::string& filename)
 
 
 // set warpfield metadata
-void MRI::setWarpfieldMeta(int version0, int warpFieldFormat0)
+void MRI::setWarpfieldMeta(int version0, int warpFieldFormat0, int spacing0, double exp_k0)
 {
   version = version0;
   warpFieldFormat = warpFieldFormat0;
+  gcamorphSpacing = spacing0;
+  gcamorphExp_k   = exp_k0;
 }
 
 // set gcamorph image/atlas vol geom

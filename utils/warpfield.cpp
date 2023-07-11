@@ -6,6 +6,7 @@
 #include "gcamorph.h"
 #include "matrix.h"
 #include "mri_circulars.h"
+#include "mri_identify.h"
 
 /* This class implements methods
  *   1. reads mgz warp file into GCAM
@@ -14,14 +15,25 @@
  *
  * The warp file follows mgz format with these tags:
  *   TAG_GCAMORPH_GEOM   followed by gcamorph image (source) geom and gcamorph atlas (target) geom
- *   TAG_WARPFIELD_DTFMT followed by one of these - WARPFIELD_DTFMT_ABS_CRS|WARPFIELD_DTFMT_DISP_CRS|WARPFIELD_DTFMT_ABS_RAS|WARPFIELD_DTFMT_DISP_RAS
+ *   TAG_GCAMORPH_META   followed by 
+ *         WARPFIELD_DTFMT_ABS_CRS|WARPFIELD_DTFMT_DISP_CRS|WARPFIELD_DTFMT_ABS_RAS|WARPFIELD_DTFMT_DISP_RAS
+ *         spacing (int)
+ *         exp_k   (double)
  * 
- * The 3-D data array is indexed by atlas crs.
- * Here are the values for the 4 data formats supported: 
- *   WARPFIELD_DTFMT_ABS_CRS   - crs coordinates in image space
- *   WARPFIELD_DTFMT_DISP_CRS  - displacement crs, delta = image_crs - atlas_crs
- *   WARPFIELD_DTFMT_ABS_RAS   - ras coordinates in image space
- *   WARPFIELD_DTFMT_DISP_RAS  - displacement ras, delta = image_ras - atlas_ras
+ * The data array (width x height x depth x nframes) is indexed by atlas CRS.
+ *     frame 0 - image voxel ABS coordinate C, image voxel DISP coordinate C, 
+ *               RAS ABS coordinate X, or RAS DISP coordinate X
+ *     frame 1 - image voxel ABS coordinate R, image voxel DISP coordinate R,
+ *               RAS ABS coordinate Y, or RAS DISP coordinate Y
+ *     frame 2 - image voxel ABS coordinate S, image voxel DISP coordinate S,
+ *               RAS ABS coordinate Z, or RAS DISP coordinate Z
+ *     frame 3 - label data (optional)
+ *
+ * Here are the 4 data formats supported:
+ *     WARPFIELD_DTFMT_ABS_CRS   - CRS coordinates in image space
+ *     WARPFIELD_DTFMT_DISP_CRS  - displacement CRS, delta = image_CRS - atlas_CRS
+ *     WARPFIELD_DTFMT_ABS_RAS   - RAS coordinates in image space
+ *     WARPFIELD_DTFMT_DISP_RAS  - displacement RAS, delta = image_RAS - atlas_RAS
  */
 
 // constructor
@@ -31,6 +43,9 @@ Warpfield::Warpfield()
   __warpmap = NULL;  __warpmap_inv = NULL;
   __invert = 0;
   __mgzVersion = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION;
+
+  __spacing = 1;
+  __exp_k = 0.0;
   __dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
   
   __srcRAS2Vox = NULL;
@@ -68,14 +83,13 @@ int Warpfield::convert(const char *fname, const int dataformat, int doGCAMsample
     exit(1);
   }
   
-  // ??? check if it is always in mgz warp format ???
-  int type = TransformFileNameType((char *)fname);
-  if (type != MORPH_3D_TYPE)
+  int type = mri_identify(fname);
+  if (type != MGH_MORPH)  // .m3z/.m3d
   {
-    printf("ERROR: %s is not in m3z format\n", fname);
+    printf("[ERROR] Warpfield::convert(): %s is not in m3z format\n", fname);
     exit(1);
   }
-    
+
   GCA_MORPH *gcam = GCAMread(fname);
 
   return convert(gcam, __dataformat);
@@ -87,6 +101,7 @@ int Warpfield::convert(const char *fname, const int dataformat, int doGCAMsample
 //   MRI *GCAMwriteWarpToMRI(const GCA_MORPH *gcam, MRI *mri_warp);         (gcamorph.cpp)
 //   void write_world(const string& fname, GCAM* gcam, bool is_lps=false);  (mri_warp_convert.cpp)
 //   void write_voxel(const string& fname, GCAM* gcam);                     (mri_warp_convert.cpp)
+//   MRI *GCAMtoMRI(GCAM *gcam, MRI *mri);                                  (gcamorph.cpp)
 int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMorph)
 {
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
@@ -114,11 +129,15 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
   // create MRI using gcam dimensions
   // copy geom from gcam->atlas to __warpmap (width, height, deph are not copied)
   // gcam->image vol geom and gcam->atlas vol geom will be saved in mgz under TAG_GCAMORPH_GEOM
-  __warpmap = new MRI({gcam->width, gcam->height, gcam->depth, 3}, MRI_FLOAT);
+  __warpmap = new MRI({gcam->width, gcam->height, gcam->depth, 4}, MRI_FLOAT);
   MRIcopyVolGeomToMRI(__warpmap, &gcam->atlas);
   //__warpmap = new MRI(gcam->atlas, MRI_FLOAT, 3, 0);  //__warpmap = new MRI({gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, 3}, MRI_FLOAT);
-  __dataformat = dataformat;
 
+  // TAG_GCAMORPH_META
+  __dataformat = dataformat;
+  __spacing = gcam->spacing;
+  __exp_k   = gcam->exp_k;
+  
   // pre-calulated transform matrix
   __srcRAS2Vox = gcam->image.get_RAS2Vox();
   __srcVox2RAS = gcam->image.get_Vox2RAS();
@@ -158,6 +177,8 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
 	  frs = gcam->nodes[c][r][s].y;
 	  fss = gcam->nodes[c][r][s].z;
 	}
+
+	MRIsetVoxVal(__warpmap, c, r, s, 3, gcam->nodes[c][r][s].label);
 	
         if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS)
         {
@@ -261,19 +282,22 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
 
 
 // invert M3z into 3-fram MRI warp map
+// !!!It has not been tested!!!
 int Warpfield::invert(const char *fname, const int dataformat)
 {
+  printf("Warpfield::invert(const char*, const int) is not implemented\n");
+  return 0;
+
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
     printf("ERROR: unknown dataformat\n");
     exit(1);
   }
   
-  // ??? check if it is always in mgz warp format ??? 
-  int type = TransformFileNameType((char *)fname);
-  if (type != MORPH_3D_TYPE)
+  int type = mri_identify(fname);
+  if (type != MGH_MORPH)  // .m3z/.m3d
   {
-    printf("ERROR: %s is not in m3z format\n", fname);
+    printf("[ERROR] Warpfield::invert() %s is not in m3z format\n", fname);
     exit(1);
   }
     
@@ -283,8 +307,12 @@ int Warpfield::invert(const char *fname, const int dataformat)
 }
 
 // invert GCAM
+// !!!It has not been tested!!!
 int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 {
+  printf("Warpfield::invert(GCA_MORPH*, const int) is not implemented\n");
+  return 0;
+    
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
     printf("ERROR: unknown dataformat\n");
@@ -313,8 +341,10 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
   MRIfree(&tempMri);
 
   // create MRI using image vol_geom
-  __warpmap = new MRI(gcam->image, MRI_FLOAT, 3, 0);
+  __warpmap = new MRI(gcam->image, MRI_FLOAT, 4, 0);
   __dataformat = dataformat;
+  __spacing = gcam->spacing;
+  __exp_k   = gcam->exp_k;
 
   // pre-calculated transform matrix
   __srcRAS2Vox = gcam->image.get_RAS2Vox();
@@ -340,6 +370,8 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 	int out_of_gcam = GCAMsampleInverseMorph(gcam, (float)c, (float)r, (float)s, &fct, &frt, &fst);
 	if (out_of_gcam)
 	  continue;
+
+	MRIsetVoxVal(__warpmap, c, r, s, 3, gcam->nodes[c][r][s].label);
 	
         if (__dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS)
         {
@@ -413,28 +445,43 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 //   GCAM* read_world(const string& warp_file, const string& src_geom, bool is_lps=false);  (mri_warp_convert.cpp)
 //       [origx, origy, origz], [xn, yn, zn] are set to dst [c, r, s]
 GCA_MORPH *Warpfield::read(const char *fname)
-{  
+{
+  int type = mri_identify(fname);
+  if (type != MRI_MGH_FILE)
+  {
+    printf("[ERROR] Warpfield::read(): %s is not in mgz format\n", fname);
+    return NULL;
+  }
+  
+  // the function doesn't handle invert warp
   __mgzVersion = ((MGZ_WARPMAP & 0xff ) << 8) | MGH_VERSION;
 
-  // ??? make sure it is .mgz ???
-  __warpmap = MRIread(fname);
+  __warpmap = mghRead(fname);
   if (__warpmap == NULL)
   {
-    printf("ERROR: Warpfield::read(%s)\n", fname);
+    printf("[ERROR] Warpfield::read() failed reading %s\n", fname);
     return NULL;
   }
 
   if (__warpmap->version != __mgzVersion)
   {
-    printf("ERROR: %s is not mgz warp file\n", fname);
+    printf("[ERROR] %s is not mgz warp file\n", fname);
     return NULL;
   }
+
+  // TAG_GCAMORPH_META
+  __dataformat = __warpmap->warpFieldFormat;
+  __spacing = __warpmap->gcamorphSpacing;
+  __exp_k   = __warpmap->gcamorphExp_k;
   
   GCA_MORPH *gcam = GCAMalloc(__warpmap->width, __warpmap->height, __warpmap->depth);
   if (gcam == NULL)
     return NULL;
   
-  // ???gcam->det = 1;
+  gcam->det = 1;
+  gcam->spacing = __spacing;
+  gcam->exp_k   = __exp_k;
+  
   gcam->type = GCAM_VOX;  
   gcam->image = __warpmap->gcamorph_image_vg;
   gcam->atlas = __warpmap->gcamorph_atlas_vg;
@@ -466,6 +513,9 @@ GCA_MORPH *Warpfield::read(const char *fname)
         gcamn->yn = r;
         gcamn->zn = s;
 
+	if (__warpmap->nframes > 3)
+          gcamn->label = (int)MRIgetVoxVal(__warpmap, c, r, s, 3);
+	
 	// ??? mark invalid for each node
 	// gcamn->invalid = GCAM_POSITION_INVALID, GCAM_AREA_INVALID, GCAM_VALID
 	
@@ -535,12 +585,10 @@ int Warpfield::write(const char *fname)
     __mgzVersion = ((MGZ_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION;
 
   //printf("[DEBUG] Warpfield::write(): __mgzVersion = %d\n", __mgzVersion);
-  __warpmap->setWarpfieldMeta(__mgzVersion, __dataformat);
+  __warpmap->setWarpfieldMeta(__mgzVersion, __dataformat, __spacing, __exp_k);
   __warpmap->setGCAMorphGeom(__imageVG, __atlasVG);
 
-  // ??? gcam->spacing, gcam->exp_k ???
-  
-  int ret = MRIwrite(__warpmap, fname);
+  int ret = mghWrite(__warpmap, fname);
   if (ret)
     printf("ERROR: Warpfield::write(%s)\n", fname);
   

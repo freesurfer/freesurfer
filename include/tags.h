@@ -32,6 +32,7 @@
 #define TAG_GCAMORPH_GEOM           10
 #define TAG_GCAMORPH_TYPE           11
 #define TAG_GCAMORPH_LABELS         12
+#define TAG_GCAMORPH_META           13
 
 #define TAG_OLD_SURF_GEOM           20
 #define TAG_SURF_GEOM               21
@@ -48,7 +49,6 @@
 #define TAG_FIELDSTRENGTH           43
 #define TAG_ORIG_RAS2VOX            44
 
-#define TAG_WARPFIELD_DTFMT         45
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;

@@ -28,6 +28,7 @@ public:
   int convert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, int doGCAMsampleMorph=0);
   int convert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, int doGCAMsampleMorph=0);
 
+  // !!!invert functions have not been tested!!!
   // invert M3z into 3-fram MRI warp map
   int invert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
   int invert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
@@ -44,7 +45,12 @@ public:
 
 private:
   int __mgzVersion;               // mgz version
-  int __dataformat;               // WarpfieldDT
+
+  // TAG_GCAMORPH_META
+  int __dataformat;               // WarpfieldDT  
+  int __spacing;                  // spacing in GCA_MORPH (is this same as as voxel size? xsize, ysize, zsize)
+  double __exp_k;                 // exp_k in GCA_MORPH
+  
   int __invert;                   // __warpmap is inverted
   
   MATRIX *__srcRAS2Vox;           // source ras2vox

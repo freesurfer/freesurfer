@@ -440,7 +440,7 @@ public:
 
   // set warpfield metadata
   // this method will be called from class Warpfield
-  void setWarpfieldMeta(int version0, int warpFieldFormat0);
+  void setWarpfieldMeta(int version0, int warpFieldFormat0, int spacing0, double exp_k0);
   void setGCAMorphGeom(const VOL_GEOM *image_vg, const VOL_GEOM *atlas_vg);
 
   // ---- image geometry ----
@@ -526,8 +526,10 @@ public:
   void *tag_data = nullptr;     // saved tag data
   int tag_data_size = 0;        // size of tag data
 
-  // ---- TAG_WARPFIELD_DTFMT ----
+  // ---- TAG_GCAMORPH_META ----
   int warpFieldFormat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
+  int gcamorphSpacing;                  // spacing in GCA_MORPH
+  double gcamorphExp_k;                 // exp_k in GCA_MORPH
 
   // ---- image buffer ----
   int type;                     // image data type
@@ -1738,8 +1740,8 @@ MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
 MATRIX *GetSurfaceRASToVoxelMatrix(VOL_GEOM *mri);
 
 // functions read/write MRI_MGH_FILE
-MRI *mghRead(const char *fname, int read_volume, int frame);
-int mghWrite(MRI *mri, const char *fname, int frame);
+MRI *mghRead(const char *fname, int read_volume=TRUE, int frame=-1);
+int mghWrite(MRI *mri, const char *fname, int frame=-1);
 
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC

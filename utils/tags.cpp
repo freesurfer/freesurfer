@@ -210,7 +210,7 @@ int znzTAGreadStart(znzFile fp, long long *plen)
     case TAG_OLD_SURF_GEOM:  // these don't take lengths at all
     case TAG_OLD_USEREALRAS:
     case TAG_OLD_COLORTABLE:
-    case TAG_WARPFIELD_DTFMT:
+    case TAG_GCAMORPH_META:
     case TAG_GCAMORPH_GEOM:
       *plen = 0;
       break;
