@@ -145,6 +145,12 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   Progname = argv[0] ;
 
+  // Turn on using MRIStessellate() if FS_GII, otherwise mri_tessellate has
+  // it's own routine to write out a surface that will use the old format.
+  // This can be turned off with -no-new
+  char *cc = getenv("FS_GII");
+  if(cc && strcmp(cc,".gii")==0) UseMRIStessellate = 1;
+
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -187,6 +193,11 @@ int main(int argc, char *argv[])
     sscanf(argv[2],"%d",&value);  // this assumes that argv[2]
     // can be changed to int
     sprintf(ofpref,"%s",argv[3]); // this assumes argv[3] is the file
+  }
+
+  if(UseMRIStessellate){
+    printf("Using MRIStessellate()\n");
+    if(cc && strcmp(cc,".gii")==0) printf("FS_GII set to .gii\n");
   }
 
   // passing dir/COR-
@@ -613,6 +624,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
   }
   else if (!stricmp(option, "new")) UseMRIStessellate=1;
+  else if (!stricmp(option, "no-new")) UseMRIStessellate=0;
   else switch (toupper(*option))
     {
     case 'H':

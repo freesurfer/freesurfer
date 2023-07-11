@@ -45,6 +45,10 @@
       <explanation>set the max # of vertices to nverttices, and the max # of faces to (2*nvertices)</explanation>
       <argument>-n</argument>
       <explanation>save surface with real RAS coordinates where c_(r,a,s) != 0</explanation>
+      <argument>-new</argument>
+      <explanation>Use MRItessellate() function; this will be done automatically when FS_GII is set to .gii. Turn off with -no-new</explanation>
+      <argument>-no-new</argument>
+      <explanation>Do not use MRItessellate() function (can be used to turn of when FS_GII is set to .gii</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
