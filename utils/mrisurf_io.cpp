@@ -2579,6 +2579,22 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   else if (type == MRIS_ICO_FILE) {
     return (ICOreadVertexPositions(mris, fname, CURRENT_VERTICES));
   }
+  else if (type == MRIS_GIFTI_FILE) {
+    printf("Reading %s as a gii file\n",fname);
+    MRIS *gsurf = MRISread(fname);
+    if(gsurf==NULL) return(1);
+    if(gsurf->nvertices != mris->nvertices){
+      printf("MRISreadVertexPosition(%s): dim mismatch %d %d\n", fname,gsurf->nvertices,mris->nvertices);
+      return(1);
+    }
+    for(int vno=0; vno < mris->nvertices; vno++){
+      VERTEX *gv = &(gsurf->vertices[vno]);
+      MRISsetXYZ(mris,vno, gv->x,gv->y,gv->z);
+    }
+    return(0);
+  }
+
+  // Why not just use MRISread() here???
   fp = fopen(fname, "rb");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadVertexPosition(%s): could not open file %s", name, fname));
 
