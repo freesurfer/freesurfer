@@ -1870,6 +1870,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Left_VentralDC:
       case Right_VentralDC:
       case Brain_Stem: // was WM
+      case Spinal_Cord: //( same as brainstem)
       case 174:  // Pons,  was WM
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
@@ -1885,12 +1886,15 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
       case Optic_Chiasm:
+      case 930: // Optic-Nerve
       case Corpus_Callosum:
       case CC_Posterior:
       case CC_Mid_Posterior:
       case CC_Central:
       case CC_Mid_Anterior:
       case CC_Anterior:
+      case 34: // wmcrowns, lh
+      case 66: // wmcrowns, rh
         TT = TTWM;
         break;
 
@@ -1907,6 +1911,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Fifth_Ventricle:
       case Left_vessel:
       case Right_vessel:
+      case 914: // Vein -- putting it here as it is typically labeled as CSF
         TT = TTCSF;
         break;
     }
@@ -1922,6 +1927,8 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       if (n >= 3100 && n <= 3181) TT = TTWM;
       if (n >= 4100 && n <= 4181) TT = TTWM;
       if (n == 5001 || n == 5002) TT = TTWM;
+      if (n >= 11100 && n <= 11300) TT = TTCtxGM;
+      if (n >= 12100 && n <= 12300) TT = TTCtxGM;
     }
 
     cte->TissueType = TT;
@@ -2031,7 +2038,9 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Left_VentralDC:
       case Right_VentralDC:
       case Brain_Stem: // was WM
+      case Spinal_Cord: //( same as brainstem)
       case 174:  // Pons,  was WM
+      case 267:  // Pons-Belly-Area
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
         break;
@@ -2046,12 +2055,15 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
       case Optic_Chiasm:
+      case 930: // Optic-Nerve
       case Corpus_Callosum:
       case CC_Posterior:
       case CC_Mid_Posterior:
       case CC_Central:
       case CC_Mid_Anterior:
       case CC_Anterior:
+      case 34: // wmcrowns, lh
+      case 66: // wmcrowns, rh
         TT = TTWM;
         break;
 
@@ -2070,6 +2082,7 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Fifth_Ventricle:
       case Left_vessel:
       case Right_vessel:
+      case 914: // Vein -- putting it here as it is typically labeled as CSF
         TT = TTCSF;
         break;
 
@@ -2098,6 +2111,13 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case 262:  // Sinus
       case 263:  // Left-Eustachian
       case 264:  // Right-Eustachian
+      case 902:  //Artery
+      case 907:  //Other Tissue
+      case 908:  //Eye muscles
+      case 909:  //Mucosa
+      case 911:  //Skin
+      case 915:  //Bone-Cortical
+      case 916:  //Bone-Cancellous
         TT = TTHead;
         break;
     }
@@ -2115,6 +2135,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       if (n >= 3100 && n <= 3181) TT = TTWM;
       if (n >= 4100 && n <= 4181) TT = TTWM;
       if (n == 5001 || n == 5002) TT = TTWM;
+      if (n >= 11100 && n <= 11300) TT = TTCtxGM;
+      if (n >= 12100 && n <= 12300) TT = TTCtxGM;
     }
 
     cte->TissueType = TT;
@@ -2228,6 +2250,7 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       case Left_Accumbens_area:
       case Left_VentralDC:
       case 179:  // Floculus
+      case 183:  // Left-Vermis
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGMlh;
         break;
@@ -2241,12 +2264,15 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       case Right_Caudate:
       case Right_Accumbens_area:
       case Right_VentralDC:
+      case 184:  // Right-Vermis
         TT = TTSubCtxGMrh;
         break;
 
       case 172:  // Vermis // not clear how to laterlize
       case 174:  // Pons (now considered GM)
+      case 267:  // Pons-Belly-Area
       case Brain_Stem: //(now considered GM)
+      case Spinal_Cord: //( same as brainstem)
         TT = TTSubCtxGMmid;
         break;
 
@@ -2260,12 +2286,15 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
       case Optic_Chiasm:
+      case 930: // Optic-Nerve
       case Corpus_Callosum:
       case CC_Posterior:
       case CC_Mid_Posterior:
       case CC_Central:
       case CC_Mid_Anterior:
       case CC_Anterior:
+      case 34: // wmcrowns, lh
+      case 66: // wmcrowns, rh
         TT = TTWM;
         break;
 
@@ -2310,6 +2339,13 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       case 262:  // Sinus
       case 263:  // Left-Eustachian
       case 264:  // Right-Eustachian
+      case 902:  //Artery
+      case 907:  //Other Tissue
+      case 908:  //Eye muscles
+      case 909:  //Mucosa
+      case 911:  //Skin
+      case 915:  //Bone-Cortical
+      case 916:  //Bone-Cancellous
         TT = TTHead;
         break;
     }
@@ -2327,6 +2363,8 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       if (n >= 3100 && n <= 3181) TT = TTWM;
       if (n >= 4100 && n <= 4181) TT = TTWM;
       if (n == 5001 || n == 5002) TT = TTWM;
+      if (n >= 11100 && n <= 11300) TT = TTCtxGMlh;
+      if (n >= 12100 && n <= 12300) TT = TTCtxGMrh;
     }
 
     cte->TissueType = TT;
