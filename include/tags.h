@@ -33,6 +33,7 @@
 #define TAG_GCAMORPH_TYPE           11
 #define TAG_GCAMORPH_LABELS         12
 #define TAG_GCAMORPH_META           13
+#define TAG_GCAMORPH_XFORM          14
 
 #define TAG_OLD_SURF_GEOM           20
 #define TAG_SURF_GEOM               21
