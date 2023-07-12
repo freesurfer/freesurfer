@@ -716,6 +716,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--inm3z: " << P.in_warp << " input M3Z warp." << endl;
   }
+  else if (!strcmp(option, "INMGZWARP"))
+  {
+    if (have_input) {
+      cerr << endl << endl << "ERROR: Only one input warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_input = true;
+
+    P.in_warp = string(argv[1]);
+    P.in_type = filetypes::MGZWARP;
+    nargs = 1;
+    cout << "--inmgzwarp: " << P.in_warp << " input MGZWARP." << endl;
+  }  
   else if (!strcmp(option, "INFSL"))
   {
     if (have_input) {
