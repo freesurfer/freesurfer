@@ -618,7 +618,7 @@ int Warpfield::write(const char *fname)
 }
 
 
-// creat mgz warp with given dimensions, src/dst VOL_GEOM, dataformat
+// create mgz warp with given dimensions, src/dst VOL_GEOM, dataformat
 void Warpfield::create(int width, int height, int depth, const VOL_GEOM& srcVG, const VOL_GEOM& dstVG,
 		       int spacing, double exp_k, const MATRIX *affine, const int dataformat)
 {
