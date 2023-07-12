@@ -438,11 +438,6 @@ public:
   ITKImageType::Pointer toITKImage(int frame = 0);
   void loadITKImage(ITKImageType::Pointer image, int frame = 0);
 
-  // set warpfield metadata
-  // this method will be called from class Warpfield
-  void setWarpfieldMeta(int version0, int warpFieldFormat0, int spacing0, double exp_k0);
-  void setGCAMorphGeom(const VOL_GEOM *image_vg, const VOL_GEOM *atlas_vg);
-
   // ---- image geometry ----
   //int width;        // number of columns // Now inherited from VOL_GEOM
   //int height;       // number of rows    // Now inherited from VOL_GEOM
@@ -528,8 +523,10 @@ public:
 
   // ---- TAG_GCAMORPH_META ----
   int warpFieldFormat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
-  int gcamorphSpacing;                  // spacing in GCA_MORPH
-  double gcamorphExp_k;                 // exp_k in GCA_MORPH
+  int gcamorphSpacing  = 1;                  // spacing in GCA_MORPH
+  double gcamorphExp_k = 0.0;                // exp_k in GCA_MORPH
+
+  MATRIX *gcamorphAffine = nullptr;     // m_affine in GCA_MORPH
 
   // ---- image buffer ----
   int type;                     // image data type

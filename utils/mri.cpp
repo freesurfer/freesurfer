@@ -393,22 +393,6 @@ void MRI::write(const std::string& filename)
 }
 
 
-// set warpfield metadata
-void MRI::setWarpfieldMeta(int version0, int warpFieldFormat0, int spacing0, double exp_k0)
-{
-  version = version0;
-  warpFieldFormat = warpFieldFormat0;
-  gcamorphSpacing = spacing0;
-  gcamorphExp_k   = exp_k0;
-}
-
-// set gcamorph image/atlas vol geom
-void MRI::setGCAMorphGeom(const VOL_GEOM *image_vg, const VOL_GEOM *atlas_vg)
-{
-  gcamorph_image_vg = *image_vg;
-  gcamorph_atlas_vg = *atlas_vg;
-}
-
 /**
   Computes a hash of the MRI buffer data.
 */

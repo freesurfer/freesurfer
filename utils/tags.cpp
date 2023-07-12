@@ -212,6 +212,7 @@ int znzTAGreadStart(znzFile fp, long long *plen)
     case TAG_OLD_COLORTABLE:
     case TAG_GCAMORPH_META:
     case TAG_GCAMORPH_GEOM:
+    case TAG_GCAMORPH_AFFINE:
       *plen = 0;
       break;
     default:

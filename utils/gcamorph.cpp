@@ -427,7 +427,7 @@ int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
   }
   znzwriteInt(TAG_GCAMORPH_GEOM, file);
   //GCAMwriteGeom(gcam, file);
-  printf("write TAG_GCAMORPH_GEOM ...\n");
+  //printf("write TAG_GCAMORPH_GEOM ...\n");
   ((VOL_GEOM*)&gcam->image)->write(file);
   ((VOL_GEOM*)&gcam->atlas)->write(file);
 
@@ -444,7 +444,8 @@ int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
     }
   }
   if (gcam->m_affine) {
-    znzwriteInt(TAG_MGH_XFORM, file);
+    //printf("write gcamorph TAG_GCAMORPH_AFFINE ...\n");
+    znzwriteInt(TAG_GCAMORPH_AFFINE, file);
     // MatrixAsciiWriteInto(file, gcam->m_affine) ;
     znzWriteMatrix(file, gcam->m_affine, 0);
   }
@@ -1313,7 +1314,7 @@ GCA_MORPH *__m3zRead(const char *fname)
         break;
       case TAG_GCAMORPH_GEOM:
         //GCAMreadGeom(gcam, file);
-	printf("read TAG_GCAMORPH_GEOM ...\n");
+	//printf("read TAG_GCAMORPH_GEOM ...\n");
 	gcam->image.read(file);
         gcam->atlas.read(file);
         if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
@@ -1333,7 +1334,9 @@ GCA_MORPH *__m3zRead(const char *fname)
         }
         break;
       case TAG_MGH_XFORM:
+      case TAG_GCAMORPH_AFFINE:
         // gcam->m_affine = MatrixAsciiReadFrom(fp, NULL) ;
+	//printf("read gcamorph TAG_MGH_XFORM/TAG_GCAMORPH_AFFINE ...\n");
         gcam->m_affine = znzReadMatrix(file);
         gcam->det = MatrixDeterminant(gcam->m_affine);
         break;
