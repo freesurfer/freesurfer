@@ -80,7 +80,7 @@ GCAM *readMGZWarp(const string& mgzwarpfile)
   GCAM *gcam = warpfield->read(mgzwarpfile.c_str());
   if (gcam == NULL)
   {
-    cerr << "ERROR readM3Z: cannot read " << mgzwarpfile << endl;
+    cerr << "ERROR readMGZWarp: cannot read " << mgzwarpfile << endl;
     exit(1);
   }
   

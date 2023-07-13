@@ -71,7 +71,7 @@ Warpfield::~Warpfield()
 
 
 // convert given MGH_MORPH (.m3z/.m3d) to mgz warp
-int Warpfield::convert(const char *fname, const int dataformat, int doGCAMsampleMorph)
+MRI* Warpfield::convert(const char *fname, const int dataformat, int doGCAMsampleMorph)
 {
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
@@ -98,7 +98,7 @@ int Warpfield::convert(const char *fname, const int dataformat, int doGCAMsample
 //   void write_world(const string& fname, GCAM* gcam, bool is_lps=false);  (mri_warp_convert.cpp)
 //   void write_voxel(const string& fname, GCAM* gcam);                     (mri_warp_convert.cpp)
 //   MRI *GCAMtoMRI(GCAM *gcam, MRI *mri);                                  (gcamorph.cpp)
-int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMorph)
+MRI* Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMorph)
 {
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
@@ -285,16 +285,16 @@ int Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleMo
   MatrixFree(&atlas_CRS0);
   MatrixFree(&atlas_RAS0);
   
-  return 0;
+  return __warpmap;
 }
 
 
 // invert M3z into 3-fram MRI warp map
 // !!!It has not been tested!!!
-int Warpfield::invert(const char *fname, const int dataformat)
+MRI* Warpfield::invert(const char *fname, const int dataformat)
 {
   printf("Warpfield::invert(const char*, const int) is not implemented\n");
-  return 0;
+  return NULL;
 
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
@@ -316,10 +316,10 @@ int Warpfield::invert(const char *fname, const int dataformat)
 
 // invert GCAM
 // !!!It has not been tested!!!
-int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
+MRI* Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 {
   printf("Warpfield::invert(GCA_MORPH*, const int) is not implemented\n");
-  return 0;
+  return NULL;
     
   if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
@@ -444,7 +444,7 @@ int Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
   MatrixFree(&src_CRS0);
   MatrixFree(&src_RAS0);
   
-  return 0;
+  return __warpmap;
 }
 
 

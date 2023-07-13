@@ -651,7 +651,15 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     if (gcam == NULL) ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read .m3z\n", fname_copy));
     if (gcam->type == GCAM_RAS) GCAMrasToVox(gcam, NULL);
     if (start_frame < 0)
+    {
+#if 0
+      printf("[DEBUG] mri_read(MGH_MORPH)\n");
+      Warpfield *warpfield = new Warpfield();
+      mri = warpfield->convert((GCA_MORPH *)gcam, WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS);
+#else      
       mri = GCAMwriteWarpToMRI(gcam, NULL);
+#endif      
+    }
     else {
       printf("reading 'frame' # %d from gcam (see gcamorph.h for definitions)\n", start_frame);
       if (which == GCAM_NODEX || which == GCAM_NODEY || which == GCAM_NODEZ)

@@ -65,6 +65,8 @@
 #include "utils.h"
 #include "gcamorphtestutils.h"
 
+#include "mri_identify.h"
+
 #if WITH_DMALLOC
 #include <dmalloc.h>
 #endif
@@ -349,16 +351,12 @@ void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
 
 int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
 {
-  printf("GCAMwrite\n");
-  char fname_copy[strlen(fname)+1];
-  memset(fname_copy, 0, sizeof(fname_copy));
-  memcpy(fname_copy, fname, strlen(fname));
-  
-  char *ext = strrchr(fname_copy, '.');
-  //printf("[DEBUG] GCAMwrite(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");
-  if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
+  printf("GCAMwrite(%s)\n", fname);
+
+  int type = mri_identify(fname);
+  if (type == MGH_MORPH)
     return __m3zWrite(gcam, fname);
-  else if (ext != NULL && strcmp(ext, ".mgz") == 0)
+  else if (type == MRI_MGH_FILE)
     return __warpfieldWrite(gcam, fname);
 
   return ERROR_BADPARM;  
@@ -1178,17 +1176,12 @@ GCA_MORPH *GCAMread(const char *fname)
     return (NULL);
   }
 
-  char fname_copy[strlen(fname)+1];
-  memset(fname_copy, 0, sizeof(fname_copy)); 
-  memcpy(fname_copy, fname, strlen(fname));
-
   GCA_MORPH *gcam = NULL;
   
-  char *ext = strrchr(fname_copy, '.');
-  //printf("[DEBUG] GCAMread(): fname_copy=%s, ext=%s\n", fname_copy, (ext != NULL) ? ext : "NULL");  
-  if (ext != NULL && (strcmp(ext, ".m3d") == 0 || strcmp(ext, ".m3z") == 0))
+  int type = mri_identify(fname);
+  if (type == MGH_MORPH)
     gcam = __m3zRead(fname);
-  else if (ext != NULL && strcmp(ext, ".mgz") == 0)
+  else if (type == MRI_MGH_FILE)
     gcam =  __warpfieldRead(fname);
 
   if (gcam->det > 0)  // reset gcamn->orig_area fields to be those of linear transform
