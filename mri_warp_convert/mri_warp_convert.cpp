@@ -28,11 +28,12 @@
 #include "mri.h"
 #include "mri_circulars.h"
 #include "version.h"
+#include "warpfield.h"
 
 using namespace std;
 
 namespace filetypes {
-  enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX, RAS, SPM };
+  enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX, RAS, SPM, MGZWARP };
 }
 
 struct Parameters
@@ -40,6 +41,7 @@ struct Parameters
   string in_warp;
   string out_warp;
   string in_src_geom;
+  string mgzwarpformat;
   filetypes::FileType in_type;
   filetypes::FileType out_type;
   bool downsample;
@@ -49,13 +51,14 @@ struct Parameters
 
 
 static struct Parameters P =
-  { "", "", "", filetypes::UNKNOWN, filetypes::UNKNOWN, false,NULL,NULL};
+  { "", "", "", "abs-crs", filetypes::UNKNOWN, filetypes::UNKNOWN, false,NULL,NULL};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 const char *Progname = NULL;
 
+// input is MGH_MORPH
 GCAM* readM3Z(const string& warp_file)
 // Read an m3z file. Just calls down to GCAMread
 {
@@ -66,6 +69,21 @@ GCAM* readM3Z(const string& warp_file)
     exit(1);
   }
 
+  return gcam;
+}
+
+// input is MRI_MGH_FILE
+GCAM *readMGZWarp(const string& mgzwarpfile)
+{
+  Warpfield *warpfield = new Warpfield();
+
+  GCAM *gcam = warpfield->read(mgzwarpfile.c_str());
+  if (gcam == NULL)
+  {
+    cerr << "ERROR readM3Z: cannot read " << mgzwarpfile << endl;
+    exit(1);
+  }
+  
   return gcam;
 }
 
@@ -397,6 +415,23 @@ void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
   }
 }
 
+void writeMGZWarp(const string& fname, GCAM *gcam)
+{
+  int dataformat =  WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
+  if (P.mgzwarpformat.compare("abs-crs") == 0)
+    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS;
+  else if (P.mgzwarpformat.compare("disp-crs") == 0)
+    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS;
+  else if (P.mgzwarpformat.compare("abs-ras") == 0)
+    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS;
+  else if (P.mgzwarpformat.compare("disp-ras") == 0)
+    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS;
+
+  Warpfield *warpfield = new Warpfield();
+  warpfield->convert(gcam, dataformat);
+  warpfield->write(fname.c_str());
+}
+
 void writeFSL(const string& fname, const GCAM *gcam)
 // Write an FSL warp file.
 // NOT IMPLEMENTED
@@ -559,6 +594,9 @@ int main(int argc, char *argv[])
     case filetypes::M3Z:
       gcam = readM3Z(P.in_warp.c_str());
       break;
+    case filetypes::MGZWARP:
+      gcam = readMGZWarp(P.in_warp.c_str());
+      break;      
     case filetypes::FSL:
       if(P.in_src_geom.empty()) gcam = readFSL(P.in_warp.c_str());
       else                      gcam = readFSL2(P.in_warp.c_str(),P.in_src_geom);
@@ -607,6 +645,9 @@ int main(int argc, char *argv[])
     case filetypes::M3Z:
       writeM3Z(P.out_warp.c_str(), gcam, P.downsample);
       break;
+    case filetypes::MGZWARP:
+      writeMGZWarp(P.out_warp.c_str(), gcam);
+      break;      
     case filetypes::FSL:
       writeFSL(P.out_warp.c_str(), gcam);
       break;
@@ -675,6 +716,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--inm3z: " << P.in_warp << " input M3Z warp." << endl;
   }
+  else if (!strcmp(option, "INMGZWARP"))
+  {
+    if (have_input) {
+      cerr << endl << endl << "ERROR: Only one input warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_input = true;
+
+    P.in_warp = string(argv[1]);
+    P.in_type = filetypes::MGZWARP;
+    nargs = 1;
+    cout << "--inmgzwarp: " << P.in_warp << " input MGZWARP." << endl;
+  }  
   else if (!strcmp(option, "INFSL"))
   {
     if (have_input) {
@@ -749,6 +805,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.in_type = filetypes::RAS;
     nargs = 1;
     cout << "--inras: " << P.in_warp << " input RAS warp." << endl;
+  }
+  else if (!strcmp(option, "OUTMGZWARP"))
+  {
+    if (have_output) {
+      cerr << endl << endl << "ERROR: Only one output warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_output = true;
+
+    P.out_warp = string(argv[1]);
+    P.out_type = filetypes::MGZWARP;
+    nargs = 1;
+    cout << "--outmgz: " << P.out_warp << " output MGZWARP." << endl;    
   }
   else if (!strcmp(option, "OUTM3Z") )
   {
@@ -860,6 +931,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
         cout << "--downsample: save M3Z at half resolution." << endl;
     P.downsample = true;
     nargs = 0;
+  }
+  else if (!strcmp(option, "MGZWARPFORMAT"))
+  {
+    P.mgzwarpformat = string(argv[1]);
+    nargs = 1;
+    cout << "--mgzwarpformat: " << P.mgzwarpformat
+         << " specify mgz warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)." << endl;
   }
   else if (!strcmp(option, "HELP") )
   {

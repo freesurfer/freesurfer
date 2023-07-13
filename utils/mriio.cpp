@@ -11229,6 +11229,11 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 	  mri->gcamorph_image_vg.vgprint(true);
 	  mri->gcamorph_atlas_vg.vgprint(true);
 	  break;
+        case TAG_GCAMORPH_AFFINE:
+          mri->gcamorphAffine = znzReadMatrix(fp);
+	  //printf("[DEBUG] mghRead() TAG_GCAMORPH_AFFINE\n");
+          //MatrixPrint(stdout, mri->gcamorphAffine);
+	  break;
         default:
           znzTAGskip(fp, tag, (long long)len);
           break;
@@ -11498,6 +11503,15 @@ int mghWrite(MRI *mri, const char *fname, int frame)
     znzwriteInt(mri->warpFieldFormat, fp);
     znzwriteInt(mri->gcamorphSpacing, fp);
     znzwriteFloat(mri->gcamorphExp_k, fp);
+
+    // output TAG_GCAMORPH_AFFINE
+    if (mri->gcamorphAffine)
+    {
+      //printf("[DEBUG] mghWrite() TAG_GCAMORPH_AFFINE\n");
+      //MatrixPrint(stdout, mri->gcamorphAffine);
+      znzwriteInt(TAG_GCAMORPH_AFFINE, fp);
+      znzWriteMatrix(fp, mri->gcamorphAffine, 0);
+    }
 
     znzclose(fp);
 

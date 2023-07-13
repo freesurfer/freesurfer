@@ -24,21 +24,28 @@ public:
   Warpfield();
   ~Warpfield();
 
-  // convert M3z into 3-frame MRI warp map
+  // convert M3z into 4-frame MRI warp map
   int convert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, int doGCAMsampleMorph=0);
   int convert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, int doGCAMsampleMorph=0);
 
   // !!!invert functions have not been tested!!!
-  // invert M3z into 3-fram MRI warp map
+  // invert M3z into 4-frame MRI warp map
   int invert(const char *fname, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
   int invert(GCA_MORPH *gcam, const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
   
-  // read 3-frame MRI warp map into __warpmap
+  // read 4-frame MRI warp map into __warpmap
   GCA_MORPH *read(const char *fname);
   
-  // write 3-frame MRI warp map saved in __warpmap to disk
+  // write 4-frame MRI warp map saved in __warpmap to disk
   int write(const char *fname);
 
+  // creat mgz warp with given dimensions, src/dst VOL_GEOM, dataformat
+  void create(int width, int height, int depth, const VOL_GEOM& srcGeom, const VOL_GEOM& dstGeom,
+	      int spacing, double exp_k, const MATRIX *affine,
+	      const int dataformat=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS);
+  // set source coordinates at target [c,r,s] based on dataformat
+  void setWarp(int c, int r, int s, float fcs, float frs, float fss, int label);
+  
   // apply warpmap to MRI/MRIS
   int applyWarp(const MRI *inmri, MRI *outmri);
   int applyWarp(const MRIS *insurf, MRIS *outsurf);
@@ -46,11 +53,6 @@ public:
 private:
   int __mgzVersion;               // mgz version
 
-  // TAG_GCAMORPH_META
-  int __dataformat;               // WarpfieldDT  
-  int __spacing;                  // spacing in GCA_MORPH (is this same as as voxel size? xsize, ysize, zsize)
-  double __exp_k;                 // exp_k in GCA_MORPH
-  
   int __invert;                   // __warpmap is inverted
   
   MATRIX *__srcRAS2Vox;           // source ras2vox
@@ -58,10 +60,7 @@ private:
   MATRIX *__dstRAS2Vox;           // target ras2vox
   MATRIX *__dstVox2RAS;           // target vox2ras
 
-  VOL_GEOM *__imageVG;
-  VOL_GEOM *__atlasVG;
-  
-  MRI *__warpmap;                 // 3-frame MRI warping map (dst => src)
+  MRI *__warpmap;                 // 4-frame MRI warping map (dst => src)
   MRI *__warpmap_inv;             // inverted __warpmap (src => dst)
 };
 

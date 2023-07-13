@@ -2624,7 +2624,7 @@ int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
         j < 0 || j >= MRI_var->mri_src->height ||
         k < 0 || k >= MRI_var->mri_src->depth)
     {
-      printf("WM coord (%d, %d, %d) out of bounds (%d, %d, %d), normalization failed?\n", 
+      printf("\nWM coord (%d, %d, %d) out of bounds (%d, %d, %d), normalization failed?\n", 
 	     i, j, k,  MRI_var->mri_src->width, MRI_var->mri_src->height, MRI_var->mri_src->depth);
       Error("indices out of bounds\n");
     }

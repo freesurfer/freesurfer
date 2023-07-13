@@ -35,6 +35,8 @@
       <intro>Exactly one input is required:</intro>
       <argument>--inm3z &lt;in.m3z&gt;</argument>
       <explanation>input M3Z warp</explanation>
+      <argument>--inmgzwarp &lt;inwarp.mgz&gt;</argument>
+      <explanation>input mgz warp (Freesurfer 3D morph in mgz format)</explanation>       
       <argument>--infsl &lt;in.nii.gz&gt;</argument>
       <explanation>input FSL warp (recommend to use with --insrcgeom)</explanation>
       <argument>--inspm &lt;y_rinput.nii&gt;</argument>
@@ -48,6 +50,8 @@
       <intro>Exactly one output is required:</intro>
       <argument>--outm3z &lt;out.m3z&gt;</argument>
       <explanation>output warp (M3Z Freesurfer format)</explanation>
+      <argument>--outmgzwarp &lt;outwarp.mgz&gt;</argument>
+      <explanation>output mgz warp (Freesurfer 3D morph in mgz format)</explanation>      
       <argument>--outfsl &lt;out.nii.gz&gt;</argument>
       <explanation>output warp (FSL format)</explanation>
       <argument>--outlps, --outitk &lt;out.nii.gz&gt;</argument>
@@ -67,6 +71,8 @@
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
       <argument>-lta2 LTA (or -lta2-inv)</argument>
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
+      <argument>--mgzwarpformat outwarp-format</argument>
+      <explanation>specify mgz warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):
@@ -81,5 +87,7 @@
       Note that the insrcgeom is the target, not the mov; this is needed to work with --lta1-inv.
   </example>
   <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
-    warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
+    mri_warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
+  <example>Convert M3Z (FreeSurfer) to mgz warp (FreeSurfer) in absolute CRS:
+    mri_warp_convert --inm3z in.m3z --outmgzwarp outwarp.mgz --mgzwarpformat abs-crs</example>  
 </help>
