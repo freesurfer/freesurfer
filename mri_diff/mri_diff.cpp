@@ -14,6 +14,7 @@
  * 4. Geometry,                return status = 104
  * 5. Precision,               return status = 105
  * 6. Pixel Data,              return status = 106
+ * 7. m3z 3D Morph,            return status = 201
  */
 /*
  * Original Author: Doug Greve
@@ -73,6 +74,7 @@
   4. Geometry,                return status = 104
   5. Precision,               return status = 105
   6. Pixel Data,              return status = 106
+  7. m3z 3D Morph,            return status = 201
 
   Dimension is number of rows, cols, slices, and frames.
   Resolution is voxel size.
@@ -120,6 +122,7 @@
   105 Volumes differ in precision
   106 Volumes differ in pixel data
   107 Volumes differ in orientation
+  201 m3z 3D Morph differ
 
   ENDHELP
 */
@@ -940,6 +943,7 @@ static void print_help(void) {
   printf("  4. Geometry,                return status = 104\n");
   printf("  5. Precision,               return status = 105\n");
   printf("  6. Pixel Data,              return status = 106\n");
+  printf("  7. m3z 3D Morph,            return status = 201\n");
   printf("\n");
   printf("Dimension is number of rows, cols, slices, and frames.\n");
   printf("Resolution is voxel size.\n");
@@ -992,6 +996,7 @@ static void print_help(void) {
   printf("105 Volumes differ in precision\n");
   printf("106 Volumes differ in pixel data\n");
   printf("107 Volumes differ in orientation\n");
+  printf("201 m3z 3D Morph differ\n");
   printf("\n");
 
   exit(1) ;
@@ -999,7 +1004,7 @@ static void print_help(void) {
 
 static void diff_mgh_morph(const char *file1, const char *file2)
 {
-  printf("Diff MGH_MORPH %s and %s using threshold = %.10f\n", file1, file2, geothresh);
+  printf("Diff MGH_MORPH %s and %s using threshold = %.10f\n", file1, file2, pixthresh);
 
   GCAM *gcam1 = GCAMread(file1);
   GCAM *gcam2 = GCAMread(file2);
@@ -1043,9 +1048,9 @@ static void diff_mgh_morph(const char *file1, const char *file2)
                    x, y, z, gcamn1->origx, gcamn1->origy, gcamn1->origz, gcamn2->origx, gcamn2->origy, gcamn2->origz);
         }
 
-        if (fabs(gcamn1->x - gcamn2->x) > geothresh ||
-            fabs(gcamn1->y - gcamn2->y) > geothresh ||
-            fabs(gcamn1->z - gcamn2->z) > geothresh)
+        if (fabs(gcamn1->x - gcamn2->x) > pixthresh ||
+            fabs(gcamn1->y - gcamn2->y) > pixthresh ||
+            fabs(gcamn1->z - gcamn2->z) > pixthresh)
 	{
           ndiffx++;
 
@@ -1088,6 +1093,8 @@ static void diff_mgh_morph(const char *file1, const char *file2)
 
   if (ndifforigx || ndiffx || ndiffxn || ndiffinvalid || ndifflabel)
   {
+    ExitStatus = 201;
+    
     if (ndifforigx)
       printf("(origx, origy, origz) diff counts = %d\n", ndifforigx);
     if (ndiffx)
@@ -1105,12 +1112,17 @@ static void diff_mgh_morph(const char *file1, const char *file2)
 
   // TAG_GCAMORPH_LABELS
   if (gcam1->status != gcam2->status)
+  {
+    ExitStatus = 201;
     printf("Status differ:  %d vs %d\n", gcam1->status, gcam2->status);
+  }
 
   // TAG_GCAMORPH_GEOM
   int same = vg_isEqual(&gcam1->image, &gcam2->image);
   if (!same)
   {
+    ExitStatus = 201;
+    
     printf("image VOL_GEOMs differ:\n");
     printf("%s geometry:\n", file1);
     writeVolGeom(stdout, &gcam1->image);
@@ -1121,6 +1133,8 @@ static void diff_mgh_morph(const char *file1, const char *file2)
   same = vg_isEqual(&gcam1->atlas, &gcam2->atlas);
   if (!same)
   {
+    ExitStatus = 201;
+    
     printf("atlas VOL_GEOMs differ:\n");
     printf("%s geometry:\n", file1);
     writeVolGeom(stdout, &gcam1->atlas);
@@ -1130,7 +1144,10 @@ static void diff_mgh_morph(const char *file1, const char *file2)
 
   // TAG_GCAMORPH_TYPE
   if (gcam1->type != gcam2->type)
+  {
+    ExitStatus = 201;
     printf("Types differ: %d vs %d\n", gcam1->type, gcam2->type);
+  }
 
   // TAG_MGH_XFORM
   if (gcam1->m_affine == NULL && gcam2->m_affine == NULL)
@@ -1161,10 +1178,12 @@ static void diff_mgh_morph(const char *file1, const char *file2)
   }
   else if (gcam1->m_affine == NULL)
   {
+    ExitStatus = 201;
     printf("%s doesn't contain m_affine matrix\n", file1);
   }
   else if (gcam2->m_affine == NULL)
   {
+    ExitStatus = 201;
     printf("%s doesn't contain m_affine matrix\n", file2);
   }
 }
