@@ -1594,10 +1594,10 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
     return ERROR_BADPARM;
   }
 
-  if (intent_code == NIFTI_INTENT_SHAPE && NULL == curv_fname) {
-    printf("MRISwriteGIFTI: invalid parameter: curv_fname is NULL %s:%d\n", __FILE__, __LINE__);
-    return ERROR_BADPARM;
-  }
+  //if (intent_code == NIFTI_INTENT_SHAPE && NULL == curv_fname) {
+  //  printf("MRISwriteGIFTI: invalid parameter: curv_fname is NULL %s:%d\n", __FILE__, __LINE__);
+  //  return ERROR_BADPARM;
+  //}
 
   gifti_image *image = (gifti_image *)calloc(1, sizeof(gifti_image));
   if (NULL == image) {
@@ -1855,28 +1855,30 @@ int MRISwriteGIFTIShape(MRIS *mris, gifti_image *image, int intent_code, const c
     gifti_datatype_sizes(shape->datatype, &shape->nbyper, NULL);
 
     /* include some metadata describing this shape */
-    gifti_add_to_meta(&shape->meta, "Name", curv_fname, 1);
-    const char *meta = NULL;
-    if (strstr(curv_fname, ".thickness")) {
-      meta = "Thickness";
-    }
-    if (strstr(curv_fname, ".curv")) {
-      meta = "CurvatureRadial";
-    }
-    if (strstr(curv_fname, ".sulc")) {
-      meta = "SulcalDepth";
-    }
-    if (strstr(curv_fname, ".area")) {
-      meta = "Area";
-    }
-    if (strstr(curv_fname, ".volume")) {
+    if(curv_fname != NULL){
+      gifti_add_to_meta(&shape->meta, "Name", curv_fname, 1);
+      const char *meta = NULL;
+      if (strstr(curv_fname, ".thickness")) {
+	meta = "Thickness";
+      }
+      if (strstr(curv_fname, ".curv")) {
+	meta = "CurvatureRadial";
+      }
+      if (strstr(curv_fname, ".sulc")) {
+	meta = "SulcalDepth";
+      }
+      if (strstr(curv_fname, ".area")) {
+	meta = "Area";
+      }
+      if (strstr(curv_fname, ".volume")) {
       meta = "Volume";
-    }
-    if (strstr(curv_fname, ".jacobian")) {
-      meta = "Jacobian";
-    }
-    if (meta) {
-      gifti_add_to_meta(&shape->meta, "ShapeDataType", meta, 1);
+      }
+      if (strstr(curv_fname, ".jacobian")) {
+	meta = "Jacobian";
+      }
+      if (meta) {
+	gifti_add_to_meta(&shape->meta, "ShapeDataType", meta, 1);
+      }
     }
 
     /* Allocate the data array. */
