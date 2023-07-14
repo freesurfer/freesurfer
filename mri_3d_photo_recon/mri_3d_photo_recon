@@ -1341,7 +1341,7 @@ class PhotoAligner(nn.Module):
         grids_new = torch.zeros(self.grids.shape).to(self.device)
         photo_aff = torch.zeros(4, 4).to(self.device)
         photo_aff[:, :] = self.photo_aff
-        photo_aff[1, 2] = self.photo_aff[1, 2] * sz_f
+        photo_aff[1, 2:] = self.photo_aff[1, 2:] * sz_f
         T = torch.zeros([4, 4, self.Nslices]).to(self.device)
         for z in range(self.Nslices):
             T[:, :, z] = torch.matmul(
