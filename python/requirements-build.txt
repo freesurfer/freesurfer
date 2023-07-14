@@ -15,9 +15,9 @@ contourpy==1.1.0
 cycler==0.11.0
 filelock==3.12.2
 flatbuffers==23.5.26
-fonttools==4.40.0
+fonttools==4.41.0
 gast==0.4.0
-google-auth==2.21.0
+google-auth==2.22.0
 google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
 grpcio==1.56.0
@@ -72,8 +72,8 @@ sympy==1.12
 tensorboard==2.13.0
 tensorboard-data-server==0.7.1
 termcolor==2.3.0
-threadpoolctl==3.1.0
-tifffile==2023.7.4
+threadpoolctl==3.2.0
+tifffile==2023.7.10
 tqdm==4.65.0
 triton==2.0.0
 typing-extensions==4.5.0
@@ -83,4 +83,4 @@ voxelmorph==0.2
 wheel==0.40.0
 wrapt==1.15.0
 xxhash==3.2.0
-zipp==3.16.0
+zipp==3.16.1
