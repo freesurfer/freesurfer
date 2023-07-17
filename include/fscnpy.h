@@ -22,7 +22,7 @@ private:
   void __parse_header_dictionary(const char *npy);
   int  __getmritype();
   char __getarchendian();
-  void __contiguousreorder(MRI *mri);
+  MRI* __contiguousreorder(MRI *mri);
 
   const char *__magic_string = "\x93NUMPY";
   static const int  __magic_string_len = 6;

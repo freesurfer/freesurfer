@@ -120,11 +120,11 @@ MRI* fscnpy::npy2mri(const char *npy, bool verbose)
         {
           // swap bytes
           if (__dtype_len == 2) 
-            byteswapbufshort(__data, bytes_per_slice);
+            byteswapbufshort(buf, bytes_per_slice);
           if (__dtype_len == 4) 
-            byteswapbuffloat(__data, bytes_per_slice);
+            byteswapbuffloat(buf, bytes_per_slice);
           if (__dtype_len == 8) 
-            byteswapbuffloat(__data, bytes_per_slice);
+            byteswapbuffloat(buf, bytes_per_slice);
 	}
 
         // freeview progress bar
@@ -166,9 +166,9 @@ MRI* fscnpy::npy2mri(const char *npy, bool verbose)
     fflush(stdout);
   }
 
-  // need to swap the bytes if numpy array is in C-order
+  // need to re-order the MRI array data if numpy array is in C-order
   if (!__fortran_order)
-    __contiguousreorder(mri);
+    mri = __contiguousreorder(mri);
 
   return mri;
 }
@@ -215,7 +215,7 @@ void fscnpy::write(const char *npy, unsigned char *data)
 void fscnpy::__parse_header_dictionary(const char *npy)
 {
   // read magic string : 6 bytes
-  char magic_string[6]={'\0'};
+  char magic_string[7]={'\0'};
   fread(magic_string, 1, __magic_string_len, __npyfp);
   if (strcmp(magic_string, __magic_string) != 0)
   {
@@ -420,6 +420,125 @@ char fscnpy::__getarchendian()
 }
 
 
+/*
+ * MGH mgz data array is in Column-major order (npy F-order).
+ * 
+ * Here are examples of 3 x 3 x 3 x 2 npy 4D-array in both F-order and C-order, and how they fit in mgz data array:
+ *
+ *   1. generate sample 3 x 3 x 3 x 2 npy 4D-array in F-order and C-order
+ *      >>> import numpy as np
+ *      >>> c=np.arange(54, dtype=np.float32).reshape(3,3,3,2)
+ *      >>> np.save('4d.cfloat32.3-3-3-2.npy', c)
+ *      >>> f=np.asfortranarray(c)
+ *      >>> np.save('4d.ffloat32.3-3-3-2.npy', f)
+ *
+ *    2. F-order array is loaded in as following:
+ *                   slice 0      slice 1      slice 2
+ *                  c   r   s    c   r   s    c   r   s
+ *               ========================================
+ *               |  0  18  36 |  2  20  38 |  4  22  40 |
+ *       frame 0 |  6  24  42 |  8  26  44 | 10  28  46 |
+ *               | 12  30  48 | 14  32  50 | 16  34  52 |
+ *               ========================================
+ *               |  1  19  37 |  3  21  39 |  5  23  41 |
+ *       frame 1 |  7  25  43 |  9  27  45 | 11  29  47 |
+ *               | 13  31  49 | 15  33  51 | 17  35  53 |
+ *               ========================================
+ *
+ *    3. C-order array is loaded in as following:
+ *                   slice 0      slice 1      slice 2
+ *                  c   r   s    c   r   s    c   r   s
+ *               ========================================
+ *               |  0   1   2 |  9  10  11 | 18  19  20 |
+ *       frame 0 |  3   4   5 | 12  13  14 | 21  22  23 |
+ *               |  6   7   8 | 15  16  17 | 24  25  26 |
+ *               ========================================
+ *               | 27  28  29 | 36  37  38 | 45  46  47 |
+ *       frame 1 | 30  31  32 | 39  40  41 | 48  49  50 |
+ *               | 33  34  35 | 42  43  44 | 51  52  53 |
+ *               ========================================
+ *
+ *    4. convert array in C-order to F-order:
+ *       a) re-arrange the 4D-array into different dimensions with col = nframes, row = depth, slice = height, frame = width
+ *          (this is 2 x 3 x 3 x 3 in the example above)
+ *       b) re-calculate vox_per_row = nframes;  vox_per_slice = nframes * depth;  vox_per_vol = nframes * depth * height;
+ *          (for the example given, vox_per_row = 2;  vox_per_slice = 6;  vox_per_vol = 18)
+ *       c) traverse through the 4D-array to visit each voxel @[c, r, s, f] sequentially in F-order
+ *          voxel offset = c + r * vox_per_row  + s * vox_per_slice  + f * vox_per_vol
+ *          copy value at each voxel to a new MRI data array
+ */
+MRI* fscnpy::__contiguousreorder(MRI *mri)
+{
+  if (__dtype != MRI_UCHAR && __dtype != MRI_SHORT && __dtype != MRI_USHRT && __dtype != MRI_INT && __dtype != MRI_LONG && __dtype != MRI_FLOAT)
+  {
+    printf("Unsupported datatype, no array contiguous reordering\n");
+    return NULL;
+  }
+
+  printf("array contiguous reordering ...\n");
+  fflush(stdout);
+
+  MRI *mri_new = new MRI(__shape, __dtype);
+  if (mri_new == NULL)
+  {
+    printf("[ERROR] failed to create MRI\n");
+    exit(1);
+  }
+
+  int width   = mri->width;     // col
+  int height  = mri->height;    // row
+  int depth   = mri->depth;     // slice
+  int nframes = mri->nframes;   // frame
+  size_t bytes_per_vox = mri->bytes_per_vox;       // bytes per voxel
+
+  // the 4D-array is re-arranged into different dimensions with col = nframes, row = depth, slice = height, frame = width
+  // re-calculate vox_per_row, vox_per_slice, vox_per_vol
+  size_t vox_per_row   = nframes;                  // voxel per row
+  size_t vox_per_slice = nframes * depth;          // voxel per slice
+  size_t vox_per_vol   = nframes * depth * height; // voxel per volume
+
+  // head of new MRI data array memory
+  unsigned char *data_dst = (unsigned char*)mri_new->chunk;
+
+  // traverse through the 4D-array to visit each voxel @[c, r, s, f] sequentially in F-order
+  for (int c = 0; c < nframes; c++)      // new col dimension
+  {
+    for (int r = 0; r < depth; r++)      // new row dimension
+    {
+      for (int s = 0; s < height; s++)   // new slice dimension
+      {
+        for (int f = 0; f < width; f++)  // new frame dimension
+        {
+	  // memory location of voxel @[c, r, s, f] in F-order
+	  // voxel offset = c + r * vox_per_row  + s * vox_per_slice  + f * vox_per_vol
+	  unsigned char *data_src = ((unsigned char *)mri->chunk + bytes_per_vox * (c + r * vox_per_row  + s * vox_per_slice  + f * vox_per_vol));
+	  
+	  if (__verbose)
+	  {
+	    // voxel offset
+	    size_t offset_voxel = (c + r * vox_per_row  + s * vox_per_slice  + f * vox_per_vol);
+	    size_t offset_bytes = bytes_per_vox * offset_voxel;
+	    printf("memcpy(%p, %p, %ld)\n", data_src, data_dst, bytes_per_vox);
+	    printf("      offset_voxel = %ld, offset_bytes = %ld\n", offset_voxel, offset_bytes);
+	  }
+
+	  // copy the value to the new MRI data array
+	  memcpy(data_dst, data_src, bytes_per_vox);
+
+	  // update the new MRI data array memory to next element
+          data_dst += bytes_per_vox;
+        }
+      }
+    }
+  }
+
+  MRIfree(&mri);
+  return mri_new;
+}
+
+
+#if 0
+// original implementation of array contiguous reordering for 3D data
 void fscnpy::__contiguousreorder(MRI *mri)
 {
   if (__shape.size() > 3)
@@ -505,6 +624,6 @@ void fscnpy::__contiguousreorder(MRI *mri)
   }
 }
 
-
+#endif
 
 
