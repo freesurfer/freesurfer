@@ -185,95 +185,7 @@ MRI* Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleM
 	  fss = gcam->nodes[c][r][s].z;
 	}
 
-	if (__warpmap->nframes > 3)
-	  MRIsetVoxVal(__warpmap, c, r, s, 3, gcam->nodes[c][r][s].label);
-	
-        if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS)
-        {
-	  // in source (unmorphed, image) voxel space
-          MRIsetVoxVal(__warpmap, c, r, s, 0, fcs);
-	  MRIsetVoxVal(__warpmap, c, r, s, 1, frs);
-	  MRIsetVoxVal(__warpmap, c, r, s, 2, fss);
-	}
-	else if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS)
-	{
-	  // set the displacement: delta = image_CRS - atlas_CRS
-	  MRIsetVoxVal(__warpmap, c, r, s, 0, fcs - (float)c);
-	  MRIsetVoxVal(__warpmap, c, r, s, 1, frs - (float)r);
-	  MRIsetVoxVal(__warpmap, c, r, s, 2, fss - (float)s);	     
-#if 0
-	  /* the followng logic was copied from mri_warp_convert::write_voxel().
-           * This conversion doesn't make sense: image_CRS0 = atlas2image_vox * atlas_CRS0
-           * GCAMsampleMorph() (node->[x,y,z]) returns image_CRS for given atlas_CRS
-           */
-	  // convert CRS0 in target (atlas) voxel space => source (image) voxel space
-	  MATRIX *atlas_CRS0 = MatrixAlloc(4, 1, MATRIX_REAL);
-	  atlas_CRS0->rptr[1][1] = c;
-          atlas_CRS0->rptr[2][1] = r;
-          atlas_CRS0->rptr[3][1] = s;
-          atlas_CRS0->rptr[4][1] = 1;
-
-	  MATRIX *atlas2image_vox = MatrixMultiply(gcam->image.get_RAS2Vox(), gcam->atlas.get_Vox2RAS(), NULL);
-	  MATRIX *image_CRS0 = MatrixMultiply(atlas2image_vox, atlas_CRS0, NULL);  // CRS0 is now in source (image) voxel space
-
-	  // set the displacement in source (image) voxel space
-	  MRIsetVoxVal(__warpmap, c, r, s, 0, fcs - image_CRS0->rptr[1][1]);
-	  MRIsetVoxVal(__warpmap, c, r, s, 1, frs - image_CRS0->rptr[2][1]);
-	  MRIsetVoxVal(__warpmap, c, r, s, 2, fss - image_CRS0->rptr[3][1]);
-#endif
-	}
-	else if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS ||
-                 dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS)
-	{
-	  // convert (fcs, frs, fss) to image_RAS
-	  image_CRS->rptr[1][1] = fcs;
-          image_CRS->rptr[2][1] = frs;
-          image_CRS->rptr[3][1] = fss;
-          image_CRS->rptr[4][1] = 1;
-
-	  MatrixMultiplyD(__srcVox2RAS, image_CRS, image_RAS);
-
-	  if (dataformat == WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS)
-	  {
-	    // in source (unmorphed, image) RAS space
-	    MRIsetVoxVal(__warpmap, c, r, s, 0, image_RAS->rptr[1][1]);
-	    MRIsetVoxVal(__warpmap, c, r, s, 1, image_RAS->rptr[2][1]);
-	    MRIsetVoxVal(__warpmap, c, r, s, 2, image_RAS->rptr[3][1]);
-	  }
-	  else // dataformat == WARPFIELD_DTFMT_DISP_RAS
-	  {
-	    atlas_CRS0->rptr[1][1] = c;
-            atlas_CRS0->rptr[2][1] = r;
-            atlas_CRS0->rptr[3][1] = s;
-            atlas_CRS0->rptr[4][1] = 1;
-
-            MatrixMultiplyD(__dstVox2RAS, atlas_CRS0, atlas_RAS0);
-	    
-	    // set the displacement: delta = image_RAS - atlas_RAS
-	    MRIsetVoxVal(__warpmap, c, r, s, 0, image_RAS->rptr[1][1] - atlas_RAS0->rptr[1][1]);
-	    MRIsetVoxVal(__warpmap, c, r, s, 1, image_RAS->rptr[2][1] - atlas_RAS0->rptr[2][1]);
-	    MRIsetVoxVal(__warpmap, c, r, s, 2, image_RAS->rptr[3][1] - atlas_RAS0->rptr[3][1]);
-#if 0
-	    /* the logic has the same problem as WARPFIELD_DTFMT_DISP_CRS
-             */
-	    // convert CRS0 in target (atlas) voxel space => source (image) voxel space
-	    MATRIX *atlas_CRS0 = MatrixAlloc(4, 1, MATRIX_REAL);
-	    atlas_CRS0->rptr[1][1] = c;
-            atlas_CRS0->rptr[2][1] = r;
-            atlas_CRS0->rptr[3][1] = s;
-            atlas_CRS0->rptr[4][1] = 1;
-
-	    MATRIX *atlas2image_vox = MatrixMultiply(gcam->image.get_RAS2Vox(), gcam->atlas.get_Vox2RAS(), NULL);
-	    MATRIX *image_CRS0 = MatrixMultiply(atlas2image_vox, atlas_CRS0, NULL);  // CRS0 is now in source (image) voxel space
-            MATRIX *image_RAS0 = MatrixMultiply(gcam->image.get_Vox2RAS(), image_CRS0, NULL); // RAS0 is now in source (image) RAS space
-	    
-	    // set the displacement in source (image) RAS space
-	    MRIsetVoxVal(__warpmap, c, r, s, 0, image_RAS->rptr[1][1] - image_RAS0->rptr[1][1]);
-	    MRIsetVoxVal(__warpmap, c, r, s, 1, image_RAS->rptr[2][1] - image_RAS0->rptr[2][1]);
-	    MRIsetVoxVal(__warpmap, c, r, s, 2, image_RAS->rptr[3][1] - image_RAS0->rptr[3][1]);
-#endif
-	  }
-	}  // WARPFIELD_DTFMT_ABS_RAS || WARPFIELD_DTFMT_DISP_RAS
+	setWarp(c, r, s, fcs, frs, fss, gcam->nodes[c][r][s].label);
       }  // s
     }  // r
   }  // c
@@ -666,6 +578,7 @@ void Warpfield::create(int width, int height, int depth, const VOL_GEOM& srcVG, 
 
 
 // set source coordinates at target [c,r,s] based on dataformat
+// (fcs, frs, fss) is absolute CRS in source voxel space
 void Warpfield::setWarp(int c, int r, int s, float fcs, float frs, float fss, int label)
 {
   int dataformat = __warpmap->warpFieldFormat;
