@@ -4558,7 +4558,7 @@ MRI_SURFACE *MRISfastRead(const char *fname)
 MRIS * MRISread(const char *fname, bool dotkrRasConvert)
 {
   char *ext = fio_extension(fname);
-  if(strcmp(ext,"mgz")==0 || strcmp(ext,"mgh")==0 || strcmp(ext,"nii")==0 || strcmp(ext,"nii.gz")==0){
+  if(ext != NULL && (strcmp(ext,"mgz")==0 || strcmp(ext,"mgh")==0 || strcmp(ext,"nii")==0 || strcmp(ext,"nii.gz")==0)){
     printf("MRIread(): ERROR: input %s does not appear to be a surface (ext=%s)\n",fname,ext);
     return(NULL);
   }
