@@ -1021,6 +1021,7 @@ static void diff_mgh_morph(const char *file1, const char *file2)
   if (gcam1->exp_k != gcam2->exp_k)
     printf("exp_k differ: %.2f vs %.2f\n", gcam1->exp_k, gcam2->exp_k);
 
+  double maxdiffx = 0.0, maxdiffy = 0.0, maxdiffz = 0.0;
   int ndifforigx = 0, ndiffx = 0, ndiffxn = 0, ndiffinvalid = 0, ndifflabel = 0;
 
   int width  = (gcam1->width  <= gcam2->width)  ? gcam1->width  : gcam2->width;
@@ -1048,12 +1049,28 @@ static void diff_mgh_morph(const char *file1, const char *file2)
                    x, y, z, gcamn1->origx, gcamn1->origy, gcamn1->origz, gcamn2->origx, gcamn2->origy, gcamn2->origz);
         }
 
-        if (fabs(gcamn1->x - gcamn2->x) > pixthresh ||
-            fabs(gcamn1->y - gcamn2->y) > pixthresh ||
-            fabs(gcamn1->z - gcamn2->z) > pixthresh)
+	double diffx = fabs(gcamn1->x - gcamn2->x);
+	double diffy = fabs(gcamn1->y - gcamn2->y);
+	double diffz = fabs(gcamn1->z - gcamn2->z);
+        if (diffx > pixthresh ||
+            diffy > pixthresh ||
+            diffz > pixthresh)
 	{
           ndiffx++;
 
+	  if (diffx > maxdiffx)
+	  {
+            maxdiffx = diffx;
+	  }
+	  if (diffy > maxdiffy)
+	  {
+            maxdiffy = diffy ;
+	  }
+	  if (diffz > maxdiffz)
+	  {
+            maxdiffz = diffz;
+	  }
+	  
           if (verbose)
 	    printf("(x, y, z) differ at (%03d,%03d,%03d): (%.6f %.6f %.6f) vs (%.6f %.6f %.6f)\n", 
                    x, y, z, gcamn1->x, gcamn1->y, gcamn1->z, gcamn2->x, gcamn2->y, gcamn2->z);
@@ -1098,7 +1115,10 @@ static void diff_mgh_morph(const char *file1, const char *file2)
     if (ndifforigx)
       printf("(origx, origy, origz) diff counts = %d\n", ndifforigx);
     if (ndiffx)
+    {
       printf("(x, y, z)             diff counts = %d\n", ndiffx);
+      printf("                      max diffx = %.6f, max diffy = %.6f, max diffz = %.6f\n", maxdiffx, maxdiffy, maxdiffz); 
+    }
     if (ndiffxn)
       printf("(xn, yn, zn)          diff counts = %d\n", ndiffxn);
     if (ndiffinvalid)
