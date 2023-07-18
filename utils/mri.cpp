@@ -12882,7 +12882,7 @@ int MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
   // vox2ras might have a scale. We should incorporate scales and
   // shears into the volume geometry. Instead, we offer the ability to
   // change the voxel size. Not pretty. Still no way to add shear.
-  MatrixPrint(stdout,m_vox2ras);
+  // MatrixPrint(stdout,m_vox2ras);
   double xs=0, ys=0, zs=0;
   for(int k=0; k < 3; k++){
     xs += (m_vox2ras->rptr[k+1][1]*m_vox2ras->rptr[k+1][1]);
