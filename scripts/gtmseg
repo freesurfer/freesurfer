@@ -84,7 +84,7 @@ uname -a  | tee -a $LF
 
 #========================================================
 if($DoXCerSeg) then
-  set cmd = (xcerebralseg --s $subject --threads $threads)
+  set cmd = (xcerebralseg --s $subject --threads $threads --o $headseg)
   if(! $cleanup) set cmd = ($cmd --tmpdir $tmpdir/xcerebralseg)
   if($AddPons == 0)   set cmd = ($cmd --no-pons)
   if($AddVermis == 0) set cmd = ($cmd --no-vermis)
@@ -390,6 +390,8 @@ if($#wmannot) then
     endif
   end
 endif
+
+if($UseSamseg) set headseg = apas+head.samseg.mgz # created by xcerebralseg
 
 if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
   # Headseg is not there
