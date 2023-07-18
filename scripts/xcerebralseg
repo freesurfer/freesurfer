@@ -440,7 +440,7 @@ usage_exit:
   echo ""
   echo "xcerebralseg --help"
   echo " --s subject (required)"
-  echo " --o outvol (default: $outvol)"
+  echo " --o outvol : relative to subject/mri (default: $outvol)"
   echo " --atlas headgca (default: $atlas)"
   echo " --samseg : use samseg instead of GCA to provide the xcer seg"
   echo " --samseg-revert : make labels of samseg seg same as that of the GCA"
