@@ -364,7 +364,7 @@ bool LayerMRI::LoadVolumeFromFile()
   {
     return false;
   }
-  
+
   ParseSubjectName(m_sFilename);
   InitializeVolume();
   InitializeActors();
