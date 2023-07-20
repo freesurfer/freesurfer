@@ -19,7 +19,7 @@ fi
 
 if [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "macos10" ]] || [[ "$host_os" == "macos12" ]] ; then
    # Currently cannot get 0.00 diff output on MacOS
-   # compare_vol talairach.m3z talairach.ref.m3z
+   # compare_vol talairach.m3z talairach.ref${TESTDATA_SUFFIX}.m3z
    compare_vol talairach.m3z talairach.ref${TESTDATA_SUFFIX}.m3z --thresh 2.14
 else
    compare_vol talairach.m3z talairach.ref.m3z
