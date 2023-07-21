@@ -2569,24 +2569,37 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
     // so make sure they are recomputed before being used again!
 
   char fname[STRLEN];
-  int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
-  FILE *fp;
+  int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n;
 
   MRISbuildFileName_read(mris, name, fname);
 
-  type = MRISfileNameType(name);
+  /* FS_GII read:
+   * default type is MRIS_BINARY_QUADRANGLE_FILE
+   * if it is MRIS_BINARY_QUADRANGLE_FILE,
+   *   call __MRISapplyFSGIIread() to determine which surface file to read
+   */
+  char surf_to_read[1024] = {'\0'};
+  strcpy(surf_to_read, fname);
+  
+  int type = MRISfileNameType(surf_to_read);  /* using extension to get type */
+  if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
+      type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE        && 
+      type != MRI_MGH_FILE)
+    __MRISapplyFSGIIread(surf_to_read, fname, &type);
+
+  //type = MRISfileNameType(name);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
-    return (mrisReadGeoFilePositions(mris, fname));
+    return (mrisReadGeoFilePositions(mris, surf_to_read));
   }
   else if (type == MRIS_ICO_FILE) {
-    return (ICOreadVertexPositions(mris, fname, CURRENT_VERTICES));
+    return (ICOreadVertexPositions(mris, surf_to_read, CURRENT_VERTICES));
   }
   else if (type == MRIS_GIFTI_FILE) {
-    printf("Reading %s as a gii file\n",fname);
-    MRIS *gsurf = MRISread(fname);
+    printf("Reading %s as a gii file\n",surf_to_read);
+    MRIS *gsurf = MRISread(surf_to_read);
     if(gsurf==NULL) return(1);
     if(gsurf->nvertices != mris->nvertices){
-      printf("MRISreadVertexPosition(%s): dim mismatch %d %d\n", fname,gsurf->nvertices,mris->nvertices);
+      printf("MRISreadVertexPosition(%s): dim mismatch %d %d\n", surf_to_read,gsurf->nvertices,mris->nvertices);
       return(1);
     }
     for(int vno=0; vno < mris->nvertices; vno++){
@@ -2597,8 +2610,8 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   }
 
   // Why not just use MRISread() here???
-  fp = fopen(fname, "rb");
-  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadVertexPosition(%s): could not open file %s", name, fname));
+  FILE *fp = fopen(surf_to_read, "rb");
+  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadVertexPosition(%s): could not open file %s", name, surf_to_read));
 
   fread3(&magic, fp);
   if (magic == QUAD_FILE_MAGIC_NUMBER) {
