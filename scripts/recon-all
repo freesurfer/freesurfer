@@ -3293,13 +3293,13 @@ if($TopoFitLevel > 0) then
     endif
     pushd $sdir  
     if($TopoFitLevel >= 1) then
-      ln -sf $hemi.white.topofit $hemi.orig.premesh
-      ln -sf $hemi.white.topofit $hemi.orig #remeshing only done during topofix
+      ln -sf $hemi.white.topofit$FS_GII $hemi.orig.premesh$FS_GII
+      ln -sf $hemi.white.topofit$FS_GII $hemi.orig$FS_GII #remeshing only done during topofix
     endif
-    if($TopoFitLevel >= 2) ln -sf $hemi.white.topofit $hemi.white.preaparc
-    if($TopoFitLevel >= 3) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere $hemi.sphere
-    if($TopoFitLevel >= 4) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere $hemi.sphere.reg
-    if($TopoFitLevel >= 5) ln -sf $hemi.white.topofit $hemi.white
+    if($TopoFitLevel >= 2) ln -sf $hemi.white.topofit$FS_GII $hemi.white.preaparc$FS_GII
+    if($TopoFitLevel >= 3) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere$FS_GII $hemi.sphere$FS_GII
+    if($TopoFitLevel >= 4) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere$FS_GII $hemi.sphere.reg$FS_GII
+    if($TopoFitLevel >= 5) ln -sf $hemi.white.topofit$FS_GII $hemi.white$FS_GII
     popd
   end
 endif
@@ -3873,7 +3873,7 @@ if($DoCurvHK) then
     # ?h.white.preaparc.{H,K}. This just creates a symlink 
     foreach suffix (H K)
       set cmd1 = (rm -f $hemi.white.$suffix)
-      set cmd2 = (ln -s $hemi.white.preaparc.$suffix $hemi.white.$suffix)
+      set cmd2 = (ln -s $hemi.white.preaparc.$suffix$FS_GII $hemi.white.$suffix$FS_GII)
       echo $cmd1 | tee -a $LF
       echo $cmd2 | tee -a $LF
       if($DoParallel) then
@@ -3920,14 +3920,14 @@ if($DoCurvHK) then
     if($status) goto error_exit;
   endif
   foreach hemi ($hemilist)
-    if($RunIt &&  ! -e ${hemi}.white.H) then
+    if($RunIt &&  ! -e ${hemi}.white.H$FS_GII) then
       pwd  | tee -a $LF
-      echo "Cannot find ${hemi}.white.H" | tee -a $LF
+      echo "Cannot find ${hemi}.white.H$FS_GII" | tee -a $LF
       goto error_exit;
     endif
-    if($RunIt &&  ! -e ${hemi}.inflated.H) then
+    if($RunIt &&  ! -e ${hemi}.inflated.H$FS_GII) then
       pwd  | tee -a $LF
-      echo "Cannot find ${hemi}.inflated.H" | tee -a $LF
+      echo "Cannot find ${hemi}.inflated.H$FS_GII" | tee -a $LF
       goto error_exit;
     endif
   end
@@ -4011,7 +4011,7 @@ if($DoSurfReg) then
       # Create a symbolic link to $hemi.fsaverage.sphere.reg
       if($RunIt) then
         pushd ../surf
-        set cmd = (ln -sf $hemi.sphere.reg $hemi.fsaverage.sphere.reg)
+        set cmd = (ln -sf $hemi.sphere.reg$FS_GII $hemi.fsaverage.sphere.reg$FS_GII)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         $cmd |& tee -a $LF
         if($status) goto error_exit;
@@ -4326,7 +4326,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
         if($status) goto error_exit;
         echo $cmd > $touchdir/$hemi.pial.touch
         if($DoT2pial == 0 &&  $DoFLAIRpial == 0)  then
-          cd ../surf; ln -sf $hemi.pial.T1 $hemi.pial; cd ../mri
+          cd ../surf; ln -sf $hemi.pial.T1$FS_GII $hemi.pial$FS_GII; cd ../mri
           if(-e "$repos") then
             # Use json point set to reposition surface. See notes above for white.
             # This is run in the T2/FLAIR stage, but it will either be done here
@@ -4517,7 +4517,7 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
-        cd ../surf; ln -sf $hemi.pial.$MultiModal $hemi.pial; cd ../mri
+        cd ../surf; ln -sf $hemi.pial.$MultiModal$FS_GII $hemi.pial$FS_GII; cd ../mri
         if(-e "$repos") then
           # Use json point set to reposition surface. See notes above for white and pial.
           set cmd = (mris_reposition_surface -s $pialmm -v $bfs -p $repos -o $pialmm)
