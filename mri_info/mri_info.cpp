@@ -1142,6 +1142,7 @@ static void do_file(char *fname)
   // mri_identify has been called but the result is not stored
   // and thus I have to call it again
   printf("          type: %s\n", type_to_string(mri_identify(fname)));
+  printf("        intent: %s (%d)\n", MRI::intentName(mri->intent), mri->intent);
   if (mri->nframes > 1)
   {
     printf("    dimensions: %d x %d x %d x %d\n",

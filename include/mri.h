@@ -394,16 +394,17 @@ struct VOL_GEOM
 
 typedef VOL_GEOM VG;
 
-#define MGH_VERSION 1
+#define MGH_VERSION 1   // this is the mgz format version
 
 // version number in .mgz will be constructed using these defines
-// ex.  ((MGZ_WARPMAP     & 0xff ) << 8) | MGH_VERSION
-//      ((MGZ_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION
-#define MGZ_MRI_DATA     1
-#define MGZ_ANNOT        2
-#define MGZ_CURV         3
-#define MGZ_WARPMAP      4
-#define MGZ_WARPMAP_INV  5
+// ex.  ((MGZ_INTENT_WARPMAP     & 0xff ) << 8) | MGH_VERSION
+//      ((MGZ_INTENT_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION
+#define MGZ_INTENT_UNKNOWN     -1
+#define MGZ_INTENT_MRI          0
+#define MGZ_INTENT_LABEL        1
+#define MGZ_INTENT_SHAPE        2
+#define MGZ_INTENT_WARPMAP      3
+#define MGZ_INTENT_WARPMAP_INV  4
 
 class MRI : public VOL_GEOM
 {
@@ -429,6 +430,9 @@ public:
   //MRI(const std::string& filename);
   ~MRI();
 
+  static const char* intentName(int code);
+  static int   intentCode(const char *name);
+  
   void initIndices();
   void initSlices();
   void write(const std::string& filename);
@@ -508,6 +512,7 @@ public:
   // ---- file metadata ----
   //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
   int  version = MGH_VERSION;
+  int  intent  = MGZ_INTENT_MRI;
   VOL_GEOM gcamorph_image_vg;
   VOL_GEOM gcamorph_atlas_vg;
   char fnamePostFixes[STRLEN];    // used in MRIwrite(), append to output file name

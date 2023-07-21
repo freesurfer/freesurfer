@@ -411,6 +411,54 @@ FnvHash MRI::hash() {
 }
 
 
+// static method
+// return mgz intent name for the given code
+const char* MRI::intentName(int code)
+{
+  const char *intentname = "UNKNOWN";
+  switch (code)
+  {
+    case MGZ_INTENT_MRI:
+      intentname = "MRI";
+      break;
+    case MGZ_INTENT_LABEL:
+      intentname = "LABEL";
+      break;
+    case MGZ_INTENT_SHAPE:
+      intentname = "SHAPE";
+      break;
+    case MGZ_INTENT_WARPMAP:
+      intentname = "WARP";
+      break;
+    case MGZ_INTENT_WARPMAP_INV:
+      intentname = "WARP_INV";
+      break;
+  }
+  
+  return intentname;
+}
+
+
+// static method
+// return mgz intent code for the given name
+int MRI::intentCode(const char *name)
+{
+  int intentcode = MGZ_INTENT_UNKNOWN;
+  if (strcmp(name, "MRI") == 0)
+    intentcode = MGZ_INTENT_MRI;
+  else if (strcmp(name, "LABEL") == 0)
+    intentcode = MGZ_INTENT_LABEL;
+  else if (strcmp(name, "SHAPE") == 0)
+    intentcode = MGZ_INTENT_SHAPE;
+  else if (strcmp(name, "WARP") == 0)
+    intentcode = MGZ_INTENT_WARPMAP;
+  else if (strcmp(name, "WARP_INV") == 0)
+    intentcode = MGZ_INTENT_WARPMAP_INV;
+  
+  return intentcode;
+}
+
+
 /**
   Frees and nulls an MRI pointer.
 */
