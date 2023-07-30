@@ -978,7 +978,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     OnToggleCursorVisibility(false);
   }
-
+  if (parser->Found("noannotations"))
+  {
+    OnShowAnnotation(false);
+  }
   if ( parser->Found( "viewsize", &sa ) )
   {
     this->AddScript( QStringList("setviewsize") << sa[0] << sa[1] );

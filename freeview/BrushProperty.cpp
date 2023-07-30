@@ -62,6 +62,7 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_dEraseRange[1] = settings.value( "/BrushProperty/EraseRangeHigh", 1000000 ).toDouble();
   m_dEraseExcludeRange[0] = settings.value( "/BrushProperty/EraseExcludeRangeLow", 0 ).toDouble();
   m_dEraseExcludeRange[1] = settings.value( "/BrushProperty/EraseExcludeRangeHigh", 0 ).toDouble();
+  m_b3DBrush = settings.value( "/BrushProperty/Brush3D", false).toBool();
 
   m_mapGeos = settings.value("/BrushProperty/Geos").toMap();
 }
@@ -82,6 +83,7 @@ BrushProperty::~BrushProperty()
   settings.setValue( "/BrushProperty/EraseRangeHigh", m_dEraseRange[1] );
   settings.setValue( "/BrushProperty/EraseExcludeRangeLow", m_dEraseExcludeRange[0] );
   settings.setValue( "/BrushProperty/EraseExcludeRangeHigh", m_dEraseExcludeRange[1] );
+  settings.setValue( "/BrushProperty/Brush3D", m_b3DBrush );
   settings.setValue( "/BrushProperty/Geos", m_mapGeos);
 }
 

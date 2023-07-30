@@ -198,6 +198,9 @@ void ToolWindowEdit::showEvent(QShowEvent* event)
   {
     this->move( parentWidget()->pos() + QPoint(20,100) );
     bFirstTime = false;
+    MainWindow* mainwnd = MainWindow::GetMainWindow();
+    BrushProperty* bp = mainwnd->GetBrushProperty();
+    ui->checkBox3DBrush->setChecked(bp->Get3DBrush());
   }
   UpdateReconMode();
 }
@@ -379,6 +382,14 @@ void ToolWindowEdit::OnEditMode(QAction *act)
   }
   setWindowTitle(tr("Voxel Edit - %1").arg(act->text()));
 
+  UpdateWidgets();
+}
+
+void ToolWindowEdit::On3DBrushChanged(bool b3D)
+{
+  BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
+
+  bp->Set3DBrush(b3D);
   UpdateWidgets();
 }
 

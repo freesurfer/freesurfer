@@ -46,6 +46,7 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
   m_fFillValue = m_propertyBrush->GetFillValue();
   m_fBlankValue = m_propertyBrush->GetEraseValue();
   m_nBrushRadius = m_propertyBrush->GetBrushSize();
+  m_b3DBrush = m_propertyBrush->Get3DBrush();
   m_livewire = new LivewireTool();
   m_imageData = NULL;
   m_imageDataRef = NULL;
@@ -55,6 +56,7 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
   if (GetEndType() != "ROI")
     connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
   connect(m_propertyBrush, SIGNAL(BrushSizeChanged(int)), this, SLOT(SetBrushRadius(int)));
+  connect(m_propertyBrush, SIGNAL(Brush3DChanged(bool)), this, SLOT(Set3DBrush(bool)));
 }
 
 LayerVolumeBase::~LayerVolumeBase()
@@ -94,13 +96,17 @@ QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd,
 
   int nBrushSize = (ignore_brush_size? 1 : m_propertyBrush->GetBrushSize());
   int n[3], nsize[3] = { nBrushSize/2+1, nBrushSize/2+1, nBrushSize/2+1 };
-  nsize[nPlane] = 1;
+  nsize[nPlane] = nBrushSize/2+1;
   int nActiveComp = GetActiveFrame();
   double* draw_range = bAdd ? m_propertyBrush->GetDrawRange(): m_propertyBrush->GetEraseRange();
   double* exclude_range = bAdd ? m_propertyBrush->GetExcludeRange() : m_propertyBrush->GetEraseExcludeRange();
   LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
   vtkImageData* ref = m_imageData;
   int nActiveCompRef = 0;
+  if(!m_propertyBrush->Get3DBrush())
+  {
+      nsize[nPlane] = 1;
+  }
   if ( ref_layer != NULL )
   {
     ref = ref_layer->GetImageData();
@@ -185,6 +191,10 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
   LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
   vtkImageData* ref = m_imageData;
   int nActiveCompRef = 0;
+  if(!m_propertyBrush->Get3DBrush())
+  {
+      nsize[nPlane] = 1;
+  }
   if ( ref_layer != NULL )
   {
     ref = ref_layer->GetImageData();
@@ -1312,6 +1322,15 @@ void LayerVolumeBase::SetBrushRadius( int nRadius )
     m_nBrushRadius = nRadius;
     emit BrushRadiusChanged(nRadius);
   }
+}
+
+void LayerVolumeBase::Set3DBrush( bool b3DBrush )
+{
+    if (m_b3DBrush != b3DBrush)
+    {
+        m_b3DBrush = b3DBrush;
+        emit Brush3DChanged(m_b3DBrush);
+    }
 }
 
 double LayerVolumeBase::GetMinimumVoxelSize()

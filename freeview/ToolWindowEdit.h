@@ -62,6 +62,7 @@ protected slots:
   void OnButtonGeoSegAbort();
   void OnGeoSegFinished(double time);
   void OnGeoSegProgress(double val);
+  void On3DBrushChanged(bool b3D);
 
 protected:
   virtual void showEvent(QShowEvent *);

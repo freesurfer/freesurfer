@@ -206,8 +206,8 @@ c Initial revision
       l3d=     iand(mode,2).ne.0
       lstretch=iand(mode,4).ne.0
       lvoxsiz= iand(mode,8).ne.0
-      lreflect=.not.lstretch.and.iand(mode,'40000'x).ne.0
-      lsag=    .not.lstretch.and.iand(mode,'80000'x).ne.0
+      lreflect=.not.lstretch.and.iand(mode,z'40000').ne.0
+      lsag=    .not.lstretch.and.iand(mode,z'80000').ne.0
 
       do l=1,4					! initialize a(4,4) to I
         do m=1,4
@@ -369,7 +369,7 @@ c Initial revision
             rot(2,j)=rot(3,j)
             rot(3,j)=t
           enddo
-          mode=ior(mode,'40000'x)		! set negative determinant bit
+          mode=ior(mode,z'40000')		! set negative determinant bit
         endif
         lsag=l3d.and.(abs(rot(3,1)).gt.sqrt(0.5))
         if(lsag)then
@@ -379,7 +379,7 @@ c Initial revision
             rot(3,j)= rot(2,j)
             rot(2,j)=-t
           enddo
-          mode=ior(mode,'80000'x)		! set sagittal bit
+          mode=ior(mode,z'80000')		! set sagittal bit
         endif
         if(l3d)then				! 3d rot->ang
           call rot2ang(rot,param(4))

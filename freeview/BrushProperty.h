@@ -79,6 +79,11 @@ public:
     return m_dFillValue;
   }
 
+  bool Get3DBrush()
+  {
+    return m_b3DBrush;
+  }
+
   double GetEraseValue()
   {
     return m_dEraseValue;
@@ -103,6 +108,7 @@ signals:
   void FillValueChanged(double);
   void EraseValueChanged(double);
   void BrushSizeChanged(int);
+  void Brush3DChanged(bool);
 
 public slots:
   void SetFillValue(double val);
@@ -122,6 +128,10 @@ public slots:
   {
     m_bIsCloning = bVal;
   }
+  void Set3DBrush( bool bEnable )
+  {
+      m_b3DBrush = bEnable;
+  }
 
   void SetEraseRangeEnabled( bool bEnable );
   void SetEraseExcludeRangeEnabled( bool bEnable );
@@ -140,6 +150,7 @@ protected:
   bool m_bDrawConnectedOnly;
   bool  m_bFill3D;
   bool m_bIsCloning;
+  bool m_b3DBrush;
 
   double m_dFillValue;
   double m_dEraseValue;
