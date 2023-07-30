@@ -82,5 +82,5 @@ urllib3==1.26.15
 voxelmorph==0.2
 wheel==0.41.0
 wrapt==1.15.0
-xxhash==3.2.0
+xxhash==3.3.0
 zipp==3.16.2
