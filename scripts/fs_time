@@ -70,7 +70,10 @@ $cmd -f "$fmt" $argv
 set st = $status
 if($outfile != /dev/stdout) cat $outfile
 
-if($FSTIME_LOAD) then
+# If uptime is not in the path, don't try to run it
+which uptime >& /dev/null
+set UptimeStatus = $status
+if($FSTIME_LOAD && $UptimeStatus == 0) then
   set dt = `date '+%Y:%m:%d:%H:%M:%S'`
   set upt = `uptime | sed 's/,/ /g'`;
   @ a = $#upt - 2
