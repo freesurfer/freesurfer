@@ -10921,6 +10921,8 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
     mri = MRIallocHeader(width, height, depth, type, nframes);
     mri->dof = dof;
     mri->nframes = nframes;
+    mri->version = version;                // version saved in mgz
+    mri->intent  = (version >> 8) & 0xff;  // content of the mgz file, annot, curv, warp, ...
     if (gzipped) {  // pipe cannot seek
       long count, total_bytes;
       uchar buf[STRLEN];
@@ -10957,7 +10959,8 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
     mri = MRIallocSequence(width, height, depth, type, nframes);
     mri->dof = dof;
 
-    mri->version = version;
+    mri->version = version;                // version saved in mgz
+    mri->intent  = (version >> 8) & 0xff;  // content of the mgz file, annot, curv, warp, ...
     
     struct timespec begin, end;
     if (getenv("FS_MGZIO_TIMING"))
@@ -11234,8 +11237,8 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
         case TAG_GCAMORPH_GEOM:
 	  mri->gcamorph_image_vg.read(fp);
 	  mri->gcamorph_atlas_vg.read(fp);
-	  mri->gcamorph_image_vg.vgprint(true);
-	  mri->gcamorph_atlas_vg.vgprint(true);
+	  //mri->gcamorph_image_vg.vgprint(true);
+	  //mri->gcamorph_atlas_vg.vgprint(true);
 	  break;
         case TAG_GCAMORPH_AFFINE:
           mri->gcamorphAffine = znzReadMatrix(fp);

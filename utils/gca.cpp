@@ -15603,17 +15603,18 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
       if (mri_peak >= 0) printf("mri peak = %2.5f (%2.0f)\n", h_mri->counts[mri_peak], h_mri->bins[mri_peak]);
       fflush(stdout);
 
-      if (IS_CSF(l) && h_mri->bins[mri_peak] > 55) {
-        printf("CSF peak too bright - rejecting\n");
+      if (IS_CSF(l) && mri_peak >= 0 && h_mri->bins[mri_peak] > 55) {
+        printf("CSF peak too bright - rejecting (label #%d), h_mri->bins[%d]=%.6f\n", l, mri_peak, h_mri->bins[mri_peak]);
         continue;
       }
-      if (h_mri->counts[mri_peak] < peak_threshold || num <= 50)
+      if (mri_peak < 0 || h_mri->counts[mri_peak] < peak_threshold || num <= 50)
       /* not enough to reliably estimate density */
       {
-        if (h_mri->counts[mri_peak] < peak_threshold)
+        if (mri_peak < 0 || h_mri->counts[mri_peak] < peak_threshold)
           printf(
-              "uniform distribution in MR - "
-              "rejecting arbitrary fit\n");
+              "uniform distribution in MR -" 
+              "rejecting arbitrary fit (label #%d), peak_threshold=%.6f, h_mri->counts[%d]=%.6f\n",
+	      l, peak_threshold, mri_peak, (mri_peak < 0) ? 0 : h_mri->counts[mri_peak]);
         if (m_L) {
           MatrixFree(&m_L);
         }

@@ -360,12 +360,14 @@ void SurfaceLabel::Dilate(int nTimes)
 {
   ::LabelDilate(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes,
                 m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+  UpdateOutline();
   emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::Erode(int nTimes)
 {
   ::LabelErode(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes);
+  UpdateOutline();
   emit SurfaceLabelChanged();
 }
 
@@ -374,6 +376,7 @@ void SurfaceLabel::Open(int nTimes)
   ::LabelErode(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes);
   ::LabelDilate(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes,
                 m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+  UpdateOutline();
   emit SurfaceLabelChanged();
 }
 
@@ -382,6 +385,7 @@ void SurfaceLabel::Close(int nTimes)
   ::LabelDilate(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes,
                 m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
   ::LabelErode(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes);
+  UpdateOutline();
   emit SurfaceLabelChanged();
 }
 
