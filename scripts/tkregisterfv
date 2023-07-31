@@ -599,7 +599,6 @@ if($#segvol0) then
   endif
 endif
 
-echo $DoSurfs
 if($DoSurfs) then
   foreach surf ($surflist0)
     if(-e $surf) then
@@ -607,6 +606,11 @@ if($DoSurfs) then
     else
       set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
       if(! -e $surfpath) then
+        if($DoTal) then
+          # When tal fails, the surface will not be created
+          set DoSurfs = 0;
+          break;
+        endif
         echo "ERROR: cannot find $surfpath"
         exit 1;
       endif
