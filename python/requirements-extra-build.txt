@@ -5,10 +5,10 @@ pandas==2.0.3
 scikit-image==0.21.0
 tensorflow==2.13.0
 tensorflow-estimator==2.13.0
-tensorflow-io-gcs-filesystem==0.32.0
+tensorflow-io-gcs-filesystem==0.33.0
 torch==2.0.1
 transforms3d==0.4.1
-trimesh==3.22.5
+trimesh==3.23.0
 git+https://github.com/adalca/pystrum.git@d7b1f456761e15c85778bc6cc0549a93412025ca
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
 git+https://github.com/adalca/neurite.git@93c266db2ac74a4dcab5767ade9f332091a53226
