@@ -10,7 +10,7 @@ astunparse==1.6.3
 cachetools==5.3.1
 certifi==2023.7.22
 charset-normalizer==3.2.0
-cmake==3.27.0
+cmake==3.27.1
 contourpy==1.1.0
 cycler==0.11.0
 filelock==3.12.2
@@ -80,7 +80,7 @@ typing-extensions==4.5.0
 tzdata==2023.3
 urllib3==1.26.15
 voxelmorph==0.2
-wheel==0.41.0
+wheel==0.41.1
 wrapt==1.15.0
 xxhash==3.3.0
 zipp==3.16.2

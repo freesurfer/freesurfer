@@ -11,7 +11,7 @@ transforms3d==0.4.1
 trimesh==3.23.0
 git+https://github.com/adalca/pystrum.git@d7b1f456761e15c85778bc6cc0549a93412025ca
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
-git+https://github.com/adalca/neurite.git@d898081c01e00df82ddad8dc9f9d07b8bd3c9f80
+git+https://github.com/adalca/neurite.git@a6d8f7b78547125faf2834756fc6c89385b722b3
 # neurite @ git+https://github.com/adalca/neurite.git@dev
-git+https://github.com/voxelmorph/voxelmorph.git@8056f0b1b278f095d8bd971b5aad7d07d5adfb95
+git+https://github.com/voxelmorph/voxelmorph.git@f769a4db03d59d18be5940ea5d72b0ad0fd2e1e8
 # voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
