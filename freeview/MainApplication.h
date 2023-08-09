@@ -38,6 +38,9 @@ public slots:
   {
     emit GlobalProgress(n);
   }
+
+public:
+  bool m_bFreshStart;
 };
 
 #endif // MAINAPPLICATION_H

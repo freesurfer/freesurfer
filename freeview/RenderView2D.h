@@ -161,7 +161,7 @@ protected slots:
   void OnDuplicateRegion();
   void OnInteractorError(const QString& msg);
   void OnCopyVoxelValue();
-  void OnCopyLabelVolume();
+  void OnCopyLabelStats();
   void OnCopyRegionValue();
 
 protected:

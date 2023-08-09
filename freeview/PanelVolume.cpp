@@ -1907,6 +1907,8 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
       if ( layer )
       {
         double pos[3];
+        double vs[3];
+        layer->GetWorldVoxelSize(vs);
         if (layer->GetLayerLabelCenter(val, pos))
         {
           act->setText("Go to Centroid");
@@ -1920,6 +1922,16 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
 #endif
           connect(act, SIGNAL(triggered()), SLOT(OnGoToNextPoint()));
           menu.addAction(act);
+          menu.addSeparator();
+          QMenu* submenu = menu.addMenu("Stats (Click to Copy)");
+          act = new QAction(QString("Voxel Count:  %1").arg(layer->GetLabelCount(val)), this);
+          act->setData(layer->GetLabelCount(val));
+          connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow()->GetRenderView(0), SLOT(OnCopyLabelStats()));
+          submenu->addAction(act);
+          act = new QAction(QString("Volume:  %1 mm3").arg(layer->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
+          act->setData(layer->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
+          connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow()->GetRenderView(0), SLOT(OnCopyLabelStats()));
+          submenu->addAction(act);
           menu.addSeparator();
           act = new QAction(tr("Save Label as Volume..."), this);
           act->setProperty("label_value", val);
