@@ -20,7 +20,7 @@ gast==0.4.0
 google-auth==2.22.0
 google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
-grpcio==1.56.2
+grpcio==1.57.0
 idna==3.4
 imageio==2.31.1
 importlib-metadata==6.8.0
@@ -74,7 +74,7 @@ tensorboard-data-server==0.7.1
 termcolor==2.3.0
 threadpoolctl==3.2.0
 tifffile==2023.7.10
-tqdm==4.66.0
+tqdm==4.66.1
 triton==2.0.0
 typing-extensions==4.5.0
 tzdata==2023.3
