@@ -10,6 +10,8 @@ if [ $# == 0 ]; then
    exit 0
 fi
 
+echo "--------------------------------- start of req.sh ------------------------------"
+
 add_links=0
 rm_links=0
 generate=0
@@ -44,6 +46,7 @@ do
         *) echo >&2 "Invalid option: $opt"; exit 1;;
    esac
 done
+
 
 if [ $generate -eq 1 ]; then
    this_dir=$PWD
@@ -133,6 +136,22 @@ if [ $generate -eq 1 ]; then
    grep -f temp_req.list.filter_extra temp_req.list.all > temp_req.list.extra
    wc -l temp_req.list.all
    wc -l temp_req.list.all.pruned temp_req.list.extra
+
+   update_files=1
+
+   if [ $(wc -l < temp_req.list.all.pruned) -eq 0 ]; then
+      echo "temp_req.list.all.pruned has no entries so cannot use it to update requirements-build.txt"
+      update_files=0
+   fi
+   if [ $(wc -l < temp_req.list.extra) -eq 0 ]; then
+      echo "temp_req.list.extra has no entries so cannot use it to update requirements-extra-build.txt"
+      update_files=0
+   fi
+
+   if [ $update_files -eq 0 ]; then
+      echo "*** Error: One or more requirements files failed to contain any entries after trying to update."
+      exit 1
+   fi
 
    rm -f requirements-build.txt requirements-extra-build.txt
    cat temp_req.list.all.pruned | sort -d | uniq > requirements-build.txt
@@ -279,4 +298,6 @@ if [ $rm_links -eq 1 ]; then
       ls -l requirements-extra.txt
    fi
 fi
+
+echo "--------------------------------- end of req.sh ------------------------------"
 
