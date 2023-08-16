@@ -13,5 +13,5 @@ git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
 git+https://github.com/adalca/neurite.git@a6d8f7b78547125faf2834756fc6c89385b722b3
 # neurite @ git+https://github.com/adalca/neurite.git@dev
-git+https://github.com/voxelmorph/voxelmorph.git@f96c9fb1527649b76b0ecf1f599369e53e4e54ce
+git+https://github.com/voxelmorph/voxelmorph.git@eb5b169f3ee1ccf643adf0ace6306114fc2c6df0
 # voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
