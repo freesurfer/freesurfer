@@ -8,10 +8,10 @@ tensorflow-estimator==2.13.0
 tensorflow-io-gcs-filesystem==0.33.0
 torch==2.0.1
 transforms3d==0.4.1
-trimesh==3.23.1
+trimesh==3.23.3
 git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
-git+https://github.com/adalca/neurite.git@a6d8f7b78547125faf2834756fc6c89385b722b3
+git+https://github.com/adalca/neurite.git@5f2f299b9f626062eff84aeda307cddef6223689
 # neurite @ git+https://github.com/adalca/neurite.git@dev
-git+https://github.com/voxelmorph/voxelmorph.git@eb5b169f3ee1ccf643adf0ace6306114fc2c6df0
+git+https://github.com/voxelmorph/voxelmorph.git@9d5e429084c33e07bd9ab41d6cb9beab8d4be62b
 # voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
