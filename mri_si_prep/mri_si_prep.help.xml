@@ -52,6 +52,8 @@
       <explanation>Crop volume to be within npad of the segmentation edge</explanation>
       <argument>--threads threads</argument>
       <explanation>Number of threads for parallel execution.</explanation>
+      <argument>--fill template nskip interpdim outvol</argument>
+      <explanation>Stand-alone argument to set every nskip slice to 1 along the interp dir.</explanation>
     </optional>
 
   </arguments>

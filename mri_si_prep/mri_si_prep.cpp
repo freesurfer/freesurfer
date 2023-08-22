@@ -57,6 +57,7 @@ static void print_help();
 static void print_version();
 static void dump_options(FILE *fp);
 int SIprep(MRI *mri, MRI *seg, std::vector<int> segnos, int nskip, int npad, int interpdim, MRI **pmriout, MRI **psegout);
+MRI *SIfill(MRI *mri, int nskip, int interpdim);
 
 /*---------------------------------------------------------------------*/
 struct utsname uts;
@@ -181,6 +182,21 @@ static int parse_commandline(int argc, char **argv) {
       #endif
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--fill")){
+      // --fill template nskip interpdim out
+      // Stand-alone option to create a volume with every nskip slice
+      // set 1 one along the interp direction. The threads can be set.
+      if(nargc < 4) CMDargNErr(option,4);
+      MRI *mri = MRIread(pargv[0]);
+      if(!mri) exit(1);
+      sscanf(pargv[1],"%d",&nskip);
+      sscanf(pargv[2],"%d",&interpdim);
+      MRI *out = SIfill(mri, nskip, interpdim);
+      if(!out) exit(1);
+      int err = MRIwrite(out,pargv[3]);
+      exit(err);
+      //nargsused = 4;
+    }
     else 
     {
       printf("ERROR: Option %s unknown\n", option);
@@ -429,4 +445,65 @@ int SIprep(MRI *mri, MRI *seg, std::vector<int> segnos, int nskip, int npad, int
   *psegout = segout;
 
   return(0);
+}
+
+/*!
+  MRI *SIfill(MRI *mri, int nskip, int interpdim)
+  Create a volume where every nskip slice along the interpdim is set to 1.
+  This can be helpful when labeling every nskip slice for smart interpol
+ */
+MRI *SIfill(MRI *mri, int nskip, int interpdim)
+{
+  printf("SIfill(): nskip=%d interpdim=%d segnos=",nskip,interpdim);
+  printf("mridim %d %d %d\n",mri->width,mri->height,mri->depth);
+
+  // Determin which dim (1,2,3) to skip
+  if(interpdim < 1 || interpdim > 6){
+    printf("ERROR: SIprep(): interpdim=%d out of range",interpdim);    
+    return(NULL);
+  }
+  char ostr[5];
+  ostr[4] = '\0';
+  MRIdircosToOrientationString(mri,ostr);
+  printf("ostring %s\n",ostr);
+  int skipdim = -1;
+  if(interpdim <= 3) skipdim = interpdim;
+  else {
+    int n;
+    switch(interpdim){
+    case 4: // axial
+      for(n=0; n < 3; n++)	if(ostr[n] == 'S' || ostr[n] == 'I') break;
+      break;
+    case 5: // cor
+      for(n=0; n < 3; n++)	if(ostr[n] == 'A' || ostr[n] == 'P') break;
+      break;
+    case 6: // sagittal
+      for(n=0; n < 3; n++)	if(ostr[n] == 'L' || ostr[n] == 'R') break;
+      break;
+    }	  
+    skipdim = n+1;
+  }
+  printf("skipdim = %d\n",skipdim);
+
+  MRI *outvol = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
+  MRIcopyHeader(mri,outvol);
+  MRIcopyPulseParameters(mri,outvol);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for(int c=0; c < outvol->width; c++){
+    for(int r=0; r < outvol->height; r++){
+      for(int s=0; s < outvol->depth; s++){
+	int zslice=0;
+	if(skipdim == 1) zslice = (c%nskip);
+	if(skipdim == 2) zslice = (r%nskip);
+	if(skipdim == 3) zslice = (s%nskip);
+	if(zslice) continue;
+	MRIsetVoxVal(outvol,c,r,s,0,1);
+      }
+    }
+  }
+
+  return(outvol);
 }
