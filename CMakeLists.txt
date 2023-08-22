@@ -46,8 +46,7 @@ option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
-# option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
-option(BUILD_FORTRAN "Build subdirs with source using gfortran" OFF)
+option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
 option(PATCH_FSPYTHON "Build subdirs with source using gfortran" OFF)
 
 #  Modern compilers on new platforms often provide many more warnings than older compilers
