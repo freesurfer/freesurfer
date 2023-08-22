@@ -168,7 +168,12 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--dim")){
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&interpdim);
+      // Check whether arg is ax, cor, or sag. If not, then interpret it as a number
+      interpdim=0;
+      if(strcasecmp(pargv[0],"ax")==0)  interpdim=4;
+      if(strcasecmp(pargv[0],"cor")==0) interpdim=5;
+      if(strcasecmp(pargv[0],"sag")==0) interpdim=6;
+      if(! interpdim) sscanf(pargv[0],"%d",&interpdim);
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--ax"))  interpdim=4;

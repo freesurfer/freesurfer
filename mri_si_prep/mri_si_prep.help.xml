@@ -38,13 +38,13 @@
       <argument>--nskip nskip</argument>
       <explanation>Only keep every nskipth slice</explanation>
       <argument>--dim interpdim</argument>
-      <explanation>Dimension over which the interpolation will be performed. 1, 2, 3, 4=ax, 5=cor, 6=sag</explanation>
+      <explanation>Dimension over which the interpolation will be performed. 1, 2, 3, 4=ax, 5=cor, 6=sag, ax, cor, sag</explanation>
       <argument>--ax</argument>
-      <explanation>Interpolate over axial dimension (same as --dim 4)</explanation>
+      <explanation>Interpolate over axial dimension (same as --dim 4 or --dim ax)</explanation>
       <argument>--cor</argument>
-      <explanation>Interpolate over coronal dimension (same as --dim 5)</explanation>
+      <explanation>Interpolate over coronal dimension (same as --dim 5 or --dim cor)</explanation>
       <argument>--sag</argument>
-      <explanation>Interpolate over sagittal dimension (same as --dim 6)</explanation>
+      <explanation>Interpolate over sagittal dimension (same as --dim 6 or --dim sag)</explanation>
     </required>
 
     <optional>
@@ -58,6 +58,8 @@
 
   </arguments>
   <example> 
+ Prepare the left hippocampus (17) for SI by selecting every 5th slice in the corronal direction. Add a pad of 5 voxels around the seg.
+    mri_si_prep --nskip 5 --segno 17 --dim cor --threads 2 --npad 5 --i orig.mgz aseg.mgz --o si.orig.mgz si.lh.hippo.mgz
   </example>
 
 </help>
