@@ -585,6 +585,7 @@ add_subdirectories(
   mri_segment
   mri_segreg
   mri_segstats
+  mri_si_prep
   mri_stats2seg
   mri_surf2surf
   mri_surf2vol

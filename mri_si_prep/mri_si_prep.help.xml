@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_si_prep</name>
+	<description>Prepares mri and seg volumes for smart interpol
+        </description>
+  <arguments>
+
+    <required>
+      <argument>--i invol inseg</argument>
+      <explanation>Input full FoV intensity and segmentation volumes</explanation>
+      <argument>--o outvol outseg</argument>
+      <explanation>Output reduced FoV intensity and segmentation volumes</explanation>
+      <argument>--segno segno</argument>
+      <explanation>Segmentation number to use (can have multiple --segno arguments)</explanation>
+      <argument>--nskip nskip</argument>
+      <explanation>Only keep every nskipth slice</explanation>
+      <argument>--dim interpdim</argument>
+      <explanation>Dimension over which the interpolation will be performed. 1, 2, 3, 4=ax, 5=cor, 6=sag</explanation>
+      <argument>--ax</argument>
+      <explanation>Interpolate over axial dimension (same as --dim 4)</explanation>
+      <argument>--cor</argument>
+      <explanation>Interpolate over coronal dimension (same as --dim 5)</explanation>
+      <argument>--sag</argument>
+      <explanation>Interpolate over sagittal dimension (same as --dim 6)</explanation>
+    </required>
+
+    <optional>
+      <argument>--npad npad</argument>
+      <explanation>Crop volume to be within npad of the segmentation edge</explanation>
+      <argument>--threads threads</argument>
+      <explanation>Number of threads for parallel execution.</explanation>
+    </optional>
+
+  </arguments>
+  <example> 
+  </example>
+
+</help>
+
+
