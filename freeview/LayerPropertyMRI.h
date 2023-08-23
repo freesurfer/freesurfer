@@ -419,6 +419,11 @@ public:
 
   double GetFrameMeanValue(int frame = -1);
 
+  bool GetShow2DContour()
+  {
+    return m_bShow2DContour;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -442,6 +447,7 @@ public slots:
   void SetVectorRepresentation( int n );
   void SetContourMinThreshold( double dValue );
   void SetContourMaxThreshold( double dValue );
+  void SetContourShow2D(bool bShow);
   void SetHeatScaleClearHigh( bool bClear );
   void SetHeatScaleTruncate( bool bTruncate );
   void SetHeatScaleInvert( bool bInvert );
@@ -495,6 +501,7 @@ signals:
   void ContourColorChanged();
   void ContourSmoothIterationChanged( int );
   void ContourNeedsRebuild();
+  void Contour2DShown(bool bShown);
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
   void ProjectionMapChanged();
@@ -563,6 +570,8 @@ private:
   bool    mbShowAsContour;
   double  mMinContourThreshold;
   double  mMaxContourThreshold;
+
+  bool    m_bShow2DContour;
 
   bool    m_bDisplayVector;
   int     m_nVectorInversion;

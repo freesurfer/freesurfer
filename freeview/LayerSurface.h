@@ -465,8 +465,6 @@ public slots:
 
   void SetNoShading(bool b);
 
-  void SetDisplayInNeurologicalView(bool b);
-
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -511,6 +509,7 @@ protected:
   void DoSlicePositionChanged(int nPlane, bool bUpdatePosOnly = false);
 
   virtual void OnSlicePositionChanged( int nPlane );
+  virtual void OnSetDisplayInNeurologicalView();
 
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkPlane>     mReslicePlane[3];
@@ -579,8 +578,6 @@ protected:
   LayerSurface*     m_surfaceContralateral;
   LayerSurface*     m_surfaceSphere1;
   LayerSurface*     m_surfaceSphere2;
-
-  double        m_dTinyOffset;
 };
 
 #endif

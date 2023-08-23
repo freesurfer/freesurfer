@@ -192,7 +192,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->checkBoxVoxelizedContour
                       << ui->labelContourSpaceHolder
                       << ui->checkBoxContourDilateFirst
-                      << ui->pushButtonContourUpdate;
+                      << ui->pushButtonContourUpdate
+                      << ui->checkBoxShow2DOutline;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
                             << ui->sliderContourThresholdHigh
@@ -204,7 +205,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->labelContourThresholdHigh
                             << ui->labelContourThresholdLow
                             << ui->labelContourColor
-                            << ui->pushButtonContourSave;
+                            << ui->pushButtonContourSave
+                            << ui->checkBoxShow2DOutline;
 
   m_widgetlistEditable << ui->labelBrushValue
                        << ui->lineEditBrushValue;
@@ -311,6 +313,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxShowOutline, SIGNAL(toggled(bool)), p, SLOT(SetShowLabelOutline(bool)) );
   connect( ui->checkBoxContourExtractAll, SIGNAL(toggled(bool)), p, SLOT(SetContourExtractAllRegions(bool)) );
   connect( ui->checkBoxContourDilateFirst, SIGNAL(toggled(bool)), p, SLOT(SetContourDilateFirst(bool)) );
+  connect( ui->checkBoxShow2DOutline, SIGNAL(toggled(bool)), p, SLOT(SetContourShow2D(bool)));
   connect( ui->checkBoxUseColorMap, SIGNAL(toggled(bool)), p, SLOT(SetContourUseImageColorMap(bool)) );
   connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
   connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
@@ -691,6 +694,7 @@ void PanelVolume::DoUpdateWidgets()
       ui->labelSmoothIteration->setVisible(!bVoxelizedContour);
       ui->sliderContourSmoothIteration->setVisible(!bVoxelizedContour);
       ui->lineEditContourSmoothIteration->setVisible(!bVoxelizedContour);
+      ui->checkBoxShow2DOutline->setVisible(!bShowAsLabelContour);
     }
 
     //  ShowWidgets( m_widgetlistContour, false );
