@@ -80,7 +80,7 @@ tzdata==2023.3
 urllib3==1.26.15
 voxelmorph==0.2
 werkzeug==2.3.7
-wheel==0.41.1
+wheel==0.41.2
 wrapt==1.15.0
 xxhash==3.3.0
 zipp==3.16.2
