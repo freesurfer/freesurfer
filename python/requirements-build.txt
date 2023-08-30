@@ -9,7 +9,7 @@ astunparse==1.6.3
 cachetools==5.3.1
 certifi==2023.7.22
 charset-normalizer==3.2.0
-cmake==3.27.4
+cmake==3.27.2
 contourpy==1.1.0
 cycler==0.11.0
 filelock==3.12.2
