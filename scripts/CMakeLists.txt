@@ -3,6 +3,7 @@
 
 install_configured(
   annot2std
+  annot2volseg
   aparc2feat
   aparc_stats_aseg
   aparcstatsdiff
