@@ -14,7 +14,7 @@ from datetime import timedelta
 from itertools import combinations
 from scipy.ndimage import label as scipy_label
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import binary_dilation, binary_erosion, gaussian_filter, distance_transform_edt, binary_fill_holes
+from scipy.ndimage import binary_dilation, binary_erosion, binary_closing, gaussian_filter, distance_transform_edt, binary_fill_holes
 
 # set tensorflow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -689,11 +689,11 @@ def postprocess(post_patch_seg, shape, pad_idx, crop_idx,
     # get posteriors
     post_patch_seg = np.squeeze(post_patch_seg)
 
-    # fill holes
-    tmp_post_patch_seg = post_patch_seg[..., 1:]
-    post_patch_seg_mask = np.sum(tmp_post_patch_seg, axis=-1) > post_patch_seg[..., 0]
-    post_patch_seg_mask = binary_fill_holes(post_patch_seg_mask)
-    post_patch_seg[post_patch_seg_mask, 0] = 0
+    # # fill holes
+    # tmp_post_patch_seg = post_patch_seg[..., 1:]
+    # post_patch_seg_mask = np.sum(tmp_post_patch_seg, axis=-1) > post_patch_seg[..., 0]
+    # post_patch_seg_mask = binary_fill_holes(post_patch_seg_mask)
+    # post_patch_seg[post_patch_seg_mask, 0] = 0
 
     # reset posteriors to zero outside the largest connected component of each topological class
     thal_1_topology_indices = np.where(topology_classes == 1)[0]
@@ -702,10 +702,19 @@ def postprocess(post_patch_seg, shape, pad_idx, crop_idx,
     thal_2_post = np.sum(post_patch_seg[..., thal_2_topology_indices], axis=-1)
 
     thal_1_mask = (thal_1_post > post_patch_seg[..., 0]) & (thal_1_post > thal_2_post)
+    thal_1_mask = binary_closing(thal_1_mask)
+    thal_1_mask = binary_fill_holes(thal_1_mask)
+    thal_1_mask = get_largest_connected_component(thal_1_mask)
+
     thal_2_mask = (thal_2_post > post_patch_seg[..., 0]) & (thal_2_post > thal_1_post)
+    thal_2_mask = binary_closing(thal_2_mask)
+    thal_2_mask = binary_fill_holes(thal_2_mask)
+    thal_2_mask = get_largest_connected_component(thal_2_mask)
 
     post_patch_seg[..., thal_1_topology_indices] *= thal_1_mask[..., np.newaxis]
     post_patch_seg[..., thal_2_topology_indices] *= thal_2_mask[..., np.newaxis]
+
+    post_patch_seg[..., 0] *= (~thal_1_mask & ~thal_2_mask)
 
     post_patch_seg = crop_volume_with_idx(post_patch_seg, pad_idx, n_dims=3, return_copy=False)
 
