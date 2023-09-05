@@ -456,7 +456,9 @@ if [ -n "$FSL_DIR" ]; then
     fi
 fi
 if [ -n "$FSL_BIN" ]; then
-    PATH=$FSL_BIN:$PATH
+    # PATH=$FSL_BIN:$PATH
+    # avoid PATH conflicts with what might be in FSL_BIN for newer FSL releases
+    PATH=$PATH:$FSL_BIN
 fi
 if [[ $output == 1 && -n "$FSL_DIR" ]]; then
     echo "FSL_DIR           $FSL_DIR"

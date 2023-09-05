@@ -793,10 +793,15 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       {
         double vs[3];
         mri->GetWorldVoxelSize(vs);
-        QAction* act = new QAction(QString("Copy Volume of %1 (%2 mm3)").arg(name).arg(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
+        QMenu* submenu = menu.addMenu(QString("Stats of %1 (Click to Copy)").arg(name));
+        QAction* act = new QAction(QString("Voxel Count:  %1").arg(mri->GetLabelCount(val)), this);
+        act->setData(mri->GetLabelCount(val));
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelStats()));
+        submenu->addAction(act);
+        act = new QAction(QString("Volume:  %1 mm3").arg(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
         act->setData(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
-        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
-        menu.addAction(act);
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelStats()));
+        submenu->addAction(act);
         menu.addSeparator();
         act = new QAction(tr("Save Label %1 (%2) as Volume...").arg(name).arg(val), this);
         act->setProperty("label_value", val);
@@ -904,7 +909,7 @@ void RenderView2D::OnCopyVoxelValue()
     QApplication::clipboard()->setText(sender()->property("voxel_value").toString());
 }
 
-void RenderView2D::OnCopyLabelVolume()
+void RenderView2D::OnCopyLabelStats()
 {
   QAction* act = qobject_cast<QAction*>(sender());
   if (act)

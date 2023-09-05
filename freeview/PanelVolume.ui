@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>360</width>
-    <height>1913</height>
+    <width>414</width>
+    <height>1914</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,8 +27,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>377</width>
-     <height>1913</height>
+     <width>414</width>
+     <height>1931</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -1563,6 +1563,13 @@ of each frame</string>
        <widget class="QCheckBox" name="checkBoxContourExtractAll">
         <property name="text">
          <string>Extract all regions</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="checkBoxShow2DOutline">
+        <property name="text">
+         <string>Show outline on 2D view</string>
         </property>
        </widget>
       </item>

@@ -236,6 +236,8 @@ public:
 
   Layer* FindSupplementLayer(const QString& name);
 
+  bool GetNeurologicalView();
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );

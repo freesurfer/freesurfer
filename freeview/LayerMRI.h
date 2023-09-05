@@ -47,6 +47,8 @@ class vtkPolyData;
 class vtkPolyDataAlgorithm;
 class vtkImageResample;
 class vtkUnsignedCharArray;
+class vtkCutter;
+class vtkPlane;
 class LayerPropertyMRI;
 class FSVolume;
 class BuildContourThread;
@@ -407,6 +409,7 @@ protected slots:
   virtual void UpdateOpacity();
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );
+  void UpdateContour2D(bool bEmit = true);
   void UpdateContourActor( int nSegIndex );
   void UpdateContourColor();
   void ShowContour();
@@ -443,6 +446,7 @@ protected:
   virtual void DoScale( double* rscale, int nSampleMethod );
   virtual void DoRestore();
   virtual void DoTransform(int sample_method);
+  virtual void OnSetDisplayInNeurologicalView();
 
   void InitializeVolume();
   void InitializeActors();
@@ -486,6 +490,10 @@ protected:
   vtkActor*       m_glyphActor2D[3];
   vtkActor*       m_vectorDotActor2D[3];
   vtkActor*       m_glyphActor3D[3];
+
+  vtkSmartPointer<vtkActor>   m_actorContour2D[3];
+  vtkSmartPointer<vtkCutter>  m_cutterContour2D[3];
+  vtkSmartPointer<vtkPlane>   m_reslicePlane[3];
 
   vtkImageActor*  m_projectionMapActor[3];
 

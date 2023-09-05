@@ -445,7 +445,9 @@ if ( $?FSL_DIR ) then
     if ( -e /usr/bin/convert) setenv FSLCONVERT /usr/bin/convert
 endif
 if ( $?FSL_BIN ) then
-    set path = ( $FSL_BIN $path )
+    # set path = ( $FSL_BIN $path )
+    # avoid PATH conflicts with what might be in FSL_BIN for newer FSL releases
+    set path = ( $path $FSL_BIN )
 endif
 if( $output && $?FSL_DIR ) then
     echo "FSL_DIR           $FSL_DIR"

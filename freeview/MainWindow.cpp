@@ -6584,7 +6584,6 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
   LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
-  layer->SetDisplayInNeurologicalView(((RenderView2D*)m_views[0])->GetNeurologicalView());
   connect(layer, SIGNAL(CurrentVertexChanged(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(ui->treeWidgetCursorInfo, SIGNAL(VertexChangeTriggered(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
@@ -8834,7 +8833,6 @@ void MainWindow::CommandLoadFCD(const QStringList& cmd )
 void MainWindow::LoadFCD(const QString &subdir, const QString &subject, const QString& suffix)
 {
   LayerFCD* layer = new LayerFCD(m_layerVolumeRef);
-  layer->SetDisplayInNeurologicalView(((RenderView2D*)m_views[0])->GetNeurologicalView());
   connect( layer->GetWorkerThread(), SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)));
   connect( layer->GetWorkerThread(), SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
   connect( layer->GetWorkerThread(), SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
@@ -9254,7 +9252,6 @@ void MainWindow::LoadSphereLeftRightIfNeeded(LayerSurface *sf)
   if (QFile::exists(fullpath))
   {
     LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
-    layer->SetDisplayInNeurologicalView(((RenderView2D*)m_views[0])->GetNeurologicalView());
     layer->SetFileName( fullpath );
     QVariantMap args;
     args["hidden"] = true;
@@ -9994,6 +9991,10 @@ void MainWindow::OnDeleteLayer()
 
 void MainWindow::SetNeurologicalView(bool b)
 {
+  for (int i = 0; i < 3; i++)
+  {
+    ((RenderView2D*)m_views[i])->SetNeurologicalView(b);
+  }
   QList<Layer*> layers = GetLayers("Surface");
   foreach (Layer* layer, layers)
   {
@@ -10004,10 +10005,10 @@ void MainWindow::SetNeurologicalView(bool b)
   {
     ((LayerFCD*)layer)->SetDisplayInNeurologicalView(b);
   }
-
-  for (int i = 0; i < 3; i++)
+  layers = GetLayers("MRI");
+  foreach (Layer* layer, layers)
   {
-    ((RenderView2D*)m_views[i])->SetNeurologicalView(b);
+    ((LayerMRI*)layer)->SetDisplayInNeurologicalView(b);
   }
 }
 
@@ -10094,4 +10095,9 @@ void MainWindow::dropEvent(QDropEvent *event)
       }
     }
   }
+}
+
+bool MainWindow::GetNeurologicalView()
+{
+  return ((RenderView2D*)m_views[0])->GetNeurologicalView();
 }

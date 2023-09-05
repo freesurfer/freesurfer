@@ -263,6 +263,8 @@ public slots:
   void ResetTransform();
   void UndoLastTransform();
 
+  void SetDisplayInNeurologicalView(bool b);
+
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations )
   {
@@ -279,6 +281,7 @@ protected:
 
   // new transform scheme
   virtual void DoTransform(int sample_method) { Q_UNUSED(sample_method); }
+  virtual void OnSetDisplayInNeurologicalView() {}
 
   QString   m_strName;
   double    m_dSlicePosition[3];
@@ -310,6 +313,8 @@ protected:
   int       m_nID;
   static int m_nLastID;
   int       m_nLayerIndex;
+
+  double        m_dTinyOffset;
 };
 
 #endif

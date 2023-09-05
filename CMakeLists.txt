@@ -6,6 +6,9 @@ if(CMAKE_CXX_STANDARD EQUAL "98" )
    message(FATAL_ERROR "CMAKE_CXX_STANDARD:STRING=98 is not supported in.")
 endif()
 
+# do not allow python libraries to mask system libraries
+set(CMAKE_IGNORE_PREFIX_PATH "/space/freesurfer/python/linux/lib") 
+
 if(APPLE)
    set(CMAKE_C_COMPILER "/usr/bin/clang")
    set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
@@ -148,6 +151,9 @@ if(NOT APPLE)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
      find_library(LAPACK_LIBRARIES NAMES liblapack.a)
      find_library(QUADMATH_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+  elseif(HOST_OS MATCHES "CentOS9stream")
+     find_library(BLAS_LIBRARIES NAMES libblas.so.3)
+     find_library(LAPACK_LIBRARIES NAMES liblapack.so.3)
   else()
      find_library(GFORTRAN_LIBRARIES HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/ NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
@@ -169,29 +175,6 @@ endif()
 
 # -------- petsc --------
 find_package(PETSC)
-
-# -------- itk --------
-if(NOT ITK_DIR)
-   if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "Rocky8")
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos8 CACHE PATH "ITK install directory")
-   elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu20 CACHE PATH "ITK install directory")
-   elseif(HOST_OS MATCHES "CentOS7")
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos7 CACHE PATH "ITK install directory")
-   elseif(HOST_OS MATCHES "Ubuntu18")
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu18 CACHE PATH "ITK install directory")
-   elseif(APPLE AND NOT APPLE_ARM64)
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_darwin CACHE PATH "ITK install directory")
-   elseif(APPLE AND APPLE_ARM64)
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0/lib/cmake CACHE PATH "ITK install directory")
-   else()
-      # default
-      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2 CACHE PATH "ITK install directory")
-   endif()
-endif()
-
-find_package(ITK HINTS ${ITK_DIR} REQUIRED)
-message(STATUS "For HOST_OS=${HOST_OS} ITK_DIR=${ITK_DIR}")
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -270,7 +253,7 @@ if(BUILD_GUIS)
 
 if(NOT Qt6_DIR)
   if(NOT Qt5_DIR)
-     if(HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "Rocky8")
+     if(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "CentOS8")
         set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
      elseif(HOST_OS MATCHES "Ubuntu18" OR HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
         set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_ub18/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
@@ -293,10 +276,16 @@ endif()
 
 endif()
 
+# Preceed itk with vtk as itk may look for vtk files and do not want
+# those found thru alternatives that may be in the default search paths.
 # -------- vtk --------
 
 if(NOT VTK_DIR)
-   set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
+   if(HOST_OS MATCHES "CentOS9stream")
+      set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/8.1.2-qt5.12/lib/cmake/vtk-8.1 CACHE PATH "VTK install directory")
+   else()
+      set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
+   endif()
 endif()
 
 find_package(VTK HINTS ${VTK_DIR})
@@ -332,6 +321,32 @@ if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
     set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/vtk:${CMAKE_INSTALL_RPATH}")
   endif()
 endif()
+
+
+# -------- itk --------
+if(NOT ITK_DIR)
+   if(HOST_OS MATCHES "CentOS9stream")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0 CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "Rocky8")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos8 CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu20 CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "CentOS7")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_centos7 CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "Ubuntu18")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_ubuntu18 CACHE PATH "ITK install directory")
+   elseif(APPLE AND NOT APPLE_ARM64)
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2_darwin CACHE PATH "ITK install directory")
+   elseif(APPLE AND APPLE_ARM64)
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0/lib/cmake CACHE PATH "ITK install directory")
+   else()
+      # default
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.2 CACHE PATH "ITK install directory")
+   endif()
+endif()
+
+find_package(ITK HINTS ${ITK_DIR} REQUIRED)
+message(STATUS "For HOST_OS=${HOST_OS} ITK_DIR=${ITK_DIR}")
 
 # --------------------------------------------------
 #              global system information
@@ -414,7 +429,7 @@ endif()
 if(NOT NO_CXX_WARN)
   if(WARNING_AS_ERROR)
     set(WARN_AS_ERROR_FLAG "-Werror")
-    if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "Rocky8")
+    if(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "Rocky8")
        # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
        # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
        # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
@@ -493,7 +508,12 @@ add_subdirectory(utils)
 # by default) is maintained for darwin_x86_64 and all linux contexts.
 
 # the following utility libraries are required for freeview
-if(NOT APPLE_ARM64)
+# if(NOT APPLE_ARM64)
+if(APPLE_ARM64)
+   message(STATUS "For HOST_OS=${HOST_OS}skipping lineprof")
+elseif(HOST_OS MATCHES "CentOS9stream")
+   message(STATUS "For HOST_OS=${HOST_OS} skipping lineprof")
+else()
    add_subdirectory(lineprof)
 endif()
 add_subdirectory(vtkutils)
@@ -564,6 +584,7 @@ add_subdirectories(
   mri_segment
   mri_segreg
   mri_segstats
+  mri_si_prep
   mri_stats2seg
   mri_surf2surf
   mri_surf2vol
@@ -847,7 +868,7 @@ if(EXISTS "./mri_make_bem_surfaces")
    if(HOST_OS MATCHES "CentOS7")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
-   elseif(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "Rocky8")
+   elseif(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "Rocky8")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")

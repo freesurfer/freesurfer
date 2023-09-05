@@ -93,8 +93,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_surfaceSphere2(NULL),
   m_nMouseVertex(-1),
   m_nActivePath(-1),
-  m_marks(NULL),
-  m_dTinyOffset(0.1)
+  m_marks(NULL)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -172,6 +171,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   for (int i = 0; i < 3; i++)
     m_vectorActor2D[i]->ForceOpaqueOn();
 #endif
+
+  SetDisplayInNeurologicalView(MainWindow::GetMainWindow()->GetNeurologicalView());
 }
 
 LayerSurface::~LayerSurface()
@@ -3253,9 +3254,8 @@ void LayerSurface::SetNoShading(bool b)
   emit ActorUpdated();
 }
 
-void LayerSurface::SetDisplayInNeurologicalView(bool b)
+void LayerSurface::OnSetDisplayInNeurologicalView()
 {
-  m_dTinyOffset = b?-0.1:0.1;
   DoSlicePositionChanged(1, true);
   DoSlicePositionChanged(2, true);
 }

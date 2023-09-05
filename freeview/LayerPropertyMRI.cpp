@@ -69,6 +69,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   mbShowAsContour( false ),
   mMinContourThreshold( 0 ),
   mMaxContourThreshold( 0 ),
+  m_bShow2DContour( false ),
   m_bDisplayVector( false ),
   m_nVectorInversion( VI_None ),
   m_nVectorRepresentation( VR_Line ),
@@ -1749,6 +1750,12 @@ void LayerPropertyMRI::SetContourMaxThreshold( double dValue )
     mMaxContourThreshold = dValue;
     emit ContourChanged();
   }
+}
+
+void LayerPropertyMRI::SetContourShow2D(bool bShow)
+{
+  m_bShow2DContour = bShow;
+  emit Contour2DShown(bShow);
 }
 
 void LayerPropertyMRI::SetContourThreshold( double dMin, double dMax )

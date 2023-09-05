@@ -1,0 +1,500 @@
+#!/bin/tcsh -f
+# annot2volseg - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outdir = ();
+set subject = ();
+set hemilist = ();
+set annotsubject = ()
+set RHonly = 0;
+set LHonly = 0;
+set hemilist = (lh rh)
+set lhbase = 1000
+set rhbase = 2000
+set LabelWM = 0
+set basesegname = aseg
+set outbase = ()
+set ctab = ()
+set ForceUpdate = 0
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $$SUBJECTS_DIR/$subject/scripts/log
+pushd $$SUBJECTS_DIR/$subject/scripts/log > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.annot2volseg.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.annot2volseg.$$
+endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/log/annot2volseg.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for annot2volseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+
+# Prep the surf2volseg command
+set cmds2v = (mri_surf2volseg  --threads $threads)
+if($#ctab) set cmds2v = ($cmds2v --ctab $ctab)
+set udlist = ()
+
+foreach hemi ($hemilist)
+  # Map the annotation to the target subject
+  set srcreg = $SUBJECTS_DIR/$annotsubject/surf/$hemi.sphere.reg
+  set srcannot = $SUBJECTS_DIR/$annotsubject/label/$hemi.$annotname.annot
+  set trgreg = $sdir/$hemi.sphere.reg
+  set trgannot = $ldir/$hemi.$annotname.annot
+  set ud = `UpdateNeeded $trgannot $srcreg $srcannot $trgreg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_apply_reg --src-annot $srcannot --o $trgannot \
+     --streg $srcreg $trgreg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+
+  # Prep the surf2volseg command
+  if(! $RHonly) then
+    set udlist = ($udlist $trgannot $ldir/lh.cortex.label $sdir/lh.white $sdir/lh.pial)
+    set cmds2v = ($cmds2v --lh-annot $ldir/lh.$annotname.annot $lhbase --lh-cortex-mask \
+      $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial)
+  endif
+  if(! $LHonly) then
+    set udlist = ($udlist $trgannot $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
+    set cmds2v = ($cmds2v --rh-annot $ldir/rh.$annotname.annot $rhbase --rh-cortex-mask \
+      $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
+  endif
+end
+
+# Prep the surf2volseg command
+if($LHonly) set cmds2v = ($cmds2v --lh)
+if($RHonly) set cmds2v = ($cmds2v --rh)
+
+# Now run surf2volseg to segment 
+if($#outbase) then
+  set outvol = $mdir/$outbase.mgz
+else
+  set outvol = $mdir/$annotname+$basesegname.mgz
+  if($LabelWM) then
+    set cmds2v = ($cmds2v --label-wm)
+    set outvol = $mdir/$basesegname.wm.mgz
+  else 
+    set cmds2v = ($cmds2v --label-cortex)
+  endif
+endif
+set cmds2v = ($cmds2v --i $baseseg --o $outvol)
+set ud = `UpdateNeeded $outvol $udlist $baseseg`
+if($ud || $ForceUpdate) then
+  echo $cmds2v | tee -a $LF
+  $cmds2v | tee -a $LF
+  if($status) goto error_exit
+endif
+
+echo "To view:"  | tee -a $LF
+echo "  tkmeditfv $subject orig.mgz -seg $outvol -surfs -annot $annotname.annot" | tee -a $LF
+echo ""  | tee -a $LF
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Annot2volseg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Annot2volseg-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Annot2volseg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "annot2volseg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outbase = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--s-annot":
+      if($#argv < 1) goto arg1err;
+      set annotsubject = $argv[1]; shift;
+      breaksw
+
+    case "--annot":
+      if($#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
+      if($annot == aparc || $annot == aparc.a2009s) then
+        echo "ERROR: do not use $annot"
+        exit 1
+      endif
+      breaksw
+
+    case "--lh-base":
+    case "--lhbase":
+      if($#argv < 1) goto arg1err;
+      set lhbase = $argv[1]; shift;
+      breaksw
+
+    case "--rh-base":
+    case "--rhbase":
+      if($#argv < 1) goto arg1err;
+      set rhbase = $argv[1]; shift;
+      breaksw
+
+    case "--base-seg":
+    case "--baseseg":
+      if($#argv < 1) goto arg1err;
+      set basesegname = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--label-wm":
+      set LabelWM = 1;
+      breaksw
+
+    case "--yeo7":
+      set annotsubject = fsaverage
+      set annotname = Yeo2011_7Networks_N1000
+      set lhbase = 15000
+      set rhbase = 15010
+      breaksw
+
+    case "--yeo17":
+      set annotsubject = fsaverage
+      set annotname = Yeo2011_17Networks_N1000
+      set lhbase = 15100
+      set rhbase = 15120
+      breaksw
+
+    case "--aparc":
+      # This is not the preferred way to do this as it just uses surf2surf
+      # and does not refine the atlas; this is just added as a way
+      # to test the software as the result should be very similar. 
+      # No way to easily do this without overwriting stuff, so disabling
+      echo "Don't use --aparc"
+      exit 1
+      set annotsubject = fsaverage
+      set annotname = aparc
+      set lhbase = 1000;
+      set rhbase = 2000;
+      set outbase = apar+aseg2; # so that it does not overwrite
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if($#annotsubject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if($#annotname == 0) then
+  echo "ERROR: must spec annotation"
+  exit 1;
+endif
+foreach s ($subject $annotsubject) 
+  if(! -e $SUBJECTS_DIR/$s) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+end
+
+if($#hemilist == 1) then
+  if($hemilist = lh) set LHonly = 1
+  if($hemilist = rh) set RHonly = 1
+endif
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+set ldir = $SUBJECTS_DIR/$subject/label
+set sdir = $SUBJECTS_DIR/$subject/surf
+
+foreach hemi ($hemilist)
+  set srcreg = $SUBJECTS_DIR/$annotsubject/surf/$hemi.sphere.reg
+  set srcannot = $SUBJECTS_DIR/$annotsubject/label/$hemi.$annotname.annot
+  set trgreg = $sdir/$hemi.sphere.reg
+  foreach f ($srcreg $srcannot $trgreg)
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1
+    endif
+  end
+end
+set baseseg = $mdir/$basesegname.mgz
+if(! -e $baseseg) then
+  echo "ERROR: cannot find $baseseg"
+  exit 1
+endif
+if($#ctab) then
+  if(! -e $ctab) then
+    echo "ERROR: cannot find $ctab"
+    exit 1
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "annot2volseg"
+  echo " --s subject"
+  echo " --s-annot subject"
+  echo " --annot annotname (wihtout hemi or extension, eg, Yeo2011_7Networks_N1000)"
+  echo " --baseseg basesegname (default is $basesegname)"
+  echo " --lh-base lhbaseno"
+  echo " --rh-base rhbaseno"
+  echo " --yeo7, --yeo17"
+  echo " --ctab ctab : embed ctab into the output volume (default is $FREESURFER_HOME/FreeSurferColorLUT.txt)"
+  echo " --o outbase (output will be mri/outbase.mgz) default is annotname+basesegname.mgz"
+  echo " --label-wm : label white matter like wmparc (see below)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Takes annotation from one subject (--s-annot) and maps it to another
+subject (--s subject), then maps that annotation to the volume
+(merging with a volume-based seg like the aseg) to create an
+aparc+aseg style segmentation where cortex voxels are segmented
+according to the annotation. This is good for when you have an
+annotation on an average subject (eg, Yeo atlas on fsaverage) and you
+want to map it to another subject and create a segmentation. Note that
+while you can apply the aparc in this way, this is not the preferred
+method as it will just use the surface-based registration and will not
+apply any fine tuning as is done when created in recon-all.
+
+The outputs will be
+surf/?h.annotname.annot
+mri/annotname+baseseg.mgz
+
+baseseg is aseg by default
+
+The lh and rh base numbers are added to lh and rh annotation numbers
+to give unique numbers in the volume segmentation. These will also
+determine the index in the color lookup table. You may need to create
+your own table that has these indices in it. One way to do this is
+to run 
+mri_info --ctab /path/to/lh.annotation.annot
+
+This will print out the 0-based color table for the annotation for the
+left hemi (it will be the same for the right). Duplicate this table in
+a single file (so the table appears twice). Then change the indices,
+adding lhbase to the first set and rhbase to the second. Also a good
+idea to change the names to indicate left and right.  This cortical
+segmentation will be merged with a whole-brain segmentation (aseg.mgz
+by default), so make sure that you set the base numbers in a way that
+the new segmentation indices will not conflict. Eg, in aseg.mgz, the
+indices are less than 1000, so using base numbers 1000 will be safe.
+
+If you want to embed your color table into the segmentation, then
+pass it with --ctab yourcolortable
+
+There are short-cuts for Yeo atlases. The default FS LUT 
+$FREESURFER_HOME/FreeSurferColorLUT.txt has entries for these
+segs.
+
+--yeo7
+  annotsubject = fsaverage
+  annotname = Yeo2011_7Networks_N1000
+  lhbase = 15000
+  rhbase = 15010
+
+--yeo17
+  annotsubject = fsaverage
+  annotname = Yeo2011_17Networks_N1000
+  lhbase = 15100
+  rhbase = 15120
+
+To label white matter (--label-wm option) like wmparc.mgz, first label
+the cortex as with the commands above, eg, 
+
+annot2volseg --s subject --yeo7  
+
+then run something like
+
+annot2volseg --s subject --yeo7  --label-wm --lh-base 16000 --rh-base 16100 --baseseg Yeo2011_7Networks_N1000+aseg
+
+Yeo2011_7Networks_N1000+aseg.mgz will be the cortical seg from the
+first run. The WM labeled output will be Yeo2011_7Networks_N1000+aseg.wm.mgz.
+Note that the new WM labels will need to be in your color table to be 
+able to see them. You can use the procedure described above to create the LUT,
+but you will probably want to change the color so that the WM segs do not 
+blend in with the cortical ones.
+
+
+
+
+

@@ -56,6 +56,8 @@ Layer::Layer( QObject* parent ) : QObject( parent )
   m_bLocked = false;
   mProperty = NULL;
   m_nLayerIndex = 0;
+  m_dTinyOffset = 0.1;
+
   connect(this, SIGNAL(VisibilityChanged(bool)), this, SIGNAL(ActorUpdated()));
 
   m_transform = vtkSmartPointer<vtkTransform>::New();
@@ -435,4 +437,10 @@ void Layer::UpdateTotalTransform()
     m_transform->Concatenate(m_listTransform[i]->GetMatrix());
   }
   emit ActorUpdated();
+}
+
+void Layer::SetDisplayInNeurologicalView(bool b)
+{
+  m_dTinyOffset = b?-0.1:0.1;
+  OnSetDisplayInNeurologicalView();
 }

@@ -57,6 +57,8 @@
 #include "vtkImageThreshold.h"
 #include "vtkImageShiftScale.h"
 #include "vtkImageMapper3D.h"
+#include "vtkCutter.h"
+#include "vtkPlane.h"
 #include "MyUtils.h"
 #include "MyVTKUtils.h"
 #include "FSVolume.h"
@@ -155,6 +157,22 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     m_glyphActor3D[i]->ForceOpaqueOn();
     m_vectorDotActor2D[i]->ForceOpaqueOn();
 #endif
+
+    m_actorContour2D[i] = vtkSmartPointer<vtkActor>::New();
+    m_cutterContour2D[i] = vtkSmartPointer<vtkCutter>::New();
+    m_reslicePlane[i] = vtkSmartPointer<vtkPlane>::New();
+    m_reslicePlane[i]->SetOrigin( 0, 0, 0 );
+    m_reslicePlane[i]->SetNormal( (i==0), (i==1), (i==2) );
+    m_cutterContour2D[i]->SetCutFunction( m_reslicePlane[i] );
+    m_cutterContour2D[i]->GenerateCutScalarsOn();
+    mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputConnection( m_cutterContour2D[i]->GetOutputPort() );
+    m_actorContour2D[i]->SetMapper( mapper );
+
+    double ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+    m_actorContour2D[i]->SetProperty( m_actorContour2D[i]->MakeProperty() );
+    m_actorContour2D[i]->GetProperty()->SetInterpolationToFlat();
+    m_actorContour2D[i]->GetProperty()->SetLineWidth( ratio );
   }
   
   m_actorContour = vtkSmartPointer<vtkActor>::New();
@@ -199,6 +217,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   }
 
   m_geos = NULL;
+
+  SetDisplayInNeurologicalView(MainWindow::GetMainWindow()->GetNeurologicalView());
 }
 
 LayerMRI::~LayerMRI()
@@ -271,6 +291,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(LabelContourChanged(int)), this, SLOT(OnLabelContourChanged(int)));
   connect( p, SIGNAL(VectorLineWidthChanged(double)), this, SLOT(UpdateVectorLineWidth(double)));
   connect( p, SIGNAL(VectorSkipChanged(int)), SLOT(UpdateVectorActor()));
+  connect( p, SIGNAL(Contour2DShown(bool)), SLOT(UpdateContour2D()));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -1076,6 +1097,19 @@ void LayerMRI::UpdateContourActor( int nSegValue )
   emit IsoSurfaceUpdating();
 }
 
+void LayerMRI::UpdateContour2D(bool bEmit)
+{
+  if (GetProperty()->GetShow2DContour())
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      m_cutterContour2D[i]->SetInputData(vtkPolyData::SafeDownCast(m_actorContour->GetMapper()->GetInput()));
+    }
+  }
+  if (bEmit)
+    emit ActorChanged();
+}
+
 // Contour mapper is ready, attach it to the actor
 void LayerMRI::OnContourThreadFinished(int thread_id)
 {
@@ -1104,6 +1138,9 @@ void LayerMRI::OnContourThreadFinished(int thread_id)
       UpdateContourColor();
       emit ActorChanged();
     }
+    if (GetProperty()->GetShow2DContour())
+      UpdateContour2D(false);
+
     emit IsoSurfaceUpdated();
   }
 }
@@ -1127,6 +1164,11 @@ void LayerMRI::UpdateContourColor()
   {
     m_actorContour->GetMapper()->ScalarVisibilityOff();
     m_actorContour->GetProperty()->SetColor( GetProperty()->GetContourColor() );
+    for (int i = 0; i < 3; i++)
+    {
+      m_actorContour2D[i]->GetMapper()->ScalarVisibilityOff();
+      m_actorContour2D[i]->GetProperty()->SetColor(GetProperty()->GetContourColor());
+    }
   }
   UpdateColorMap();
 }
@@ -1157,6 +1199,11 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
     renderer->AddViewProp(m_sliceActor2D[nPlane]);
     renderer->AddViewProp(m_projectionMapActor[nPlane]);
   }
+
+  if (GetProperty()->GetShowAsContour() && GetProperty()->GetShow2DContour() && !GetProperty()->GetShowAsLabelContour())
+  {
+    renderer->AddViewProp(m_actorContour2D[nPlane]);
+  }
 }
 
 void LayerMRI::Remove2DProps( vtkRenderer* renderer, int nPlane )
@@ -1169,6 +1216,11 @@ void LayerMRI::Remove2DProps( vtkRenderer* renderer, int nPlane )
   else
   {
     renderer->RemoveViewProp( m_sliceActor2D[nPlane] );
+  }
+
+  if (GetProperty()->GetShowAsContour() && GetProperty()->GetShow2DContour())
+  {
+    renderer->RemoveViewProp(m_actorContour2D[nPlane]);
   }
 }
 
@@ -1270,6 +1322,9 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
                                                  1, 0, 0 );
     mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
     mReslice[0]->Modified();
+
+    m_reslicePlane[0]->SetOrigin( m_dSlicePosition[0], 0, 0  );
+    m_actorContour2D[0]->SetPosition(0.1, 0, 0);
     break;
   case 1:
     m_sliceActor2D[1]->PokeMatrix( matrix );
@@ -1288,7 +1343,11 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
                                                  0, 0, 1,
                                                  0, 1, 0 );
     mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
-    mReslice[1]->Modified();
+    m_actorContour2D[1]->SetPosition(0, 0.1, 0);
+
+    m_reslicePlane[1]->SetOrigin( 0, m_dSlicePosition[1], 0);
+    m_actorContour2D[1]->SetPosition(0, m_dTinyOffset, 0);
+
     break;
   case 2:
     m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
@@ -1302,6 +1361,10 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
                                                  0, 0, 1 );
     mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2] );
     mReslice[2]->Modified();
+
+    m_reslicePlane[2]->SetOrigin(0, 0, m_dSlicePosition[2]);
+    m_actorContour2D[2]->SetPosition(0, 0, -m_dTinyOffset);
+
     break;
   }
   // display 4D data as vector
@@ -4600,4 +4663,10 @@ void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, dou
   ras[2] = z_out;
   OriginalVoxelToRAS(ras, ras);
   RASToTarget(ras, ras_out);
+}
+
+void LayerMRI::OnSetDisplayInNeurologicalView()
+{
+  OnSlicePositionChanged(1);
+  OnSlicePositionChanged(2);
 }
