@@ -2587,14 +2587,15 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
       type != MRI_MGH_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
-  //type = MRISfileNameType(name);
+  //type = MRISfileNameType(surf_to_read);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, surf_to_read));
   }
   else if (type == MRIS_ICO_FILE) {
     return (ICOreadVertexPositions(mris, surf_to_read, CURRENT_VERTICES));
   }
-  else if (type == MRIS_GIFTI_FILE) {
+  else if (type == MRIS_GIFTI_FILE ||
+	   type == GIFTI_FILE) {
     printf("Reading %s as a gii file\n",surf_to_read);
     MRIS *gsurf = MRISread(surf_to_read);
     if(gsurf==NULL) return(1);
@@ -6830,6 +6831,7 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
   if (fs_gii != NULL && strcmp(fs_gii, ".gii") == 0)
   {
     sprintf(file_to_read, "%s%s", fname, fs_gii);
+    printf("[WARN] read, FS_GII set, read as %s (%s)\n", file_to_read, fname);
     *filetype = GIFTI_FILE;
   }
 }
