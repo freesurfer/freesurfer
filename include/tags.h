@@ -62,7 +62,7 @@ int TAGwriteMatrix(FILE *fp, MATRIX *M);
 MATRIX *TAGreadMatrix(FILE *fp);
 
 /* zlib i/o support */
-int znzTAGreadStart(znzFile fp, long long *plen) ;
+int znzTAGreadStart(znzFile fp, long long *plen, int tagwithzerolen=0) ;
 int znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len) ;
 int znzTAGwriteEnd(znzFile fp, long long there) ;
 int znzTAGskip(znzFile fp, int tag, long long len) ;

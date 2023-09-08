@@ -27,6 +27,9 @@
 #include "tags.h"
 
 
+/* For this to skip the tagid and data correctly, data-length is needed after tagid.
+ * The format is 'tagid data-length data'.
+ */
 int TAGskip(FILE *fp, int tag, long long len)
 {
 #if 1
@@ -58,15 +61,20 @@ int TAGreadStart(FILE *fp, long long *plen)
     case TAG_OLD_SURF_GEOM:  // these don't take lengths at all
     case TAG_OLD_USEREALRAS:
     case TAG_OLD_COLORTABLE:
-      *plen = 0;
+      *plen = 0;  // these tags have no data-length output after tagid
       break;
     default:
-      *plen = freadLong(fp);
+      *plen = freadLong(fp);  // read data-length for the tagid 
   }
 
   return (tag);
 }
 
+/* This function is used to output 'tagid data-length'.
+ *   1. write tag
+ *   2. remember file position after tag write
+ *   3. write data length (long)
+ */
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len)
 {
   long here;
@@ -94,6 +102,7 @@ int TAGwriteEnd(FILE *fp, long long there)
 {
   long long here;
 
+  // ??? why get current file position ???
   here = ftell(fp);
 #if 0
   fseek(fp, there, SEEK_SET) ;
@@ -177,6 +186,10 @@ MATRIX *TAGreadAutoAlign(FILE *fp)
 
 /* zlib support */
 
+/* This is the zlib version of TAGskip().
+ * For this to skip the tagid and data correctly, data-length is needed after tagid.
+ * The format is 'tagid data-length data'.
+ */
 int znzTAGskip(znzFile fp, int tag, long long len)
 {
 #if 1
@@ -193,7 +206,7 @@ int znzTAGskip(znzFile fp, int tag, long long len)
 #endif
 }
 
-int znzTAGreadStart(znzFile fp, long long *plen)
+int znzTAGreadStart(znzFile fp, long long *plen, int tagwithzerolen)
 {
   int tag;
 
@@ -201,8 +214,21 @@ int znzTAGreadStart(znzFile fp, long long *plen)
   tag = znzreadInt(fp);
   if (znzeof(fp)) return (0);
 
+  if (tagwithzerolen && tagwithzerolen == tag)
+  {
+    /* This is to handle following situation: 
+     * TAG_MGH_XFORM is used in both mgz and m3z, but in different format.
+     * in mgz, data-length is output after TAG_MGH_XFORM
+     * in m3z, no data-length is output after TAG_MGH_XFORM
+     *
+     * in __m3zRead(), the function is called as znzTAGreadStart(file, &len, TAG_MGH_XFORM);
+     */
+    *plen = 0;
+    return tag;
+  }
+  
   switch (tag) {
-    case TAG_OLD_MGH_XFORM:
+    case TAG_OLD_MGH_XFORM:  // the tag doesn't look like being used
       *plen = (long long)znzreadInt(fp); /* sorry - backwards compatibility
                                             with Tosa's stuff */
       *plen = *plen - 1;                 // doesn't include null
@@ -210,18 +236,26 @@ int znzTAGreadStart(znzFile fp, long long *plen)
     case TAG_OLD_SURF_GEOM:  // these don't take lengths at all
     case TAG_OLD_USEREALRAS:
     case TAG_OLD_COLORTABLE:
-    case TAG_GCAMORPH_META:
     case TAG_GCAMORPH_GEOM:
+    case TAG_GCAMORPH_TYPE:
+    case TAG_GCAMORPH_LABELS:
+    case TAG_GCAMORPH_META:
     case TAG_GCAMORPH_AFFINE:
-      *plen = 0;
+      *plen = 0;  // these tags have no data-length output after tagid
       break;
     default:
-      *plen = znzreadLong(fp);
+      *plen = znzreadLong(fp);  // read data-length for the tagid
   }
 
   return (tag);
 }
 
+/* This is the zlib version of TAGwriteStart().
+ * It is used to output 'tagid data-length'.
+ *   1. write tag
+ *   2. remember file position after tag write
+ *   3. write data length (long)
+ */
 int znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len)
 {
   long here;

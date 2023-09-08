@@ -173,21 +173,27 @@ get_option(int argc, char *argv[]) {
   return(nargs) ;
 }
 
+#include "mris_find_flat_regions.help.xml.h"
 static void
 print_usage(void) {
+  outputHelpXml(mris_find_flat_regions_help_xml, mris_find_flat_regions_help_xml_len);
+#if 0
   fprintf(stderr,
           "usage: %s [options] <surface> <wfile>\n",
           Progname) ;
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#if 0
   fprintf(stderr,
           "\nThis program computed regions in  which the surface is almost perpindicular to one\n"
           "of  the cardinal axes, and writes  the results  to  a label file\n") ;
   fprintf(stderr, "-t <thresh>  "
           "specify the threshold to use  (default=%2.3f)\n", thresh)  ;
+#endif
   exit(1) ;
 }
 

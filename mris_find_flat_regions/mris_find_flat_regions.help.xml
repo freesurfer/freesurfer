@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description* , arguments+ , outputs* , example* , bugs* , references* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mris_find_flat_regions</name>
+  <synopsis>mris_find_flat_regions [options] input-surface output-file</synopsis>
+  <description>This program finds surface regions which are near perpendicualr to the cardinal axes.</description>
+  <arguments>
+    <positional>
+      <argument>input-surface</argument>
+      <explanation>input surface</explanation>
+      <argument>output-file</argument>
+      <explanation>output file. This is can be in one of the following formats: .annot, .label, .w, or .mgz (volume format). .annot is generated for option -s only.</explanation>
+    </positional>
+    <optional-flagged>      
+      <argument>-t thresh</argument>
+      <explanation>specify the threshold to use. The default is 0.99.</explanation>
+      <argument>-s min-vertices-required</argument>
+      <explanation>segment surface into ROIs with at least min-vertices-required vertices. This option outputs an .annot file.</explanation>
+    </optional-flagged>
+  </arguments>
+</help>

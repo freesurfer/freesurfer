@@ -42,6 +42,9 @@ static int MRISreadNewCurvatureIntoArray(const char *fname, int in_array_size, f
 static int MRISreadCurvatureIntoArray(const char *fname, int in_array_size, float** out_array);
 static int MRISreadValuesIntoArray(const char *fname, int in_array_size, float** out_array) ;
 
+static MRIS* __MRISreadQuadrangleFile(const char *fname, double nVFMultiplier);
+static int   __MRISwriteQuadrangleFile(MRI_SURFACE *mris,const char *fname);
+
 static int __mrisreadcurvmri(MRIS *mris, const char *fname, int type, int read_volume, MRI *curvmri);
 static int __mrisreadcurvoldformat(MRIS *mris, const char *fname, MRI *curvmri);
 
@@ -2587,14 +2590,15 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
       type != MRI_MGH_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
-  //type = MRISfileNameType(name);
+  //type = MRISfileNameType(surf_to_read);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, surf_to_read));
   }
   else if (type == MRIS_ICO_FILE) {
     return (ICOreadVertexPositions(mris, surf_to_read, CURRENT_VERTICES));
   }
-  else if (type == MRIS_GIFTI_FILE) {
+  else if (type == MRIS_GIFTI_FILE ||
+	   type == GIFTI_FILE) {
     printf("Reading %s as a gii file\n",surf_to_read);
     MRIS *gsurf = MRISread(surf_to_read);
     if(gsurf==NULL) return(1);
@@ -3751,7 +3755,7 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
         return (NULL);
       }
       return (mris);
-      version = -2;
+      version = -2;  // it will never get here. this assignment does nothing.
     }
     else if (type == MRIS_GEO_TRIANGLE_FILE) /* .GEO */
     {
@@ -3831,6 +3835,10 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
 
     /* some type of quadrangle file processing */
     if (version >= -2) {
+	fclose(fp);
+	mris = __MRISreadQuadrangleFile(fname, nVFMultiplier);
+	
+#if 0  // the codes are moved to __MRISreadQuadrangleFile()
       int nvertices, nquads;
       
       fread3(&nvertices, fp);
@@ -3875,6 +3883,7 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
         }
         else /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
         {
+	  // if it comes here, version == -2 || version == 0
           float x = freadFloat(fp);
           float y = freadFloat(fp);
           float z = freadFloat(fp);
@@ -3991,6 +4000,7 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
       }
       fclose(fp);
       fp = NULL;
+#endif      
     }
     /* end of quadrangle file processing */
     /* file is closed now for all types ***********************************/
@@ -4754,9 +4764,7 @@ static bool quadCombine(int quad[4], int vA[3], int vB[3])
 // MRIS_TRIANGULAR_SURFACE (mris->type)
 static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
 {
-  int k, type;
-  float x, y, z;
-  FILE *fp;
+  int type;
   char fname[STRLEN];
 
   chklc();
@@ -4788,8 +4796,12 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
     return (MRISwriteTriangularSurface(mris, fname));
   }
 
-  // ??? when will we get here ???
-  fp = fopen(fname, "w");
+  // output default MRIS_BINARY_QUADRANGLE_FILE
+  return __MRISwriteQuadrangleFile(mris, fname);
+
+#if 0  // the codes are moved to __MRISwriteQuadrangleFile()
+  // output default MRIS_BINARY_QUADRANGLE_FILE
+  FILE *fp = fopen(fname, "w");
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
 
 #if USE_NEW_QUAD_FILE
@@ -4802,6 +4814,7 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   // Below was combining two adjacent faces without checking whether they had an abutting edge!
   // Calculate how many are really needed
   //
+  int k;
   int quadsNeeded = 0;
   for (k = 0; k < mris->nfaces; k++) {
     FACE* f = &mris->faces[k];
@@ -4817,9 +4830,9 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   fwrite3(quadsNeeded, fp);
 
   for (k = 0; k < mris->nvertices; k++) {
-    x = mris->vertices[k].x;
-    y = mris->vertices[k].y;
-    z = mris->vertices[k].z;
+    float x = mris->vertices[k].x;
+    float y = mris->vertices[k].y;
+    float z = mris->vertices[k].z;
 #if USE_NEW_QUAD_FILE
     fwriteFloat(x, fp);
     fwriteFloat(y, fp);
@@ -4879,6 +4892,7 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   }
   fclose(fp);
   return (NO_ERROR);
+#endif
 }
 
 
@@ -6830,6 +6844,7 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
   if (fs_gii != NULL && strcmp(fs_gii, ".gii") == 0)
   {
     sprintf(file_to_read, "%s%s", fname, fs_gii);
+    printf("[WARN] read, FS_GII set, read as %s (%s)\n", file_to_read, fname);
     *filetype = GIFTI_FILE;
   }
 }
@@ -6882,4 +6897,276 @@ void __MRISapplyFSGIIwrite(char *file_to_write, const char *fname, int *filetype
       exit(1);
     }
   }
+}
+
+MRIS *__MRISreadQuadrangleFile(const char *fname, double nVFMultiplier)
+{
+  FILE *fp = fopen(fname, "rb");
+  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "__MRISreadQuadrangleFile(%s): could not open file", fname));
+
+  int magic = 0;
+  fread3(&magic, fp);
+
+  if (magic != QUAD_FILE_MAGIC_NUMBER && magic != NEW_QUAD_FILE_MAGIC_NUMBER)
+    rewind(fp);  // there is no magic number recognized. rewind to the beginning of the file
+    
+  
+  int nvertices, nquads;
+      
+  fread3(&nvertices, fp);
+  fread3(&nquads, fp); /* # of quadrangles - not triangles */
+
+  if (nvertices <= 0) /* sanity-checks */
+    ErrorExit(ERROR_BADFILE,
+              "ERROR: MRISread: file '%s' has %d vertices!\n"
+              "Probably trying to use a scalar data file as a surface!\n",
+              fname,
+              nvertices);
+      
+  if (nquads > 4 * nvertices) /* sanity-checks */
+  {
+    fprintf(stderr, "nquads=%d,  nvertices=%d\n", nquads, nvertices);
+    ErrorExit(ERROR_BADFILE,
+              "ERROR: MRISread: file '%s' has many more faces than vertices!\n"
+              "Probably trying to use a scalar data file as a surface!\n",
+              fname);
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stdout, "reading %d vertices and %d faces.\n", nvertices, 2 * nquads);
+
+  MRIS *mris = MRISoverAlloc(nVFMultiplier * nvertices, nVFMultiplier * 2 * nquads, nvertices, 0);    // don't know yet how many faces there will be
+  mris->type = MRIS_BINARY_QUADRANGLE_FILE;
+
+  /* read vertices *************************************************/
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    VERTEX_TOPOLOGY * const vertext = &mris->vertices_topology[vno];    
+    if (magic == QUAD_FILE_MAGIC_NUMBER)
+    {
+      int ix,iy,iz;
+      fread2(&ix, fp);
+      fread2(&iy, fp);
+      fread2(&iz, fp);
+      MRISsetXYZ(mris,vno,
+        ix / 100.0,
+        iy / 100.0,
+        iz / 100.0);
+    }
+    else // NEW_QUAD_FILE_MAGIC_NUMBER, or old surface format
+    {
+      float x = freadFloat(fp);
+      float y = freadFloat(fp);
+      float z = freadFloat(fp);
+      MRISsetXYZ(mris,vno, x,y,z);
+    }
+    if (magic != QUAD_FILE_MAGIC_NUMBER && magic != NEW_QUAD_FILE_MAGIC_NUMBER) /* old surface format */
+    {
+      int num;
+      fread1(&num, fp); /* # of faces we are part of */
+      vertext->num = num;
+      vertext->f = (int *)calloc(vertext->num, sizeof(int));
+      if (!vertext->f) ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces", vertext->num);
+      vertext->n = (uchar *)calloc(vertext->num, sizeof(uchar));
+      if (!vertext->n) ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs", vertext->n);
+          
+      int n;
+      for (n = 0; n < vertext->num; n++) {
+        fread3(&vertext->f[n], fp);
+      }
+    }
+    else {
+      vertext->num = 0; /* will figure it out */
+    }
+  }
+      
+  /* read face vertices *******************************************/
+  int fno = 0;
+  int quad;
+  for (quad = 0; quad < nquads; quad++) {
+
+    cheapAssert(VERTICES_PER_FACE == 3);
+    int vertices[4];
+        
+    int n;
+    for (n = 0; n < 4; n++) /* read quandrangular face */ {
+      fread3(&vertices[n], fp);
+    }
+
+    /* if we're going to be arbitrary,
+       we might as well be really arbitrary */
+    /*
+      NOTE: for this to work properly in the write, the first two
+      vertices in the first face (EVEN and ODD) must be 0 and 1.
+    */
+    int which = WHICH_FACE_SPLIT(vertices[0], vertices[1]);
+
+    /* 1st triangle */
+    int va_0, va_1, va_2, vb_0, vb_1, vb_2;
+        
+    if (EVEN(which)) {
+      va_0 = vertices[0];   vb_0 = vertices[2];
+      va_1 = vertices[1];   vb_1 = vertices[3];
+      va_2 = vertices[3];   vb_2 = vertices[1];
+    } else {
+      va_0 = vertices[0];   vb_0 = vertices[0];
+      va_1 = vertices[1];   vb_1 = vertices[2];
+      va_2 = vertices[2];   vb_2 = vertices[3];
+    }
+
+    // make faces for the true triangles        
+    for (n = 0; n < 2; n++) {
+      if (va_0 == va_1 || va_0 == va_2 || va_1 == va_2) continue;   // degenerate
+      mris->faces[fno].v[0] = va_0;
+      mris->faces[fno].v[1] = va_1;
+      mris->faces[fno].v[2] = va_2;
+      int m;
+      for (m = 0; m < VERTICES_PER_FACE; m++) {
+        mris->vertices_topology[mris->faces[fno].v[m]].num++;
+      }
+      fno++;
+      va_0 = vb_0; va_1 = vb_1; va_2 = vb_2;
+    }
+  }
+  cheapAssert(fno <= mris->max_faces);
+  MRISgrowNFaces(mris, fno);
+      
+  mris->useRealRAS = 0;
+
+  // read tags
+  {
+    long long len;
+
+    int tag;
+    while ((tag = TAGreadStart(fp, &len)) != 0) {
+      switch (tag) {
+        case TAG_GROUP_AVG_SURFACE_AREA:
+          mris->group_avg_surface_area = freadFloat(fp);
+          fprintf(
+              stdout, "reading group avg surface area %2.0f cm^2 from file\n", mris->group_avg_surface_area / 100.0);
+          break;
+        case TAG_OLD_SURF_GEOM:
+          readVolGeom(fp, &mris->vg);
+          break;
+        case TAG_OLD_USEREALRAS:
+          if (!freadIntEx(&mris->useRealRAS, fp))  // set useRealRAS
+          {
+            mris->useRealRAS = 0;  // if error, set to default
+          }
+          break;
+        case TAG_CMDLINE:
+          if (mris->ncmds > MAX_CMDS)
+            ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mris->ncmds);
+          mris->cmdlines[mris->ncmds] = (char *)calloc(len + 1, sizeof(char));
+          fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp);
+          mris->cmdlines[mris->ncmds][len] = 0;
+          mris->ncmds++;
+          break;
+        default:
+          TAGskip(fp, tag, (long long)len);
+          break;
+      }
+    }
+  }
+  fclose(fp);
+  fp = NULL;
+
+  return mris;
+}
+
+
+int __MRISwriteQuadrangleFile(MRI_SURFACE *mris, const char *fname)
+{
+  // output default MRIS_BINARY_QUADRANGLE_FILE
+  FILE *fp = fopen(fname, "w");
+  if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "__MRISwriteQuadrangleFile(%s): can't create file\n", fname));
+
+#if USE_NEW_QUAD_FILE
+  fwrite3(NEW_QUAD_FILE_MAGIC_NUMBER, fp);
+#else
+  fwrite3(QUAD_FILE_MAGIC_NUMBER, fp);
+#endif
+  fwrite3(mris->nvertices, fp);
+
+  // Below was combining two adjacent faces without checking whether they had an abutting edge!
+  // Calculate how many are really needed
+  //
+  int k;
+  int quadsNeeded = 0;
+  for (k = 0; k < mris->nfaces; k++) {
+    FACE* f = &mris->faces[k];
+
+    int quad[4]; 
+    if ((k+1 < mris->nfaces) && quadCombine(quad, f->v, mris->faces[k+1].v)) {
+      k++;
+    }
+      
+    quadsNeeded++;
+  }
+
+  fwrite3(quadsNeeded, fp);
+
+  for (k = 0; k < mris->nvertices; k++) {
+    float x = mris->vertices[k].x;
+    float y = mris->vertices[k].y;
+    float z = mris->vertices[k].z;
+#if USE_NEW_QUAD_FILE
+    fwriteFloat(x, fp);
+    fwriteFloat(y, fp);
+    fwriteFloat(z, fp);
+#else
+    fwrite2((int)(x * 100), fp);
+    fwrite2((int)(y * 100), fp);
+    fwrite2((int)(z * 100), fp);
+#endif
+  }
+
+  // This was combining two adjacent faces without checking whether they had an abutting edge!
+  // Now it checks, and writes degenerate quads instead if necessary
+  //
+  int quadsWritten = 0;
+  for (k = 0; k < mris->nfaces; k++) {
+    FACE* f = &mris->faces[k];
+
+    int quad[4]; 
+    if ((k+1 < mris->nfaces) && quadCombine(quad, f->v, mris->faces[k+1].v)) {
+      k++;
+    } else {
+      quad[0] = f->v[0];
+      quad[1] = f->v[1];
+      quad[2] = f->v[1];
+      quad[3] = f->v[2];
+    }
+      
+    fwrite3(quad[0], fp);
+    fwrite3(quad[1], fp);
+    fwrite3(quad[2], fp);
+    fwrite3(quad[3], fp);
+    quadsWritten++;
+  }
+  cheapAssert(quadsNeeded == quadsWritten);
+
+  /* write whether vertex data was using the
+     real RAS rather than conformed RAS */
+  fwriteInt(TAG_OLD_USEREALRAS, fp);
+  fwriteInt(mris->useRealRAS, fp);
+  // volume info
+  fwriteInt(TAG_OLD_SURF_GEOM, fp);
+  writeVolGeom(fp, &mris->vg);
+
+  if (!FZERO(mris->group_avg_surface_area)) {
+    long long here;
+    printf("writing group avg surface area %2.0f cm^2 into surface file\n", mris->group_avg_surface_area / 100.0);
+    TAGwriteStart(fp, TAG_GROUP_AVG_SURFACE_AREA, &here, sizeof(float));
+    fwriteFloat(mris->group_avg_surface_area, fp);
+    TAGwriteEnd(fp, here);
+  }
+  // write other tags
+  {
+    int i;
+
+    for (i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
+  }
+  fclose(fp);
+  return (NO_ERROR);
 }
