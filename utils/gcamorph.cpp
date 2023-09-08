@@ -443,7 +443,7 @@ int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
   }
   if (gcam->m_affine) {
     //printf("write gcamorph TAG_GCAMORPH_AFFINE ...\n");
-    znzwriteInt(TAG_GCAMORPH_AFFINE, file);
+    znzwriteInt(TAG_GCAMORPH_AFFINE, file);  // replaced TAG_MGH_XFORM
     // MatrixAsciiWriteInto(file, gcam->m_affine) ;
     znzWriteMatrix(file, gcam->m_affine, 0);
   }
@@ -1219,7 +1219,6 @@ GCA_MORPH *__m3zRead(const char *fname)
   int x, y, z, width, height, depth;
   GCA_MORPH_NODE *gcamn;
   float version;
-  int tag;
   int gzipped = 0;
   if (strstr(fname, ".m3z")) {
     gzipped = 1;
@@ -1286,9 +1285,19 @@ GCA_MORPH *__m3zRead(const char *fname)
   gcam->det = 1;
   gcam->image.valid = 0;  // make src invalid
   gcam->atlas.valid = 0;  // makd dst invalid
-  while (znzreadIntEx(&tag, file)) {
+
+  // tag reading
+  long long len;
+  while (true)
+  {
+    int tag = znzTAGreadStart(file, &len, TAG_MGH_XFORM);
+    //printf("[DEBUG] __m3zRead(): read TAG = %d\n", tag);
+    if (tag == 0)
+      break;
+    
     switch (tag) {
       case TAG_GCAMORPH_LABELS:
+	//printf("[DEBUG] __m3zRead(): TAG_GCAMORPH_LABELS\n");
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
           printf("reading labels out of gcam file...\n");
         }
@@ -1306,8 +1315,8 @@ GCA_MORPH *__m3zRead(const char *fname)
         }
         break;
       case TAG_GCAMORPH_GEOM:
+	//printf("[DEBUG] __m3zRead(): TAG_GCAMORPH_GEOM\n");
         //GCAMreadGeom(gcam, file);
-	//printf("read TAG_GCAMORPH_GEOM ...\n");
 	gcam->image.read(file);
         gcam->atlas.read(file);
         if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
@@ -1321,6 +1330,7 @@ GCA_MORPH *__m3zRead(const char *fname)
         }
         break;
       case TAG_GCAMORPH_TYPE:
+	//printf("[DEBUG] __m3zRead(): TAG_GCAMORPH_TYPE\n");
         gcam->type = znzreadInt(file);
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
           printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras");
@@ -1328,10 +1338,11 @@ GCA_MORPH *__m3zRead(const char *fname)
         break;
       case TAG_MGH_XFORM:
       case TAG_GCAMORPH_AFFINE:
+	//printf("[DEBUG] __m3zRead(): TAG_MGH_XFORM/TAG_GCAMORPH_AFFINE\n");
         // gcam->m_affine = MatrixAsciiReadFrom(fp, NULL) ;
-	//printf("read gcamorph TAG_MGH_XFORM/TAG_GCAMORPH_AFFINE ...\n");
         gcam->m_affine = znzReadMatrix(file);
         gcam->det = MatrixDeterminant(gcam->m_affine);
+	//MatrixPrint(stdout, gcam->m_affine);  // DEBUG
         break;
     }
   }
