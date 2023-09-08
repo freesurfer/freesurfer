@@ -48,6 +48,7 @@ struct Parameters
   string voxout;
   string src;
   string trg;
+  int dim;
   bool   invert;
   int    ltaouttype;
   bool   trgconform;
@@ -81,6 +82,7 @@ static struct Parameters P = {
   "",                  // string voxout
   "",                  // string src
   "",                  // string trg
+  3,
   false,               // bool   invert
   LINEAR_RAS_TO_RAS,   // int    ltaouttype
   false,               // bool   trgconform
@@ -482,7 +484,7 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
   return lta;
 }
 
-LTA * readNIFTYREG(const string& xfname, const string& sname, const string& tname)
+LTA * readNIFTYREG(const string& xfname, const string& sname, const string& tname, int dim)
 // nifty reg writes the inverse RAS2RAS matrix (trg -> src)
 // this functionality needs to be moved to LTA (transform) in the future
 {
@@ -493,18 +495,27 @@ LTA * readNIFTYREG(const string& xfname, const string& sname, const string& tnam
   lta->type = LINEAR_RAS_TO_RAS;
   
   std::ifstream transfile (xfname.c_str());
-  MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  //MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  MATRIX* m_L = MatrixIdentity(4,NULL);
   if(transfile.is_open())
   {
     int row=1;
     float v1,v2,v3,v4;
     while(!transfile.eof())
     {
-      transfile >> v1 >> v2 >> v3 >> v4;
-      *MATRIX_RELT(m_L,row,1) = v1;
-      *MATRIX_RELT(m_L,row,2) = v2;
-      *MATRIX_RELT(m_L,row,3) = v3;
-      *MATRIX_RELT(m_L,row,4) = v4;
+      if(dim==3){
+	transfile >> v1 >> v2 >> v3 >> v4;
+	*MATRIX_RELT(m_L,row,1) = v1;
+	*MATRIX_RELT(m_L,row,2) = v2;
+	*MATRIX_RELT(m_L,row,3) = v3;
+	*MATRIX_RELT(m_L,row,4) = v4;
+      }
+      if(dim==2){
+	transfile >> v1 >> v2 >> v3;
+	*MATRIX_RELT(m_L,row,1) = v1;
+	*MATRIX_RELT(m_L,row,2) = v2;
+	*MATRIX_RELT(m_L,row,4) = v3;
+      }
       row++;
       if(row>4) break;
     }
@@ -1069,7 +1080,7 @@ int main(int argc, char *argv[])
   else if (P.intype==intypes::REG)
     lta = readREG(P.transin.c_str(),P.src,P.trg);
   else if (P.intype==intypes::NIFTYREG)
-    lta = readNIFTYREG(P.transin.c_str(),P.src,P.trg);
+    lta = readNIFTYREG(P.transin.c_str(),P.src,P.trg,P.dim);
   else if (P.intype==intypes::ITK)
     lta = readITK(P.transin.c_str(),P.src,P.trg);
   else if (P.intype==intypes::VOX)
@@ -1274,6 +1285,14 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.intype = intypes::NIFTYREG;
     nargs = 1;
     cout << "--inniftyreg: " << P.transin << " input NiftyReg transform." << endl;
+  }
+  else if (!strcmp(option, "INNIFTYREG2D"))
+  {
+    P.transin = string(argv[1]);
+    P.intype = intypes::NIFTYREG;
+    P.dim = 2;
+    nargs = 1;
+    cout << "--inniftyreg2d: " << P.transin << " input NiftyReg transform." << endl;
   }
   else if (!strcmp(option, "INITK"))
   {
