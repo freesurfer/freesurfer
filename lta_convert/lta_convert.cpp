@@ -517,7 +517,7 @@ LTA * readNIFTYREG(const string& xfname, const string& sname, const string& tnam
 	*MATRIX_RELT(m_L,row,4) = v3;
       }
       row++;
-      if(row>4) break;
+      if((dim==3 && row>4) || (dim==2 && row>2))break;
     }
     transfile.close();
   }
