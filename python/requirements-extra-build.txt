@@ -1,5 +1,5 @@
 h5py==3.9.0
-matplotlib==3.7.2
+matplotlib==3.7.3
 opencv-python==4.8.0.76
 pandas==2.0.3
 scikit-image==0.21.0
