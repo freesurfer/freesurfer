@@ -211,6 +211,7 @@ install_configured(
   fast_par2Xfir.m
   fast_par2Xtask.m
   fast_parabfit.m
+  fast_pearsoncor.m
   fast_pixrep.m
   fast_polyorder.m
   fast_polytrendmtx.m
