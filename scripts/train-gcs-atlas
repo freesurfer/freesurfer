@@ -18,6 +18,13 @@ set surfreg = sphere.reg
 set annotbase = ()
 set asegname = aseg.auto.mgz # aseg.presurf.mgz
 set DoJackknife = 0;
+set JackknifeDir = ()
+set masklabel = cortex; # ?h.masklabel.label
+set annotbase = ()
+set debug_vertex = ()
+set nfill = ()
+set icoprior = 7
+set icolikelihood = 4
 
 #set surfreg = avgsubj.acfb40.noaparc.i12.sphere.reg
 
@@ -60,16 +67,26 @@ set hour   = `date +%H`
 set min    = `date +%M`
 
 set outdir = `dirname $gcsfile`
-mkdir -p $outdir/log
+if($DoJackknife) then
+  set outdir = $JackknifeDir
+  mkdir -p $outdir/log
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" > $outdir/log/train-gcs-atlas.log 
+  echo "cd `pwd`"  >> $outdir/log/train-gcs-atlas.log 
+  echo $0 $inputargs >> $outdir/log/train-gcs-atlas.log 
+endif
+mkdir -p $outdir
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
 if($DoJackknife) then
   foreach s ($subjects)
-    set xgcs = $outdir/$hemi.$annotbase.x-$s.gcs
-    set xlog = $outdir/log/$hemi.$annotbase.x-$s.log
-    set cmd = (train-gcs-atlas $inputargs --no-jackknife --x $s --o $xgcs --log $xlog)
+    set stmp = `echo $s | sed 's/\//-/g'` # remove "/" when xhemi
+    set xgcs = $outdir/$hemi.$annotbase.x-$stmp.gcs
+    set xannot = $outdir/$hemi.$annotbase.x-$stmp.mgz
+    set xlog = $outdir/log/$hemi.$annotbase.x-$stmp.log
+    set cmd = (train-gcs-atlas $inputargs --no-jackknife --o $xgcs --x $s --xannot $xannot --log $xlog)
+    echo "$s ================================================="
     echo $cmd
     pbsubmit -c "$cmd"
   end
@@ -84,7 +101,10 @@ endif
 #mkdir -p $tmpdir
 
 # Set up log file
-if($#LF == 0) if($#LF == 0) set LF = $gcsfile.log
+if($#LF == 0) then
+  mkdir -p $outdir/log
+  set LF = $outdir/log/train-gcs-atlas.log
+endif
 if($LF != /dev/null) rm -f $LF
 echo "Log file for train-gcs-atlas" >> $LF
 date  | tee -a $LF
@@ -101,8 +121,8 @@ if($?PBS_JOBID) then
 endif
 
 #========================================================
-setenv OMP_NUM_THREADS $threads
-set cmd = (mris_ca_train -t $ctab $hemi $surfreg $manparc $subjects0 $gcsfile)
+setenv OMP_NUM_THREADS $threads; # might not be a good idea to use multiple threads
+set cmd = (mris_ca_train -ic $icoprior $icolikelihood $debug_vertex $nfill -t $ctab $hemi $surfreg $manparc $subjects0 $gcsfile)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit
@@ -112,17 +132,28 @@ if($#xsubject) then
   set LFX = $sd/scripts/train-gcs-atlas.$hemi.$annotbase.log
   rm -f $LFX
   date | tee -a $LFX
-  set xannotfile = $hemi.$annotbase
-  # perform labeling
-  set cmd = (mris_ca_label -l $sd/label/$hemi.cortex.label -seed 1234)
-  if($#asegname) set cmd = ($cmd -aseg $sd/mri/$asegname)
-  set cmd = ($cmd $xsubject $hemi $sd/surf/$hemi.sphere.reg $gcsfile $xannotfile)
+  if($#xannotfile == 0) set xannotfile = $SUBJECTS_DIR/$xsubject/label/$hemi.$annotbase.mgz
+  set stem = `fname2stem $xannotfile`
+  set dicedat    = $stem.dice.dat
+  set dicetable  = $stem.dice.table
 
+  set a = $SUBJECTS_DIR/$xsubject/label/$hemi.$manparc.annot
+  set b = $SUBJECTS_DIR/$xsubject/label/$hemi.$manparc.mgz
+  if(-e $a) set manannotfile = $a
+  if(-e $b) set manannotfile = $b
+
+  # perform labeling
+  set RngSeed = 1234   # seed for random number generator, used only when
+  set cmd = (mris_ca_label -seed $RngSeed) # seed matters, 
+  if($#masklabel) set cmd = ($cmd -l $sd/label/$hemi.$masklabel.label)
+  if($#asegname) set cmd = ($cmd -aseg $sd/mri/$asegname)
+  set cmd = ($cmd $xsubject $hemi $sd/surf/$hemi.$surfreg $gcsfile $xannotfile)
   echo $cmd | tee -a $LF | tee -a $LFX
   $cmd | tee -a $LF | tee -a $LFX
   if($status) goto error_exit
   # Now compute dice
-  set cmd = (mris_compute_parc_overlap --s $xsubject --hemi $hemi --annot1 $manparc --annot2 $annotbase)
+  set cmd = (mri_compute_seg_overlap -dice $manannotfile $xannotfile embedded 0 0 $dicedat $dicetable)
+  #set cmd = (mris_compute_parc_overlap --s $xsubject --hemi $hemi --annot1 $manparc --annot2 $annotbase)
   echo $cmd | tee -a $LF | tee -a $LFX
   $cmd | tee -a $LF | tee -a $LFX
   if($status) goto error_exit
@@ -196,6 +227,14 @@ while( $#argv != 0 )
       breaksw
 
     case "--no-aseg":
+      set asegname = ()
+      breaksw
+
+    case "--no-aseg":
+      set asegname = ()
+      breaksw
+
+    case "--no-aseg":
       set asegname = ();
       breaksw
 
@@ -204,10 +243,19 @@ while( $#argv != 0 )
       set xsubject = $argv[1]; shift;
       breaksw
 
+    case "--xannot":
+      if($#argv < 1) goto arg1err;
+      set xannotfile = $argv[1]; shift # full path
+       set xannotfile = `getfullpath $xannotfile`
+      breaksw
+
     case "--jackknife":
+      if($#argv < 1) goto arg1err;
+      set JackknifeDir = $argv[1]; shift;
       set DoJackknife = 1;
       breaksw
     case "--no-jackknife":
+      set JackknifeDir = ()
       set DoJackknife = 0;
       breaksw
 
@@ -224,6 +272,20 @@ while( $#argv != 0 )
       set hemi = rh
       breaksw
 
+    case "--base":
+      if($#argv < 1) goto arg1err;
+      set annotbase = $argv[1]; shift;
+      breaksw
+
+    case "--mask":
+      if($#argv < 1) goto arg1err;
+      set masklabel = $argv[1]; shift;
+      breaksw
+
+    case "--no-mask":
+      set masklabel = ()
+      breaksw
+
     case "--reg":
       if($#argv < 1) goto arg1err;
       set surfreg = $argv[1]; shift;
@@ -237,6 +299,23 @@ while( $#argv != 0 )
     case "--ctab":
       if($#argv < 1) goto arg1err;
       set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--ico-prior":
+      if($#argv < 1) goto arg1err;
+      set icoprior = $argv[1]; shift;
+      breaksw
+
+    case "--ico-likelihood":
+      if($#argv < 1) goto arg1err;
+      set icolikelihood = $argv[1]; shift;
+      breaksw
+
+    case "--nfill":
+      if($#argv < 1) goto arg1err;
+      set a = $argv[1]; shift;
+      set nfill = "-nfill $a"
+      if($a == 0) set nfill = "-no-fill"
       breaksw
 
     case "--log":
@@ -269,6 +348,18 @@ while( $#argv != 0 )
       set echo = 1;
       breaksw
 
+    case "--debug-vertex":
+    case "-debug-vertex":
+      if($#argv < 1) goto arg1err;
+      set debug_vertex = "-debug-vertex $argv[1]"; shift;
+      breaksw
+
+    #case "--threads":
+    #case "-threads":
+    #  if($#argv < 1) goto arg1err;
+    #  set threads = $argv[1]; shift;
+    #  breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized. 
       echo $cmdline
@@ -297,8 +388,10 @@ if($#hemi == 0) then
   exit 1;
 endif
 
-set annotbase = `basename $gcsfile .gcs`
-set annotbase = `echo $annotbase | sed 's/lh\./ /g'| sed 's/rh\./ /g'`
+if($#annotbase == 0) then
+  set annotbase = `basename $gcsfile .gcs`
+  set annotbase = `echo $annotbase | sed 's/lh\./ /g'| sed 's/rh\./ /g'`
+endif
 
 set xok = 0;
 if($#xsubject == 0) then
@@ -320,8 +413,10 @@ foreach subject ($subjects)
     echo "ERROR: cannot find $SUBJECTS_DIR/$subject/surf/$hemi.$surfreg"
     exit 1;
   endif
-  if(! -e $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot) then
-    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot"
+  set a = $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot
+  set b = $SUBJECTS_DIR/$subject/label/$hemi.$manparc.mgz
+  if(! -e $a && ! -e $b) then
+    echo "ERROR: cannot find $a or $b"
     exit 1;
   endif
   if($#xsubject && $xsubject == $subject) set xok = 1
@@ -354,7 +449,7 @@ arg2err:
 usage_exit:
   echo ""
   echo "train-gcs-atlas "
-  echo "  --man manparc : manual parcellation (default is $manparc)"
+  echo "  --man manparc : manual parcellation (no hemi, no extension, default is $manparc)"
   echo "  --f subjlistfile"
   echo "  --lh, --rh, --hemi hemi"
   echo "  --o gcsfile"
@@ -362,10 +457,18 @@ usage_exit:
   echo "  --reg surfreg (default is $surfreg)"
   echo "  --ctab colortable"
   echo "  --x subject : exclude subject from atlas (will also label and compute overlap)"
-  echo "  --jackknife : pbsubmit a job for each subject excluding it"
-  echo "  --aseg asegname (default is $asegname) only needed when applying"
+  echo "  --jackknife jackknifedir : pbsubmit a job for each subject excluding it"
+  echo "  --aseg asegname (default is $asegname) only needed when applying  for jackknife"
+  echo "  --no-aseg : do not use an aseg (only needed when applying for jackknife)"
+  echo "  --no-aseg (only applys to mris_ca_label)"
+  echo "  --mask masklabel (will become ?h.masklabel.label, for jackknife only)"
+  echo "  --no-mask : do not use a mask (for jackknife only)"
+  echo "  --base annotbase : default will be based on gcsfile"
+  echo "  --nfill nfill : number of dilations of the atlas to neighboring vertices "
+  echo "  --ico-prior icoorder : icosahedron order for priors (default is $icoprior)"
+  echo "  --ico-likelihood icoorder : icosahedron order for likelihood (default is $icolikelihood)"
   echo ""
-  echo "  --threads nthreads : probably not needed, this runs pretty fast < 5min"
+  #echo "  --threads nthreads : probably not needed, this runs pretty fast < 5min"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -416,4 +519,14 @@ To compute dice (only computes overall dice right now)
 mris_compute_parc_overlap --s subject --hemi lh --annot1 aparc_edited --annot2 your
 
 # vc623
+
+foreach ic (5 6)
+  train-gcs-atlas --ico-likelihood $ic --jackknife jackknife.ll$ic \
+    --reg entoavg.sym.i03.sphere.reg --nfill 0 --no-mask --no-aseg \
+    --ctab ../entosf.lh.ctab --man entosf.dng --f train.subjects.txt --lh  --o auto.entosf.dng
+end
+
+
+
+
 
