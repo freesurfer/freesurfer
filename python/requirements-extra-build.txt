@@ -1,11 +1,11 @@
 h5py==3.9.0
-matplotlib==3.7.2
+matplotlib==3.7.3
 opencv-python==4.8.0.76
 pandas==2.0.3
 scikit-image==0.21.0
 tensorflow==2.13.0
 tensorflow-estimator==2.13.0
-tensorflow-io-gcs-filesystem==0.33.0
+tensorflow-io-gcs-filesystem==0.34.0
 torch==2.0.1
 transforms3d==0.4.1
 trimesh==3.23.5
@@ -13,5 +13,5 @@ git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
 git+https://github.com/adalca/neurite.git@8dc24325c05366e3dc247d93173b3b5c424d1468
 # neurite @ git+https://github.com/adalca/neurite.git@dev
-git+https://github.com/voxelmorph/voxelmorph.git@9d5e429084c33e07bd9ab41d6cb9beab8d4be62b
+git+https://github.com/voxelmorph/voxelmorph.git@2c21973d5fd416c2652ecc74fc86eb6bf7cd456d
 # voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
