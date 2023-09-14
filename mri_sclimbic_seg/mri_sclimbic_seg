@@ -524,7 +524,10 @@ class LimbicSegmenter:
             posteriors[..., label] = cropped_pred_label
 
         # ensure that the posteriors sum to 1 in the cropped space
-        posteriors[..., 0] = 1.0 - np.sum(posteriors[..., 1:], axis=-1)
+        if(len(self.labels) > 2):
+            posteriors[..., 0] = 1.0 - np.sum(posteriors[..., 1:], axis=-1)
+        else: # There is only one non-unknown label
+            posteriors[..., 0] = 1.0 - posteriors[..., 1];
         posteriors = posteriors.clip(0, 1)
         posteriors /= np.sum(posteriors, axis=-1, keepdims=True)
 
