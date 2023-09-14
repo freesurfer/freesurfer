@@ -19,7 +19,10 @@ set rhbase = 2000
 set LabelWM = 0
 set basesegname = aseg
 set outbase = ()
+set lhannot = ()
+set rhannot = ()
 set ctab = ()
+set threads = 1
 set ForceUpdate = 0
 
 set tmpdir = ();
@@ -95,7 +98,14 @@ set udlist = ()
 foreach hemi ($hemilist)
   # Map the annotation to the target subject
   set srcreg = $SUBJECTS_DIR/$annotsubject/surf/$hemi.sphere.reg
-  set srcannot = $SUBJECTS_DIR/$annotsubject/label/$hemi.$annotname.annot
+  if($#lhannot && $hemi == lh) then
+    set srcannot = $lhannot
+  else if($#rhannot && $hemi == rh) then
+    set srcannot = $rhannot
+  else
+    set srcannot = $SUBJECTS_DIR/$annotsubject/label/$hemi.$annotname.annot
+  endif
+
   set trgreg = $sdir/$hemi.sphere.reg
   set trgannot = $ldir/$hemi.$annotname.annot
   set ud = `UpdateNeeded $trgannot $srcreg $srcannot $trgreg`
@@ -205,9 +215,9 @@ while( $#argv != 0 )
 
     case "--annot":
       if($#argv < 1) goto arg1err;
-      set annot = $argv[1]; shift;
-      if($annot == aparc || $annot == aparc.a2009s) then
-        echo "ERROR: do not use $annot"
+      set annotname = $argv[1]; shift;
+      if($annotname == aparc || $annotname == aparc.a2009s) then
+        echo "ERROR: do not use $annotname"
         exit 1
       endif
       breaksw
@@ -222,6 +232,15 @@ while( $#argv != 0 )
     case "--rhbase":
       if($#argv < 1) goto arg1err;
       set rhbase = $argv[1]; shift;
+      breaksw
+
+    case "--lh-annot":
+      if($#argv < 1) goto arg1err;
+      set lhannot = $argv[1]; shift;
+      breaksw
+    case "--rh-annot":
+      if($#argv < 1) goto arg1err;
+      set rhannot = $argv[1]; shift;
       breaksw
 
     case "--base-seg":
@@ -368,6 +387,8 @@ set sdir = $SUBJECTS_DIR/$subject/surf
 foreach hemi ($hemilist)
   set srcreg = $SUBJECTS_DIR/$annotsubject/surf/$hemi.sphere.reg
   set srcannot = $SUBJECTS_DIR/$annotsubject/label/$hemi.$annotname.annot
+  if($#lhannot && $hemi == lh) set srcannot = $lhannot
+  if($#rhannot && $hemi == rh) set srcannot = $rhannot
   set trgreg = $sdir/$hemi.sphere.reg
   foreach f ($srcreg $srcannot $trgreg)
     if(! -e $f) then
@@ -406,11 +427,13 @@ usage_exit:
   echo ""
   echo "annot2volseg"
   echo " --s subject"
-  echo " --s-annot subject"
-  echo " --annot annotname (wihtout hemi or extension, eg, Yeo2011_7Networks_N1000)"
-  echo " --baseseg basesegname (default is $basesegname)"
-  echo " --lh-base lhbaseno"
-  echo " --rh-base rhbaseno"
+  echo " --s-annot annotsubject (eg, fsaverage)"
+  echo " --annot annotname (wihtout hemi or extension, eg, Yeo2011_7Networks_N1000; to be found in labels/?h.annotname.annot)"
+  echo " --baseseg basesegname : seg to define cortex (default is $basesegname)"
+  echo " --lh-base lhbaseno : add this to annot number to get segid for lh hemi cortex"
+  echo " --rh-base rhbaseno : add this to annot number to get segid for rh hemi cortex"
+  echo " --lh-annot /path/to/lh.your.annot : handles case where lh annot is not in annotsubject/label (still need --annot)"
+  echo " --rh-annot /path/to/rh.your.annot : handles case where rh annot is not in annotsubject/label (still need --annot)"
   echo " --yeo7, --yeo17"
   echo " --ctab ctab : embed ctab into the output volume (default is $FREESURFER_HOME/FreeSurferColorLUT.txt)"
   echo " --o outbase (output will be mri/outbase.mgz) default is annotname+basesegname.mgz"
