@@ -1511,11 +1511,17 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
     //}
   }
   
-  // As a last resort, just assume the sname is the path
-  if (!fio_FileExistsReadable(fname) && fio_FileExistsReadable(sname)) {
-    int req = snprintf(fname, STRLEN, "%s", sname);  
-    if( req >= STRLEN ) {
-      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  if(!fio_FileExistsReadable(fname)){
+    // File is not there, try adding .mgz
+    char tmpstr[2000];
+    sprintf(tmpstr,"%s.mgz",fname);
+    if(fio_FileExistsReadable(tmpstr)) strcpy(fname,tmpstr);
+    else if(fio_FileExistsReadable(sname)) {
+    // As a last resort, just assume the sname is the path
+      int req = snprintf(fname, STRLEN, "%s", sname);  
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
   }
 

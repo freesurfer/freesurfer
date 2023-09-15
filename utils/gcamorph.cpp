@@ -4442,7 +4442,7 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
               DiagBreak();
             }
 
-            if (xd > -1 && yd > -1 && zd > 0 && xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth) {
+            if (xd > -1 && yd > -1 && ((mri_src->depth == 1 && zd == 0) || (mri_src->depth > 1 && zd > 0)) && xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth) {
               if (sample_type == SAMPLE_CUBIC_BSPLINE) {
                 MRIsampleBSpline(bspline, xd, yd, zd, frame, &val);
               }
@@ -4580,7 +4580,7 @@ MRI *GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int f
           yd /= mri_src->thick;
           zd /= mri_src->thick;
           for (frame = start_frame; frame <= end_frame; frame++) {
-            if (xd > -1 && yd > -1 && zd > 0 && xd < width && yd < height && zd < depth) {
+            if (xd > -1 && yd > -1 && ((depth == 1 && zd == 0) || (depth > 1 && zd > 0)) && xd < width && yd < height && zd < depth) {
               if (interp_type == SAMPLE_CUBIC_BSPLINE)
               // recommended to externally call this and keep mri_coeff
               // if image is resampled often (e.g. in registration algo)
