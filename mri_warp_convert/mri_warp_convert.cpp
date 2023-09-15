@@ -41,7 +41,8 @@ struct Parameters
   string in_warp;
   string out_warp;
   string in_src_geom;
-  string mgzwarpformat;
+  string in_warpformat;
+  string out_warpformat;
   filetypes::FileType in_type;
   filetypes::FileType out_type;
   bool downsample;
@@ -51,7 +52,7 @@ struct Parameters
 
 
 static struct Parameters P =
-  { "", "", "", "abs-crs", filetypes::UNKNOWN, filetypes::UNKNOWN, false,NULL,NULL};
+  { "", "", "", "abs-crs", "abs-crs", filetypes::UNKNOWN, filetypes::UNKNOWN, false,NULL,NULL};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -91,44 +92,49 @@ GCAM* readSPM(const string& warp_file, const string& src_geom)
 {
   // This version should properly handle all voxel sizes in the warp and the source
   // See also MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out)
-  printf("readSPM()\n");
+  printf("readSPM() as %s\n", (P.in_warpformat.compare("abs-ras") == 0) ? "abs-ras"  : "abs-crs");
   MRI *warp = MRIread(warp_file.c_str()) ;
   if(warp == NULL) ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n", Progname, warp_file.c_str()) ;
   MRI *src = MRIread(src_geom.c_str()) ;
   if(src == NULL) ErrorExit(ERROR_NOFILE, "%s: could not source volume %s\n", Progname, src_geom.c_str()) ;
+  
+  // it is either abs-ras or abs-crs for --inspm
+  if (P.in_warpformat.compare("abs-ras") == 0)
+  {
+    // this section of codes read SPM as ABS_RAS, and do the RAS2VOX conversion using src_geom
+    MATRIX *vox2ras1 = MRIxfmCRS2XYZ(src, 1); // spm crs base=1
+    MATRIX *ras2vox1 = MatrixInverse(vox2ras1,NULL);
+    MATRIX *spmras = MatrixAlloc(4,1,MATRIX_REAL);
+    spmras->rptr[4][1] = 1;
+    MATRIX *crs = MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
 
-  MATRIX *vox2ras1 = MRIxfmCRS2XYZ(src, 1); // spm crs base=1
-  MATRIX *ras2vox1 = MatrixInverse(vox2ras1,NULL);
-  MATRIX *spmras = MatrixAlloc(4,1,MATRIX_REAL);
-  spmras->rptr[4][1] = 1;
-  MATRIX *crs = MatrixAlloc(4,1,MATRIX_REAL);
-  crs->rptr[4][1] = 1;
-
-  // use 1 to N-1 instead of 1 to N because edge voxels are invalid in the warp
-  for(int c=1; c < warp->width-1; c++){
-    for(int r=1; r < warp->height-1; r++){
-      for(int s=1; s < warp->depth-1; s++){
-	// Get the RAS in the spm input/source space
-	for(int k=0; k<3; k++) spmras->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
-	// Get the 1-based CRS in the spm input/source space (usually a conformed space)
-	crs = MatrixMultiplyD(ras2vox1,spmras,crs);
-	// Subtract 1 to make 0-based (could do this in ras2vox1)
-	for(int k=0; k<3; k++) MRIsetVoxVal(warp, c,r,s,k, crs->rptr[k+1][1]-1);
+    // use 1 to N-1 instead of 1 to N because edge voxels are invalid in the warp
+    for(int c=1; c < warp->width-1; c++){
+      for(int r=1; r < warp->height-1; r++){
+        for(int s=1; s < warp->depth-1; s++){
+	  // Get the RAS in the spm input/source space
+	  for(int k=0; k<3; k++) spmras->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
+	  // Get the 1-based CRS in the spm input/source space (usually a conformed space)
+	  crs = MatrixMultiplyD(ras2vox1,spmras,crs);
+	  // Subtract 1 to make 0-based (could do this in ras2vox1)
+	  for(int k=0; k<3; k++) MRIsetVoxVal(warp, c,r,s,k, crs->rptr[k+1][1]-1);
+        }
       }
     }
+    MatrixFree(&vox2ras1);
+    MatrixFree(&ras2vox1);
+    MatrixFree(&spmras);
+    MatrixFree(&crs);
   }
-  MatrixFree(&vox2ras1);
-  MatrixFree(&ras2vox1);
-  MatrixFree(&spmras);
-  MatrixFree(&crs);
 
   //Now copy the warp into a GCAM
   GCA_MORPH* gcam = GCAMalloc(warp->width, warp->height, warp->depth) ;
   GCAMinitVolGeom(gcam, src, warp) ;
-  GCAMreadWarpFromMRI(gcam, warp, 0) ; //0 = absolute source CRS coords
+  GCAMreadWarpFromMRI(gcam, warp, 0) ; //0 = warp is in absolute source CRS coords
 
   MRIfree(&warp);
-  MRIfree(&src);
+  MRIfree(&src);  
 
   return(gcam);
 }
@@ -418,13 +424,13 @@ void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
 void writeMGZWarp(const string& fname, GCAM *gcam)
 {
   int dataformat =  WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
-  if (P.mgzwarpformat.compare("abs-crs") == 0)
+  if (P.out_warpformat.compare("abs-crs") == 0)
     dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS;
-  else if (P.mgzwarpformat.compare("disp-crs") == 0)
+  else if (P.out_warpformat.compare("disp-crs") == 0)
     dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS;
-  else if (P.mgzwarpformat.compare("abs-ras") == 0)
+  else if (P.out_warpformat.compare("abs-ras") == 0)
     dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS;
-  else if (P.mgzwarpformat.compare("disp-ras") == 0)
+  else if (P.out_warpformat.compare("disp-ras") == 0)
     dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS;
 
   Warpfield *warpfield = new Warpfield();
@@ -602,8 +608,13 @@ int main(int argc, char *argv[])
       else                      gcam = readFSL2(P.in_warp.c_str(),P.in_src_geom);
       break;
     case filetypes::SPM:
+      if (P.in_warpformat.compare("abs-ras") != 0 && P.in_warpformat.compare("abs-crs") != 0) {
+	printf("ERROR: --inspm only handles abs-ras or abs-crs\n");
+	exit(1);
+      }
+	
       if(P.in_src_geom.empty()){
-	printf("ERROR: --inspm needs source geometry --insrcgeom or -g\n");
+	printf("ERROR: --inspm needs source geometry, use --insrcgeom or -g to specify\n");
 	exit(1);
       }
       gcam = readSPM(P.in_warp.c_str(),P.in_src_geom);
@@ -932,13 +943,20 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.downsample = true;
     nargs = 0;
   }
-  else if (!strcmp(option, "MGZWARPFORMAT"))
+  else if (!strcmp(option, "INWARPFORMAT"))
   {
-    P.mgzwarpformat = string(argv[1]);
+    P.in_warpformat = string(argv[1]);
     nargs = 1;
-    cout << "--mgzwarpformat: " << P.mgzwarpformat
-         << " specify mgz warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)." << endl;
+    cout << "--inwarpformat: " << P.in_warpformat
+         << " (specify input warp data format: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
   }
+  else if (!strcmp(option, "OUTWARPFORMAT"))
+  {
+    P.out_warpformat = string(argv[1]);
+    nargs = 1;
+    cout << "--outwarpformat: " << P.out_warpformat
+         << " (specify output warp data format: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
+  } 
   else if (!strcmp(option, "HELP") )
   {
     printUsage();

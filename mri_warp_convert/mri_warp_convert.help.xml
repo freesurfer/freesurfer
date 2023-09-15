@@ -40,7 +40,7 @@
       <argument>--infsl &lt;in.nii.gz&gt;</argument>
       <explanation>input FSL warp (recommend to use with --insrcgeom)</explanation>
       <argument>--inspm &lt;y_rinput.nii&gt;</argument>
-      <explanation>input SPM warp (use use with --insrcgeom)</explanation>
+      <explanation>input SPM warp (use use with --insrcgeom), data format is either abs-crs (default) or abs-ras (use --inwarpformat to specify)</explanation>
       <argument>--inlps, --initk &lt;in.nii.gz&gt;</argument>
       <explanation>input LPS-to-LPS displacement field (e.g. ITK, ANTs)</explanation>
       <argument>--inras &lt;in.nii.gz&gt;</argument>
@@ -71,8 +71,10 @@
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
       <argument>-lta2 LTA (or -lta2-inv)</argument>
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
-      <argument>--mgzwarpformat outwarp-format</argument>
-      <explanation>specify mgz warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
+      <argument>--inwarpformat inwarp-format</argument>
+      <explanation>specify warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>      
+      <argument>--outwarpformat outwarp-format</argument>
+      <explanation>specify warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):
@@ -89,5 +91,5 @@
   <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
     mri_warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
   <example>Convert M3Z (FreeSurfer) to mgz warp (FreeSurfer) in absolute CRS:
-    mri_warp_convert --inm3z in.m3z --outmgzwarp outwarp.mgz --mgzwarpformat abs-crs</example>  
+    mri_warp_convert --inm3z in.m3z --outmgzwarp outwarp.mgz --outwarpformat abs-crs</example>  
 </help>
