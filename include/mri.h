@@ -531,7 +531,10 @@ public:
   int gcamorphSpacing  = 1;                  // spacing in GCA_MORPH
   double gcamorphExp_k = 0.0;                // exp_k in GCA_MORPH
 
-  MATRIX *gcamorphAffine = nullptr;     // m_affine in GCA_MORPH
+  MATRIX *gcamorphAffine = nullptr;          // m_affine in GCA_MORPH
+  int   ***gcamorphLabel = nullptr;          // label in GCA_MORPH_NODE
+
+  void initGCAMorphLabel();
 
   // ---- image buffer ----
   int type;                     // image data type

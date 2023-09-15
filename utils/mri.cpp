@@ -232,6 +232,19 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
 }
 
 
+void MRI::initGCAMorphLabel()
+{
+  //printf("[DEBUG] MRI::initGCAMorphLabel()\n");
+  gcamorphLabel = (int ***)calloc(width, sizeof(int **));
+  for (int c = 0; c < width; c++)
+  {
+    gcamorphLabel[c] = (int **)calloc(height, sizeof(int *));
+    for (int r = 0; r < height; r++)
+      gcamorphLabel[c][r] = (int *)calloc(depth, sizeof(int));
+  }  
+}
+
+
 /**
   Allocates array of slice pointers - this is done regardless of chunking so that we
   can still support 3D-indexing and not produce any weird issues. This function should

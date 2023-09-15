@@ -11245,6 +11245,22 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 	  //printf("[DEBUG] mghRead() TAG_GCAMORPH_AFFINE\n");
           //MatrixPrint(stdout, mri->gcamorphAffine);
 	  break;
+        case TAG_GCAMORPH_LABELS:
+	  // allocate memory for mri->gcamorphLabel
+	  mri->initGCAMorphLabel();
+
+	  //printf("[DEBUG] read TAG_GCAMORPH_LABELS\n");
+	  for (int x = 0; x < mri->width; x++) {
+            for (int y = 0; y < mri->height; y++) {
+              for (int z = 0; z < mri->depth; z++) {
+                mri->gcamorphLabel[x][y][z] = znzreadInt(fp);
+                if (mri->gcamorphLabel != 0) {
+                  DiagBreak();
+                }
+              }
+            }
+          }
+	  break;
         default:
           znzTAGskip(fp, tag, (long long)len);
           break;
@@ -11522,6 +11538,17 @@ int mghWrite(MRI *mri, const char *fname, int frame)
       //MatrixPrint(stdout, mri->gcamorphAffine);
       znzwriteInt(TAG_GCAMORPH_AFFINE, fp);
       znzWriteMatrix(fp, mri->gcamorphAffine, 0);
+    }
+
+    // output TAG_GCAMORPH_LABELS
+    if (mri->gcamorphLabel)
+    {
+      //printf("[DEBUG] write TAG_GCAMORPH_LABELS\n");
+      znzwriteInt(TAG_GCAMORPH_LABELS, fp);
+      for (int x = 0; x < mri->width; x++)
+        for (int y = 0; y < mri->height; y++)
+          for (int z = 0; z < mri->depth; z++)
+            znzwriteInt(mri->gcamorphLabel[x][y][z], fp);
     }
 
     znzclose(fp);
