@@ -1086,9 +1086,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
           int nindex;
           for (nindex = 0; nindex < num_index_nodes; nindex++) {
             int vno = gifti_get_DA_value_2D(node_index, nindex, 0);
-            if (mris->vertices[vno].ripflag) {
-              continue;
-            }
             mris->vertices[vno].curv = (float)gifti_get_DA_value_2D(darray, nindex, 0);
             if (overlayMRI != NULL)
               MRIsetVoxVal(overlayMRI, vno, 0, 0, 0, mris->vertices[vno].curv);
@@ -1098,9 +1095,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         {
           int vno;
           for (vno = 0; vno < mris->nvertices; vno++) {
-            if (mris->vertices[vno].ripflag) {
-              continue;
-            }
             mris->vertices[vno].curv = (float)gifti_get_DA_value_2D(darray, vno, 0);
             if (overlayMRI != NULL)
               MRIsetVoxVal(overlayMRI, vno, 0, 0, 0, mris->vertices[vno].curv);
@@ -1170,10 +1164,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
           da_index = vno;
         }
 
-        if (mris->vertices[vno].ripflag) {
-          continue;
-        }
-
 	/*
          * The value at each node is a key into the LabelTable. 
          * Nodes that are “unassigned” should be assigned a label whose color 
@@ -1234,9 +1224,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
       // 'vector' data goes in our 'dx,dy,dz' data element of mris
       int vno;
       for (vno = 0; vno < mris->nvertices; vno++) {
-        if (mris->vertices[vno].ripflag) {
-          continue;
-        }
         mris->vertices[vno].dx = (float)gifti_get_DA_value_2D(darray, vno, 0);
         mris->vertices[vno].dy = (float)gifti_get_DA_value_2D(darray, vno, 1);
         mris->vertices[vno].dz = (float)gifti_get_DA_value_2D(darray, vno, 2);
@@ -1247,9 +1234,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
 
       // 'rgba' data goes in our 'annotation' data element of mris
       for (int vno = 0; vno < mris->nvertices; vno++) {
-        if (mris->vertices[vno].ripflag) {
-          continue;
-        }
         int r, g, b;
 
         float red = (float)gifti_get_DA_value_2D(darray, vno, 0);
@@ -1331,9 +1315,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
           int nindex;
           for (nindex = 0; nindex < num_index_nodes; nindex++) {
             int vno = gifti_get_DA_value_2D(node_index, nindex, 0);
-            if (mris->vertices[vno].ripflag) {
-              continue;
-            }
             mris->vertices[vno].val = (float)gifti_get_DA_value_2D(darray, nindex, 0);
             mris->vertices[vno].stat = (float)gifti_get_DA_value_2D(darray, nindex, 0);
             if (overlayMRI != NULL)
@@ -1344,9 +1325,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         {
           int vno;
           for (vno = 0; vno < mris->nvertices; vno++) {
-            if (mris->vertices[vno].ripflag) {
-              continue;
-            }
             mris->vertices[vno].val = (float)gifti_get_DA_value_2D(darray, vno, 0);
             mris->vertices[vno].stat = (float)gifti_get_DA_value_2D(darray, vno, 0);
             if (overlayMRI != NULL)
@@ -1897,9 +1875,6 @@ int MRISwriteGIFTIShape(MRIS *mris, gifti_image *image, int intent_code, const c
     /* Copy in all our data. */
     int vno;
     for (vno = 0; vno < mris->nvertices; vno++) {
-      if (mris->vertices[vno].ripflag) {
-        continue;
-      }
       gifti_set_DA_value_2D(shape, vno, 0, mris->vertices[vno].curv);
     }
 
@@ -1960,9 +1935,6 @@ int MRISwriteGIFTIStats(MRIS *mris, gifti_image *image, int intent_code)
     /* Copy in all our data. */
     int vno;
     for (vno = 0; vno < mris->nvertices; vno++) {
-      if (mris->vertices[vno].ripflag) {
-        continue;
-      }
       gifti_set_DA_value_2D(stats, vno, 0, mris->vertices[vno].stat);
     }
 
@@ -2131,9 +2103,6 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
     unsigned int *label_data = (unsigned int *)labels->data;
     int label_index, theIdx, result;
     for (label_index = 0; label_index < mris->nvertices; label_index++) {
-      if (mris->vertices[label_index].ripflag) {
-        continue;
-      }
       result = CTABfindAnnotation(mris->ct, mris->vertices[label_index].annotation, &theIdx);
       if (result) {
         return ERROR_BADFILE;
@@ -2197,9 +2166,6 @@ int MRISwriteGIFTIRGBAVector(MRIS *mris, gifti_image *image, int intent_code)
     /* Copy in all our data. */
     int vertex_index;
     for (vertex_index = 0; vertex_index < mris->nvertices; vertex_index++) {
-      if (mris->vertices[vertex_index].ripflag)
-        continue;
-
       int annot = mris->vertices[vertex_index].annotation;
 
       int r, g, b;
@@ -2364,9 +2330,6 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
     /* Copy in all our data. */
     int vertex_index;
     for (vertex_index = 0; vertex_index < mris->nvertices; vertex_index++) {
-      if (mris->vertices[vertex_index].ripflag) {
-        continue;
-      }
       gifti_set_DA_value_2D(coords, vertex_index, 0, mris->vertices[vertex_index].x);
       gifti_set_DA_value_2D(coords, vertex_index, 1, mris->vertices[vertex_index].y);
       gifti_set_DA_value_2D(coords, vertex_index, 2, mris->vertices[vertex_index].z);
@@ -2382,29 +2345,12 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
       return ERROR_NOMEMORY;
     }
 
-    /* count the real number of faces (the ones that dont have a vertex
-       with a ripflag set) */
-    int numFaces = 0;
-    int face_index;
-    for (face_index = 0; face_index < mris->nfaces; face_index++) {
-      if (mris->vertices[mris->faces[face_index].v[0]].ripflag) {
-        continue;
-      }
-      if (mris->vertices[mris->faces[face_index].v[1]].ripflag) {
-        continue;
-      }
-      if (mris->vertices[mris->faces[face_index].v[2]].ripflag) {
-        continue;
-      }
-      numFaces++;
-    }
-
     /* Set its attributes. */
     faces->intent = NIFTI_INTENT_TRIANGLE;
     faces->datatype = NIFTI_TYPE_INT32;
     faces->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
     faces->num_dim = 2;
-    faces->dims[0] = numFaces;               /* In highest first, dim0 = rows */
+    faces->dims[0] = mris->nfaces;           /* In highest first, dim0 = rows */
     faces->dims[1] = 3;                      /* In highest first, dim1 = cols */
     faces->encoding = GIFTI_ENCODING_B64GZ;  // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -2432,17 +2378,7 @@ int MRISwriteGIFTISurface(MRIS *mris, gifti_image *image, const char *out_fname)
     /* Copy in all our face data (remembering to ignore faces which
        have a vertex with the ripflag set). */
     int faceNum = 0;
-    for (face_index = 0; face_index < mris->nfaces; face_index++) {
-      if (mris->vertices[mris->faces[face_index].v[0]].ripflag) {
-        continue;
-      }
-      if (mris->vertices[mris->faces[face_index].v[1]].ripflag) {
-        continue;
-      }
-      if (mris->vertices[mris->faces[face_index].v[2]].ripflag) {
-        continue;
-      }
-
+    for (int face_index = 0; face_index < mris->nfaces; face_index++) {
       gifti_set_DA_value_2D(faces, faceNum, 0, mris->faces[face_index].v[0]);
       gifti_set_DA_value_2D(faces, faceNum, 1, mris->faces[face_index].v[1]);
       gifti_set_DA_value_2D(faces, faceNum, 2, mris->faces[face_index].v[2]);
@@ -2840,9 +2776,6 @@ int MRISwriteGIFTIShape(MRIS *mris, const MRI *mri, gifti_image *image, int inte
       {
         for (int c = 0; c < mri->width; c++)
         {
-          if (mris->vertices[c].ripflag)
-            continue;
-
           float curv = MRIgetVoxVal(mri, c, r, s, 0);
           gifti_set_DA_value_2D(shape, c, 0, curv);
         }
@@ -2922,9 +2855,6 @@ int MRISwriteGIFTIStats(MRIS *mris, const MRI *mri, gifti_image *image, int inte
         {
           for (int c = 0; c < mri->width; c++)
 	  {
-            if (mris->vertices[c].ripflag)
-              continue;
-
             float stat = MRIgetVoxVal(mri, c, r, s, f);
             gifti_set_DA_value_2D(stats, c, 0, stat);
           }
