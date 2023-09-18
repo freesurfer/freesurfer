@@ -369,7 +369,7 @@ DMATRIX *DMatrixAlloc(const int rows, const int cols, const int type)
     printf("ERROR: DMatrixAlloc(%d, %d): allocation failed\n", rows, cols);
     return(NULL);
   }
-  mat->data += 2;
+
   /*DMATRIX type requires 1-based stuff. The full data array is zero
     based, point the first row to the zeroth element, and so on.*/
   mat->rptr = (DMATRIX_TYPE **)calloc(rows + 1, sizeof(DMATRIX_TYPE *));
@@ -378,6 +378,8 @@ DMATRIX *DMatrixAlloc(const int rows, const int cols, const int type)
     free(mat);
     ErrorExit(ERROR_NO_MEMORY, "DMatrixAlloc(%d, %d): could not allocate rptr", rows, cols);
   }
+
+  mat->data += 2;
   for (row = 1; row <= rows; row++) {
     switch (type) {
       case MATRIX_REAL:
