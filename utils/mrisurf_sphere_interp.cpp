@@ -154,10 +154,12 @@ bool SphericalInterpolator::searchBucket(int bx, int by, int bz, float x, float 
 bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float z, float *value)
 {
   FACE *face = &mris->faces[fno];
-  Vec3 vertex0 = vertices[face->v[0]];
-  Vec3 vertex1 = vertices[face->v[1]];
-  Vec3 vertex2 = vertices[face->v[2]];
   Vec3 ray = Vec3(x, y, z);
+
+  Vec3 vertex0, vertex1, vertex2;
+  vertex0 = vertices[face->v[0]];
+  vertex1 = vertices[face->v[1]];
+  vertex2 = vertices[face->v[2]];
 
   Vec3 edge1 = vertex1 - vertex0;
   Vec3 edge2 = vertex2 - vertex0;
