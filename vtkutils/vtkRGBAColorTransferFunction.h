@@ -128,11 +128,7 @@ public:
   /**
    * Map one value through the lookup table.
    */
-#if VTK_MAJOR_VERSION > 7
-  const unsigned char* MapValue(double v) override;
-#else
   unsigned char* MapValue(double v) override;
-#endif
 
   ///@{
   /**
