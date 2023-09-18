@@ -241,9 +241,15 @@ def main():
     if len(d_i) == 0:
         d_i = glob.glob(input_photo_dir + "/*.tiff")
     if len(d_i) == 0:
+        d_i = glob.glob(input_photo_dir + "/*.png")
+    if len(d_i) == 0:
         d_i = glob.glob(input_photo_dir + "/*.JPG")
     if len(d_i) == 0:
-        d_i = glob.glob(input_photo_dir + "/*.png")
+        d_i = glob.glob(input_photo_dir + "/*.TIF")
+    if len(d_i) == 0:
+        d_i = glob.glob(input_photo_dir + "/*.TIFF")
+    if len(d_i) == 0:
+        d_i = glob.glob(input_photo_dir + "/*.PNG")
     d_i = sorted(d_i)
 
     d_s = glob.glob(input_segmentation_dir + "/*.mat")
