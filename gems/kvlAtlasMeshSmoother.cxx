@@ -64,7 +64,7 @@ AtlasMeshSmoother
   //  std::cout << "Smoothing mesh collection with sigma = " << m_Sigma << "..." << std::flush;
 
   // Construct container to hold smoothed alphas
-  AtlasMesh::PointDataContainer::Pointer  smoothedParameters = 0;
+  AtlasMesh::PointDataContainer::Pointer  smoothedParameters = nullptr;
 
   
   if ( ( m_Sigma0 == 0 ) && ( m_Sigma1 == 0 ) && ( m_Sigma2 ==0 ) )

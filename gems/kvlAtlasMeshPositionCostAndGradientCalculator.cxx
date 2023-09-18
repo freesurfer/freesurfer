@@ -250,7 +250,7 @@ AtlasMeshPositionCostAndGradientCalculator
 ::SetMeshToImageTransform( const TransformType* meshToImageTransform )
 {
   
-  TransformType::Pointer  inScopeHolder = 0;
+  TransformType::Pointer  inScopeHolder = nullptr;
   if ( !meshToImageTransform )
     {
     //meshToImageTransform = TransformType::New();

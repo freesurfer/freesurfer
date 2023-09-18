@@ -1590,7 +1590,7 @@ AtlasMeshCollection
   // disappears, and first point, which gets the previously determined new position
   //std::cout << "Creating positions" << std::endl;
   std::vector< PointsContainerType::Pointer >  collapsedPositions;
-  PointsContainerType::Pointer   collapsedReferencePosition = 0;
+  PointsContainerType::Pointer   collapsedReferencePosition = nullptr;
   for ( unsigned int meshNumber = 0; meshNumber < this->GetNumberOfMeshes()+1; meshNumber++ )
     {
     PointsContainerType::Pointer  thisPosition;
@@ -1857,7 +1857,7 @@ AtlasMeshCollection
   if ( !( m_Cells->IndexExists( seedId ) ) )
     {
     // Cell simply doesn't exist.
-    return 0;
+    return nullptr;
     }
  
   // Get the cell
@@ -2353,7 +2353,7 @@ AtlasMeshCollection
 
   // Loop over all meshes, including reference
   std::vector< PointsContainerType::Pointer >  upsampledPositions;
-  PointsContainerType::Pointer   upsampledReferencePosition = 0;
+  PointsContainerType::Pointer   upsampledReferencePosition = nullptr;
   CellsContainerType::Pointer  upsampledCells;
   for ( unsigned int meshNumber=0; meshNumber < this->GetNumberOfMeshes()+1; meshNumber++ )
     {
@@ -2985,7 +2985,7 @@ AtlasMeshCollection
     if ( upsampledPositions[ meshNumber ]->Size() != upsampledReferencePosition->Size() )
       {
       std::cerr << "Upsampling failed because of numerical inaccuracies!" << std::endl;
-      return 0;
+      return nullptr;
       }
     }
       
@@ -3085,7 +3085,7 @@ AtlasMeshCollection
 
   return this->GetEdgeSplitted( edgeId, newVertexId, newPointId, transverseEdge0IdDummy, transverseEdge1IdDummy );
 #else
-  return 0;
+  return nullptr;
 #endif
 
 }
@@ -3112,7 +3112,7 @@ AtlasMeshCollection
   AtlasMesh::CellIdentifier  newEdgeIdDummy;
   return this->GetEdgeSwapped( edgeId, newVertexId, newPointId, newEdgeIdDummy );
 #else
-  return 0;
+  return nullptr;
 #endif
 }
 
@@ -3232,7 +3232,7 @@ AtlasMeshCollection
   return collapsed;
 
 #else
-  return 0;
+  return nullptr;
 
 #endif
 }                 
@@ -3591,7 +3591,7 @@ AtlasMeshCollection
   return splitted;
 
 #else
-  return 0;
+  return nullptr;
 #endif
 
 }

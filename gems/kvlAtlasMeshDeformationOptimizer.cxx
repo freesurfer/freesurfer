@@ -376,11 +376,11 @@ AtlasMeshDeformationOptimizer
   const int  maximumOfBracketingIterations = 10;
   double  lowAlpha = 0.0;
   double  lowCost = 0.0;
-  AtlasPositionGradientContainerType::ConstPointer  lowGradient = 0;
+  AtlasPositionGradientContainerType::ConstPointer  lowGradient = nullptr;
   double  lowDirectionalDerivative = 0.0;
   double  highAlpha = 0.0;
   double  highCost = 0.0;
-  AtlasPositionGradientContainerType::ConstPointer  highGradient = 0;
+  AtlasPositionGradientContainerType::ConstPointer  highGradient = nullptr;
   double  highDirectionalDerivative = 0.0;
       
   for ( int bracketingIterationNumber = 0; 
@@ -388,12 +388,12 @@ AtlasMeshDeformationOptimizer
         bracketingIterationNumber++ )
     {     
     // Evaluate current alpha: [ cost gradient ] = tryFunction( x + alpha * p );
-    AtlasMesh::PointsContainer::Pointer  position = 0;
+    AtlasMesh::PointsContainer::Pointer  position = nullptr;
     double  maximalDeformation = 0.0;
     this->AddDeformation( startPosition, alpha, searchDirection, 
                           position, maximalDeformation );
     double  cost;
-    AtlasPositionGradientContainerType::Pointer  gradient = 0;
+    AtlasPositionGradientContainerType::Pointer  gradient = nullptr;
     this->GetCostAndGradient( position, cost, gradient );
     const double  directionalDerivative = this->ComputeInnerProduct( gradient, searchDirection ); // gradient' * p
 
@@ -721,12 +721,12 @@ AtlasMeshDeformationOptimizer
 #endif
     
     // Evaluate cost function: [ cost gradient ] = tryFunction( x + alpha * p );
-    AtlasMesh::PointsContainer::Pointer  position = 0;
+    AtlasMesh::PointsContainer::Pointer  position = nullptr;
     double  maximalDeformation = 0.0;
     this->AddDeformation( startPosition, alpha, searchDirection, 
                           position, maximalDeformation );
     double  cost;
-    AtlasPositionGradientContainerType::Pointer  gradient = 0;
+    AtlasPositionGradientContainerType::Pointer  gradient = nullptr;
     this->GetCostAndGradient( position, cost, gradient );
     const double  directionalDerivative = this->ComputeInnerProduct( gradient, searchDirection ); // gradient' * p
 

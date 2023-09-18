@@ -282,7 +282,7 @@ AtlasMeshBuilder
   AtlasMeshCollection::Pointer  child;
   if ( !miniCollection->GetCollapsed( edgeId, child, disappearingCells, unifiedVertexId ) )
     {
-    return 0;
+    return nullptr;
     }
 
   const AtlasMesh::PointIdentifier  unifiedPointId =
@@ -405,7 +405,7 @@ AtlasMeshBuilder
         }
       else
         {
-        return 0;
+        return nullptr;
         }
 
       }  // End test if point can move
@@ -418,7 +418,7 @@ AtlasMeshBuilder
   if ( !costFunction->GetValue( optimalPosition, miniDataCost, miniAlphasCost, miniPositionCost ) )
     {
     //std::cout << "not possible" << std::endl;
-    return 0;
+    return nullptr;
     }
   //std::cout << "       miniDataCost     : " << miniDataCost << std::endl;
   //std::cout << "       miniAlphasCost   : " << miniAlphasCost << std::endl;
@@ -429,7 +429,7 @@ AtlasMeshBuilder
   if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) ||
        std::isinf( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
-    return 0;
+    return nullptr;
     }
   else
     {
@@ -496,11 +496,11 @@ AtlasMeshBuilder
   // TODO: should be iterated!
   if ( !this->OptimizeReferencePositionFast( miniCollection, vertex0Id, false ) )
     {
-    return 0;
+    return nullptr;
     }
   if ( !this->OptimizeReferencePositionFast( miniCollection, vertex1Id, false ) )
     {
-    return 0;
+    return nullptr;
     }
 
 
@@ -513,7 +513,7 @@ AtlasMeshBuilder
   if ( ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) ) ||
        ( std::isinf( miniDataCost + miniAlphasCost + miniPositionCost ) ) )
     {
-    return 0;
+    return nullptr;
     }
   else
     {

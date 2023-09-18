@@ -60,7 +60,7 @@ AtlasMeshDeformationConjugateGradientOptimizer
   // 
   // Part I: Decide on a new search direction
   //
-  AtlasPositionGradientContainerType::Pointer  searchDirection = 0;
+  AtlasPositionGradientContainerType::Pointer  searchDirection = nullptr;
   bool  startingOrRestarting = false;
   if ( this->GetIterationNumber() == 0 )
     {

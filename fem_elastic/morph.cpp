@@ -115,7 +115,7 @@ AffineTransform3d::invert()
 
 //-=-----------------------------------------------
 
-DenseDisplacementField::DenseDisplacementField() : m_fieldInterpolator(NULL), m_maskInterpolator(NULL) {}
+DenseDisplacementField::DenseDisplacementField() : m_fieldInterpolator(nullptr), m_maskInterpolator(nullptr) {}
 
 // the field is not kept per se
 //

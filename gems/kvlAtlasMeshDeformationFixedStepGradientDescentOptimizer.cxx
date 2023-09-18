@@ -46,7 +46,7 @@ AtlasMeshDeformationFixedStepGradientDescentOptimizer
   // Try to add the scaled gradient to the current position to obtain the trial position
   const double  alpha = -( m_StepSize / maximumGradientMagnitude );
   double  maximalDeformation = 0.0;
-  AtlasMesh::PointsContainer::Pointer  trialPosition = 0;
+  AtlasMesh::PointsContainer::Pointer  trialPosition = nullptr;
   this->AddDeformation( m_Position, alpha, m_Gradient, trialPosition, maximalDeformation );
   if ( m_Verbose )
     {
@@ -54,7 +54,7 @@ AtlasMeshDeformationFixedStepGradientDescentOptimizer
     }
   
   // Try out this new position
-  AtlasPositionGradientContainerType::Pointer  trialGradient = 0;
+  AtlasPositionGradientContainerType::Pointer  trialGradient = nullptr;
   double  trialCost = 0.0;
   this->GetCostAndGradient( trialPosition, trialCost, trialGradient );
   if ( m_Verbose )

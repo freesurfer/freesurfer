@@ -363,7 +363,7 @@ AtlasParameterEstimator
   
   
   // Set up a deformation optimizer and pass the gradient calculator on to it
-  AtlasMeshDeformationOptimizer::Pointer  optimizer = 0;
+  AtlasMeshDeformationOptimizer::Pointer  optimizer = nullptr;
   switch( m_PositionOptimizer ) 
     {
     case FIXED_STEP_GRADIENT_DESCENT: 
@@ -430,7 +430,7 @@ AtlasParameterEstimator
   if ( ( labelImageNumber >= m_MeshCollection->GetNumberOfMeshes() ) || 
        ( labelImageNumber >= m_LabelImages.size() ) )
     {
-    return 0;
+    return nullptr;
     }    
 
   // Set up gradient calculator
