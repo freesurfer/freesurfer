@@ -59,9 +59,15 @@ AtlasMeshRasterizor
 //
 //
 //
+#if ITK_VERSION_MAJOR >= 5
+itk::ITK_THREAD_RETURN_TYPE
+AtlasMeshRasterizor
+::ThreaderCallback( void *arg )
+#else  
 ITK_THREAD_RETURN_TYPE
 AtlasMeshRasterizor
 ::ThreaderCallback( void *arg )
+#endif  
 {
 
   // Retrieve the input arguments
@@ -116,7 +122,11 @@ AtlasMeshRasterizor
     if ( str->m_TetrahedronIds.size() == 0 )
       {
       rasterizorMutex.Unlock();
+#if ITK_VERSION_MAJOR >= 5
+      return itk::ITK_THREAD_RETURN_DEFAULT_VALUE;
+#else        
       return ITK_THREAD_RETURN_VALUE;
+#endif      
       }
 
     // Let's define how many tetrahedra this thread is going to take on 
@@ -151,7 +161,11 @@ AtlasMeshRasterizor
         str->m_TetrahedronIds.clear();
         rasterizorMutex.Unlock();
           
+#if ITK_VERSION_MAJOR >= 5
+        return itk::ITK_THREAD_RETURN_DEFAULT_VALUE;
+#else  	
         return ITK_THREAD_RETURN_VALUE;
+#endif	
         }
         
       }  
@@ -161,7 +175,11 @@ AtlasMeshRasterizor
 #endif
     
   
+#if ITK_VERSION_MAJOR >= 5
+  return itk::ITK_THREAD_RETURN_DEFAULT_VALUE;
+#else  
   return ITK_THREAD_RETURN_VALUE;
+#endif  
 }
 
 

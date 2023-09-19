@@ -1304,9 +1304,15 @@ AtlasMeshBuilder
 //
 //
 //
+#if ITK_VERSION_MAJOR >= 5
+itk::ITK_THREAD_RETURN_TYPE
+AtlasMeshBuilder
+::LoadBalancedThreaderCallback( void *arg )
+#else  
 ITK_THREAD_RETURN_TYPE
 AtlasMeshBuilder
 ::LoadBalancedThreaderCallback( void *arg )
+#endif    
 {
 
   // Retrieve the input arguments
@@ -1358,7 +1364,11 @@ AtlasMeshBuilder
       }  
     }
 
+#if ITK_VERSION_MAJOR >= 5
+  return itk::ITK_THREAD_RETURN_DEFAULT_VALUE;
+#else    
   return ITK_THREAD_RETURN_VALUE;
+#endif  
 }
 
 
