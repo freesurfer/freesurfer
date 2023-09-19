@@ -28,24 +28,20 @@ namespace term {
 void throwExceptions(bool setting);
 void setErrorLog(const std::string& filename);
 
-
-namespace detail {
-
-  void writeToErrorLog(const std::string& message);
-  void errorExit(int code);
-
-  struct logger
-  {
-    template<typename T> logger& operator << (const T& t) { ss << t; return *this; }
-    logger& operator << (std::ostream&(*f)(std::ostream&)) { f(ss); return *this; }
-    std::ostringstream ss;
-  };
-
-}
-
-
 namespace fs {
+  namespace detail {
 
+    void writeToErrorLog(const std::string& message);
+    void errorExit(int code);
+
+    struct logger
+    {
+      template<typename T> logger& operator << (const T& t) { ss << t; return *this; }
+      logger& operator << (std::ostream&(*f)(std::ostream&)) { f(ss); return *this; }
+      std::ostringstream ss;
+    };
+  }
+  
   struct fatal : public detail::logger
   {
     int ret;
