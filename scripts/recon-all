@@ -4596,7 +4596,7 @@ if(1) then
       set areapial = ../surf/$hemi.area.pial$FS_GII
       set vtxvol   = ../surf/$hemi.volume$FS_GII
       echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
-      echo $cmd        |& tee -a $LF |& tee -a $CF
+      #echo $cmd        |& tee -a $LF |& tee -a $CF
       set ud1 = `UpdateNeeded $areamid $areawhite $areapial`
       set ud2 = `UpdateNeeded $vtxvol $pial $white`
       set cmd = (vertexvol --s $subjid --$hemi -$TH3Opt)
@@ -5115,19 +5115,19 @@ if($DoSegStats) then
     echo "\nINFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
-  if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
+  if ( ( -e surf/lh.white$FS_GII ) && ( -e surf/rh.white$FS_GII ) ) then
     set cmd = ($cmd --surf-wm-vol)
-    if ( ( -e surf/lh.pial ) && ( -e surf/rh.pial ) ) then
+    if ( ( -e surf/lh.pial$FS_GII ) && ( -e surf/rh.pial$FS_GII ) ) then
       set cmd = ($cmd --surf-ctx-vol --totalgray)
     else
-      echo "\nINFO: ?h.pial surfaces not available to mri_segstats.\n"\
+      echo "\nINFO: ?h.pial$FS_GII surfaces not available to mri_segstats.\n"\
        |& tee -a $SF |& tee -a $LF |& tee -a $CF
     endif
   else
-    echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
+    echo "\nINFO: ?h.white$FS_GII surfaces not available to mri_segstats.\n"\
      |& tee -a $SF |& tee -a $LF |& tee -a $CF
   endif
-  if( ( -e surf/lh.orig.nofix ) && ( -e surf/rh.orig.nofix ) ) then
+  if( ( -e surf/lh.orig.nofix$FS_GII ) && ( -e surf/rh.orig.nofix$FS_GII ) ) then
      set cmd = ($cmd --euler)
   endif
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
