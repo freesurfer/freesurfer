@@ -1,6 +1,11 @@
 #include "kvlAtlasMeshRasterizor.h"
 
+#if ITK_VERSION_MAJOR >= 5
+#include <mutex>
+static std::mutex rasterizorMutex;
+#else
 static itk::SimpleFastMutexLock rasterizorMutex;
+#endif
 
 
 

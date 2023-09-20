@@ -1,6 +1,10 @@
 #ifndef __kvlAtlasMeshBuilder_h
 #define __kvlAtlasMeshBuilder_h
 
+#if ITK_VERSION_MAJOR >= 5
+#include <mutex>
+#endif
+
 #include "kvlMultiResolutionAtlasMesher.h"
 #include "vnl/vnl_sample.h"
 #include "itkTimeProbe.h"
@@ -11,17 +15,29 @@ namespace kvl
 {
 
 
+#if ITK_VERSION_MAJOR >= 5
+class AtlasMeshBuilderMutexLock: public std::mutex
+#else
 class AtlasMeshBuilderMutexLock: public itk::SimpleFastMutexLock
+#endif
 {
 public:
   /** Standard class typedefs.  */
   typedef AtlasMeshBuilderMutexLock       Self;
+#if ITK_VERSION_MAJOR >= 5
+  typedef std::mutex                      Superclass;
+#else  
   typedef itk::SimpleFastMutexLock        Superclass;
+#endif  
 
   /** Lock access. */
   void DescriptiveLock( const std::string& description )
     {
+#if ITK_VERSION_MAJOR >= 5
+    Superclass::lock();      
+#else      
     Superclass::Lock();
+#endif    
     m_TimeProbe.Start();
     m_Description = description;
     }
@@ -31,7 +47,11 @@ public:
     {
     m_TimeProbe.Stop();
     std::cout << m_Description << ": unlocking mutex after " << m_TimeProbe.GetMean() << " seconds" << std::endl;
+#if ITK_VERSION_MAJOR >= 5
+    Superclass::unlock();
+#else
     Superclass::Unlock();
+#endif    
     }
 
 protected:
@@ -58,7 +78,11 @@ public:
   AtlasMeshBuilderHelper( AtlasMeshBuilderMutexLock&  mutex, std::map< AtlasMesh::PointIdentifier, int >&  pointOccupancies )
   : m_Mutex( mutex ), m_MutexIsLocked( true ), m_PointOccupancies( pointOccupancies )
     {
-    m_Mutex.Lock();
+#if ITK_VERSION_MAJOR >= 5
+      m_Mutex.lock();
+#else      
+      m_Mutex.Lock();
+#endif
     }
 
 
@@ -74,7 +98,11 @@ public:
     if ( !m_MutexIsLocked )
       {
       m_MutexIsLocked = true;
+#if ITK_VERSION_MAJOR >= 5
+      m_Mutex.lock();
+#else      
       m_Mutex.Lock();
+#endif      
       }
       
     }
@@ -84,7 +112,11 @@ public:
     if ( m_MutexIsLocked )
       {
       m_MutexIsLocked = false;
+#if ITK_VERSION_MAJOR >= 5
+      m_Mutex.unlock();
+#else      
       m_Mutex.Unlock();
+#endif      
       }
     }  
     
