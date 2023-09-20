@@ -366,6 +366,12 @@ int main(int argc, char **argv)
       printf("orig.nofix lheno = %4d, rheno = %d\n",lheno,rheno);
       printf("orig.nofix lhholes = %4d, rhholes = %d\n",1-lheno/2,1-rheno/2);
     }
+    else
+    {
+      DoEuler = 0;
+      printf("Warning: error reading%s, not computing euler number\n", (mris_lh_orig_nofix == NULL && mris_rh_orig_nofix == NULL) ? "lh.orig.nofix and rh.orig.nofix" :
+	                                                               (mris_lh_orig_nofix == NULL) ? "lh.orig.nofix" : "rh.orig.nofix");
+    }
   }
 
   /* Load the segmentation */
