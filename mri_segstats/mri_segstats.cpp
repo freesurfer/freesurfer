@@ -324,6 +324,7 @@ int main(int argc, char **argv)
     unlink(FrameAvgFile); // delete
   }
 
+#if 0  
   if(DoEuler){
     int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject); 
     if( req >= 1000 ) {
@@ -342,24 +343,29 @@ int main(int argc, char **argv)
       DoEuler = 0;
     }
   }
+#endif  
   if(DoEuler){
     int nvertices, nfaces, nedges;
     int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);  
     if( req >= 1000 ) {
       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
     }
-    printf("Computing euler number\n");
-    mris = MRISread(tmpstr);
-    if(mris==NULL) exit(1);
-    lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-    MRISfree(&mris);
+    MRIS *mris_lh_orig_nofix = MRISread(tmpstr);
+
     sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL) exit(1);
-    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-    MRISfree(&mris);
-    printf("orig.nofix lheno = %4d, rheno = %d\n",lheno,rheno);
-    printf("orig.nofix lhholes = %4d, rhholes = %d\n",1-lheno/2,1-rheno/2);
+    MRIS *mris_rh_orig_nofix = MRISread(tmpstr);
+
+    if (mris_lh_orig_nofix != NULL && mris_rh_orig_nofix != NULL)
+    {
+      printf("Computing euler number\n");    
+      lheno = MRIScomputeEulerNumber(mris_lh_orig_nofix, &nvertices, &nfaces, &nedges) ;
+      MRISfree(&mris_lh_orig_nofix);
+      
+      rheno = MRIScomputeEulerNumber(mris_rh_orig_nofix, &nvertices, &nfaces, &nedges) ;
+      MRISfree(&mris_rh_orig_nofix);
+      printf("orig.nofix lheno = %4d, rheno = %d\n",lheno,rheno);
+      printf("orig.nofix lhholes = %4d, rhholes = %d\n",1-lheno/2,1-rheno/2);
+    }
   }
 
   /* Load the segmentation */
@@ -2437,24 +2443,28 @@ int CountEdits(char *subject, char *outfile)
   // number of holes will be 0 for long anyway
   int nvertices, nfaces, nedges;
   int lheno, rheno, lhholes, rhholes, totholes;
-  MRIS *mris;
+  
   sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
-  if(fio_FileExistsReadable(tmpstr)){
-    mris = MRISread(tmpstr);
-    if(mris==NULL) exit(1);
+  MRIS *mris_lh_orig_nofix = MRISread(tmpstr);
+  if (mris_lh_orig_nofix != NULL)
+  {
     lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-    MRISfree(&mris);
+    MRISfree(&mris_lh_orig_nofix);
     lhholes = 1-lheno/2;
-  } else lhholes = 0;
-  sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
-  if(fio_FileExistsReadable(tmpstr)){
-    mris = MRISread(tmpstr);
-    if(mris==NULL) exit(1);
-    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-    MRISfree(&mris);
-    rhholes = 1-rheno/2;
   }
-  else rhholes = 0;
+  else
+    lhholes = 0;
+  
+  sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+  MRIS *mris_rh_orig_nofix = MRISread(tmpstr);
+  if (mris_rh_orig_nofix != NULL)
+  {
+    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris_rh_orig_nofix);
+    rhholes = 1-rheno/2;
+  } else
+    rhholes = 0;
+
   totholes = lhholes+rhholes;
 
   double determinant = 0;
@@ -2481,14 +2491,14 @@ int CountEdits(char *subject, char *outfile)
     if(hemi==0) memcpy(hemistr,"lh",2);
     if(hemi==1) memcpy(hemistr,"rh",2);
     sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemistr);
-    mris = MRISread(tmpstr);
-    if(mris==NULL) exit(1);
+    MRIS *mris_white = MRISread(tmpstr);
+    if(mris_white==NULL) exit(1);
     sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemistr);
     clabel = LabelRead(NULL,tmpstr);
     if(clabel == NULL) exit(1);
     sprintf(tmpstr,"%s/%s/surf/%s.w-g.pct.mgh",SUBJECTS_DIR,subject,hemistr);
     wgcon = MRIread(tmpstr);
-    seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+    seg = MRIalloc(mris_white->nvertices,1,1,MRI_INT);
     int n;
     for (n = 0; n < clabel->n_points; n++){
       MRIsetVoxVal(seg,clabel->lv[n].vno,0,0,0, 1);
@@ -2496,7 +2506,7 @@ int CountEdits(char *subject, char *outfile)
     float min, max, range, mean, std;
     MRIsegStats(seg, 1, wgcon, 0, &min, &max, &range, &mean, &std);
     gwconmeansum += mean; gwconvarsum += (std*std);
-    MRISfree(&mris);
+    MRISfree(&mris_white);
     LabelFree(&clabel);
     MRIfree(&wgcon);
     MRIfree(&seg);
