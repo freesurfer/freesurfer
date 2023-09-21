@@ -854,9 +854,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
       float y = (float)gifti_get_DA_value_2D(coords, vertex_index, 1);
       float z = (float)gifti_get_DA_value_2D(coords, vertex_index, 2);
       MRISsetXYZ(mris,vertex_index,x,y,z);
-      mris->vertices[vertex_index].origarea = -1;
     }
-    mrisComputeSurfaceDimensions(mris);
     
     /* Copy in the faces. */
     int face_index;
@@ -868,32 +866,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         mris->vertices_topology[vertex_index].num++;
       }
     }
-    // each vertex has a face list (faster than face list in some operations)
-    for (vertex_index = 0; vertex_index < num_vertices; vertex_index++) {
-      mris->vertices_topology[vertex_index].f = (int   *)calloc(mris->vertices_topology[vertex_index].num, sizeof(int));
-      mris->vertices_topology[vertex_index].n = (uchar *)calloc(mris->vertices_topology[vertex_index].num, sizeof(uchar));
-      mris->vertices_topology[vertex_index].num = 0;  // this gets re-calc'd next...
-    }
-    for (face_index = 0; face_index < mris->nfaces; face_index++) {
-      FACE *face = &mris->faces[face_index];
-      int n;
-      for (n = 0; n < VERTICES_PER_FACE; n++)
-        mris->vertices_topology[face->v[n]].f[mris->vertices_topology[face->v[n]].num++] =
-            face_index;  // note that .num is auto-incremented!
-    }
-    for (vertex_index = 0; vertex_index < num_vertices; vertex_index++) {
-      int n, m;
-      for (n = 0; n < mris->vertices_topology[vertex_index].num; n++) {
-        for (m = 0; m < VERTICES_PER_FACE; m++) {
-          if (mris->faces[mris->vertices_topology[vertex_index].f[n]].v[m] == vertex_index) {
-            mris->vertices_topology[vertex_index].n[n] = m;
-          }
-        }
-      }
-    }
 
-    mrisCompleteTopology(mris);
-    
     // check-for and read coordsys struct for talairach xform
     if (coords->coordsys && (coords->numCS > 0)) {
       int idx;
@@ -914,16 +887,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         }
       }
     }
-
-    /* other data structure essentials, namely:
-     *  mrisComputeVertexDistances(mris);
-     *  mrisReadTransform(mris, fname) ;
-     *  mris->radius = MRISaverageRadius(mris) ;
-     *  MRIScomputeMetricProperties(mris) ;
-     *  MRISstoreCurrentPositions(mris) ;
-     */
-    MRIScomputeNormals(mris);
-    UpdateMRIS(mris, fname);
   }
   // completed parsing of coordinate and face data
 
