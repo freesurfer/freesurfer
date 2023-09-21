@@ -31,7 +31,17 @@
 #include <stdio.h>   // printf
 #include <stdlib.h>  // calloc and free
 
+#include <itkVersion.h>
+
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream>
+#include <iomanip>
+#include <cassert>
+#include <vcl_legacy_aliases.h>
+#else
 #include <vcl_cassert.h>
+#endif
+
 #include <vnl/algo/vnl_brent.h>
 #include <vnl/vnl_math.h>
 
