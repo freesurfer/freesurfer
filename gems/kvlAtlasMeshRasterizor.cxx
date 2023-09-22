@@ -19,7 +19,11 @@ namespace kvl
 AtlasMeshRasterizor
 ::AtlasMeshRasterizor()
 {
+#if ITK_VERSION_MAJOR >= 5
+  m_NumberOfThreads = itk::MultiThreaderBase::GetGlobalDefaultNumberOfThreads();
+#else  
   m_NumberOfThreads = itk::MultiThreader::GetGlobalDefaultNumberOfThreads();
+#endif  
 }
 
 

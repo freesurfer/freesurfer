@@ -117,7 +117,7 @@ public:
                 calculator->SetBoundaryCondition( kvl::AtlasMeshPositionCostAndGradientCalculator::SLIDING );
 
                 // Retrieve transform if one is provided
-                TransformType::ConstPointer  constTransform = 0;
+                TransformType::ConstPointer  constTransform = nullptr;
                 constTransform = static_cast< const TransformType* >( transform.m_transform.GetPointer() );
 
                 if ( constTransform.GetPointer() )

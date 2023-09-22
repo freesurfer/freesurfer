@@ -5,12 +5,15 @@
 #include "pyKvlMesh.h"
 #include "pyKvlOptimizer.h"
 #include "pyKvlTransform.h"
-#include "itkMultiThreader.h"
 
 namespace py = pybind11;
 
 void setGlobalDefaultNumberOfThreads(int maximumNumberOfThreads){
+#if ITK_VERSION_MAJOR >= 5
+    itk::MultiThreaderBase::SetGlobalDefaultNumberOfThreads( maximumNumberOfThreads );  
+#else  
     itk::MultiThreader::SetGlobalDefaultNumberOfThreads( maximumNumberOfThreads );
+#endif    
 }
 
 PYBIND11_MODULE(gemsbindings, m) {
