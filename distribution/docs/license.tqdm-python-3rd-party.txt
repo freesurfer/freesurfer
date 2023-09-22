@@ -1,0 +1,69 @@
+
+The license terms and/or copyrights listed below pertain to the python tqdm module which may be included in the freesurfer python distribution.
+
+The LICENSE file for the tqdm software cited here may be found in the freesurfer tree under paths such as:
+$FREESURFER_HOME/python/lib/python3.8/site-packages/tqdm-<version>.dist-info/LICENSE
+$FREESURFER_HOME/python/miniconda3_apple_dist/py3_8_13/lib/python3.8/site-packages/tqdm-<version>.dist-info/LICENSE
+
+Per the conditions of the tqdm LICENSE file we note the following terms of the MPL2 license:
+
+The Freesurfer distribution may contain tqdm code in binary and/or source format as maintained
+under the terms of the Mozilla Public License (MPL) Version 2.0.  A copy of the license is available
+under https://www.mozilla.org/en-US/MPL/2.0.  If you wish to obtain the source code, please refer
+to the LICENSE file in the python distribution under the locations listed above and/or the
+URL’s, https://github.com/casperdcl and https://github.com/tqdm/tqdm 
+
+===========================================================================
+tqdm LICENSE file:
+===========================================================================
+
+`tqdm` is a product of collaborative work.
+Unless otherwise stated, all authors (see commit logs) retain copyright
+for their respective work, and release the work under the MIT licence
+(text below).
+
+Exceptions or notable authors are listed below
+in reverse chronological order:
+
+* files: *
+  MPLv2.0 2015-2023 (c) Casper da Costa-Luis
+  [casperdcl](https://github.com/casperdcl).
+* files: tqdm/_tqdm.py
+  MIT 2016 (c) [PR #96] on behalf of Google Inc.
+* files: tqdm/_tqdm.py setup.py README.rst MANIFEST.in .gitignore
+  MIT 2013 (c) Noam Yorav-Raphael, original author.
+
+[PR #96]: https://github.com/tqdm/tqdm/pull/96
+
+
+Mozilla Public Licence (MPL) v. 2.0 - Exhibit A
+-----------------------------------------------
+
+This Source Code Form is subject to the terms of the
+Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this project,
+You can obtain one at https://mozilla.org/MPL/2.0/.
+
+
+MIT License (MIT)
+-----------------
+
+Copyright (c) 2013 noamraph
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+

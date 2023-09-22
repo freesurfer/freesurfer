@@ -1,0 +1,41 @@
+
+The license terms and/or copyrights listed below pertain to the python certifi module which may be included in the freesurfer python distribution.
+
+The LICENSE file for the certifi software cited here may be found in the freesurfer tree under paths such as:
+$FREESURFER_HOME/python/lib/python3.8/site-packages/certifi-<version>.dist-info/LICENSE
+$FREESURFER_HOME/python/miniconda3_apple_dist/py3_8_13/lib/python3.8/site-packages/certifi-<version>.dist-info/LICENSE
+
+Per the conditions of the certifi LICENSE file we note the following terms of the MPL2 license:
+
+The Freesurfer distribution may contain certificate data in binary and/or source format
+as maintained under the terms of the Mozilla Public License (MPL) Version 2.0.  A copy
+of the license is available under https://www.mozilla.org/en-US/MPL/2.0.  If you wish
+to obtain the source data, please visit the link,
+https://hg.mozilla.org/mozilla-central/file/tip/security/nss/lib/ckfw/builtins/certdata.txt. 
+
+===========================================================================
+certifi LICENSE file:
+===========================================================================
+
+This package contains a modified version of ca-bundle.crt:
+
+ca-bundle.crt -- Bundle of CA Root Certificates
+
+Certificate data from Mozilla as of: Thu Nov  3 19:04:19 2011#
+This is a bundle of X.509 certificates of public Certificate Authorities
+(CA). These were automatically extracted from Mozilla's root certificates
+file (certdata.txt).  This file can be found in the mozilla source tree:
+https://hg.mozilla.org/mozilla-central/file/tip/security/nss/lib/ckfw/builtins/certdata.txt
+It contains the certificates in PEM format and therefore
+can be directly used with curl / libcurl / php_curl, or with
+an Apache+mod_ssl webserver for SSL client authentication.
+Just configure this file as the SSLCACertificateFile.#
+
+***** BEGIN LICENSE BLOCK *****
+This Source Code Form is subject to the terms of the Mozilla Public License,
+v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain
+one at http://mozilla.org/MPL/2.0/.
+
+***** END LICENSE BLOCK *****
+@(#) $RCSfile: certdata.txt,v $ $Revision: 1.80 $ $Date: 2011/11/03 15:11:58 $
+
