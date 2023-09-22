@@ -8,7 +8,11 @@
 #include "itkMesh.h"
 #include <vnl/vnl_hungarian_algorithm.h>
 
+#if ITK_VERSION_MAJOR >= 5
+#include <vcl_legacy_aliases.h>
+#else
 #include <vcl_limits.h>
+#endif
 #include <vnl/vnl_matrix.h>
 #include "itkImage.h"
 #include "itkVector.h"
