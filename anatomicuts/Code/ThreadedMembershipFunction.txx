@@ -10,8 +10,11 @@
 template< class  TMembershipFunctionType> void
 ThreadedMembershipFunction< TMembershipFunctionType >::BeforeThreadedExecution() 
 {
-
+#if ITK_VERSION_MAJOR >= 5
+	const itk::ThreadIdType numberOfThreads = this->GetNumberOfWorkUnitsUsed();
+#else
 	const itk::ThreadIdType numberOfThreads = this->GetNumberOfThreadsUsed();
+#endif	
 	//std::cout << " number of threads "<< numberOfThreads << std::endl;
 	//this->m_results.resize( numberOfThreads );
 	this->m_maxIndex.resize( numberOfThreads );
@@ -54,7 +57,11 @@ ThreadedMembershipFunction< TMembershipFunctionType >::AfterThreadedExecution()
 template< class  TMembershipFunctionType> std::vector<int>
 ThreadedMembershipFunction< TMembershipFunctionType >::GetMaxIndeces() 
 {
+#if ITK_VERSION_MAJOR >= 5
+	const itk::ThreadIdType numberOfThreads = this->GetNumberOfWorkUnitsUsed();
+#else
 	const itk::ThreadIdType numberOfThreads = this->GetNumberOfThreadsUsed();
+#endif	
 	std::vector<int> indeces(m_matrixDim,0);
 	std::vector<double> values(m_matrixDim,0);
 	for (int i =0; i<m_matrixDim;i++)
