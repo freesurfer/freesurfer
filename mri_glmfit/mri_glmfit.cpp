@@ -762,6 +762,7 @@ int SplitMin, SplitMax, nPerSplit, RandSplit;
 int DoFisher = 0; 
 int DoPCC=1;
 int RmSpatialMean = 0;
+int DoSigLink = 1;
 
 double GLMEfficiency(MATRIX *X, MATRIX *C);
 int GLMdiagnoseDesignMatrix(MATRIX *X);
@@ -2190,6 +2191,12 @@ int main(int argc, char **argv) {
     // Write out the sig
     sprintf(tmpstr,"%s/%s/sig.%s",GLMDir,mriglm->glm->Cname[n],format);
     MRIwrite(sig,tmpstr);
+    if(DoSigLink){
+      // Create a symlink to contrastname.format
+      char siglink[2000];
+      sprintf(siglink,"sig.%s.%s",mriglm->glm->Cname[n],format);
+      makelocallink(tmpstr,siglink,1);
+    }
 
     // Find and save the max sig
     sigmax = MRIframeMax(sig,0,mriglm->mask,0,&cmax,&rmax,&smax);
@@ -2560,6 +2567,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
     else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
+    else if (!strcasecmp(option, "--no-sig-link")) DoSigLink = 0;
     else if (!strcasecmp(option, "--save-fwhm-map")) {SaveFWHMMap=1;ComputeFWHM = 1;}
     else if (!strcasecmp(option, "--eres-scm")) eresSCMSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
@@ -4382,6 +4390,8 @@ MRI *MRIclip(MRI *invol, double thresh, int ClipType, MRI *mask, MRI *outvol)
 
   return(outvol);
 }
+
+
 
 
 

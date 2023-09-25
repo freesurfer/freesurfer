@@ -90,6 +90,7 @@ int fio_popd(void);
 std::string fio_fullpath(const char *fname);
 int fio_mkdirp(const char *path, mode_t mode);
 int fio_FileHasCarriageReturn(const char *fname);
+int makelocallink(char *src, char *link, int del);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 

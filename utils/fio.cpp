@@ -981,3 +981,52 @@ int fio_FileHasCarriageReturn(const char *fname)
   fclose(fp);
   return (n);
 }
+
+/*!
+  \fn int makelocallink(char *src, char *link, int del)
+  \brief Create a link from src to link by:
+    1. cding into the directory where src is
+    2. creating a link from src to link
+  This is meant to be a "local" link, meaning that the link
+  points to a file in the same folder.
+  If del=1 and the link exists, then the link will be deleted
+  and a new link created.
+*/
+int makelocallink(char *src, char *link, int del)
+{
+  if(!fio_FileExistsReadable(src)){
+    printf("ERROR: makelocallink(): source file %s does not exist\n",src);
+    return(1);
+  }
+
+  char *srcdir = fio_dirname(src);
+  char *base = fio_basename(src,NULL);
+  char cwd[2000];
+  getcwd(cwd,2000);
+  int err = chdir(srcdir);
+  if(err) {
+    printf("ERROR: makelocallink(): could not cd to %s (%d)\n",srcdir,err);
+    return(err);
+  }
+  if(fio_FileExistsReadable(link)){
+    if(del){
+      printf("makelocallink(): %s exists, but deleting\n",link);
+      err = unlink(link);
+      if(err) {
+	printf("ERROR: makelocallink(): could delete %s\n",link);
+	return(err);
+      }
+    }
+    else {
+      printf("ERROR: makelocallink(): link %s exists\n",link);
+      return(1);
+    }
+  }
+  err = symlink(base,link);
+  if(err) {
+    printf("ERROR: makelocallink(): could not make a sym link from  %s to %s (%d)\n",src,link,err);
+    return(err);
+  }
+  chdir(cwd);
+  return(err);
+}
