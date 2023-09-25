@@ -14,7 +14,9 @@ template< typename TInputImage >
 GMMLikelihoodImageFilter< TInputImage >
 ::GMMLikelihoodImageFilter()
 {
-#if ITK_VERSION_MAJOR >= 5 
+#if ITK_VERSION_MAJOR >= 5
+  // use classic void ThreadedGenerateData( const OutputRegionType& threadRegion, ThreadIdType threadId )
+  // instead of default new signature void DynamicThreadedGenerateData( const OutputRegionType& threadRegion )
   this->DynamicMultiThreadingOff();
 #endif  
 }
