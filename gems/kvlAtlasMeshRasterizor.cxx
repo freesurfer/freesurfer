@@ -80,9 +80,15 @@ AtlasMeshRasterizor
 {
 
   // Retrieve the input arguments
+#if ITK_VERSION_MAJOR >= 5
+  const int  threadNumber = ((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->WorkUnitID;
+  const int  numberOfThreads = ((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->NumberOfWorkUnits;
+  ThreadStruct*  str = (ThreadStruct *)(((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->UserData);
+#else  
   const int  threadNumber = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->ThreadID;
   const int  numberOfThreads = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->NumberOfThreads;
   ThreadStruct*  str = (ThreadStruct *)(((itk::MultiThreader::ThreadInfoStruct *)(arg))->UserData);
+#endif  
 
   
 #if 1  

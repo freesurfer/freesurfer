@@ -1316,10 +1316,17 @@ AtlasMeshBuilder
 {
 
   // Retrieve the input arguments
+#if ITK_VERSION_MAJOR >= 5
+  const int  threadId = ((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->WorkUnitID;
+  //const int  threadCount = ((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->NumberOfWorkUnits;
+
+  LoadBalancedThreadStruct*  str = (LoadBalancedThreadStruct *)(((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->UserData);  
+#else  
   const int  threadId = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->ThreadID;
   //const int  threadCount = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->NumberOfThreads;
 
   LoadBalancedThreadStruct*  str = (LoadBalancedThreadStruct *)(((itk::MultiThreader::ThreadInfoStruct *)(arg))->UserData);
+#endif  
 
   const int  numberOfEdgesToAnalyze = str->m_Edges.size();
   int  numberOfEdgesAnalyzed = 0;
