@@ -16,6 +16,9 @@ FrobMMLikelihoodImageFilter< TInputImage >
 ::FrobMMLikelihoodImageFilter()
 {
     //m_likelihoodFilter = GMMLikelihoodFilterType::New();
+ #if ITK_VERSION_MAJOR >= 5 
+  this->DynamicMultiThreadingOff();
+#endif 
 }
 
 
