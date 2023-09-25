@@ -60,7 +60,7 @@ private:
   
   int m_NumFrames = 0;
   double const * m_Values = 0;
-  ImageType::Pointer m_Image = 0;
+  ImageType::Pointer m_Image = nullptr;
   
 };
 

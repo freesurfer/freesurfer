@@ -17,10 +17,19 @@
 #pragma implementation
 #endif
 
-#include "fs_vnl/fs_lbfgs.h"
+#include <itkVersion.h>
+
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream>
+#include <iomanip>
+#include <vcl_legacy_aliases.h>
+#else
 #include <vcl_cmath.h>
 #include <vcl_iomanip.h>  // for setw (replaces cout.form())
 #include <vcl_iostream.h>
+#endif
+
+#include "fs_vnl/fs_lbfgs.h"
 #include "diag.h"
 
 #include <vnl/algo/vnl_netlib.h>  // lbfgs_()

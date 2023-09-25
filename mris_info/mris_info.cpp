@@ -112,6 +112,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  // set environment variable FS_GII to 0, overwrite the value
+  setenv("FS_GII", "0", 1);
+  
   // Check whether it's a gcs file. If so, just print ctab
   if (!stricmp(FileNameExtension(surffile, ext), (char*)"gcs")) {
     GCSA *gcsa = GCSAread(surffile) ;

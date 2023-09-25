@@ -40,7 +40,11 @@ int main(int argc, char **argv)
   MRI* mri = MRIread(inputname.c_str());
 
   // set itk threads to 1
-  itk::MultiThreader::SetGlobalDefaultNumberOfThreads(1);
+#if ITK_VERSION_MAJOR >= 5
+  itk::MultiThreaderBase::SetGlobalDefaultNumberOfThreads(1);
+#else
+  itk::MultiThreader::SetGlobalDefaultNumberOfThreads(1);  
+#endif  
 
   for (int frame = 0 ; frame < mri->nframes ; frame++) {
     // convert frame to ITK image

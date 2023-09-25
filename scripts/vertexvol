@@ -48,19 +48,19 @@ pwd
 
 # Compute mid.area. Not necessary when using TH3, but other programs may 
 # need it
-set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+set cmd=(mris_calc -o ${hemi}.area.mid$FS_GII ${hemi}.area$FS_GII add ${hemi}.area.pial$FS_GII)
 echo "$cmd"
 $cmd
 if($status) goto error_exit;
-set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
+set cmd=(mris_calc -o ${hemi}.area.mid$FS_GII ${hemi}.area.mid$FS_GII div 2)
 echo "$cmd"
 $cmd
 if($status) goto error_exit;
 
 if($TH3Flag == 0) then
   # Compute volume = mid.area * thickness -- not accurate
-  set cmd = (mris_calc -o $outfile)
-  set cmd = ($cmd ${hemi}.area.mid mul ${hemi}.thickness)
+  set cmd = (mris_calc -o $outfile$FS_GII)
+  set cmd = ($cmd ${hemi}.area.mid$FS_GII mul ${hemi}.thickness$FS_GII)
   echo "$cmd"
   $cmd
   if($status) goto error_exit;
@@ -184,7 +184,7 @@ if(! -e $SUBJECTS_DIR/$subject) then
   exit 1;
 endif
 
-if($#outfile == 0) set outfile = $hemi.volume
+if($#outfile == 0) set outfile = $hemi.volume$FS_GII
 
 goto check_params_return;
 ############--------------##################

@@ -401,6 +401,9 @@ int main(int argc, char *argv[]) {
   if (SUBJECTS_DIR1 == NULL) SUBJECTS_DIR1 = SUBJECTS_DIR;
   if (SUBJECTS_DIR2 == NULL) SUBJECTS_DIR2 = SUBJECTS_DIR;
 
+  // set environment variable FS_GII to 0, overwrite the value
+  setenv("FS_GII", "0", 1);
+  
   if (surf1path == NULL && surfname == NULL) surfname = const_cast<char*>("orig"); // This is.... nasty
 
   if (surf1path == NULL) {

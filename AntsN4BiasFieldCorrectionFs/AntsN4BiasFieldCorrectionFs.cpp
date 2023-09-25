@@ -108,7 +108,11 @@ int main(int argc, char **argv)
   ITKImageType::Pointer inputImage = mri->toITKImage();
 
   // set itk threads to 1
+#if ITK_VERSION_MAJOR >= 5 
+  itk::MultiThreaderBase::SetGlobalDefaultNumberOfThreads(threads);
+#else
   itk::MultiThreader::SetGlobalDefaultNumberOfThreads(threads);
+#endif  
 
   // image mask
   ITKImageType::Pointer maskImage;

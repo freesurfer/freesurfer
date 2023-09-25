@@ -235,7 +235,7 @@ namespace Math
     \returns mid - the mid eigenvector
     \returns min - the min eigenvector
   */
-  void GetSortedEigenVectors ( vnl_symmetric_eigensystem<double> eigenSystem,
+  void GetSortedEigenVectors ( vnl_symmetric_eigensystem<double> &eigenSystem,
                                double *evalues,
                                double *max,
                                double *mid,

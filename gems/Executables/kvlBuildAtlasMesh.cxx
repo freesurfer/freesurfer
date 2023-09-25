@@ -262,7 +262,7 @@ int main( int argc, char** argv )
 
 
   // If explicitStartCollection exists in the current directory, use it
-  kvl::AtlasMeshCollection::Pointer  explicitStartCollection = 0;
+  kvl::AtlasMeshCollection::Pointer  explicitStartCollection = nullptr;
   const std::string  explicitStartCollectionFileName = "explicitStartCollection.gz";
   if ( itksys::SystemTools::FileExists( explicitStartCollectionFileName.c_str(), true ) )
     {

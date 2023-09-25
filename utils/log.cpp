@@ -82,7 +82,7 @@ void throwExceptions(bool setting)
   Writes a message the global error log if configured with `setErrorLog(filename)`.
   **This is for internal use only** - use `fs::error()` to throw errors.
 */
-void detail::writeToErrorLog(const std::string& message)
+void fs::detail::writeToErrorLog(const std::string& message)
 {
   if (errorlog.empty()) return;
   
@@ -96,7 +96,7 @@ void detail::writeToErrorLog(const std::string& message)
   Exits with a given return code, or throws exceptions if enabled via `throwExceptions(true)`.
   **This is for internal use only** - use `fs::fatal(code)` to throw a fatal error.
 */
-void detail::errorExit(int code)
+void fs::detail::errorExit(int code)
 {
   if (exceptions) {
     if (code != 0) throw code;

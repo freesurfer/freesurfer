@@ -3872,7 +3872,7 @@ if($DoCurvHK) then
     # surface. There needs to be a file called ?h.white.{H,K} but mris_curvature creates
     # ?h.white.preaparc.{H,K}. This just creates a symlink 
     foreach suffix (H K)
-      set cmd1 = (rm -f $hemi.white.$suffix)
+      set cmd1 = (rm -f $hemi.white.$suffix$FS_GII)
       set cmd2 = (ln -s $hemi.white.preaparc.$suffix$FS_GII $hemi.white.$suffix$FS_GII)
       echo $cmd1 | tee -a $LF
       echo $cmd2 | tee -a $LF
@@ -4546,12 +4546,12 @@ if(1) then
   foreach hemi ($hemilist)
 
     foreach surftype (white pial)
-      set surf = ../surf/$hemi.$surftype
+      set surf = ../surf/$hemi.$surftype$FS_GII
       if(! -e $surf) continue
       foreach meas (curv area)
         echo "#@# $surftype $meas $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-        set measfile = ../surf/$hemi.$meas
-        if($surftype == pial) set measfile = ../surf/$hemi.$meas.pial
+        set measfile = ../surf/$hemi.$meas$FS_GII
+        if($surftype == pial) set measfile = ../surf/$hemi.$meas.pial$FS_GII
         set cmd = (mris_place_surface --$meas-map $surf)
         if($meas == curv) set cmd = ($cmd 2 10)
         set cmd = ($cmd $measfile)
@@ -4571,12 +4571,12 @@ if(1) then
       end # meas
     end # surftype
 
-    set white = ../surf/$hemi.white
-    set pial  = ../surf/$hemi.pial
+    set white = ../surf/$hemi.white$FS_GII
+    set pial  = ../surf/$hemi.pial$FS_GII
     if(-e $white && -e $pial) then
       # Should add a check here to make sure that pial is up-to-date (needs autorecon3)
       echo "#@# thickness $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      set thickness = ../surf/$hemi.thickness
+      set thickness = ../surf/$hemi.thickness$FS_GII
       set cmd = (mris_place_surface --thickness $white $pial 20 5 $thickness)
       echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
       echo $cmd        |& tee -a $LF |& tee -a $CF
@@ -4591,12 +4591,12 @@ if(1) then
       endif
       #-----------------------------------
       echo "#@# area and vertex vol $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      set areamid = ../surf/$hemi.area.mid
-      set areawhite = ../surf/$hemi.area
-      set areapial = ../surf/$hemi.area.pial
-      set vtxvol   = ../surf/$hemi.volume
+      set areamid = ../surf/$hemi.area.mid$FS_GII
+      set areawhite = ../surf/$hemi.area$FS_GII
+      set areapial = ../surf/$hemi.area.pial$FS_GII
+      set vtxvol   = ../surf/$hemi.volume$FS_GII
       echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
-      echo $cmd        |& tee -a $LF |& tee -a $CF
+      #echo $cmd        |& tee -a $LF |& tee -a $CF
       set ud1 = `UpdateNeeded $areamid $areawhite $areapial`
       set ud2 = `UpdateNeeded $vtxvol $pial $white`
       set cmd = (vertexvol --s $subjid --$hemi -$TH3Opt)
@@ -5115,19 +5115,19 @@ if($DoSegStats) then
     echo "\nINFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
-  if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
+  if ( ( -e surf/lh.white$FS_GII ) && ( -e surf/rh.white$FS_GII ) ) then
     set cmd = ($cmd --surf-wm-vol)
-    if ( ( -e surf/lh.pial ) && ( -e surf/rh.pial ) ) then
+    if ( ( -e surf/lh.pial$FS_GII ) && ( -e surf/rh.pial$FS_GII ) ) then
       set cmd = ($cmd --surf-ctx-vol --totalgray)
     else
-      echo "\nINFO: ?h.pial surfaces not available to mri_segstats.\n"\
+      echo "\nINFO: ?h.pial$FS_GII surfaces not available to mri_segstats.\n"\
        |& tee -a $SF |& tee -a $LF |& tee -a $CF
     endif
   else
-    echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
+    echo "\nINFO: ?h.white$FS_GII surfaces not available to mri_segstats.\n"\
      |& tee -a $SF |& tee -a $LF |& tee -a $CF
   endif
-  if( ( -e surf/lh.orig.nofix ) && ( -e surf/rh.orig.nofix ) ) then
+  if( ( -e surf/lh.orig.nofix$FS_GII ) && ( -e surf/rh.orig.nofix$FS_GII ) ) then
      set cmd = ($cmd --euler)
   endif
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
