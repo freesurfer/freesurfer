@@ -1,6 +1,7 @@
 #include "kvlAtlasMeshRasterizor.h"
 
 #if ITK_VERSION_MAJOR >= 5
+#include <itkMultiThreaderBase.h>
 #include <mutex>
 static std::mutex rasterizorMutex;
 #else

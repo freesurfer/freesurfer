@@ -1,5 +1,9 @@
 #include "kvlAtlasParameterEstimator.h"
 
+#if ITK_VERSION_MAJOR >= 5
+#include <itkMultiThreaderBase.h>
+#endif
+
 #include "itkImageRegionConstIterator.h"
 #include "kvlAtlasMeshLabelImageStatisticsCollector.h"
 #include "kvlAtlasMeshToLabelImageCostAndGradientCalculator.h"
