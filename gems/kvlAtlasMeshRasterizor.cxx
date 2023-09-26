@@ -52,9 +52,14 @@ AtlasMeshRasterizor
     }
 
   // Set up the multithreader
+#if ITK_VERSION_MAJOR >= 5
+  itk::MultiThreaderBase::Pointer  threader = itk::MultiThreaderBase::New();
+  threader->SetNumberOfWorkUnits( this->GetNumberOfThreads() );
+#else
   itk::MultiThreader::Pointer  threader = itk::MultiThreader::New();
   threader->SetNumberOfThreads( this->GetNumberOfThreads() );
   //threader->SetNumberOfThreads( 1 );
+#endif  
   threader->SetSingleMethod( this->ThreaderCallback, &str );
 
   // Let the beast go
