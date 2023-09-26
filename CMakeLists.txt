@@ -141,7 +141,7 @@ host_os()
 
 # -------- zlib --------
 find_package(ZLIB REQUIRED)
-add_definitions(-DHAVE_ZLIB)
+add_definitions(-DHAVE_ZLIB -DITK_USE_SYSTEM_ZLIB)
 
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
@@ -154,6 +154,7 @@ if(NOT APPLE)
   elseif(HOST_OS MATCHES "CentOS9stream")
      find_library(BLAS_LIBRARIES NAMES libblas.so.3)
      find_library(LAPACK_LIBRARIES NAMES liblapack.so.3)
+     set(CMAKE_CXX_STANDARD 14)
   else()
      find_library(GFORTRAN_LIBRARIES HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/ NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
