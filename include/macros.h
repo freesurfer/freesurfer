@@ -42,13 +42,6 @@ DEFINE_LOG2
 #endif
 
 #endif
-#ifndef UCHAR
-#define UCHAR        unsigned char
-#endif
-
-#ifndef UINT
-#define UINT         unsigned int
-#endif
 
 #ifndef FALSE
 #define FALSE  	     0

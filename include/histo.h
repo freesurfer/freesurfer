@@ -18,10 +18,6 @@
 
 #include <stdio.h>
 
-#ifndef UCHAR
-#define UCHAR  unsigned char
-#endif
-
 #define MAX_BINS  10000
 typedef struct
 {
