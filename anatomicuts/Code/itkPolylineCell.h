@@ -62,7 +62,11 @@ public:
 
   
   /** Implement the standard CellInterface. */
-  virtual CellGeometry GetType(void) const 
+#if ITK_VERSION_MAJOR >= 5 && ITK_VERSION_MINOR >= 4
+  virtual itk::CommonEnums::CellGeometry GetType() const;
+#else  
+  virtual CellGeometry GetType(void) const
+#endif    
   {return Superclass::POLYGON_CELL;}
   virtual void MakeCopy( CellAutoPointer & ) const;
   virtual unsigned int GetDimension(void) const;
