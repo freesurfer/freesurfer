@@ -235,7 +235,7 @@ target_link_libraries(utils
   gifti
   expat
   ${ZLIB_LIBRARIES}
-  ${ITK_LIBRARIES}
+  ${ITKVNL_LIBRARIES}
   ${OMP_CXX_LIBRARIES}
 )
 
