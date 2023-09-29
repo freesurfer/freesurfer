@@ -6831,8 +6831,9 @@ int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *out
  *      MRIS_BINARY_QUADRANGLE_FILE (assumed surface file type)
  *
  *    return error, if both regular and .gii files exits
- *    if FS_GII = '.gii', read GIFTI_FILE
- *    otherwise, file type unchanged (read regular format)
+ *
+ *    if FS_GII = '.gii', try GIFTI_FILE, if .gii doesn't exist, try regular file;
+ *     otherwise, try regular format, if file doesn't exist, try GIFTI format
  */
 void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
 {
@@ -6849,9 +6850,23 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
   const char *fs_gii = getenv("FS_GII");
   if (fs_gii != NULL && strcmp(fs_gii, ".gii") == 0)
   {
-    sprintf(file_to_read, "%s%s", fname, fs_gii);
-    printf("[WARN] read, FS_GII set, read as %s (%s)\n", file_to_read, fname);
-    *filetype = GIFTI_FILE;
+    // if .gii is not available, nothing is changed
+    if (fio_FileExistsReadable(gii))
+    {
+      // .gii is available
+      sprintf(file_to_read, "%s%s", fname, fs_gii);
+      printf("[WARN] read, FS_GII set, read as %s (%s)\n", file_to_read, fname);
+      *filetype = GIFTI_FILE;
+    }
+  }
+  else  // try regular format first
+  {
+    if (!fio_FileExistsReadable(fname))
+    {
+      // regular format is not available, try .gii
+      sprintf(file_to_read, "%s.gii", fname);
+      *filetype = GIFTI_FILE;
+    }
   }
 }
 

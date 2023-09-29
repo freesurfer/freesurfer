@@ -24,10 +24,6 @@
 
 #include "matrix.h"
 
-#ifndef UCHAR
-#define UCHAR  unsigned char
-#endif
-
 #include "hips.h"
 
 typedef struct header IMAGE ;

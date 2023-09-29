@@ -1,6 +1,7 @@
 #include "kvlAtlasMeshRasterizor.h"
 
 #if ITK_VERSION_MAJOR >= 5
+#include <itkMultiThreaderBase.h>
 #include <mutex>
 static std::mutex rasterizorMutex;
 #else
@@ -51,9 +52,14 @@ AtlasMeshRasterizor
     }
 
   // Set up the multithreader
+#if ITK_VERSION_MAJOR >= 5
+  itk::MultiThreaderBase::Pointer  threader = itk::MultiThreaderBase::New();
+  threader->SetNumberOfWorkUnits( this->GetNumberOfThreads() );
+#else
   itk::MultiThreader::Pointer  threader = itk::MultiThreader::New();
   threader->SetNumberOfThreads( this->GetNumberOfThreads() );
   //threader->SetNumberOfThreads( 1 );
+#endif  
   threader->SetSingleMethod( this->ThreaderCallback, &str );
 
   // Let the beast go
@@ -80,9 +86,15 @@ AtlasMeshRasterizor
 {
 
   // Retrieve the input arguments
+#if ITK_VERSION_MAJOR >= 5
+  const int  threadNumber = ((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->WorkUnitID;
+  const int  numberOfThreads = ((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->NumberOfWorkUnits;
+  ThreadStruct*  str = (ThreadStruct *)(((itk::MultiThreaderBase::WorkUnitInfo *)(arg))->UserData);
+#else  
   const int  threadNumber = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->ThreadID;
   const int  numberOfThreads = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->NumberOfThreads;
   ThreadStruct*  str = (ThreadStruct *)(((itk::MultiThreader::ThreadInfoStruct *)(arg))->UserData);
+#endif  
 
   
 #if 1  

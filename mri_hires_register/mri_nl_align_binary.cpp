@@ -479,7 +479,8 @@ main(int argc, char *argv[])
 			label = non_hippo_labels[i] ;
 			GCAMsetLabelStatus(gcam, label, GCAM_BINARY_ZERO) ;
 		}
-		// no break!!
+		mp.diag_volume = GCAM_LABEL ;
+		break;
 	default:
     //		mp.mri_diag = mri_target ;
 		mp.diag_volume = GCAM_LABEL ;

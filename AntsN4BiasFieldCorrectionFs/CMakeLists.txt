@@ -14,6 +14,6 @@ add_compile_options(-Wno-self-assign-field)
 
 add_executable(AntsN4BiasFieldCorrectionFs AntsN4BiasFieldCorrectionFs.cpp)
 add_help(AntsN4BiasFieldCorrectionFs AntsN4BiasFieldCorrectionFs.help.xml)
-target_link_libraries(AntsN4BiasFieldCorrectionFs utils)
+target_link_libraries(AntsN4BiasFieldCorrectionFs utils ${ITK_LIBRARIES})
 
 install(TARGETS AntsN4BiasFieldCorrectionFs DESTINATION bin)

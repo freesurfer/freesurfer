@@ -1076,7 +1076,7 @@ int ImageCopyFrames(IMAGE *inImage, IMAGE *outImage, int start, int nframes, int
               break;
             case PFINT:
               iOut = (unsigned int *)IMAGEIseq_pix(outImage, 0, 0, frameno);
-              while (size--) *iOut++ = (UINT)*cIn++;
+              while (size--) *iOut++ = (unsigned int)*cIn++;
               break;
             default:
               ErrorExit(ERROR_UNSUPPORTED,
@@ -1100,7 +1100,7 @@ int ImageCopyFrames(IMAGE *inImage, IMAGE *outImage, int start, int nframes, int
             break;
           case PFBYTE:
             cOut = IMAGEpix(outImage, 0, 0) + pix_per_frame * frameno;
-            while (size--) *cOut++ = (UCHAR)*iIn++;
+            while (size--) *cOut++ = (unsigned char)*iIn++;
             break;
           default:
             ErrorExit(ERROR_UNSUPPORTED,
@@ -1155,8 +1155,8 @@ int ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
   size = image->cols * image->rows;
   switch (image->pixel_format) {
     case PFBYTE:
-      cmax_val = (UCHAR)fmax;
-      cmin_val = (UCHAR)fmin;
+      cmax_val = (unsigned char)fmax;
+      cmin_val = (unsigned char)fmin;
       size = image->cols * image->rows;
       csrc = IMAGEpix(image, 0, 0);
       norm = ((float)high - (float)low) / ((float)cmax_val - (float)cmin_val);
@@ -1242,7 +1242,7 @@ IMAGE *ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale)
 int ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
 {
   int inRow, inCol, outRow, outCol, inCols, inRows, outRows, outCols, frame;
-  UCHAR *outPix;
+  unsigned char *outPix;
   byte *in_image, *out_image;
   float *foutPix;
 
@@ -1306,7 +1306,7 @@ int ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
                 /* map center point to this output point */
                 inRow = nint((float)outRow / scale);
                 inCol = nint((float)outCol / scale);
-                *outPix = (UCHAR)*IMAGEFpix(inImage, inCol, inRow);
+                *outPix = (unsigned char)*IMAGEFpix(inImage, inCol, inRow);
               }
             break;
           case PFFLOAT:
@@ -1369,8 +1369,8 @@ int ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
 int ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
 {
   int inRow, inCol, outRow, outCol, inCols, inRows, endCol, endRow, outRows, outCols, frame;
-  UCHAR *inPix, *outPix;
-  UINT *inIPix, *outIPix;
+  unsigned char *inPix, *outPix;
+  unsigned int *inIPix, *outIPix;
   float *finPix, *foutPix;
   byte *in_image, *out_image;
 
@@ -1440,7 +1440,7 @@ int ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
                   outPix = IMAGEpix(outImage, nint((float)inCol * scale), outRow);
 
                   for (outCol = nint((float)inCol * scale); outCol < endCol; outCol++, outPix++)
-                    *outPix = (UCHAR)(*finPix);
+                    *outPix = (unsigned char)(*finPix);
                 }
               }
             break;
@@ -1530,7 +1530,7 @@ IMAGE *ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols
 int ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
 {
   int inRow, inCol, outRow, outCol, inCols, inRows, frame;
-  UCHAR *outPix;
+  unsigned char *outPix;
   byte *in_image, *out_image;
   float *foutPix, xscale, yscale;
 
@@ -1593,7 +1593,7 @@ int ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCol
                 /* map center point to this output point */
                 inRow = nint((float)outRow / yscale);
                 inCol = nint((float)outCol / xscale);
-                *outPix = (UCHAR)*IMAGEFpix(Isrc, inCol, inRow);
+                *outPix = (unsigned char)*IMAGEFpix(Isrc, inCol, inRow);
               }
             break;
           case PFFLOAT:
@@ -1640,8 +1640,8 @@ int ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCol
 int ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
 {
   int inRow, inCol, outRow, outCol, inCols, inRows, endCol, endRow, frame;
-  UCHAR *inPix, *outPix;
-  UINT *inIPix, *outIPix;
+  unsigned char *inPix, *outPix;
+  unsigned int *inIPix, *outIPix;
   float *finPix, *foutPix, xscale, yscale;
   byte *in_image, *out_image;
 
@@ -1713,7 +1713,7 @@ int ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
                   outPix = IMAGEpix(Iout, nint((float)inCol * xscale), outRow);
 
                   for (outCol = nint((float)inCol * xscale); outCol < endCol; outCol++, outPix++)
-                    *outPix = (UCHAR)(*finPix);
+                    *outPix = (unsigned char)(*finPix);
                 }
               }
             break;
@@ -2284,8 +2284,8 @@ int ImageCmp(IMAGE *Isrc, IMAGE *Idst)
 ----------------------------------------------------------------------*/
 IMAGE *ImageAbs(IMAGE *inImage, IMAGE *outImage)
 {
-  UCHAR *cIn, *cOut;
-  UINT *iIn, *iOut;
+  unsigned char *cIn, *cOut;
+  unsigned int *iIn, *iOut;
   float *fIn, *fOut;
   int size, nframes, frameno, pix_per_frame, rows, cols;
 
@@ -2314,7 +2314,7 @@ IMAGE *ImageAbs(IMAGE *inImage, IMAGE *outImage)
             break;
           case PFINT:
             iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno;
-            while (size--) *iOut++ = (UINT)*cIn++;
+            while (size--) *iOut++ = (unsigned int)*cIn++;
             break;
           default:
             ErrorExit(ERROR_BADPARM, "ImageAbs: unsupported output image pixel format (%d)\n", outImage->pixel_format);
@@ -2388,7 +2388,7 @@ IMAGE *ImageSubtract(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst)
 IMAGE *ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0, int dx, int dy, int xdst, int ydst)
 {
   CPIX *cpsrc, *cpdst;
-  UCHAR *csrc, *cdst;
+  unsigned char *csrc, *cdst;
   float *fsrc, *fdst;
   double *dsrc, *ddst;
   int xin, yin, yout, x1, y1, yend, xend;
@@ -2475,7 +2475,7 @@ IMAGE *ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0, int dx, int dy
 ----------------------------------------------------------------------*/
 IMAGE *ImageExtract(IMAGE *Isrc, IMAGE *Idst, int x0, int y0, int dx, int dy)
 {
-  UCHAR *csrc, *cdst;
+  unsigned char *csrc, *cdst;
   float *fsrc, *fdst;
   int xin, yin, xout, yout, x1, y1, yend, xend;
 
@@ -2737,8 +2737,8 @@ IMAGE *ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
 
   evalues = (float *)calloc((unsigned int)nevalues, sizeof(float));
   pix_per_frame = image->rows * image->cols;
-  eigen_values = (EVALUE *)calloc((UINT)nevalues, sizeof(EIGEN_VALUE));
-  evectors = (float *)calloc((UINT)(nevalues * pix_per_frame), sizeof(float));
+  eigen_values = (EVALUE *)calloc((unsigned int)nevalues, sizeof(EIGEN_VALUE));
+  evectors = (float *)calloc((unsigned int)(nevalues * pix_per_frame), sizeof(float));
 
   /* 2 extra frames - 1 for mean vector, and one for eigenvalues */
   pcImage = ImageAlloc(image->rows, image->cols, PFFLOAT, nterms + 2);

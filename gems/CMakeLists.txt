@@ -161,13 +161,13 @@ set(SOURCES_DYN
 
 # gems libary
 add_library(kvlGEMSCommon ${SOURCES})
-target_link_libraries(kvlGEMSCommon ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(kvlGEMSCommon ${ZLIB_LIBRARIES} ${ITK_LIBRARIES})
 
 # gems library with dynamic meshes.  Needed for `kvlBuildAtlasMesh` but causes
 # samseg to run slower, so only link against `kvlGEMSCommon_dynmesh` when nessesary.
 add_library(kvlGEMSCommon_dynmesh ${SOURCES_DYN})
 target_compile_definitions(kvlGEMSCommon_dynmesh PRIVATE -DUSE_DYNAMIC_MESH)
-target_link_libraries(kvlGEMSCommon_dynmesh ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(kvlGEMSCommon_dynmesh ${ZLIB_LIBRARIES} ${ITK_LIBRARIES})
 
 ## !!!BAD!!! both `kvlGEMSCommon_dynmesh` `kvlGEMSCommon` will have the same md5sum
 ## Useful for testing though

@@ -8,7 +8,11 @@
 // ITK includes
 #include "itkImageIOBase.h"
 #include "itkIOCommon.h"
+#if ITK_VERSION_MAJOR >= 5
+#include "itkMacro.h"
+#else
 #include "itkExceptionObject.h"
+#endif
 #include "itkByteSwapper.h"
 #include "itkMetaDataObject.h"
 #include "itkMatrix.h"

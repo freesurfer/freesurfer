@@ -498,7 +498,7 @@ IMAGE *ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
 {
   int x, y, rows, cols, dx, dy;
   float *dx_pix, *dy_pix;
-  UCHAR *edge;
+  unsigned char *edge;
   IMAGE *Iout;
 
   rows = Ioffset->rows;
