@@ -2233,6 +2233,7 @@ MRI *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
   wcubed = (wsize * wsize * wsize);
   median_index = wcubed / 2;
   whalf = wsize / 2;
+  printf("wsize %d wcubed %d  whalf %d\n",wsize,wcubed,whalf);
 
   if (sort_array && (wcubed != sort_size)) {
     free(sort_array);
@@ -2242,7 +2243,6 @@ MRI *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
     sort_array = (float *)calloc(wcubed, sizeof(float));
     sort_size = wcubed;
   }
-
   if (box) {
     xmin = box->x;
     ymin = box->y;
@@ -6961,7 +6961,8 @@ MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst, int label, int out_label, 
   through a given voxel and the center. A segment of this line is
   selected based on the FHWM at that point. The input image is sampled
   every DeltaD along that line and convolved with the Gaussian
-  kernel. Cannot be done in-place.
+  kernel. Cannot be done in-place. Offset is in mm. Slope is per
+  centimeter (not mm).
  */
 MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
 {
@@ -7032,7 +7033,8 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
       dx = dc * src->xsize;                // mm distance in x from center
       dy = dr * src->ysize;                // mm distance in y from center
       d0 = sqrt(dx * dx + dy * dy);        // mm dist to cur vox
-      fwhm = mb->offset + mb->slope * d0;  // compute FWHM based on distance
+      // divide slope by 100 to make it more in the range of FWHM
+      fwhm = mb->offset + d0*mb->slope/100; // compute FWHM based on distance
       stddev = fwhm / sqrt(log(256.0));
       ndlim = ceil(mb->cutoff * stddev / mb->DeltaD);
       nd = 2 * ndlim + 1;         // number of samples to integrate over
