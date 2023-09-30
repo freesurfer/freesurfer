@@ -1,9 +1,9 @@
 h5py==3.9.0
 matplotlib==3.7.3
-opencv-python==4.8.0.76
+opencv-python==4.8.1.78
 pandas==2.0.3
 scikit-image==0.21.0
-tensorflow==2.13.0
+tensorflow==2.13.1
 tensorflow-estimator==2.13.0
 tensorflow-io-gcs-filesystem==0.34.0
 torch==2.0.1
