@@ -699,6 +699,7 @@ if(NOT MINIMAL)
     mri_head
     mri_hires_register
     mri_histo_eq
+    mri_histo_util
     mri_jacobian
     mri_joint_density
     mri_label_histo
