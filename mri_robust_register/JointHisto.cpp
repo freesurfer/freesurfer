@@ -20,8 +20,8 @@
 
 #include "JointHisto.h"
 #if ITK_VERSION_MAJOR >= 5
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <vcl_compiler.h>
 #else
 #include <vcl_iostream.h>
