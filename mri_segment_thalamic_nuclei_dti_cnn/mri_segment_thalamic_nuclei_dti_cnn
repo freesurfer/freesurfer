@@ -61,6 +61,7 @@ def main():
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
     parser.add_argument("--version1", action="store_true", help="(optional) Use version 1.0 of the model (defaults to 1.1 updated 1st Jun 2023).")
     parser.add_argument("--model", default=None, help="(optional) Use a different model file.")
+    parser.add_argument("--clean", action="store_true", help="(optional) Remove auto-generated realigned input images.")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -175,7 +176,8 @@ def main():
         topology_classes=topology_classes,
         path_xfrm=args.lta,
         path_xfrm_inv=args.lta_inv,
-        suffix=suffix_vrsn
+        suffix=suffix_vrsn,
+        clean_switch=args.clean
     )
 
 
@@ -198,7 +200,8 @@ def predict(path_t1,
             topology_classes,
             path_xfrm=None,
             path_xfrm_inv=None,
-            suffix=None):
+            suffix=None,
+            clean_switch=False):
     '''
     Prediction pipeline.
     '''
@@ -280,7 +283,8 @@ def predict(path_t1,
                                                                          min_pad=min_pad,
                                                                          xfrm_aff=xfrm_i,
                                                                          path_output=path_segmentations[i],
-                                                                         invert_transform=invert_transform)
+                                                                         invert_transform=invert_transform,
+                                                                         clean_switch=clean_switch)
 
             # prediction
             shape_input = add_axis(np.array(image.shape[1:-1]))
@@ -327,6 +331,16 @@ def predict(path_t1,
             print('posteriors saved in:       ' + path_posteriors[0])
         if path_volumes[0] is not None:
             print('volumes saved in:          ' + path_volumes[0])
+
+        if path_xfrm is not None:
+            if not clean_switch:
+                print('\nTo check the result, run:')
+                print('  freeview ' + path_segmentations[0] + '.t1.dwispace.mgz ' + path_segmentations[0] +
+                      ':colormap=LUT -dti ' + path_v1[0] + ' ' + path_fa[0])
+        else:
+            print('\nTo check the result, run:')
+            print('  freeview ' + path_t1[0] + ' ' + path_segmentations[0] + ':colormap=LUT -dti ' + path_v1[0] + ' ' +
+                  path_fa[0])
     elif (len(path_segmentations) > 1) & (len(list_errors) < len(path_segmentations)):  # at least 1 image with no error
         # only print info if all segmentations are in the same folder, and we have unique vol/QC files
         if len(set([os.path.dirname(path_segmentations[i]) for i in range(len(path_segmentations))])) <= 1:
@@ -518,7 +532,7 @@ def prepare_output_files(path_t1, path_aseg, path_fa, path_v1, out_seg, out_post
 
 
 def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_pad=None, path_resample=None,
-               xfrm_aff=None,path_output=None,invert_transform=False):
+               xfrm_aff=None,path_output=None,invert_transform=False,clean_switch=False):
 
     # set transform application behaviour
     trans_flag = ' --lta '
@@ -555,7 +569,7 @@ def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_
 
     # Read and resample ASEG
     if xfrm_aff is not None:
-        temp_file = path_output +'.tmp.mgz'
+        temp_file = path_output +'.aseg.dwispace.mgz'
         temp_os = os.system('mri_vol2vol --mov ' +  path_aseg + ' --o ' + temp_file + trans_flag + xfrm_aff + ' --no-resample'
                   + ' --targ ' + path_fa + ' > /dev/null')
 
@@ -564,7 +578,8 @@ def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_
 
         aseg, aff, _ = load_volume(temp_file, im_only=False)
 
-        os.system('rm -rf ' + temp_file)
+        if clean_switch:
+            os.system('rm -rf ' + temp_file)
     else:
         aseg, aff, _ = load_volume(path_aseg, im_only=False)
 
@@ -572,7 +587,7 @@ def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_
 
     # Read and resample T1
     if xfrm_aff is not None:
-        temp_file = path_output +'.tmp.mgz'
+        temp_file = path_output +'.t1.dwispace.mgz'
         temp_os = os.system('mri_vol2vol --mov ' +  path_t1 + ' --o ' + temp_file + trans_flag + xfrm_aff + ' --no-resample'
                   + ' --targ ' + path_fa  + ' > /dev/null')
 
@@ -581,7 +596,8 @@ def preprocess(path_t1, path_aseg, path_fa, path_v1, n_levels=5, crop=None, min_
 
         im_t1, aff, _ = load_volume(temp_file, im_only=False)
 
-        os.system('rm -rf ' + temp_file)
+        if clean_switch:
+            os.system('rm -rf ' + temp_file)
     else:
         im_t1, aff, _ = load_volume(path_t1, im_only=False)
 
