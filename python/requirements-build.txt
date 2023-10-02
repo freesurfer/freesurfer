@@ -8,8 +8,8 @@ absl-py==2.0.0
 astunparse==1.6.3
 cachetools==5.3.1
 certifi==2023.7.22
-charset-normalizer==3.2.0
-cmake==3.27.5
+charset-normalizer==3.3.0
+cmake==3.27.6
 contourpy==1.1.1
 cycler==0.12.0
 filelock==3.12.4
@@ -21,7 +21,7 @@ google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
 grpcio==1.59.0
 idna==3.4
-imageio==2.31.4
+imageio==2.31.5
 importlib-metadata==6.8.0
 importlib-resources==6.1.0
 joblib==1.3.2
@@ -48,7 +48,7 @@ nvidia-nccl-cu11==2.14.3
 nvidia-nvtx-cu11==11.7.91
 oauthlib==3.2.2
 opt-einsum==3.3.0
-packaging==23.1
+packaging==23.2
 pip==22.0.4
 protobuf==4.24.3
 pyasn1==0.5.0
@@ -79,7 +79,7 @@ typing-extensions==4.5.0
 tzdata==2023.3
 urllib3==1.26.15
 voxelmorph==0.2
-werkzeug==2.3.7
+werkzeug==3.0.0
 wheel==0.41.2
 wrapt==1.15.0
 xxhash==3.3.0
