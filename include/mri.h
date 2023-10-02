@@ -555,7 +555,7 @@ public:
 typedef struct
 {
   int type; // MB_RADIAL or MB_TANGENTIAL
-  double offset,slope;
+  double offset,slope; //Offset is in mm; Slope is per centimeter (not mm)
   int c0,r0; // center of motion in full volume space
   int cR,rR; // col and row of first voxel of region in full volume space
   double DeltaD; // sample spacing along radius
