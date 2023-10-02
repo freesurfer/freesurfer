@@ -24,7 +24,11 @@
 #include <vector>
 #include <cassert>
 #include <limits>
+#if ITK_VERSION_MAJOR >= 5
+#include <vcl_compiler.h>
+#else
 #include <vcl_iostream.h>
+#endif
 
 #define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_matrix.h>

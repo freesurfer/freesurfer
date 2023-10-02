@@ -20,7 +20,13 @@
 
 #include "RegRobust.h"
 #include "RegistrationStep.h"
+
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream.h>
+#include <vcl_compiler.h>
+#else
 #include <vcl_iostream.h>
+#endif
 
 RegRobust::~RegRobust()
 { // we cleanup our private variables

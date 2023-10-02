@@ -19,8 +19,14 @@
  */
 
 #include "JointHisto.h"
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream.h>
+#include <fstream.h>
+#include <vcl_compiler.h>
+#else
 #include <vcl_iostream.h>
 #include <vcl_fstream.h>
+#endif
 #include <vnl/vnl_matlab_print.h>
 #include <iomanip>
 

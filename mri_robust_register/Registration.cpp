@@ -31,7 +31,12 @@
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream.h>
+#include <vcl_compiler.h>
+#else
 #include <vcl_iostream.h>
+#endif
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_vector_fixed.h>

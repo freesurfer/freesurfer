@@ -43,7 +43,13 @@
 #include <vnl/vnl_matrix_fixed.h>
 #undef export
 
+#if ITK_VERSION_MAJOR >= 5
+#include <complex>
+#include <vcl_compiler.h>
+#include <vcl_legacy_aliases.h>
+#else
 #include <vcl_complex.h>
+#endif
 
 /** \class MyMatrix
  * \brief A static class with Matrix operations (conversion, sqrt, decomposition, distances etc.)

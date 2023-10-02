@@ -26,7 +26,12 @@
 #define RegRobust_H
 
 #include "Registration.h"
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream>
+#include <vcl_compiler.h>
+#else
 #include <vcl_iostream.h>
+#endif
 
 // forward declaration
 template<class T> class RegistrationStep;

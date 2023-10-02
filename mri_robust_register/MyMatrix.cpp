@@ -35,7 +35,12 @@
 #include <vnl/vnl_imag.h>
 #include <vnl/algo/vnl_qr.h>
 #include <vnl/vnl_complexify.h>
+#if ITK_VERSION_MAJOR >= 5
+#include <iostream.h>
+#include <vcl_compiler.h>
+#else
 #include <vcl_iostream.h>
+#endif
 #include <vnl/vnl_matlab_print.h>
 #undef export
 
