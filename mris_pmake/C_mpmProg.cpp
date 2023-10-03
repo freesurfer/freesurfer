@@ -396,13 +396,19 @@ C_mpmProg_pathFind::run() {
     colsprintf(	mps_env->lw, mps_env->rw, pch_buffer, 
         	"Start->End vertices", "[ %d->%d ]\n",
         	mps_env->startVertex, mps_env->endVertex);
-    if(Gb_stdout) printf("%s", pch_buffer); pULOUT(pch_buffer);
+
+    // gcc11 complains about the indentation
+    // not sure the author's intention. put {} around the first statement to be safe
+    if(Gb_stdout) { printf("%s", pch_buffer); } pULOUT(pch_buffer);
 
     f_cost            = cost_compute(mvertex_start, mvertex_end);
 
     colsprintf(	mps_env->lw, mps_env->rw, pch_buffer, 
         	"Total path cost", " [ %f ]\n", f_cost);
-    if(Gb_stdout) printf("%s", pch_buffer); pULOUT(pch_buffer);
+    
+    // gcc11 complains about the indentation
+    // not sure the author's intention. put {} around the first statement to be safe
+    if(Gb_stdout) { printf("%s", pch_buffer); } pULOUT(pch_buffer);
     pnRLOUT(lsprintf(mps_env->lw, pch_buffer, "%f", f_cost));
 
     if (mps_env->b_patchFile_save) {
