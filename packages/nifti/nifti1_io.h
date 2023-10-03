@@ -210,8 +210,12 @@ int          nifti_read_subregion_image( nifti_image * nim,
                                          void ** data );
 
 void         nifti_image_write   ( nifti_image * nim ) ;
+int          nifti_image_write_status( nifti_image *nim );
+  
 void         nifti_image_write_bricks(nifti_image * nim, 
                                       const nifti_brick_list * NBL);
+int          nifti_image_write_bricks_status(nifti_image * nim,
+                                             const nifti_brick_list * NBL);
 void         nifti_image_infodump( const nifti_image * nim ) ;
 
 void         nifti_disp_lib_hist( void ) ;     /* to display library history */

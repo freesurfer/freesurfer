@@ -23,29 +23,34 @@ if(VTK_FOUND)
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
+  set(ITK_LIBRARIES "ITKCommon;ITKIOImageBase;ITKIOBMP;ITKIOBioRad;ITKIOBruker;ITKIOGDCM;ITKIOGE;ITKIONRRD;ITKIOTIFF;ITKIOVTK;ITKIOStimulate;ITKIONIFTI;ITKIOMINC;ITKIOGIPL;ITKIOHDF5;ITKIOJPEG;ITKIOLSM;ITKIOMRC;ITKIOMeta;ITKIOPNG")
+  if(HOST_OS MATCHES "CentOS9stream")
+    set(ITK_LIBRARIES "${ITK_LIBRARIES};ITKIOJPEG2000")
+  endif()
+
 #AnatomiCuts correspondences
   add_executable(dmri_AnatomiCuts AnatomiCuts.cxx ${TRACKIO})
-  target_link_libraries(dmri_AnatomiCuts utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_AnatomiCuts utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_AnatomiCuts DESTINATION bin)
 
 #AnatomiCuts
   add_executable(dmri_match AnatomiCuts_correspondences.cxx ${TRACKIO})
-  target_link_libraries(dmri_match utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_match utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_match DESTINATION bin)
 
 #TRK tools for header
   add_executable(trk_tools trk_tools.cxx ${TRACKIO})
-  target_link_libraries(trk_tools utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(trk_tools utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS trk_tools DESTINATION bin)
 
 #streamline filtering
   add_executable(streamlineFilter StreamlineFilter.cxx ${TRACKIO})
-  target_link_libraries(streamlineFilter utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(streamlineFilter utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS streamlineFilter DESTINATION bin)
   
 #dmri_stats_ac
   add_executable(dmri_stats_ac dmri_stats_ac.cxx ${TRACKIO})
-  target_link_libraries(dmri_stats_ac utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_stats_ac utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_stats_ac DESTINATION bin)
 
 #orientation planes
@@ -60,27 +65,29 @@ if(VTK_FOUND)
 
 #dmri_groupByEndpoints
   add_executable(dmri_groupByEndpoints dmri_groupByEndpoints.cxx ${TRACKIO}) 
-  target_link_libraries(dmri_groupByEndpoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_groupByEndpoints utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_groupByEndpoints DESTINATION bin)
 
 #dmri_extractSurfaceMeasurements
+  # also needs ITKIOTransformHDF5;ITKIOTransformMatlab;ITKIOTransformInsightLegacy
   add_executable(dmri_extractSurfaceMeasurements dmri_extractSurfaceMeasurements.cxx ${TRACKIO}) 
-  target_link_libraries(dmri_extractSurfaceMeasurements utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_extractSurfaceMeasurements utils nifti "${ITK_LIBRARIES};ITKIOTransformHDF5;ITKIOTransformMatlab;ITKIOTransformInsightLegacy" ${VTK_LIBRARIES})
   install(TARGETS dmri_extractSurfaceMeasurements DESTINATION bin)
 
 #dmri_coloredFA
   add_executable(dmri_coloredFA dmri_coloredFA.cxx ${TRACKIO})
-  target_link_libraries(dmri_coloredFA utils ${OPENGL_LIBRARIES} ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_coloredFA utils nifti ${OPENGL_LIBRARIES} ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_coloredFA DESTINATION bin)
 
 #dmri_projectEndPoints
   add_executable(dmri_projectEndPoints dmri_projectEndPoints.cxx ${TRACKIO})
-  target_link_libraries(dmri_projectEndPoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_projectEndPoints utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_projectEndPoints DESTINATION bin)
 
 #dmri_neighboringRegions
+  # only needs ITKCommon
   add_executable(dmri_neighboringRegions dmri_neighboringRegions.cxx ${TRACKIO})
-  target_link_libraries(dmri_neighboringRegions utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_neighboringRegions utils nifti "ITKCommon" ${VTK_LIBRARIES})
   install(TARGETS dmri_neighboringRegions DESTINATION bin)
 
 endif()

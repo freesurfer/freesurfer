@@ -8,6 +8,6 @@ add_test_script(NAME AntsDenoiseImageFs_test SCRIPT test.sh)
 
 add_executable(AntsDenoiseImageFs AntsDenoiseImageFs.cpp)
 add_help(AntsDenoiseImageFs AntsDenoiseImageFs.help.xml)
-target_link_libraries(AntsDenoiseImageFs utils ${ITK_LIBRARIES})
+target_link_libraries(AntsDenoiseImageFs utils "ITKCommon")  # only needs ITKCommon
 
 install(TARGETS AntsDenoiseImageFs DESTINATION bin)

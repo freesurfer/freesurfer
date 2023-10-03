@@ -20,20 +20,31 @@ if(ITK_FOUND AND VTK_FOUND)
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
+  set(ITK_LIBRARIES "ITKCommon;ITKIOImageBase;ITKIOBMP;ITKIOBioRad;ITKIOBruker;ITKIOGDCM;ITKIOGE;ITKIONRRD;ITKIOTIFF;ITKIOVTK;ITKIOStimulate;ITKIOMINC;ITKIOGIPL;ITKIOHDF5;ITKIOJPEG;ITKIOLSM;ITKIOMRC;ITKIOMeta;ITKIOPNG;ITKIONIFTI")
+ if(HOST_OS MATCHES "CentOS9stream")
+    set(ITK_LIBRARIES "${ITK_LIBRARIES};ITKIOJPEG2000;ITKIOMeshVTK")
+  endif()
+
   add_executable(mris_multimodal mris_multimodal.cxx)
-  target_link_libraries(mris_multimodal utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_multimodal utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_multimodal DESTINATION bin)
   
+  # also needs ITKStatistics
   add_executable(mris_profileClustering mris_profileClustering.cxx)
-  target_link_libraries(mris_profileClustering utils ${OPENGL_LIBRARIES} ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_profileClustering utils nifti ${OPENGL_LIBRARIES} "${ITK_LIBRARIES};ITKStatistics" ${VTK_LIBRARIES})
   install(TARGETS mris_profileClustering DESTINATION bin)
  
   add_executable(mris_surf2vtk mris_surf2vtk.cxx)
-  target_link_libraries(mris_surf2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_surf2vtk utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_surf2vtk DESTINATION bin)
  
   add_executable(mris_image2vtk mris_image2vtk.cxx) # Code/vtkNIFTIImageReader.cxx)
-  target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
+  if(HOST_OS MATCHES "CentOS9stream")
+     # also needs ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU for ITK5.4
+    target_link_libraries(mris_image2vtk utils nifti "${ITK_LIBRARIES};ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU" ${VTK_LIBRARIES} )
+  else()
+    target_link_libraries(mris_image2vtk utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
+  endif()
   install(TARGETS mris_image2vtk DESTINATION bin)
   
   #file(GLOB ALGLIB_SRC /space/erebus/2/users/vsiless/code/commong/alglib/src/*.cpp)
@@ -41,20 +52,21 @@ if(ITK_FOUND AND VTK_FOUND)
   #target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   #install(TARGETS sigmoidFit DESTINATION bin)
 
+  # also needs ITKLabelMap
   add_executable(mri_vessel_segment mri_vessel_segment.cxx)
-  target_link_libraries(mri_vessel_segment utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mri_vessel_segment utils nifti "${ITK_LIBRARIES};ITKLabelMap" ${VTK_LIBRARIES})
   install(TARGETS mri_vessel_segment DESTINATION bin)
 
   add_executable(mris_multimodal_surface_placement mris_multimodal_surface_placement.cxx ${TRACKIO})
-  target_link_libraries(mris_multimodal_surface_placement utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_multimodal_surface_placement utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_multimodal_surface_placement DESTINATION bin)
 
   add_executable(mris_curvature2image mris_curvature2image.cxx)
-  target_link_libraries(mris_curvature2image utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_curvature2image utils nifti ${VTK_LIBRARIES})
   install(TARGETS mris_curvature2image DESTINATION bin)
 
   add_executable(mris_extract_values mris_extract_values.cxx)
-  target_link_libraries(mris_extract_values utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_extract_values utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_extract_values DESTINATION bin)
 
 endif()
