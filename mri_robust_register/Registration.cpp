@@ -910,7 +910,7 @@ void Registration::computeMultiresRegistration(int stopres, int n, double epsit)
     }
     if (r == 0 && highit > 0)
       m = highit;
-    computeIterativeRegistrationFull(m, epsit, gpS[r], gpT[r], md.first, md.second);
+    computeIterativeRegistrationFull(m, epsit, gpS[r], gpT[r], md.first.as_matrix(), md.second);
     cmd.first = Mfinal;
     cmd.second = iscalefinal;
 
@@ -1022,7 +1022,7 @@ void Registration::computeMultiresRegistration(int stopres, int n, double epsit)
         << endl;
   }
 
-  Mfinal = md.first;
+  Mfinal = md.first.as_matrix();
   iscalefinal = md.second;
 
 }
@@ -1474,7 +1474,11 @@ void Registration::testRobust(const std::string& fname, int testno)
     for (int dd = 0; dd < mriTs->depth / 3; dd++)
       for (int cc = 0; cc < mriTs->height / 3; cc++)
         for (int rr = 0; rr < mriTs->width / 3; rr++)
+	{
+	  // centos9/gcc1 doesn't like the indentation after the for loop
+	  // put the {} to fix the compiler error
           MRIvox(mriTs, rr, cc, dd) = (rr)+(cc)+(dd)+1;
+	}
 
           MRIwrite(mriTs,"junktransS.mgz");
           MRIwrite(mriTt,"junktransT.mgz");
@@ -3754,8 +3758,8 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
   // Init reslice matrices:
   vnl_matrix_fixed<double, 4, 4> Mid;
   Mid.set_identity();
-  Rsrc = Mid;
-  Rtrg = Mid;
+  Rsrc = Mid.as_matrix();
+  Rtrg = Mid.as_matrix();
   
   // init source and target mri:
   if (mri_source) MRIfree(&mri_source);
@@ -3944,7 +3948,7 @@ void Registration::setSource(MRI * s, bool conform, bool keeptype)
   if (mri_source)
     MRIfree(&mri_source);
   mri_source = mm.first;
-  Rsrc = mm.second;
+  Rsrc = mm.second.as_matrix();
   if (debug)
   {
     string n = name + string("-mriS-resample.mgz");
@@ -3976,7 +3980,7 @@ void Registration::setTarget(MRI * t, bool conform, bool keeptype)
   if (mri_target)
     MRIfree(&mri_target);
   mri_target = mm.first;
-  Rtrg = mm.second;
+  Rtrg = mm.second.as_matrix();
   if (debug)
   {
     string n = name + string("-mriT-resample.mgz");
@@ -4581,7 +4585,7 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
 //         Mnew[2][2] = 1.0;
 //         Mnew[2][3] = 0.0;
 //       }
-    mh = MyMatrix::MatrixSqrt(M); // symmetry slighlty destroyed here? !!
+    mh = MyMatrix::MatrixSqrt(M.as_matrix()); // symmetry slighlty destroyed here? !!
 
     // check if we moved out of our space:
     checkSqrtM(mh, rigid && Minit.empty()); // if minit was passed, it might be an affine initialization

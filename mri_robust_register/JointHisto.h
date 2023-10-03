@@ -34,6 +34,7 @@
 
 #if ITK_VERSION_MAJOR >= 5
 #include <iostream>
+#include <vcl_legacy_aliases.h>
 #include <vcl_compiler.h>
 #else
 #include <vcl_iostream.h>

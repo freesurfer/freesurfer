@@ -255,13 +255,13 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
     }
 
     if (!rigid)
-      diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
+      diff = MyMatrix::getFrobeniusDiff(fmd.first.as_matrix(), fmdtmp.as_matrix());
     else
-      diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
+      diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first.as_matrix(), fmdtmp.as_matrix()));
     if (verbose > 1)
       std::cout << "     -- old diff. to prev. transform: " << diff
           << std::endl;
-    diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first, fmdtmp, 100));
+    diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first.as_matrix(), fmdtmp.as_matrix(), 100));
     std::ostringstream star;
     if (diff <= epsit)
       star << "  <= " << epsit << "   :-)";
@@ -355,13 +355,13 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
   // adjust half way maps to new midpoint based on final transform
   if (verbose > 1)
     std::cout << "     -- adjusting half-way maps " << std::endl;
-  vnl_matrix_fixed<double, 4, 4> ch = MyMatrix::MatrixSqrt(fmd.first);
+  vnl_matrix_fixed<double, 4, 4> ch = MyMatrix::MatrixSqrt(fmd.first.as_matrix());
   // do not just assume c = ch*ch, rather c = ch2 * ch
   // for transforming target we need ch2^-1 = ch * c^-1
   vnl_matrix_fixed<double, 4, 4> ci = vnl_inverse(fmd.first);
   vnl_matrix_fixed<double, 4, 4> chi = ch * ci;
-  mov2weights = ch;
-  dst2weights = chi;
+  mov2weights = ch.as_matrix();
+  dst2weights = chi.as_matrix();
 
   //vnl_matlab_print(vcl_cerr,mov2weights,"mov2hw",vnl_matlab_print_format_long);std::cerr << std::endl;
   //vnl_matlab_print(vcl_cerr,dst2weights,"dst2hw",vnl_matlab_print_format_long);std::cerr << std::endl;
@@ -369,7 +369,7 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
   MRIfree(&mri_Twarp);
   MRIfree(&mri_Swarp);
 
-  Mfinal = fmd.first;
+  Mfinal = fmd.first.as_matrix();
 
 }
 

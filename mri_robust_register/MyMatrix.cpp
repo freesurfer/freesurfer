@@ -1586,7 +1586,7 @@ vnl_matrix<double> MyMatrix::MatrixSqrtAffine(const vnl_matrix<double>& m)
       R[rr][cc] = m[rr][cc];
     }
 
-  vnl_matrix_fixed<double, 3, 3> sqrtR(MatrixSqrt(R));
+  vnl_matrix_fixed<double, 3, 3> sqrtR(MatrixSqrt(R.as_matrix()));
 
   vnl_vector_fixed<double, 3> T;
   T[0] = m[0][3];
@@ -1869,7 +1869,7 @@ vnl_matrix_fixed < double, 3, 3> MyMatrix::RotationMean(const std::vector < vnl_
   meanr = (1.0 / vm.size()) * meanr;
   vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
   vnl_matrix<double> PolR(3, 3), PolS(3, 3);
-  MyMatrix::PolarDecomposition(meanr, PolR, PolS);
+  MyMatrix::PolarDecomposition(meanr.as_matrix(), PolR, PolS);
   meanr = PolR;
     
   return meanr;
@@ -1906,9 +1906,9 @@ vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix_fix
 {
   assert(vm.size() > 0);
   if (n==-1) n=(int)vm.size();
-  vnl_matrix < double > geo(MatrixLog(vm[0]));
+  vnl_matrix < double > geo(MatrixLog(vm[0].as_matrix()));
   for (unsigned int i = 1;i<vm.size();i++)
-    geo = geo + MatrixLog(vm[i]);
+    geo = geo + MatrixLog(vm[i].as_matrix());
   geo = MatrixExp((1.0/n) * geo);
   return geo;
 }
@@ -2064,7 +2064,11 @@ double MyMatrix::RigidTransDistSq(const vnl_matrix<double>&a,
     drigid = a;
   else
   {
+#if ITK_VERSION_MAJOR >= 5   
+    drigid = vnl_matrix_inverse<double>(a).as_matrix();
+#else
     drigid = vnl_matrix_inverse<double>(a);
+#endif    
     drigid = b * drigid;
   }
 
@@ -2377,7 +2381,7 @@ LTA* MyMatrix::VOXmatrix2LTA(const vnl_matrix_fixed<double, 4, 4>& m, MRI* src,
     MRI* dst)
 {
   LTA* ret = LTAalloc(1, src);
-  ret->xforms[0].m_L = convertVNL2MATRIX(m, ret->xforms[0].m_L);
+  ret->xforms[0].m_L = convertVNL2MATRIX(m.as_matrix(), ret->xforms[0].m_L);
 //  ret->xforms[0].m_L = MRIvoxelXformToRasXform (src,dst,ret->xforms[0].m_L,ret->xforms[0].m_L) ;
 //  ret->type = LINEAR_RAS_TO_RAS ;
   ret->type = LINEAR_VOX_TO_VOX;
@@ -2391,7 +2395,7 @@ LTA* MyMatrix::RASmatrix2LTA(const vnl_matrix_fixed<double, 4, 4>& m, MRI* src,
     MRI* dst)
 {
   LTA* ret = LTAalloc(1, src);
-  ret->xforms[0].m_L = convertVNL2MATRIX(m, ret->xforms[0].m_L);
+  ret->xforms[0].m_L = convertVNL2MATRIX(m.as_matrix(), ret->xforms[0].m_L);
   ret->type = LINEAR_RAS_TO_RAS;
   getVolGeom(src, &ret->xforms[0].src);
   getVolGeom(dst, &ret->xforms[0].dst);

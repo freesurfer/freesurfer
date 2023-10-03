@@ -640,7 +640,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
 
       R.setSubsampleSize(subsamp);
       R.setIscaleInit(intensities[i]);
-      R.setMinitOrig(transforms[i]); // as the transforms are in the original space
+      R.setMinitOrig(transforms[i].as_matrix()); // as the transforms are in the original space
       if (satit)
         R.findSaturation();
 
@@ -917,7 +917,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
     R.findSaturation();
 
   //!!!! what if iscale init was passed? needs fixing, if this is used at all?
-  R.setMinitOrig(minit);
+  R.setMinitOrig(minit.as_matrix());
   if (nomulti)
   {
     R.computeIterativeRegistration(iterate, epsit); 
@@ -943,12 +943,12 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
   {
     // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
     // (use geometry of destination space for half-way) WIll NOT WORK FOR nonistorpic due to internal resampling
-    m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first);
+    m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first.as_matrix());
     m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform(mri_mov[0], mri_mov[1],
         m2hwlta->xforms[0].m_L, m2hwlta->xforms[0].m_L);
     m2hwlta->type = LINEAR_RAS_TO_RAS;
 
-    d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second);
+    d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second.as_matrix());
     d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform(mri_mov[1], mri_mov[1],
         d2hwlta->xforms[0].m_L, d2hwlta->xforms[0].m_L);
     d2hwlta->type = LINEAR_RAS_TO_RAS;
@@ -956,10 +956,10 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
   else // vox to vox
   {
     // cout << "saving VOX2VOX..." << endl ;
-    m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first,
+    m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first.as_matrix(),
         m2hwlta->xforms[0].m_L);
     m2hwlta->type = LINEAR_VOX_TO_VOX;
-    d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second,
+    d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second.as_matrix(),
         m2hwlta->xforms[0].m_L);
     d2hwlta->type = LINEAR_VOX_TO_VOX;
   }
@@ -1160,7 +1160,7 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
   meanr = (1.0 / nin) * meanr;
   //vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
   vnl_matrix<double> PolR(3, 3), PolS(3, 3);
-  MyMatrix::PolarDecomposition(meanr, PolR, PolS);
+  MyMatrix::PolarDecomposition(meanr.as_matrix(), PolR, PolS);
   meanr = PolR;
   //vnl_matlab_print(vcl_cout,meanr,"meanrfinal",vnl_matlab_print_format_long);std::cout << std::endl;
   
@@ -1543,7 +1543,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
     vnl_matrix<double> Rot, Shear;
     vnl_diag_matrix<double> Scale;
-    MyMatrix::Polar2Decomposition(meanr, Rot, Shear, Scale);
+    MyMatrix::Polar2Decomposition(meanr.as_matrix(), Rot, Shear, Scale);
     vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
     cout << endl;
     vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);

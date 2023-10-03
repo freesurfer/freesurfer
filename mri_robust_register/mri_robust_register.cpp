@@ -979,11 +979,11 @@ int main(int argc, char *argv[])
           // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
           // (use geometry of destination space for half-way)
           m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform(P.mri_mov,
-              mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.first),
+              mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.first.as_matrix()),
               m2hwlta->xforms[0].m_L);
           m2hwlta->type = LINEAR_RAS_TO_RAS;
           d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform(P.mri_dst,
-              mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.second),
+              mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.second.as_matrix()),
               d2hwlta->xforms[0].m_L);
           d2hwlta->type = LINEAR_RAS_TO_RAS;
         }
@@ -992,11 +992,11 @@ int main(int argc, char *argv[])
           // cout << "saving VOX2VOX..." << endl ;
           //m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first, m2hwlta->xforms[0].m_L) ;
           m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(
-              maps2weights.first, m2hwlta->xforms[0].m_L);
+              maps2weights.first.as_matrix(), m2hwlta->xforms[0].m_L);
           m2hwlta->type = LINEAR_VOX_TO_VOX;
           //d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second, d2hwlta->xforms[0].m_L) ;
           d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(
-              maps2weights.second, d2hwlta->xforms[0].m_L);
+              maps2weights.second.as_matrix(), d2hwlta->xforms[0].m_L);
           d2hwlta->type = LINEAR_VOX_TO_VOX;
         }
         // add src and dst info (use mri_weights as target geometry in both cases)

@@ -55,6 +55,16 @@ public:
       a(1.0), b(0.0), c(0.0), d(0.0), normed(true)
   {}
 
+  //! Copy constructor
+  Quaternion(const Quaternion &vect)
+  {
+    a = vect.a;
+    b = vect.b;
+    c = vect.c;
+    d = vect.d;
+    normed = vect.normed;
+  }
+
   //! Returns the real part of the quaternion
   inline double getReal() const
   {

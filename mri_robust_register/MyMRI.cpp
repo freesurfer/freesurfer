@@ -507,7 +507,7 @@ MATRIX* MyMRI::MRIgetZslice(MRI * mri, int slice, int frame)
 MRI * MyMRI::MRIlinearTransform(MRI* mriS, MRI* mriT,
     const vnl_matrix_fixed<double, 4, 4>& m)
 {
-  MATRIX * mm = MyMatrix::convertVNL2MATRIX(m, NULL);
+  MATRIX * mm = MyMatrix::convertVNL2MATRIX(m.as_matrix(), NULL);
   mriT = ::MRIlinearTransform(mriS, mriT, mm);
   MatrixFree(&mm);
   return mriT;

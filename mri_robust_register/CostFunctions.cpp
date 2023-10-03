@@ -1396,7 +1396,7 @@ vnl_matrix_fixed<double, 3, 3> CostFunctions::orientation(MRI *i)
   cov[2][0] = cov[0][2];
 
   // compute Eigenvectors
-  vnl_symmetric_eigensystem<double> SymEig(cov);
+  vnl_symmetric_eigensystem<double> SymEig(cov.as_matrix());
   // sort:
   unsigned int smallest = 0;
   unsigned int largest = 0;

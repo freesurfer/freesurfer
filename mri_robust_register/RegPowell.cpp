@@ -107,7 +107,7 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
   if (tocurrent->symmetry)
   {
     // compute new half way maps and here assign to mti (hwspace to target)
-    mti = MyMatrix::MatrixSqrt(Md.first);
+    mti = MyMatrix::MatrixSqrt(Md.first.as_matrix());
     //vnl_matlab_print(vcl_cerr,mti,"Mti",vnl_matlab_print_format_long);
     // do not just assume m = mti*mti, rather m = mti * mh2
     // for sampling source we need mh2^-1 = m^-1 * mti
@@ -399,7 +399,7 @@ void RegPowell::computeIterativeRegistrationFull(int nmax, double epsit, MRI * m
     if (verbose > 1)
       cout << "     initialize transform M ... " << endl;
   }
-  vnl_matrix<double> initialM = fmd.first;
+  vnl_matrix<double> initialM = fmd.first.as_matrix();
 
   // ISCALECHANGE:
   // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
@@ -426,7 +426,7 @@ void RegPowell::computeIterativeRegistrationFull(int nmax, double epsit, MRI * m
   {
     // here  symmetrically warp both images SQRT(M)
     // this keeps the problem symmetric
-    mh1 = MyMatrix::MatrixSqrt(fmd.first);
+    mh1 = MyMatrix::MatrixSqrt(fmd.first.as_matrix());
     // do not just assume m = mh*mh, rather m = mh2 * mh
     // for transforming target we need mh2^-1 = mh * m^-1
     vnl_matrix_fixed<double, 4, 4> mhi = mh1 * vnl_inverse(fmd.first);
@@ -573,18 +573,18 @@ void RegPowell::computeIterativeRegistrationFull(int nmax, double epsit, MRI * m
     // adjust half way maps to new midpoint based on final transform
     if (verbose > 1)
       std::cout << "     -- adjusting half-way maps " << std::endl;
-    vnl_matrix_fixed<double, 4, 4> ch = MyMatrix::MatrixSqrt(fmd.first);
+    vnl_matrix_fixed<double, 4, 4> ch = MyMatrix::MatrixSqrt(fmd.first.as_matrix());
     // do not just assume c = ch*ch, rather c = ch2 * ch
     // for transforming target we need ch2^-1 = ch * c^-1
     vnl_matrix_fixed<double, 4, 4> ci = vnl_inverse(fmd.first);
     vnl_matrix_fixed<double, 4, 4> chi = ch * ci;
-    mov2weights = ch;
-    dst2weights = chi;
+    mov2weights = ch.as_matrix();
+    dst2weights = chi.as_matrix();
   }
   else
   {
     fmd.first = fmd.first * initialM;
-    mov2weights = fmd.first;
+    mov2weights = fmd.first.as_matrix();
     dst2weights.set_identity();
   }
   //vnl_matlab_print(vcl_cerr,fmd.first,"M",vnl_matlab_print_format_long); cout << endl;   
@@ -600,7 +600,7 @@ void RegPowell::computeIterativeRegistrationFull(int nmax, double epsit, MRI * m
   }
 
 
-  Mfinal = fmd.first;
+  Mfinal = fmd.first.as_matrix();
 
   cout << endl << " DONE " << endl;
 

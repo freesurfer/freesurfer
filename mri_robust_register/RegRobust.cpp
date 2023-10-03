@@ -127,7 +127,7 @@ void RegRobust::findSatMultiRes(const vnl_matrix<double> &mi, double scaleinit)
     int vv = verbose;
     if (verbose == 1)
       verbose = 0;
-    computeIterativeRegistrationFull(n, 0.05, gpS[r], gpT[r], md.first, md.second);
+    computeIterativeRegistrationFull(n, 0.05, gpS[r], gpT[r], md.first.as_matrix(), md.second);
     cmd.first = Mfinal;
     cmd.second = iscalefinal;
     verbose = vv;
@@ -345,7 +345,7 @@ double RegRobust::findSaturation()
       cout << "     -- Iteration: " << counter << "  trying sat: " << sat
           << endl;
     }
-    findSatMultiRes(md.first, md.second);
+    findSatMultiRes(md.first.as_matrix(), md.second);
     if (wcheck > wlimit)
     {
       satmin = sat;
