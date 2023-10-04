@@ -52,7 +52,7 @@ class Tracer
   static bool DoNotExitOnError;
   
  private:
-  typedef ImageSOType::OutputVectorType VectorType;
+  typedef ImageSOType::CovariantVectorType VectorType;
   typedef std::pair<VectorType,VectorType> FrameType;
 
   // initial region contour - used to solve for profiles
