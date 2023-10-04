@@ -114,6 +114,9 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADFILE, "%s: volume fraction input has fewer frames (%d) than needed (%d)\n", mri_volume_fractions->nframes, nlayers+1);
   if (FS_names && subject_name == NULL)
     ErrorExit(ERROR_UNSUPPORTED, "%s: if specifying FS_names must use -s <subject>", Progname) ;
+
+  // initialize MRI_SURFACE *mris[]
+  memset(mris, 0, sizeof(MRI_SURFACE *)*nlayers);
   for (i = 0 ; i <= nlayers ; i++)
   {
     if (FS_names && (i == 0 || i == nlayers))

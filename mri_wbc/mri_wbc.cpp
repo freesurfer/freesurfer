@@ -87,7 +87,7 @@ typedef struct {
   WBCSYNTH *wbcsynth;
 } WBC;
 
-MRI *WholeBrainCon(WBC *wbc);
+MRI *WholeBrainCon(WBC *wbc, int nframes=1);
 int WBCfinish(WBC *wbc);
 int WBCprep(WBC *wbc);
 int WBCnframes(WBC *wbc);
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
   if(err) exit(1);
 
   WBCprep(wbc);
-  WholeBrainCon(wbc);
+  WholeBrainCon(wbc, wbc->f->nframes);
   WBCfinish(wbc);
 
   if(wbc->DoMat){
@@ -629,7 +629,7 @@ static void dump_options(FILE *fp) {
 }
 
 /*******************************************************************************/
-MRI *WholeBrainCon(WBC *wbc)
+MRI *WholeBrainCon(WBC *wbc, int nframes)
 {
   MRI **conth, **conSth=NULL, **conLth=NULL, **rhomean;
   int nthreads,nthrho;
@@ -645,8 +645,8 @@ MRI *WholeBrainCon(WBC *wbc)
   pf = (double **) calloc(sizeof(double *),wbc->ntot);
   for(k1 = 0; k1 < wbc->ntot; k1++){
     int t;
-    pf[k1] = (double *) calloc(sizeof(double),wbc->f->nframes);
-    for(t=0; t < wbc->f->nframes; t++) 
+    pf[k1] = (double *) calloc(sizeof(double),nframes);
+    for(t=0; t < nframes; t++) 
       pf[k1][t] = MRIgetVoxVal(wbc->fnorm,k1,0,0,t);    
   }
 
@@ -756,7 +756,7 @@ MRI *WholeBrainCon(WBC *wbc)
 	rho = 0;
 	pf1 = pf[k1];
 	pf2 = pf[k2];
-	for(t=0; t < wbc->f->nframes; t++){
+	for(t=0; t < nframes; t++){
 	  rho += (*pf1) * (*pf2);
 	  pf1++;
 	  pf2++;
