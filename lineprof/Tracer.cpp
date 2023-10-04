@@ -254,7 +254,11 @@ Tracer::StepGradient(const PointType& pt,
   for(unsigned int ui=0; ui<Dimension; ++ui)
     returnedPoint[ui] = pt[ui] + gradient[ui];
 
+#if ITK_VERSION_MAJOR >= 5  
+  bool inside = mask->IsInsideInWorldSpace( returnedPoint );
+#else  
   bool inside = mask->IsInside( returnedPoint );
+#endif  
   // this will connect all lines to the boundary but
   // may cause intersection
   if (! inside)
@@ -296,7 +300,11 @@ Tracer::StepTangent(const PointType& pt,
   for(unsigned int ui=0; ui<Dimension; ++ui)
     returnedPoint[ui] = pt[ui] + tangent[ui];
 
+#if ITK_VERSION_MAJOR >= 5  
+  if (!mask->IsInsideInWorldSpace(returnedPoint)) return false;
+#else
   if (!mask->IsInside(returnedPoint)) return false;
+#endif  
 
   // corect the trajectory - use the gradient and a first order aproximation
   double dbuf;
@@ -309,7 +317,11 @@ Tracer::StepTangent(const PointType& pt,
   this->ValueAt(ptBuf,dbuf);
   if ( std::abs(dbuf - dval) < dif ) returnedPoint = ptBuf;
 
+#if ITK_VERSION_MAJOR >= 5  
+  return mask->IsInsideInWorldSpace( returnedPoint );
+#else  
   return mask->IsInside( returnedPoint );
+#endif  
 }
 
 Tracer::PointType
