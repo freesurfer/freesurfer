@@ -16,13 +16,20 @@ else()
         TYPE programs
         DESTINATION bin
     )
-endif()
 
-file(GLOB ATLAS_FILES
-    atlases/"*")
-
-install_symlinks(
-    ${ATLAS_FILES}
-    TYPE files
-    DESTINATION  average/ThalamicNuclei/atlas_DTI
+    install_symlinks(
+        atlases/ASEGsharedGMMparameters.txt
+        atlases/AtlasDump.mgz
+        atlases/outputLabelToImage_medialPuM.txt
+        atlases/outputSmoothingSharedParameters.txt
+        atlases/sharedGMMparameters.txt
+        atlases/sharedWMMparameters_DSWbeta.txt
+        atlases/sharedWMMparameters_LogFrob.txt
+        atlases/sharedWMMparameters_Wishart.txt
+        atlases/SYNTHSEGsharedGMMparameters.txt
+        atlases/tractAtlasCorrectedCompressionLUT.txt
+        atlases/tractAtlasCorrected.txt.gz
+        TYPE files
+        DESTINATION  average/ThalamicNuclei/atlas_DTI
 )
+endif()
