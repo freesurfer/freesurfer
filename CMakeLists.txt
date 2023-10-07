@@ -840,7 +840,7 @@ if(NOT MINIMAL)
     template
     test_makevol
     ThalamicNuclei
-    ThalamicNuclei_DTI
+    ThalamicNucleiDTI
     trc
     tridec
     ventfix
