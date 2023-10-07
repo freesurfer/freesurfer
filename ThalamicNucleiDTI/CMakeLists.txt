@@ -19,7 +19,7 @@ else()
 endif()
 
 file(GLOB ATLAS_FILES
-    "*")
+    atlases/"*")
 
 install_symlinks(
     ${ATLAS_FILES}
