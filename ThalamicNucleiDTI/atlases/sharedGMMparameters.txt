@@ -1,0 +1,18 @@
+#  The format is: mergedName numberOfComponents searchStrings
+
+Unknown 1  Unknown 
+CerebralWM 1 Cerebral-White-Matter ThalNuc-R Tract 
+CerebralGM 1 Cerebral-Cortex Hippocampus Amygdala 
+CerebelumGM 1 Cerebellum-Cortex
+CerebelumWM 1 Cerebellum-White-Matter
+BrainStem 1 Brain-Stem 
+GlobalCSF_clean 1 Ventricle Lat-Vent
+GlobalCSF_messy 1 CSF choroid-plexus
+Putamen 1 Putamen
+Pallidum 1 Pallidum
+Accumbens 1 Accumbens
+Caudate 1 Caudate 
+VentralDC 1 VentralDC
+LateralThal 1 ThalNuc-LGN ThalNuc-MGN ThalNuc-H ThalNuc-VPI ThalNuc-MV(Re) ThalNuc-Pf ThalNuc-CM ThalNuc-LP ThalNuc-VLa ThalNuc-VPL ThalNuc-VLp ThalNuc-VM ThalNuc-CeM ThalNuc-Pc ThalNuc-MDv ThalNuc-Pv ThalNuc-CL ThalNuc-VA ThalNuc-VPM ThalNuc-AV ThalNuc-VAmc ThalNuc-Pt ThalNuc-AD ThalNuc-LD 
+MedialThal 1 ThalNuc-PuA ThalNuc-PuI ThalNuc-PuL ThalNuc-PuMl ThalNuc-MDl ThalNuc-MDm 
+CornerThal 1 ThalNuc-PuMm ThalNuc-L-Sg 
