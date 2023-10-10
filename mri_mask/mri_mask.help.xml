@@ -50,6 +50,8 @@
       <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad[X] voxels in each direction. npad should be at least 1 to avoid clipping</explanation>
       <argument>-bbmm npad1a npad1b npad2a npad2b npad3a npad3b</argument>
       <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad[X] voxels in each direction. npad should be at least 1 to avoid clipping</explanation>
+      <argument>-bbeq npad</argument>
+      <explanation>Create bounding box around mask such that ncols=nrows and nslices is odd (good for STIR)</explanation>
       <argument>-abs</argument>
       <explanation>take abs() before applying threshold</explanation>
       <argument>-invert, -no-invert</argument>
