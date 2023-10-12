@@ -3526,6 +3526,22 @@ MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g)
   return (g);
 }
 
+/*!
+  \fn MATRIX *GaussianMatrix2(int len, float std1, float std2, float w1, int norm, MATRIX *G)
+  \brief Mixture of two Gaussians with weights w1 and (1-w1)
+*/
+MATRIX *GaussianMatrix2(int len, float std1, float std2, float w1, int norm, MATRIX *G)
+{
+  MATRIX *G1 = GaussianMatrix(len,std1,norm,NULL);
+  MatrixScalarMul(G1, w1, G1);
+  MATRIX *G2 = GaussianMatrix(len,std2,norm,NULL);
+  MatrixScalarMul(G2, 1-w1, G2);
+  G = MatrixAdd(G1,G2,G);
+  MatrixFree(&G1);
+  MatrixFree(&G2);
+  return(G);
+}
+
 /*---------------------------------------------------------------
   GaussianMatrix() - creates a gaussian convolution matrix. Each row
   is a gaussian waveform with centered at the diagonal with standard

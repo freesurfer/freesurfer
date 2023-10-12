@@ -316,6 +316,7 @@ double VectorStdDev(MATRIX *v, double *pMean);
 double VectorRange(MATRIX *v, double *pVmin, double *pVmax);
 
 MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G);
+MATRIX *GaussianMatrix2(int len, float std1, float std2, float w1, int norm, MATRIX *G);
 MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g);
 MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
