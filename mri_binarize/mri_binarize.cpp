@@ -270,6 +270,7 @@ int nReplace = 0, SrcReplace[1000], TrgReplace[1000],
     nReplaceNN = 0, SrcReplaceNN[1000], ReplaceWindowNN[1000];
 char *SurfFile=NULL;
 int nsmoothsurf=0;
+COLOR_TABLE *cmdlinectab=NULL;
 
 int noverbose = 0;
 int DoBB = 0, nPadBB=0;
@@ -668,7 +669,9 @@ int main(int argc, char *argv[]) {
   }
 
   // if we didn't binarize, copy any embedded color table from the input
-  if (replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
+  if(replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
+  // Or copy the ctab passed on the command line
+  if(cmdlinectab) OutVol->ct = CTABdeepCopy(cmdlinectab);
 
   if(RemoveIslands){
     printf("Removing Volume Islands\n");fflush(stdout);
@@ -1028,6 +1031,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = nth;
       DoMatch = 1;
     } 
+    else if (!strcasecmp(option, "--ctab")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdlinectab = CTABreadASCII(pargv[0]);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--match-ctab")) {
       if(nargc < 1) CMDargNErr(option,1);
       COLOR_TABLE *ctab = CTABreadASCII(pargv[0]);
