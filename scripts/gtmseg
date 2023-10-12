@@ -391,7 +391,10 @@ if($#wmannot) then
   end
 endif
 
-if($UseSamseg) set headseg = apas+head.samseg.mgz # created by xcerebralseg
+if($UseSamseg) then
+  set headseg = apas+head.samseg.mgz # created by xcerebralseg
+  set outvol = gtmseg.samseg.mgz
+endif
 
 if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
   # Headseg is not there
