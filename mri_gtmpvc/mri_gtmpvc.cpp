@@ -1370,6 +1370,8 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if(!strcasecmp(option, "--opt-gm")) gtmopt->optmask = 1;
     else if(!strcasecmp(option, "--opt-brain")) gtmopt->optmask = 2;
+    else if(!strcasecmp(option, "--opt-l1-gm")) gtmopt->optmask = 3;
+    else if(!strcasecmp(option, "--opt-l1-brain")) gtmopt->optmask = 4;
     else if(!strcasecmp(option, "--opt-beta")){
       MRI *tmp = MRIread(pargv[0]);
       if(tmp==NULL) exit(1);
@@ -2120,6 +2122,8 @@ double GTMcostPSF(GTM *gtm)
   }
   if(gtmopt->optmask == 1) return(gtm->rvargm->rptr[1][1]);
   if(gtmopt->optmask == 2) return(gtm->rvarbrain->rptr[1][1]);
+  if(gtmopt->optmask == 3) return(gtm->rL1gm->rptr[1][1]);
+  if(gtmopt->optmask == 4) return(gtm->rL1brain->rptr[1][1]);
   return(gtm->rvarUnscaled->rptr[1][1]);
 }
 /*--------------------------------------------------------------------------*/

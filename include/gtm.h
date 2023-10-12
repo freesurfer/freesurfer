@@ -117,7 +117,8 @@ typedef struct
   // GLM stuff for GTM
   MATRIX *X,*X0;
   MATRIX *y, *XtX, *iXtX, *Xty, *beta, *res, *yhat,*betavar;
-  MATRIX *rvar,*rvargm,*rvarbrain,*rvarUnscaled; // residual variance, all vox and only GM
+  MATRIX *rvar,*rvargm,*rvarbrain,*rvarUnscaled; // residual variance: all vox and only GM
+  MATRIX *rL1,*rL1gm,*rL1brain,*rL1Unscaled; // residual L1 (mean(abs())): all vox and only GM
   MATRIX *som; // spillover matrix
   int dof;
   double XtXcond;

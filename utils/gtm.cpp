@@ -749,7 +749,7 @@ int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax)
     vrf = (double)1.0 / gtm->iXtX->rptr[n + 1][n + 1];
     gtm->vrf->rptr[n + 1][1] = vrf;
     gtm->nvox->rptr[n + 1][1] = nvox;
-    for (f = 0; f < gtm->beta->cols; f++) gtm->betavar->rptr[n + 1][f + 1] = gtm->rvar->rptr[1][f + 1] / vrf;
+    for (f = 0; f < gtm->beta->cols; f++) gtm->betavar->rptr[n+1][f+1] = gtm->rvar->rptr[1][f+1]/vrf;
   }
 
   return (0);
@@ -1016,16 +1016,21 @@ int GTMsolve(GTM *gtm)
   gtm->yhat = MatrixMultiplyD(gtm->X, gtm->beta, gtm->yhat);
   gtm->res = MatrixSubtract(gtm->y, gtm->yhat, gtm->res);
   gtm->dof = gtm->X->rows - gtm->X->cols;
-  if (gtm->rvar == NULL) gtm->rvar = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
-  if (gtm->rvarUnscaled == NULL) gtm->rvarUnscaled = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
-  for (f = 0; f < gtm->res->cols; f++) {
+  if(gtm->rvar == NULL) gtm->rvar = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+  if(gtm->rvarUnscaled == NULL) gtm->rvarUnscaled = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+  if(gtm->rL1 == NULL) gtm->rL1 = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+  if(gtm->rL1Unscaled == NULL) gtm->rL1Unscaled = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+  for (f = 0; f < gtm->res->cols; f++){
     sum = 0;
-    for (n = 0; n < gtm->res->rows; n++) sum += ((double)gtm->res->rptr[n + 1][f + 1] * gtm->res->rptr[n + 1][f + 1]);
-    gtm->rvar->rptr[1][f + 1] = sum / gtm->dof;
-    if (gtm->rescale)
-      gtm->rvarUnscaled->rptr[1][f + 1] = gtm->rvar->rptr[1][f + 1] / (gtm->scale * gtm->scale);
-    else
-      gtm->rvarUnscaled->rptr[1][f + 1] = gtm->rvar->rptr[1][f + 1];
+    for (n = 0; n < gtm->res->rows; n++) sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
+    gtm->rvar->rptr[1][f+1] = sum/gtm->dof;
+    if(gtm->rescale) gtm->rvarUnscaled->rptr[1][f+1] = gtm->rvar->rptr[1][f+1]/(gtm->scale*gtm->scale);
+    else             gtm->rvarUnscaled->rptr[1][f+1] = gtm->rvar->rptr[1][f+1];
+    sum = 0;
+    for (n = 0; n < gtm->res->rows; n++) sum += fabs((double)gtm->res->rptr[n+1][f+1]);
+    gtm->rL1->rptr[1][f+1] = sum/gtm->dof;
+    if(gtm->rescale) gtm->rL1Unscaled->rptr[1][f+1] = gtm->rL1->rptr[1][f+1]/(gtm->scale);
+    else             gtm->rL1Unscaled->rptr[1][f+1] = gtm->rL1->rptr[1][f+1];
   }
   gtm->kurtosis = MatrixKurtosis(gtm->res, gtm->kurtosis);
   gtm->skew = MatrixSkew(gtm->res, gtm->skew);
@@ -2560,17 +2565,22 @@ int GTMrvarGM(GTM *gtm)
 {
   COLOR_TABLE *ct;
   int f, s, c, r, n, nhits, nhitsb, segid, tt;
-  double sum, sumb;
+  double sum, sumb, sumL1, sumL1b;
   FILE *fp;
   char tmpstr[2000];
 
   if (gtm->rvargm == NULL) gtm->rvargm = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
   if (gtm->rvarbrain == NULL) gtm->rvarbrain = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+  if (gtm->rL1gm == NULL) gtm->rL1gm = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+  if (gtm->rL1brain == NULL) gtm->rL1brain = MatrixAlloc(1, gtm->res->cols, MATRIX_REAL);
+
   ct = gtm->ctGTMSeg;
 
   for (f = 0; f < gtm->res->cols; f++) {
     sum = 0;
     sumb = 0;
+    sumL1 = 0;
+    sumL1b = 0;
     n = -1;
     nhits = 0;
     nhitsb = 0;
@@ -2583,7 +2593,7 @@ int GTMrvarGM(GTM *gtm)
           segid = MRIgetVoxVal(gtm->gtmseg, c, r, s, 0);
           // check if not in list, can happen if PET space>AnatSpace and 0
           // not defined in anatseg
-          if (ct->entries[segid] == NULL) {
+          if(ct->entries[segid] == NULL) {
             printf("WARNING: GTMrvarGM(): segid=%d (%d,%d,%d) does not exist in ctab\n", segid, c, r, s);
             // CTABwriteFileASCIItt(gtm->ctGTMSeg,"GTMrvarGM.ctab");
             // MRIwrite(gtm->gtmseg,"GTMrvarGM.gtmseg.mgz");
@@ -2594,43 +2604,59 @@ int GTMrvarGM(GTM *gtm)
           if (tt == 1 || tt == 2) {
             // GM (hardcoded)
             sum += ((double)gtm->res->rptr[n + 1][f + 1] * gtm->res->rptr[n + 1][f + 1]);
+            sumL1 += fabs((double)gtm->res->rptr[n+1][f+1]);
             nhits++;
           }
           if (tt == 1 || tt == 2 || tt == 3) {
             // GM  or WM (hardcoded)
             sumb += ((double)gtm->res->rptr[n + 1][f + 1] * gtm->res->rptr[n + 1][f + 1]);
+            sumL1b += fabs((double)gtm->res->rptr[n+1][f+1]);
             nhitsb++;
           }
         }
       }
     }
-    gtm->rvargm->rptr[1][f + 1] = sum / nhits;
-    gtm->rvarbrain->rptr[1][f + 1] = sumb / nhitsb;
-    if (f == 0 && !gtm->Optimizing)
-      printf("rvargm %2d %6.4f %6.4f\n", f, gtm->rvargm->rptr[1][f + 1], gtm->rvarbrain->rptr[1][f + 1]);
-  }
+    gtm->rvargm->rptr[1][f+1] = sum/nhits;
+    gtm->rvarbrain->rptr[1][f+1] = sumb/nhitsb;
+    gtm->rL1gm->rptr[1][f+1] = sumL1/nhits;
+    gtm->rL1brain->rptr[1][f+1] = sumL1b/nhitsb;
+    if(f == 0 && !gtm->Optimizing){
+      printf("rvargm %2d %6.4f %6.4f\n", f, gtm->rvargm->rptr[1][f+1], gtm->rvarbrain->rptr[1][f+1]);
+      printf("rL1gm %2d %6.4f %6.4f\n", f, gtm->rL1gm->rptr[1][f+1], gtm->rL1brain->rptr[1][f+1]);
+    }
+  } // end for f
 
   if (!gtm->Optimizing) {
-    sprintf(tmpstr, "%s/rvar.gm.dat", gtm->AuxDir);
-    fp = fopen(tmpstr, "w");
+    sprintf(tmpstr, "%s/rvar.gm.dat", gtm->AuxDir);    fp = fopen(tmpstr, "w");
     for (f = 0; f < gtm->res->cols; f++) fprintf(fp, "%30.20f\n", gtm->rvargm->rptr[1][f + 1]);
     fclose(fp);
-    sprintf(tmpstr, "%s/rvar.brain.dat", gtm->AuxDir);
-    fp = fopen(tmpstr, "w");
+    sprintf(tmpstr, "%s/rvar.brain.dat", gtm->AuxDir);    fp = fopen(tmpstr, "w");
     for (f = 0; f < gtm->res->cols; f++) fprintf(fp, "%30.20f\n", gtm->rvarbrain->rptr[1][f + 1]);
+    fclose(fp);
+    sprintf(tmpstr, "%s/rL1.gm.dat", gtm->AuxDir);    fp = fopen(tmpstr, "w");
+    for (f = 0; f < gtm->res->cols; f++) fprintf(fp, "%30.20f\n", gtm->rL1gm->rptr[1][f + 1]);
+    fclose(fp);
+    sprintf(tmpstr, "%s/rL1.brain.dat", gtm->AuxDir);    fp = fopen(tmpstr, "w");
+    for (f = 0; f < gtm->res->cols; f++) fprintf(fp, "%30.20f\n", gtm->rL1brain->rptr[1][f + 1]);
     fclose(fp);
   }
 
   if (gtm->rescale) {
-    sprintf(tmpstr, "%s/rvar.gm.unscaled.dat", gtm->AuxDir);
-    fp = fopen(tmpstr, "w");
+    sprintf(tmpstr, "%s/rvar.gm.unscaled.dat", gtm->AuxDir); fp = fopen(tmpstr, "w");
     for (f = 0; f < gtm->res->cols; f++)
       fprintf(fp, "%30.20f\n", gtm->rvargm->rptr[1][f + 1] / (gtm->scale * gtm->scale));
     fclose(fp);
-    sprintf(tmpstr, "%s/rvar.brain.unscaled.dat", gtm->AuxDir);
-    fp = fopen(tmpstr, "w");
+    sprintf(tmpstr, "%s/rvar.brain.unscaled.dat", gtm->AuxDir); fp = fopen(tmpstr, "w");
     for (f = 0; f < gtm->res->cols; f++)
       fprintf(fp, "%30.20f\n", gtm->rvarbrain->rptr[1][f + 1] / (gtm->scale * gtm->scale));
+    fclose(fp);
+    sprintf(tmpstr, "%s/rL1.gm.unscaled.dat", gtm->AuxDir); fp = fopen(tmpstr, "w");
+    for (f = 0; f < gtm->res->cols; f++)
+      fprintf(fp, "%30.20f\n", gtm->rL1gm->rptr[1][f+1]/gtm->scale);
+    fclose(fp);
+    sprintf(tmpstr, "%s/rL1.brain.unscaled.dat", gtm->AuxDir); fp = fopen(tmpstr, "w");
+    for (f = 0; f < gtm->res->cols; f++)
+      fprintf(fp, "%30.20f\n", gtm->rL1brain->rptr[1][f+1]/gtm->scale);
     fclose(fp);
   }
 
@@ -2683,13 +2709,12 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
     return (NULL);
   }
 
-  if (gtm->lgtm->rvar == NULL) {
-    gtm->lgtm->rvar =
-        MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth, MRI_FLOAT, gtm->yvol->nframes);
+  if(gtm->lgtm->rvar == NULL) {
+    gtm->lgtm->rvar = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth, MRI_FLOAT, gtm->yvol->nframes);
     MRIcopyHeader(gtm->yvol, gtm->lgtm->rvar);
     MRIcopyPulseParameters(gtm->yvol, gtm->lgtm->rvar);
   }
-  if (MRIdimMismatch(gtm->yvol, gtm->lgtm->rvar, 0)) {
+  if(MRIdimMismatch(gtm->yvol, gtm->lgtm->rvar, 0)) {
     printf("ERROR: GTMlocal(): gtm->yvol-rvar dim mismatch\n");
     return (NULL);
   }
@@ -2799,7 +2824,7 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
         for (f = 0; f < gtm->yvol->nframes; f++) MRIsetVoxVal(gtm->lgtm->res, c, r, s, f, eres->rptr[1][f + 1]);
         for (f = 0; f < gtm->yvol->nframes; f++) {
           v = 0;
-          for (nth = 0; nth < nv; nth++) v += (eres->rptr[nth + 1][f + 1] * eres->rptr[nth + 1][f + 1]);
+          for (nth = 0; nth < nv; nth++) v += (eres->rptr[nth+1][f+1]*eres->rptr[nth+1][f+1]);
           v = v / (X->rows - X->cols);
           MRIsetVoxVal(gtm->lgtm->rvar, c, r, s, f, v);
         }
