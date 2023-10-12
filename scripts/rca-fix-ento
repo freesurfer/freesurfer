@@ -94,7 +94,8 @@ if($FixEntoWM) then
   set entowm = entowm.mgz  
   set ud = `UpdateNeeded $entowm $nu`
   if($ud || $ForceUpdate) then
-    set cmd = (mri_entowm_seg --i $nu --o $entowm --threads $threads)
+    # use --conform allows for high res and makes no difference when it is conformed
+    set cmd = (mri_entowm_seg --i $nu --o $entowm --conform --threads $threads)
     echo "cd `pwd`" | tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd | tee -a $LF
