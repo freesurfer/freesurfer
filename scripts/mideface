@@ -473,6 +473,8 @@ echo $cmd > $tmpdir/viewcmd
 
 #========================================================
 
+touch $donefile
+
 # Cleanup
 if($cleanup) rm -rf $tmpdir
 
@@ -498,6 +500,7 @@ exit 0
 ############--------------##################
 error_exit:
 echo "ERROR:"
+echo $cmd | tee $errfile
 
 exit 1;
 ###############################################
@@ -769,7 +772,7 @@ while( $#argv != 0 )
       if( $#argv < 1) goto arg1err;
       set XOptsFile = $argv[1]; shift;
       fsr-checkxopts $XOptsFile
-      if($status) goto error_exit;
+      if($status) exit 1
       set XOptsFile = `getfullpath $XOptsFile`
       breaksw
 
@@ -888,6 +891,12 @@ if($SamsegFast && $#SamsegJson) then
   exit 1
 endif
 if($SamsegFast) set SamsegJson = $atlasdir/samseg-options.json
+
+set errfile = $tmpdir/log/mideface.error
+rm -f $errfile
+
+set donefile = $tmpdir/log/mideface.done
+rm -f $donefile
 
 goto check_params_return;
 ############--------------##################
