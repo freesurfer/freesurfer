@@ -6511,7 +6511,8 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent)
   smoothing.  The standard deviation of the gaussian is std.  The mean
   is preserved (ie, sets the kernel integral to 1).  Can be done
   in-place. Handles multiple frames. See also MRIconvolveGaussian()
-  and MRImaskedGaussianSmooth().
+  and MRImaskedGaussianSmooth(). Has the capacity to do a 2-Gaussian
+  mixture model using external variables. 
   -------------------------------------------------------------------*/
 MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *targ)
 {
@@ -6519,6 +6520,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   MATRIX *G;
   MATRIX *vr = NULL, *vc = NULL, *vs = NULL;
   long double scale, vmf;
+  // mixture model 
+  extern float smni_cw1, smni_cstd2, smni_rw1, smni_rstd2, smni_sw1, smni_sstd2;
 
   if (targ == NULL) {
     targ = MRIallocSequence(src->width, src->height, src->depth, MRI_FLOAT, src->nframes);
@@ -6553,9 +6556,16 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
     printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
 #endif
 
+  if(smni_cw1 != 1 || smni_rw1 != 1 || smni_sw1 != 1){
+    printf("MRIgaussianSmoothNI(): G2: %g %g %g  %g %g %g\n",
+	   smni_cw1, smni_cstd2, smni_rw1, smni_rstd2, smni_sw1, smni_sstd2);
+  }
+  fflush(stdout);
+
   /* -----------------Smooth the columns -----------------------------*/
   if (cstd > 0) {
-    G = GaussianMatrix(src->width, cstd / src->xsize, 1, NULL);
+    if(smni_cw1 == 1) G = GaussianMatrix(src->width, cstd / src->xsize, 1, NULL);
+    else  G = GaussianMatrix2(src->width, cstd/src->xsize, smni_cstd2/src->xsize, smni_cw1, 1, NULL);
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
     #pragma omp parallel for
@@ -6594,7 +6604,9 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   /* -----------------Smooth the rows -----------------------------*/
   if (rstd > 0) {
     if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("Smoothing rows\n");
-    G = GaussianMatrix(src->height, (double)rstd / src->ysize, 1, NULL);
+    if(smni_rw1 == 1) G = GaussianMatrix(src->height, (double)rstd / src->ysize, 1, NULL);
+    else  G = GaussianMatrix2(src->height, rstd/src->ysize, smni_rstd2/src->ysize, smni_rw1, 1, NULL);
+
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
     #pragma omp parallel for
@@ -6637,7 +6649,10 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   /* Smooth the slices */
   if (sstd > 0) {
     // printf("Smoothing slices by std=%g\n",sstd);
-    G = GaussianMatrix(src->depth, sstd / src->zsize, 1, NULL);
+    
+    if(smni_sw1 == 1) G = GaussianMatrix(src->depth, sstd / src->zsize, 1, NULL);
+    else  G = GaussianMatrix2(src->depth, sstd/src->zsize, smni_sstd2/src->zsize, smni_sw1, 1, NULL);
+
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
     #pragma omp parallel for
@@ -7246,3 +7261,5 @@ MRI *MB2Dgrid(MRI *mri_template, int skip, MRI *outvol)
   }    // c
   return (outvol);
 }
+
+

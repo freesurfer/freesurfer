@@ -886,12 +886,62 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nframesmin);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--synth-frames")) {
+    } 
+    else if (!strcasecmp(option, "--synth-frames")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nframes);
       synth = 1;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--seed")) {
+    } 
+    else if (!strcasecmp(option, "--g2")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%f",&smni_cw1);
+      if(smni_cw1 > 1){
+	printf("ERROR: g2 w1 = %g > 1\n",smni_cw1);
+	exit(1);
+      }
+      sscanf(pargv[1],"%f",&smni_cstd2); // Actually fwhm
+      smni_cstd2 = smni_cstd2/sqrt(log(256.0));
+      smni_rw1 = smni_cw1;
+      smni_sw1 = smni_cw1;
+      smni_rstd2 = smni_cstd2;
+      smni_sstd2 = smni_cstd2;
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--g2c")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%f",&smni_cw1);
+      if(smni_cw1 > 1){
+	printf("ERROR: g2 w1 = %g > 1\n",smni_cw1);
+	exit(1);
+      }
+      sscanf(pargv[1],"%f",&smni_cstd2); // Actually fwhm
+      smni_cstd2 = smni_cstd2/sqrt(log(256.0));
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--g2r")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%f",&smni_rw1);
+      if(smni_rw1 > 1){
+	printf("ERROR: g2 w1 = %g > 1\n",smni_rw1);
+	exit(1);
+      }
+      sscanf(pargv[1],"%f",&smni_rstd2); // Actually fwhm
+      smni_rstd2 = smni_rstd2/sqrt(log(256.0));
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--g2s")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%f",&smni_sw1);
+      if(smni_sw1 > 1){
+	printf("ERROR: g2 w1 = %g > 1\n",smni_sw1);
+	exit(1);
+      }
+      sscanf(pargv[1],"%f",&smni_sstd2); // Actually fwhm
+      smni_sstd2 = smni_sstd2/sqrt(log(256.0));
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--seed")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       synth = 1;
@@ -1025,6 +1075,9 @@ static void print_usage(void) {
   printf("   --fwhm fwhm : smooth BY fwhm before measuring\n");
   printf("   --gstd gstd : same as --fwhm but specified as the stddev\n");
   printf("   --median width : perform median filtering instead of gaussian\n");
+  printf("   --fwhmc, --fwhmr, --fwhms to control each axis separately\n");
+  printf("   --g2 w1 fwhm2 : gaussian mixture (w1*g1 + (1-w1)*g2)\n");
+  printf("   --g2{crs} w1{crs} fwhm2{crs} : assign a mixture model to given axis\n");
   printf("\n");
   printf("   --to-fwhm tofwhm : smooth TO fwhm\n");
   printf("   --to-fwhm-tol tolerance : smooth to fwhm +/- tol (def .5mm)\n");
