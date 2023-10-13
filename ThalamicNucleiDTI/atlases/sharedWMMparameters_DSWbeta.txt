@@ -1,0 +1,41 @@
+#  The format is: mergedName numberOfComponents searchStrings
+
+Unknown 1  Unknown 
+CerebralWM 3 Cerebral-White-Matter
+CerebellumWM 3 Cerebellum-White-Matter
+CerebralGM 1 Cerebral-Cortex Hippocampus Amygdala Accumbens Caudate
+CerebellumGM 1 Cerebellum-Cortex
+GlobalCSF 1 choroid-plexus CSF Ventricle Lat-Vent CSF
+BS 2 Brain-Stem
+LeftVentDC 2 Left-VentralDC
+RightVentDC 2 Right-VentralDC
+LeftAnteriorThal 1 Left-ThalNuc-AV
+LeftLateralThal 1 Left-ThalNuc-LD Left-ThalNuc-LP
+LeftVentralThal 1 Left-ThalNuc-VA' Left-ThalNuc-VAmc Left-ThalNuc-VLa Left-ThalNuc-VLp Left-ThalNuc-VM
+LeftVPLThal 1 Left-ThalNuc-VPL
+LeftIntrLmnrPostThal 1 Left-ThalNuc-CM
+LeftIntrLmnrThal 1 Left-ThalNuc-CeM Left-ThalNuc-Pc Left-ThalNuc-Pf Left-ThalNuc-Pt Left-ThalNuc-MV(Re) 
+LeftMedialThal 1 Left-ThalNuc-MDm Left-ThalNuc-MDl Left-ThalNuc-CL  
+LeftLateralGenThal 1 Left-ThalNuc-LGN  
+LeftMedialGenThal 1 Left-ThalNuc-MGN  
+LeftAnteriorPulvinarThal 1 Left-ThalNuc-PuA Left-ThalNuc-PuMl 
+LeftMedialPulvinarThal 1 Left-ThalNuc-PuMm Left-ThalNuc-L-Sg
+LeftLateralPulvinarThal 1 Left-ThalNuc-PuMl Left-ThalNuc-PuL Left-ThalNuc-PuI 
+LeftPosteriorPulvinarThal 1 Left-ThalNuc-PuMl
+LeftRetThal 1 Left-ThalNuc-R
+RightAnteriorThal 1 Right-ThalNuc-AV
+RightLateralThal 1 Right-ThalNuc-LD Right-ThalNuc-LP
+RightVentralThal 1 Right-ThalNuc-VA' Right-ThalNuc-VAmc Right-ThalNuc-VLa Right-ThalNuc-VLp Right-ThalNuc-VM
+RightVPLThal 1 Right-ThalNuc-VPL
+RightIntrLmnrPostThal 1 Right-ThalNuc-CM 
+RightIntrLmnrThal 1 Right-ThalNuc-CeM Right-ThalNuc-Pc Right-ThalNuc-Pf Right-ThalNuc-Pt Right-ThalNuc-MV(Re) 
+RightMedialThal 1 Right-ThalNuc-MDm Right-ThalNuc-MDl Right-ThalNuc-CL 
+RightLateralGenThal 1 Right-ThalNuc-LGN  
+RightMedialGenThal 1 Right-ThalNuc-MGN  
+RightAnteriorPulvinarThal 1 Right-ThalNuc-PuA Right-ThalNuc-PuMl
+RightMedialPulvinarThal 1 Right-ThalNuc-PuMm Right-ThalNuc-L-Sg
+RightLateralPulvinarThal 1 Right-ThalNuc-PuMl Right-ThalNuc-PuL Right-ThalNuc-PuI 
+RightPosteriorPulvinarThal 1 Right-ThalNuc-PuMl
+RightRetThal 1 Right-ThalNuc-R
+RightCST 2 Right-Tract-cst
+LeftCST 2 Left-Tract-cst
