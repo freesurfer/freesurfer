@@ -1,0 +1,14 @@
+#  The format is: mergedName numberOfComponents searchStrings
+
+Unknown 1 Unknown CSF
+CrbrlWM 1 Cerebral-White-Matter ThalNuc-R Tract 
+CrbrlCrtx 1 Cerebral-Cortex Hippocampus Amygdala
+CrblmCrtx 1 Cerebellum-Cortex
+CrblmWM 1 Cerebellum-White-Matter
+Ventricle 1 Ventricle Lat-Vent choroid-plexus
+Putamen 1 Putamen
+Pallidum 1 Pallidum
+Accmbns 1 Accumbens-area
+Caudate 1 Caudate
+LeftThalamus 1 Left-VentralDC Left-ThalNuc-L-Sg Left-ThalNuc-LGN Left-ThalNuc-MGN Left-ThalNuc-H Left-ThalNuc-VPI Left-ThalNuc-MV(Re) Left-ThalNuc-Pf Left-ThalNuc-CM Left-ThalNuc-LP Left-ThalNuc-VLa Left-ThalNuc-VPL Left-ThalNuc-VLp Left-ThalNuc-VM Left-ThalNuc-CeM Left-ThalNuc-Pc Left-ThalNuc-MDv Left-ThalNuc-Pv Left-ThalNuc-CL Left-ThalNuc-VA Left-ThalNuc-VPM Left-ThalNuc-AV Left-ThalNuc-VAmc Left-ThalNuc-Pt Left-ThalNuc-AD Left-ThalNuc-LD Left-ThalNuc-PuA Left-ThalNuc-PuI Left-ThalNuc-PuL Left-ThalNuc-PuMm Left-ThalNuc-PuMl Left-ThalNuc-MDl Left-ThalNuc-MDm
+RightThalamus 1 Right-VentralDC Right-ThalNuc-L-Sg Right-ThalNuc-LGN Right-ThalNuc-MGN Right-ThalNuc-H Right-ThalNuc-VPI Right-ThalNuc-MV(Re) Right-ThalNuc-Pf Right-ThalNuc-CM Right-ThalNuc-LP Right-ThalNuc-VLa Right-ThalNuc-VPL Right-ThalNuc-VLp Right-ThalNuc-VM Right-ThalNuc-CeM Right-ThalNuc-Pc Right-ThalNuc-MDv Right-ThalNuc-Pv Right-ThalNuc-CL Right-ThalNuc-VA Right-ThalNuc-VPM Right-ThalNuc-AV Right-ThalNuc-VAmc Right-ThalNuc-Pt Right-ThalNuc-AD Right-ThalNuc-LD Right-ThalNuc-PuA Right-ThalNuc-PuI Right-ThalNuc-PuL Right-ThalNuc-PuMm Right-ThalNuc-PuMl Right-ThalNuc-MDl Right-ThalNuc-MDm

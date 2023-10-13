@@ -1,0 +1,15 @@
+#  The format is: mergedName smooth_switch searchStrings
+
+Unknown 0 Unknown 
+CerebralWM 0 Cerebral-White-Matter ThalNuc-R Tract 
+CerebralGM 0 Cerebral-Cortex Hippocampus Amygdala 
+CerebelumGM 0 Cerebellum-Cortex
+CerebelumWM 0 Cerebellum-White-Matter
+BrainStem 0 Brain-Stem 
+GlobalCSF 0 Ventricle Lat-Vent CSF choroid-plexus
+Putamen 1 Putamen
+Pallidum 1 Pallidum
+Accumbens 0 Accumbens
+Caudate 0 Caudate 
+VentralDC 0 VentralDC
+Thalamus 1 ThalNuc-VA ThalNuc-VAmc ThalNuc-VLp ThalNuc-VLa ThalNuc-VM ThalNuc-VPL ThalNuc-LGN ThalNuc-CM ThalNuc-Pc ThalNuc-CL ThalNuc-LP ThalNuc-LD ThalNuc-MGN ThalNuc-AV ThalNuc-PuA ThalNuc-PuI ThalNuc-PuL ThalNuc-PuMl ThalNuc-MDl ThalNuc-MDm ThalNuc-CeM ThalNuc-Pf ThalNuc-MV(Re) ThalNuc-Pt ThalNuc-PuMm ThalNuc-L-Sg 

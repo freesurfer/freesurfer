@@ -1,0 +1,4 @@
+#  The format is: mergedName smooth_switch searchStrings
+
+Unknown 0 Unknown Cerebral-White-Matter ThalNuc-R Tract Cerebral-Cortex Hippocampus Amygdala Cerebellum-Cortex Cerebellum-White-Matter Brain-Stem Ventricle Lat-Vent CSF choroid-plexus Putamen Pallidum Accumbens Caudate VentralDC
+
