@@ -121,6 +121,7 @@ int GTMOPTgtm2Params(GTMOPT *gtmopt);
 #define GTMOPT_ISO_1D_MB 6
 #define GTMOPT_ISO_MBZ 7
 #define GTMOPT_ISO_MB3 8
+#define GTMOPT_ISO_2D_G2 9
 
 float compute_powell_cost(float *p);
 int MinPowell();
@@ -1352,6 +1353,23 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--g2")) {
+      // crFWHM sFWHM w1 crFWHM2
+      if(nargc < 4) CMDargNErr(option,4);
+      sscanf(pargv[0],"%lf",&gtm->cFWHM);
+      gtm->rFWHM = gtm->cFWHM;
+      sscanf(pargv[1],"%lf",&gtm->sFWHM);
+      sscanf(pargv[2],"%f",&smni_cw1);
+      if(smni_cw1 > 1){
+	printf("ERROR: g2 w1 = %g > 1\n",smni_cw1);
+	exit(1);
+      }
+      sscanf(pargv[3],"%f",&smni_cstd2); // Actually fwhm
+      smni_cstd2 = smni_cstd2/sqrt(log(256.0));// convert to std
+      smni_rw1 = smni_cw1;
+      smni_rstd2 = smni_cstd2;
+      nargsused = 4;
+    } 
     else if(!strcasecmp(option, "--opt")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&gtmopt->schema);
@@ -2139,7 +2157,7 @@ float compute_powell_cost(float *pPowel)
 
   for(n=0; n < gtmopt->nparams; n++) gtmopt->params[n] = pPowel[n+1];
   GTMOPTparams2GTM(gtmopt);
-  
+
   if(gtmopt->gtm->cFWHM < 0) return(10e10);
   if(gtmopt->gtm->rFWHM < 0) return(10e10);
   if(gtmopt->gtm->sFWHM < 0) return(10e10);
@@ -2147,6 +2165,12 @@ float compute_powell_cost(float *pPowel)
   if(gtmopt->gtm->UseMBrad && gtmopt->gtm->mbrad->slope < 0) return(10e10);
   if(gtmopt->gtm->UseMBtan && gtmopt->gtm->mbtan->offset < 0) return(10e10);
   if(gtmopt->gtm->UseMBtan && gtmopt->gtm->mbtan->slope < 0) return(10e10);
+  if(gtmopt->schema == GTMOPT_ISO_2D_G2){
+    // The weight should be between 0 and 1. If it gets close to 0 or 1, then problems
+    if(smni_cw1 < 0.05 || smni_cw1 > 0.95) return(10e10);
+    // The 2nd FWHM should be larger than the first
+    if(smni_cstd2 < 1.1*gtmopt->gtm->cFWHM/sqrt(log(256.0))) return(10e10);
+  }
 
   // compute cost
   curcost = GTMcostPSF(gtmopt->gtm);
@@ -2268,6 +2292,9 @@ int GTMOPTnParams(GTMOPT *gtmopt)
   case GTMOPT_ISO_MB3:
     np = 7;
     break;
+  case GTMOPT_ISO_2D_G2:
+    np = 4;
+    break;
   default:
     printf("ERROR: schema %d not recognized\n",gtmopt->schema);
     return(1);
@@ -2336,6 +2363,21 @@ int GTMOPTparams2GTM(GTMOPT *gtmopt)
     gtmopt->gtm->mbtan->slope = gtmopt->params[6];;
     break;
 
+  case GTMOPT_ISO_2D_G2:
+    // Gaussian mixture for in-plane kern = w1*g1+(1-w1)*g2
+    // 0 = in-plane fwhm1
+    // 1 = through-plane fwhm
+    // 2 = w1 weight of first component
+    // 3 = fwhm2 fwhm of second component
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->gtm->cFWHM;
+    gtmopt->gtm->sFWHM = gtmopt->params[1];
+    smni_cw1 = gtmopt->params[2];
+    smni_rw1 = smni_cw1;
+    smni_cstd2 = gtmopt->params[3]/sqrt(log(256.0)); // convert to stddev
+    smni_rstd2 = smni_cstd2;
+    break;
+
   default:
     printf("ERROR: schema %d not recognized\n",gtmopt->schema);
     return(1);
@@ -2388,6 +2430,17 @@ int GTMOPTgtm2Params(GTMOPT *gtmopt)
     gtmopt->params[4] = gtmopt->gtm->mbrad->slope;
     gtmopt->params[5] = gtmopt->gtm->mbtan->offset;
     gtmopt->params[6] = gtmopt->gtm->mbtan->slope;
+    break;
+  case GTMOPT_ISO_2D_G2:
+    // Gaussian mixture for in-plane kern = w1*g1+(1-w1)*g2
+    // 0 = in-plane fwhm1
+    // 1 = through-plane fwhm
+    // 2 = w1 weight of first component
+    // 3 = fwhm2 fwhm of second component
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->sFWHM;
+    gtmopt->params[2] = smni_cw1;
+    gtmopt->params[3] = smni_cstd2*sqrt(log(256.0)); // convert to fwhm
     break;
   default:
     printf("ERROR: schema %d not recognized\n",gtmopt->schema);
