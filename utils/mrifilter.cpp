@@ -6556,7 +6556,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
     printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
 #endif
 
-  if(smni_cw1 != 1 || smni_rw1 != 1 || smni_sw1 != 1){
+  if(Gdiag_no > 0 && (smni_cw1 != 1 || smni_rw1 != 1 || smni_sw1 != 1)){
     printf("MRIgaussianSmoothNI(): G2: %g %g %g  %g %g %g\n",
 	   smni_cw1, smni_cstd2, smni_rw1, smni_rstd2, smni_sw1, smni_sstd2);
   }
