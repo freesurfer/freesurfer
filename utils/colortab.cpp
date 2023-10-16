@@ -1872,6 +1872,8 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Brain_Stem: // was WM
       case Spinal_Cord: //( same as brainstem)
       case 174:  // Pons,  was WM
+      case Left_undetermined:
+      case Right_undetermined:
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
         break;
@@ -2042,6 +2044,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case 174:  // Pons,  was WM
       case 267:  // Pons-Belly-Area
       case non_WM_hypointensities:  // not sure
+      case Left_undetermined:
+      case Right_undetermined:
         TT = TTSubCtxGM;
         break;
 
@@ -2252,6 +2256,7 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       case 179:  // Floculus
       case 183:  // Left-Vermis
       case non_WM_hypointensities:  // not sure
+      case Left_undetermined:
         TT = TTSubCtxGMlh;
         break;
 
@@ -2264,6 +2269,7 @@ COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
       case Right_Caudate:
       case Right_Accumbens_area:
       case Right_VentralDC:
+      case Right_undetermined:
       case 184:  // Right-Vermis
         TT = TTSubCtxGMrh;
         break;
