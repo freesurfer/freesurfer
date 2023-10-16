@@ -13,7 +13,7 @@ pybind11_add_module(fsbindings
 )
 
 # link utilities
-target_link_libraries(fsbindings PRIVATE utils ${ITK_LIBRARIES})
+target_link_libraries(fsbindings PRIVATE utils nifti ${ITK_LIBRARIES})
 
 # make sure the bindings library gets built into the repository even in out-of-source builds
 set_target_properties(fsbindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/fsbindings)
