@@ -1174,12 +1174,13 @@ usage_exit:
   echo "      be able to have the pixel data from a dicom file with little or no tissue in it"
   if($UseDCM2NIIX) then
     echo "   -no-dcm2niix : Turn it off"
-  else
-    echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
+    echo "   These two options only work when -dcm2niix is on:"
     echo "   -dcm2niix-createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
     echo "   -dcm2niix-no-ForceStackSameSeries : don't stack same series slice."
-    echo "   -dcm2niix-dicom-dump : call mri_probedicom --dcm2niix-dicom-dump."
+  else
+    echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
   endif
+  echo "   -dcm2niix-dicom-dump : call mri_probedicom --dcm2niix-dicom-dump to pre-process DICOMs."
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""
   echo "   -fips project site birnid visit"
