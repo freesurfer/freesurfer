@@ -26,6 +26,7 @@
 #include "machine.h"
 #include "tags.h"
 
+#define MATRIX_STRLEN (4 * 4 * 100)
 
 /* For this to skip the tagid and data correctly, data-length is needed after tagid.
  * The format is 'tagid data-length data'.
@@ -138,10 +139,10 @@ int TAGwriteCommandLine(FILE *fp, char *cmd_line)
 int TAGwriteAutoAlign(FILE *fp, MATRIX *M)
 {
   long long here;
-  char buf[16 * 100];
+  char buf[MATRIX_STRLEN];
   long long len;
 
-  bzero(buf, 16 * 100);
+  bzero(buf, MATRIX_STRLEN);
   sprintf(buf,
           "AutoAlign %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf",
           M->rptr[1][1],
@@ -171,7 +172,7 @@ int TAGwriteAutoAlign(FILE *fp, MATRIX *M)
 MATRIX *TAGreadAutoAlign(FILE *fp)
 {
   int c, r;
-  char buf[1000];
+  char buf[MATRIX_STRLEN];
   MATRIX *M;
 
   M = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -307,7 +308,6 @@ int znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
   return (NO_ERROR);
 }
 
-#define MATRIX_STRLEN (4 * 4 * 100)
 int znzWriteMatrix(znzFile fp, MATRIX *M, int tag)
 {
   long long here, len;
@@ -405,10 +405,10 @@ int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M)
 {
   // This does not appear to be used
   long long here;
-  char buf[16 * 100];
+  char buf[MATRIX_STRLEN];
   long long len;
 
-  bzero(buf, 16 * 100);
+  bzero(buf, MATRIX_STRLEN);
   sprintf(buf,
           "AutoAlign %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf",
           M->rptr[1][1],

@@ -32,8 +32,8 @@
 #define TAG_GCAMORPH_GEOM           10
 #define TAG_GCAMORPH_TYPE           11
 #define TAG_GCAMORPH_LABELS         12
-#define TAG_GCAMORPH_META           13
-#define TAG_GCAMORPH_AFFINE         14
+#define TAG_GCAMORPH_META           13  // new: introduced for mgz warpfield
+#define TAG_GCAMORPH_AFFINE         14  // new: introduced for mgz warpfield (m3z outputs the same information under TAG_MGH_XFORM)
 
 #define TAG_OLD_SURF_GEOM           20
 #define TAG_SURF_GEOM               21

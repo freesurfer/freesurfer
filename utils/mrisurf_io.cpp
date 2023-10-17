@@ -1477,7 +1477,7 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
 
   const char *cp = strchr(sname, '/');
-  if (!cp) {
+  if (!cp && mris != NULL) {
     /* no path - use same one as mris was read from */
     FileNameOnly(sname, fname_no_path);
     //cp = strstr(fname_no_path, ".annot");
@@ -1527,7 +1527,8 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
 
   int error = NO_ERROR;
 
-  MRISclearAnnotations(mris);
+  if (mris != NULL)
+    MRISclearAnnotations(mris);
 
   int mritype = mri_identify(fname);
   if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
@@ -4382,6 +4383,7 @@ static MRIS* MRISreadOverAlloc_old(const char *fname, double nVFMultiplier)
     mris->useRealRAS = 0;
 
     // read tags
+    if (getenv("FS_SKIP_TAGS") == NULL)
     {
       long long len;
 
@@ -6216,6 +6218,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   mris->useRealRAS = 0;
 
   // read tags
+  if (getenv("FS_SKIP_TAGS") == NULL)
   {
     long long len;
 
@@ -7055,6 +7058,7 @@ MRIS *__MRISreadQuadrangleFile(const char *fname, double nVFMultiplier)
   mris->useRealRAS = 0;
 
   // read tags
+  if (getenv("FS_SKIP_TAGS") == NULL)
   {
     long long len;
 

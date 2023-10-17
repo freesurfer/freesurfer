@@ -442,8 +442,8 @@ int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
     }
   }
   if (gcam->m_affine) {
-    //printf("write gcamorph TAG_GCAMORPH_AFFINE ...\n");
-    znzwriteInt(TAG_GCAMORPH_AFFINE, file);  // replaced TAG_MGH_XFORM
+    //printf("[DEBUG] __m3zWrite(): TAG_MGH_XFORM ...\n");
+    znzwriteInt(TAG_MGH_XFORM, file);
     // MatrixAsciiWriteInto(file, gcam->m_affine) ;
     znzWriteMatrix(file, gcam->m_affine, 0);
   }
@@ -1288,7 +1288,7 @@ GCA_MORPH *__m3zRead(const char *fname)
 
   // tag reading
   long long len;
-  while (true)
+  while (getenv("FS_SKIP_TAGS") == NULL)
   {
     int tag = znzTAGreadStart(file, &len, TAG_MGH_XFORM);
     //printf("[DEBUG] __m3zRead(): read TAG = %d\n", tag);
@@ -1337,8 +1337,7 @@ GCA_MORPH *__m3zRead(const char *fname)
         }
         break;
       case TAG_MGH_XFORM:
-      case TAG_GCAMORPH_AFFINE:
-	//printf("[DEBUG] __m3zRead(): TAG_MGH_XFORM/TAG_GCAMORPH_AFFINE\n");
+	//printf("[DEBUG] __m3zRead(): TAG_MGH_XFORM\n");
         // gcam->m_affine = MatrixAsciiReadFrom(fp, NULL) ;
         gcam->m_affine = znzReadMatrix(file);
         gcam->det = MatrixDeterminant(gcam->m_affine);
