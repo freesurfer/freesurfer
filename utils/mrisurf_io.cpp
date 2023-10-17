@@ -6858,9 +6858,11 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
     {
       // .gii is available
       sprintf(file_to_read, "%s%s", fname, fs_gii);
-      printf("[WARN] read, FS_GII set, read as %s (%s)\n", file_to_read, fname);
+      printf("[INFO] read, FS_GII set, read as %s (%s)\n", file_to_read, fname);
       *filetype = GIFTI_FILE;
     }
+    else
+      printf("[INFO] read, FS_GII set, cannot find %s, trying %s ...\n", gii, fname); 
   }
   else  // try regular format first
   {
@@ -6868,6 +6870,7 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
     {
       // regular format is not available, try .gii
       sprintf(file_to_read, "%s.gii", fname);
+      printf("[INFO] read, cannot find %s, trying %s ...\n", fname, file_to_read);       
       *filetype = GIFTI_FILE;
     }
   }

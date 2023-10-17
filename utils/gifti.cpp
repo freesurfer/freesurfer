@@ -426,7 +426,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
    */
   gifti_image *image = gifti_read_image(fname, 1);
   if (NULL == image) {
-    fprintf(stderr, "mrisReadGIFTIdanum: gifti_read_image() returned NULL\n");
+    fprintf(stderr, "mrisReadGIFTIdanum: ERROR reading gifti %s\n", fname);
     return NULL;
   }
 
@@ -893,7 +893,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
   // sanity-check, we ought to have an mris struct (either passed-in as a
   // parameter, or created when we found coord and face data)
   if (NULL == mris) {
-    fprintf(stderr, "mriseadGIFTIfile: mris is NULL! found when parsing file %s\n", fname);
+    fprintf(stderr, "mrisReadGIFTIdanum: mris is NULL! found when parsing file %s\n", fname);
     gifti_free_image(image);
     return NULL;
   }
