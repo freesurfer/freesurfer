@@ -442,7 +442,7 @@ int ImageMedianFilter(IMAGE *inImage, int wsize, IMAGE *offsetImage, IMAGE *outI
   static int sort_size = 0;
   int ecode, x0, y0, rows, cols, x, y, whalf, yc, dx, dy, frame, wsq, median_index;
   float *sptr, *outPix, min_val, max_val, *inPix;
-  byte *in_image, *out_image;
+  ubyte *in_image, *out_image;
   IMAGE *Iout, *Iin;
   int xc;
 
@@ -585,7 +585,7 @@ IMAGE *ImageConvolveGaussianByte(IMAGE *Isrc, IMAGE *gImage, IMAGE *Iout, int ds
   static IMAGE *Itmp = NULL;
   int ksize;
   float *kernel;
-  byte *buf;
+  ubyte *buf;
 
   if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0)) {
     if (Itmp) ImageFree(&Itmp);
@@ -632,10 +632,10 @@ IMAGE *ImageConvolveGaussian(IMAGE *Isrc, IMAGE *gImage, IMAGE *Iout, int dst_fr
   ImageConvolve1d(Isrc, Itmp, kernel, ksize, IMAGE_VERTICAL);
 
   buf = IMAGEFpix(Iout, 0, 0);
-  Iout->image = (byte *)IMAGEFseq_pix(Iout, 0, 0, dst_frameno);
+  Iout->image = (ubyte *)IMAGEFseq_pix(Iout, 0, 0, dst_frameno);
   ImageConvolve1d(Itmp, Iout, kernel, ksize, IMAGE_HORIZONTAL);
 
-  Iout->image = (byte *)buf;
+  Iout->image = (ubyte *)buf;
   return (Iout);
 }
 /*----------------------------------------------------------------------
@@ -669,10 +669,10 @@ IMAGE *ImageCircularConvolveGaussian(IMAGE *Isrc, IMAGE *gImage, IMAGE *Iout, in
   ImageCircularConvolve1d(Isrc, Itmp, kernel, ksize, IMAGE_VERTICAL);
 
   buf = IMAGEFpix(Iout, 0, 0);
-  Iout->image = (byte *)IMAGEFseq_pix(Iout, 0, 0, dst_frameno);
+  Iout->image = (ubyte *)IMAGEFseq_pix(Iout, 0, 0, dst_frameno);
   ImageCircularConvolve1d(Itmp, Iout, kernel, ksize, IMAGE_HORIZONTAL);
 
-  Iout->image = (byte *)buf;
+  Iout->image = (ubyte *)buf;
   return (Iout);
 }
 /*----------------------------------------------------------------------
@@ -683,7 +683,7 @@ IMAGE *ImageCircularConvolveGaussian(IMAGE *Isrc, IMAGE *gImage, IMAGE *Iout, in
 IMAGE *ImageConvolveGaussianFrames(IMAGE *Isrc, IMAGE *gImage, IMAGE *Idst)
 {
   int frame, src_frames, dst_frames;
-  byte *src_buf, *dst_buf;
+  ubyte *src_buf, *dst_buf;
 
   if (!Idst) Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1);
 
@@ -847,7 +847,7 @@ void ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis)
   int x, y, width, height, halflen;
   int i;
   float *ki, total;
-  byte *inBase, *outPix;
+  ubyte *inBase, *outPix;
   static int *xi_LUT = NULL, LUT_width, LUT_height, *yi_LUT = NULL, LUT_len = 0;
 
   width = I->cols;
@@ -897,7 +897,7 @@ void ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 
         for (ki = k, i = 0; i < len; i++) total += *ki++ * (float)*(inBase + xi_LUT[x + i - halflen]);
 
-        *outPix++ = (byte)total;
+        *outPix++ = (ubyte)total;
       }
     }
   }
@@ -909,7 +909,7 @@ void ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 
         for (ki = k, i = 0; i < len; i++) total += *ki++ * (float)*(inBase + yi_LUT[y + i - halflen] * width);
 
-        *outPix++ = (byte)total;
+        *outPix++ = (ubyte)total;
       }
     }
   }
