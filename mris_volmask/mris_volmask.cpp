@@ -96,7 +96,7 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfLeftWhite,
                MRIS*& surfLeftPial,
                MRIS*& surfRightWhite,
-               MRIS*& surfRightPial) throw(IoError) ;
+               MRIS*& surfRightPial);
 
 MRI* ComputeSurfaceDistanceFunction
 (MRIS* mris, //input surface
@@ -562,7 +562,7 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfLeftWhite,
                MRIS*& surfLeftPial,
                MRIS*& surfRightWhite,
-               MRIS*& surfRightPial) throw(IoError)
+               MRIS*& surfRightPial)
 {
   // determine the mode of the application and infer the input file names
 
