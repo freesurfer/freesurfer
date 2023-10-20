@@ -240,8 +240,6 @@ int znzTAGreadStart(znzFile fp, long long *plen, int tagwithzerolen)
     case TAG_GCAMORPH_GEOM:
     case TAG_GCAMORPH_TYPE:
     case TAG_GCAMORPH_LABELS:
-    case TAG_GCAMORPH_META:
-    case TAG_GCAMORPH_AFFINE:
       *plen = 0;  // these tags have no data-length output after tagid
       break;
     default:
@@ -310,7 +308,7 @@ int znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
 
 int znzWriteMatrix(znzFile fp, MATRIX *M, int tag)
 {
-  long long here, len;
+  long long here;
   char buf[MATRIX_STRLEN];
 
   bzero(buf, MATRIX_STRLEN);
@@ -332,12 +330,12 @@ int znzWriteMatrix(znzFile fp, MATRIX *M, int tag)
           M->rptr[4][2],
           M->rptr[4][3],
           M->rptr[4][4]);
-  znzTAGwriteStart(fp, tag, &len, MATRIX_STRLEN);
+  znzTAGwriteStart(fp, tag, &here, MATRIX_STRLEN);
   here = znztell(fp);
   znzwrite(buf, sizeof(char), MATRIX_STRLEN, fp);
   here = znztell(fp);
 
-  znzTAGwriteEnd(fp, len);
+  znzTAGwriteEnd(fp, here);
   return (NO_ERROR);
 }
 

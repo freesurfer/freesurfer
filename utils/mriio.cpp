@@ -96,6 +96,8 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 #define INFO_FNAME "COR-.info"
 
 
+#define MGZ_TAG_DEBUG 0
+
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
 static int corWrite(MRI *mri, const char *fname);
@@ -11158,6 +11160,9 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
       tag = znzTAGreadStart(fp, &len);
       if (tag == 0) break;
 
+      if (MGZ_TAG_DEBUG)
+        printf("[DEBUG] mghRead() znzTAGreadStart(): tag = %d, len = %lld\n", tag, len);
+      
       switch (tag) {
         case TAG_MRI_FRAME:
           if (znzTAGreadMRIframes(fp, mri, len) != NO_ERROR)
@@ -11214,6 +11219,8 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
           mri->AutoAlign = znzReadAutoAlignMatrix(fp);
           break;
 
+	// I'm not sure if this tag will be read correctly. Will do more tests later.
+	// znzReadMatrix() calls znzTAGreadStart() again. The file position won't be correct.
         case TAG_ORIG_RAS2VOX:
           mri->origRas2Vox = znzReadMatrix(fp);
           break;
@@ -11232,6 +11239,13 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
           mri->warpFieldFormat = znzreadInt(fp);
 	  mri->gcamorphSpacing = znzreadInt(fp);
 	  mri->gcamorphExp_k   = znzreadFloat(fp);
+
+	  if (MGZ_TAG_DEBUG)
+	  {
+	    printf("[DEBUG] mghRead() TAG_GCAMORPH_META\n");
+	    printf("[DEBUG] mghRead() warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
+		   mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
+	  }
           break;
 
         case TAG_GCAMORPH_GEOM:
@@ -11241,9 +11255,12 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 	  //mri->gcamorph_atlas_vg.vgprint(true);
 	  break;
         case TAG_GCAMORPH_AFFINE:
-          mri->gcamorphAffine = znzReadMatrix(fp);
-	  //printf("[DEBUG] mghRead() TAG_GCAMORPH_AFFINE\n");
-          //MatrixPrint(stdout, mri->gcamorphAffine);
+          mri->gcamorphAffine = znzReadAutoAlignMatrix(fp);
+	  if (MGZ_TAG_DEBUG)
+	  {
+	    printf("[DEBUG] mghRead() TAG_GCAMORPH_AFFINE\n");
+            MatrixPrint(stdout, mri->gcamorphAffine);
+	  }
 	  break;
         case TAG_GCAMORPH_LABELS:
 	  // allocate memory for mri->gcamorphLabel
@@ -11525,8 +11542,14 @@ int mghWrite(MRI *mri, const char *fname, int frame)
     mri->gcamorph_image_vg.vgprint();
     mri->gcamorph_atlas_vg.vgprint();
 
-    // output TAG_GCAMORPH_META
+    // output TAG_GCAMORPH_META data-length data
+    long long dlen = sizeof(int) + sizeof(int) + sizeof(float);
+    if (MGZ_TAG_DEBUG)
+      printf("[DEBUG] mghWrite() TAG_GCAMORPH_META dlen = %lld, warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
+	     dlen, mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
+    
     znzwriteInt(TAG_GCAMORPH_META, fp);
+    znzwriteLong(dlen, fp);
     znzwriteInt(mri->warpFieldFormat, fp);
     znzwriteInt(mri->gcamorphSpacing, fp);
     znzwriteFloat(mri->gcamorphExp_k, fp);
@@ -11534,16 +11557,20 @@ int mghWrite(MRI *mri, const char *fname, int frame)
     // output TAG_GCAMORPH_AFFINE
     if (mri->gcamorphAffine)
     {
-      //printf("[DEBUG] mghWrite() TAG_GCAMORPH_AFFINE\n");
-      //MatrixPrint(stdout, mri->gcamorphAffine);
-      znzwriteInt(TAG_GCAMORPH_AFFINE, fp);
-      znzWriteMatrix(fp, mri->gcamorphAffine, 0);
+      if (MGZ_TAG_DEBUG)
+      {
+        printf("[DEBUG] mghWrite() TAG_GCAMORPH_AFFINE\n");
+        MatrixPrint(stdout, mri->gcamorphAffine);
+      }
+      // znzWriteMatrix will write data length (1600) after tagid
+      znzWriteMatrix(fp, mri->gcamorphAffine, TAG_GCAMORPH_AFFINE);
     }
 
     // output TAG_GCAMORPH_LABELS
     if (mri->gcamorphLabel)
     {
-      //printf("[DEBUG] write TAG_GCAMORPH_LABELS\n");
+      if (MGZ_TAG_DEBUG)
+        printf("[DEBUG] write TAG_GCAMORPH_LABELS\n");
       znzwriteInt(TAG_GCAMORPH_LABELS, fp);
       for (int x = 0; x < mri->width; x++)
         for (int y = 0; y < mri->height; y++)

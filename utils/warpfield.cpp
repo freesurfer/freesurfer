@@ -15,10 +15,11 @@
  *
  * The warp file follows mgz format with these tags:
  *   TAG_GCAMORPH_GEOM   followed by gcamorph image (source) geom and gcamorph atlas (target) geom
- *   TAG_GCAMORPH_META   followed by 
+ *   TAG_GCAMORPH_META   followed by data-length, 
  *         WARPFIELD_DTFMT_ABS_CRS|WARPFIELD_DTFMT_DISP_CRS|WARPFIELD_DTFMT_ABS_RAS|WARPFIELD_DTFMT_DISP_RAS
  *         spacing (int)
  *         exp_k   (double)
+ *   TAG_GCAMORPH_AFFINE followed by data-length (1600), matrix data
  * 
  * The data array (width x height x depth x nframes) is indexed by atlas CRS.
  *     frame 0 - image voxel ABS coordinate C, image voxel DISP coordinate C, 
@@ -137,10 +138,10 @@ MRI* Warpfield::convert(GCA_MORPH *gcam, const int dataformat, int doGCAMsampleM
   
   if (gcam->m_affine)
   {
-    printf("[DEBUG] convert() gcam->m_affine (spacing=%d, exp-k=%.2f, det=%.2f):\n", gcam->spacing, gcam->exp_k, gcam->det);
+    printf("[DEBUG] Warpfield::convert() gcam->m_affine (spacing=%d, exp-k=%.2f, det=%.2f):\n", gcam->spacing, gcam->exp_k, gcam->det);
     MatrixPrint(stdout, gcam->m_affine);
     __warpmap->gcamorphAffine = MatrixCopy(gcam->m_affine, NULL);
-    printf("[DEBUG] convert() __warpmap->gcamorphAffine (spacing=%d, exp-k=%.2f)\n", __warpmap->gcamorphSpacing, __warpmap->gcamorphExp_k);
+    printf("[DEBUG] Warpfield::convert() __warpmap->gcamorphAffine (spacing=%d, exp-k=%.2f)\n", __warpmap->gcamorphSpacing, __warpmap->gcamorphExp_k);
     MatrixPrint(stdout, __warpmap->gcamorphAffine);    
   }
     
@@ -411,17 +412,17 @@ GCA_MORPH *Warpfield::read(const char *fname)
 
   if (__warpmap->gcamorphAffine)
   {
-    printf("[DEBUG] read() __warpmap->gcamorphAffine (spacing=%d, exp-k=%.2f):\n", __warpmap->gcamorphSpacing, __warpmap->gcamorphExp_k);
+    printf("[DEBUG] Warpfield::read() __warpmap->gcamorphAffine (spacing=%d, exp-k=%.2f):\n", __warpmap->gcamorphSpacing, __warpmap->gcamorphExp_k);
     MatrixPrint(stdout, __warpmap->gcamorphAffine);
     gcam->m_affine = MatrixCopy(__warpmap->gcamorphAffine, NULL);
     gcam->det = MatrixDeterminant(gcam->m_affine);
-    printf("[DEBUG] read() gcam->m_affine (spacing=%d, exp-k=%.2f, det=%.2f):\n", gcam->spacing, gcam->exp_k, gcam->det);
+    printf("[DEBUG] Warpfield::read() gcam->m_affine (spacing=%d, exp-k=%.2f, det=%.2f):\n", gcam->spacing, gcam->exp_k, gcam->det);
     MatrixPrint(stdout, gcam->m_affine);
   }
 
   if (__warpmap->gcamorphLabel)
   {
-    printf("[DEBUG] gcam->status = GCAM_LABELED\n");
+    printf("[DEBUG] Warpfield::read() gcam->status = GCAM_LABELED\n");
     gcam->status = GCAM_LABELED;
   }
   
@@ -570,10 +571,10 @@ void Warpfield::create(int width, int height, int depth, const VOL_GEOM& srcVG, 
 
   if (affine)
   {
-    printf("[DEBUG] create() affine (spacing=%d, exp-k=%.2f):\n", spacing, exp_k);
+    printf("[DEBUG] Warpfield::create() affine (spacing=%d, exp-k=%.2f):\n", spacing, exp_k);
     MatrixPrint(stdout, affine);
     __warpmap->gcamorphAffine = MatrixCopy(affine, NULL);
-    printf("[DEBUG] create() __warpmap->gcamorphAffine (spacing=%d, exp-k=%.2f)\n", __warpmap->gcamorphSpacing, __warpmap->gcamorphExp_k);
+    printf("[DEBUG] Warpfield::create() __warpmap->gcamorphAffine (spacing=%d, exp-k=%.2f)\n", __warpmap->gcamorphSpacing, __warpmap->gcamorphExp_k);
     MatrixPrint(stdout, __warpmap->gcamorphAffine);    
   }  
   
