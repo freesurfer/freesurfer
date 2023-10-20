@@ -32,6 +32,8 @@
 #define START_Y (-128)
 #define SLICE_THICKNESS 1
 
+#define SURF_TAG_DEBUG  0
+
 static int mrisReadGeoFilePositions     (MRI_SURFACE *mris, const char *fname);
 static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname);
 static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier);
@@ -54,6 +56,8 @@ static int __mriswriteannot(MRIS *mris, const char *outfannot);
 
 static void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype);
 static void __MRISapplyFSGIIwrite(char *file_to_write, const char *fname, int *filetype);
+
+static void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp);
 
 static int mris_readval_frame = -1;
 
@@ -6023,6 +6027,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   {
     for (int i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
   }
+
+  __MRISwriteTriangularSurfaceTags(mris, fp);
   
   fclose(fp);
   return (NO_ERROR);
@@ -6223,6 +6229,9 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
     long long len;
 
     while ((tag = TAGreadStart(fp, &len)) != 0) {
+      if (SURF_TAG_DEBUG)
+        printf("[DEBUG] mrisReadTriangleFile() TAGreadStart(): tag = %d, len = %lld\n", tag, len);
+      
       switch (tag) {
         case TAG_GROUP_AVG_SURFACE_AREA:
           mris->group_avg_surface_area = freadFloat(fp);
@@ -6247,6 +6256,39 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
           fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp);
           mris->ncmds++;
           break;
+        case TAG_SURF_DATASPACE:
+          if (SURF_TAG_DEBUG)
+	  {
+	    char *dataspace = (char *)calloc(len + 1, sizeof(char));
+	    TAGread(fp, dataspace, len);
+	    printf("[DEBUG] mrisReadTriangleFile() DATASPACE = %s\n", dataspace);
+	    free(dataspace);
+	  }
+	  else
+	    TAGskip(fp, tag, (long long)len);
+	  break;
+        case TAG_SURF_MATRIXDATA:
+	  if (SURF_TAG_DEBUG)
+	  {
+            MATRIX *matrixdata = TAGreadMatrix(fp);	    
+	    printf("[DEBUG] mrisReadTriangleFile() TAG_SURF_MATRIXDATA\n");
+            MatrixPrint(stdout, matrixdata);
+    	    MatrixFree(&matrixdata);
+	  }
+	  else
+	    TAGskip(fp, tag, (long long)len);
+	  break;
+        case TAG_SURF_TRANSFORMEDSPACE:
+          if (SURF_TAG_DEBUG)
+	  {
+	    char *transformedspace = (char *)calloc(len + 1, sizeof(char));
+	    TAGread(fp, transformedspace, len);
+	    printf("[DEBUG] mrisReadTriangleFile() TRANSFORMEDSPACE = %s\n", transformedspace);
+	    free(transformedspace);
+	  }	  
+	  else
+	    TAGskip(fp, tag, (long long)len);
+	  break;
         default:
           TAGskip(fp, tag, (long long)len);
           break;
@@ -7197,4 +7239,95 @@ int __MRISwriteQuadrangleFile(MRI_SURFACE *mris, const char *fname)
   }
   fclose(fp);
   return (NO_ERROR);
+}
+
+/*
+ * These three TAGs (TAG_SURF_DATASPACE, TAG_SURF_MATRIXDATA, TAG_SURF_TRANSFORMEDSPACE) are for programs outside Freesurfer tools.
+ * They are the same as the metadata DataSpace/MatrixData/TransformedSpace in GIFTI.
+ * They can be calculated from surface data. Surface reads ignore them.
+ */
+void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
+{
+  const char *dataspace = "NIFTI_XFORM_UNKNOWN";
+  MATRIX *matrixdata = NULL;
+  const char *transformedspace = "NIFTI_XFORM_SCANNER_ANAT";
+  
+  // TAG_SURF_DATASPACE
+  if (mris->useRealRAS)
+  {
+    // surface XYZ coordinates are in scanner space
+    if (mris->vg.valid)
+    {
+      MATRIX *S = vg_i_to_r(&mris->vg);
+      MATRIX *T = TkrVox2RASfromVolGeom(&mris->vg);
+      MATRIX *Sinv = MatrixInverse(S, NULL);
+      matrixdata = MatrixMultiply(T, Sinv, NULL);
+
+      //  <DataSpace> = NIFTI_XFORM_SCANNER_ANAT
+      //  <MatrixData> = transform matrix go from scanner space to Freesurfer tkregister space
+      //  <TransformedSpace> = NIFTI_XFORM_UNKNOWN (Freesurfer tkregister space)
+      dataspace = "NIFTI_XFORM_SCANNER_ANAT";
+      transformedspace = "NIFTI_XFORM_UNKNOWN";
+
+      MatrixFree(&S);
+      MatrixFree(&T);
+      MatrixFree(&Sinv);
+    }
+    else
+    {
+      matrixdata = MatrixIdentity(4, NULL);
+      dataspace = "NIFTI_XFORM_SCANNER_ANAT";
+      transformedspace = "NIFTI_XFORM_SCANNER_ANAT";      
+    }
+  }
+  else
+  {
+    // surface XYZ coordinates are in tkregister space
+    if (mris->vg.valid)
+    {
+      MATRIX *S = vg_i_to_r(&mris->vg);
+      MATRIX *T = TkrVox2RASfromVolGeom(&mris->vg);
+      MATRIX *Tinv = MatrixInverse(T, NULL);
+      matrixdata = MatrixMultiply(S, Tinv, NULL);
+
+      //  <DataSpace> = NIFTI_XFORM_UNKNOWN (Freesurfer tkregister space)
+      //  <MatrixData> = transform matrix go from Freesurfer tkregister space to scanner space
+      //  <TransformedSpace> = NIFTI_XFORM_SCANNER_ANAT
+      dataspace = "NIFTI_XFORM_UNKNOWN";      
+      transformedspace = "NIFTI_XFORM_SCANNER_ANAT";
+
+      MatrixFree(&S);
+      MatrixFree(&T);
+      MatrixFree(&Tinv);
+    }
+    else
+    {
+      if (mris->SRASToTalSRAS_ && mris->SRASToTalSRAS_->rows == 4 && mris->SRASToTalSRAS_->cols == 4)
+      {
+        // found a valid xform, so use it...
+        matrixdata = MatrixCopy(mris->SRASToTalSRAS_, NULL);	
+        dataspace = "NIFTI_XFORM_UNKNOWN";
+        transformedspace = "NIFTI_XFORM_TALAIRACH";
+      }
+    }
+  }
+
+  // TAG_SURF_DATASPACE
+  TAGwrite(fp, TAG_SURF_DATASPACE, (void*)dataspace, strlen(dataspace));
+  if (SURF_TAG_DEBUG)
+    printf("[DEBUG] __MRISwriteTriangularSurfaceTags() TAG_SURF_DATASPACE = %s\n", dataspace);
+  
+  // TAG_SURF_MATRIXDATA
+  TAGwriteMatrix(fp, matrixdata, TAG_SURF_MATRIXDATA);
+  if (SURF_TAG_DEBUG)
+  {
+    printf("[DEBUG] __MRISwriteTriangularSurfaceTags() TAG_SURF_MATRIXDATA:\n");
+    MatrixPrint(stdout, matrixdata);
+  }
+  MatrixFree(&matrixdata);
+    
+  // TAG_SURF_TRANSFORMEDSPACE
+  TAGwrite(fp, TAG_SURF_TRANSFORMEDSPACE, (void*)transformedspace, strlen(transformedspace));
+  if (SURF_TAG_DEBUG)
+    printf("[DEBUG] __MRISwriteTriangularSurfaceTags() TAG_SURF_TRANSFORMEDSPACE = %s\n", transformedspace);  
 }

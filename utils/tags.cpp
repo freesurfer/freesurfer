@@ -71,6 +71,12 @@ int TAGreadStart(FILE *fp, long long *plen)
   return (tag);
 }
 
+int TAGread(FILE *fp, void *buf, long long len)
+{
+  fread(buf, sizeof(char), len, fp);
+  return (NO_ERROR);
+}
+
 /* This function is used to output 'tagid data-length'.
  *   1. write tag
  *   2. remember file position after tag write
@@ -169,20 +175,53 @@ int TAGwriteAutoAlign(FILE *fp, MATRIX *M)
   return (NO_ERROR);
 }
 
-MATRIX *TAGreadAutoAlign(FILE *fp)
+MATRIX *TAGreadMatrix(FILE *fp)
 {
   int c, r;
   char buf[MATRIX_STRLEN];
   MATRIX *M;
 
   M = MatrixAlloc(4, 4, MATRIX_REAL);
-  fscanf(fp, "%s", buf);  // get past "AutoAlign" string
+  fscanf(fp, "%s", buf);  // get past "AutoAlign"/"Matrix" string
   for (r = 1; r <= 4; r++) {
     for (c = 1; c <= 4; c++) {
       fscanf(fp, "%f", &(M->rptr[r][c]));
     }
   }
   return (M);
+}
+
+int TAGwriteMatrix(FILE *fp, MATRIX *M, int tag)
+{
+  char buf[MATRIX_STRLEN];
+
+  bzero(buf, MATRIX_STRLEN);
+  sprintf(buf,
+          "Matrix %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf",
+          M->rptr[1][1],
+          M->rptr[1][2],
+          M->rptr[1][3],
+          M->rptr[1][4],
+          M->rptr[2][1],
+          M->rptr[2][2],
+          M->rptr[2][3],
+          M->rptr[2][4],
+          M->rptr[3][1],
+          M->rptr[3][2],
+          M->rptr[3][3],
+          M->rptr[3][4],
+          M->rptr[4][1],
+          M->rptr[4][2],
+          M->rptr[4][3],
+          M->rptr[4][4]);
+
+  long long len = strlen(buf);
+  
+  long long here;
+  TAGwriteStart(fp, tag, &here, len);
+  fwrite(buf, sizeof(char), len, fp);
+  TAGwriteEnd(fp, here);
+  return (NO_ERROR);
 }
 
 /* zlib support */

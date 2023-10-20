@@ -37,6 +37,9 @@
 
 #define TAG_OLD_SURF_GEOM           20
 #define TAG_SURF_GEOM               21
+#define TAG_SURF_DATASPACE          22  // new: surface [x y z] space
+#define TAG_SURF_MATRIXDATA         23  // new: transform matrix going from TAG_SURF_DATASPACE to TAG_SURF_TRANSFORMEDSPACE
+#define TAG_SURF_TRANSFORMEDSPACE   24  // new: surface [x y z] space after applying the transform matrix
 
 #define TAG_OLD_MGH_XFORM           30
 #define TAG_MGH_XFORM               31
@@ -52,13 +55,14 @@
 
 
 int TAGreadStart(FILE *fp, long long *plen) ;
+int TAGread(FILE *fp, void *buf, long long len);
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
 int TAGwriteEnd(FILE *fp, long long there) ;
 int TAGskip(FILE *fp, int tag, long long len) ;
 int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line) ;
 int TAGwriteCommandLine(FILE *fp, char *cmd_line) ;
 int TAGwrite(FILE *fp, int tag, void *buf, long long len) ;
-int TAGwriteMatrix(FILE *fp, MATRIX *M);
+int TAGwriteMatrix(FILE *fp, MATRIX *M, int tag);
 MATRIX *TAGreadMatrix(FILE *fp);
 
 /* zlib i/o support */
