@@ -7248,9 +7248,10 @@ int __MRISwriteQuadrangleFile(MRI_SURFACE *mris, const char *fname)
  */
 void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
 {
+  // default identity matrix, data in tkregister space
   const char *dataspace = "NIFTI_XFORM_UNKNOWN";
-  MATRIX *matrixdata = NULL;
-  const char *transformedspace = "NIFTI_XFORM_SCANNER_ANAT";
+  MATRIX *matrixdata = MatrixIdentity(4, NULL);
+  const char *transformedspace = "NIFTI_XFORM_UNKNOWN";
   
   // TAG_SURF_DATASPACE
   if (mris->useRealRAS)
@@ -7275,7 +7276,7 @@ void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
     }
     else
     {
-      matrixdata = MatrixIdentity(4, NULL);
+      //matrixdata = MatrixIdentity(4, NULL);
       dataspace = "NIFTI_XFORM_SCANNER_ANAT";
       transformedspace = "NIFTI_XFORM_SCANNER_ANAT";      
     }
