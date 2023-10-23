@@ -4246,6 +4246,13 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
     if($FixEntoWM) set cmd = ($cmd --restore-255) 
     if($UseHighMyelin) then
+      # The factor is a value between 0 and 1 that changes how far
+      # into GM the white surface will go. 1 is the same as not using
+      # highmy. Towards 0 will make the surface pull back away from
+      # cortex.  Try 0.3. This will only apply to vertices in the
+      # high-myelin mask. Cortex is bright in himy areas and sometimes
+      # the white extends too far. This was added to better process
+      # the HCP data, but I did not find it helped much.
       set hml = $ldir/$hemi.high-myelin.label
       set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
     else
