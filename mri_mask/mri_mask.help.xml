@@ -70,6 +70,8 @@
       <explanation>transfer only voxel value # from mask to out</explanation>
       <argument>-keep_mask_deletion_edits</argument>
       <explanation>transfer voxel-deletion edits (voxels=1) from mask to out vol</explanation>
+      <argument>-no-allow-diff-geom</argument>
+      <explanation>Do not allow MRImask() to apply a registration when inputs have different geom</explanation>
     </optional-flagged>
   </arguments>
   <outputs>

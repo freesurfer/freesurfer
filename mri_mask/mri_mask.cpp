@@ -519,6 +519,11 @@ get_option(int argc, char *argv[])
     nargs = 1;
     printf("bounding box eq npad = %d\n",nPadBB[0]);
   }
+  else if (!stricmp(option, "no-allow-diff-geom"))
+  {
+    setenv("FS_MRIMASK_ALLOW_DIFF_GEOM","0",1);
+    nargs = 0;
+  }
   else if (!stricmp(option, "transfer"))
   {
     do_transfer = 1;
