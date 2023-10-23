@@ -7248,9 +7248,9 @@ int __MRISwriteQuadrangleFile(MRI_SURFACE *mris, const char *fname)
  */
 void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
 {
-  // default identity matrix, data in tkregister space
+  // default dataspace and transfomedspace
   const char *dataspace = "NIFTI_XFORM_UNKNOWN";
-  MATRIX *matrixdata = MatrixIdentity(4, NULL);
+  MATRIX *matrixdata = NULL;
   const char *transformedspace = "NIFTI_XFORM_UNKNOWN";
   
   // TAG_SURF_DATASPACE
@@ -7276,7 +7276,7 @@ void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
     }
     else
     {
-      //matrixdata = MatrixIdentity(4, NULL);
+      matrixdata = MatrixIdentity(4, NULL);
       dataspace = "NIFTI_XFORM_SCANNER_ANAT";
       transformedspace = "NIFTI_XFORM_SCANNER_ANAT";      
     }
@@ -7312,6 +7312,15 @@ void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
       }
     }
   }
+
+  if (matrixdata == NULL && strcmp(dataspace, transformedspace) != 0)
+  {
+    printf("[ERROR] __MRISwriteTriangularSurfaceTags(): couldn't obtain MatrixData\n");
+    exit(1);
+  }
+
+  if (matrixdata == NULL)
+    matrixdata = MatrixIdentity(4, NULL);
 
   // TAG_SURF_DATASPACE
   TAGwrite(fp, TAG_SURF_DATASPACE, (void*)dataspace, strlen(dataspace));
