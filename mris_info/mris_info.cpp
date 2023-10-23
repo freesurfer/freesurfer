@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
   // Open as a surface
   MRIS *mris = MRISread(surffile, doTkrRASConvert);
   if (!mris) {
-    cerr << "could not open " << surffile << endl;
+    fprintf(stderr, "ERROR: cannot open either %s or %s.gii\n", surffile, surffile);
     return -1;
   }
   if(patchname){

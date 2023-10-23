@@ -294,8 +294,8 @@ int ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter, double 
 
   yKernelImage.cols = yKernelImage.ocols = xKernelImage.cols = xKernelImage.ocols = 3;
   yKernelImage.cols = yKernelImage.ocols = xKernelImage.cols = xKernelImage.ocols = 3;
-  yKernelImage.image = yKernelImage.firstpix = (byte *)ykernel;
-  xKernelImage.image = xKernelImage.firstpix = (byte *)xkernel;
+  yKernelImage.image = yKernelImage.firstpix = (ubyte *)ykernel;
+  xKernelImage.image = xKernelImage.firstpix = (ubyte *)xkernel;
   if (tmpImage == NULL) /* initialize kernels */
   {
     int row, col;

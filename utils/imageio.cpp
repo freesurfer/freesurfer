@@ -72,10 +72,10 @@ static IMAGE *PPMReadImage(const char *fname);
 static IMAGE *PPMReadHeader(FILE *fp, IMAGE *);
 static IMAGE *PBMReadImage(const char *fname);
 static IMAGE *PBMReadHeader(FILE *fp, IMAGE *);
-static byte FindMachineEndian(void);
+static ubyte FindMachineEndian(void);
 static void ImageSwapEndian(IMAGE *I);
 
-static byte endian = END_UNDEF;
+static ubyte endian = END_UNDEF;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -101,7 +101,7 @@ int ImageWrite(IMAGE *I, const char *fname)
   return (0);
 }
 
-static byte FindMachineEndian(void)
+static ubyte FindMachineEndian(void)
 {
   short int word = 0x0001;
   char *bite = (char *)&word;
@@ -117,7 +117,7 @@ static byte FindMachineEndian(void)
 ------------------------------------------------------*/
 int ImageFWrite(IMAGE *I, FILE *fp, const char *fname)
 {
-  byte *image;
+  ubyte *image;
   int ecode, type, frame;
   char *buf;
 
@@ -227,7 +227,7 @@ IMAGE *ImageFRead(FILE *fp, const char *fname, int start, int nframes)
 {
   int ecode, end_frame, frame, count = 1;
   IMAGE *I;
-  byte *startpix, end = END_UNDEF;
+  ubyte *startpix, end = END_UNDEF;
 
   if (!fname) fname = "ImageFRead";
 
@@ -738,7 +738,7 @@ static IMAGE *TiffReadImage(const char *fname, int frame0)
   int width, height, ret, row;
   short nsamples, bits_per_sample;
   int nframe, frame;
-  byte *iptr;
+  ubyte *iptr;
   tdata_t *buf;
   short photometric;
   int photometricInt;
@@ -1172,7 +1172,7 @@ static int TiffWriteImage(IMAGE *I, const char *fname, int frame)
   TIFF *out;
   short bits_per_sample, samples_per_pixel, sample_format;
   int row, frames;
-  byte *timage;
+  ubyte *timage;
   tdata_t *buf;
 
   out = TIFFOpen(fname, "w");
@@ -1182,7 +1182,7 @@ static int TiffWriteImage(IMAGE *I, const char *fname, int frame)
     case PFBYTE:
       sample_format = SAMPLEFORMAT_INT;
       samples_per_pixel = 1;
-      bits_per_sample = sizeof(byte) * 8;
+      bits_per_sample = sizeof(ubyte) * 8;
       break;
     case PFSHORT:
       sample_format = SAMPLEFORMAT_INT;
@@ -1320,7 +1320,7 @@ static int PPMWriteImage(IMAGE *I, const char *fname, int frame)
 {
   FILE *outf;
   int i, j;
-  byte pval;
+  ubyte pval;
   pixel *cpix, *pp;
   if (I->pixel_format != PFBYTE)
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "PPMWrite: only PFBYTE currently supported"));
@@ -1372,7 +1372,7 @@ static IMAGE *PBMReadImage(const char *fname)
   IMAGE *I;
   int rows, cols, i, j;
   bit **inbits;
-  byte *ptr;
+  ubyte *ptr;
 
   if ((infile = pm_openr(fname)) == NULL) ErrorExit(ERROR_NO_FILE, "PGMReadImage:  Input file does not exist\n");
 
@@ -1384,7 +1384,7 @@ static IMAGE *PBMReadImage(const char *fname)
   ptr = I->image;
 
   for (j = rows - 1; j >= 0; j--)
-    for (i = 0; i < cols; i++) *ptr++ = (byte)((inbits[j][i] == PBM_WHITE) ? 255 : 0);
+    for (i = 0; i < cols; i++) *ptr++ = (ubyte)((inbits[j][i] == PBM_WHITE) ? 255 : 0);
 
   return I;
 }
@@ -1396,7 +1396,7 @@ static IMAGE *PPMReadImage(const char *fname)
   int rows, cols, format, i, j;
   pixval maxval;
   pixel *pixelrow, *pptr;
-  byte *ptr;
+  ubyte *ptr;
 
   if ((infile = pm_openr(fname)) == NULL) ErrorExit(ERROR_NO_FILE, "PGMReadImage:  Input file does not exist\n");
 
@@ -1410,7 +1410,7 @@ static IMAGE *PPMReadImage(const char *fname)
     ppm_readppmrow(infile, pixelrow, cols, maxval, format);
     pptr = pixelrow;
     ptr = IMAGEpix(I, 0, i);
-    for (j = 0; j < cols; j++, pptr++, ptr++) *ptr = (byte)(PPM_LUMIN(*pptr) + 0.5);
+    for (j = 0; j < cols; j++, pptr++, ptr++) *ptr = (ubyte)(PPM_LUMIN(*pptr) + 0.5);
   }
 
   pm_close(infile);
@@ -1573,7 +1573,7 @@ static IMAGE *RGBReadImage(char *fname) {
   IMAGE *I;
   RGB_IMAGE *rgb;
   unsigned short rows,cols,*r,*g,*b,i,j,*tr,*tg,*tb;
-  byte *iptr;
+  ubyte *iptr;
 
   rgb = iopen(fname, "r", 0, 0, 0, 0, 0);
   rows = rgb->ysize;

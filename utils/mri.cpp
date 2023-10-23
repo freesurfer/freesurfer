@@ -7029,9 +7029,9 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val);
       yp = h - (y + 1); /* hips coordinate system is inverted */
       if (format == PFBYTE)
-        *IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin));
+        *IMAGEpix(I, x, yp) = (ubyte)(255.0 * (val - fmin) / (fmax - fmin));
       else
-        *IMAGEFpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin));
+        *IMAGEFpix(I, x, yp) = (ubyte)(255.0 * (val - fmin) / (fmax - fmin));
     }
   }
 

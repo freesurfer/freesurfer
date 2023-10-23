@@ -3,7 +3,7 @@
 
 // ------ typedefs ------
 
-typedef unsigned char byte;
+typedef unsigned char ubyte;
 typedef char sbyte;
 typedef unsigned short h_ushort;
 typedef unsigned int h_uint;
@@ -112,7 +112,7 @@ typedef int h_boolean;
 // ------ structs ------
 
 union pixelval {
-  byte v_byte;
+  ubyte v_byte;
   sbyte v_sbyte;
   short v_short;
   h_ushort v_ushort;
@@ -145,9 +145,9 @@ struct header {
   int numpix;  /* The number of pixels per stored frame */
   fs_hsize_t sizepix; /* The number of bytes per pixel */
   fs_hsize_t sizeimage; /* The number of bytes per stored frame */
-  byte *image;  /* The image itself */
+  ubyte *image;  /* The image itself */
   h_boolean imdealloc; /* if nonzero, free image when requested */
-  byte *firstpix; /* Pointer to first pixel (for ROI) */
+  ubyte *firstpix; /* Pointer to first pixel (for ROI) */
   int sizehist; /* Number of bytes in history (excluding null, including <newline>) */
   char *seq_history; /* The sequence's history of transformations */
   h_boolean histdealloc; /* If nonzero, free history when requested */
@@ -173,11 +173,11 @@ struct extpar {
   int format;  /* format of values (PFBYTE, PFINT, etc.) */
   int count;  /* number of values */
   union {
-    byte v_b; /* PFBYTE/PFASCII, count = 1 */
+    ubyte v_b; /* PFBYTE/PFASCII, count = 1 */
     int v_i; /* PFINT, count = 1 */
     short v_s; /* PFSHORT, count = 1 */
     float v_f; /* PFFLOAT, count = 1 */
-    byte *v_pb; /* PFBYT/PFASCIIE, count > 1 */
+    ubyte *v_pb; /* PFBYT/PFASCIIE, count > 1 */
     int *v_pi; /* PFINT, count > 1 */
     short *v_ps; /* PFSHORT, count > 1 */
     float *v_pf; /* PFFLOAT, count > 1 */

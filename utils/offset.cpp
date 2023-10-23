@@ -1290,7 +1290,7 @@ IMAGE *ImageOffsetDirectionMagnitude(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsiz
 {
   int rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn, steps, dir, dot;
   float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix, fdir;
-  byte *calculated;
+  ubyte *calculated;
   static IMAGE *Icalculated = NULL;
 
   rows = Isrc->rows;
