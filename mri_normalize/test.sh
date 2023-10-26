@@ -11,7 +11,7 @@ test_command mri_normalize -aseg aseg.presurf.mgz norm.mgz brain.mgz
 # Have not yet set TESSTDATA_SUFFIX as .clang13 for MacOS 12
 if [ "$host_os" == "macos12" ]; then
    compare_vol brain.mgz brain.ref.clang13.mgz
-elif [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu20" ]] || [[ "$host_os" == "ubuntu22" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "macos10" ]]; then
+elif [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu20" ]] || [[ "$host_os" == "ubuntu22" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "centos9" ]] || [[ "$host_os" == "macos10" ]]; then
    compare_vol brain.mgz brain.ref${TESTDATA_SUFFIX}.mgz
 else
    compare_vol brain.mgz brain.ref.mgz
