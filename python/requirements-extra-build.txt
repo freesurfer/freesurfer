@@ -8,7 +8,7 @@ tensorflow-estimator==2.13.0
 tensorflow-io-gcs-filesystem==0.34.0
 torch==2.1.0
 transforms3d==0.4.1
-trimesh==4.0.0
+trimesh==4.0.1
 git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
 git+https://github.com/adalca/neurite.git@8dc24325c05366e3dc247d93173b3b5c424d1468
