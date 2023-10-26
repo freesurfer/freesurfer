@@ -32,7 +32,9 @@ template< typename TInputImage, typename TOutputImage >
 VarianceImageFilter< TInputImage, TOutputImage >
 ::VarianceImageFilter()
 {
-  // this->DynamicMultiThreadingOff();  
+#if ITK_VERSION_MAJOR >= 5  
+  this->DynamicMultiThreadingOff();
+#endif  
 }
 
 template< typename TInputImage, typename TOutputImage >
