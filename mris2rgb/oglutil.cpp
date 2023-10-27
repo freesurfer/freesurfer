@@ -414,14 +414,11 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           case MARK_RED:
             glColor3ub(255,0,0) ;
             break ;
-            break ;
           case MARK_WHITE:
             glColor3ub(255,255,255) ;
             break ;
-            break ;
           case MARK_GREEN:
             glColor3ub(0,255,0) ;
-            break ;
             break ;
           case MARK_BLUE:
             glColor3ub(0,0,255) ;
