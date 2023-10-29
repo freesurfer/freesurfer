@@ -126,6 +126,8 @@ host_os=$(get_os)
 export TESTDATA_SUFFIX=""
 if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu20" ]] || [[ "$host_os" == "ubuntu22" ]]; then
    export TESTDATA_SUFFIX=".gcc8"
+elif [ "$host_os" == "centos9" ]; then
+   export TESTDATA_SUFFIX=".gcc10"
 elif [ "$host_os" == "macos10" ]; then
    export TESTDATA_SUFFIX=".clang12"
 fi
@@ -182,6 +184,9 @@ function cleanup {
             # make sure the annex file is unlocked before replacing it
             cd $FSTEST_SCRIPT_DIR
             git annex unlock testdata.tar.gz
+
+	    exit 0
+
             mv -f ${FSTEST_REGENERATION_DIR}/testdata.tar.gz .
             rm -rf $FSTEST_REGENERATION_DIR
             echo "testdata has been regenerated - make sure to run 'git annex add testdata.tar.gz' to rehash before committing"

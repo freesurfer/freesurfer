@@ -9,7 +9,7 @@ fi
 
 compare_file raw ref${TESTDATA_SUFFIX}
 for stat in BE C FI H K1 K2 K S SI; do
-    if [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu20" ]] ||  [[ "$host_os" == "ubuntu22" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "macos10" ]] || [[ "$host_os" == "macos12" ]]; then
+    if [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu20" ]] ||  [[ "$host_os" == "ubuntu22" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "centos9" ]] || [[ "$host_os" == "macos10" ]] || [[ "$host_os" == "macos12" ]]; then
        compare_file raw.rh.smoothwm.${stat}.hist ref${TESTDATA_SUFFIX}.rh.smoothwm.${stat}.hist
     else
        compare_file raw.rh.smoothwm.${stat}.hist ref.rh.smoothwm.${stat}.hist

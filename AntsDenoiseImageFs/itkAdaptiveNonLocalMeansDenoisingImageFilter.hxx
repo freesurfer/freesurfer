@@ -58,7 +58,11 @@ AdaptiveNonLocalMeansDenoisingImageFilter<TInputImage, TOutputImage, TMaskImage>
   this->m_RicianBiasImage = nullptr;
 
   this->m_NeighborhoodRadiusForLocalMeanAndVariance.Fill( 1 );
-  // this->DynamicMultiThreadingOff();
+#if ITK_VERSION_MAJOR >= 5
+  // use classic void ThreadedGenerateData( const OutputRegionType& threadRegion, ThreadIdType threadId )
+  // instead of default new signature void DynamicThreadedGenerateData( const OutputRegionType& threadRegion )
+  this->DynamicMultiThreadingOff();
+#endif  
 }
 
 template<typename TInputImage, typename TOutputImage, typename TMaskImage>
