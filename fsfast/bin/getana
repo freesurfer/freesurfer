@@ -69,9 +69,10 @@ switch ($tag)
     #if($fwhm != 0) set result = $stcstem.sm$fwhm
     #if($fwhm == 0) set result = $stcstem
     if($#volsurffwhm == 0) then
-      set result = $stcstem.sm$fwhm
+      set result = $stcstem
+      if($fwhm != 0) set result = $result.sm$fwhm
     else
-      set result = $stcstem.vsm$volsurffwhm.sm$fwhm
+      set result = $stcstem.vsm$volsurffwhm
     endif
     breaksw;
 
