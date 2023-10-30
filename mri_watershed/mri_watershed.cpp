@@ -65,7 +65,6 @@
 #include "icosahedron.h"
 #include "tritri.h"
 #include "timer.h"
-#include "chklc.h"
 #include "diag.h"
 #include "version.h"
 #include "mrisegment.h"

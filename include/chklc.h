@@ -20,8 +20,7 @@
 #ifndef CHKLC_H
 #define CHKLC_H
 
-void chklc(void) ;
-int  chklc2(char* msg);
+int chklc(char *msg = NULL) ;
 void cmp_glib_version(void);
 
 #endif

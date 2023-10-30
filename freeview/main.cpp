@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
 
   // check license
   char license_msg[2000];
-  if (!chklc2(license_msg))
+  if (!chklc(license_msg))
   {
     QMessageBox::warning(&w, "License Error", license_msg);
     w.close();

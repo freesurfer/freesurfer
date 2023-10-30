@@ -43,7 +43,6 @@
 #include "icosahedron.h"
 #include "tritri.h"
 #include "timer.h"
-#include "chklc.h"
 #include "diag.h"
 #include "mri_topology.h"
 #include "gca.h"

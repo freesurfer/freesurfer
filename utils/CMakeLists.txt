@@ -240,7 +240,7 @@ target_link_libraries(utils
 )
 
 if(NOT APPLE)
-  target_link_libraries(utils crypt rt)
+  target_link_libraries(utils crypt crypto rt)
 endif()
 
 # utils binaries
