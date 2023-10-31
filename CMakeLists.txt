@@ -227,6 +227,9 @@ if(NOT APPLE)
   find_package(OpenCV)
 endif()
 
+# -------- openssl --------
+find_package(OpenSSL REQUIRED)
+
 # -------- X11 ---------
 find_package(X11)
 
