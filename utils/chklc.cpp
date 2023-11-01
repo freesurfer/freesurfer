@@ -254,9 +254,10 @@ int chklc(char *msg)
   // alpha-numeric. New license files have a 4th line with
   // a key generated using a proper salt.
   char *crypt_gkey = NULL;
+  int decryptedkey_len = 0;
   if (strcmp(key3, "") != 0) { // 5 line license file
     if (Gdiag_no > 0)
-      printf("[DEBUG] chklc() 5 line license file %s\n", lfilename);
+      printf("[DEBUG] chklc() 5 line license file %s (key3=%s  %lu)\n", lfilename, key3, strlen(key3));
 
     // base64 decode the key
     unsigned char decoded_encryptedkey[MAX_KEY_LEN] = {'\0'};
@@ -267,8 +268,9 @@ int chklc(char *msg)
     if (Gdiag_no > 0)
       printf("[DEBUG] decoded_encryptedkey_len = %d, strlen((char*)decoded_encryptedkey) = %lu\n", decoded_encryptedkey_len, strlen((char*)decoded_encryptedkey));
     
-    // can't pass decoded_encryptedkey_len to the call, need to pass strlen((char*)decoded_encryptedkey)
-    int decryptedkey_len = __decrypt_openssl(decoded_encryptedkey, strlen((char*)decoded_encryptedkey), aes_256_cbc_key, aes_256_cbc_iv, decryptedkey);
+    // pass decoded_encryptedkey_len to the call instead of strlen((char*)decoded_encryptedkey)
+    //int decryptedkey_len = __decrypt_openssl(decoded_encryptedkey, strlen((char*)decoded_encryptedkey), aes_256_cbc_key, aes_256_cbc_iv, decryptedkey);
+    decryptedkey_len = __decrypt_openssl(decoded_encryptedkey, decoded_encryptedkey_len, aes_256_cbc_key, aes_256_cbc_iv, decryptedkey);
     if (decryptedkey_len < 0)
     {
       printf("ERROR: __decrypt_openssl() failed with 5-line file (%s)\n", lfilename);
@@ -325,7 +327,7 @@ int chklc(char *msg)
   if (Gdiag_no > 0 && first_time) printf("crypt_gkey %s\n", crypt_gkey);
 
   if (Gdiag_no > 0)
-    printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%lu)\n", key, strlen(key), crypt_gkey, strlen(crypt_gkey));
+    printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%lu, %d)\n", key, strlen(key), crypt_gkey, strlen(crypt_gkey), decryptedkey_len);
   if (memcmp(key, crypt_gkey, strlen(key)) != 0) {
     fprintf(stderr, licmsg2, lfilename);
     if (msg != NULL)
@@ -387,10 +389,6 @@ static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsi
 {
   EVP_CIPHER_CTX *ctx;
 
-  int len;
-
-  int plaintext_len;
-
   /* Create and initialise the context */
   if (!(ctx = EVP_CIPHER_CTX_new()))
     return __handleErrors_openssl();
@@ -401,14 +399,34 @@ static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsi
   if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
     return __handleErrors_openssl();
 
+  // get cipher block size
+  int cipher_block_size = EVP_CIPHER_CTX_block_size(ctx);
+  if (Gdiag_no > 0)
+    printf("[DEBUG] cipher_block_size= %d\n", cipher_block_size);
+
+  // disable padding
+  EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+  // make the text to be decrypted multiple of cipher block size
+  int todecrypttext_len = (ciphertext_len%cipher_block_size == 0) ? ciphertext_len : (ciphertext_len/cipher_block_size + 1)*cipher_block_size;
+  unsigned char todecrypttext[todecrypttext_len];
+  memset(todecrypttext, 0, todecrypttext_len);
+  memcpy(todecrypttext, ciphertext, ciphertext_len);
+  if (Gdiag_no > 0)
+  {
+    printf("[DEBUG] ciphertext_len    = %d, ciphertext    = %s\n", ciphertext_len, ciphertext);
+    printf("[DEBUG] todecrypttext_len = %d, todecrypttext = %s\n", todecrypttext_len, todecrypttext);
+  }
+    
   /*
    * Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary.
    */
-  if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
+  int len;
+  if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, todecrypttext, todecrypttext_len))
     return __handleErrors_openssl();
 
-  plaintext_len = len;
+  int plaintext_len = len;
 
   /*
    * Finalise the decryption.
