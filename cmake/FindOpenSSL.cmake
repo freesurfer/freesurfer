@@ -20,7 +20,7 @@ endif()
 
 # find the include dir - search 1st for newer homebrew installation (which only exists on darwin_arm64 machine)
 find_path(OpenSSL_INCLUDE_DIR HINTS ${SSL_INC_1} ${SSL_INC_2} NAMES openssl/conf.h PATH_SUFFIXES openssl)
-set(OpenSSL_INCLUDE_DIR "${OpenSSL_INCLUDE_DIR}/..")
+#set(OpenSSL_INCLUDE_DIR "${OpenSSL_INCLUDE_DIR}/..")
 
 # find the lib dir - search 1st for Ubuntu path which will not be found on CentOS/RedHat (as the reverse is not true)
 find_path(OpenSSL_LIB_DIR HINTS ${SSL_LIB_1} ${SSL_LIB_2} NAMES ${SSL_SHARED_LIB})
