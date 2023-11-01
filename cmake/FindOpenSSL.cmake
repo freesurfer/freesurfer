@@ -1,7 +1,7 @@
 # OpenSSL Find Module
 
 if(APPLE)
-   set(SSL_SHARED_LIB libcrypto.dylib)
+   set(SSL_SHARED_LIB libcrypto.a)
    # newer homebrew installations, e.g., darwin_arm64
    set(SSL_INC_1 /opt/homebrew/opt/openssl/include)
    set(SSL_LIB_1 /opt/homebrew/opt/openssl/lib)

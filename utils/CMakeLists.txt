@@ -243,7 +243,7 @@ target_link_libraries(utils
 if(NOT APPLE)
   target_link_libraries(utils crypt crypto rt)
 else()
-  target_link_libraries(utils -L${OpenSSL_LIB_DIR} crypto)
+  target_link_libraries(utils ${OpenSSL_LIB_DIR}/libcrypto.a)
 endif()
 
 # utils binaries
