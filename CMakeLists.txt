@@ -856,6 +856,7 @@ if(NOT MINIMAL)
     ThalamicNucleiDTI
     trc
     tridec
+    unittests
     ventfix
     pointset2label
     recon_all_clinical

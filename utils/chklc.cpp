@@ -266,7 +266,8 @@ int chklc(char *msg)
     // Decrypt the decoded_encryptedkey
     unsigned char decryptedkey[MAX_KEY_LEN] = {'\0'};
     if (Gdiag_no > 0)
-      printf("[DEBUG] decoded_encryptedkey_len = %d, strlen((char*)decoded_encryptedkey) = %lu\n", decoded_encryptedkey_len, strlen((char*)decoded_encryptedkey));
+      printf("[DEBUG] key3 len = %lu, decoded_encryptedkey_len = %d, strlen((char*)decoded_encryptedkey) = %lu\n",
+	     strlen(key3), decoded_encryptedkey_len, strlen((char*)decoded_encryptedkey));
     
     // pass decoded_encryptedkey_len to the call instead of strlen((char*)decoded_encryptedkey)
     //int decryptedkey_len = __decrypt_openssl(decoded_encryptedkey, strlen((char*)decoded_encryptedkey), aes_256_cbc_key, aes_256_cbc_iv, decryptedkey);
@@ -284,7 +285,7 @@ int chklc(char *msg)
     
     decryptedkey[decryptedkey_len] = '\0';
     if (Gdiag_no > 0)
-      printf("[DEBUG] chklc() decrypted key: %s\n", decryptedkey);
+      printf("[DEBUG] chklc() decrypted key: %s (%d) \n", decryptedkey, decryptedkey_len);
 
     memset(key, 0, MAX_KEY_LEN);
     memcpy(key, gkey, strlen(gkey));
@@ -327,7 +328,7 @@ int chklc(char *msg)
   if (Gdiag_no > 0 && first_time) printf("crypt_gkey %s\n", crypt_gkey);
 
   if (Gdiag_no > 0)
-    printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%lu, %d)\n", key, strlen(key), crypt_gkey, strlen(crypt_gkey), decryptedkey_len);
+    printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%d, strlen=%lu)\n", key, strlen(key), crypt_gkey, decryptedkey_len, strlen(crypt_gkey));
   if (memcmp(key, crypt_gkey, strlen(key)) != 0) {
     fprintf(stderr, licmsg2, lfilename);
     if (msg != NULL)
@@ -399,7 +400,7 @@ static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsi
   if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
     return __handleErrors_openssl();
 
-  // get cipher block size
+  // get cipher block size, it is 128 bits (16 bytes) for NIST AES standard
   int cipher_block_size = EVP_CIPHER_CTX_block_size(ctx);
   if (Gdiag_no > 0)
     printf("[DEBUG] cipher_block_size= %d\n", cipher_block_size);
