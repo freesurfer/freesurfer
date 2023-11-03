@@ -549,6 +549,7 @@ if(DoGLMFit)
   tmpmri.vol = fast_mat2vol(rawsfnr,mri.volsize);
   fname = sprintf('%s/raw.fsnr.%s',outanadir,ext);
   MRIwrite(tmpmri,fname);
+
   % Save mean with-in mask raw fsnr
   rawfsnrmn = mean(tmpmri.vol(indmask));
   fname = sprintf('%s/raw.fsnr.dat',outanadir);
@@ -576,6 +577,10 @@ if(DoGLMFit)
   end
   fprintf('RescaleFactor = %g\n',RescaleFactor);
   fprintf(fplf,'RescaleFactor = %g\n',RescaleFactor);
+  fname = sprintf('%s/rescale-factor.dat',outanadir);
+  fp = fopen(fname,'w');
+  fprintf(fp,'%f\n',RescaleFactor);
+  fclose(fp);
 
   betamn0  = RescaleFactor*betamn0;
   betamat0 = RescaleFactor*betamat0;
@@ -615,7 +620,11 @@ if(DoGLMFit)
       fname = sprintf('%s/yhat-%03d.%s',outyhatdir,nthrun,ext);
       fprintf('Saving yhat to %s\n',fname);
       rrunmri = mri;
-      rrunmri.vol = fast_mat2vol(yhatrun,mri.volsize);
+      if(flac0.ReduceToMask) 
+	rrunmri.vol = fast_unmask(yhatrun,indmask,mri.volsize);
+      else
+	rrunmri.vol = fast_mat2vol(yhatrun,mri.volsize);
+      end
       MRIwrite(rrunmri,fname);
     end
     
@@ -705,8 +714,11 @@ if(DoGLMFit)
       if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
-	%rrunmri.vol = fast_mat2vol(yhatrun,mri.volsize);
-	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	if(flac0.ReduceToMask) 
+	  rrunmri.vol = fast_unmask(rrun,indmask,mri.volsize);
+	else
+	  rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	end
 	MRIwrite(rrunmri,fname);
       end
     end
@@ -959,9 +971,7 @@ if(DoGLMFit)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
 	if(flac0.ReduceToMask) 
-	  tmp = zeros(size(rrun,1),nvox);
-	  tmp(:,indmask) = rrun;
-	  rrunmri.vol = fast_mat2vol(tmp,mri.volsize);
+	  rrunmri.vol = fast_unmask(rrun,indmask,mri.volsize);
 	else 
 	  rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
 	end
