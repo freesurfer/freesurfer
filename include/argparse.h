@@ -4,6 +4,7 @@
 
 #ifndef ARGPARSE_H
 #define ARGPARSE_H
+#include <string>
 
 #if __cplusplus >= 201103L
 #include <unordered_map>
@@ -12,7 +13,6 @@ typedef std::unordered_map<std::string, size_t> IndexMap;
 #include <map>
 typedef std::map<std::string, size_t> IndexMap;
 #endif
-#include <string>
 #include <vector>
 #include <typeinfo>
 #include <stdexcept>

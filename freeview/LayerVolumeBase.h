@@ -109,6 +109,7 @@ signals:
   void EraseValueChanged( double );
   void BrushRadiusChanged( int );
   void BaseVoxelEdited(const QVector<int>, bool bAdd);
+  void Brush3DChanged( bool );
 
 public slots:
   void SetFillValue( double fFill );
@@ -117,6 +118,7 @@ public slots:
   void ClearVoxels();
   void PrepareShifting(int nPlane);
   void DoneShifting();
+  void Set3DBrush( bool b3DBrush );
 
 protected:
   QVector<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
@@ -175,7 +177,8 @@ protected:
   UndoRedoBufferItem    m_bufferClipboard;
 
   int   m_nBrushRadius;
-
+  bool m_b3DBrush;
+  
   BrushProperty*  m_propertyBrush;
 
   LivewireTool*  m_livewire;

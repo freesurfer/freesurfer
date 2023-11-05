@@ -416,6 +416,13 @@ distance</string>
          </property>
         </widget>
        </item>
+       <item row="0" column="2">
+         <widget class="QCheckBox" name="checkBox3DBrush">
+         <property name="text">
+         <string>3D brush</string>
+         </property>
+         </widget>
+       </item>
        <item row="7" column="5">
         <widget class="QSpinBox" name="spinBoxGeoWsize">
          <property name="suffix">
@@ -2053,6 +2060,22 @@ Shift + Left button to erase.
     </hint>
    </hints>
   </connection>
+    <connection>
+<sender>checkBox3DBrush</sender>
+<signal>toggled(bool)</signal>
+<receiver>ToolWindowEdit</receiver>
+<slot>On3DBrushChanged(bool)</slot>
+<hints>
+<hint type="sourcelabel">
+ <x>209</x>
+ <y>306</y>
+</hint>
+<hint type="destinationlabel">
+ <x>205</x>
+ <y>327</y>
+</hint>
+</hints>
+</connection>
   <connection>
    <sender>checkBoxEraseExcludeRange</sender>
    <signal>toggled(bool)</signal>

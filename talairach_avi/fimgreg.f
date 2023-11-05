@@ -181,7 +181,7 @@ c     finds optimal translation/rotation to achieve registration of img2 on img1
         del=4.+float(niter)		! 3d grid sampling interval in mm
       endif
       if(lfine)del=5.0
-      mod1=ior(mode,'20000'x)		! tell imgrege to set index in mask memory
+      mod1=ior(mode,z'20000')		! tell imgrege to set index in mask memory
       call imgrege(img1,msk1,nx1,ny1,nz1,mmppix1,center1,
      &             img2,msk2,nx2,ny2,nz2,mmppix2,center2,param,mod1,del,eta,q)
       write(*,"('niter,ni,del,rscale ',2i5,2f10.4)")niter,ni,del,rscale
@@ -189,7 +189,7 @@ c     finds optimal translation/rotation to achieve registration of img2 on img1
       taram(j)=param(j)
       do 84 i=-ni,ni
       param(j)=taram(j)+rscale*qaram(j)*raram(j,jndex)*float(i)/float(ni)
-      mod1=ior(mode,'10000'x)		! tell imgrege to use index in mask memory
+      mod1=ior(mode,z'10000')		! tell imgrege to use index in mask memory
       call imgrege(img1,msk1,nx1,ny1,nz1,mmppix1,center1,
      &             img2,msk2,nx2,ny2,nz2,mmppix2,center2,param,mod1,del,eta,q)
       x(i)=float(i)/float(ni)
@@ -422,9 +422,9 @@ c     endif
       external matmul
 
       lcorrel=iand(mode,256).ne.0
-      lfind=  iand(mode,'1000'x).ne.0
-      lsetk=  iand(mode,'20000'x).ne.0
-      lusek=  iand(mode,'10000'x).ne.0.and.(nk.gt.0).and..not.lsetk
+      lfind=  iand(mode,z'1000').ne.0
+      lsetk=  iand(mode,z'20000').ne.0
+      lusek=  iand(mode,z'10000').ne.0.and.(nk.gt.0).and..not.lsetk
 
       call vrt2img(mmppix1,center1,t1)
       call vrt2img(mmppix2,center2,b)
