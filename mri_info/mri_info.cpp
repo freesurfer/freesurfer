@@ -400,7 +400,8 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintFormat = 1;
     }
-    else if (!strcasecmp(option, "--orientation"))
+    else if (!strcasecmp(option, "--orientation") ||
+             !strcasecmp(option, "--ori"))
     {
       PrintOrientation = 1;
     }
@@ -520,7 +521,7 @@ static void print_usage(void)
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --mid-frame : print number of middle frame to stdout\n");
   printf("   --format : file format\n");
-  printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
+  printf("   --orientation, --ori : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
   printf("   --autoalign : print auto align matrix (if it exists)\n");
   printf("   --ctab : print embedded color lookup table\n");

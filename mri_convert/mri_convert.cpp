@@ -823,7 +823,8 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, colortablefile);
     }
-    else if(strcmp(argv[i], "--in_orientation") == 0)
+    else if(strcmp(argv[i], "-io") == 0 ||
+            strcmp(argv[i], "--in_orientation") == 0)
     {
       get_string(argc, argv, &i, in_orientation_string);
       errmsg = MRIcheckOrientationString(in_orientation_string);
@@ -837,7 +838,8 @@ int main(int argc, char *argv[])
       in_orientation_flag = TRUE;
     }
 
-    else if(strcmp(argv[i], "--out_orientation") == 0)
+    else if(strcmp(argv[i], "-oo") == 0 ||
+            strcmp(argv[i], "--out_orientation") == 0)
     {
       get_string(argc, argv, &i, out_orientation_string);
       errmsg = MRIcheckOrientationString(out_orientation_string);

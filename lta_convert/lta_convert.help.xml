@@ -43,11 +43,11 @@ Formats called "inverse" below transform coordinates from the space of the targe
       <explanation>input transform of MNI / XFM type</explanation>
       <argument>--inreg &lt;inreg.dat&gt;</argument>
       <explanation>input transform of TK REG type (deprecated format)</explanation>
-      <argument>--inniftyreg &lt;inniftyreg.dat&gt;</argument>
+      <argument>--inniftyreg, --inras &lt;inniftyreg.dat&gt;</argument>
       <explanation>input transform of NiftyReg type (inverse RAS2RAS)</explanation>
       <argument>--inniftyreg2d &lt;inniftyreg2d.dat&gt;</argument>
       <explanation>input transform of NiftyReg type for an image (2D)</explanation>
-      <argument>--initk &lt;initk.txt&gt;</argument>
+      <argument>--initk, --inlps &lt;initk.txt&gt;</argument>
       <explanation>input ITK transform (inverse LPS2LPS). Convert ANTS .mat binary to ITK format with ConvertTransformFile (in ANTS).</explanation>
       <argument>--invox &lt;invox.txt&gt;</argument>
       <explanation>input transform in source image space (inverse VOX2VOX)</explanation>
@@ -60,9 +60,9 @@ Formats called "inverse" below transform coordinates from the space of the targe
       <explanation>output transform in mni/xfm format</explanation>
       <argument>--outreg &lt;reg.dat&gt;</argument>
       <explanation>output transform in reg dat format</explanation>
-      <argument>--outniftyreg &lt;outniftyreg.txt&gt;</argument>
+      <argument>--outniftyreg, --outras &lt;outniftyreg.txt&gt;</argument>
       <explanation>output transform in NiftyReg format (inverse RAS2RAS)</explanation>
-      <argument>--outitk &lt;outitk.txt&gt;</argument>
+      <argument>--outitk, --outlps &lt;outitk.txt&gt;</argument>
       <explanation>output transform in ITK txt format (inverse LPS2LPS)</explanation>
       <argument>--outvox &lt;outvox.txt&gt;</argument>
       <explanation>output transform in source image space (inverse VOX2VOX)</explanation>
