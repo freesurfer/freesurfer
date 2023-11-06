@@ -6090,7 +6090,23 @@ std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume)
   if (DCM2NIIX_no_ForceStackSameSeries)
     ForceStackSameSeries = 0;
 
-  dcm2niix_fswrapper::setOpts(dcmdir, DCM2NIIX_outdir, createBIDS, ForceStackSameSeries);
+  if ((createBIDS || !ForceStackSameSeries || DCM2NIIX_outdir != NULL) && DCM2NIIX_OPTS == NULL)
+  {
+    DCM2NIIX_OPTS = (char*)malloc(STR_LEN);
+    memset(DCM2NIIX_OPTS, 0, STR_LEN);
+  }
+
+  // ??? first check if -b/-m is already in DCM2NIIX_OPTS ???    
+  if (DCM2NIIX_OPTS != NULL && strlen(DCM2NIIX_OPTS) > 0)    
+    strcat(DCM2NIIX_OPTS, ",");  
+  if (createBIDS)
+    strcat(DCM2NIIX_OPTS, "b=y,");
+  if (!ForceStackSameSeries)
+    strcat(DCM2NIIX_OPTS, "m=n,");
+  if (DCM2NIIX_outdir != NULL)
+    sprintf(DCM2NIIX_OPTS, "%so=%s", DCM2NIIX_OPTS, DCM2NIIX_outdir);
+  
+  dcm2niix_fswrapper::setOpts(dcmdir, DCM2NIIX_OPTS);
   int ret = dcm2niix_fswrapper::dcm2NiiOneSeries(dcmfile);
 
 #if 0

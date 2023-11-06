@@ -35,6 +35,7 @@ set dcm2niix_dicom_dump = 0
 set UseDCM2NIIX = 1; # changed this to 1 on 4/06/2023
 set dcm2niix_CreateBIDS  = 0
 set dcm2niix_no_ForceStackSameSeries = 0;
+set Dcm2niixOpts = ()
 set DoPhase = 0;
 set DoSiemensAscii = 1;
 set KeepScouts = 0;
@@ -534,6 +535,9 @@ foreach run ($RunNos)
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
       if($UseDCM2NIIX) then
         set cmd = ($cmd -dcm2niix)
+	if($#Dcm2niixOpts) then
+	  set cmd = ($cmd --dcm2niix-opts $Dcm2niixOpts)
+	endif
         if($dcm2niix_CreateBIDS) then
           set cmd = ($cmd -dcm2niix-createBIDS --dcm2niix-outdir $outdir)
         endif
@@ -895,6 +899,10 @@ while( $#argv != 0 )
       set dcm2niix_dicom_dump = 1;
       breaksw
 
+    case "--dcm2niix-opts":
+      set Dcm2niixOpts = "$argv[1]"; shift;
+      breaksw
+      
     case "-siemensBVecsCross"
       set siemensBVecsCross = 1;
       breaksw
