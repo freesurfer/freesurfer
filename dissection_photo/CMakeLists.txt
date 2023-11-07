@@ -28,5 +28,6 @@ if(BUILD_GUIS)
   add_subdirectory(connected_components)
   add_subdirectory(fiducials_calibration)
   add_subdirectory(fiducials_correction)
+  add_subdirectory(mask_extraction)
 
 endif()

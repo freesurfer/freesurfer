@@ -8,7 +8,7 @@
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
-    m_nNumberOfExpectedPoints(2), m_nEditMode(0)
+    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7)
 {
   setMouseTracking(true);
   m_colorPen = QColor(50,255,50);
@@ -77,6 +77,39 @@ bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, co
     return false;
 }
 
+bool WidgetImageView::LoadImage(const QString &filename, const QStringList &preprocessed_masks)
+{
+  m_sMessage.clear();
+  m_sFilename = filename;
+  m_listPreMasks = preprocessed_masks;
+  m_imageCombinedMaskOverlay = QImage();
+  PrepareImage();
+  if (!m_image.isNull())
+  {
+    m_dScale = 1.0;
+    m_ptOffset = QPoint(0,0);
+    UpdateScaledImage();
+    return true;
+  }
+  else
+    return false;
+}
+
+void WidgetImageView::SetAlphaByMask(QImage& image)
+{
+  for (int y = 0; y < image.height(); y++)
+  {
+    QRgb* p_dest = (QRgb*)image.scanLine(y);
+    for (int x = 0; x < image.width(); x++)
+    {
+      if (qRed(p_dest[x]) == 0)
+      {
+        p_dest[x] = qRgba(0,0,0,0);
+      }
+    }
+  }
+}
+
 void WidgetImageView::PrepareImage()
 {
   QImage image = ReadImageWithExifAwareness(m_sFilename);
@@ -95,6 +128,49 @@ void WidgetImageView::PrepareImage()
     {
       QPainter p(&m_image);
       p.drawImage(0, 0, m_imageOverlay);
+      p.end();
+    }
+    if (m_imageCombinedMaskOverlay.isNull() && !m_listPreMasks.isEmpty())
+    {
+      QList<QColor> colors;
+      colors << QColor(255,100,100) << QColor(255,255,100) << QColor(100,255,100)
+             << QColor(110,245,255) << QColor(75,100,255) << QColor(255,128,0)
+             << QColor(100,150,170) << QColor(120,60,220);
+      m_imageCombinedMaskOverlay = QImage(m_image.size(), QImage::Format_ARGB32);
+      m_imageCombinedMaskOverlay.fill(QColor(0,0,0,0));
+      m_listAllMasks.clear();
+      m_listSelectedMasks.clear();
+      QPainter p;
+      p.begin(&m_imageCombinedMaskOverlay);
+      for (int i = 0; i < m_listPreMasks.size(); i++)
+      {
+        QColor c = colors[i%(colors.size())];
+        QImage img(m_listPreMasks[i]);
+        img = img.convertedTo(QImage::Format_ARGB32);
+        SetAlphaByMask(img);
+        m_listAllMasks << img;
+        QPainter p1(&img);
+        p1.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        p1.fillRect(img.rect(), c);
+        p1.end();
+        p.drawImage(0, 0, img);
+      }
+      p.end();
+    }
+    if (!m_imageCombinedMaskOverlay.isNull())
+    {
+      QPainter p(&m_image);
+      p.setOpacity(m_dMaskOpacity);
+      p.drawImage(0, 0, m_imageCombinedMaskOverlay);
+      p.end();
+    }
+    if (!m_listSelectedMasks.isEmpty())
+    {
+      QPainter p(&m_image);
+      double val = 1;
+      p.setOpacity(qMin(1.0, m_dMaskOpacity*2));
+      foreach (QImage img, m_listSelectedMasks)
+        p.drawImage(0, 0, img);
       p.end();
     }
   }
@@ -205,12 +281,15 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
     if (e->modifiers() & Qt::ControlModifier)
     {
       m_bDrawing = true;
-      QPoint pt = ScreenToImage(m_ptPress);
-      RECT_REGION region;
-      region.first = pt;
-      region.second = pt;
-      m_listRegions << region;
-      setCursor(Qt::CrossCursor);
+      if (m_nEditMode != EM_SELECT_MASK)
+      {
+        QPoint pt = ScreenToImage(m_ptPress);
+        RECT_REGION region;
+        region.first = pt;
+        region.second = pt;
+        m_listRegions << region;
+        setCursor(Qt::CrossCursor);
+      }
     }
     else
       m_bPanning = true;
@@ -256,6 +335,22 @@ void WidgetImageView::mouseReleaseEvent(QMouseEvent *e)
         m_listRegions.removeLast();
       else
         emit LastRegionEdited(m_listRegions.size()-1);
+    }
+    else if (m_nEditMode == EM_SELECT_MASK && qAbs(dpt.x()) < 3 && qAbs(dpt.y() < 3))
+    {
+      QPoint pt = ScreenToImage(m_ptPress);
+      for (int i = m_listAllMasks.size()-1; i >= 0; i--)
+      {
+        QImage img = m_listSelectedMasks[i];
+        if (qRed(img.pixel(pt.x(), pt.y())) > 0 && !m_listSelectedMasks.contains(img))
+        {
+          m_listSelectedMasks << img;
+          PrepareImage();
+          UpdateScaledImage();
+          update();
+          break;
+        }
+      }
     }
   }
   else if (m_bZooming)
@@ -345,8 +440,17 @@ void WidgetImageView::ClearEdits()
   m_listPoints.clear();
   m_listRegions.clear();
   m_imageOverlay = QImage();
+  m_listSelectedMasks.clear();
   PrepareImage();
   UpdateScaledImage();
   HideMessage();
+  update();
+}
+
+void WidgetImageView::SetMaskOpacity(double val)
+{
+  m_dMaskOpacity = val;
+  PrepareImage();
+  UpdateScaledImage();
   update();
 }
