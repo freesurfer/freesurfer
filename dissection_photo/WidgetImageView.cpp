@@ -146,7 +146,7 @@ void WidgetImageView::PrepareImage()
       {
         QColor c = colors[i%(colors.size())];
         QImage img(m_listPreMasks[i]);
-        img = img.convertedTo(QImage::Format_ARGB32);
+        img = img.convertToFormat(QImage::Format_ARGB32);
         SetAlphaByMask(img);
         m_listAllMasks << img;
         QPainter p1(&img);
