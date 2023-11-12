@@ -18,7 +18,8 @@ scipy
 six
 ### 11/2023 - a spheremorph package version cannot be solved for that is compatible with other package versions installed on MacOS
 # spheremorph
-surfa @ git+https://github.com/freesurfer/surfa.git@master
+# surfa @ git+https://github.com/freesurfer/surfa.git@master
+surfa@git+https://github.com/freesurfer/surfa.git@master
 tensorboard
 Werkzeug
 # capping urllib to avoid this conflict with OpenSSL:

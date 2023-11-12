@@ -11,13 +11,16 @@ trimesh
 # FOR RELEASE: set this to the git hash in the log of the nightly build tested!
 
 # git+https://github.com/adalca/pystrum.git@6422922af2607bf740a78526c6be83c388b25c1c
-pystrum @ git+https://github.com/adalca/pystrum.git@master
+# pystrum @ git+https://github.com/adalca/pystrum.git@master
+pystrum@git+https://github.com/adalca/pystrum.git@master
 
 # git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
-neurite @ git+https://github.com/adalca/neurite.git@dev
+# neurite @ git+https://github.com/adalca/neurite.git@dev
+neurite@git+https://github.com/adalca/neurite.git@dev
 
 # git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
-voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
+# voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
+voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@dev
 
 
 # extra packages required for QA tools
