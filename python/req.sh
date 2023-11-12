@@ -115,6 +115,13 @@ fi
 
 
 if [ $add_links -eq 1 ]; then
+
+   grep "^FSPYTHON_BUILD_REQ:BOOL=ON" $cmake_cache > /dev/null
+   if [ $? == 0 ]; then
+      echo "no soft links needed for requirements files with FSPYTHON_BUILD_REQ enabled"
+      exit 0
+   fi
+
    if [ -L  requirements.txt ]; then
       echo "*** Error: requirements.txt is already a soft link"
       ls -l requirements.txt 
@@ -133,9 +140,10 @@ if [ $add_links -eq 1 ]; then
    fi
 
    ### NEW - zero out requirements-extra-build.txt because all revisions will be listed in requirements-build.txt
-   rm -f requirements-extra-build.txt
-   touch requirements-extra-build.txt
-   echo "# All package revisions to snapshot the python distribution are in requirements-build.txt" >> requirements-extra-build.txt
+   ### file has been pushed with string below
+   # rm -f requirements-extra-build.txt
+   # touch requirements-extra-build.txt
+   # echo "# All package revisions to snapshot the python distribution are in requirements-build.txt" >> requirements-extra-build.txt
 
    if [ ! -e requirements-extra-build.txt ]; then
       echo "*** Error: requirements-extra-build.txt does not exist to create a link from"

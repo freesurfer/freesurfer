@@ -22,6 +22,31 @@ else()
    install(PROGRAMS fspython DESTINATION bin)
 endif()
 
+# default is least version specific or sparse requirements to allow for latest pkg revisions
+set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt")
+set(requirements_extra "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt")
+if(FSPYTHON_BUILD_REQ)
+   # pip install current snapshot of (hardcoded) package revisions into fspython
+   if(NOT APPLE)
+      ## all linux OS
+      # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-linux.txt")
+      set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.txt")
+      set(requirements_extra "")
+   else()
+      if(NOT APPLE_ARM64)
+         ## darwin_x86_64
+         # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-darwin-intel.txt")
+	 message(STATUS "For HOST_OS=${HOST_OS} using default requirements files")
+      else()
+         ## darwin_arm64
+	 message(STATUS "For HOST_OS=${HOST_OS} - no requirements files currently in use with mininconda darwin_arm64.")
+      endif()
+   endif()
+endif()
+if(NOT APPLE_ARM64)
+   message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
+endif() 
+
 # install any package requirements
 if(INSTALL_PYTHON_DEPENDENCIES)
 
@@ -30,8 +55,9 @@ if(INSTALL_PYTHON_DEPENDENCIES)
   endif()
 
   install(CODE "
-    message(STATUS \"Installing python package dependencies\")
-    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt ${PKG_TARGET}\" RESULT_VARIABLE retcode)
+    message(STATUS \"Installing python package dependencies into fspython with cmd:\")
+    message(STATUS \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\")
+    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install python dependencies\")
     endif()
