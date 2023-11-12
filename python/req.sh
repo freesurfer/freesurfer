@@ -47,13 +47,13 @@ do
    esac
 done
 
+this_dir=$PWD
+cd ..
+top_dir=$PWD
+cd $this_dir
+cmake_cache=$top_dir/CMakeCache.txt
 
 if [ $generate -eq 1 ]; then
-   this_dir=$PWD
-   cd ..
-   top_dir=$PWD
-   cd $this_dir
-
    # Cannot be running with FREESURFER_HOME already set
    if [ ! -z "${FREESURFER_HOME}" ]; then
       echo "*** Error: Cannot run this script with FREESURFER_HOME already set in the environment"
@@ -65,7 +65,6 @@ if [ $generate -eq 1 ]; then
    fi
 
    # Use cached cmake output to get current install prefix else exit
-   cmake_cache=$top_dir/CMakeCache.txt
    install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
 
    # If requirements files not soft links and modified, then stop and do not clobber
