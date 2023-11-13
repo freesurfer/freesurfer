@@ -862,6 +862,7 @@ if(NOT MINIMAL)
     pointset2label
     recon_all_clinical
     mri_segment_thalamic_nuclei_dti_cnn
+    mris_register_josa
   )
 endif()
 
