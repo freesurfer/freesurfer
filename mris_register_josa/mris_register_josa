@@ -31,7 +31,7 @@ def print_usage():
     print("--curv_file", "path to ?h.curv file, overrides surf_dir/?h.curv")
     print("--inflated_curv_file", "path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
     print("--sphere_rot", "path to ?h.sphere.rot file")
-    print("--model", "path to the model file")
+    print("--model", "path to the model file. Default models directory is at $FREESURFER/models/mris_register_josa_?h_20231025.h5")
     print("--output_dir", "custom output directory, default is to save to the subject surf directory")
 
 
