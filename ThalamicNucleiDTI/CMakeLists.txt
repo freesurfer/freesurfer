@@ -6,9 +6,12 @@ if(APPLE)
         message(STATUS "ThalamicNucleiDTI is not currently available for M1/M2 Macs, skipping install")
     else()
         set(BIN_PROGRAMS
-            mac_x86_64/SegmentThalamicNuclei_DTI.app
+           # mac_x86_64/SegmentThalamicNuclei_DTI.app
             mac_x86_64/run_SegmentThalamicNuclei_DTI.sh
         )
+	
+	install_osx_app(mac_x86_64/SegmentThalamicNuclei_DTI.app)
+
         install_symlinks(
             ${BIN_PROGRAMS}
             segmentThalamicNuclei_DTI.sh
