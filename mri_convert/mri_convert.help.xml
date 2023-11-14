@@ -69,7 +69,7 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>-iid, --in_i_direction &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-ijd, --in_j_direction &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-ikd, --in_k_direction &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
-      <argument>--in_orientation orientation-string</argument>
+      <argument>-io, --in_orientation orientation-string</argument>
       <explanation>see SPECIFYING THE ORIENTATION</explanation>
       <argument>-ic, --in_center &lt;R coordinate&gt; &lt;A coordinate&gt; &lt;S coordinate&gt;</argument>
       <argument>-dic, --delta_in_center &lt;dR coordinate&gt; &lt;dA coordinate&gt; &lt;dS coordinate&gt;</argument>
@@ -92,7 +92,7 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>-oid, --out_i_direction &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-ojd, --out_j_direction &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-okd, --out_k_direction &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
-      <argument>--out_orientation orientation-string</argument>
+      <argument>-oo, --out_orientation orientation-string</argument>
       <explanation>see SETTING ORIENTATION</explanation>
       <argument>-oc, --out_center &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-odt, --out_data_type &lt;uchar|short|int|float&gt;</argument>

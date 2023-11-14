@@ -70,6 +70,7 @@ int  DCM2NIIX_createBIDS = 0;
 int  DCM2NIIX_no_ForceStackSameSeries = 0;
 const char *DCM2NIIX_INFO_DUMP = NULL;
 const char *DCM2NIIX_DICOM_FLIST = NULL;
+char  *DCM2NIIX_OPTS = NULL;
 int DoSiemensAsciiDump = 0;
 int DoSiemensAsciiAltDump = 0;
 /* These variables allow the user to change the first tag checked to
@@ -88,6 +89,7 @@ extern int  DCM2NIIX_createBIDS;
 extern int  DCM2NIIX_no_ForceStackSameSeries;
 extern const char *DCM2NIIX_INFO_DUMP;
 extern const char *DCM2NIIX_DICOM_FLIST;
+extern char  *DCM2NIIX_OPTS;
 extern int DoSiemensAsciiDump;
 extern int DoSiemensAsciiAltDump;
 extern long SliceResElTag1;

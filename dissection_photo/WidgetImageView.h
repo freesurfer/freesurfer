@@ -18,6 +18,8 @@ public:
                  const QList<QPoint>& points = QList<QPoint>(),
                  const QList<RECT_REGION>& regions = QList<RECT_REGION>());
 
+  bool LoadImage(const QString& filename, const QStringList& preprocessed_masks);
+
   void paintEvent(QPaintEvent* e);
   void mousePressEvent(QMouseEvent* e);
   void mouseMoveEvent(QMouseEvent* e);
@@ -49,7 +51,7 @@ public:
 
   QImage ReadImageWithExifAwareness(const QString& filename);
 
-  enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION };
+  enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION, EM_SELECT_MASK };
 
 signals:
   void LastRegionEdited(int n);
@@ -83,10 +85,23 @@ public slots:
 
   void ClearEdits();
 
+  QList<QImage> GetSelectedMasks()
+  {
+    return m_listSelectedMasks;
+  }
+
+  double GetMaskOpacity()
+  {
+    return m_dMaskOpacity;
+  }
+
+  void SetMaskOpacity(double val);
+
 private:
   void PrepareImage();
   void UpdateScaledImage(bool bSmooth = false);
   QPoint ScreenToImage(const QPoint& pt);
+  void SetAlphaByMask(QImage& image);
 
   QString   m_sFilename;
   QString   m_sMaskFilename;
@@ -109,6 +124,11 @@ private:
   QColor    m_colorPen;
 
   QString   m_sMessage;
+  QStringList m_listPreMasks;
+  QImage    m_imageCombinedMaskOverlay;
+  double    m_dMaskOpacity;
+  QList<QImage> m_listAllMasks;
+  QList<QImage> m_listSelectedMasks;
 };
 
 #endif // WIDGETIMAGEVIEW_H

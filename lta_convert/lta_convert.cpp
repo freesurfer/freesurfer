@@ -1279,7 +1279,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     do_sqrt = 1 ;
     cout << "--sqrt: True " << endl;
   }
-  else if (!strcmp(option, "INNIFTYREG"))
+  else if (!strcmp(option, "INNIFTYREG") ||
+           !strcmp(option, "INRAS") )
   {
     P.transin = string(argv[1]);
     P.intype = intypes::NIFTYREG;
@@ -1294,7 +1295,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--inniftyreg2d: " << P.transin << " input NiftyReg transform." << endl;
   }
-  else if (!strcmp(option, "INITK"))
+  else if (!strcmp(option, "INITK") ||
+           !strcmp(option, "INLPS") )
   {
     P.transin = string(argv[1]);
     P.intype = intypes::ITK;
@@ -1332,13 +1334,15 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--outreg: " << P.regout << " output reg.dat matrix." << endl;
   }
-  else if (!strcmp(option, "OUTNIFTYREG"))
+  else if (!strcmp(option, "OUTNIFTYREG") ||
+           !strcmp(option, "OUTRAS") )
   {
     P.niftyregout = string(argv[1]);
     nargs = 1;
     cout << "--outniftyreg: " << P.niftyregout << " output NiftyReg matrix." << endl;
   }
-  else if (!strcmp(option, "OUTITK") )
+  else if (!strcmp(option, "OUTITK") ||
+           !strcmp(option, "OUTLPS") )
   {
     P.itkout = string(argv[1]);
     nargs = 1;

@@ -48,6 +48,7 @@ option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
 option(PATCH_FSPYTHON "Build subdirs with source using gfortran" OFF)
+option(FSPYTHON_BUILD_REQ "Pip will use requirmenets files with a snapshot of pkg revisions when installing pkgs into fspython" OFF)
 
 #  Modern compilers on new platforms often provide many more warnings than older compilers
 #  for example the gcc 7.5.0 compiler warnings about falling through switch statements
@@ -226,6 +227,9 @@ endif()
 if(NOT APPLE)
   find_package(OpenCV)
 endif()
+
+# -------- openssl --------
+find_package(OpenSSL REQUIRED)
 
 # -------- X11 ---------
 find_package(X11)
@@ -444,10 +448,10 @@ if(NOT NO_CXX_WARN)
        # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
        # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
        # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
-       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter -Wno-bool-compare")
     elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
        # uses gcc8 as well
-       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter -Wno-bool-compare")
     elseif(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-non-c-typedef-for-linkage")
     else ()
@@ -853,10 +857,12 @@ if(NOT MINIMAL)
     ThalamicNucleiDTI
     trc
     tridec
+    unittests
     ventfix
     pointset2label
     recon_all_clinical
     mri_segment_thalamic_nuclei_dti_cnn
+    mris_register_josa
   )
 endif()
 

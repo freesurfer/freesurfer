@@ -14,7 +14,7 @@ if(BUILD_GUIS)
   endif()
 
   add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare
-                      -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-deprecated-declarations)
+                      -Wno-overloaded-virtual -Wno-deprecated-declarations)
                       
                       
   if(APPLE)
@@ -28,5 +28,6 @@ if(BUILD_GUIS)
   add_subdirectory(connected_components)
   add_subdirectory(fiducials_calibration)
   add_subdirectory(fiducials_correction)
+  add_subdirectory(mask_extraction)
 
 endif()

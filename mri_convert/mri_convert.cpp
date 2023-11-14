@@ -823,7 +823,8 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, colortablefile);
     }
-    else if(strcmp(argv[i], "--in_orientation") == 0)
+    else if(strcmp(argv[i], "-io") == 0 ||
+            strcmp(argv[i], "--in_orientation") == 0)
     {
       get_string(argc, argv, &i, in_orientation_string);
       errmsg = MRIcheckOrientationString(in_orientation_string);
@@ -837,7 +838,8 @@ int main(int argc, char *argv[])
       in_orientation_flag = TRUE;
     }
 
-    else if(strcmp(argv[i], "--out_orientation") == 0)
+    else if(strcmp(argv[i], "-oo") == 0 ||
+            strcmp(argv[i], "--out_orientation") == 0)
     {
       get_string(argc, argv, &i, out_orientation_string);
       errmsg = MRIcheckOrientationString(out_orientation_string);
@@ -1207,7 +1209,14 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[i], "-dcm2niix-dicom-flist") == 0 || strcmp(argv[i], "--dcm2niix-dicom-flist") == 0)
     {
       DCM2NIIX_DICOM_FLIST = argv[++i];
-    }    
+    }
+    else if (strcmp(argv[i], "-dcm2niix-opts") == 0 || strcmp(argv[i], "--dcm2niix-opts") == 0)
+    {
+      ++i;
+      DCM2NIIX_OPTS = (char*)malloc(strlen(argv[i])+1);
+      memset(DCM2NIIX_OPTS, 0, strlen(argv[i])+1);
+      memcpy(DCM2NIIX_OPTS, argv[i], strlen(argv[i]));
+    }
     else if (strcmp(argv[i], "-siemens-ascii-dump") == 0)
     {
       DoSiemensAsciiDump = 1;

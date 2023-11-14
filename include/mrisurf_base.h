@@ -61,7 +61,6 @@ extern int fix_vertex_area;
 #include "mrisurf.h"
 #include "mrishash_internals.h"
 #include "MRISrigidBodyAlignGlobal.h"
-#include "chklc.h"
 #include "cma.h"
 #include "colortab.h"
 #include "const.h"

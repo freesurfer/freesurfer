@@ -1,17 +1,1 @@
-h5py==3.10.0
-matplotlib==3.7.3
-opencv-python==4.8.1.78
-pandas==2.0.3
-scikit-image==0.21.0
-tensorflow==2.13.1
-tensorflow-estimator==2.13.0
-tensorflow-io-gcs-filesystem==0.34.0
-torch==2.1.0
-transforms3d==0.4.1
-trimesh==4.0.1
-git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
-# pystrum @ git+https://github.com/adalca/pystrum.git@master
-git+https://github.com/adalca/neurite.git@8dc24325c05366e3dc247d93173b3b5c424d1468
-# neurite @ git+https://github.com/adalca/neurite.git@dev
-git+https://github.com/voxelmorph/voxelmorph.git@75f5d3f9800649bc0716659e097fc47f6967a69f
-# voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
+# All package revisions to snapshot the python distribution are in requirements-build.txt

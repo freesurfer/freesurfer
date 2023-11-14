@@ -9,3 +9,6 @@ install(FILES synthsr_v10_210712_hyperfine.h5 DESTINATION models)
 
 install_symlinks(TYPE files DESTINATION models synthsr_v20_230130.h5 )
 install_symlinks(TYPE files DESTINATION models synthsr_lowfield_v20_230130.h5)
+
+add_test_script(NAME mri_synthsr_test SCRIPT test.sh)
+

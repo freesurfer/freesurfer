@@ -21,7 +21,6 @@
 #include <gnu/libc-version.h>
 #endif
 
-#include <chklc.h>
 #include <const.h>
 #include <errno.h>
 #include <stdio.h>
@@ -32,9 +31,14 @@
 #include <sys/stat.h>
 #include <iostream>
 
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+
+#include "chklc.h"
 #include "diag.h"
 
-extern char *crypt(const char *, const char *);
+#define MAX_KEY_LEN 1024
 
 static const char *errmsg =
     "--------------------------------------------------------------------------\n"
@@ -81,32 +85,49 @@ static const char *isdir_msg =
     "ERROR: FS_LICENSE environment variable points to a folder not a file\n"
     "---------------------------------------------------------------------------\n";
 
+// 256 bit key
+static unsigned char aes_256_cbc_key[] = { 0x3c, 0x3f, 0x78, 0x6d, 0x6c, 0x20, 0x76, 0x65,
+			                   0x72, 0x73, 0x69, 0x6f, 0x6e, 0x3d, 0x22, 0x31,
+			                   0x2e, 0x30, 0x22, 0x20, 0x65, 0x6e, 0x63, 0x6f,
+                                           0x64, 0x69, 0x6e, 0x67, 0x3d, 0x22, 0x49, 0x53
+                                         };
+// 128 bit IV
+static unsigned char aes_256_cbc_iv[]  = { 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61,
+			                   0x6c, 0x2a, 0x20, 0x2c, 0x20, 0x72, 0x65, 0x71
+                                         };
 
-void chklc(void)
+static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+            unsigned char *iv, unsigned char *plaintext);	    
+static int __handleErrors_openssl();
+
+// freeview will pass a msg buffer to chklc() call
+int chklc(char *msg)
 {
-  char dirname[STRLEN], *cp, *alt;
-  FILE *lfile = NULL;
-  char *email;
-  char *magic;
-  char *key;
-  char *key2;
-  char *gkey;
-  char *lfilename;
-  char str[STRLEN];
-  char *crypt_gkey;
   static int first_time = 1;
+  
+  char str[STRLEN];
+  if (msg != NULL)
+    sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
+  else
+    sprintf(str, "S%sER%sIDE%sOR", "URF", "_S", "DO");
+  
+  if (getenv(str) != NULL)
+    return 1;
 
-  sprintf(str, "S%sER%sIDE%sOR", "URF", "_S", "DO");
-  if (getenv(str) != NULL) return;
-
-  cp = getenv("FREESURFER_HOME");
+  char dirname[STRLEN] = {'\0'};
+  char *cp = getenv("FREESURFER_HOME");
   if (cp == NULL) {
     fprintf(stderr, "%s", errmsg);
 #ifdef Darwin
     fprintf(stderr, "\n");
-    fprintf(stderr, "%s", "Attempting to use /Applications/freesurfer directory.\n");
+    fprintf(stderr, "%s", "Attempting to use the /Applications/freesurfer directory.\n");
     strncpy(dirname, "/Applications/freesurfer", STRLEN);
 #else
+    if (msg != NULL)
+    {
+      sprintf(msg, "%s", errmsg);
+      return 0;
+    }
     exit(-1);
 #endif
   }
@@ -114,25 +135,31 @@ void chklc(void)
     strncpy(dirname, cp, STRLEN-1);
   }
 
-  lfilename = (char *)calloc(1, 512);
-  email = (char *)calloc(1, 512);
-  magic = (char *)calloc(1, 512);
-  key = (char *)calloc(1, 512);
-  key2 = (char *)calloc(1, 512);
-  gkey = (char *)calloc(1, 1024);
-
+  char lfilename[STRLEN] = {'\0'};
+  FILE *lfile = NULL;
+  
   // check if alternative license path is provided:
-  alt = getenv("FS_LICENSE");
+  char *alt = getenv("FS_LICENSE");
   if (alt != NULL) {
     strncpy(lfilename, alt, 511);	// leave a nul on the end
     if (Gdiag_no > 0 && first_time) printf("Trying license file %s\n", lfilename);
     lfile = fopen(lfilename, "r");
     if (lfile == NULL) {
       if (errno == EACCES) {
-        printf(permission_msg, lfilename, lfilename);
+        fprintf(stderr, permission_msg, lfilename, lfilename);
+	if (msg != NULL)
+        {
+	  sprintf(msg, permission_msg, lfilename, lfilename);
+	  return 0;
+        }
         exit(-1);
       }
       fprintf(stderr, licmsg, lfilename);
+      if (msg != NULL)
+      {
+	sprintf(msg, licmsg, lfilename);
+	return 0;
+      }
       exit(-1);
     }
     // make sure that the path is not a directory
@@ -157,7 +184,12 @@ void chklc(void)
   }
   if (lfile == NULL) {
     if (errno == EACCES) {
-      printf(permission_msg, lfilename, lfilename);
+      fprintf(stderr, permission_msg, lfilename, lfilename);
+      if (msg != NULL)
+      {
+        sprintf(msg, permission_msg, lfilename, lfilename);
+	return 0;
+      }
       exit(-1);
     }
     auto cx = snprintf(lfilename, 511, "%s/.lic%s", dirname, "ense");
@@ -171,17 +203,39 @@ void chklc(void)
   }
   if (lfile == NULL) {
     if (errno == EACCES) {
-      printf(permission_msg, lfilename, lfilename);
+      fprintf(stderr, permission_msg, lfilename, lfilename);
+      if (msg != NULL)
+      {
+        sprintf(msg, permission_msg, lfilename, lfilename);
+	return 0;
+      }      
       exit(-1);
     }
     fprintf(stderr, licmsg, lfilename);
+    if (msg != NULL)
+    {
+      sprintf(msg, licmsg, lfilename);
+      return 0;
+    }
     exit(-1);
   }
 
-  if (fscanf(lfile, "%s\n%s\n%s\n%s\n", email, magic, key, key2) != 4) {
-    fprintf(stderr, "error parsing license file, expected 4 values\n");
+  char email[MAX_KEY_LEN/2] = {'\0'}, magic[MAX_KEY_LEN/2] = {'\0'};
+  char key[MAX_KEY_LEN] = {'\0'}, key2[MAX_KEY_LEN] = {'\0'}, key3[MAX_KEY_LEN] = {'\0'};
+  if (fscanf(lfile, "%s\n%s\n%s\n%s\n%s\n", email, magic, key, key2, key3) < 4) {
+    fprintf(stderr, "error parsing license file, at least 4 values expected\n");
+    fclose(lfile);
+    fprintf(stderr, licmsg2, lfilename);
+    if (msg != NULL)
+    {
+      sprintf(msg, licmsg2, lfilename);
+      return 0;
+    }
+    exit(-1);
   }
-
+  fclose(lfile);
+  
+  char gkey[MAX_KEY_LEN] = {'\0'};  
   sprintf(gkey, "%s.%s", email, magic);
 
   if (Gdiag_no > 0 && first_time) {
@@ -189,6 +243,7 @@ void chklc(void)
     printf("magic %s\n", magic);
     printf("key   %s\n", key);
     printf("key2  %s\n", key2);
+    printf("key3  %s\n", key3);
     printf("gkey  %s\n", gkey);
   }
 
@@ -198,14 +253,61 @@ void chklc(void)
   // "*C" which is not valid because it should be purely
   // alpha-numeric. New license files have a 4th line with
   // a key generated using a proper salt.
+  char *crypt_gkey = NULL;
+  int decryptedkey_len = 0;
+  if (strcmp(key3, "") != 0) { // 5 line license file
+    if (Gdiag_no > 0)
+      printf("[DEBUG] chklc() 5 line license file %s (key3=%s  %lu)\n", lfilename, key3, strlen(key3));
 
-  if (strcmp(key2, "") != 0) {
+    // base64 decode the key
+    unsigned char decoded_encryptedkey[MAX_KEY_LEN] = {'\0'};
+    int decoded_encryptedkey_len = EVP_DecodeBlock(decoded_encryptedkey, (unsigned char*)key3, strlen(key3));
+
+    // Decrypt the decoded_encryptedkey
+    unsigned char decryptedkey[MAX_KEY_LEN] = {'\0'};
+    if (Gdiag_no > 0)
+      printf("[DEBUG] key3 len = %lu, decoded_encryptedkey_len = %d, strlen((char*)decoded_encryptedkey) = %lu\n",
+	     strlen(key3), decoded_encryptedkey_len, strlen((char*)decoded_encryptedkey));
+    
+    // pass decoded_encryptedkey_len to the call instead of strlen((char*)decoded_encryptedkey)
+    //int decryptedkey_len = __decrypt_openssl(decoded_encryptedkey, strlen((char*)decoded_encryptedkey), aes_256_cbc_key, aes_256_cbc_iv, decryptedkey);
+    decryptedkey_len = __decrypt_openssl(decoded_encryptedkey, decoded_encryptedkey_len, aes_256_cbc_key, aes_256_cbc_iv, decryptedkey);
+    if (decryptedkey_len < 0)
+    {
+      printf("ERROR: __decrypt_openssl() failed with 5-line file (%s)\n", lfilename);
+      if (msg != NULL)
+      {
+	sprintf(msg, "ERROR: __decrypt_openssl() failed with 5-line file (%s)\n", lfilename);
+	return 0;
+      }
+      exit(1);
+    }
+    
+    decryptedkey[decryptedkey_len] = '\0';
+    if (Gdiag_no > 0)
+      printf("[DEBUG] chklc() decrypted key: %s (%d) \n", decryptedkey, decryptedkey_len);
+
+    memset(key, 0, MAX_KEY_LEN);
+    memcpy(key, gkey, strlen(gkey));
+    
+    crypt_gkey = (char*)malloc(decryptedkey_len+1);
+    memset(crypt_gkey, 0, decryptedkey_len+1);
+    memcpy(crypt_gkey, decryptedkey, decryptedkey_len);
+  }
+  else if (strcmp(key2, "") != 0) {
     // We have a 4 line license file.
+    if (Gdiag_no > 0)
+      printf("[DEBUG] chklc() 4 line license file %s\n", lfilename);
     if (Gdiag_no > 0 && first_time) printf("4 line license file\n");
     strcpy(key, key2);
     crypt_gkey = crypt(gkey, "FS");
     if (crypt_gkey == NULL) {
-      printf("ERROR: crypt() returned null with 4-line file\n");
+      printf("ERROR: crypt() returned null with 4-line file (%s)\n", lfilename);
+      if (msg != NULL)
+      {
+	sprintf(msg, "ERROR: crypt() returned null with 4-line file (%s)\n", lfilename);
+	return 0;
+      }
       exit(1);
     }
   }
@@ -225,176 +327,23 @@ void chklc(void)
 
   if (Gdiag_no > 0 && first_time) printf("crypt_gkey %s\n", crypt_gkey);
 
-  if (strcmp(key, crypt_gkey) != 0) {
+  if (Gdiag_no > 0)
+    printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%d, strlen=%lu)\n", key, strlen(key), crypt_gkey, decryptedkey_len, strlen(crypt_gkey));
+  if (memcmp(key, crypt_gkey, strlen(key)) != 0) {
     fprintf(stderr, licmsg2, lfilename);
+    if (msg != NULL)
+    {
+      sprintf(msg, licmsg2, lfilename);
+      return 0;
+    }
     exit(-1);
   }
 
-  free(email);
-  free(magic);
-  free(key);
-  free(key2);
-  free(gkey);
-  free(lfilename);
-  fclose(lfile);
-
+  if (strcmp(key3, "") != 0)
+    free(crypt_gkey);
+  
   if (Gdiag_no > 0 && first_time) printf("chklc() done\n");
   first_time = 0;
-  return;
-}
-
-//  Unfortunately we need separate, but nearly identicle, license checking code
-//  for freeview. This is because the license checking above will exit(-1)
-//  if the license check fails. But freeview is a clickable application on mac
-//  which might not have a terminal window open, so we want a message to appear
-//  if the license check fails. The only way to do this is to either modify
-//  all existing calls to chklc throughout the code, or have separate license
-//  checking code for freeview. The first scares me, so Im going with the
-//  latter.
-//
-//  Also there are difference with the way the FREESURFER_HOME environment variable
-//  is handled. It doesnt need to be defined for freeview to operate. So perhaps
-//  this somewhat redundant code is a tad more justified.
-//
-//  return value:   0 - failed
-//                  1 - passed
-//
-//  if failed, error msg will be returned in msg. make sure msg is pre-allocated with enough space
-int chklc2(char *msg)
-{
-  char dirname[STRLEN], *cp, *alt;
-  FILE *lfile = NULL;
-  char *email;
-  char *magic;
-  char *key;
-  char *key2;
-  char *gkey;
-  char *lfilename;
-  char str[STRLEN];
-  char *crypt_gkey;
-
-  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
-  if (getenv(str) != NULL) return 1;
-
-  cp = getenv("FREESURFER_HOME");
-  if (cp == NULL) {
-    fprintf(stderr, "%s", errmsg);
-#ifdef Darwin
-    fprintf(stderr, "\n");
-    fprintf(stderr, "%s", "Attempting to use the /Applications/freesurfer directory.\n");
-    strncpy(dirname, "/Applications/freesurfer", STRLEN);
-#else
-    exit(-1);
-#endif
-  }
-  else {
-    strncpy(dirname, cp, STRLEN-1);
-  }
-
-  lfilename = (char *)calloc(1, 512);
-  email = (char *)calloc(1, 512);
-  magic = (char *)calloc(1, 512);
-  key = (char *)calloc(1, 512);
-  key2 = (char *)calloc(1, 512);
-  gkey = (char *)calloc(1, 1024);
-
-  // check if alternative license path is provided:
-  alt = getenv("FS_LICENSE");
-  if (alt != NULL) {
-    strncpy(lfilename, alt, 511);	// leave a nul on the end
-    lfile = fopen(lfilename, "r");
-    if (lfile == NULL) {
-      if (errno == EACCES) {
-        fprintf(stderr, permission_msg, lfilename, lfilename);
-        if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
-        return 0;
-      }
-      fprintf(stderr, licmsg, lfilename);
-      if (msg) sprintf(msg, licmsg, lfilename);
-      return 0;
-    }
-  }
-
-  // check for license in FREESURFER_HOME:
-  if (lfile == NULL) {
-    auto cx = snprintf(lfilename, 511, "%s/.lic%s", dirname, "ense");
-    if( (cx<0) || (cx>511) ) {
-      std::cerr << __FUNCTION__
-		<< ": snprintf returned error on line "
-		<< __LINE__ << std::endl;
-    }
-    lfile = fopen(lfilename, "r");
-  }
-  if (lfile == NULL) {
-    if (errno == EACCES) {
-      fprintf(stderr, permission_msg, lfilename, lfilename);
-      if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
-      return 0;
-    }
-    auto cx = snprintf(lfilename, 511, "%s/lic%s", dirname, "ense.txt");
-    if( (cx<0) || (cx>511) ) {
-      std::cerr << __FUNCTION__
-		<< ": snprintf returned error on line "
-		<< __LINE__ << std::endl;
-    }
-    lfile = fopen(lfilename, "r");
-  }
-  if (lfile == NULL) {
-    if (errno == EACCES) {
-      fprintf(stderr, permission_msg, lfilename, lfilename);
-      if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
-      return 0;
-    }
-    fprintf(stderr, licmsg, lfilename);
-    if (msg) sprintf(msg, licmsg, lfilename);
-    return 0;
-  }
-
-  if (fscanf(lfile, "%s\n%s\n%s\n%s\n", email, magic, key, key2) != 4) {
-    fprintf(stderr, "error parsing license file, expected 4 values\n");
-    return 0;
-  }
-
-  sprintf(gkey, "%s.%s", email, magic);
-
-  // This code is meant to provide backwards compatibility
-  // of freesurfer license checking. Unfortunately previous
-  // freesurfer license keys used an improper salt value of
-  // "*C" which is not valid because it should be purely
-  // alpha-numeric. New license files have a 4th line with
-  // a key generated using a proper salt.
-
-  if (strcmp(key2, "") != 0) {
-    // We have a 4 line license file.
-    strcpy(key, key2);
-    crypt_gkey = crypt(gkey, "FS");
-  }
-  else {
-// We have a 3 line license file.
-#ifdef Darwin
-    // On Darwin systems the key produced with a salt of '*C'
-    // is different than that produced on Linux. So to be backwards
-    // compatible we must avoid the call to crypt.
-    crypt_gkey = key;
-#else
-    cmp_glib_version();
-    crypt_gkey = crypt(gkey, "*C");
-#endif
-  }
-
-  if (strcmp(key, crypt_gkey) != 0) {
-    fprintf(stderr, licmsg2, lfilename);
-    if (msg) sprintf(msg, licmsg2, lfilename);
-    return 0;
-  }
-
-  free(email);
-  free(magic);
-  free(key);
-  free(key2);
-  free(gkey);
-  free(lfilename);
-  fclose(lfile);
 
   return 1;
 }
@@ -425,3 +374,72 @@ void cmp_glib_version(void)
   }
 }
 #endif
+
+// return -1 for errors
+static int __handleErrors_openssl()
+{
+  ERR_print_errors_fp(stderr);
+  //abort();
+  return -1;
+}
+
+// return the decrypted text length
+// return -1 for errors
+static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+                             unsigned char *iv, unsigned char *plaintext)
+{
+  EVP_CIPHER_CTX *ctx;
+
+  /* Create and initialise the context */
+  if (!(ctx = EVP_CIPHER_CTX_new()))
+    return __handleErrors_openssl();
+
+  /*
+   * Initialise the decryption operation
+   */
+  if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
+    return __handleErrors_openssl();
+
+  // get cipher block size, it is 128 bits (16 bytes) for NIST AES standard
+  int cipher_block_size = EVP_CIPHER_CTX_block_size(ctx);
+  if (Gdiag_no > 0)
+    printf("[DEBUG] cipher_block_size= %d\n", cipher_block_size);
+
+  // disable padding
+  EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+  // make the text to be decrypted multiple of cipher block size
+  int todecrypttext_len = (ciphertext_len%cipher_block_size == 0) ? ciphertext_len : (ciphertext_len/cipher_block_size + 1)*cipher_block_size;
+  unsigned char todecrypttext[todecrypttext_len];
+  memset(todecrypttext, 0, todecrypttext_len);
+  memcpy(todecrypttext, ciphertext, ciphertext_len);
+  if (Gdiag_no > 0)
+  {
+    printf("[DEBUG] ciphertext_len    = %d, ciphertext    = %s\n", ciphertext_len, ciphertext);
+    printf("[DEBUG] todecrypttext_len = %d, todecrypttext = %s\n", todecrypttext_len, todecrypttext);
+  }
+    
+  /*
+   * Provide the message to be decrypted, and obtain the plaintext output.
+   * EVP_DecryptUpdate can be called multiple times if necessary.
+   */
+  int len;
+  if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, todecrypttext, todecrypttext_len))
+    return __handleErrors_openssl();
+
+  int plaintext_len = len;
+
+  /*
+   * Finalise the decryption.
+   * Further plaintext bytes may be written at this stage.
+   */
+  if (1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len))
+    return __handleErrors_openssl();
+
+  plaintext_len += len;
+
+  /* Clean up */
+  EVP_CIPHER_CTX_free(ctx);
+
+  return plaintext_len;
+}

@@ -37,7 +37,6 @@
 #include "mrisurf_vals.h"
 #include "mrisurf_project.h"
 
-#include "chklc.h"
 #include "cma.h"
 #include "const.h"
 #include "diag.h"
