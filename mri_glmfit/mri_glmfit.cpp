@@ -3795,11 +3795,12 @@ static void check_options(void) {
     exit(1);
   }
 
-  if(!PermPVROverride && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
-    // Modified to allow for pvrs with sim
-    printf("ERROR: PVR is not supported with permutation simulations\n");
-    exit(1);
-  }
+  // Removing this because it looks like it is not a problem as of 11/14/2023
+  //if(!PermPVROverride && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
+  //  // Modified to allow for pvrs with sim
+  //  printf("ERROR: PVR is not supported with permutation simulations\n");
+  //  exit(1);
+  //}
   return;
 }
 
