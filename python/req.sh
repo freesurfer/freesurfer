@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+func_setup_fspython()
+{
+   export FREESURFER_HOME=$install_path
+   source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null 2>&1
+   fspython=$install_path/bin/fspython
+   if [ ! -e $fspython ]; then
+      echo "*** Error: Cannot find expected fspython to run as $fspython"
+      exit 1
+   fi
+   echo "Using fspython:"
+   ls -l $fspython
+}
+
 if [ $# == 0 ]; then
    echo "Please provide one of the following arguments:"
    echo "--generate   (Re)generate the requirements-build.txt and requirements-build-extra.txt files using the fspython found under your current INSTALL_PREFIX"
@@ -15,6 +28,7 @@ echo "--------------------------------- start of req.sh ------------------------
 add_links=0
 rm_links=0
 generate=0
+uninstall=0
 
 while [[ $# -gt 0 ]] && [[ "$1" == "--"* ]] ;
 do
@@ -25,21 +39,28 @@ do
         "--generate" )
            echo "(Re)generate the requirements-build.txt and requirements-build-extra.txt files using the fspython found under your current INSTALL_PREFIX:"
            generate=1
-           if [[ $add_links -eq 1 || $rm_links -eq 1 ]]; then
+           if [[ $add_links -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 ]]; then
               echo "Only 1 argument allowed" && exit 1
            fi
            ;;
         "--add-links" )
            echo "Remove original requirements.txt and requirements-extra.txt and create soft links to them from requirements-build.txt and requirements-build-extra.txt:"
            add_links=1
-           if [[ $rm_links -eq 1 || $generate -eq 1 ]]; then
+           if [[ $generate -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 ]]; then
               echo "Only 1 argument allowed" && exit 1
            fi
            ;;
         "--rm-links" )
            echo "Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git:"
            rm_links=1
-           if [[ $add_links -eq 1 || $generate -eq 1 ]]; then
+           if [[ $generate -eq 1 ||$add_links -eq 1 || $uninstall -eq 1 ]]; then
+              echo "Only 1 argument allowed" && exit 1
+           fi
+           ;;
+        "--uninstall" )
+           echo "Remove packages that include libs/code we cannot re-distribute and/or anre not cross-platform compatible:"
+           uninstall=1
+           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 ]]; then
               echo "Only 1 argument allowed" && exit 1
            fi
            ;;
@@ -52,6 +73,8 @@ cd ..
 top_dir=$PWD
 cd $this_dir
 cmake_cache=$top_dir/CMakeCache.txt
+# Use cached cmake output to get current install prefix else exit
+install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
 
 if [ $generate -eq 1 ]; then
    # Cannot be running with FREESURFER_HOME already set
@@ -64,27 +87,16 @@ if [ $generate -eq 1 ]; then
       exit 1
    fi
 
-   # Use cached cmake output to get current install prefix else exit
-   install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
-
    # If requirements files not soft links and modified, then stop and do not clobber
    if [ ! -L  requirements.txt ]; then
       git status -s requirements.txt | grep "M requirements.txt"
-      if [ $? == 0 ]; then
+      if [ $? -eq 0 ]; then
          echo "*** Error: Cannot proceed with modified requirements.txt in sandbox - please commit/push or checkout the original version."
          exit 1
       fi
    fi
 
-   export FREESURFER_HOME=$install_path
-   source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null 2>&1
-   fspython=$install_path/bin/fspython
-   if [ ! -e $fspython ]; then
-      echo "*** Error: Cannot find expected fspython to run as $fspython"
-      exit 1
-   fi
-   echo "Using fspython:"
-   ls -l $fspython
+   func_setup_fspython
 
    build_req_new="requirements-build.txt.NEW"
    build_req_orig="requirements-build.txt.ORIG"
@@ -93,8 +105,9 @@ if [ $generate -eq 1 ]; then
 
    # $fspython -m pip freeze | sort | uniq > $build_req_new
    ## remove spaces around anpersand in version specs with URL's
-   ## comment out entries for which no version can be found
-   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' > $build_req_new
+   ## comment out entries for which pip reports no version (pyfs, qatools)
+   ## comment out entries not available on MacOS (nvidia, triton)
+   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' > $build_req_new
 
    if [ $(wc -l < $build_req_new) -eq 0 ]; then
       echo "$build_req_new has no entries so cannot use it to update requirements-build.txt"
@@ -185,6 +198,21 @@ if [ $rm_links -eq 1 ]; then
       rm -f requirements-extra.txt
       git checkout requirements-extra.txt
       ls -l requirements-extra.txt
+   fi
+fi
+
+if [ $uninstall -eq 1 ]; then
+
+   func_setup_fspython
+
+   # remove nvidia packages with compiled cuda shared libs (installed as dependency on linux but not MacOS)
+   fspython -m pip freeze | grep "^nvidia" > /dev/null
+   if [ $? -eq 0 ]; then
+      rm -f uninstall.txt
+      fspython -m pip freeze | grep "^nvidia" | sed 's;==.*;;' > uninstall.txt
+      yes | fspython -m pip uninstall -r uninstall.txt
+   else
+      echo "Found nothing to uninstall in output from pip freeze."
    fi
 fi
 
