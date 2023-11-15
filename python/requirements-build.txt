@@ -14,7 +14,7 @@ contourpy==1.1.1
 cycler==0.12.1
 filelock==3.13.1
 flatbuffers==23.5.26
-fonttools==4.44.1
+fonttools==4.44.3
 fsspec==2023.10.0
 gast==0.4.0
 google-auth-oauthlib==1.0.0
@@ -47,7 +47,7 @@ numpy==1.24.3
 #nvidia-cusolver-cu12==11.4.5.107
 #nvidia-cusparse-cu12==12.1.0.106
 #nvidia-nccl-cu12==2.18.1
-#nvidia-nvjitlink-cu12==12.3.52
+#nvidia-nvjitlink-cu12==12.3.101
 #nvidia-nvtx-cu12==12.1.105
 oauthlib==3.2.2
 opencv-python==4.8.1.78
@@ -81,7 +81,7 @@ tensorflow==2.13.1
 termcolor==2.3.0
 threadpoolctl==3.2.0
 tifffile==2023.7.10
-torch==2.1.0
+torch==2.1.1
 tqdm==4.66.1
 transforms3d==0.4.1
 trimesh==4.0.4
