@@ -83,6 +83,8 @@ if [[ -z $OUTPATH ]]; then
     echo "$SUBJECTS_DIR"
 else
     echo "$OUTPATH"
+    # set outpath to be the absolute path, we cd into SUBJECTS_DIR
+    OUTPATH="$(realpath $OUTPATH)/"
 fi
 
 # echo any unused args if passed
