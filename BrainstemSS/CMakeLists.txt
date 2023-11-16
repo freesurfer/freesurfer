@@ -13,7 +13,6 @@ endif()
 install_symlinks(
   ${BIN_PROGRAMS}
   segmentBS.sh
-  ConcatenateSubregionsResults.sh
   TYPE programs
   DESTINATION bin
 )
