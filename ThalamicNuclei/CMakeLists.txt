@@ -15,7 +15,6 @@ endif()
 install_symlinks(
   ${BIN_PROGRAMS}
   segmentThalamicNuclei.sh
-  quantifyThalamicNuclei.sh
   TYPE programs
   DESTINATION bin
 )
