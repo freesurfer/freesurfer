@@ -13,7 +13,7 @@ endif()
 install_symlinks(
   ${BIN_PROGRAMS}
   segmentBS.sh
-  quantifyBrainstemStructures.sh
+  ConcatenateSubregionsResults.sh
   TYPE programs
   DESTINATION bin
 )
