@@ -29,7 +29,6 @@ install_symlinks(
   segmentHA_T1_long.sh
   segmentHA_T1.sh
   segmentHA_T2.sh
-  quantifyHAsubregions.sh
   TYPE programs
   DESTINATION bin
 )
