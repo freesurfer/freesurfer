@@ -3,6 +3,7 @@ import site
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
+import platform
 
 import nibabel as nib
 
@@ -50,6 +51,23 @@ def parse_arguments():
     parser.add_argument("--output_dir", type=Path, default=Path("surf"), help="custom output directory, default is to save to the subject surf directory")
     return parser.parse_args()
 
+def print_vm_peak():
+    """
+    Print the VM peak of the running process. This is only available
+    on linux platforms.
+    """
+    if platform.system() != 'Linux':
+        return
+    procstat = os.path.join('/proc', str(os.getpid()), 'status')
+    fp = open(procstat, 'r')
+    lines = fp.readlines()
+    for line in lines:
+        strs = line.split()
+        if(len(strs) < 3):
+            continue
+        if(strs[0] != 'VmPeak:'):
+            continue
+        print('mris_register_josa  VmPeak ', int(strs[1]))
 
 def main() -> None:
     try:
@@ -195,6 +213,7 @@ def dummy_loss(*args):
 
 if __name__ == "__main__":
     main()
+    print_vm_peak()
 #    vmpeak = sf.system.vmpeak();
 #    if(vmpeak is not None):
 #        print('mris_register_josa VmPeak %s' % vmpeak);
