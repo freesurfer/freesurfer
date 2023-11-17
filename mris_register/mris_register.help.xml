@@ -97,6 +97,7 @@
       <argument>-multi_scale &lt;multi_scale (int)&gt;</argument>
       <explanation>Use multi_scale scales for morphing</explanation>
       <argument>-N &lt;niterations (int)&gt;</argument>
+      <explanation>Set to 0 to have only rigid registration</explanation>
       <argument>-nangles &lt;nangles (int)&gt;</argument>
       <explanation>Set # of angles/search per scale to nangles</explanation>
       <argument>-nbrs &lt;nbrs (int)&gt;</argument>
