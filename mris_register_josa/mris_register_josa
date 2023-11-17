@@ -20,13 +20,12 @@ import spheremorph as spm
 from spheremorph.py.utils import norm_curvature
 from spheremorph.tf.utils import *
 
-
 def print_usage():
     print("Usage: python mris_register_josa.py [options]")
     print("Options:")
     print("--h, --help, show this help message and exit")
     print("--hmsp", "['lh', 'rh'], which hemisphere, lh or rh")
-    print("--subject_dir", "subject directory")
+    print("--subject_dir", "full path to subject directory")
     print("--sulc_file", "path to ?h.sulc file, overrides surf_dir/?h.sulc")
     print("--curv_file", "path to ?h.curv file, overrides surf_dir/?h.curv")
     print("--inflated_curv_file", "path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
@@ -56,63 +55,64 @@ def main() -> None:
     try:
         args = parse_arguments()
 
+        print('\n\n');
+
         # Validate the hemisphere argument
         if args.hmsp not in ['lh', 'rh']:
             raise ValueError("Invalid hemisphere value. Please choose 'lh' or 'rh'.")
             
         # Validate the subject directory
-        subject_dir = Path(args.subject_dir)
-        if not subject_dir.exists():
-            raise FileNotFoundError(f"Subject directory {subject_dir} does not exist.")
-
-        surf_dir = Path(subject_dir / 'surf')
-        if not surf_dir.exists():
-            raise ValueError('surf directory should be found in subject directory')
-
-        if Path(surf_dir / f'{args.hmsp}.sulc').exists():
-            sulc_file = Path(surf_dir / f'{args.hmsp}.sulc')
+        if(args.subject_dir is not None):
+            subject_dir = Path(args.subject_dir)
+            if not subject_dir.exists():
+                raise FileNotFoundError(f"Subject directory {subject_dir} does not exist.")
+            surf_dir = Path(subject_dir / 'surf')
+            if not surf_dir.exists():
+                raise ValueError('surf directory should be found in subject directory')
+            if Path(surf_dir / f'{args.hmsp}.sulc').exists():
+                sulc_file = Path(surf_dir / f'{args.hmsp}.sulc')
+            else:
+                raise ValueError(f'{args.hmsp}.sulc not found in surf directory')
+            if Path(surf_dir / f'{args.hmsp}.curv').exists():
+                curv_file = Path(surf_dir / f'{args.hmsp}.curv')
+            else:
+                raise ValueError(f'{args.hmsp}.curv not found in surf directory')
+            if Path(surf_dir / f'{args.hmsp}.inflated.H').exists():
+                inf_h_file = Path(surf_dir / f'{args.hmsp}.inflated.H')
+            else:
+                raise ValueError(f'{args.hmsp}.inflated.H not found in surf directory')
+            if args.output_dir is None:
+                output_dir = surf_dir
+            if(args.sphere_rot is None):
+                if Path(surf_dir / f'{args.hmsp}.sphere.rot').exists():
+                    sphere_rot_file = Path(surf_dir / f'{args.hmsp}.sphere.rot')
         else:
-            raise ValueError(f'{args.hmsp}.sulc not found in surf directory')
-
-        if Path(surf_dir / f'{args.hmsp}.curv').exists():
-            curv_file = Path(surf_dir / f'{args.hmsp}.curv')
-        else:
-            raise ValueError(f'{args.hmsp}.curv not found in surf directory')
-
-        if Path(surf_dir / f'{args.hmsp}.inflated.H').exists():
-            inf_h_file = Path(surf_dir / f'{args.hmsp}.inflated.H')
-        else:
-            raise ValueError(f'{args.hmsp}.inflated.H not found in surf directory')
+            if(args.sphere_rot is None):
+                raise ValueError('Must spec sphere rot file or subject dir')
+            if(args.output_dir is None):
+                raise ValueError('Must spec an output folder or specify the subject dir')
+            if(args.sulc_file is None):
+                raise ValueError('Must spec a sulc file or the subject dir')
+            if(args.curv_file is None):
+                raise ValueError('Must spec a curv file or the subject dir')
+            if(args.inflated_curv_file is None):
+                raise ValueError('Must spec an inflated.H file or the subject dir')
 
         # if surface feature files are provided specifically, overwrite defaults
-        if args.sulc_file:
-            sulc_file = args.sulc_file
-        if args.curv_file:
-            curv_file = args.curv_file
-        if args.inflated_curv_file:
-            inf_h_file = args.inflated_curv_file
+        if args.sulc_file: sulc_file = args.sulc_file
+        if args.curv_file: curv_file = args.curv_file
+        if args.inflated_curv_file: inf_h_file = args.inflated_curv_file
+        if args.sphere_rot: sphere_rot_file = args.sphere_rot
+        if args.output_dir: output_dir = args.output_dir
 
         surf_feature_file = [sulc_file, curv_file, inf_h_file]
 
-        # if ?h.sphere.rot exists in surf directory, use it
-        sphere_rot_file = None
-        if Path(surf_dir / f'{args.hmsp}.sphere.rot').exists():
-            sphere_rot_file = Path(surf_dir / f'{args.hmsp}.sphere.rot')
+        if args.model is None:
+            model_file = freesurfer_env + "/models/mris_register_josa_"+args.hmsp+"_20231025.h5"
+        else:
+            model_file = args.model
+        print(f'model file is {model_file}');
 
-        # if ?h.sphere.rot is provided specifically, overwrite the default
-        if args.sphere_rot:
-            sphere_rot_file = args.sphere_rot
-
-        if sphere_rot_file is None:
-            raise ValueError(f'{args.hmsp}.sphere.rot must be provided')
-
-        model_file = args.model
-        if model_file is None:
-            raise ValueError('model file must be provided')
-
-        output_dir = args.output_dir
-        if output_dir is None:
-            output_dir = surf_dir
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         # processing starts from here
@@ -195,3 +195,7 @@ def dummy_loss(*args):
 
 if __name__ == "__main__":
     main()
+#    vmpeak = sf.system.vmpeak();
+#    if(vmpeak is not None):
+#        print('mris_register_josa VmPeak %s' % vmpeak);
+    print('mris_register_josa done');
