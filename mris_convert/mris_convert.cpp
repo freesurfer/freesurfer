@@ -937,6 +937,21 @@ get_option(int argc, char *argv[])
   {
     RemoveVolGeom = 1;
   }
+  else if (!stricmp(option, "-to-curv")) {
+    // Convert to curv format
+    MRI *ov = MRIread(argv[2]);
+    if(ov==NULL) exit(1);
+    MRIS *ovsurf  = MRISread(argv[3]);
+    if(ovsurf==NULL) exit(1);
+    if(ovsurf->nvertices != ov->width){
+      printf("ERROR: dim mismatch %d %d\n",ovsurf->nvertices,ov->width);
+      exit(1);
+    }
+    for(int vno=0; vno < ovsurf->nvertices; vno++)
+      ovsurf->vertices[vno].curv = MRIgetVoxVal(ov,vno,0,0,0);
+    int err = MRISwriteCurvature(ovsurf, argv[4]) ;
+    exit(err);
+  }
   else switch (toupper(*option))
     {
     case 'A':

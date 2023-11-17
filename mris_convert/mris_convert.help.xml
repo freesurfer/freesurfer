@@ -122,6 +122,8 @@
       <explanation>shift center to scanner coordinate center (was --cras_correction, which still works)</explanation>
       <argument>--cras_subtract</argument>
       <explanation>shift center from scanner coordinate center (reverses --cras_add)</explanation>
+      <argument>--to-curv input surf curvoutput</argument>
+      <explanation>Convert input into curv format</explanation>
     </optional>
 
   </arguments>
