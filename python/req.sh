@@ -13,6 +13,19 @@ func_setup_fspython()
    ls -l $fspython
 }
 
+func_check_no_fshome()
+{
+   # Do not run if FREESURFER_HOME already set
+   if [ ! -z "${FREESURFER_HOME}" ]; then
+      echo "*** Error: Cannot run this script with FREESURFER_HOME already set in the environment"
+      exit 1
+   fi
+   if [ ! -e $top_dir/CMakeCache.txt ]; then
+      echo "*** Error: Must run with an existing ./CMakeCache.txt file at the top of the freesurfer tree - CMakeCache.txt not found."
+      exit 1
+   fi
+}
+
 if [ $# == 0 ]; then
    echo "Please provide one of the following arguments:"
    echo "--generate   (Re)generate the requirements-build.txt and requirements-build-extra.txt files using the fspython found under your current INSTALL_PREFIX"
@@ -20,6 +33,7 @@ if [ $# == 0 ]; then
    echo "             requirements.txt --> requirements-build.txt"
    echo "             requirements-extra.txt --> requirements-build-extra.txt"
    echo "--rm-links   Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git"
+   echo "--uninstall  Remove soft python packages that should not be re-distributes and/or are not needed"
    exit 0
 fi
 
@@ -58,7 +72,7 @@ do
            fi
            ;;
         "--uninstall" )
-           echo "Remove packages that include libs/code we cannot re-distribute and/or anre not cross-platform compatible:"
+           echo "Remove packages that include libs/code we cannot re-distribute and/or are not cross-platform compatible:"
            uninstall=1
            if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 ]]; then
               echo "Only 1 argument allowed" && exit 1
@@ -77,16 +91,8 @@ cmake_cache=$top_dir/CMakeCache.txt
 install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
 
 if [ $generate -eq 1 ]; then
-   # Cannot be running with FREESURFER_HOME already set
-   if [ ! -z "${FREESURFER_HOME}" ]; then
-      echo "*** Error: Cannot run this script with FREESURFER_HOME already set in the environment"
-      exit 1
-   fi
-   if [ ! -e $top_dir/CMakeCache.txt ]; then
-      echo "*** Error: Must run with an existing ./CMakeCache.txt file at the top of the freesurfer tree - CMakeCache.txt not found."
-      exit 1
-   fi
 
+   func_check_no_fshome
    # If requirements files not soft links and modified, then stop and do not clobber
    if [ ! -L  requirements.txt ]; then
       git status -s requirements.txt | grep "M requirements.txt"
@@ -97,7 +103,6 @@ if [ $generate -eq 1 ]; then
    fi
 
    func_setup_fspython
-
    build_req_new="requirements-build.txt.NEW"
    build_req_orig="requirements-build.txt.ORIG"
    build_req_git="requirements-build.txt"
@@ -116,6 +121,7 @@ if [ $generate -eq 1 ]; then
 
    cp -p -f requirements-build.txt requirements-build.txt.ORIG
    cp -p -f $build_req_git $build_req_orig
+   echo "diff $build_req_orig $build_req_new"
    diff $build_req_orig $build_req_new
    # replace and let git status indicate if file modified
    cp -p -f $build_req_new $build_req_git
@@ -203,13 +209,15 @@ fi
 
 if [ $uninstall -eq 1 ]; then
 
+   func_check_no_fshome
    func_setup_fspython
 
    # remove nvidia packages with compiled cuda shared libs (installed as dependency on linux but not MacOS)
+   # remove triton
    fspython -m pip freeze | grep "^nvidia" > /dev/null
    if [ $? -eq 0 ]; then
       rm -f uninstall.txt
-      fspython -m pip freeze | grep "^nvidia" | sed 's;==.*;;' > uninstall.txt
+      fspython -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > uninstall.txt
       yes | fspython -m pip uninstall -r uninstall.txt
    else
       echo "Found nothing to uninstall in output from pip freeze."
