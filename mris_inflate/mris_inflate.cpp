@@ -40,6 +40,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "version.h"
+#include "romp_support.h"
 
 
 int main(int argc, char *argv[]) ;
@@ -68,6 +69,7 @@ static int SaveSulc = 1;
 static int compute_sulc_mm = 0 ;
 static int scale_brain = 1 ;
 static const char *sulc_name = "sulc" ;
+int hemi = -1;
 char *rusage_file=NULL;
 
 int
@@ -160,7 +162,9 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
-  
+
+  if(hemi != -1) mris->hemisphere = hemi; // for topofit
+
   if ((mris->vg.xsize < .8) && (mris->vg.xsize > 0))
   {
     parms.niterations = nint((float)parms.niterations/mris->vg.xsize);
@@ -374,11 +378,19 @@ get_option(int argc, char *argv[])
     parms.l_curv = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_curv = %2.3f\n", parms.l_curv) ;
-  }
-  else if (!stricmp(option, "save-sulc"))
-  {
-    SaveSulc=1;
-  }
+  } 
+  // Allow -lh and -rh for topofit, where output surfaces are not specified
+  else if (!stricmp(option, "lh")) hemi = LEFT_HEMISPHERE;
+  else if (!stricmp(option, "rh")) hemi = RIGHT_HEMISPHERE;
+  else if (!stricmp(option, "threads")){
+    int nthreads;
+    sscanf(argv[2],"%d",&nthreads);
+    #ifdef _OPENMP
+    omp_set_num_threads(nthreads);
+    #endif
+    nargs = 1;
+  } 
+  else if (!stricmp(option, "save-sulc")) SaveSulc=1;
   else if (!stricmp(option, "mm"))
   {
     printf("computing sulc as mm between inflated and white surfaces projected onto white normal\n") ;
