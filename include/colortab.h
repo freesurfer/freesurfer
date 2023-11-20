@@ -194,5 +194,6 @@ COLOR_TABLE *CTABreadASCIIttHeader(const char *fname);
 int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge);
 int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist) ;
 int CTABaddUniqueEntryAtEnd(COLOR_TABLE *ct, char *name, int *ctabindex);
+int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot = false, FILE *fp = stdout);
 
 #endif

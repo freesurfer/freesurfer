@@ -85,6 +85,8 @@ int CountIntersections = 0;
 char *patchname=NULL;
 const char *mtxfmt = NULL;
 int gifti_disp_image = 1;
+const char *annotassignment = NULL;
+const char *annot_hint = NULL;
 
 static bool doTkrRASConvert = false;
 
@@ -139,6 +141,20 @@ int main(int argc, char *argv[]) {
     }
     if (ctab != NULL) {
       CTABprintASCII(ctab,stdout) ;
+
+      if (annotassignment != NULL)
+      {
+	FILE *fp = fopen(annotassignment, "w");
+	int dupCount = CTABprintAnnotationAssignment(ctab, (annot_hint != NULL) ? true : false, fp);
+	fclose(fp);
+
+	if (annot_hint != NULL && dupCount > 0)
+	{
+	  FILE *newfp = fopen(annot_hint, "w");
+          CTABprintASCII(ctab, newfp);
+	  fclose(newfp);
+	}
+      }
     }
     return(0) ;
   }
@@ -478,6 +494,18 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--t"))   talairach_flag = 1;
     else if (!strcasecmp(option, "--r"))   rescale = 1;
     else if (!strcasecmp(option, "--nogifti-disp-image")) gifti_disp_image = 0;
+    else if (!strcasecmp(option, "--annot-hint"))
+    {
+      if (nargc < 1) argnerr(option,1);
+      annot_hint = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--annot-label"))
+    {
+      if (nargc < 1) argnerr(option,1);
+      annotassignment = pargv[0];
+      nargsused = 1;     
+    }
     else if ( !strcmp(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
@@ -655,6 +683,8 @@ static void print_usage(void) {
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
   printf("  --nogifti-disp-image: no dump of GIFTI struct, read .gii as surface instead\n");
+  printf("  --annot-label <out-annot-label-assignment> : output annotation assignments (works with .annot only)\n");
+  printf("  --annot-hint  <out-new-ctab> : duplicated annotations are replaced with newly calculated suggestions (used together with --annot-label <>)\n");
   printf("\n");
 }
 
