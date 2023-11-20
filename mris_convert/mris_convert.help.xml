@@ -73,6 +73,8 @@
       <explanation>print only surface xyz to ascii file (out-file)</explanation>
       <argument>--annot annot-file</argument>
       <explanation>input annotation or gifti label data</explanation>
+      <argument>--ctab colortab-file</argument>
+      <explanation>input customized colortable, used to replace colortable in gifti label data or .mgz annotation file</explanation>
       <argument>--parcstats parcstats-file</argument>
       <explanation>input text file containing label/val pairs, where label is an annot name and val is a value associated with that label. The output file will be a scalar file.</explanation>
       <argument>--da_num gifti-dataarray-num</argument>

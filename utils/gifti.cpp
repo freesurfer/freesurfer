@@ -419,7 +419,7 @@ static COLOR_TABLE *makeColorTable(std::map<int, float*> &unique_annot_map, cons
                  if daNum is not -1, then read only the
                  data in data array number daNum
   -------------------------------------------------------------------*/
-MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<OverlayInfoStruct> *poverlayinfo)
+MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<OverlayInfoStruct> *poverlayinfo, const COLOR_TABLE *ctab)
 {
   /*
    * attempt to read the file
@@ -900,9 +900,18 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
   /*
    * and dont forget to store the colortable (if one was found)
    */
-  if (ct) {
+  if (ctab != NULL) // user provided colortable
+  {
+    printf("mrisReadGIFTIdanum: Use Customized Colortable\n");
+    mris->ct = (COLOR_TABLE*)ctab;
+  }
+  else if (ct) // LabelTable in GIFTI
     mris->ct = ct;
+
+  if (ct)
+  {
     // sanity-check
+    // LabelTable is specified in GIFTI, make sure colortable saved in mris->ct has the same number of entries
     int numEntries = 0;
     CTABgetNumberOfValidEntries(mris->ct, &numEntries);
     if (numEntries != image->labeltable.length) {
@@ -1104,8 +1113,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
       }
     } // NIFTI_INTENT_SHAPE
     else if (darray->intent == NIFTI_INTENT_LABEL) {
+      printf("parsing dataarray #%d (%s) ...\n", numDA, gifti_intent_to_string(darray->intent));
       // 'label' data goes into the 'annotation' data element of mris
-      if ((NULL == mris->ct) || (NULL == ct))  // sanity-check
+      if (NULL == mris->ct)  // sanity-check
       {
         fprintf(stderr, "mrisReadGIFTIdanum: NULL colortable\n");
         gifti_free_image(image);
@@ -1148,11 +1158,13 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
           // invalid table_key is getting the default annotation = 0
           if (Gdiag & DIAG_SHOW)
             printf("mrisReadGIFTIdanum(): vno: %d, tkey: %d, tidx: %d, name: %s\n",
-		   vno, table_key, table_index, ct->entries[table_key]->name);
+		   vno, table_key, table_index, mris->ct->entries[table_key]->name);
           annotation = CTABrgb2Annotation(
-              ct->entries[table_key]->ri, ct->entries[table_key]->gi, ct->entries[table_key]->bi);
+              mris->ct->entries[table_key]->ri, mris->ct->entries[table_key]->gi, mris->ct->entries[table_key]->bi);
         }
         mris->vertices[vno].annotation = annotation;
+	if (Gdiag & DIAG_SHOW)
+	  printf("[DEBUG] vno = %d, table_key = %d (table_index = %d), (%s)\n", vno, table_key, table_index, mris->ct->entries[table_key]->name);
 
 #if 0   // the check below will fail because not every node is assigned 
         // cross-check:
@@ -1344,10 +1356,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
      first <STATS> is saved in mris->val and mris->stat;
      all SHAPE and <STATS> data arrays are saved as multi-frame MRI
   -----------------------------------------------------------*/
-MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, std::vector<OverlayInfoStruct> *poverlayinfo)
+MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris, std::vector<OverlayInfoStruct> *poverlayinfo, int daNum, const COLOR_TABLE *ctab)
 {
   // default read routine (read all data arrays)
-  return mrisReadGIFTIdanum(fname, mris, -1, poverlayinfo);
+  return mrisReadGIFTIdanum(fname, mris, daNum, poverlayinfo, ctab);
 }
 
 /*-----------------------------------------------------------

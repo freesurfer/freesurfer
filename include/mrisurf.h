@@ -664,7 +664,7 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
                       const char *hemi,
                       const char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname, int giftiDaNum = -1,  const COLOR_TABLE *ctab = NULL) ;
 int          MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices) ;
 int          MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices);
 int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname, bool writect=true) ;

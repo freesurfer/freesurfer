@@ -53,7 +53,7 @@ static int __mrisreadcurvmri(MRIS *mris, const char *fname, int type, int read_v
 static int __mrisreadcurvoldformat(MRIS *mris, const char *fname, MRI *curvmri);
 
 static int __mrisreadannot(const char *fannot, MRIS *mris);
-static int __mrisreadseg2annot(const char *fannot, MRIS *mris);
+static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE *ctab = NULL);
 static int __mriswriteannot(MRIS *mris, const char *outfannot);
 
 static void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype);
@@ -1478,7 +1478,7 @@ int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius)
 
   Description
   ------------------------------------------------------*/
-int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
+int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname, int giftiDaNum, const COLOR_TABLE *ctab)
 {
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
 
@@ -1553,10 +1553,10 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   if (mritype == MGH_ANNOT)
     error = __mrisreadannot(annot_to_read, mris);
   else if (mritype == MRI_MGH_FILE)
-    error = __mrisreadseg2annot(annot_to_read, mris);
+    error = __mrisreadseg2annot(annot_to_read, mris, ctab);
   else if (mritype == GIFTI_FILE)
   {
-    mris = mrisReadGIFTIfile(annot_to_read, mris);
+    mris = mrisReadGIFTIfile(annot_to_read, mris, NULL, giftiDaNum, ctab);
     if (mris == NULL)
       error = ERROR_BADFILE;
   }
@@ -1641,7 +1641,7 @@ static int __mrisreadannot(const char *fannot, MRIS *mris)
 
 
 // read .mgh file (MRI_MGH_FILE)
-static int __mrisreadseg2annot(const char *fannot, MRIS *mris)
+static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE *ctab)
 {
   printf("MRISurfAnnotation::MRISurfAnnotation(): reading %s as a surface seg\n", fannot);
   MRI *surfseg = MRIread(fannot);
@@ -1649,13 +1649,20 @@ static int __mrisreadseg2annot(const char *fannot, MRIS *mris)
     return ERROR_NOFILE;
 
   // colortab is saved .mgz under TAG_OLD_COLORTABLE
-  if (surfseg->ct == NULL)
+  if (surfseg->ct == NULL && ctab == NULL)
   {
     printf("ERROR: MRISurfAnnotation::MRISurfAnnotation(): %s does not have a colortable\n", fannot);
     MRIfree(&surfseg);
     return ERROR_NOFILE;
   }
 
+  // replace the colortable with user provided one
+  if (ctab != NULL)
+  {
+    printf("__mrisreadseg2annot: Use Customized Colortable\n");
+    surfseg->ct = (COLOR_TABLE*)ctab;
+  }
+  
   if(surfseg->width != mris->nvertices)
   {
     printf("ERROR: MRISurfAnnotation::MRISurfAnnotation(): dimension mismatch %s=%d, surf=%d\n", fannot, surfseg->width, mris->nvertices);

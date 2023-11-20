@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) ;
 static MRIS *__splitGIFTI(const char *fgifti, const char *outdir, const char *fout=NULL);
 static void __convertCurvatureFile(MRIS *mris, int noverlay, const char **foverlays, char *out_fname);
 static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label, const char *labelstats, char *out_fname);
-static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname);
+static void __convertAnnotFile(MRIS *mris, const char *fannot, const COLOR_TABLE *ctab, int giftiDaNum, const char *parcstats, char *out_fname);
 static void __convertFuncFile(const char *ffunc, char *out_fname);
 static void __convertNormals(MRIS *mris, char *out_fname);
 static void __convertMRISPatch(MRIS *mris, char *out_fname);
@@ -121,6 +121,7 @@ static int func_file_flag = 0 ;
 static char *func_fname = NULL;
 static int annot_file_flag = 0 ;
 static char *annot_fname = NULL;
+static char *ctabfile = NULL;
 static int writect = 1;
 static int gifti_da_num = -1;
 static int label_file_flag = 0 ;
@@ -435,7 +436,13 @@ main(int argc, char *argv[])
   if (curv_file_flag)
     __convertCurvatureFile(mris, nfcurv, arr_fcurv, out_fname);
   else if (annot_file_flag)
-    __convertAnnotFile(mris, annot_fname, gifti_da_num, parcstats_fname, out_fname);
+  {
+    COLOR_TABLE *ctab = NULL;
+    if (ctabfile != NULL)
+      ctab = CTABreadASCII(ctabfile);
+    
+    __convertAnnotFile(mris, annot_fname, ctab, gifti_da_num, parcstats_fname, out_fname);
+  }
   else if (label_file_flag)
     __convertLabelFile(mris, label_fname, label_name, labelstats_fname, out_fname);
   else if (func_file_flag)
@@ -643,9 +650,9 @@ static void __convertLabelFile(MRIS *mris, const char *flabel, const char *label
 }
 
 
-static void __convertAnnotFile(MRIS *mris, const char *fannot, int giftiDaNum, const char *parcstats, char *out_fname)
+static void __convertAnnotFile(MRIS *mris, const char *fannot, const COLOR_TABLE *ctab, int giftiDaNum, const char *parcstats, char *out_fname)
 {
-    if (MRISreadAnnotation(mris, fannot) != NO_ERROR)
+    if (MRISreadAnnotation(mris, fannot, giftiDaNum, ctab) != NO_ERROR)
     {
       printf("ERROR: failed to read annotation %s\n", fannot);
       exit(1);
@@ -777,6 +784,11 @@ get_option(int argc, char *argv[])
     annot_fname = argv[2] ;
     annot_file_flag = 1;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "-ctab"))
+  {
+    ctabfile = argv[2];
+    nargs = 1;
   }
   else if (!stricmp(option, "-no-writect"))
   {

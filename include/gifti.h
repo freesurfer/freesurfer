@@ -29,7 +29,7 @@
 
 // mrisReadGIFTIfile() and mrisReadGIFTIdanum() are taking optional std::vector<OverlayInfoStruct> to all SHAPE and <STATS> data arrays as multi-framed MRI
 // first SHAPE is saved in mris->curv, first <STATS> is saved in mris->val and mris->stat
-MRIS* mrisReadGIFTIfile(const char *fname, MRIS *mris, std::vector<OverlayInfoStruct> *poverlayinfo=NULL);
+MRIS* mrisReadGIFTIfile(const char *fname, MRIS *mris, std::vector<OverlayInfoStruct> *poverlayinfo=NULL, int daNum = -1, const COLOR_TABLE *ctab = NULL);
 MRIS* mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<OverlayInfoStruct> *poverlayinfo=NULL);
 MRI* MRISreadGiftiAsMRI(const char *fname, int read_volume);
 int MRISwriteGIFTI(MRIS* mris, int intent_code, const char *out_fname, const char *curv_fname);
