@@ -281,10 +281,10 @@ void dcm2niix_fswrapper::dicomDump(const char* dicomdir, const char *series_info
     fclose(fp_dcmLst);
 
     // output series_info
-    fprintf(fpout, "%ld %s %f %f %f %f\\%f %c %f %s %s", 
+    fprintf(fpout, "%ld %s %f %f %f %f\\%f %c %f %s %s %s", 
                    tdicomData->seriesNum, tdicomData->seriesDescription,
                    tdicomData->TE, tdicomData->TR, tdicomData->flipAngle, tdicomData->xyzMM[1], tdicomData->xyzMM[2],
-                   tdicomData->phaseEncodingRC, tdicomData->pixelBandwidth, (*mrifsStruct_vector)[n].dicomfile, tdicomData->imageType);
+	           tdicomData->phaseEncodingRC, tdicomData->pixelBandwidth, (*mrifsStruct_vector)[n].dicomfile, tdicomData->imageType, (*mrifsStruct_vector)[n].pulseSequenceDetails);
 #if 0
     if (max)
     {

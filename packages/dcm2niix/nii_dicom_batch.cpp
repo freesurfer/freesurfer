@@ -7595,6 +7595,19 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmLi
     mrifsStruct.dicomlst = new char*[nConvert];
     mrifsStruct.nDcm  = nConvert;
 
+    // retrieve pulseSequenceDetails (tSequenceFileName)
+    struct TDICOMdata *d = &(mrifsStruct.tdicomData);
+    strcpy(mrifsStruct.pulseSequenceDetails, "");
+    if ((d->manufacturer == kMANUFACTURER_SIEMENS) && (d->CSA.SeriesHeader_offset > 0) && (d->CSA.SeriesHeader_length > 0)) {
+      float shimSetting[8];
+      char protocolName[kDICOMStrLarge], fmriExternalInfo[kDICOMStrLarge], coilID[kDICOMStrLarge], consistencyInfo[kDICOMStrLarge], coilElements[kDICOMStrLarge], pulseSequenceDetails[kDICOMStrLarge], wipMemBlock[kDICOMStrLarge];
+      TCsaAscii csaAscii;
+      siemensCsaAscii(nameList->str[indx0], &csaAscii, d->CSA.SeriesHeader_offset, d->CSA.SeriesHeader_length, shimSetting, coilID, consistencyInfo, coilElements, pulseSequenceDetails, fmriExternalInfo, protocolName, wipMemBlock);
+      if (strlen(pulseSequenceDetails) >= kDICOMStr)
+        pulseSequenceDetails[kDICOMStr - 1] = 0;
+      strcpy(mrifsStruct.pulseSequenceDetails, pulseSequenceDetails);
+    }
+			  
     dcmListDump(nConvert, dcmSort, dcmList, nameList, opts);
 
     mrifsStruct_vector.push_back(mrifsStruct);

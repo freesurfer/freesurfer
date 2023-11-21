@@ -523,6 +523,9 @@ foreach run ($RunNos)
       endif
     endif
 
+    set tSequenceFileName = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $11}'`
+    echo $tSequenceFileName |& tee -a $LF  # debug
+    
     set outfname = $outdir/$FName$PhaseStr.$Format
     echo "" |& tee -a $LF
     echo "#@# Run $run `date` ==================================" |& tee -a $LF
@@ -535,22 +538,34 @@ foreach run ($RunNos)
       if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
       if($UseDCM2NIIX) then
         set cmd = ($cmd -dcm2niix)
-	if($#Dcm2niixOpts) then
-	  set cmd = ($cmd --dcm2niix-opts $Dcm2niixOpts)
-	endif
         if($dcm2niix_CreateBIDS) then
           set cmd = ($cmd -dcm2niix-createBIDS --dcm2niix-outdir $outdir)
         endif
+	
         if($dcm2niix_no_ForceStackSameSeries) then
           set cmd = ($cmd -dcm2niix-no-ForceStackSameSeries)
         endif
+	
         if($dcm2niix_dicom_dump) then
 	  set dicomflst = $outdir/log/$run-dicomflst.txt
           set dumpfile = $outdir/log/$FName-infodump.dat
           set cmd = ($cmd --dcm2niix-dicom-flist $dicomflst --dcm2niix-info-dump $dumpfile)
 
           if($DoSiemensAscii) set cmd = ($cmd -siemens-ascii-dump)
+
+	  set localDcm2niixOpts = ($Dcm2niixOpts)
+	  if($tSequenceFileName == "%SiemensSeq%\gre_b0map") then
+	    if($#Dcm2niixOpts) then 
+	      set localDcm2niixOpts = ($localDcm2niixOpts,m=2)
+	    else
+	      set localDcm2niixOpts = (m=2)
+	    endif
+	  endif
         endif
+	
+	if($#localDcm2niixOpts) then
+	  set cmd = ($cmd --dcm2niix-opts $localDcm2niixOpts)
+	endif
       endif
       if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
       if($siemensBVecsCross)   set cmd = ($cmd -siemensBVecsCross)
@@ -1182,9 +1197,12 @@ usage_exit:
   echo "      be able to have the pixel data from a dicom file with little or no tissue in it"
   if($UseDCM2NIIX) then
     echo "   -no-dcm2niix : Turn it off"
-    echo "   These two options only work when -dcm2niix is on:"
+    echo "   These options only work when -dcm2niix is on:"
     echo "   -dcm2niix-createBIDS : generate a Brain Imaging Data Structure file in the JSON text format."
     echo "   -dcm2niix-no-ForceStackSameSeries : don't stack same series slice."
+    echo "   --dcm2niix-opts <dcm2niix-options> : dcm2niix option=value seperated by ,"
+    echo "      supported options: -b, -ba, -f, -i, -m, -v, -o, -t, -p, -x"
+    echo "      example --dcm2niix-opts b=y,o=/dirpath,m=y"
   else
     echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
   endif
