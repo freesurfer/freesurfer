@@ -106,7 +106,7 @@ def main():
 
         model = UNet3D(in_channels, out_channels, final_sigmoid=False, f_maps=f_maps, layer_order=layer_order,
                        num_groups=num_groups, num_levels=num_levels, is_segmentation=False, is3d=True).to(device)
-        checkpoint = torch.load(model_file)
+        checkpoint = torch.load(model_file,map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
 
         n_ims = len(images_to_segment)
