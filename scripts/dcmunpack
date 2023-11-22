@@ -179,10 +179,14 @@ if($#SrcInfo) then
     # This may still fail if they are truly the same file but diff
     # path spec, but that will not be important (it just might
     # confuse people)
+    echo "Copy $SrcInfo to $infofile ..."
     cp $SrcInfo $infofile
   endif
 else
-  rm -f $infofile
+  if(-e $infofile) then
+    echo "Remove $infofile ..."
+    rm -f $infofile
+  endif
 endif
 
 # Print out one line for each series:
@@ -204,15 +208,31 @@ if($#SeriesInfo == 0) then
 endif
 rm -f $SeriesInfo
 
+# if $infofile($TargetDir/log/imagelist.dat) exists already, and we are doing copyonly,
+# then retrieve unique SeriesNos from $infofile, go directly to unpack
+if(-e $infofile) then
+  if ($DoCopy && ! $DoConvert) then
+    echo "-copyonly, use information in $infofile to copy ..."
+    set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
+    echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
+    goto do_unpack;
+  endif
+endif
+
 #################################################################################
 # if --dcm2niix, use mri_probedicom --dcm2niix-dicom-dump dicom-dir $SeriesInfo #
 #################################################################################
 if($dcm2niix_dicom_dump) then
+  # this environment variable will be pick up by dcm2niix to output $infofile
+  setenv MGH_DCMUNPACK_IMAGELIST $infofile
+  if(-e $infofile) rm -f $infofile
   foreach d ($SrcDirList)  # dcm2niix should exam all the subdirectories
     set cmd = (mri_probedicom --dcm2niix-dicom-dump $d $SeriesInfo)
     if($DoExtraInfo) set cmd = ($cmd --extra-info)
     echo $cmd | tee -a $LF
-    $cmd  >& $infofile  # redirect to save as imagelist.dat
+    # can't use redirect, dcm2niix output will also be saved.
+    # it may interfere with $infofile parsing
+    $cmd |& tee -a $LF
 
     # print all the unique series
     set SeriesNos = (`cat $SeriesInfo | awk '{print $1}' | sort -n | uniq`)
@@ -442,6 +462,7 @@ if($#RunNos == 0) then
   exit 0;
 endif
 
+do_unpack:
 # Unpack ---------------------------------------------------------
 
 # Make sure all runs are represented

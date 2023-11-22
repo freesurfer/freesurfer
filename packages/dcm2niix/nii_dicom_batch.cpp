@@ -9265,11 +9265,17 @@ void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmL
       mrifsStruct.dicomlst[i] = new char[strlen(nameList->str[indx])+1];
       memset(mrifsStruct.dicomlst[i], 0, strlen(nameList->str[indx])+1);
       memcpy(mrifsStruct.dicomlst[i], nameList->str[indx], strlen(nameList->str[indx]));
+
+      FILE *fp = stdout;
+      const char *imagelist = getenv("MGH_DCMUNPACK_IMAGELIST");
+      if (imagelist != NULL)
+	fp = fopen(imagelist, "a");
       
-      printMessage("%s %ld %s %s %f %f %f %f\\%f %c %f %s %s\n",
-                   dcmList[indx].patientName, dcmList[indx].seriesNum, dcmList[indx].studyDate, dcmList[indx].studyTime,
-                   dcmList[indx].TE, dcmList[indx].TR, dcmList[indx].flipAngle, dcmList[indx].xyzMM[1], dcmList[indx].xyzMM[2], 
-                   dcmList[indx].phaseEncodingRC, dcmList[indx].pixelBandwidth, nameList->str[indx], dcmList[indx].imageType);
+      fprintf(fp, "%s %ld %s %s %f %f %f %f\\%f %c %f %s %s\n",
+                  dcmList[indx].patientName, dcmList[indx].seriesNum, dcmList[indx].studyDate, dcmList[indx].studyTime,
+                  dcmList[indx].TE, dcmList[indx].TR, dcmList[indx].flipAngle, dcmList[indx].xyzMM[1], dcmList[indx].xyzMM[2], 
+                  dcmList[indx].phaseEncodingRC, dcmList[indx].pixelBandwidth, nameList->str[indx], dcmList[indx].imageType);
+      fclose(fp);
     }
 }
 #endif
