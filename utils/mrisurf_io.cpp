@@ -52,7 +52,7 @@ static int   __MRISwriteQuadrangleFile(MRI_SURFACE *mris,const char *fname);
 static int __mrisreadcurvmri(MRIS *mris, const char *fname, int type, int read_volume, MRI *curvmri);
 static int __mrisreadcurvoldformat(MRIS *mris, const char *fname, MRI *curvmri);
 
-static int __mrisreadannot(const char *fannot, MRIS *mris);
+static int __mrisreadannot(const char *fannot, MRIS *mris, const COLOR_TABLE *ctab = NULL);
 static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE *ctab = NULL);
 static int __mriswriteannot(MRIS *mris, const char *outfannot);
 
@@ -1551,7 +1551,7 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname, int giftiDaNum, con
     __MRISapplyFSGIIread(annot_to_read, fname, &mritype);
 
   if (mritype == MGH_ANNOT)
-    error = __mrisreadannot(annot_to_read, mris);
+    error = __mrisreadannot(annot_to_read, mris, ctab);
   else if (mritype == MRI_MGH_FILE)
     error = __mrisreadseg2annot(annot_to_read, mris, ctab);
   else if (mritype == GIFTI_FILE)
@@ -1576,7 +1576,7 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname, int giftiDaNum, con
  *   TAG_OLD_COLORTABLE  (optional)
  *   COLOR_TABLE         (optional)
  */
-static int __mrisreadannot(const char *fannot, MRIS *mris)
+static int __mrisreadannot(const char *fannot, MRIS *mris, const COLOR_TABLE *ctab)
 {
   /* Open the file. */
   FILE *fp = fopen(fannot, "r");
@@ -1606,6 +1606,13 @@ static int __mrisreadannot(const char *fannot, MRIS *mris)
     mris->vertices[vno].annotation = annot;
   }
 
+  // replace the colortable attached with user provided one
+  if (ctab != NULL)
+  {
+    mris->ct = (COLOR_TABLE*)ctab;
+    return NO_ERROR;
+  }
+  
   //  Looks for the TAG_OLD_COLORTABLE value, and if present, reads in a color table.
   /* Check for tags. Right now we only have one possibility for tags,
      but if we add in more tags, we'll have to skip past other tags

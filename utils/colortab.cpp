@@ -2646,7 +2646,7 @@ int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot, FILE *fp
     }
   }
 
-  int step = 1000;
+  int step = random(); //1000;
 
   // print annotation and all label-ids assinged
   // suggest new annotation if it is requested
