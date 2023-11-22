@@ -31,7 +31,7 @@ set RunNoSkip = ()
 set iid = ()
 set ijd = ()
 set ikd = ()
-set dcm2niix_dicom_dump = 0
+set dcm2niix_dicom_dump = 1
 set UseDCM2NIIX = 1; # changed this to 1 on 4/06/2023
 set dcm2niix_CreateBIDS  = 0
 set dcm2niix_no_ForceStackSameSeries = 0;
@@ -935,6 +935,11 @@ while( $#argv != 0 )
       set dcm2niix_dicom_dump = 1;
       breaksw
 
+    case "--nodcm2niix-dicom-dump":
+    case "-nodcm2niix-dicom-dump":
+      set dcm2niix_dicom_dump = 0;
+      breaksw
+          
     case "--dcm2niix-opts":
       set Dcm2niixOpts = "$argv[1]"; shift;
       breaksw
@@ -1227,7 +1232,11 @@ usage_exit:
   else
     echo "   -dcm2niix   : use internal version of dcm2niix to convert (output still user spec)"
   endif
-  echo "   -dcm2niix-dicom-dump : call mri_probedicom --dcm2niix-dicom-dump to pre-process DICOMs."
+  if($dcm2niix_dicom_dump) then
+    echo "   -nodcm2niix-dicom-dump : turn off pre-processing DICOMs with 'mri_probedicom --dcm2niix-dicom-dump'"
+  else
+    echo "   -dcm2niix-dicom-dump : turn on pre-processing DICOMs with 'mri_probedicom --dcm2niix-dicom-dump'"
+  endif
   echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""
   echo "   -fips project site birnid visit"
