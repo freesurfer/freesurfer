@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 
+
+# Relative path to the build and installation directories
+BUILD_DIR=../../build
+
+# Set FREESURFER_HOME to the installation directory
+export FREESURFER_HOME=$install_path
+
+# Rest of your script...
+
+
 func_setup_fspython()
 {
    export FREESURFER_HOME=$install_path
    source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null 2>&1
-   fspython=$install_path/bin/fspython
+   fspython=$FREESURFER_HOME/bin/fspython
    if [ ! -e $fspython ]; then
       echo "*** Error: Cannot find expected fspython to run as $fspython"
       exit 1
@@ -83,11 +93,18 @@ do
 done
 
 this_dir=$PWD
-cd ..
+cd ../../build
 top_dir=$PWD
 cd $this_dir
-cmake_cache=$top_dir/CMakeCache.txt
+
+# Check if CMakeCache.txt exists in the build directory
+if [ ! -e $top_dir/CMakeCache.txt ]; then
+    echo "*** Error: CMakeCache.txt not found in the build directory."
+    exit 1
+fi
+
 # Use cached cmake output to get current install prefix else exit
+cmake_cache=$top_dir/CMakeCache.txt
 install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
 
 if [ $generate -eq 1 ]; then
@@ -209,7 +226,7 @@ fi
 
 if [ $uninstall -eq 1 ]; then
 
-   func_check_no_fshome
+   # func_check_no_fshome
    func_setup_fspython
 
    # remove nvidia packages with compiled cuda shared libs (installed as dependency on linux but not MacOS)
