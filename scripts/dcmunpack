@@ -179,12 +179,12 @@ if($#SrcInfo) then
     # This may still fail if they are truly the same file but diff
     # path spec, but that will not be important (it just might
     # confuse people)
-    echo "Copy $SrcInfo to $infofile ..."
+    echo "Copy $SrcInfo to $infofile ..." | tee -a $LF
     cp $SrcInfo $infofile
   endif
 else
   if(-e $infofile) then
-    echo "Remove $infofile ..."
+    echo "Remove $infofile ..." | tee -a $LF
     rm -f $infofile
   endif
 endif
@@ -210,14 +210,21 @@ rm -f $SeriesInfo
 
 # if $infofile($TargetDir/log/imagelist.dat) exists already, and we are doing copyonly,
 # then retrieve unique SeriesNos from $infofile, go directly to unpack
-if(-e $infofile) then
-  if ($DoCopy && ! $DoConvert) then
-    echo "-copyonly, use information in $infofile to copy ..."
+if($DoCopy) then
+  if(-e $infofile) then
+    echo "use information in $infofile to copy DICOMs ..."
     set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
     echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
     goto do_unpack;
   endif
 endif
+
+# todo:
+# DoConvert -
+#   take $SeriesInfo and $infofile as input
+#   skip dicom pre-processing
+#   go directly to unpack
+#   reference <seriesno>-dicomflst.txt from $Target/log directory
 
 #################################################################################
 # if --dcm2niix, use mri_probedicom --dcm2niix-dicom-dump dicom-dir $SeriesInfo #
@@ -441,9 +448,23 @@ else
   end
 endif  # dcm2niix_dicom_dump=0
 
-# cat series-info.dat to log file
-cat $SeriesInfo >> $LF
+# start printing series summary for pre-processed dicoms (mri_probedicom)
+echo "" | tee -a $LF
+echo "DICOM Pre-process Summary:" | tee -a $LF
+foreach series ($SeriesNos)
+  set protocol = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}' | head -n 1`
+  set dicomfpath = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $9}' | head -n 1`
+  set dicomfile  = `basename $dicomfpath`
+  set ndicomfiles = `cat $infofile | awk -v r=$series '{if($2 == r) print $11}' | wc -l | awk '{print $1}'`  
+      
+  # create unpacksdcmdir like summary instead
+  # seriesno protocol-name num-dicom-files first-dicom-file
+  printf "  %-4d %40s %6d %s\n" $series $protocol $ndicomfiles $dicomfile | tee -a $LF
+end  # end printing series summary
 
+endif
+
+# -auto-runseq option
 if($DoAutoRunSeq) then
   set RunNos = ($AutoRunNos)
   set SubDirs = ($AutoSubDirs)
@@ -481,6 +502,11 @@ foreach run ($RunNos)
 end
 
 # ------------------ Unpack --------------------------
+set DoConvertSummary = $TargetDir/log/DoConvert-Summary.txt
+if(-e $DoConvertSummary) mv $DoConvertSummary $TargetDir/log/DoConvert-Summary.$$.dat
+set DoCopySummary = $TargetDir/log/DoCopy-Summary.txt
+if(-e $DoCopySummary) mv $DoCopySummary $TargetDir/log/DoCopy-Summary.$$.dat
+
 @ nth = 0;
 foreach run ($RunNos)
   @ nth = $nth + 1;
@@ -545,7 +571,6 @@ foreach run ($RunNos)
     endif
 
     set tSequenceFileName = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $11}'`
-    echo $tSequenceFileName |& tee -a $LF  # debug
     
     set outfname = $outdir/$FName$PhaseStr.$Format
     echo "" |& tee -a $LF
@@ -591,8 +616,36 @@ foreach run ($RunNos)
       if(! $UseDCM2NIIX) set cmd = ($cmd -no-dcm2niix)
       if($siemensBVecsCross)   set cmd = ($cmd -siemensBVecsCross)
       if(! $siemensBVecsCross) set cmd = ($cmd -no-siemensBVecsCross)
+
+      # retrieve information for DoConvertSummary
+      set protocol = `cat $SeriesInfo | awk -v s=$run '{if($1 == s) print $2}' | head -n 1`
+      set dicomfile  = `basename $f`
+      set okstatus = 'ok'
+      set cols = 0
+      set rows = 0
+      set slice = 0
+      set nframes = 0
+
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
+      
+      # create unpacksdcmdir like summary for series converted
+      # the summary is saved to $DoConvertSummary
+      # it will be concatenated to main log at the end of dcmunpack
+      # seriesno protocol-name convert-status dimension num-dicom-files first-dicom-file
+      if($status) then
+        set okstatus = 'err'
+      else
+        if(-e $outfname) then
+	  set dims = `mri_info $outfname --dim`
+	  set cols = `echo $dims | awk '{print $1}'`
+	  set rows = `echo $dims | awk '{print $2}'`
+	  set slice = `echo $dims | awk '{print $3}'`
+	  set nframes = `echo $dims | awk '{print $4}'`
+	endif
+      endif
+      printf "  %-4d %40s %3s %3d %3d %3d %3d %s\n" $run $protocol $okstatus $cols $rows $slice $nframes $dicomfile >> $DoConvertSummary
+      
       if($status) then
         if($ExitOnError) then
           echo "ERROR: a conversion error was detected in Run $run" |& tee -a $LF
@@ -611,22 +664,44 @@ foreach run ($RunNos)
       $cmd |& tee -a $LF
       if($status) then
         if($ExitOnError) then
-          echo "ERROR: an error was detected in Run $run copying firt dicom file" |& tee -a $LF
+          echo "ERROR: an error was detected in Run $run copying first dicom file" |& tee -a $LF
           echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
           exit 1;
         endif
-        echo "ERROR: an error was detected in Run $run copying firt dicom file, but ExitOnError=1 so continuing to next run" |& tee -a $LF
+        echo "ERROR: an error was detected in Run $run copying first dicom file, but ExitOnError=1 so continuing to next run" |& tee -a $LF
         @ ErrorsFound = $ErrorsFound + 1;
       endif
     endif
   endif
 
   if($DoCopy) then
+    set okstatus = 'ok'
     set flist = (`cat $infofile | awk -v r=$run '{if($2 == r) print $11}'`);
+
+    # retrieve information for DoCopySummary
+    set dicomfpath  = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+    set dicomfile = `basename $dicomfpath`
+    set ndicomfiles = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | wc -l | awk '{print $1}'`
+      
     foreach f ($flist)
       cp $f $outdir |& tee -a $LF
-      if($status) exit 1;
+      if($status) then
+        set okstatus = 'err'
+        if($ExitOnError) then
+          echo "ERROR: an error was detected in Run $run copying dicom file" |& tee -a $LF
+          echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
+          exit 1;
+        endif
+	echo "ERROR: an error was detected in Run $run copying dicom file, but ExitOnError=1 so continuing to next run" |& tee -a $LF
+        @ ErrorsFound = $ErrorsFound + 1;
+      endif
     end
+
+    # create unpacksdcmdir like summary for series copied (-copy-only option)
+    # the summary is saved to $DoCopySummary
+    # it will be concatenated to main log at the end of dcmunpack
+    # seriesno copy-status num-dicom-files first-dicom-file
+    printf "  %-4d %3s %6d %s\n" $run $okstatus $ndicomfiles $dicomfile >> $DoCopySummary
   endif
 
   if(! $dcm2niix_dicom_dump) then
@@ -679,6 +754,15 @@ echo "Ended   at `date`" |& tee -a $LF
 echo "dcmunpack-Run-Time-Min $tRunMins" |& tee -a $LF
 if($ErrorsFound > 0) then
   echo "WARNING: $ErrorsFound errors during conversion, check logs" |& tee -a $LF
+endif
+
+echo "" | tee -a $LF
+if(-e $DoConvertSummary) then
+  echo "DICOM Convert Summary:" | tee -a $LF
+  cat $DoConvertSummary | tee -a $LF
+else if(-e $DoCopySummary) then
+  echo "DICOM Copy Summary:" | tee -a $LF
+  cat $DoCopySummary | tee -a $LF
 endif
 
 echo "" | tee -a $LF
