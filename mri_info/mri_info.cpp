@@ -835,7 +835,7 @@ static void do_file(char *fname)
   }
   if (PrintDim)
   {
-    fprintf(fpout,"%d %d %d %d\n",
+    fprintf(fpout,"%-3d %-3d %-3d %-3d\n",
             mri->width,mri->height,mri->depth,mri->nframes);
     return;
   }
