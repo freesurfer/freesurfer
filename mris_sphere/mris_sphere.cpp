@@ -100,6 +100,8 @@ static char *xform_fname = NULL ;
 static char *vol_fname = NULL ;
 
 static int remove_negative = 1 ;
+int LeftRightRev = 0;
+
 char *rusage_file=NULL;
 
 int
@@ -274,6 +276,16 @@ main(int argc, char *argv[])
     MRIfree(&mri) ;
     LTAfree(&lta) ;
     MRISwrite(mris, "xfm") ;
+  }
+
+  if(LeftRightRev){
+    printf("Left-right reversing input\n");
+    MATRIX *M = MatrixIdentity(4,NULL);
+    M->rptr[1][1] = -1;
+    MRISmatrixMultiply(mris, M);
+    MatrixFree(&M);
+    printf("Reversing face order\n");
+    MRISreverseFaceOrder(mris);
   }
 
 #if 0
@@ -731,6 +743,10 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"setting seed for random number genererator to %d\n",
             atoi(argv[2])) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "left-right-reverse"))
+  {
+    LeftRightRev = 1;
   }
   else switch (toupper(*option))
     {

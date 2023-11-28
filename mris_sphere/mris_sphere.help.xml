@@ -37,6 +37,22 @@
     </required-flagged>
     <optional-flagged>
       <intro>********************************************************</intro>
+      <argument>-t xform </argument>
+      <explanation>Apply xform to the surface</explanation>
+      <argument>-o origname </argument>
+      <explanation>Eg, white</explanation>
+      <argument>-p max_passes </argument>
+      <explanation> max passes </explanation>
+      <argument>-q </argument>
+      <explanation>remove negative = 0</explanation>
+      <argument>-l </argument>
+      <explanation>set load=1</explanation>
+      <argument>-s scale </argument>
+      <explanation>scale brain by scale</explanation>
+      <argument>-left-right-reverse </argument>
+      <explanation>Left-right reverse the input (good for topofit)</explanation>
+      <argument>See code for more </argument>
+      <explanation>See code for more</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
