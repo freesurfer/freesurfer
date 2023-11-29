@@ -67,6 +67,11 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
   m_bSnapToVoxelCenter = false;
   m_bClosedSpline = false;
   m_bShowUnfixedOnly = false;
+
+  m_bShowVRSpaceOnly = false;
+  m_bShowLesionsOnly = false;
+  m_bShowNonLesionsOnly = false;
+
   m_lutHeatScale = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
   connect(this, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SIGNAL(PropertyChanged()));
@@ -466,4 +471,34 @@ void LayerPropertyPointSet::SetShowUnfixedOnly(bool b)
     emit PropertyChanged();
     emit ScalarChanged();
   }
+}
+
+void LayerPropertyPointSet::SetShowLesionsOnly(bool b)
+{
+  m_bShowLesionsOnly = b;
+  m_bShowNonLesionsOnly = false;
+  m_bShowVRSpaceOnly = false;
+
+  emit PropertyChanged();
+  emit ScalarChanged();
+}
+
+void LayerPropertyPointSet::SetShowNonLesionsOnly(bool b)
+{
+  m_bShowLesionsOnly = false;
+  m_bShowNonLesionsOnly = b;
+  m_bShowVRSpaceOnly = false;
+
+  emit PropertyChanged();
+  emit ScalarChanged();
+}
+
+void LayerPropertyPointSet::SetShowVRSpaceOnly(bool b)
+{
+  m_bShowLesionsOnly = false;
+  m_bShowNonLesionsOnly = false;
+  m_bShowVRSpaceOnly = b;
+
+  emit PropertyChanged();
+  emit ScalarChanged();
 }

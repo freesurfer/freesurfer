@@ -25,6 +25,7 @@ class PanelPointSet;
 
 class QLabel;
 class QTreeWidgetItem;
+class ToolWindowLesionPopup;
 
 class PanelPointSet : public PanelLayer
 {
@@ -68,6 +69,7 @@ protected slots:
   void OnSpinBoxOverallScore(int);
   void OnSpinBoxSecondQA(int);
   void OnCheckBoxFixed(bool b);
+  void OnButtonLesionPopup();
 
 private:
   QLabel* MakeCommentItem(const QVariantMap& map, QLabel* label_in = NULL);
@@ -80,6 +82,7 @@ private:
 
   QString     m_self;
   QMap<QObject*, int> m_mapCurrentPoint;
+  ToolWindowLesionPopup* m_toolLesionPopup;
 };
 
 #endif // PANELPOINTSET_H

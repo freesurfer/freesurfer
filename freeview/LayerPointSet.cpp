@@ -484,7 +484,11 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   bool bShowUnfixedOnly = GetProperty()->GetShowUnfixedOnly();
   for ( int i = 0; i < m_points.size(); i++ )
   {
-    if (radius > 0 && (!bShowUnfixedOnly || !m_points[i].info.value("fixed").toBool()))
+    QString pr = m_points[i].info.value("pathological_region").toString().toLower();
+    if (radius > 0 && (!bShowUnfixedOnly || !m_points[i].info.value("fixed").toBool()) &&
+        (!GetProperty()->GetShowLesionsOnly() || pr == "lesion") &&
+        (!GetProperty()->GetShowNonLesionsOnly() || pr == "non_lesion") &&
+        (!GetProperty()->GetShowVRSpaceOnly() || pr == "vr_space") )
     {
       vtkSphereSource* sphere = vtkSphereSource::New();
       sphere->SetCenter( m_points[i].pt );
@@ -579,8 +583,12 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     int n = 0;
     for ( int j = 0; j < m_points.size(); j++ )
     {
+      QString pr = m_points[j].info.value("pathological_region").toString().toLower();
       if ( radius > 0 && fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) &&
-           (!bShowUnfixedOnly || !m_points[j].info.value("fixed").toBool()))
+          (!bShowUnfixedOnly || !m_points[j].info.value("fixed").toBool()) &&
+          (!GetProperty()->GetShowLesionsOnly() || pr == "lesion") &&
+          (!GetProperty()->GetShowNonLesionsOnly() || pr == "non_lesion") &&
+          (!GetProperty()->GetShowVRSpaceOnly() || pr == "vr_space") )
       {
         vtkSphereSource* sphere = vtkSphereSource::New();
         double point[3] = { m_points[j].pt[0], m_points[j].pt[1], m_points[j].pt[2] };

@@ -175,6 +175,21 @@ public:
 
   void SetScalarToStat();
 
+  bool GetShowLesionsOnly()
+  {
+    return m_bShowLesionsOnly;
+  }
+
+  bool GetShowNonLesionsOnly()
+  {
+    return m_bShowNonLesionsOnly;
+  }
+
+  bool GetShowVRSpaceOnly()
+  {
+    return m_bShowVRSpaceOnly;
+  }
+
 signals:
   void SnapToVoxelCenterChanged( bool bSnag );
   void SplineVisibilityChanged( bool bSpline );
@@ -185,6 +200,7 @@ signals:
   void RadiusChanged( double );
   void SplineRadiusChanged( double );
   void ClosedSplineChanged(bool);
+  void ShowPathologicalRegionChanged();
 
 public slots:
   void SetOpacity( double opacity );
@@ -210,6 +226,10 @@ public slots:
 
   void SetClosedSpline(bool bClosed);
   void SetShowUnfixedOnly(bool b);
+
+  void SetShowVRSpaceOnly(bool b);
+  void SetShowNonLesionsOnly(bool b);
+  void SetShowLesionsOnly(bool b);
 
 private:
   void SetColorMapChanged ();
@@ -248,6 +268,10 @@ private:
   bool    m_bSnapToVoxelCenter;
   bool    m_bShowSpline;
   bool    m_bClosedSpline;
+
+  bool    m_bShowLesionsOnly;
+  bool    m_bShowNonLesionsOnly;
+  bool    m_bShowVRSpaceOnly;
 
   bool    m_bShowUnfixedOnly;
 

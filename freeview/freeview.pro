@@ -77,6 +77,7 @@ SOURCES += \
     LUTDataHolder.cpp \
     PanelODF.cpp \
     Region3D.cpp \
+    ToolWindowLesionPopup.cpp \
     VolumeFilterOptimal.cpp \
     WindowEditAnnotation.cpp \
     main.cpp \
@@ -275,6 +276,7 @@ HEADERS  += \
     PanelSurface.h \
     PanelVolume.h \
     Region3D.h \
+    ToolWindowLesionPopup.h \
     VolumeFilterOptimal.h \
     WindowEditAnnotation.h \
     qtcolorpicker.h \
@@ -390,6 +392,7 @@ FORMS    += MainWindow.ui \
     PanelPointSet.ui \
     DialogLoadVolume.ui \
     DialogPreferences.ui \
+    ToolWindowLesionPopup.ui \
     ToolWindowMeasure.ui \
     ToolWindowEdit.ui \
     DialogNewVolume.ui \

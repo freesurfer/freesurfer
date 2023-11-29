@@ -33,6 +33,7 @@
 #include <QMessageBox>
 #include "DialogAddPointSetStat.h"
 #include "DialogControlPointComment.h"
+#include "ToolWindowLesionPopup.h"
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -83,10 +84,19 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
     ui->commentsContentWidget->setStyleSheet(QString("#commentsContentWidget {background-color:#1E1E1E;}"));
 #endif
 
-  connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxOverallScore(int)));
-  connect( ui->spinBoxSecondQA, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxSecondQA(int)));
-  connect( ui->textEditOverallQuality, SIGNAL(textChanged()), SLOT(OnTextOverallQualityChanged()));
-  connect( ui->checkBoxFixed, SIGNAL(toggled(bool)), SLOT(OnCheckBoxFixed(bool)));
+  m_toolLesionPopup = new ToolWindowLesionPopup(this);
+  m_toolLesionPopup->hide();
+  connect(m_toolLesionPopup, SIGNAL(GoToPointChanged(int)), SLOT(OnSpinBoxGoToPoint(int)), Qt::QueuedConnection);
+  connect(m_toolLesionPopup, SIGNAL(GoToPointTriggered()), SLOT(OnButtonGoToPoint()), Qt::QueuedConnection);
+  connect(m_toolLesionPopup, SIGNAL(RadiusTextChanged(QString)), SLOT(OnLineEditRadius(QString)));
+  connect(m_toolLesionPopup, SIGNAL(PointColorChanged(QColor)), ui->colorpickerPointColor, SLOT(setCurrentColor(QColor)), Qt::QueuedConnection);
+  connect(m_toolLesionPopup, SIGNAL(OpacityChanged(double)), ui->doubleSpinBoxOpacity, SLOT(setValue(double)));
+
+  connect(ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxOverallScore(int)));
+  connect(ui->spinBoxSecondQA, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxSecondQA(int)));
+  connect(ui->textEditOverallQuality, SIGNAL(textChanged()), SLOT(OnTextOverallQualityChanged()));
+  connect(ui->checkBoxFixed, SIGNAL(toggled(bool)), SLOT(OnCheckBoxFixed(bool)));
+  connect(ui->pushButtonLesionPopup, SIGNAL(clicked(bool)), SLOT(OnButtonLesionPopup()));
 }
 
 PanelPointSet::~PanelPointSet()
@@ -233,6 +243,8 @@ void PanelPointSet::DoUpdateWidgets()
   ShowWidgets( m_widgetlistHeatScale, bShowSpline && layer && nColorMap == LayerPropertyPointSet::HeatScale );
 
   UpdatePointInfo();
+
+  m_toolLesionPopup->UpdateUI(layer);
 
   BlockAllSignals( false );
 }
@@ -433,6 +445,9 @@ void PanelPointSet::SetCurrentPoint(int nIndex)
       ui->spinBoxGoToPoint->blockSignals(true);
       ui->spinBoxGoToPoint->setValue(nIndex+1);
       ui->spinBoxGoToPoint->blockSignals(false);
+
+      m_toolLesionPopup->SetCurrentPoint(nIndex);
+
       DoUpdateWidgets();
     }
   }
@@ -538,6 +553,8 @@ void PanelPointSet::UpdatePointInfo()
     }
 
     m_mapCurrentPoint[layer] = nIndex;
+
+    m_toolLesionPopup->UpdatePointInfo(nIndex, &p);
   }
   BlockAllSignals(false);
 }
@@ -775,4 +792,8 @@ void PanelPointSet::OnSpinBoxSecondQA(int val)
     layer->SetEnhancedData("qa_level", val);
 }
 
-
+void PanelPointSet::OnButtonLesionPopup()
+{
+  m_toolLesionPopup->show();
+  m_toolLesionPopup->raise();
+}
