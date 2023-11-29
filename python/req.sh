@@ -13,19 +13,6 @@ func_setup_fspython()
    ls -l $fspython
 }
 
-func_check_no_fshome()
-{
-   # Do not run if FREESURFER_HOME already set
-   if [ ! -z "${FREESURFER_HOME}" ]; then
-      echo "*** Error: Cannot run this script with FREESURFER_HOME already set in the environment"
-      exit 1
-   fi
-   if [ ! -e $top_dir/CMakeCache.txt ]; then
-      echo "*** Error: Must run with an existing ./CMakeCache.txt file at the top of the freesurfer tree - CMakeCache.txt not found."
-      exit 1
-   fi
-}
-
 if [ $# == 0 ]; then
    echo "Please provide one of the following arguments:"
    echo "--generate   (Re)generate the requirements-build.txt and requirements-build-extra.txt files using the fspython found under your current INSTALL_PREFIX"
@@ -86,13 +73,35 @@ this_dir=$PWD
 cd ..
 top_dir=$PWD
 cd $this_dir
-cmake_cache=$top_dir/CMakeCache.txt
-# Use cached cmake output to get current install prefix else exit
-install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
+
+install_path=""
+cmake_cache=""
+cache_1=$top_dir/CMakeCache.txt
+cache_2="../../build/CMakeCache.txt"
+# try env setting
+if [[ ! -z "${FS_INSTALL_DIR}" ]]; then
+   install_path=${FS_INSTALL_DIR}
+   # don't know where cmake_cache is
+else
+   # try location of cmake cache from build in source tree
+   if [ -e $cache_1 ]; then
+      cmake_cache=$cache_1
+      install_path=`grep "^CMAKE_INSTALL_PREFIX" $cache_1 | sed 's;^.*=;;'`
+   # try location in parallel build dir
+   elif [ -e $cache_2 ]; then
+      cmake_cache=$cache_2
+      install_path=`grep "^CMAKE_INSTALL_PREFIX" $cache_2 | sed 's;^.*=;;'`
+   fi
+fi
+if [ "$install_path" == "" ]; then
+   echo "*** Error: Could not determine install path from FS_INSTALL_DIR or find a CMakeCache.txt file."
+   exit 1
+else
+   echo "Using install path $install_path"
+fi 
 
 if [ $generate -eq 1 ]; then
 
-   func_check_no_fshome
    # If requirements files not soft links and modified, then stop and do not clobber
    if [ ! -L  requirements.txt ]; then
       git status -s requirements.txt | grep "M requirements.txt"
@@ -134,10 +143,12 @@ fi
 
 if [ $add_links -eq 1 ]; then
 
-   grep "^FSPYTHON_BUILD_REQ:BOOL=ON" $cmake_cache > /dev/null
-   if [ $? == 0 ]; then
-      echo "no soft links needed for requirements files with FSPYTHON_BUILD_REQ enabled"
-      exit 0
+   if [ "$cmake_cache" != "" ]; then
+      grep "^FSPYTHON_BUILD_REQ:BOOL=ON" $cmake_cache > /dev/null
+      if [ $? == 0 ]; then
+         echo "no soft links needed for requirements files with FSPYTHON_BUILD_REQ enabled"
+         exit 0
+      fi
    fi
 
    if [ -L  requirements.txt ]; then
@@ -209,7 +220,6 @@ fi
 
 if [ $uninstall -eq 1 ]; then
 
-   func_check_no_fshome
    func_setup_fspython
 
    # remove nvidia packages with compiled cuda shared libs (installed as dependency on linux but not MacOS)
