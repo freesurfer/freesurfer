@@ -186,7 +186,7 @@ def main() -> None:
         print('registering to the atlas ... ')
         param_coord = sphere.parameterize(np.array(sphere.vertices))
         param_coord_padded = pad_2d_image_spherically(param_coord[np.newaxis, ...], pad_size)
-        warped_param_coord = model.warp(mrisp_geom_padded[np.newaxis, ...], param_coord_padded, 'to_atlas', 0)
+        warped_param_coord = model.warp(mrisp_geom_padded[np.newaxis, ...], param_coord_padded, 'to_subject', 0)
         warped_param_coord_unpad = unpad_2d_image(warped_param_coord[0, :, :, :], pad_size, input_no_batch_dim=True)
         print('done')
 
