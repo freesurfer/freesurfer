@@ -32,7 +32,7 @@ def print_usage():
     print("--inflated_curv_file", "path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
     print("--sphere_rot", "path to ?h.sphere.rot file")
     print("--model", "path to the model file. Default models directory is at $FREESURFER/models/mris_register_josa_?h_20231025.h5")
-    print("--output_dir", "custom output directory, default is to save to the subject surf directory")
+    print("--output", "custom output directory, default is to save to the subject surf directory")
 
 
 def parse_arguments():
@@ -48,7 +48,7 @@ def parse_arguments():
     parser.add_argument("--inflated_curv_file", type=Path, help="path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
     parser.add_argument("--sphere_rot", type=Path, help="path to ?h.sphere.rot file")
     parser.add_argument("--model", type=Path, help="path to the model file")
-    parser.add_argument("--output_dir", type=Path, default=Path("surf"), help="custom output directory, default is to save to the subject surf directory")
+    parser.add_argument("--output", type=Path, help="output path, default is to save to the subject surf directory as ?h.josa.sphere.reg")
     return parser.parse_args()
 
 def print_vm_peak():
@@ -99,16 +99,16 @@ def main() -> None:
                 inf_h_file = Path(surf_dir / f'{args.hmsp}.inflated.H')
             else:
                 raise ValueError(f'{args.hmsp}.inflated.H not found in surf directory')
-            if args.output_dir is None:
-                output_dir = surf_dir
+            if args.output is None:
+                output = Path(surf_dir / f'{args.hmsp}.josa.sphere.reg');
             if(args.sphere_rot is None):
                 if Path(surf_dir / f'{args.hmsp}.sphere.rot').exists():
                     sphere_rot_file = Path(surf_dir / f'{args.hmsp}.sphere.rot')
         else:
             if(args.sphere_rot is None):
                 raise ValueError('Must spec sphere rot file or subject dir')
-            if(args.output_dir is None):
-                raise ValueError('Must spec an output folder or specify the subject dir')
+            if(args.output is None):
+                raise ValueError('Must spec an output file or specify the subject dir')
             if(args.sulc_file is None):
                 raise ValueError('Must spec a sulc file or the subject dir')
             if(args.curv_file is None):
@@ -121,7 +121,7 @@ def main() -> None:
         if args.curv_file: curv_file = args.curv_file
         if args.inflated_curv_file: inf_h_file = args.inflated_curv_file
         if args.sphere_rot: sphere_rot_file = args.sphere_rot
-        if args.output_dir: output_dir = args.output_dir
+        if args.output: output = args.output
 
         surf_feature_file = [sulc_file, curv_file, inf_h_file]
 
@@ -131,6 +131,7 @@ def main() -> None:
             model_file = args.model
         print(f'model file is {model_file}');
 
+        output_dir = os.path.dirname(output);
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         # processing starts from here
@@ -193,7 +194,7 @@ def main() -> None:
         print('saving sphere.reg to disk ... ', end='')
         sphere_reg = sphere.copy()
         sphere_reg.vertices = sphere.sample_parameterization(warped_param_coord_unpad)
-        sphere_reg.write(Path(output_dir / f'{args.hmsp}.sphere.reg'))
+        sphere_reg.write(Path(output));
         print('done')
 
     except Exception as e:
