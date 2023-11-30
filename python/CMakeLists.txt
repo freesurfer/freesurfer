@@ -22,6 +22,23 @@ else()
    install(PROGRAMS fspython DESTINATION bin)
 endif()
 
+# WIP: Custom packages to modify existing install - install over pre-existing package with --ignore-installed and rebuild (--no-cache-dir)
+# surfa
+set(SURFA_LOCAL_PATH "/autofs/space/curv_001/users/avnish/fs_w_local_pkg/local_packages/surfa")
+set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
+
+add_custom_target(setup_surfa)
+
+file(GLOB_RECURSE surfa_dists ${CMAKE_INSTALL_PREFIX}/python/packages/surfa-*.dist-info)
+
+foreach(dist ${surfa_dists})
+  file(REMOVE_RECURSE ${dist})
+endforeach()
+
+message(STATUS "Installing Surfa from local path: ${SURFA_LOCAL_PATH}")
+add_custom_command(TARGET setup_surfa COMMAND ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --ignore-installed --no-cache-dir --upgrade -e ${SURFA_LOCAL_PATH} ${PKG_TARGET} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+
 # default is least version specific or sparse requirements to allow for latest pkg revisions
 set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt")
 set(requirements_extra "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt")
