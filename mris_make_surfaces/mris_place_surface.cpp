@@ -289,6 +289,7 @@ double Ghisto_right_inside_peak_pct = 0.01;
 double Ghisto_left_outside_peak_pct = 0.5;
 double Ghisto_right_outside_peak_pct = 0.5;
 int n_averages=0;
+int nsubiters = 1;
 int UseMMRefine = 0;
 float MMRefineMinPGrey = 20;
 int UseMMRefineWeights = 0;
@@ -317,6 +318,7 @@ int DilLatVentsTopo=1;
 int DilLatVentsNnbrs=1;
 int FillLatVents(MRI *invol, MRI *aseg, double dilmm, int topo, int nnbrsthresh, double val);
 MRI *stopmask=NULL;
+int l_intensity_set = 0, l_location_set = 0, l_repulse_set = 0, l_nspring_set = 0, l_curv_set = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -384,9 +386,8 @@ int main(int argc, char **argv)
 
   if(surftype == GRAY_CSF){
     // Pial
-    parms.l_repulse = 0.0;
-    if(parms.l_surf_repulse == 0) // has not been change on cmd line
-      parms.l_surf_repulse = 5.0;
+    if(l_repulse_set == 0) parms.l_repulse = 0.0;
+    if(parms.l_surf_repulse == 0) parms.l_surf_repulse = 5.0; // has not been change on cmd line
   }
 
   // print out version of this program and mrisurf.c
@@ -597,22 +598,24 @@ int main(int argc, char **argv)
     printf("Reading in multimodal volume %s\n",mmvolpath);
     mmvol = MRIread(mmvolpath);
     if(mmvol==NULL) exit(1);
+    // should check that the dimensions, resolution are the same
   }
- // should check that the dimensions, resolution are the same
- if (mmvolpath || UseMMRefine || UseMMRefineWeights ||mmvols.size()>0){
-  	std::cout << " using multi modal weights "<< std::endl;
-	  parms.l_intensity = 0.000;
-    parms.l_location  = 0.500;
-    parms.l_repulse   = 0.025;
-    parms.l_nspring   = 1.000;
-    parms.l_curv      = 0.500;
+  if(mmvolpath || UseMMRefine || UseMMRefineWeights ||mmvols.size()>0){
+    std::cout << "Using multi modal weights "<< std::endl;
+    if(!l_intensity_set) parms.l_intensity = 0.000;
+    if(!l_location_set)  parms.l_location  = 0.500;
+    if(!l_repulse_set)   parms.l_repulse   = 0.025;
+    if(!l_nspring_set)   parms.l_nspring   = 1.000;
+    if(!l_curv_set)      parms.l_curv      = 0.500;
     parms.check_tol = 1 ;
     wm_weight = 3 ;
     max_pial_averages = 4;
     max_outward_dist = 3 ;
     if(mm_contrast_type == CONTRAST_FLAIR) Ghisto_left_inside_peak_pct = 0.01; //0.01 for flair. typo?
-    // Check dims
   }
+  printf("opt weights int=%g loc=%g rep=%g nspr=%g curv=%g\n",
+	 parms.l_intensity,parms.l_location,parms.l_repulse,parms.l_nspring,parms.l_curv);
+ fflush(stdout);
 
   if(parms.l_hinge > 0 || parms.l_spring_nzr > 0){
     if(parms.l_spring_nzr){
@@ -842,13 +845,13 @@ int main(int argc, char **argv)
     printf("l_repulse = %g, l_surf_repulse = %g, checktol = %d\n",parms.l_repulse,
 	   parms.l_surf_repulse,parms.check_tol);fflush(stdout);
 
-    printf("Positioning surface\n");fflush(stdout);
-    // Note: 3rd input (invol) was "mri_smooth" in mris_make_surfaces, but
-    // this was always a copy of the input (mri_T1 or invol)
-    MRISpositionSurface(surf, involPS, involPS, &parms);
-    printf("  done positioning surface\n");fflush(stdout);
-    //sprintf(tmpstr,"lh.place.postpos%02d",i);
-    //MRISwrite(surf, tmpstr);
+    for(int subiter = 0; subiter < nsubiters; subiter++){
+      printf("\n\nPositioning surface subiter %d\n",subiter);fflush(stdout);
+      // Note: 3rd input (invol) was "mri_smooth" in mris_make_surfaces, but
+      // this was always a copy of the input (mri_T1 or invol)
+      MRISpositionSurface(surf, involPS, involPS, &parms);
+      printf("  done positioning surface\n");fflush(stdout);
+    }
 
     old_parms.start_t = parms.start_t ;
     INTEGRATION_PARMS_copy(&parms, &old_parms) ;
@@ -1268,6 +1271,7 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       parms.l_intensity = atof(pargv[0]) ;
       printf("l_intensity = %2.3f\n", parms.l_intensity);
+      l_intensity_set = 1;
       nargsused = 1;
     }
     else if (!stricmp(option, "--hinge")) {
@@ -1298,12 +1302,14 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       parms.l_nspring = atof(pargv[0]) ;
       printf("l_nspring = %2.3f\n", parms.l_nspring) ;
+      l_nspring_set = 1;
       nargsused = 1;
     }
     else if (!stricmp(option, "--curv")){
       if(nargc < 1) CMDargNErr(option,1);
       parms.l_curv = atof(pargv[0]) ;
       printf("l_curv = %2.3f\n", parms.l_curv) ;
+      l_curv_set = 1;
       nargsused = 1;
     }
     else if (!stricmp(option, "--surf-repulse")){
@@ -1316,12 +1322,14 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_repulse);
       printf("l_repulse = %2.3f\n", parms.l_repulse) ;
+      l_repulse_set = 1;
       nargsused = 1;
     }
     else if (!stricmp(option, "--location")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_location);
       printf("l_location = %2.3f\n", parms.l_location) ;
+      l_location_set = 1;
       nargsused = 1;
     }
     else if (!stricmp(option, "--tps")){
@@ -1394,6 +1402,10 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!stricmp(option, "--n_averages")){
       sscanf(pargv[0],"%d",&n_averages);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--subiters")){
+      sscanf(pargv[0],"%d",&nsubiters);
       nargsused = 1;
     }
     else if (!stricmp(option, "--shrink")){
