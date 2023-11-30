@@ -22,6 +22,7 @@ else()
    install(PROGRAMS fspython DESTINATION bin)
 endif()
 
+
 # WIP: Custom packages to modify existing install - install over pre-existing package with --ignore-installed and rebuild (--no-cache-dir)
 # surfa
 set(SURFA_LOCAL_PATH "/autofs/space/curv_001/users/avnish/fs_w_local_pkg/local_packages/surfa")
@@ -35,8 +36,40 @@ foreach(dist ${surfa_dists})
   file(REMOVE_RECURSE ${dist})
 endforeach()
 
-message(STATUS "Installing Surfa from local path: ${SURFA_LOCAL_PATH}")
-add_custom_command(TARGET setup_surfa COMMAND ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --ignore-installed --no-cache-dir --upgrade -e ${SURFA_LOCAL_PATH} ${PKG_TARGET} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+message(STATUS "Installing Surfa from local path: ${DEEPSURFER_LOCAL_PATH}")
+add_custom_command(
+  TARGET setup_surfa 
+  COMMAND 
+    ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --ignore-installed --no-cache-dir --upgrade -e ${SURFA_LOCAL_PATH} ${PKG_TARGET} 
+  WORKING_DIRECTORY 
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# deepsurfer
+set(DEEPSURFER_LOCAL_PATH "/autofs/space/curv_001/users/avnish/fs_w_local_pkg/local_packages/deepsurfer")
+set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
+
+# set(DEEPSURFER_PYPROJECT "${DEEPSURFER_LOCAL_PATH}/pyproject.toml")
+# set(DEEPSURFER_PYPROJECT_NOSURFA "${CMAKE_BINARY_DIR}/deepsurfer-pyproject-nosurfa.toml")
+
+add_custom_target(setup_deepsurfer)
+# execute_process(
+#   COMMAND ${CMAKE_COMMAND} -E copy ${DEEPSURFER_PYPROJECT} ${DEEPSURFER_PYPROJECT_NOSURFA}  
+# )
+
+# file(READ ${DEEPSURFER_PYPROJECT_NOSURFA} contents)
+# string(REPLACE "surfa" "" contents ${contents})
+# file(WRITE ${DEEPSURFER_PYPROJECT_NOSURFA} ${contents})
+
+message(STATUS "Installing Deepsurfer from local path: ${DEEPSURFER_LOCAL_PATH}")
+
+add_custom_command(
+  TARGET setup_deepsurfer
+  COMMAND
+    ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --ignore-installed --no-cache-dir --upgrade -e ${DEEPSURFER_LOCAL_PATH} ${PKG_TARGET}
+  WORKING_DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR} 
+)
 
 
 # default is least version specific or sparse requirements to allow for latest pkg revisions
