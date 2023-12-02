@@ -152,11 +152,16 @@ if(NOT APPLE)
   endif()
 
   if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
-     # assume gcc8 tools distribution on Ubuntu 20 which contains its own libquadmath and libgfortran
-     find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libgfortran.a gfortran)
+     if(HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11")
+        set(CMAKE_CXX_STANDARD 17)
+        # while does not compile...
+        set(BUILD_FORTRAN OFF)
+     endif()
+     # otherwise using gcc 8 or HOST_OS_GCC_VERSION=8
+     find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/${HOST_OS_GCC_VERSION} NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
      find_library(LAPACK_LIBRARIES NAMES liblapack.a)
-     find_library(QUADMATH_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+     find_library(QUADMATH_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/${HOST_OS_GCC_VERSION} NAMES libquadmath.a libquadmath.so libquadmath.so.0)
   elseif(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS9")
      find_library(GFORTRAN_LIBRARIES HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/ NAMES libgfortran.a gfortran)
      find_library(QUADMATH_LIBRARIES HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/ NAMES libquadmath.a libquadmath.so libquadmath.so.0)
@@ -169,6 +174,8 @@ if(NOT APPLE)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
      find_library(LAPACK_LIBRARIES NAMES liblapack.a)
   endif()
+  message(STATUS "C/C++ standard set to ${CMAKE_CXX_STANDARD} for Linux build on ${HOST_OS} with gcc/g++ version ${HOST_OS_GCC_VERSION}")
+
   if(NOT QUADMATH_LIBRARIES)
     set(QUADMATH_LIBRARIES "")
   endif()

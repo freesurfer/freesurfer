@@ -21,7 +21,7 @@ if(ITK_FOUND AND VTK_FOUND)
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
   set(ITK_LIBRARIES "ITKCommon;ITKIOImageBase;ITKIOBMP;ITKIOBioRad;ITKIOBruker;ITKIOGDCM;ITKIOGE;ITKIONRRD;ITKIOTIFF;ITKIOVTK;ITKIOStimulate;ITKIOMINC;ITKIOGIPL;ITKIOHDF5;ITKIOJPEG;ITKIOLSM;ITKIOMRC;ITKIOMeta;ITKIOPNG;ITKIONIFTI")
- if(HOST_OS MATCHES "CentOS9stream")
+  if(HOST_OS MATCHES "CentOS9stream" OR (HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11"))
     set(ITK_LIBRARIES "${ITK_LIBRARIES};ITKIOJPEG2000;ITKIOMeshVTK")
   endif()
 
@@ -39,7 +39,7 @@ if(ITK_FOUND AND VTK_FOUND)
   install(TARGETS mris_surf2vtk DESTINATION bin)
  
   add_executable(mris_image2vtk mris_image2vtk.cxx) # Code/vtkNIFTIImageReader.cxx)
-  if(HOST_OS MATCHES "CentOS9stream")
+  if(HOST_OS MATCHES "CentOS9stream" OR (HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11"))
      # also needs ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU for ITK5.4
     target_link_libraries(mris_image2vtk utils nifti "${ITK_LIBRARIES};ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU" ${VTK_LIBRARIES} )
   else()
@@ -53,9 +53,11 @@ if(ITK_FOUND AND VTK_FOUND)
   #install(TARGETS sigmoidFit DESTINATION bin)
 
   # also needs ITKLabelMap
-  add_executable(mri_vessel_segment mri_vessel_segment.cxx)
-  target_link_libraries(mri_vessel_segment utils nifti "${ITK_LIBRARIES};ITKLabelMap" ${VTK_LIBRARIES})
-  install(TARGETS mri_vessel_segment DESTINATION bin)
+  if(NOT (HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11"))
+     add_executable(mri_vessel_segment mri_vessel_segment.cxx)
+     target_link_libraries(mri_vessel_segment utils nifti "${ITK_LIBRARIES};ITKLabelMap" ${VTK_LIBRARIES})
+     install(TARGETS mri_vessel_segment DESTINATION bin)
+  endif()
 
   add_executable(mris_multimodal_surface_placement mris_multimodal_surface_placement.cxx ${TRACKIO})
   target_link_libraries(mris_multimodal_surface_placement utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
