@@ -451,6 +451,7 @@ endif  # dcm2niix_dicom_dump=0
 # start printing series summary for pre-processed dicoms (mri_probedicom)
 echo "" | tee -a $LF
 echo "DICOM Pre-process Summary:" | tee -a $LF
+set ScanOnlySummary = "ScanOnly-Summary.txt"
 foreach series ($SeriesNos)
   set protocol = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}' | head -n 1`
   set dicomfpath = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $9}' | head -n 1`
@@ -459,10 +460,9 @@ foreach series ($SeriesNos)
       
   # create unpacksdcmdir like summary instead
   # seriesno protocol-name num-dicom-files first-dicom-file
-  printf "  %-4d %40s %6d %s\n" $series $protocol $ndicomfiles $dicomfile | tee -a $LF
+  printf "  %-4d %40s %6d %s\n" $series $protocol $ndicomfiles $dicomfile >> $ScanOnlySummary
 end  # end printing series summary
-
-endif
+cat $ScanOnlySummary | tee -a $LF
 
 # -auto-runseq option
 if($DoAutoRunSeq) then
