@@ -144,6 +144,7 @@ int main(int argc, char *argv[]) {
   if(ct == NULL) exit(1);
   //CTABwriteFileASCIItt(ct,"dng.ctab");
   //printf("wrote dng.ctab\n\n\n");
+  printf("ct version %d\n",ct->version);
 
   if(gtmseg->OutputUSF != gtmseg->USF){
     printf("Changing size of output to USF of %d\n",gtmseg->OutputUSF);
@@ -164,9 +165,7 @@ int main(int argc, char *argv[]) {
   printf("tissue type schema %s\n",ct->TissueTypeSchema);
 
   // embed color table in segmentation
-  // commenting out because ctabTissueType binary IO is not yet supported
-  // including this ct generates an error
-  //gtmseg->seg->ct = ct;
+  gtmseg->seg->ct = CTABdeepCopy(ct);
 
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,OutVolFile);
   printf("Writing output file to %s\n",tmpstr);
