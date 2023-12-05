@@ -179,7 +179,7 @@ COLOR_TABLE *splitColortab(std::map<std::string, int>* label_map, COLOR_TABLE *c
     ErrorReturn(NULL, (ERROR_NO_MEMORY, "mergeColortab: could not allocate %d entries", splitct->nentries));
 
   /* Copy in the file name. */
-  strncpy(splitct->fname, ctab_merged->fname, sizeof(splitct->fname)-1);
+  strncpy(splitct->fname, ctab_merged->fname, sizeof(splitct->fname));
 
   /* We'll write this version if we write to binary. */
   splitct->version = CTAB_VERSION_TO_WRITE;
@@ -368,8 +368,8 @@ COLOR_TABLE *mergeColortab(std::map<std::string, int>* label_map_1, std::map<std
     ErrorReturn(NULL, (ERROR_NO_MEMORY, "mergeColortab: could not allocate %d entries", mergedct->nentries));
 
   /* Copy in the file name. */
-  strncpy(mergedct->fname, inctab_1->fname, sizeof(mergedct->fname)-1);
-
+  strncpy(mergedct->fname, inctab_1->fname, sizeof(mergedct->fname));
+  
   /* We'll write this version if we write to binary. */
   mergedct->version = CTAB_VERSION_TO_WRITE;
 
