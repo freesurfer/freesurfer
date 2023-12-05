@@ -31,19 +31,21 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
   endif()
 
   # if(FREEVIEW_LINEPROF)
-  if(NOT APPLE_ARM64)
+  if(APPLE_ARM64 OR (HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11"))
+    message(STATUS "For HOST_OS ${HOST_OS} skipping lineprof")
+  else()
      add_test_executable(lineprof_test LineProfTest.cpp)
+     target_link_libraries(lineprof_test
+       lineprof
+       ${ZLIB_LIBRARIES}
+       ${VTK_LIBRARIES}
+       ${PETSC_LIBRARIES}
+       ${LAPACK_LIBRARIES}
+       ${BLAS_LIBRARIES}
+       ${GFORTRAN_LIBRARIES}
+       ${ITK_LIBRARIES}
+       ${QUADMATH_LIBRARIES}
+     )
   endif()
-  target_link_libraries(lineprof_test
-    lineprof
-    ${ZLIB_LIBRARIES}
-    ${VTK_LIBRARIES}
-    ${PETSC_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${BLAS_LIBRARIES}
-    ${GFORTRAN_LIBRARIES}
-    ${ITK_LIBRARIES}
-    ${QUADMATH_LIBRARIES}
-  )
 
 endif()
