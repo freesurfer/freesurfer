@@ -56,6 +56,10 @@ int main(int argc, char *argv[])
 {
   parse_commandline(argc, argv);
 
+  // to have consistent color generation
+  // set seed to be the same as CTABprintAnnotationAssignment() and mrisReadGIFTIdanum()
+  setRandomSeed(12);
+  
   if (strcmp(mode, "-c") == 0)
   {
     check = 1;
@@ -97,7 +101,7 @@ int main(int argc, char *argv[])
     if (mergedctabfile != NULL)
     {
       mergedfp = fopen(mergedctabfile, "w");
-      printf("output new ctab %s ...\n", mergedctabfile);
+      printf("output new LUT %s ...\n", mergedctabfile);
     }
     
     CTABprintASCII(mergedct, mergedfp);
@@ -120,14 +124,14 @@ int main(int argc, char *argv[])
     
     COLOR_TABLE *ct1 = splitColortab(&label_map_1, ctab_merged);
     // output fixed inctab_1      
-    printf("output new ctab %s ...\n", outfixedctab_1file);
+    printf("output new LUT %s ...\n", outfixedctab_1file);
     FILE *newfp_ctab1 = fopen(outfixedctab_1file, "w");
     CTABprintASCII(ct1, newfp_ctab1);
     fclose(newfp_ctab1);
     
     COLOR_TABLE *ct2 = splitColortab(&label_map_2, ctab_merged);
     // output fixed inctab_2
-    printf("output new ctab %s ...\n", outfixedctab_2file);
+    printf("output new LUT %s ...\n", outfixedctab_2file);
     FILE *newfp_ctab2 = fopen(outfixedctab_2file, "w");
     CTABprintASCII(ct2, newfp_ctab2);
     fclose(newfp_ctab2);
@@ -142,7 +146,7 @@ int main(int argc, char *argv[])
       if (outfixedctab_1file != NULL)
       {
        // inctab_1 is unchanged, output it anyway
-        printf("\noutput new ctab %s ...\n", outfixedctab_1file);
+        printf("\noutput new LUT %s ...\n", outfixedctab_1file);
         FILE *newfp_ctab1 = fopen(outfixedctab_1file, "w");
         CTABprintASCII(inctab_1, newfp_ctab1);
         fclose(newfp_ctab1);
@@ -151,7 +155,7 @@ int main(int argc, char *argv[])
       if (outfixedctab_2file != NULL)
       {
         // inctab_2 is changed in place
-        printf("\noutput new ctab %s ...\n", outfixedctab_2file);
+        printf("\noutput new LUT %s ...\n", outfixedctab_2file);
         FILE *newfp_ctab2 = fopen(outfixedctab_2file, "w");
         CTABprintASCII(inctab_2, newfp_ctab2);
         fclose(newfp_ctab2);
