@@ -108,6 +108,7 @@ if(NOT MINIMAL)
     mni152.register.dat
     mni152.mni305.cor.subfov1.dat
     mni152.mni305.cor.subfov2.dat
+    PALS_B12.readme
     RB_all_2008-03-26.mni152.2mm.lta
     # txt
     tissue_parms.txt

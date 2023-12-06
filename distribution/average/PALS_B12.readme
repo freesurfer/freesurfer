@@ -1,0 +1,113 @@
+PALS-B12 based ROIs on fsaverage
+================================
+
+I. A number of ROIs created by the Van Essen Lab using the PALS-B12 atlas of human cerebral cortex have been mapped to FreeSurfer's fsaverage subject, taking the form of FreeSurfer annotation files.
+   The annotation files are converted from fsaverage/label/?h.PALS_B12.labels.gii using 2-stage mris_convert with fixed LUTs. The ROI .annot files are in the fsaverage/label directory:
+   
+      ?h.PALS_B12_Brodmann.annot
+      ?h.PALS_B12_Lobes.annot
+      ?h.PALS_B12_OrbitoFrontal.annot
+      ?h.PALS_B12_Visuotopic.annot
+
+   These are 15 ROIs (DataArray) in each ?h.PALS_B12.labels.gii. This table shows Freesurfer annotation files and their corresponding GIFTI DataArray.
+
+                         lh      rh
+        ----------------------------		
+         Brodmann         3       4
+         Lobe             0       0
+         OrbitoFrontal    4       5
+         Visuotopic       2       3
+
+
+II. Each ?h.PALS_B12.labels.gii has its own LabelTable (LUT). We fixed the LUTs to address these issues:
+
+    1. Duplicated color assignments to different labels within the same GIFTI LabelTable (lh and rh)
+    2. Duplicated color assignments to different labels across lh and rh GIFTI LabelTables
+    3. Different color assignments for same labels across lh and rh GIFTI LabelTables
+    4. Different label ids for same labels across lh and rh GIFTI LabelTables
+
+
+III. Here are the steps to fix the LUTs and convert .gii to .annot:
+     
+     <step 1.1> - fix duplicated color assignments within each LUT (issue #1)
+                  fixed LUTs are ctab.rh.PALS_B12.new and ctab.lh.PALS_B12.new
+     > mris_info $FREESURFER_HOME/subjects/fsaverage/label/rh.PALS_B12_Brodmann.annot --annot-label annot-label.rh --annot-hint ctab.rh.PALS_B12.new
+     > mris_info $FREESURFER_HOME/subjects/fsaverage/label/lh.PALS_B12_Brodmann.annot --annot-label annot-label.lh --annot-hint ctab.lh.PALS_B12.new
+
+     <step 1.2> - verify color assignments are unique within each LUT
+     > mri_ctab_fix -c ctab.rh.PALS_B12.new
+     > mri_ctab_fix -c ctab.lh.PALS_B12.new
+
+     <step 2.1> - fix issues #2 and #3. After the fix,
+                  same labels across lh and rh LUTs share the same color;
+		  different labels across lh and rh LUTs have different colors;
+                  fixed LUTs are ctab.rh.PALS_B12.new_fix1 and ctab.lh.PALS_B12.new_fix1		  
+     > mri_ctab_fix -1 -e EMOTION ctab.rh.PALS_B12.new ctab.lh.PALS_B12.new ctab.rh.PALS_B12.new_fix1 ctab.lh.PALS_B12.new_fix1
+     (treat EMOTION in lh and EMOTION_AFFECT in rh the same label)
+
+     <step 2.2> - verify there are no duplicated colors across fixed lh and rh LUTs from step 2.1
+     > mri_ctab_fix -1 -e EMOTION ctab.rh.PALS_B12.new_fix1 ctab.lh.PALS_B12.new_fix1
+
+     <step 2.3> - verify colors are unique within each fixed LUT from step 2.1
+     > mri_ctab_fix -c ctab.rh.PALS_B12.new_fix1
+     > mri_ctab_fix -c ctab.lh.PALS_B12.new_fix1
+
+     <step 3> - convert .gii to .annot with fixed LUTs from step 2.1
+     > for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14; \
+       do \
+       echo "mkdir $i"; mkdir $i; \
+       echo "mris_convert --da_num $i --ctab ctab.lh.PALS_B12.new_fix1 --annot $FREESURFER_HOME/subjects/fsaverage/label/lh.PALS_B12.labels.gii $FREESURFER_HOME/subjects/fsaverage/surf/lh.white $i/lh.PALS_B12.fix1.annot"; \
+       mris_convert --da_num $i --ctab ctab.lh.PALS_B12.new_fix1 --annot $FREESURFER_HOME/subjects/fsaverage/label/lh.PALS_B12.labels.gii $FREESURFER_HOME/subjects/fsaverage/surf/lh.white $i/lh.PALS_B12.fix1.annot; \
+       done
+     > for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14; \
+       do \
+       echo "mris_convert --da_num $i --ctab ctab.rh.PALS_B12.new_fix1 --annot $FREESURFER_HOME/subjects/fsaverage/label/rh.PALS_B12.labels.gii $FREESURFER_HOME/subjects/fsaverage/surf/rh.white $i/rh.PALS_B12.fix1.annot"; \
+       mris_convert --da_num $i --ctab ctab.rh.PALS_B12.new_fix1 --annot $FREESURFER_HOME/subjects/fsaverage/label/rh.PALS_B12.labels.gii $FREESURFER_HOME/subjects/fsaverage/surf/rh.white $i/rh.PALS_B12.fix1.annot; \
+       done
+
+     <step 4.1> - merge ctab.lh.PALS_B12.new_fix1 and ctab.rh.PALS_B12.new_fix1 (fix issue #4)
+                  all labels in ctab.lh.PALS_B12.new_fix1 are copied into mergedct, label ids are kept;
+                  any labels in ctab.rh.PALS_B12.new_fix1 not in ctab.lh.PALS_B12.new_fix1 are re-numbered after ctab.lh.PALS_B12.new_fix1
+     > mri_ctab_fix -m ctab.lh.PALS_B12.new_fix1 ctab.rh.PALS_B12.new_fix1 ctab.lh+rh.merged
+
+     <step 4.2> - verfify colors are unqiue in ctab.lh+rh.merged
+     > mri_ctab_fix -c -e EMOTION ctab.lh+rh.merged
+     (treat EMOTION in lh and EMOTION_AFFECT in rh the same label)
+     
+     <step 5> - split ctab.lh+rh.merged into lh and rh LUTs with original labels.
+		the new LUTs are ctab.rh.PALS_B12.new_fix1_fix2 and ctab.lh.PALS_B12.new_fix1_fix2
+		same annotations across ctab.rh.PALS_B12.new_fix1_fix2 and ctab.lh.PALS_B12.new_fix1_fix2 share same label names and ids
+     > mri_ctab_fix -2 ctab.lh.PALS_B12.new_fix1 ctab.rh.PALS_B12.new_fix1 ctab.lh+rh.merged ctab.lh.PALS_B12.new_fix1_fix2 ctab.rh.PALS_B12.new_fix1_fix2
+
+     <step 6> - convert fixed .annot in step 3 with new LUTs from step 5
+     > for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14; \
+       do \
+       echo "mris_convert --ctab ctab.lh.PALS_B12.new_fix1_fix2 --annot $i/lh.PALS_B12.fix1.annot $FREESURFER_HOME/subjects/fsaverage/surf/lh.white $i/lh.PALS_B12.fix2.annot"; \
+       mris_convert --ctab ctab.lh.PALS_B12.new_fix1_fix2 --annot $i/lh.PALS_B12.fix1.annot $FREESURFER_HOME/subjects/fsaverage/surf/lh.white $i/lh.PALS_B12.fix2.annot; \
+       done
+     > for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14; \
+       do \
+       echo "mris_convert --ctab ctab.rh.PALS_B12.new_fix1_fix2 --annot $i/rh.PALS_B12.fix1.annot $FREESURFER_HOME/subjects/fsaverage/surf/rh.white $i/rh.PALS_B12.fix2.annot"; \
+       mris_convert --ctab ctab.rh.PALS_B12.new_fix1_fix2 --annot $i/rh.PALS_B12.fix1.annot $FREESURFER_HOME/subjects/fsaverage/surf/rh.white $i/rh.PALS_B12.fix2.annot; \
+       done
+
+     <step 7> - visualize the ROIs on the fsaverage inflated surface (See table in section I to find the correct annotation files)
+     ?h.PALS_B12_Brodmann.annot
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:annot=3/lh.PALS_B12.fix2.annot     
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/rh.inflated:annot=4/rh.PALS_B12.fix2.annot
+
+     ?h.PALS_B12_Lobes.annot
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:annot=0/lh.PALS_B12.fix2.annot
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/rh.inflated:annot=0/rh.PALS_B12.fix2.annot
+
+     ?h.PALS_B12_OrbitoFrontal.annot
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:annot=4/lh.PALS_B12.fix2.annot
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/rh.inflated:annot=5/rh.PALS_B12.fix2.annot
+
+     ?h.PALS_B12_Visuotopic.annot
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:annot=2/lh.PALS_B12.fix2.annot     
+     > freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/rh.inflated:annot=3/rh.PALS_B12.fix2.annot
+     
+     <step 8> - replace .annot in average/fsaverage.tar.gz
+       See table in section I to find the correct annotation files.
+
