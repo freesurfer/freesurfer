@@ -716,9 +716,14 @@ MATRIX *MatrixMultiply_wkr(const MATRIX *m1, const MATRIX *m2, MATRIX *m3, const
   float val, *r1, *r2;
   MATRIX *m_tmp1 = NULL, *m_tmp2 = NULL;
 
-  if (!m1) ErrorExit(ERROR_BADPARM, "MatrixMultiply: m1 is null!\n");
-  if (!m2) ErrorExit(ERROR_BADPARM, "MatrixMultiply: m2 is null!\n");
-
+  if(!m1){
+    printf("MatrixMultiply(): m1 is null \n break %s:%d\n", __FILE__, __LINE__);
+    ErrorExit(ERROR_BADPARM, "MatrixMultiply: m1 is null\n");
+  }
+  if(!m2){
+    printf("MatrixMultiply(): m2 is null \n break %s:%d\n", __FILE__, __LINE__);
+    ErrorExit(ERROR_BADPARM, "MatrixMultiply: m2 is null\n");
+  }
   if (m1->cols != m2->rows) {
     printf("MatrixMultiply(): m1/m2 dim mismatch\n break %s:%d\n", __FILE__, __LINE__);
     ErrorReturn(NULL, (ERROR_BADPARM, "MatrixMultiply: m1 cols %d does not match m2 rows %d\n", m1->cols, m2->rows));
