@@ -51,6 +51,10 @@
       <explanation>compute sulc in mm without zero meaning or scaling</explanation>
       <argument>-scale 0/1</argument>
       <explanation>disable or enable scaling of inflated brain</explanation>
+      <argument>-lh, -rh</argument>
+      <explanation>Override hemi spec in input file (good for topofit)</explanation>
+      <argument>-threads nthreads</argument>
+      <explanation>Specify number of threads to use for parallel</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
