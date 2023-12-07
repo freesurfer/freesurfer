@@ -55,8 +55,8 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-mkdir -p $$SUBJECTS_DIR/$subject/scripts/log
-pushd $$SUBJECTS_DIR/$subject/scripts/log > /dev/null
+mkdir -p $SUBJECTS_DIR/$subject/scripts/log
+pushd $SUBJECTS_DIR/$subject/scripts/log > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
@@ -118,12 +118,12 @@ foreach hemi ($hemilist)
   endif
 
   # Prep the surf2volseg command
-  if(! $RHonly) then
+  if(! $RHonly && $hemi == lh) then
     set udlist = ($udlist $trgannot $ldir/lh.cortex.label $sdir/lh.white $sdir/lh.pial)
     set cmds2v = ($cmds2v --lh-annot $ldir/lh.$annotname.annot $lhbase --lh-cortex-mask \
       $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial)
   endif
-  if(! $LHonly) then
+  if(! $LHonly && $hemi == rh) then
     set udlist = ($udlist $trgannot $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
     set cmds2v = ($cmds2v --rh-annot $ldir/rh.$annotname.annot $rhbase --rh-cortex-mask \
       $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
@@ -360,17 +360,19 @@ if($#subject == 0) then
   echo "ERROR: must spec subject"
   exit 1;
 endif
-if($#annotsubject == 0) then
-  echo "ERROR: must spec subject"
-  exit 1;
+if($#lhannot == 0 && $#rhannot == 0) then
+  if($#annotsubject == 0) then
+    echo "ERROR: must spec annot subject"
+    exit 1;
+  endif
 endif
 if($#annotname == 0) then
   echo "ERROR: must spec annotation"
   exit 1;
 endif
 foreach s ($subject $annotsubject) 
-  if(! -e $SUBJECTS_DIR/$s) then
-    echo "ERROR: cannot find $subject"
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject"
     exit 1;
   endif
 end
