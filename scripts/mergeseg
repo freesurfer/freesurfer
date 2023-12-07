@@ -10,6 +10,7 @@ set segid = ()
 set segidonly = 0
 set segiderode = 0;
 set ctab = ()
+setenv FS_MRIMASK_ALLOW_DIFF_GEOM 0
 
 set tmpdir = ();
 set cleanup = 1;
