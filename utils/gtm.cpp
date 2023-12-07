@@ -525,6 +525,7 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
   /* Allocate the array of NULL CTE ptrs. */
   ct->nentries = segidlist[nsegs - 1] + 1;
   ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *));
+  ct->version = CTAB_VERSION_TO_WRITE;
 
   ct->ctabTissueType = CTABdeepCopy(ctSubCort->ctabTissueType);
   strcpy(ct->TissueTypeSchema,ctSubCort->TissueTypeSchema);
