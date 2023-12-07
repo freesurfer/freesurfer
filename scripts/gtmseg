@@ -19,7 +19,7 @@ set ctxlhbase=0;
 set ctxrhbase=0;
 set wmlhbase=0;
 set wmrhbase=0;
-set DoSegStats = 1;
+set DoSegStats = 0;
 set ctab = ();
 set SubSegCblumWM = 0;
 set AddPons = 1;
@@ -84,6 +84,18 @@ uname -a  | tee -a $LF
 
 #========================================================
 if($DoXCerSeg) then
+  # This will create a seg of the whole head, including skull, xCSF,
+  # etc (named apas+head.mgz by default) in native anat space. It is
+  # actually a merging of extracerebral segs with the whole brain
+  # segmentation to create a whole head. The xcerseg and the
+  # subcortical GM seg will not be modified beyond this so subcortical
+  # seg must be right. The subcortical WM may be modified if
+  # subsegmenting WM. Note that any external segs must be merged with
+  # this headseg and then passed with --head. The cortical GM can be
+  # changed by specifying a different annot.  The aparc is ok here
+  # because it can be replaced by another annot below, but it must be
+  # a seg whose cortex has been fixed with the ribbon eg via
+  # mri_surf2volseg because mri_gtmseg will not fix it.
   set cmd = (xcerebralseg --s $subject --threads $threads --o $headseg)
   if(! $cleanup) set cmd = ($cmd --tmpdir $tmpdir/xcerebralseg)
   if($AddPons == 0)   set cmd = ($cmd --no-pons)
@@ -95,6 +107,8 @@ if($DoXCerSeg) then
   if($status) goto error_exit;
 endif
 
+# Add cblumwmgyri; overwrites $heaseg. Should be done in xcerebralseg,
+# but not really used now
 if($SubSegCblumWM) then
   set base = `basename $headseg .mgz`
   set headseg2 = $base+cblumwmgyri.mgz
@@ -108,6 +122,7 @@ if($SubSegCblumWM) then
   if($status) exit 1;
 endif
 
+# Create a lobs annotation. Why? 
 if($SubSegWM && $#wmannot == 0) then
   foreach hemi (lh rh)
     set cmd = (mri_annotation2label --subject $subject --hemi $hemi --lobesStrict lobes)
@@ -122,7 +137,7 @@ set cmd = ($cmd --apas $headseg)
 if($#ctxannot)  set cmd = ($cmd --ctx-annot $ctxannot $ctxlhbase $ctxrhbase)
 if($#wmannot)   set cmd = ($cmd --wm-annot  $wmannot  $wmlhbase  $wmrhbase)
 if($SubSegWM)   set cmd = ($cmd --subseg-wm --dmax $dmax)
-if(! $SubSegWM) set cmd = ($cmd --no-subseg-wm)
+if(! $SubSegWM) set cmd = ($cmd --no-subseg-wm) # why needed?
 if($KeepCC)     set cmd = ($cmd --keep-cc)
 if(! $KeepCC)   set cmd = ($cmd --no-keep-cc)
 if($KeepHypo)     set cmd = ($cmd --keep-hypo)
@@ -302,7 +317,6 @@ while( $#argv != 0 )
     case "--seg-stats":
       set DoSegStats = 1;
       breaksw
-
     case "--no-seg-stats":
       set DoSegStats = 0;
       breaksw
@@ -375,25 +389,33 @@ endif
 if($#ctxannot) then
   foreach hemi (lh rh)
     set f = $SUBJECTS_DIR/$subject/label/$hemi.$ctxannot
-    if(! -e $f) then
-      echo "ERROR: cannot find $f"
-      exit 1;
+    if(-e $f) continue
+    set f = $SUBJECTS_DIR/$subject/label/$hemi.$ctxannot.annot
+    if(-e $f) then
+      set ctxannot = $ctxannot.annot
+      continue
     endif
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/label/$hemi.$ctxannot"
+    exit 1;
   end
 endif
 if($#wmannot) then
   foreach hemi (lh rh)
     set f = $SUBJECTS_DIR/$subject/label/$hemi.$wmannot
-    if(! -e $f) then
-      echo "ERROR: cannot find $f"
-      exit 1;
+    if(-e $f) continue
+    set f = $SUBJECTS_DIR/$subject/label/$hemi.$wmannot.annot
+    if(-e $f) then
+      set wmannot = $wmannot.annot
+      continue
     endif
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/label/$hemi.$wmannot"
+    exit 1;
   end
 endif
 
 if($UseSamseg) then
   set headseg = apas+head.samseg.mgz # created by xcerebralseg
-  set outvol = gtmseg.samseg.mgz
+  if($#outvol == 0) set outvol = gtmseg.samseg.mgz
 endif
 
 if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
@@ -462,7 +484,7 @@ usage_exit:
   echo " --no-pons :   do not add pons segmentation when doing ---xcerseg":
   echo " --no-vermis : do not add vermis segmentation when doing ---xcerseg":
   echo " --ctab colortable "
-  echo " --no-seg-stats : do not compute segmentation stats"
+  echo " --seg-stats : compute segmentation stats"
   echo " --xcthresh xcthresh : mri_seghead thresh"
   echo ""
   echo " --debug "
@@ -516,10 +538,14 @@ create it with
 
 xcerebralseg --s $subject --o $SUBJECTS_DIR/$subject/mri/apas+head.mgz
 
-To create a new segmentation by replacing voxels in apas+head.mgz with
-your segmentation: make sure that the index you give your new
-segmentation(s) is not already present in apas+head.mgz. Next create a
-color table text file that looks something like this:
+Using a custom subcortical segementation:
+
+First, run gtmseg as default to create the apas+head.mgz file.
+Create a new/custom subcortical segmentation by replacing voxels in
+apas+head.mgz with your segmentation: make sure that the index you
+give your new segmentation(s) is not already present in
+apas+head.mgz. Next create a color table text file that looks
+something like this:
 
 # TissueTypeSchema 
 #ctTType   0  unknown                           0   0   0    0
@@ -549,4 +575,24 @@ table gtmseg+myseg.ctab will be generated. You should check in this to
 make sure that your segmentation appears. You can also run
 
 tkmeditfv subject orig.mgz -seg gtmseg+myseg.mgz  myseg.colortable.txt
+
+To use, eg, aparc.a2009s, then
+  --ctx-annot aparc.a2009s.annot 11100 12101
+  The 11100 and 12101 will make it agree with  $FREESURFER/FreeSurferColorLUT.txt
+
+Using a custom cortical parcellation:
+
+If you have your own cortical annotation, then just specify
+  --ctx-annot your.annot 1000 2000 
+Where your cortical parcellation is in subject/label/?h.your.annot
+
+The values 1000 and 2000 are used to create the color table and
+segmentation indices for the output volume. In this case, 1000 will be
+added to the left hemi and 2000 will be added to the right hemi.  The
+actual values (1000, 2000) are semi-arbitrary. There needs to be
+enough of a difference so that the indices for lh will not overlap
+with those of the rh. They need to be 1000 or over so that the
+software recognizes them as cortex (needed in the colortable to
+specify the tissue type).
+
 
