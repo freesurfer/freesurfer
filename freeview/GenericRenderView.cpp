@@ -621,7 +621,7 @@ bool GenericRenderView::SetCameraOperations(CameraOperations ops)
     {
       cam->Elevation(ops[i].second);
     }
-    else if (ops[i].first.toLower() == "roll" || ops[i].first.toLower() == "elevate")
+    else if (ops[i].first.toLower() == "roll")
     {
       cam->Roll(ops[i].second);
     }
