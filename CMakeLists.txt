@@ -697,6 +697,7 @@ if(NOT MINIMAL)
     mri_copy_values
     mri_cor2label
     mri_correct_segmentations
+    mri_ctab_fix
     mri_cvs_register
     mri_dct_align
     mri_distance_transform

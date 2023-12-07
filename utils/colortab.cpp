@@ -2613,14 +2613,39 @@ int CTABaddUniqueEntryAtEnd(COLOR_TABLE *ct, char *name, int *ctabindex)
 }
 
 
-// if suggestAnnot if true,
-//    duplicated annotation assignment in ctab will be replaced with newly calculated suggestion
-int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot, FILE *fp)
+// generate unique annotation the given COLOR_TABLE
+int CTABgenUniqueAnnotation(const COLOR_TABLE *ctab1, const COLOR_TABLE *ctab2)
+{
+  int ri, gi, bi;
+  int rgbi_1 = -1, rgbi_2 = -1;
+  do
+  { 
+    ri = nint(randomNumber(0, 255));
+    gi = nint(randomNumber(0, 255));
+    bi = nint(randomNumber(0, 255));
+
+    CTABfindRGBi((COLOR_TABLE *)ctab1, ri, gi, bi, &rgbi_1);
+    if (ctab2 != NULL)
+      CTABfindRGBi((COLOR_TABLE *)ctab1, ri, gi, bi, &rgbi_2);
+  } while (rgbi_1 >= 0 || rgbi_2 >= 0);
+
+  int annotation;
+  RGBToAnnot(ri, gi, bi, annotation);
+
+  return annotation;
+}
+
+// if suggestAnnot is true,
+// duplicated annotation assignment in ctab will be replaced with newly calculated suggestion
+int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot, FILE *fp, const char *exception)
 {
   int dupCount = 0;
   
   if (fp == NULL)
     fp = stdout;
+
+  if (suggestAnnot)
+    setRandomSeed(12);
 
   // unique_annot_map is sorted
   //   key   = annotation
@@ -2646,8 +2671,6 @@ int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot, FILE *fp
     }
   }
 
-  int step = random(); //1000;
-
   // print annotation and all label-ids assinged
   // suggest new annotation if it is requested
   std::map<int, std::vector<int>>::const_iterator annotIt = unique_annot_map.begin();
@@ -2665,6 +2688,12 @@ int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot, FILE *fp
     for (; labelIt != annotIt->second.end(); labelIt++)
     {
       const char *labelname = ctab->entries[*labelIt]->name;
+      if (exception != NULL && strncmp(labelname, exception, strlen(exception)) == 0 && !first)
+      {
+	fprintf(fp, "%16s %-6d (%-3d %-3d %-3d) (%8d) %s\n", " ", *labelIt, r, g, b, annot, labelname);
+	continue;
+      }
+      
       if (first || !suggestAnnot)
       {
 	if (first)
@@ -2678,13 +2707,12 @@ int CTABprintAnnotationAssignment(COLOR_TABLE *ctab, bool suggestAnnot, FILE *fp
       else
       {
 	dupCount++;
-	
+
         // these are label ids assigned to the same annotation
         // suggest a different annotation
-        int ri, gi, bi;
-
-        annot += step;
-        AnnotToRGB(annot, ri, gi, bi);
+	int ri, gi, bi;
+	annot = CTABgenUniqueAnnotation(ctab);
+	AnnotToRGB(annot, ri, gi, bi);
         fprintf(fp, "%15s *%-6d (%-3d %-3d %-3d) (%8d) %s\n", " ", *labelIt, ri, gi, bi, annot, labelname);
 
 	// replace the entry with newly calculated annotation
