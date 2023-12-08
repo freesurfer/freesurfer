@@ -83,6 +83,7 @@ def main():
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
     parser.add_argument('--output-base', default='sclimbic',help='String to use in output file name; default is sclimbic')
     parser.add_argument('--no-cite-sclimbic', dest='citeLimbic', action='store_false', help='Do not cite sclimbic paper at the end.')
+    parser.add_argument('--logfile', help='Set logfile (default is mri_sclimbic.log)')
     # Ideally, we would get this from the model
     parser.add_argument('--nchannels', type=int, default=1,help='Number of channels')
 
@@ -249,7 +250,10 @@ def main():
             if len(input_files) == 0:
                 sf.system.fatal(f'Could not find any valid input images in {args.i}.')
             os.makedirs(args.o, exist_ok=True)
-            logfile = os.path.join(args.o,'mri_sclimbic.log');
+            if args.logfile is None: 
+                logfile = os.path.join(args.o,'mri_sclimbic.log');
+            else:
+                logfile = os.path.join(args.o,args.logfile);
         else:
             if not args.i.endswith(exts):
                 sf.system.fatal(f'{args.i} is an unsupported image file type.')
@@ -257,7 +261,10 @@ def main():
             dirname = os.path.dirname(args.o)
             if dirname:
                 os.makedirs(dirname, exist_ok=True)
-            logfile = os.path.join(dirname,'mri_sclimbic.log');
+            if args.logfile is None: 
+                logfile = os.path.join(dirname,'mri_sclimbic.log');
+            else:
+                logfile = os.path.join(dirname,args.logfile);
 
         # Write the command line. Prob not the best way to do it.
         with open(logfile, 'w') as file:
