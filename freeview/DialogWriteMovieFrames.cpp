@@ -33,6 +33,8 @@ DialogWriteMovieFrames::DialogWriteMovieFrames(QWidget *parent) :
   ui->setupUi(this);
   ui->doubleSpinBoxStep->hide();
   ui->labelSliceStepDouble->hide();
+  ui->labelRotateDirection->hide();
+  ui->comboBoxRotateDirection->hide();
   connect(MainWindow::GetMainWindow(), SIGNAL(MainViewChanged(int)),
           this, SLOT(UpdateUI()));
   m_timer.setInterval(1000);
@@ -120,8 +122,11 @@ void DialogWriteMovieFrames::OnComboBoxFlyThrough(int nIndex)
   ui->spinBoxStart->setValue(0);
   ui->doubleSpinBoxStep->setVisible(nIndex == 2);
   ui->labelSliceStepDouble->setVisible(nIndex == 2);
+  ui->labelStepSizeNote->setVisible(nIndex == 2);
   ui->labelSliceStep->setVisible(nIndex != 2);
   ui->spinBoxStep->setVisible(nIndex != 2);
+  ui->labelRotateDirection->setVisible(nIndex == 2);
+  ui->comboBoxRotateDirection->setVisible(nIndex == 2);
 }
 
 void DialogWriteMovieFrames::OnOpen()
@@ -153,7 +158,8 @@ void DialogWriteMovieFrames::OnWrite()
     QMessageBox::warning(this, "Error", "Output directory does not exist.");
     return;
   }
-  if (ui->spinBoxStep->value() == 0)
+  if ((ui->spinBoxStep->isVisible() && ui->spinBoxStep->value() == 0) ||
+      (ui->doubleSpinBoxStep->isVisible() && ui->doubleSpinBoxStep->value() == 0))
   {
     QMessageBox::warning(this, "Error", "Step size can not be 0.");
     return;
@@ -196,7 +202,7 @@ void DialogWriteMovieFrames::OnWrite()
   }
   else // angle
   {
-    m_nTotalSteps = (int)((ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_dStepSize+1);
+    m_nTotalSteps = (int)((ui->spinBoxEnd->value()-ui->spinBoxStart->value())/qAbs(m_dStepSize)+1);
   }
 
   if (m_nTotalSteps < 1)
@@ -254,7 +260,12 @@ void DialogWriteMovieFrames::OnTimeOut()
         .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn, settings.AntiAliasing, settings.Magnification );
     CameraOperations ops;
-    ops << CameraOperation("azimuth", m_dStepSize);
+    QString cam_op = "azimuth";
+    if (ui->comboBoxRotateDirection->currentIndex() == 1)
+      cam_op = "elevate";
+    else if (ui->comboBoxRotateDirection->currentIndex() == 2)
+      cam_op = "roll";
+    ops << CameraOperation(cam_op, m_dStepSize);
     m_view->SetCameraOperations(ops);
   }
 
