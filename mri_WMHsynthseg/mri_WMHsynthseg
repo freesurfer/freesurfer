@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+[ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
+
+# check that the model file has been downloaded and installed
+# if not, show instructions for downloading and installing
+if [[ ! -f $FREESURFER_HOME/"models/WMH-SynthSeg_v10_231110.pth" ]]; then
+    echo " "
+    echo "   Atlas files not found. Please download atlas from: "
+    echo "      https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip "
+    echo "   and uncompress it into:  "
+    echo "      $FREESURFER_HOME/models/ "
+    echo "   You only need to do this once. You can use the following commands (may require root access): "
+    echo "      1: cd $FREESURFER_HOME/models/"
+    echo "      2a (in Linux): wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/WMH-SynthSeg/WMH-SynthSeg_v10_231110.pth "
+    echo "      2b (in MAC): curl -o WMH-SynthSeg_v10_231110.pth https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/WMH-SynthSeg/WMH-SynthSeg_v10_231110.pth "
+    echo " "
+    echo "   After correct download and instillation, the directory: "
+    echo "      $FREESURFER_HOME/models/ "
+    echo "   should now contain an additional file: WMH-SynthSeg_v10_231110.pth"
+    echo " "
+    exit 1
+fi
+
+exec $FREESURFER_HOME/bin/fspython $FREESURFER_HOME/python/packages/WMHSynthSeg/inference.py "$@"
+

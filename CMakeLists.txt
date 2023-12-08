@@ -767,6 +767,7 @@ if(NOT MINIMAL)
     mri_volsynth
     mri_warp_convert
     mri_wbc
+    mri_WMHsynthseg
     mri_xvolavg
     mri_z2p
     mris2rgb
