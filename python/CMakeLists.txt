@@ -26,7 +26,8 @@ endif()
 # WIP: Custom packages to modify existing install - install over pre-existing package with --ignore-installed and rebuild (--no-cache-dir)
 # surfa
 set(SURFA_LOCAL_PATH "/absolute/path/to/local/surfa/code")
-set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
+# ?? ifdef on ENV setting for SURFA_LOCAL_PATH, else use default PKG_TARGET setting for site-packages ??
+# set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
 
 add_custom_target(setup_surfa)
 
@@ -47,7 +48,8 @@ add_custom_command(
 
 # deepsurfer
 set(DEEPSURFER_LOCAL_PATH "/absolute/path/to/local/deepsurfer/code")
-set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
+# ?? ifdef on ENV setting for DEEPSURFER_LOCAL_PATH, else use default PKG_TARGET setting for site-packages ??
+# set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
 
 # set(DEEPSURFER_PYPROJECT "${DEEPSURFER_LOCAL_PATH}/pyproject.toml")
 # set(DEEPSURFER_PYPROJECT_NOSURFA "${CMAKE_BINARY_DIR}/deepsurfer-pyproject-nosurfa.toml")
