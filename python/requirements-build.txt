@@ -18,7 +18,7 @@ fonttools==4.46.0
 fsspec==2023.12.1
 gast==0.4.0
 google-auth-oauthlib==1.0.0
-google-auth==2.25.1
+google-auth==2.25.2
 google-pasta==0.2.0
 grpcio==1.60.0
 h5py==3.10.0
