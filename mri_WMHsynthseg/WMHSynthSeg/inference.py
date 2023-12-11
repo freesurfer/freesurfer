@@ -184,9 +184,9 @@ def main():
         print('All done!')
         print('If you use this method in a publication, please cite the following article:')
         print('Quantifying white matter hyperintensity and brain volumes in heterogeneous clinical and low-field portable MRI')
-        print('Laso P, Cerri S, Sorby-Adams A, Guo J, Matteen F, Goebl P, Wu J, Li H, Young SI, Billot B, Puonti O, Rosen MS,')
-        print('Kirsch J, Strisciuglio N, Wolterink JM, Eshaghi A, Barkhof F, Kimberly WT, and Iglesias JE')
-        print('Under review.')
+        print('Laso P, Cerri S, Sorby-Adams A, Guo J, Matteen F, Goebl P, Wu J, Liu P, Li H, Young SI, Billot B, Puonti O, Sze G, Payabavash S')
+        print('DeHavenon A, Sheth KN, Rosen MS, Kirsch J, Strisciuglio N, Wolterink JM, Eshaghi A, Barkhof F, Kimberly WT, and Iglesias JE.')
+        print('Under review. Preprint available at: https://arxiv.org/abs/2312.05119')
 
 
 # execute script
