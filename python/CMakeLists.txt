@@ -37,7 +37,7 @@ foreach(dist ${surfa_dists})
   file(REMOVE_RECURSE ${dist})
 endforeach()
 
-message(STATUS "Installing Surfa from local path: ${DEEPSURFER_LOCAL_PATH}")
+# message(STATUS "Installing Surfa from local path: ${SURFA_LOCAL_PATH}")
 add_custom_command(
   TARGET setup_surfa 
   COMMAND 
@@ -63,7 +63,7 @@ add_custom_target(setup_deepsurfer)
 # string(REPLACE "surfa" "" contents ${contents})
 # file(WRITE ${DEEPSURFER_PYPROJECT_NOSURFA} ${contents})
 
-message(STATUS "Installing Deepsurfer from local path: ${DEEPSURFER_LOCAL_PATH}")
+# message(STATUS "Installing Deepsurfer from local path: ${DEEPSURFER_LOCAL_PATH}")
 
 add_custom_command(
   TARGET setup_deepsurfer
@@ -118,7 +118,7 @@ if(INSTALL_PYTHON_DEPENDENCIES)
       message(FATAL_ERROR \"Could not remove pip-installed scripts\")
     endif()
     message(STATUS \"./req.sh --uninstall\")
-    execute_process(COMMAND bash -c \"./req.sh --uninstall\" RESULT_VARIABLE retcode WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    execute_process(COMMAND bash -c \"BUILD_GENERATED_CMAKECACHE=${CMAKE_BINARY_DIR}/CMakeCache.txt ./req.sh --uninstall\" RESULT_VARIABLE retcode WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not remove some installed packages\")
     endif()"
