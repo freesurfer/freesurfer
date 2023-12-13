@@ -1,0 +1,41 @@
+This file contains instructions for downloading and installing the file 
+dependencies for the 'mri_histo_atlas_segment' util.
+
+A general description of the utility and its usage can be found at:
+    
+    https://surfer.nmr.mgh.harvard.edu/fswiki/HistoAtlasSegmentation
+
+This utility requires file dependencies that not ship with the standard install
+of FreeSurfer. This is done in an effort to keep the size of the installer
+reasonable. The utility expects the files to be located under:
+
+    $FREESURFER_HOME/python/packages/ERC_bayesian_segmentation/atlas
+
+A zip file containing the file dependencies can be found at:
+    
+    https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip
+
+Instructions for downloading, unpacking, and installing the dependencies:
+
+    Download the zip file:
+        Linux:
+            wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip
+        
+        MacOS:
+            curl -o atlas.zip https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip
+
+    Unpack the zip file (Same on Linux and MacOS):
+        unzip atlas.zip
+
+    Install files into the FreeSurfer build (Same for Linux and MacOS):
+        Create the atlas dir if it does not exist:
+            mkdir -p $FREESURFER_HOME/python/packages/ERC_bayesian_segmentation/atlas 
+        
+        Copy in the file dependencies:
+            cp atlas/* $FREESURFER_HOME/python/packages/ERC_bayesian_segmentation/atlas 
+
+To confirm that the files have been installed in the correct location, you should
+see the files listed below in $FREESURFER_HOME/python/packages/ERC_bayesian_segmentation/atlas 
+
+	label_001.npz - label_334.npz
+	size.npy
