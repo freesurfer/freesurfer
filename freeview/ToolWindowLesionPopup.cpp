@@ -49,7 +49,7 @@ void ToolWindowLesionPopup::UpdateUI(LayerPointSet *layer)
   m_curLayer = layer;
   if (!layer)
   {
-    hide();
+ //   hide();
     return;
   }
 

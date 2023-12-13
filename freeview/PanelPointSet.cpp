@@ -84,7 +84,7 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
     ui->commentsContentWidget->setStyleSheet(QString("#commentsContentWidget {background-color:#1E1E1E;}"));
 #endif
 
-  m_toolLesionPopup = new ToolWindowLesionPopup(this);
+  m_toolLesionPopup = new ToolWindowLesionPopup(mainwnd);
   m_toolLesionPopup->hide();
   connect(m_toolLesionPopup, SIGNAL(GoToPointChanged(int)), SLOT(OnSpinBoxGoToPoint(int)), Qt::QueuedConnection);
   connect(m_toolLesionPopup, SIGNAL(GoToPointTriggered()), SLOT(OnButtonGoToPoint()), Qt::QueuedConnection);
@@ -101,6 +101,7 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
 
 PanelPointSet::~PanelPointSet()
 {
+  m_toolLesionPopup->deleteLater();
   delete ui;
 }
 
