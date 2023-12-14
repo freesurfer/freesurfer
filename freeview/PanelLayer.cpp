@@ -127,4 +127,3 @@ void PanelLayer::BlockAllSignals( bool bBlock )
   }
 }
 
-

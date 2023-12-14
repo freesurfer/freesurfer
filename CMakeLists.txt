@@ -370,6 +370,9 @@ endif()
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 message(STATUS "For HOST_OS=${HOST_OS} ITK_DIR=${ITK_DIR}")
 
+# ------ list where the build tree is ------
+message(STATUS "Compiling source under build tree ${CMAKE_BINARY_DIR}")
+
 # --------------------------------------------------
 #              global system information
 # --------------------------------------------------

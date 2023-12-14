@@ -21,6 +21,8 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include "LayerCollection.h"
+#include "MainWindow.h"
+#include "Layer.h"
 
 class QLineEdit;
 class QSpinBox;
@@ -54,7 +56,7 @@ protected:
   virtual void DoIdle() = 0;
   virtual void DoUpdateWidgets() = 0;
   void BlockAllSignals( bool bBlock );
-  template<typename T> inline T GetCurrentLayer();
+  template<typename T> inline T GetCurrentLayer(bool bForce = false);
   template<typename T> inline QList<T> GetSelectedLayers();
 
 protected slots:
@@ -80,7 +82,7 @@ private:
   QString             m_layerType;
 };
 
-template<typename T> T PanelLayer::GetCurrentLayer()
+template<typename T> T PanelLayer::GetCurrentLayer(bool bForce)
 {
   if ( !treeWidgetLayers || !m_layerCollection)
   {
@@ -89,8 +91,12 @@ template<typename T> T PanelLayer::GetCurrentLayer()
 
   if (m_layerCollection->Contains(m_currentLayer))
     return qobject_cast<T>(m_currentLayer);
-  else
+  else if (!bForce)
     return NULL;
+  else
+  {
+    return qobject_cast<T>(MainWindow::GetMainWindow()->GetActiveLayer(m_layerType));
+  }
 }
 
 template<typename T> QList<T> PanelLayer::GetSelectedLayers()
