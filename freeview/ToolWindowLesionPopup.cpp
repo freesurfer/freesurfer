@@ -46,12 +46,12 @@ ToolWindowLesionPopup::~ToolWindowLesionPopup()
 
 void ToolWindowLesionPopup::UpdateUI(LayerPointSet *layer)
 {
-  m_curLayer = layer;
   if (!layer)
   {
- //   hide();
+//    hide();
     return;
   }
+  m_curLayer = layer;
 
   BlockAllSignals(true);
 

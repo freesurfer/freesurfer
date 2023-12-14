@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include "UIUpdateHelper.h"
+#include <QPointer>
 
 class LayerPointSet;
 struct ControlPoint;
@@ -45,7 +46,7 @@ class ToolWindowLesionPopup : public QWidget, public UIUpdateHelper
 
   private:
   Ui::ToolWindowLesionPopup *ui;
-  LayerPointSet*  m_curLayer;
+  QPointer<LayerPointSet>  m_curLayer;
 };
 
 #endif // TOOLWINDOWLESIONPOPUP_H

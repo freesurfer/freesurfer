@@ -146,7 +146,7 @@ void PanelPointSet::DoIdle()
 void PanelPointSet::DoUpdateWidgets()
 {
   BlockAllSignals( true );
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
     if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar )
@@ -434,7 +434,7 @@ void PanelPointSet::LoadScalarValues()
 
 void PanelPointSet::SetCurrentPoint(int nIndex)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   if (layer)
   {
     if (nIndex >= layer->GetNumberOfPoints())
@@ -456,7 +456,7 @@ void PanelPointSet::SetCurrentPoint(int nIndex)
 
 void PanelPointSet::OnSpinBoxGoToPoint(int val)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   if (layer && layer->GetNumberOfPoints() > 0)
   {
     double pt[3];
@@ -517,7 +517,7 @@ QTreeWidgetItem* PanelPointSet::AddStatItem(const QString &name, double value)
 void PanelPointSet::UpdatePointInfo()
 {
   BlockAllSignals(true);
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   int nIndex = ui->spinBoxGoToPoint->value()-1;
   if ( layer && layer->GetNumberOfPoints() > nIndex )
   {
@@ -583,7 +583,7 @@ void PanelPointSet::OnButtonCommentAdd()
     ui->scrollAreaComments->widget()->adjustSize();
     QTimer::singleShot(0, this, SLOT(ScrollCommentsToBottom()));
 
-    LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+    LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
     int nIndex = ui->spinBoxGoToPoint->value()-1;
     if (layer && nIndex < layer->GetNumberOfPoints())
     {
@@ -601,7 +601,7 @@ void PanelPointSet::OnCommentLabelClicked(const QString &link)
   if (!l)
     return;
 
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   int nIndex = ui->spinBoxGoToPoint->value()-1;
   if (layer && nIndex < layer->GetNumberOfPoints())
   {
@@ -663,7 +663,7 @@ void PanelPointSet::OnStatItemChanged(QTreeWidgetItem *item, int col)
     return;
   }
 
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   int nIndex = ui->spinBoxGoToPoint->value()-1;
   if (!layer || nIndex >= layer->GetNumberOfPoints())
     return;
@@ -712,7 +712,7 @@ void PanelPointSet::OnStatItemChanged(QTreeWidgetItem *item, int col)
 
 void PanelPointSet::OnButtonStatAdd()
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   int nIndex = ui->spinBoxGoToPoint->value()-1;
   if (layer && nIndex < layer->GetNumberOfPoints())
   {
@@ -740,7 +740,7 @@ void PanelPointSet::OnButtonStatDelete()
   QTreeWidgetItem* item = ui->treeWidgetStats->currentItem();
   if (item && ui->treeWidgetStats->indexOfTopLevelItem(item) != 0)
   {
-    LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+    LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
     int nIndex = ui->spinBoxGoToPoint->value()-1;
     if (layer && nIndex < layer->GetNumberOfPoints())
     {
@@ -756,7 +756,7 @@ void PanelPointSet::OnButtonStatDelete()
 
 void PanelPointSet::OnCheckBoxFixed(bool b)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   int nIndex = ui->spinBoxGoToPoint->value()-1;
   if (layer && nIndex < layer->GetNumberOfPoints())
   {
@@ -773,7 +773,7 @@ void PanelPointSet::OnCurrentStatItemChanged(QTreeWidgetItem *cur, QTreeWidgetIt
 
 void PanelPointSet::OnTextOverallQualityChanged()
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   if (layer)
     layer->SetEnhancedData("overall_quality", ui->textEditOverallQuality->toPlainText());
 }
@@ -781,14 +781,14 @@ void PanelPointSet::OnTextOverallQualityChanged()
 
 void PanelPointSet::OnSpinBoxOverallScore(int val)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   if (layer)
     layer->SetEnhancedData("overall_score", val);
 }
 
 void PanelPointSet::OnSpinBoxSecondQA(int val)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>(true);
   if (layer)
     layer->SetEnhancedData("qa_level", val);
 }
