@@ -37,7 +37,7 @@ for nthrun = 1:nruns
   for nthxreg = 1:size(xreglist,1)
     xregname = deblank(xreglist(nthxreg,:));
     fname = sprintf('%s/%s/%s',fsdpath,runlist(nthrun,:),xregname);
-    s = load(fname);
+    s = load(fname,'-ascii');
     if(isempty(s)) return; end
     xreg = s(nskip+1:end,1:nperxreg(nthxreg));
     xregmn = mean(xreg);
@@ -49,7 +49,7 @@ for nthrun = 1:nruns
   for nthseed = 1:nseeds
     seedname = deblank(seedlist(nthseed,:));
     fname = sprintf('%s/%s/%s',fsdpath,runlist(nthrun,:),seedname);
-    s = load(fname);
+    s = load(fname,'-ascii');
     if(isempty(s)) return; end
     seeds(:,nthseed) = s(nskip+1:end,1); % Only take the 1st
   end
