@@ -120,11 +120,17 @@ foreach sess ($SessList)
   endif
 
   set b0dcmap = ();
+  set pedir = 2; #2=row direction
   if($UseB0DC) then
     set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
     if($status) then
       echo "$b0dcmap"|& tee -a $LF
       exit 1;
+    endif
+    set pedirfile = $sess/$fsd/$b0dcmapstem.pedir.txt
+    if(-e $pedirfile) then
+      set pedir = `cat $pedirfile`
+      echo "Setting PE direction so $pedir" | tee -a $LF
     endif
   endif
 
@@ -151,7 +157,7 @@ foreach sess ($SessList)
         set cmd = (mri_vol2vol --mov $mask --reg $reg \
           --tal --talres $res --talxfm $talxfm --nearest \
           --no-save-reg --o $outmask)
-        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
       else
         set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
 	if(! -e $gcam) then
@@ -159,7 +165,7 @@ foreach sess ($SessList)
           exit 1;
         endif
         set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
-        set cmd = (mri_vol2vol --gcam $mask $reg $gcam $dstreg)
+        set cmd = (mri_vol2vol --vsm-pedir $pedir --gcam $mask $reg $gcam $dstreg)
         if($UseB0DC) set cmd = ($cmd $b0dcmap)
         if(! $UseB0DC) set cmd = ($cmd 0)
         set cmd = ($cmd 0 $outmask)
@@ -215,7 +221,7 @@ foreach sess ($SessList)
           set cmd = (mri_vol2vol --mov $mask --reg $reg \
             --tal --talres $res --talxfm $talxfm --nearest \
             --no-save-reg --o $outmask)
-          if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+          if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
         else
           set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
           if(! -e $gcam) then
@@ -223,7 +229,7 @@ foreach sess ($SessList)
             exit 1;
           endif
           set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
-          set cmd = (mri_vol2vol --gcam $mask $reg $gcam $dstreg)
+          set cmd = (mri_vol2vol --vsm-pedir $pedir --gcam $mask $reg $gcam $dstreg)
           if($UseB0DC) set cmd = ($cmd $b0dcmap)
           if(! $UseB0DC) set cmd = ($cmd 0)
           set cmd = ($cmd 0 $outmask)
@@ -304,7 +310,7 @@ foreach sess ($SessList)
       set cmd = (mri_vol2vol --mov $invol --reg $reg \
         --tal --talres $res --talxfm $talxfm --interp $interp \
         --no-save-reg --o $outvol)
-      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
     else
       set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
       if(! -e $gcam) then
@@ -312,7 +318,7 @@ foreach sess ($SessList)
         exit 1;
       endif
       set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
-      set cmd = (mri_vol2vol --gcam $invol $reg $gcam $dstreg)
+      set cmd = (mri_vol2vol --vsm-pedir $pedir --gcam $invol $reg $gcam $dstreg)
       if($UseB0DC) set cmd = ($cmd $b0dcmap)
       if(! $UseB0DC) set cmd = ($cmd 0)
       set cmd = ($cmd 0 $outvol)

@@ -123,11 +123,17 @@ foreach sess ($SessList)
   if($DoSelf) set trgsubject = $subject
 
   set b0dcmap = ();
+  set pedir = 2; #2=row direction
   if($UseB0DC) then
     set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
     if($status) then
       echo "$b0dcmap"|& tee -a $LF
       exit 1;
+    endif
+    set pedirfile = $sess/$fsd/$b0dcmapstem.pedir.txt
+    if(-e $pedirfile) then
+      set pedir = `cat $pedirfile`
+      echo "Setting PE direction so $pedir" | tee -a $LF
     endif
   endif
 
@@ -163,7 +169,7 @@ foreach sess ($SessList)
           --hemi $hemi --o $outmask --noreshape)
         if($UseCortexLabel) set cmd = ($cmd --cortex)
         if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
-        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
         echo $cmd | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -212,7 +218,7 @@ foreach sess ($SessList)
           --hemi $hemi --o $outmask --noreshape)
         if($UseCortexLabel) set cmd = ($cmd --cortex)
         if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
-        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
         echo $cmd | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -288,7 +294,7 @@ foreach sess ($SessList)
         --hemi $hemi --o $outvol --noreshape)
       if($UseCortexLabel) set cmd = ($cmd --cortex)
       if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
-      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
       if($#volsurffwhm) set cmd = ($cmd --fwhm $volsurffwhm) # dont do for mask
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF

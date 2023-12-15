@@ -227,7 +227,7 @@ foreach sess ($SessList)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($UseB0DC)    set cmd = ($cmd -b0dc) # only used to get the right reg file
     if($RegDOF != 6) set cmd = ($cmd -dof $RegDOF)
     echo "$sessid Mask ------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
