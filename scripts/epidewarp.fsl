@@ -34,6 +34,7 @@ set real1 = ();
 set imag1 = ();
 set real2 = ();
 set imag2 = ();
+set unwarpdir = y
 
 set epi = ();
 
@@ -375,7 +376,7 @@ echo "Masking with $mask" | tee -a $LF
 # on the VSM. The dewarped mag volume is meaningless and will be thrown away.
 if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.$ext
 set magdw = $tmpdir/magdw.$ext # To be thrown away
-set cmd = (fugue -i $mag -u $magdw -p $ph2 \
+set cmd = (fugue -i $mag -u $magdw -p $ph2 --unwarpdir=$unwarpdir\
     --dwell=$esp --asym=$tediff --mask=$mask --saveshift=$vsmmag);
 if($#sigmamm) set cmd = ($cmd --smooth2=$sigmamm);
 echo $cmd |& tee -a $LF
@@ -649,6 +650,11 @@ while( $#argv != 0 )
       set vsmmag = $argv[1]; shift;
       breaksw
 
+    case "--unwarpdir":
+      if ( $#argv == 0) goto arg1err;
+      set undwarpdir = $argv[1]; shift;
+      breaksw
+
     case "--nomagexfreg":
       set DoMagExfReg = 0;
       breaksw
@@ -846,6 +852,7 @@ usage_exit:
   echo "  --tediff tediff : difference in B0 field map TEs"
   echo "  --esp esp       : EPI echo spacing"
   echo "  --perev         : assume reversed phase encode direction"
+  echo "  --unwarpdir direction : default is $unwarpdir (options: x/y/z/x-/y-/z-)"
   echo "  "
   echo "  --sigma sigmamm : 2D spatial gaussing smoothing stddev (def 2mm)"
   echo "  --vsm-fwhm fwhm : allows vsm to be extended outside of the mask"

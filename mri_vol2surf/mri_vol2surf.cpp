@@ -189,6 +189,7 @@ MATRIX *Mtrans = NULL;
 
 char *vsmfile = NULL;
 MRI *vsm = NULL;
+int pedir = 2;
 int UseOld = 1;
 MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
 		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
@@ -512,7 +513,7 @@ int main(int argc, char **argv) {
         printf("using new\n");
         SurfValsP = 
           MRIvol2surfVSM(SrcVol, Dsrc, Surf, vsm, interpmethod, SrcHitVol, 
-                         ProjFrac, ProjDistFlag,1,NULL);
+                         ProjFrac, ProjDistFlag,1,NULL,pedir);
       }
       fflush(stdout);
       if (SurfValsP == NULL) {
@@ -1056,6 +1057,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       vsmfile = pargv[0];
       UseOld = 0;
+      if(CMDnthIsArg(nargc, pargv, 1)) sscanf(pargv[1],"%d",&pedir);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--vsm-pedir")) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&pedir);
       nargsused = 1;
     } 
     else if (!strcmp(option, "--out_type") || !strcmp(option, "--ofmt")) {
@@ -1207,7 +1214,7 @@ static int parse_commandline(int argc, char **argv) {
       int interpmethod=0;
       sscanf(pargv[7],"%d",&interpmethod);
       printf("projtype %d, projdist %g, interp %d\n",projtype,projdist,interpmethod);
-      MRI *sval = MRIvol2surfVSM(mri, RegMat, surf, vsm, interpmethod, NULL, projdist, projtype, 1,NULL);
+      MRI *sval = MRIvol2surfVSM(mri, RegMat, surf, vsm, interpmethod, NULL, projdist, projtype, 1,NULL,pedir);
       err = MRIwrite(sval,pargv[8]);
       printf("mri_vol2surf --volsurf done\n");
       exit(err);
@@ -1354,6 +1361,10 @@ static void print_usage(void) {
   printf("   --norm-pointset surf vtxno dist delta output\n");
   printf("     Creates a freeview pointset using points along the normal\n");
   printf("\n");
+  printf("  --vsm vsmvol <pedir> : Apply a voxel shift map. pedir: +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)\n");
+  printf("  --vsm-pedir pedir : set pedir +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)\n");
+  printf("  --vsm-pedir pedir : set pedir 1=x, 2=y, 3=z (default 2)\n");
+  printf("\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
@@ -1370,6 +1381,7 @@ static void print_usage(void) {
   printf("      reg : LTA registration file (or 'regheader', surf must have vol geom) \n");
   printf("        LTA files can go in either direction if surf has a valid vol geom\n");
   printf("      vsm : voxel shift map for B0 correction (or 'novsm')\n");
+  printf("       vsm pedir can be set with --vsm-pedir\n");
   printf("\n");
   printf("      interp 0=nearest, 1=trilin, 5=cubicbspline\n");
   printf("   --closest-vertex x y z coords ltafile surf outfile (stand-alone)\n");

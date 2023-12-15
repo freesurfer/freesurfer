@@ -36,6 +36,9 @@
 
   --label labelfile : limit calculation to specified label
 
+  --vsm vsmvol <pedir> : Apply a voxel shift map. pedir: 1=x, 2=y, 3=z (default 2)
+  --vsm-pedir pedir : phase encode direction for vsm
+
   --brute_trans min max delta : brute force translation in all directions
   --brute min max delta : brute force in all directions
   --1dpreopt min max delta : brute force in PE direction
@@ -331,6 +334,7 @@ MRI *lhCortexLabel=NULL, *rhCortexLabel=NULL;
 int UseCortexLabel = 1;
 int nCostEvaluations=0;
 MRI *vsm=NULL;
+int pedir = 2;
 char *vsmfile = NULL;
 double angles[3],xyztrans[3],scale[3],shear[3];
 const char *surfname = "white";
@@ -917,7 +921,7 @@ int main(int argc, char **argv) {
     out = MRIallocSequence(anat->width,  anat->height,
 			   anat->depth,  MRI_FLOAT, 1);
     MRIcopyHeader(anat,out);
-    MRIvol2VolTkRegVSM(mov, out, R, SAMPLE_TRILINEAR, sinchw, vsm);
+    MRIvol2VolTkRegVSM(mov, out, R, SAMPLE_TRILINEAR, sinchw, vsm, pedir);
     printf("Writing output volume to %s \n",outfile);
     MRIwrite(out,outfile);
   }
@@ -1162,6 +1166,15 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--vsm",0)) {
       if (nargc < 1) argnerr(option,1);
       vsmfile = pargv[0];
+      nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)){
+	sscanf(pargv[1],"%d",&pedir);
+	nargsused++;
+      }
+    } 
+    else if (!strcmp(option, "--vsm-pedir")) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&pedir);
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--frame",0)) {
@@ -1595,8 +1608,7 @@ static void print_help(void) {
 /* --------------------------------------------- */
 static void check_options(void) 
 {
-  if (SUBJECTS_DIR == NULL)
-  {
+  if (SUBJECTS_DIR == NULL)  {
     SUBJECTS_DIR = getenv("SUBJECTS_DIR");
     if (SUBJECTS_DIR==NULL) {
       printf("ERROR: SUBJECTS_DIR undefined.\n");
@@ -1625,6 +1637,11 @@ static void check_options(void)
   if (interpcode < 0) {
     printf("ERROR: interpolation method %s unrecognized\n",interpmethod);
     printf("       legal values are nearest, trilin, and sinc\n");
+    exit(1);
+  }
+
+  if(abs(pedir) != 1 && abs(pedir) != 2 && abs(pedir) != 3){
+    printf("ERROR: pedir=%d, must be +/-1, +/-2, +/-3\n",pedir);
     exit(1);
   }
 
@@ -2136,14 +2153,14 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //printf("Scale: %g %g %g\n",p[6],p[7],p[8]);
 
   if(UseLH){
-    vlhwm  = MRIvol2surfVSM(mov,R,lhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp, vlhwm);
-    vlhctx = MRIvol2surfVSM(mov,R,lhctx, vsm, interpcode, NULL, 0, 0, nsubsamp, vlhctx);
+    vlhwm  = MRIvol2surfVSM(mov,R,lhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp, vlhwm, pedir);
+    vlhctx = MRIvol2surfVSM(mov,R,lhctx, vsm, interpcode, NULL, 0, 0, nsubsamp, vlhctx, pedir);
     if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
     if(lhcon == NULL)  lhcon  = MRIclone(vlhctx,NULL);
   }
   if(UseRH){
-    vrhwm  = MRIvol2surfVSM(mov,R,rhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp, vrhwm);
-    vrhctx = MRIvol2surfVSM(mov,R,rhctx, vsm, interpcode, NULL, 0, 0, nsubsamp, vrhctx);
+    vrhwm  = MRIvol2surfVSM(mov,R,rhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp, vrhwm, pedir);
+    vrhctx = MRIvol2surfVSM(mov,R,rhctx, vsm, interpcode, NULL, 0, 0, nsubsamp, vrhctx, pedir);
     if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
     if(rhcon == NULL)  rhcon  = MRIclone(vrhctx,NULL);
   }

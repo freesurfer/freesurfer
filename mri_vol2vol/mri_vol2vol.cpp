@@ -70,6 +70,9 @@ mri_vol2vol
 
   --mul mulval   : multiply output by mulval
 
+  --vsm vsmvol <pedir> : Apply a voxel shift map. pedir: +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)
+  --vsm-pedir pedir : phase encode direction for vsm
+
   --precision precisionid : output precision (def is float)
   --keep-precision  : set output precision to that of input
   --kernel            : save the trilinear interpolation kernel instead
@@ -613,11 +616,12 @@ int keepprecision = 0;
 int DoFill=0;
 int DoFillConserve=0;
 int FillUpsample=2;
-MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
+MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst, int pedir=2);
 MRI *MRIvol2volGCAM0(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
 int DoMultiply=0;
 double MultiplyVal=0;
 int DownSample[3] = {0,0,0}; // downsample source
+int pedir = 2; // for VSM 1=x, 2=y, 3=z
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -982,7 +986,7 @@ int main(int argc, char **argv) {
 	  vsm = MRIread(vsmvolfile);
 	  if(vsm == NULL) exit(1);
 	}
-	MRIvol2VolVSM(in,out,vox2vox,interpcode,sinchw,vsm);
+	MRIvol2VolVSM(in,out,vox2vox,interpcode,sinchw,vsm,pedir);
       }
     }
   }
@@ -1253,12 +1257,20 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--vsm",0)) {
-      if (nargc < 1) argnerr(option,1);
+    } 
+    else if (istringnmatch(option, "--vsm",0)) {
+      if(nargc < 1) argnerr(option,1);
       vsmvolfile = pargv[0];
       useold = 0;
+      if(CMDnthIsArg(nargc, pargv, 1)) sscanf(pargv[1],"%d",&pedir);
       nargsused = 1;
-    } else if (istringnmatch(option, "--targ",0)) {
+    } 
+    else if (!strcmp(option, "--vsm-pedir")) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&pedir);
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--targ",0)) {
       if (nargc < 1) argnerr(option,1);
       targvolfile = pargv[0];
       nargsused = 1;
@@ -1559,7 +1571,7 @@ static int parse_commandline(int argc, char **argv) {
       if(getenv("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT") != NULL || istringnmatch(option, "--gcam0",0))
 	out = MRIvol2volGCAM0(mov, srclta, gcam, dstlta, vsm, interpcode, NULL);
       else
-	out = MRIvol2volGCAM(mov, srclta, gcam, dstlta, vsm, interpcode, NULL);
+	out = MRIvol2volGCAM(mov, srclta, gcam, dstlta, vsm, interpcode, NULL,pedir);
       if(out == NULL) exit(1);
       printf("Writing to %s\n",targvolfile);
       err = MRIwrite(out,targvolfile);
@@ -1673,6 +1685,9 @@ printf("  --fill-upsample USF : source upsampling factor for --fill-{avg,cons} (
 printf("\n");
 printf("  --mul mulval   : multiply output by mulval\n");
 printf("\n");
+printf("  --vsm vsmvol <pedir> : Apply a voxel shift map. pedir: +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)\n");
+printf("  --vsm-pedir pedir : set pedir +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)\n");
+printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
@@ -1683,6 +1698,7 @@ printf("     srclta, gcam, or vsm can be set to 0 to indicate identity (not regh
 printf("     if dstlta is 0, then uses gcam atlas geometry as output target\n");
 printf("     direction is automatically determined from srclta and dstlta\n");
 printf("     interp 0=nearest, 1=trilin, 5=cubicbspline\n");
+printf("     vsm pedir can be set with --vsm-pedir\n");
 printf("     DestVol -> dstLTA -> CVSVol -> gcam -> AnatVol -> srcLTA -> B0UnwarpedVol -> VSM -> MovVol (b0Warped)\n");
 printf("\n");
 printf("  --spm-warp mov movlta warp interp output\n");
@@ -2330,14 +2346,14 @@ MATRIX *LoadRfsl(char *fname) {
   DestVol --> dstLTA --> B0UnwarpedVol --> VSM --> MovVol (b0Warped)
   Three more possibilites with removing VSM
  */
-MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst)
+MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst, int pedir)
 {
   int c,r,s,f,out_of_gcam,cvsm,rvsm,iss;
   //VOL_GEOM *vgdst_src,*vgdst_dst;
   MATRIX *crsDst, *crsGCAM=NULL, *crsAnat=NULL, *crsSrc=NULL, *Vdst, *Vsrc;
   double val,v;
   MRI_BSPLINE * bspline = NULL;
-  float drvsm, *valvect;
+  float dvsm, *valvect;
   Timer timer;
 
   printf("MRIvol2volGCAM(): ---------+++++++++++++++++++----------------------\n");
@@ -2522,9 +2538,10 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
 	  if(fabs(v) < FLT_MIN) continue;
 	  /* Performs 3D interpolation. May want to use iss instead of crsSrc->rptr[3][1]
 	     to make it a 2D interpolation. Not sure.*/
-          MRIsampleSeqVolume(vsm, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1], &drvsm, 0, 0);
-	  if(drvsm == 0) continue;
-          crsSrc->rptr[2][1] += drvsm;
+          MRIsampleSeqVolume(vsm, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1], &dvsm, 0, 0);
+	  if(dvsm == 0) continue;
+	  if(pedir<0) dvsm *= dvsm;
+          crsSrc->rptr[pedir][1] += dvsm;
         }
 
 	// Check for out of the source FoV

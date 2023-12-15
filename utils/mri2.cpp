@@ -47,6 +47,10 @@
 #include "affine.h"
 #include "romp_support.h"
 
+#ifndef FSIGN
+# define FSIGN(f) (((f) < 0) ? -1 : 1)
+#endif
+
 /* overwrite generic nint to speed up execution
   Make sure NOT use calls like nint(f++) in this file!
 */
@@ -3004,25 +3008,32 @@ MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out)
 
 
 
-int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MRI *vsm)
+int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MRI *vsm, int pedir)
 {
   int ct, rt, st, f;
   int ics, irs, iss, cvsm, rvsm;
   float fcs, frs, fss;
-  float *valvect, drvsm;
+  float *valvect, dvsm;
   int sinchw;
   double rval, v;
   MATRIX *V2Rsrc = NULL, *invV2Rsrc = NULL, *V2Rtarg = NULL;
   MATRIX *crsT = NULL, *crsS = NULL;
   int FreeMats = 0;
 
-  if (DIAG_VERBOSE_ON) printf("Using MRIvol2VolVSM\n");
+  if(DIAG_VERBOSE_ON) {
+    printf("Using MRIvol2VolVSM\n");
+    printf("MRIvol2VolVSM interp=%d, param=%g, pedir=%d\n",InterpCode,param,pedir);
+  }
 
-  if (src->nframes != targ->nframes) {
-    printf(
-        "ERROR: MRIvol2vol: source and target have different number "
-        "of frames\n");
+  if(src->nframes != targ->nframes) {
+    printf("ERROR: MRIvol2volVSM(): source and target have different number of frames\n"); 
     return (1);
+  }
+  if(vsm){
+    if(abs(pedir) != 1 && abs(pedir) != 2 && abs(pedir) != 3){
+      printf("ERROR: MRIvol2volVSM: pedir=%d, must be +/-1, +/-2, +/-3\n",pedir);
+      exit(1);      
+    }
   }
 
   // Compute vox2vox matrix based on vox2ras of src and target.
@@ -3085,11 +3096,24 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param
           if (fabs(v) < FLT_MIN) continue;
           v = MRIgetVoxVal(vsm, cvsm + 1, rvsm + 1, iss, 0);
           if (fabs(v) < FLT_MIN) continue;
-          MRIsampleSeqVolume(vsm, fcs, frs, fss, &drvsm, 0, 0);
-          if (drvsm == 0) continue;
-          frs += drvsm;
-          irs = nint(frs);
-          if (irs < 0 || irs >= src->height) continue;
+          MRIsampleSeqVolume(vsm, fcs, frs, fss, &dvsm, 0, 0);
+          if(dvsm == 0) continue;
+	  if(abs(pedir) == 1){
+	    fcs += (dvsm*FSIGN(pedir));
+	    ics =  nint(fcs);
+	    if(ics < 0 || ics >= src->width) continue;
+	  }
+	  if(abs(pedir) == 2){
+	    frs += (dvsm*FSIGN(pedir));
+	    irs =  nint(frs);
+	    if(irs < 0 || irs >= src->height) continue;
+	  }
+	  if(abs(pedir) == 3){
+	    if(dvsm == 0) continue;
+	    fss += (dvsm*FSIGN(pedir));
+	    iss = nint(fss);
+	    if(iss < 0 || iss >= src->depth) continue;
+	  }
         }
 
         /* Assign output volume values */
@@ -3172,7 +3196,7 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
                     float ProjFrac,
                     int ProjType,
                     int nskip,
-                    MRI *TrgVol)
+                    MRI *TrgVol, int pedir)
 {
   MATRIX *ras2vox, *vox2ras;
   AffineVector Scrs, Txyz;
@@ -3180,7 +3204,7 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
   int irow, icol, islc; /* integer row, col, slc in source */
   int cvsm, rvsm;
   float frow, fcol, fslc; /* float row, col, slc in source */
-  float srcval, *valvect, rshift;
+  float srcval, *valvect, shift;
   int frm, vtx, nhits, err;
   double rval, val;
   float Tx, Ty, Tz;
@@ -3196,7 +3220,12 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
       printf("ERROR: MRIvol2surfVSM: vsm dimension mismatch %d\n", err);
       exit(1);
     }
+    if(abs(pedir) != 1 && abs(pedir) != 2 && abs(pedir) != 3){
+      printf("ERROR: MRIvol2surfVSM: pedir=%d, must be +/-1, +/-2, +/-3\n",pedir);
+      exit(1);      
+    }
   }
+  if(DIAG_VERBOSE_ON)  printf("MRIvol2surfVSM interp=%d, nskip=%d, pedir=%d\n",InterpMethod,nskip,pedir);
 
   vox2ras = MRIxfmCRS2XYZtkreg(SrcVol);
   ras2vox = MatrixInverse(vox2ras, NULL);
@@ -3297,11 +3326,24 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
       if (fabs(val) < FLT_MIN) continue;
       val = MRIgetVoxVal(vsm, cvsm + 1, rvsm + 1, islc, 0);
       if (fabs(val) < FLT_MIN) continue;
-      MRIsampleSeqVolume(vsm, fcol, frow, fslc, &rshift, 0, 0);
-      if (rshift == 0) continue;
-      frow += rshift;
-      irow = nint(frow);
-      if (irow < 0 || irow >= SrcVol->height) continue;
+      MRIsampleSeqVolume(vsm, fcol, frow, fslc, &shift, 0, 0);
+      if(shift == 0) continue;
+      if(abs(pedir) == 1){
+	fcol += (shift*FSIGN(pedir));
+	icol =  nint(fcol);
+	if(icol < 0 || icol >= SrcVol->width) continue;
+      }
+      if(abs(pedir) == 2){
+	frow += (shift*FSIGN(pedir));
+	irow =  nint(frow);
+	if(irow < 0 || irow >= SrcVol->height) continue;
+      }
+      if(abs(pedir) == 3){
+	if(shift == 0) continue;
+	fslc += (shift*FSIGN(pedir));
+	islc = nint(fslc);
+	if(islc < 0 || islc >= SrcVol->depth) continue;
+      }
     }
 
 #if 0
@@ -3362,7 +3404,7 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
   return (TrgVol);
 }
 
-int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float param, MRI *vsm)
+int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float param, MRI *vsm, int pedir)
 {
   MATRIX *vox2vox = NULL;
   MATRIX *Tmov, *invTmov, *Ttarg;
@@ -3381,7 +3423,7 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, floa
     vox2vox = NULL;
 
   // resample
-  err = MRIvol2VolVSM(mov, targ, vox2vox, InterpCode, param, vsm);
+  err = MRIvol2VolVSM(mov, targ, vox2vox, InterpCode, param, vsm, pedir);
 
   if (vox2vox) {
     MatrixFree(&vox2vox);

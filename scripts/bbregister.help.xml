@@ -38,6 +38,10 @@
       <explanation>Output FreeSurfer registration file (tkregister-style or LTA format).</explanation>
       <argument>--vsm VoxelShiftMap </argument>
       <explanation>Include B0 distortion correction while performing registration. A voxel shift map can be created from a B0 map with the epidewarp.fsl script (in FreeSurfer). Automatically turns on epi B0 mask; so run with --no-epi-mask if you do not want that.</explanation>
+      <argument>--vsm-pedir PEdirection </argument>
+      <explanation>Phase encode direction. +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default is +2)</explanation>
+      <argument>--vsm-mul MultFactor </argument>
+      <explanation>Multiply VSM by the given factor</explanation>
       <intro>Initialization Arguments</intro>
       <argument>--init-coreg (Default)</argument>
       <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>

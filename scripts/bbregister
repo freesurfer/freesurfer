@@ -38,6 +38,8 @@ set InitHeader = 0;
 set InitReg = ();
 set InitRegOut = ();
 set VSM = ();
+set pedir = 2
+set VSMmul = ()
 set Brute1Max = 4;
 set Brute1Delta = 4;
 set DoBrute2 = 1;
@@ -308,6 +310,19 @@ endif
 
 if($#InitRegOut) cp $InitReg $InitRegOut
 
+# Multiply the VSM by the given value
+if($#VSM && $#VSMmul) then
+  set vsmmulvol = $tmpdir/vsm.mul.nii.gz
+  set ud = `UpdateNeeded $vsmmulvol $VSM`
+  if($ud) then
+    set cmd = (mri_concat --mul $VSMmul $VSM --o $vsmmulvol)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  set VSM = $vsmmulvol
+endif
+
 # Pass 1
 set Pass1Reg = $tmpdir/bbr.pass1.dat
 if($DoPass1) then
@@ -327,7 +342,7 @@ if($DoPass1) then
   if($InitSurfCostOnly) set cmd = ($cmd --init-surf-cost-only);
   if($UseEPIMask) set cmd = ($cmd --mask);
   if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
-  if($#VSM) set cmd = ($cmd --vsm $VSM);
+  if($#VSM) set cmd = ($cmd --vsm $VSM $pedir);
   if($IncludeZeroVoxels) set cmd = ($cmd --include-zero-voxels)
   if($#TargetVol) set cmd = ($cmd --target-volume $TargetVol)
   if($#RandInitMax) then
@@ -366,7 +381,7 @@ if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
 if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
-if($#VSM) set cmd = ($cmd --vsm $VSM);
+if($#VSM) set cmd = ($cmd --vsm $VSM $pedir);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
@@ -582,6 +597,22 @@ while( $#argv != 0 )
         exit 1;
       endif
       set UseEPIMask = 1; # Turn on EPI B0 mask by default
+      breaksw
+
+    case "--vsm-pedir":
+      if ( $#argv < 1) goto arg1err;
+      set pedir = $argv[1]; shift;
+      if($pedir != 1 && $pedir != 2 && $pedir != 3 && \
+         $pedir != +1 && $pedir != +2 && $pedir != +3 && \
+         $pedir != -1 && $pedir != -2 && $pedir != -3 ) then
+        echo "ERROR: pedir = $pedir, must be +/-1, +/-2, or +/-3"
+        exit 1;
+      endif
+      breaksw
+
+    case "--vsm-mul":
+      if( $#argv < 1) goto arg1err;
+      set VSMmul = $argv[1]; shift;
       breaksw
 
     case "--reg":
