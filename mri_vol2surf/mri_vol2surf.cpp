@@ -1057,8 +1057,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       vsmfile = pargv[0];
       UseOld = 0;
-      if(CMDnthIsArg(nargc, pargv, 1)) sscanf(pargv[1],"%d",&pedir);
       nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)){
+	sscanf(pargv[1],"%d",&pedir);
+	nargsused++;
+      }
     } 
     else if (!strcmp(option, "--vsm-pedir")) {
       if(nargc < 1) argnerr(option,1);
