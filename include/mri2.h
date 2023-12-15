@@ -111,14 +111,14 @@ MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
 MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out);
 MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int Average, MRI *outfill);
 int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
-		  int InterpCode, float param, MRI *vsm);
+		  int InterpCode, float param, MRI *vsm, int pedir=2);
 int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
-		       int InterpCode, float param, MRI *vsm);
+		       int InterpCode, float param, MRI *vsm, int pedir=2);
 MRI *MRIvol2surfVSM( const MRI *SrcVol,
                      const MATRIX *Rtk, const MRI_SURFACE *TrgSurf,
                      const MRI *vsm, int InterpMethod, MRI *SrcHitVol,
                      float ProjFrac, int ProjType, int nskip, 
-		    MRI *TrgVol);
+		     MRI *TrgVol, int pedir=2);
 MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int DoConserve, LTA **src2out);
 MRI *MRIsegBoundary(MRI *seg);
 MRI *MRIsliceNo(MRI *in, MRI *out);
