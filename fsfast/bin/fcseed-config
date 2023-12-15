@@ -50,6 +50,7 @@ check_params_return:
 
 set ProjectDir = `pwd`;
 
+mkdir -p `dirname $fcconfig`
 rm -f $fcconfig
 echo "# $0 $cmdargs"      >> $fcconfig
 echo "# ProjectDir $ProjectDir" >> $fcconfig
