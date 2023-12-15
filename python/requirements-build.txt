@@ -69,7 +69,7 @@ tensorflow==2.13.1
 termcolor==2.4.0
 threadpoolctl==3.2.0
 tifffile==2023.7.10
-torch==2.1.1
+torch==2.1.2
 tqdm==4.66.1
 transforms3d==0.4.1
 trimesh==4.0.5
