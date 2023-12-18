@@ -106,6 +106,7 @@ def options_parse():
     h_meas = 'measure: default is area ( alt volume, thickness, thicknessstd, meancurv, gauscurv, foldind, curvind)'
     h_skip = 'if a subject does not have input, skip it'
     h_t = '(REQUIRED) output table file'
+    h_append = 'append new stats table to the output tablefile if it already exists'
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
     h_parcid = 'do not pre/append hemi/meas to parcellation name'
     h_common = 'output only the common parcellations of all the subjects given'
@@ -129,6 +130,8 @@ def options_parse():
                       choices=('lh','rh'), help=h_hemi)
     parser.add_option('-t', '--tablefile', dest='outputfile',
                       help=h_t)
+    parser.add_option('', '--append', dest='appendflag', action='store_true',
+                      default=False, help=h_append)
     parser.add_option('-p', '--parc', dest='parc',
                       default='aparc', help=h_parc)
     parser.add_option('-m', '--measure', dest='meas',
@@ -362,9 +365,9 @@ def write_table(options, rows, cols, table):
     if not options.parcidflag:
         tw.decorate_col_titles(options.hemi+'_', '_'+options.meas)
     if options.transposeflag:
-        tw.write_transpose()
+        tw.write_transpose(options.appendflag)
     else:
-        tw.write()
+        tw.write(options.appendflag)
 
 if __name__=="__main__":
     # Command Line options are error checking done here
@@ -438,7 +441,10 @@ if __name__=="__main__":
                 table[row][col] = table[row][col]*options.scale
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print('Writing the table to %s' % options.outputfile)
+    if (options.appendflag):
+        print('Appending the table to %s' %options.outputfile)
+    else:    
+        print('Writing the table to %s' % options.outputfile)
     write_table(options, rows, columns, table)
 
     # always exit with 0 exit code

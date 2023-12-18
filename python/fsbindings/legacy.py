@@ -103,8 +103,12 @@ class TableWriter:
         self.pretext = pretext
         self.posttext = posttext
 
-    def write(self):
-        fp = open(self.filename, 'w')
+    def write(self, append=False):
+        if (append):
+            fp = open(self.filename, 'a')
+            fp.write('\n')            
+        else:
+            fp = open(self.filename, 'w')
         fp.write(self.row1col1)
         for c in self.columns:
             if((c == 'eTIV' or c == 'BrainSegVolNotVent') and (self.pretext == 'lh_' or self.pretext == 'rh_')):
@@ -121,8 +125,12 @@ class TableWriter:
             fp.write('\n')
         fp.close()    
 
-    def write_transpose(self):
-        fp = open(self.filename, 'w')
+    def write_transpose(self, append=False):
+        if (append):
+            fp = open(self.filename, 'a')
+            fp.write('\n')
+        else:
+            fp = open(self.filename, 'w')
         fp.write(self.row1col1)
         for r in self.rows:
             fp.write(self.delimiter + r)

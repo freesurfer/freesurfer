@@ -135,6 +135,7 @@ def options_parse():
     h_tr = 'transpose the table ( default is subjects in rows and segmentations in cols)'
     h_etiv = 'report volume as percent estimated total intracranial volume'
     h_t = '(REQUIRED) the output tablefile'
+    h_append = 'append new stats table to the output tablefile if it already exists'
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )'
     h_skip = 'if a subject does not have stats file, skip it'
     h_v = 'increase verbosity'
@@ -155,6 +156,7 @@ def options_parse():
     parser.add_option('-i', dest='inputs', action='append',
                       help=h_i)
     parser.add_option('-t', '--tablefile', dest='outputfile',help=h_t)
+    parser.add_option('', '--append', dest='appendflag', action='store_true', default=False, help=h_append)
     parser.add_option('--sd', dest='SUBJECTS_DIR');
     parser.add_option('-m', '--meas', dest='meas',
                       choices=('volume','Area_mm2','nvoxels','nvertices','mean','std','snr','max'),  default='volume', help=h_meas)
@@ -528,9 +530,9 @@ def write_table(options, rows, cols, table):
     tw.assign_attributes(filename=options.outputfile, row1col1=r1c1,
                          delimiter=delimiter2char[options.delimiter])
     if options.transposeflag:
-        tw.write_transpose()
+        tw.write_transpose(options.appendflag)
     else:
-        tw.write()
+        tw.write(options.appendflag)
 
 
 if __name__ == "__main__":
@@ -633,7 +635,10 @@ if __name__ == "__main__":
                 table[row][col] = table[row][col]*options.scale
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print('Writing the table to %s' %options.outputfile)
+    if (options.appendflag):
+        print('Appending the table to %s' %options.outputfile)
+    else:
+        print('Writing the table to %s' %options.outputfile)
     write_table(options, rows, columns, table)
 
     # always exit with 0 exit code
