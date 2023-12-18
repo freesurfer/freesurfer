@@ -451,6 +451,7 @@ p.add_argument('-r', dest='hyper', metavar='lambda', type=float, default=default
 p.add_argument('-n', dest='steps', metavar='steps', default=default['steps'], type=int)
 p.add_argument('-e', dest='extent', choices=choices['extent'], default=default['extent'])
 p.add_argument('-w', dest='weights', metavar='weights', action='append')
+p.add_argument('-h', action='store_true')
 p.add_argument('-v', dest='verbose', action='store_true')
 p.add_argument('-d', dest='out_dir', metavar='dir')
 
