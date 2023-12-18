@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # This wrapper script aims to simplify the use of SynthMorph containers by
-# automatically pulling images from Docker Hub and mounting the host directory
+# automatically pulling them from Docker Hub and mounting the host directory
 # SUBJECTS_DIR to /mnt inside the container. You can use the script just like
 # `mri_synthmorph` in FreeSurfer, except that all input and output files must
 # be in SUBJECTS_DIR. If you use Docker or Podman, any path passed as an
@@ -10,15 +10,15 @@
 # variable SUBJECT_DIR defaults to the current working directory.
 
 # Update the SynthMorph version to use a different image from Docker Hub.
-version = 1
+version = 2
+
+# Local image location for Apptainer/Singularity. Set an absolute path to avoid
+# pulling new images if you change the folder. Ignored for Docker and Podman.
+sif_file = f'synthmorph_{version}.sif'
 
 # We will attempt to use the first container system from the below list found
 # in PATH. You may wish to update their order if you have several installed.
-tools = ['docker', 'apptainer', 'singularity', 'podman']
-
-# Local image location for Apptainer/Singularity. Use an absolute path to avoid
-# pulling new images if you change the folder. Ignored for Docker and Podman.
-sif_file = f'synthmorph_{version}.sif'
+tools = ('docker', 'apptainer', 'singularity', 'podman')
 
 
 import os
@@ -29,7 +29,7 @@ import subprocess
 
 # Report version.
 hub = 'https://hub.docker.com/u/freesurfer'
-print(f'Running SynthMorph version {version} from {hub}', file=sys.stderr)
+print(f'Running SynthMorph version {version} from {hub}')
 
 
 # Find a container system.
@@ -44,8 +44,8 @@ if not path:
     exit(1)
 
 
-# Prepare bind path an URL. Mount SUBJECTS_DIR as /mnt inside the container.
-# Docker and Podman let us create bind mounts only for absolute paths.
+# Prepare bind path and URL. Mount SUBJECTS_DIR as /mnt inside the container.
+# Docker and Podman create bind mounts only for absolute paths.
 host = os.environ.get('SUBJECTS_DIR', os.getcwd())
 host = os.path.realpath(host)
 print(f'Will bind /mnt in image to SUBJECTS_DIR="{host}"')
@@ -72,8 +72,8 @@ if tool == 'podman':
 
 
 # For Apptainer/Singularity, the user inside and outside the container is the
-# same. We can conveniently mount relative paths inside, so we also mirror
-# SUBJECTS_DIR in addition to binding it to /mnt for convenience.
+# same. We can conveniently mount relative paths, so for convenience we mirror
+# SUBJECTS_DIR in addition to binding it to /mnt.
 if tool in ('apptainer', 'singularity'):
     arg = ('run', '--nv', '-e', '-B', f'{host}:/mnt', '-B', host, sif_file)
 
