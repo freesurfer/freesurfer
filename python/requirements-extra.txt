@@ -10,15 +10,15 @@ trimesh
 # made it into the releases yet. Install these based on their latest commits.
 # FOR RELEASE: set this to the git hash in the log of the nightly build tested!
 
-# git+https://github.com/adalca/pystrum.git@6422922af2607bf740a78526c6be83c388b25c1c
+# git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
 # pystrum @ git+https://github.com/adalca/pystrum.git@master
 pystrum@git+https://github.com/adalca/pystrum.git@master
 
-# git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
+# git+https://github.com/adalca/neurite.git@d931ac70b12914a80f7e95c486d716d510c1be2c
 # neurite @ git+https://github.com/adalca/neurite.git@dev
 neurite@git+https://github.com/adalca/neurite.git@dev
 
-# git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
+# git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
 # voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@dev
 
