@@ -70,7 +70,7 @@ while( $#argv != 0 )
         exit 1;
       endif
       set SchFiles = ($SchFiles $SchFile);
-      set EvName = `basename $SchFile`
+      set EvName = `basename $SchFile .txt`
       if($#argv > 0) then
         set tmp = `echo $argv[1] | cut -c 1-2`
         if("$tmp" != "--") then
