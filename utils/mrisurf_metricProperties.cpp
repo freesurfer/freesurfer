@@ -8461,6 +8461,15 @@ int MRISvertexToVoxel(MRIS *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv,
   MRISsurfaceRASToVoxelCached(mris, mri, xw, yw, zw, pxv, pyv, pzv);
   return (NO_ERROR);
 }
+int MRISvertexToVoxelNotCached(MRIS *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv)
+{
+  double xw, yw, zw;
+  xw = v->x;
+  yw = v->y;
+  zw = v->z;
+  MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, pxv, pyv, pzv);
+  return (NO_ERROR);
+}
 
 int MRISvertexNormalToVoxel(MRIS *mris, VERTEX *v, MRI *mri, double *pnx, double *pny, double *pnz)
 {

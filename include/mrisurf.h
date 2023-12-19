@@ -758,9 +758,10 @@ int MRISwhiteVertexToVoxel(MRI_SURFACE *,
                            VERTEX *v,
                            MRI *mri,
                            double *pxv, double *pyv, double *pzv) ;
-int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
-                               double *pxv, double *pyv,
-                               double *pzv) ;
+
+int MRISvertexToVoxel(         MRIS *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv) ;
+int MRISvertexToVoxelNotCached(MRIS *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv);
+
 int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
                                     int coord,
                                     double *pxv, double *pyv,
@@ -1220,6 +1221,19 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               int white,
                               MRI *mri_mask, double thresh, int flags, MRI *mri_aseg,
                               int vno_start, int vno_stop);
+int MRIScomputePialTargetLocationsMultiModalPar(MRI_SURFACE *mris,
+                              MRI *mri_T2,
+                              LABEL **labels,
+                              int nlabels,
+                              int contrast_type, MRI *mri_aseg, double T2_min_inside, double T2_max_inside, 
+			      double T2_min_outside, double T2_max_outside, double max_outward_dist,
+			      double left_inside_peak_pct,
+			      double right_inside_peak_pct,
+			      double left_outside_peak_pct,
+			      double right_outside_peak_pct,
+			      double wm_weight,
+ 			      double pial_sigma,
+ 			      MRI *mri_T1);
 int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
                               MRI *mri_T2,
                               LABEL **labels,
@@ -2514,6 +2528,12 @@ int MRIScopyCoords(MRIS *surf, MRIS *surfcoords);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
 int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname);
 MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI *out);
+
+// These control optimization parameters in mrisurf_mri.cpp
+void set_MAX_REDUCTIONS(int nmax);
+int  get_MAX_REDUCTIONS(void);
+void   set_REDUCTION_PCT(double pct);
+double get_REDUCTION_PCT(void);
 
 /**
   class AutoDetGWStats. This class houses functions used to compute
