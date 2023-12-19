@@ -313,12 +313,12 @@ int main(int argc, char **argv)
   exit(0); //-------------------------
 
   mytimer.reset() ;
-  geodesicsWrite(geod, nvertices, "u1.geod");
+  geodesicsWrite(geod, nvertices, (char*) "u1.geod");
   msec = mytimer.milliseconds() ;
   printf(" write1 t = %g min\n",msec/(1000.0*60));
 
   mytimer.reset() ;
-  geodesicsWriteV2(geod, nvertices, "u2.geod");
+  geodesicsWriteV2(geod, nvertices, (char*) "u2.geod");
   msec = mytimer.milliseconds() ;
   printf(" write2 t = %g min\n",msec/(1000.0*60));
 
