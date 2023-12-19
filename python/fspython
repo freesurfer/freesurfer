@@ -4,8 +4,24 @@
 [ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
 
 # point to freesurfer-installed packages and make sure that PYTHONPATH is entirely
-# overwritten, since we don't want any user packages to interfere with things
-export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+# overwritten, since we don't want any user packages to interfere with things.
+# Allow this to be overridden with the FS_LOCAL_PYTHONPATH env var
+if [ -z "$FS_LOCAL_PYTHONPATH" ]; then
+  export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+else
+  export PYTHONPATH="${FS_LOCAL_PYTHONPATH}:${FREESURFER_HOME}/python/packages"
+  echo "fspython local path #@# ======================================"
+  echo fspython PYTHONPATH $PYTHONPATH  # echo for documentation
+fi
+
+# do a setenv FS_PYTHON_DEBUG 1 to turn this on for easier debugging
+if [ ! -z "$FS_PYTHON_DEBUG" ]; then
+  if [ ! $FS_PYTHON_DEBUG -eq 0 ]; then
+    echo "Starting fspython #@# ======================================"
+    echo ${FREESURFER_HOME}/python/bin/python3 
+    printenv
+  fi
+fi
 
 # futhermore, prevent local user packages from being accessed in fspython
 # since we want a very isolated environment
