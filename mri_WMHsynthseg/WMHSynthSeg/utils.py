@@ -339,4 +339,9 @@ def get_ras_axes(aff, n_dims=3):
     """
     aff_inverted = np.linalg.inv(aff)
     img_ras_axes = np.argmax(np.absolute(aff_inverted[0:n_dims, 0:n_dims]), axis=0)
+    for i in range(n_dims):
+        if i not in img_ras_axes:
+            unique, counts = np.unique(img_ras_axes, return_counts=True)
+            incorrect_value = unique[np.argmax(counts)]
+            img_ras_axes[np.where(img_ras_axes == incorrect_value)[0][-1]] = i
     return img_ras_axes

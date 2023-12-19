@@ -62,10 +62,19 @@ endif()
 
 # FSL commands
 set(FSLDIR $ENV{FSLDIR})
+# preserve env var setting taking precedence, i.e., as set in nightly build or user shell environment
+# to a different release for different platforms
 if(FSLDIR)
   foreach(CMD flirt fslmaths slicetimer bet fslswapdim fslorient)
     install(PROGRAMS ${FSLDIR}/bin/${CMD} DESTINATION bin RENAME ${CMD}.fsl)
   endforeach()
+# else install the default version for Linux only
+elseif(FSL_INSTALL)
+   if(NOT APPLE)
+     foreach(CMD flirt fslmaths slicetimer bet fslswapdim fslorient)
+       install(PROGRAMS /usr/pubsw/packages/fsl/4.1.9/bin/${CMD} DESTINATION bin RENAME ${CMD}.fsl)
+     endforeach()
+   endif()
 endif()
 
 # DCMTK commands

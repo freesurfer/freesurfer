@@ -8,7 +8,10 @@ endif()
 add_executable(kvlAtlasMeshRasterizorTestGPU kvlAtlasMeshRasterizorTestGPU.cxx)
 target_link_libraries(kvlAtlasMeshRasterizorTestGPU kvlGEMSCommon)
 
-#
+# testCompressionLookupTable
+add_executable(testCompressionLookupTable testCompressionLookupTable.cxx)
+target_link_libraries(testCompressionLookupTable kvlGEMSCommon)
+
 add_executable(testdeformMeshPython testdeformMeshPython.cxx)
 target_link_libraries(testdeformMeshPython kvlGEMSCommon)
 
