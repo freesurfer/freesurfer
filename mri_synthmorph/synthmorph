@@ -44,8 +44,9 @@ if not path:
     exit(1)
 
 
-# Prepare bind path and URL. Mount SUBJECTS_DIR as /mnt inside the container.
-# Docker and Podman create bind mounts only for absolute paths.
+# Prepare bind path and URL. Mount SUBJECTS_DIR as /mnt inside the container,
+# which we set as the working directory when building the image. While Docker
+# and Podman will respect it, they require absolute paths for bind mounts.
 host = os.environ.get('SUBJECTS_DIR', os.getcwd())
 host = os.path.abspath(host)
 print(f'Will bind /mnt in image to SUBJECTS_DIR="{host}"')
@@ -72,10 +73,9 @@ if tool == 'podman':
 
 
 # For Apptainer/Singularity, the user inside and outside the container is the
-# same. We can conveniently mount relative paths, so for convenience we mirror
-# SUBJECTS_DIR in addition to binding it to /mnt.
+# same. The working directory is also the same, unless we explicilty set it.
 if tool in ('apptainer', 'singularity'):
-    arg = ('run', '--nv', '-e', '-B', f'{host}:/mnt', '-B', host, sif_file)
+    arg = ('run', '--nv', '--pwd', '/mnt', '-e', '-B', f'{host}:/mnt', sif_file)
 
     if not os.path.isfile(sif_file):
         print(f'Cannot find image {sif_file}, pulling it', file=sys.stderr)
