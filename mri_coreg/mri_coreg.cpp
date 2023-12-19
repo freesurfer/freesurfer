@@ -91,7 +91,7 @@ typedef struct {
   int dof;
   double params[12];
   int nsep, seplist[10];
-  int DoInitCostOnly;
+  char *DoInitCostOnly=NULL;
   int DoSmoothing;
   int cras0;
   int AlignCentroids=0;
@@ -482,7 +482,13 @@ int main(int argc, char *argv[]) {
   MatrixPrint(stdout,coreg->M);
   printf("Initial  RefVox-to-MovVox\n");
   MatrixPrint(stdout,coreg->V2V);
-  if(cmdargs->DoInitCostOnly) exit(0);
+
+  if(cmdargs->DoInitCostOnly) {
+    FILE *fp = fopen(cmdargs->DoInitCostOnly,"w");
+    fprintf(fp,"%20.10f\n",coreg->cost);
+    fclose(fp);
+    exit(0);
+  }
 
   for(n=0; n < coreg->nsep; n++){
     coreg->sep = coreg->seplist[n];
@@ -572,7 +578,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--init-cost-only")) cmdargs->DoInitCostOnly = 1;
+    else if (!strcasecmp(option, "--init-cost-only")){
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->DoInitCostOnly = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--no-smooth")) cmdargs->DoSmoothing = 0;
     else if (!strcasecmp(option, "--cras0")) {
       cmdargs->cras0 = 1;
