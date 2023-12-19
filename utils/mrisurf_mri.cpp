@@ -8089,7 +8089,7 @@ int MRIScomputePialTargetLocationsMultiModalVertex(int vno, MRIS *mris, MRI *mri
   HISTOGRAM *h1, *h2, *hs, *hwm, *hwm2, *hwms ;
   MRI_REGION region ;
   int whalf, wsize,near_cerebellum;
-  int num_in, num_out, found_bad_intensity, found,outside_of_white,outside_of_pial ;
+  int num_in = 0, num_out = 0, found_bad_intensity, found,outside_of_white,outside_of_pial ;
   double mean, sigma, mean_wm, sigma_wm, previous_val = 0;
   double    val, xs, ys, zs, xv, yv, zv, d, xvf, yvf, zvf, xp, yp, zp,nx,ny,nz,thickness ;
   HISTOGRAM *hcdf_rev,*hcdf;
