@@ -32,6 +32,7 @@ set DoTal = 0;
 set ColorMap = grayscale
 set params = (0 0 0 0 0 0 1 1 1 0 0 0); # 12dof
 set regheader = 0;
+set interp = () # default is nearest
 
 set tmpdir = ();
 set cleanup = 1;
@@ -133,7 +134,8 @@ if(! $UseTkRegister) then
     cp $headerreg1 $headerreg2; # 2 newer than 1
     set reg = $headerreg1
   endif
-  set cmd = (freeview --hide-3d-slices)
+  set cmd = (freeview --hide-3d-slices )
+  if($#interp) set cmd = ($cmd --$interp)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
   set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
   set targname = `basename $targ`
@@ -443,6 +445,12 @@ while( $#argv != 0 )
       if($Plane == cor) set Plane = coronal
       if($Plane == sag) set Plane = sagittal
       if($Plane == ax)  set Plane = axial
+      breaksw
+
+    case "--linear":
+    case "--trilinear":
+    case "--trilin":
+      set interp = trilinear
       breaksw
 
     case "--heat":
