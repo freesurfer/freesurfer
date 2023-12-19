@@ -49,6 +49,16 @@ public :
     {
     return m_CompressionLookupTable.find( label )->second;
     }
+
+  const std::vector<ImageType::PixelType> GetLabels() const
+    {
+      std::vector<ImageType::PixelType> labels;
+      CompressionLookupTableType::const_iterator it;
+      for (it = m_CompressionLookupTable.begin(); it != m_CompressionLookupTable.end(); ++it)
+        labels.push_back(it->first);
+
+      return labels;
+    }
     
   const ColorType&  GetColor( int classNumber ) const
     {

@@ -54,6 +54,7 @@ CompressionLookupTable
 ::ReadCollapsedLabelFile() const
 {
   //
+  //const std::string  collapsedLabelFile( "/space/metropolis/1/users/yh887/tests/compressionlookuptable/collapsedLabels.txt" );
   const std::string  collapsedLabelFile( "collapsedLabels.txt" );
 
   // Read in list of collapsed labels
@@ -108,6 +109,8 @@ CompressionLookupTable
   m_LabelStringLookupTable.clear();
   m_ColorLookupTable.clear();
   m_NumberOfClasses = 0;
+
+  printf("\n");
   
   // Loop over all collapsed labels, if any, adding a new class for 
   // each real label that is encountered while also pointing the
@@ -128,25 +131,35 @@ CompressionLookupTable
         collapsedIt != collapsedLabels.end(); ++collapsedIt )
     {
     m_CompressionLookupTable[ collapsedIt->first ] = std::vector< int >();
+    printf("Collapsed Label %-5d : \n", collapsedIt->first);
+    // loop through the Collapsed Label list, add any labels not in m_CompressionLookupTable yet
     for ( std::vector< int >::const_iterator  labelIt = collapsedIt->second.begin();
           labelIt != collapsedIt->second.end(); ++labelIt )
       {
-      if ( m_CompressionLookupTable.find( *labelIt ) == m_CompressionLookupTable.end() )
-        {
-        std::cout << "Encountered new real label " << *labelIt << std::endl;
-      
+        CompressionLookupTableType::const_iterator  compressionIt = m_CompressionLookupTable.find( *labelIt );	  
+	if ( compressionIt == m_CompressionLookupTable.end() )  //if ( m_CompressionLookupTable.find( *labelIt ) == m_CompressionLookupTable.end() )
+        {      
         const int  newClassNumber = m_NumberOfClasses;
         m_CompressionLookupTable[ *labelIt ] = std::vector< int >( 1, newClassNumber );
         m_CompressionLookupTable[ collapsedIt->first ].push_back( newClassNumber );
+	printf("\t Encountered new real label (collapsed label list): %-5d -> %-3d\n", *labelIt, newClassNumber);
+        //std::cout << "Encountered new real label (collapsedLabels.txt): " << *labelIt << ", assigned class " << newClassNumber << std::endl;	
         m_NumberOfClasses++;
         }
+	else
+	{
+	  // the label is in m_CompressionLookupTable already, find the class assigned to it
+          const int newClassNumber = compressionIt->second[ 0 ];
+	  m_CompressionLookupTable[ collapsedIt->first ].push_back( newClassNumber );
+	  printf("\t                            (collapsed label list): %-5d -> %-3d\n", *labelIt, newClassNumber);
+	}
         
       }  // End loop over all real labels belonging to a certain collapsed label
       
     } // End loop over all collapsed labels  
         
   
-  // Also loop over all pixels of all images, and create a new entry for every new intensity encountered
+  // Also loop over all pixels of all images, and create a new entry for any labels not in m_CompressionLookupTable yet
   for ( std::vector< ImageType::ConstPointer >::const_iterator it = images.begin();
          it != images.end(); ++it )
     {
@@ -157,10 +170,11 @@ CompressionLookupTable
       {
       if ( m_CompressionLookupTable.find( voxelIt.Get() ) == m_CompressionLookupTable.end() )
         {
-        std::cout << "Encountered new real label " << voxelIt.Get() << std::endl;
-      
+        // label not in m_CompressionLookupTable yet, add it
         const int  newClassNumber = m_NumberOfClasses;
         m_CompressionLookupTable[ voxelIt.Get() ] = std::vector< int >( 1, newClassNumber );
+	printf("\t Encountered new real label (image) %-5d -> %-3d\n" , voxelIt.Get(), newClassNumber);
+        //std::cout << "Encountered new real label (image) " << voxelIt.Get() << ", assigned class " << newClassNumber << std::endl;	
         m_NumberOfClasses++;
         }  
       } // End loop over all pixels
