@@ -47,7 +47,7 @@ if not path:
 # Prepare bind path and URL. Mount SUBJECTS_DIR as /mnt inside the container.
 # Docker and Podman create bind mounts only for absolute paths.
 host = os.environ.get('SUBJECTS_DIR', os.getcwd())
-host = os.path.realpath(host)
+host = os.path.abspath(host)
 print(f'Will bind /mnt in image to SUBJECTS_DIR="{host}"')
 
 image = f'freesurfer/synthmorph:{version}'
