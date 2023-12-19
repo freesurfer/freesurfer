@@ -255,9 +255,10 @@ if($dcm2niix_dicom_dump) then
     foreach series ($SeriesNos)
       set descr = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}' | head -n 1`
       if($DoAutoRunSeq) then
-        if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
+        if("$descr" == Localizer || "$descr" == Localizer_aligned || "$descr" == localizer || "$descr" == AAHScout || \
            "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
            "$descr" == AAHScout_tra || "$descr" == AAScout || \
+           "$descr" == AAHScout_MPR_sag || "$descr" == AAHScout_MPR_cor || "$descr" == AAHScout_MPR_tra || \
            "$descr" == T1w_setter || "$descr" == T2w_setter) then
 	  if(! $KeepScouts) continue
 	endif	    
@@ -431,9 +432,10 @@ else
     echo $Key $r[2] "$descr" $r[5-10] $fname $max $extra | tee -a $SeriesInfo
 
     if($DoAutoRunSeq) then
-      if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
-         "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
-         "$descr" == AAHScout_tra || "$descr" == AAScout || \
+      if("$descr" == Localizer || "$descr" == Localizer_aligned || "$descr" == localizer || "$descr" == AAHScout || \
+         "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || "$descr" == AAHScout_tra || \
+         "$descr" == AAHScout_MPR_sag || "$descr" == AAHScout_MPR_cor || "$descr" == AAHScout_MPR_tra || \
+         "$descr" == AAScout || \
          "$descr" == T1w_setter || "$descr" == T2w_setter) then
          if(! $KeepScouts) continue
       endif
@@ -478,6 +480,7 @@ endif
 if($#RunNos == 0) then
   echo "" | tee -a $LF
   echo "" | tee -a $LF
+  echo "Started at $StartTime" | tee -a $LF
   date | tee -a $LF
   echo "dcmunpack done" | tee -a $LF
   exit 0;
@@ -600,7 +603,7 @@ foreach run ($RunNos)
           if($DoSiemensAscii) set cmd = ($cmd -siemens-ascii-dump)
 
 	  set localDcm2niixOpts = ($Dcm2niixOpts)
-	  if($tSequenceFileName == "%SiemensSeq%\gre_b0map") then
+	  if("$tSequenceFileName" == "%SiemensSeq%\gre_b0map") then
 	    if($#Dcm2niixOpts) then 
 	      set localDcm2niixOpts = ($localDcm2niixOpts,m=2)
 	    else
