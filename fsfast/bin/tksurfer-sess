@@ -35,8 +35,8 @@ set fmax    = 4;
 set DoAllContrasts = 0;
 set TCL = ();
 set FWHM = ();
-set DoWhite = 1;
-set DoPial = 1;
+set DoWhite = 0;
+set DoPial = 0;
 set DoInflated = 1;
 
 set Delink = 0;
@@ -680,8 +680,9 @@ usage_exit:
   echo "   -tcl script.tcl  : run tksurfer with tcl script"
   echo "   -freeview : display with freeview (default, cannot display HRFs)"
   echo "   -tksurfer  : display with tksurfer"
-  echo "   -no-white : do not display white surface (freeview only)"
-  echo "   -no-pial  : do not display pial surface (freeview only)"
+  echo "   -white : additionally display white surface (freeview only)"
+  echo "   -pial  : additionally display pial surface (freeview only)"
+  echo "   -no-inflated  : do not display inflated"
   echo "   -vgl : run using vglrun"
   echo ""
   echo "   -d  sessdir  ..."
