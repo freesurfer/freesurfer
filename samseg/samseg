@@ -60,6 +60,7 @@ set WMCortexPriorsSigma = 0
 set stiffness = ()
 set Profile = ()
 set biasFieldSmoothingKernelSize = ()
+set DoSegStats = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -256,11 +257,14 @@ if(! $regonly) then
   endif
 
   # Compute segstats
-  set sumfile = $outdir/seg.stats 
-  set cmd = (mri_segstats --ctab-default --seg $seg --sum $sumfile)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) goto error_exit;
+  if($DoSegStats) then
+    # Not really needed now that seg.fs.stats is created by samseg
+    set sumfile = $outdir/seg.stats 
+    set cmd = (mri_segstats --ctab-default --seg $seg --sum $sumfile)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
 
   if($DoMRF) then
     set inputbase = `basename $inputlist[1]` 
@@ -388,9 +392,14 @@ while( $#argv != 0 )
       set DoLesion = 1
       breaksw
 
-    case "--lesion-mask-pattern":
-      if($#argv < 2) goto arg1err;
+    case "--lesion-mask-pattern1":
+      if($#argv < 2) goto arg2err;
       set LesionMaskPattern = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "--lesion-mask-pattern":
+      if($#argv < 1) goto arg1err;
+      set LesionMaskPattern = ($argv[1]); shift;
       breaksw
 
     case "--gmm":
@@ -686,6 +695,10 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--seg-stats":
+      set DoSegStats = 1; # not really needed now that there is seg.fs.stats
+      breaksw
+
     case "--atlas":
       if($#argv < 1) goto arg1err;
       setenv SAMSEG_DATA_DIR $argv[1]; shift;
@@ -921,6 +934,7 @@ usage_exit:
   echo " --options optionsfile : to pass to run_samseg"
   echo " --max-iters iters"
   echo " --dice seg.mgz"
+  echo " --seg-stats : not really needed now that there is seg.fs.stats"
   echo " --ignore-unknown"
   echo " --smooth-wm-cortex sigma : smooth wm and cortex priors"
   echo " --profile file.prof : run run_samseg inside the cProfile python profiler"
