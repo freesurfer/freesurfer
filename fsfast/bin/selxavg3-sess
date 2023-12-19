@@ -61,7 +61,7 @@ set threads = "-singleCompThread"; # one single thread
 if(! $?FS_SXA3_USE_BIN)  setenv FS_SXA3_USE_BIN 0
 
 # Force this to 97. Can be changed with -mcr
-setenv FS_MCRROOT $FREESURFER_HOME/MCRv97
+if(! $?FS_MCRROOT) setenv FS_MCRROOT $FREESURFER_HOME/MCRv97
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then
