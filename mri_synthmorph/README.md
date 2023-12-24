@@ -52,20 +52,20 @@ export SINGULARITY_TMPDIR="$d"
 On the machine running Docker, convert the image with:
 
 ```sh
-singularity build -f synthmorph.$tag.sif docker-daemon://freesurfer/synthmorph:$tag
+singularity build -f synthmorph_$tag.sif docker-daemon://freesurfer/synthmorph:$tag
 ```
 
 If you would like to test the image on another machine, first save it. After transfer to the machine, build a SIF file as a non-root user using the fakeroot feature. This relies on namespace mappings set up in /etc/subuid and /etc/subgid (likely by Help).
 
 ```sh
-docker save synthmorph:$tag | gzip >synthmorph.$tag.tar.gz
-singularity build -f synthmorph.$tag.sif docker-archive://synthmorph.$tag.tar.gz
+docker save synthmorph:$tag | gzip >synthmorph_$tag.tar.gz
+singularity build -f synthmorph_$tag.sif docker-archive://synthmorph_$tag.tar.gz
 ```
 
 Finally, run the image.
 
 ```sh
-singularity run –-nv -e -B /autofs synthmorph.$tag.sif
+singularity run --nv -e -B /autofs synthmorph_$tag.sif
 ```
 
 
