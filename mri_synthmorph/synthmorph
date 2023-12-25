@@ -23,11 +23,13 @@ tools = ('docker', 'apptainer', 'singularity', 'podman')
 
 import os
 import sys
+import signal
 import shutil
 import subprocess
 
 
-# Report version.
+# Report version. Avoid error when piping, for example to head.
+signal.signal(signal.SIGPIPE, handler=signal.SIG_DFL)
 hub = 'https://hub.docker.com/u/freesurfer'
 print(f'Running SynthMorph version {version} from {hub}')
 
