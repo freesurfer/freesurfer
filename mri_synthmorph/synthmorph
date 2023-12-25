@@ -58,18 +58,20 @@ if tool != 'docker':
 
 # Run Docker containers with the UID and GID of the host user. This user will
 # own bind mounts inside the container, preventing output files owned by root.
-if tool == 'docker':
-    uid = os.getuid()
-    gid = os.getgid()
-    arg = ('run', '--rm', '-u', f'{uid}:{gid}', '-v', f'{host}:/mnt', image)
-
-
 # Root inside a rootless Podman container maps to the non-root host user, which
 # is what we want. If we set UID and GID inside the container to the non-root
 # host user as we do for Docker, then these would get remapped according to
 # /etc/subuid outside, causing problems with read and write permissions.
-if tool == 'podman':
-    arg = ('run', '--rm', '-v', f'{host}:/mnt', image)
+if tool in ('docker', 'podman'):
+    arg = ('run', '--rm', '-v', f'{host}:/mnt')
+
+    # Pretty-print help text.
+    if sys.stdout.isatty():
+        arg = (*arg, '-t')
+    if tool == 'docker':
+        arg = (*arg, '-u', f'{os.getuid()}:{os.getgid()}')
+
+    arg = (*arg, image)
 
 
 # For Apptainer/Singularity, the user inside and outside the container is the
