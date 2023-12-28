@@ -24,8 +24,14 @@ def main():
     save_lesion_probs = args.save_lesion_probabilities
     crop = args.crop
 
-    # Prepare list of images to segment and leave before loading packages if nothing to do
+    
+    # check that freesurfer has been sourced
     import os
+    if not os.environ.get('FREESURFER_HOME'):
+        raise Exception('FREESURFER_HOME is not set. Please source freesurfer.')
+    fs_home = os.environ.get('FREESURFER_HOME')
+
+    # Prepare list of images to segment and leave before loading packages if nothing to do
     import sys
     if os.path.exists(input_path) is False:
         raise Exception('Input does not exist')
@@ -84,8 +90,8 @@ def main():
         print('Using %s thread(s)' % threads)
     torch.set_num_threads(threads)
 
-    # Constants;  TODO:replace by FS paths
-    model_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'model_paper.pth')
+    # Constants
+    model_file = os.path.join(fs_home, 'models', 'WMH-SynthSeg_v10_231110.pth')
     label_list_segmentation = [0, 14, 15, 16, 24, 77, 85, 2, 3, 4, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 41, 42, 43, 46,
                                47, 49, 50, 51, 52, 53, 54, 58, 60]
     label_list_segmentation_torch = torch.tensor(label_list_segmentation, device=device)
