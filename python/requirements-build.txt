@@ -38,7 +38,7 @@ neurite==0.2
 nibabel==5.2.0
 numpy==1.24.3
 oauthlib==3.2.2
-opencv-python==4.8.1.78
+opencv-python==4.9.0.80
 opt-einsum==3.3.0
 packaging==23.2
 pandas==2.0.3
