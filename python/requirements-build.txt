@@ -1,7 +1,6 @@
 Jinja2==3.1.2
 Markdown==3.5.1
 MarkupSafe==2.1.3
-Pillow==10.1.0
 PyWavelets==1.4.1
 PyYAML==6.0.1
 Werkzeug==3.0.1
@@ -18,7 +17,7 @@ fonttools==4.47.0
 fsspec==2023.12.2
 gast==0.4.0
 google-auth-oauthlib==1.0.0
-google-auth==2.25.2
+google-auth==2.26.1
 google-pasta==0.2.0
 grpcio==1.60.0
 h5py==3.10.0
@@ -42,6 +41,7 @@ opencv-python==4.9.0.80
 opt-einsum==3.3.0
 packaging==23.2
 pandas==2.0.3
+pillow==10.2.0
 protobuf==4.25.1
 pyasn1-modules==0.3.0
 pyasn1==0.5.1
