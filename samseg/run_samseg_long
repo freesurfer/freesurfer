@@ -21,6 +21,7 @@ parser.add_argument('--lesion', action='store_true', default=False, help='Enable
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--do-not-use-shape-model', action='store_true', default=False, help='Do not use the lesion shape model (VAE). Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional processing options
@@ -135,7 +136,8 @@ if args.lesion:
         intensityMaskingPattern=lesion_mask_pattern,
         numberOfBurnInSteps=args.burnin,
         numberOfSamplingSteps=args.samples,
-        threshold=args.threshold
+        threshold=args.threshold,
+        sampler=not args.do_not_use_shape_model
     )
 
 else:
