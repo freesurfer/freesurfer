@@ -526,7 +526,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
       }
     }
 
-    if (Gdiag & DIAG_SHOW)
+    if (Gdiag & DIAG_VERBOSE)
       printf("[DEBUG] mrisReadGIFTIdanum(): ct->nentries=%d, num_entries_to_read=%d\n", ct->nentries, image->labeltable.length);
 
     rgba = image->labeltable.rgba;
@@ -549,7 +549,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
           return NULL;
         }
 
-        if (Gdiag & DIAG_SHOW)
+        if (Gdiag & DIAG_VERBOSE)
           printf("[DEBUG] mrisReadGIFTIdanum(): created ct->entries[%d]\n", labelkey);
 
         strncpy(
@@ -1156,15 +1156,16 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum, std::vector<O
         if ((table_index < image->labeltable.length) && (table_index >= 0)) {
           // table_index pass the tests, table_key (label key) is valid.
           // invalid table_key is getting the default annotation = 0
-          if (Gdiag & DIAG_SHOW)
+          if (Gdiag & DIAG_VERBOSE)
+	  {
             printf("mrisReadGIFTIdanum(): vno: %d, tkey: %d, tidx: %d, name: %s\n",
-		   vno, table_key, table_index, mris->ct->entries[table_key]->name);
+		   vno, table_key, table_index, mris->ct->entries[table_key]->name);	    
+            fflush(stdout);
+	  }
           annotation = CTABrgb2Annotation(
               mris->ct->entries[table_key]->ri, mris->ct->entries[table_key]->gi, mris->ct->entries[table_key]->bi);
         }
         mris->vertices[vno].annotation = annotation;
-	if (Gdiag & DIAG_SHOW)
-	  printf("[DEBUG] vno = %d, table_key = %d (table_index = %d), (%s)\n", vno, table_key, table_index, mris->ct->entries[table_key]->name);
 
 #if 0   // the check below will fail because not every node is assigned 
         // cross-check:
@@ -1939,7 +1940,7 @@ int MRISwriteGIFTILabel(MRIS *mris, gifti_image *image, int intent_code)
     for (int i = 0; i < mris->ct->nentries; i++)
       if (NULL != mris->ct->entries[i]) num_entries_to_write++;
 
-    if (Gdiag & DIAG_SHOW)
+    if (Gdiag & DIAG_VERBOSE)
       printf("[DEBUG] MRISwriteGIFTILabel(): mris->ct->entries=%d, to_write=%d\n", mris->ct->nentries, num_entries_to_write);
 
     giiLabelTable labeltable;
