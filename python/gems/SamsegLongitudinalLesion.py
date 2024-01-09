@@ -25,8 +25,8 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
         updateLatentMixtureWeights=True,
         updateLatentDeformation=True,
         initializeLatentDeformationToZero=False,
-        threshold=None,
-        thresholdSearchString=None,
+        threshold=0.3,
+        thresholdSearchString='Lesion',
         modeNames=None,
         pallidumAsWM=True,
         savePosteriors=False,
@@ -37,6 +37,7 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
         rho=50,
         intensityMaskingPattern=None,
         intensityMaskingSearchString='Cortex',
+        sampler=True,
         tpToBaseTransforms=None,
                  ):
         SamsegLongitudinal.__init__(self,
@@ -74,7 +75,8 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
         self.rho = rho
         self.intensityMaskingSearchString = intensityMaskingSearchString
         self.intensityMaskingPattern = intensityMaskingPattern
-
+        self.sampler = sampler
+    
     def constructSstModel(self):
 
         sstDir, _ = os.path.split(self.sstFileNames[0])
@@ -128,7 +130,8 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
                 numberOfPseudoSamplesVariance=self.numberOfPseudoSamplesVariance,
                 rho=self.rho,
                 intensityMaskingPattern=self.intensityMaskingPattern,
-                intensityMaskingSearchString=self.intensityMaskingSearchString
+                intensityMaskingSearchString=self.intensityMaskingSearchString,
+                sampler=self.sampler
             ))
             self.timepointModels[timepointNumber].mask = self.sstModel.mask
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
