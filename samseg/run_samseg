@@ -46,11 +46,12 @@ parser.add_argument('--lesion', action='store_true', default=False, help='Enable
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
-parser.add_argument('--lesion-pseudo-samples', nargs=2, type=float, default=[500, 500], help='Lesion pseudo samples mean and variance.')
-parser.add_argument('--lesion-rho', type=float, default=50, help='Lesion ratio.')
+parser.add_argument('--lesion-pseudo-samples', nargs=2, type=float, default=[500, 500], help='Lesion pseudo samples mean and variance. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-rho', type=float, default=50, help='Lesion ratio. Lesion segmentation must be enabled.')
+parser.add_argument('--do-not-use-shape-model', action='store_true', default=False, help='Do not use the lesion shape model (VAE). Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
-parser.add_argument('--random-seed', type=int, default=12345, help='Random seed.')
+parser.add_argument('--random-seed', type=int, default=12345, help='Random seed. Lesion segmentation must be enabled.')
 # optional options for segmenting 3D reconstructions of photo volumes
 parser.add_argument('--dissection-photo', default=None, help='Use this flag for 3D reconstructed photos, and specify hemispheres that are present in the volumes: left, right, or both')
 
@@ -179,7 +180,8 @@ if args.lesion:
         numberOfBurnInSteps=args.burnin,
         numberOfSamplingSteps=args.samples,
         threshold=args.threshold,
-        randomSeed=args.random_seed
+        randomSeed=args.random_seed,
+        sampler=not args.do_not_use_shape_model
     )
 
 else:

@@ -203,6 +203,7 @@ add_library(utils STATIC
   surfcluster.cpp
   surfgrad.cpp
   svm.cpp
+  tfce.cpp
   tags.cpp
   talairachex.cpp
   targetpointset.cpp

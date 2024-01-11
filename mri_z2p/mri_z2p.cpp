@@ -54,6 +54,7 @@
 #include "cmdargs.h"
 #include "randomfields.h"
 #include "mri_identify.h"
+#include "tfce.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -253,6 +254,55 @@ static int parse_commandline(int argc, char **argv) {
       featdir = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--tfce")) {
+      // Stand-alone option for Threshold Free Cluster Enhancement
+      // --tfce input mask/nomask E H thsign surf/nosurf output maxvox
+      // input is usually a zmap or tmap
+      // mask = mask or set to nomask to ignore
+      // recommended parameter values are E=0.5 H=2.0
+      // thsign = 0 (abs), +1 (pos), -1 (neg)
+      // maxvox can be a text file or nomaxvox to ignore
+      if(nargc < 8) CMDargNErr(option,8);
+      TFCE tfce;
+      tfce.hmin = FLT_EPSILON;
+      tfce.hmax = 4;
+      tfce.nh = 50;
+      tfce.hlistUniform();
+      MRI *map = MRIread(pargv[0]);
+      if(!map) exit(1);
+      if(strcmp(pargv[1],"nomask")){
+	printf("Reading mask %s\n",pargv[1]);
+	tfce.mask=MRIread(pargv[1]);
+	if(!tfce.mask) exit(1);
+      }
+      sscanf(pargv[2],"%lf",&tfce.E);
+      sscanf(pargv[3],"%lf",&tfce.H);
+      sscanf(pargv[4],"%d",&tfce.thsign);
+      if(strcmp(pargv[5],"nosurf")){
+	printf("Reading surf %s\n",pargv[5]);
+	tfce.surf=MRISread(pargv[5]);
+	if(!tfce.surf) exit(1);
+      }
+      printf("TFCE E=%g H=%g sign=%d nh=%d hmin=%g hmax=%g\n",
+	     tfce.E,tfce.H,tfce.thsign,tfce.nh,tfce.hmin,tfce.hmax);
+      MRI *tfcemap = tfce.compute(map);
+      if(!tfcemap) exit(1);
+      int err = MRIwrite(tfcemap,pargv[6]);
+      if(err) exit(err);
+      if(strcmp(pargv[7],"nomaxvox")){
+	double maxvox = tfce.getmax(tfcemap, tfce.mask);
+	printf("Writing max vox %g to %s\n",maxvox,pargv[7]);
+	FILE *fp = fopen(pargv[7],"w");
+	if(!fp) {
+	  printf("ERROR: opening %s for writing\n",pargv[7]);
+	  exit(1);
+	}
+	fprintf(fp,"%30.20lf\n",maxvox);
+	fclose(fp);
+      }
+      exit(0);
+      nargsused = 7;
+    } 
     else if (!strcasecmp(option, "--featfmt")) {
       if (nargc < 1) CMDargNErr(option,1);
       fmt = pargv[0];
@@ -304,11 +354,16 @@ static void print_usage(void) {
   printf("\n");
   printf("   --feat featdir : convert all zstats and zfstats to sigs\n");
   printf("   --featfmt extension : use given format (eg, nii, nii.gz, mgh, etc)\n");
+  printf("\n");
   printf("   --nii : use nii output format\n");
   printf("   --nii.gz : use nii.gz output format\n");
   printf("   --mgh : use mgh output format\n");
   printf("   --mgz : use mgz output format\n");
   printf("   --img : use img output format (analyze)\n");
+  printf("\n");
+  printf("   --tfce input mask/nomask E H thsign surf/nosurf output maxvox/nomaxvox\n");
+  printf("     Stand-alone interface to Threshold Free Cluster Enhancement\n");
+  printf("     Typically input=zmap, E=0.5, H=2. thsign = 0,+1,-1. vol if nosurf\n");  
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
