@@ -1068,8 +1068,6 @@ if($PermNonStatCor) then
   endif
 endif
 
-if($#mask && 
-
 goto check_params_return;
 ############--------------##################
 
