@@ -1,8 +1,8 @@
 # base image with Python and SynthStrip on path (eventually)
 FROM ubuntu:22.04 AS base
 ENV FREESURFER_HOME="/freesurfer"
-ENV VIRTUAL_ENV="$FREESURFER_HOME/env"
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV PYTHONUSERBASE="$FREESURFER_HOME/env"
+ENV PATH="$FREESURFER_HOME:$PATH"
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends python3 && \
@@ -11,20 +11,24 @@ RUN apt-get update && \
 
 # intermediate stage with build requirements not needed in final image
 FROM base AS build
-RUN apt-get update && \
-    apt-get install -y build-essential python3-pip python3-dev python3-venv
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    python3-dev \
+    python3-pip
 
-# install packages into virtual environment as soon as it exists
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m venv "$VIRTUAL_ENV"
-RUN python3 -m pip install torch==2.0.0 surfa
+# install packages into user base simple easy COPY
+RUN python3 -m pip install -U pip
+RUN python3 -m pip install --user \
+    torch==2.1.2 \
+    git+https://github.com/freesurfer/surfa.git@0d83332351083b33c4da221e9d10a63a93ae7f52
 
 # install synthstrip from local folder
-COPY mri_synthstrip $VIRTUAL_ENV/bin
-COPY synthstrip.*.pt $FREESURFER_HOME/models/
+COPY --chmod=0775 mri_synthstrip $FREESURFER_HOME
+COPY --chmod=0664 synthstrip.*.pt $FREESURFER_HOME/models/
 
 
-# only copy files needed for final image
+# only copy files needed and only once to avoid unnecessary layers
 FROM base
 COPY --from=build $FREESURFER_HOME $FREESURFER_HOME
 ENTRYPOINT ["mri_synthstrip"]
