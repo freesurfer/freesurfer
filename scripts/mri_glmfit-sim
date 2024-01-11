@@ -45,6 +45,7 @@ set DoSpatialSum = 0
 set Do1D = 0;
 set varfwhm = ()
 set PermPVROverride = 0;
+set mask = ();
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -271,23 +272,24 @@ while($#glmfitcmd)
   endsw
 end
 
-set mask = ();
 if(! $UseTable) then
-  set mask = `stem2fname $glmdir/mask`
-  if($status) then
-    echo "$mask"
-    exit 1;
-  endif
-  set tmpfile = `fs_temp_file`
-  set cmd = (mri_info --dim $mask --o $tmpfile)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-  set dim = `cat $tmpfile`
-  rm $tmpfile
-  if($dim[2] == 1 && $dim[3] == 1) then
-    echo "Turning on 1D dim = $dim" | tee -a $LF
-    set Do1D = 1
+  if($#mask == 0) then
+    set mask = `stem2fname $glmdir/mask`
+    if($status) then
+      echo "$mask"
+      exit 1;
+    endif
+    set tmpfile = `fs_temp_file`
+    set cmd = (mri_info --dim $mask --o $tmpfile)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set dim = `cat $tmpfile`
+    rm $tmpfile
+    if($dim[2] == 1 && $dim[3] == 1) then
+      echo "Turning on 1D dim = $dim" | tee -a $LF
+      set Do1D = 1
+    endif
   endif
 endif
 
@@ -757,6 +759,16 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--mask":
+      if($#argv < 0) goto arg1err;
+      # Override mask in fsgd file
+      set mask = $argv[1]; shift;
+      if(! -e $mask) then
+        echo "ERROR: cannot find $mask"
+        exit 1
+      endif
+      breaksw
+
     case "--mczsim":
     case "--mcsim":
     case "--cache":
@@ -1056,6 +1068,8 @@ if($PermNonStatCor) then
   endif
 endif
 
+if($#mask && 
+
 goto check_params_return;
 ############--------------##################
 
@@ -1123,6 +1137,7 @@ usage_exit:
   echo " --no-out-annot : do not output a cluster annotation"
   echo " --no-cluster-mean : do not compute means of each subject in each cluster (was --no-y)"
   echo " --y yFile : use yFile instead of determining yFile from glmdir"
+  echo " --mask maskFile : use binary maskFile instead of using mask from glmdir (suggest use with --base)"
   echo " --centroid : report the coordinates/annotation of the centroid instead of max"
   echo " --spatial-sum : compute the sum over voxels in the cluster rather than"
   echo "   the average when creating the y.ocn file. This is good for when the input is area or volume"
