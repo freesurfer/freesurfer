@@ -11,7 +11,7 @@ If you use SynthStrip in your analysis, please cite:
 SynthStrip: Skull-Stripping for Any Brain Image
 A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann
 NeuroImage 206 (2022), 119474
-https://doi.org/10.1016/j.neuroimage.2022.119474 
+https://doi.org/10.1016/j.neuroimage.2022.119474
 
 Website: https://w3id.org/synthstrip
 '''
@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--image', metavar='file', required=True, help='Input image to skullstrip.')
 parser.add_argument('-o', '--out', metavar='file', help='Save stripped image to path.')
 parser.add_argument('-m', '--mask', metavar='file', help='Save binary brain mask to path.')
+parser.add_argument('-d', '--sdt', metavar='file', help='Save distance transform to path.')
 parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
 parser.add_argument('-b', '--border', default=1, type=int, help='Mask border threshold in mm. Default is 1.')
 parser.add_argument('--no-csf', action='store_true', help='Exclude CSF from brain border.')
@@ -39,8 +40,8 @@ import numpy as np
 import surfa as sf
 
 # sanity check on the inputs
-if not args.out and not args.mask:
-    sf.system.fatal('Must provide at least --out or --mask output flags.')
+if not args.out and not args.mask and not args.sdt:
+    sf.system.fatal('Must provide at least one -o, -m, or -d output flag.')
 
 # necessary for speed gains (I think)
 torch.backends.cudnn.benchmark = True
@@ -218,6 +219,7 @@ print(f'Input image read from: {args.image}')
 
 # loop over frames (try not to keep too much data in memory)
 print(f'Processing frame (of {image.nframes}):', end=' ', flush=True)
+dist = []
 mask = []
 for f in range(image.nframes):
     print(f + 1, end=' ', flush=True)
@@ -248,11 +250,13 @@ for f in range(image.nframes):
 
     # unconform the sdt and extract mask
     sdt = conformed.new(sdt).resample_like(image, fill=100)
+    dist.append(sdt)
 
     # find largest CC to be safe
     mask.append((sdt < args.border).connected_component_mask(k=1, fill=True))
 
 # combine frames and end line
+dist = sf.stack(dist)
 mask = sf.stack(mask)
 print('done')
 
@@ -266,5 +270,10 @@ if args.out:
 if args.mask:
     image.new(mask).save(args.mask)
     print(f'Binary brain mask saved to: {args.mask}')
+
+# write the distance transform
+if args.sdt:
+    image.new(dist).save(args.sdt)
+    print(f'Distance transform saved to: {args.sdt}')
 
 print(ref)

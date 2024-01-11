@@ -27,7 +27,7 @@ if shutil.which('docker') is None:
 
 # Since we're wrapping a Docker image, we want to get the full paths of all input and output
 # files so that we can mount their corresponding paths. Tedious, but a fine option for now...
-flags = ['-i', '--input', '-o', '--output', '-m', '--mask', '--model']
+flags = ['-i', '--input', '-o', '--output', '-m', '--mask', '-d', '--sdt', '--model']
 
 # Loop through the arguments and expand any necessary paths
 idx = 1
