@@ -17,17 +17,16 @@ Website: https://w3id.org/synthstrip
 '''
 
 # parse command line
-parser = argparse.ArgumentParser()
-parser.add_argument('-i', '--image', metavar='file', required=True, help='Input image to skullstrip.')
-parser.add_argument('-o', '--out', metavar='file', help='Save stripped image to path.')
-parser.add_argument('-m', '--mask', metavar='file', help='Save binary brain mask to path.')
-parser.add_argument('-d', '--sdt', metavar='file', help='Save distance transform to path.')
-parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
-parser.add_argument('-b', '--border', default=1, type=int, help='Mask border threshold in mm. Default is 1.')
-parser.add_argument('--no-csf', action='store_true', help='Exclude CSF from brain border.')
-parser.add_argument('--model', metavar='file', help='Alternative model weights.')
+parser = argparse.ArgumentParser(description='Robust, universal skull-stripping for brain images of any type.')
+parser.add_argument('-i', '--image', metavar='FILE', required=True, help='input image to skullstrip')
+parser.add_argument('-o', '--out', metavar='FILE', help='save stripped image to file')
+parser.add_argument('-m', '--mask', metavar='FILE', help='save binary brain mask to file')
+parser.add_argument('-d', '--sdt', metavar='FILE', help='save distance transform to file')
+parser.add_argument('-g', '--gpu', action='store_true', help='use the GPU')
+parser.add_argument('-b', '--border', default=1, type=int, help='mask border threshold in mm, defaults to 1')
+parser.add_argument('--no-csf', action='store_true', help='exclude CSF from brain border')
+parser.add_argument('--model', metavar='FILE', help='alternative model weights')
 if len(sys.argv) == 1 or '-h' in sys.argv or '--help' in sys.argv:
-    print('Robust, universal skull-stripping for brain images of any type.')
     parser.print_help()
     print(ref)
     exit(1)
