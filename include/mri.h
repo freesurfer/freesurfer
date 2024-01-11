@@ -502,6 +502,7 @@ public:
   float FieldStrength = 0;      // field strength
   char *pedir = nullptr;        // phase enc direction: ROW, COL, etc
   MATRIX *origRas2Vox = nullptr ;         // to get to original voxel grid from ras
+                                          // can be set from mri_convert --store_orig_ras2vox (-so)
   float location = 0;           // NOT USED
 
   // ---- DTI ----
@@ -523,8 +524,9 @@ public:
   char gdf_image_stem[STRLEN];
   char *cmdlines[MAX_CMDS];     // command line provenance
   int ncmds = 0;                // number of commands run previously
-  void *tag_data = nullptr;     // saved tag data
-  int tag_data_size = 0;        // size of tag data
+  // tag_data and tag_data_size don't seem to be used (2024-01-11)
+  //void *tag_data = nullptr;     // saved tag data
+  //int tag_data_size = 0;        // size of tag data
 
   // ---- TAG_GCAMORPH_META ----
   int warpFieldFormat = WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
@@ -1612,6 +1614,9 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels,
 float MRIvolumeDeterminant(MRI *mri);
 
 MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
+
+void MRITAGread(MRI *mri, znzFile fp, const char *fname);
+void MRITAGwrite(MRI *mri, znzFile fp);
 
 int mriio_command_line(int argc, char *argv[]);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);

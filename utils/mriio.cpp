@@ -8620,6 +8620,9 @@ static MRI *niiRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error opening file %s", fname));
   }
 
+  // ??? todo: implement reading nifti1 header extension ???
+  
+  // skip to image data hdr.vox_offset
   if (znzseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1) {
     znzclose(fp);
     MRIfree(&mri);
@@ -9550,6 +9553,10 @@ static int niiWrite(MRI *mri0, const char *fname)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "niiWrite(): error writing header to %s", fname));
   }
 
+
+  // ??? todo: implement writing nifti1 header extension (MGZ TAGs)???
+  
+  // output extensions[4] = [0 0 0 0]
   // Fill in space to the voxel offset
   nfill = (int)hdr.vox_offset - sizeof(hdr);
   chbuf = (char *)calloc(nfill, sizeof(char));
@@ -9561,6 +9568,7 @@ static int niiWrite(MRI *mri0, const char *fname)
   free(chbuf);
 
   // printf("In niiWrite():before dumping: %d, %d, %d, %d\n", mri->nframes,mri->depth,mri->width,mri->height );
+  // output image data
   // Now dump the pixel data
   for (t = 0; t < mri->nframes; t++)
     for (k = 0; k < mri->depth; k++) {
@@ -10654,7 +10662,7 @@ static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
   }
 }
 
-int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
+static int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
 {
   long long len = 0, fstart, fend, here;
   int fno, i;
@@ -10821,7 +10829,6 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
   const char *ext;
   int gzipped = 0;
   int nread;
-  int tag;
 
   ext = strrchr(fname, '.');
   int valid_ext = 0;
@@ -11152,139 +11159,10 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
       }
     }
   }
-  // tag reading
-  if (getenv("FS_SKIP_TAGS") == NULL) {
-    long long len;
 
-    while (1) {
-      tag = znzTAGreadStart(fp, &len);
-      if (tag == 0) break;
-
-      if (MGZ_TAG_DEBUG)
-        printf("[DEBUG] mghRead() znzTAGreadStart(): tag = %d, len = %lld\n", tag, len);
-      
-      switch (tag) {
-        case TAG_MRI_FRAME:
-          if (znzTAGreadMRIframes(fp, mri, len) != NO_ERROR)
-            fprintf(stderr, "couldn't read frame structure from file\n");
-          break;
-
-        case TAG_OLD_COLORTABLE:
-          // if reading colortable fails, it will print its own error message
-          mri->ct = znzCTABreadFromBinary(fp);
-          break;
-
-        case TAG_OLD_MGH_XFORM:
-        case TAG_MGH_XFORM: {
-          char *fnamedir;
-          char tmpstr[1000];
-
-          // First, try a path relative to fname (not the abs path)
-          fnamedir = fio_dirname(fname);
-          sprintf(tmpstr, "%s/transforms/talairach.xfm", fnamedir);
-          free(fnamedir);
-          fnamedir = NULL;
-          znzgets(mri->transform_fname, len + 1, fp);
-          // If this file exists, copy it to transform_fname
-          if (FileExists(tmpstr)) strcpy(mri->transform_fname, tmpstr);
-          if (FileExists(mri->transform_fname)) {
-            // copied from corRead()
-            if (input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR) {
-              mri->linear_transform = get_linear_transform_ptr(&mri->transform);
-              mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
-              mri->free_transform = 1;
-              if (DIAG_VERBOSE_ON) fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
-            }
-            else {
-              errno = 0;
-              ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", mri->transform_fname);
-              mri->linear_transform = NULL;
-              mri->inverse_linear_transform = NULL;
-              mri->free_transform = 1;
-              (mri->transform_fname)[0] = '\0';
-            }
-          }
-          break;
-        }
-        case TAG_CMDLINE:
-          if (mri->ncmds >= MAX_CMDS)
-            ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mri->ncmds);
-          mri->cmdlines[mri->ncmds] = (char *)calloc(len + 1, sizeof(char));
-          znzread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp);
-          mri->cmdlines[mri->ncmds][len] = 0;
-          mri->ncmds++;
-          break;
-
-        case TAG_AUTO_ALIGN:
-          mri->AutoAlign = znzReadAutoAlignMatrix(fp);
-          break;
-
-	// I'm not sure if this tag will be read correctly. Will do more tests later.
-	// znzReadMatrix() calls znzTAGreadStart() again. The file position won't be correct.
-        case TAG_ORIG_RAS2VOX:
-          mri->origRas2Vox = znzReadMatrix(fp);
-          break;
-
-        case TAG_PEDIR:
-          mri->pedir = (char *)calloc(len + 1, sizeof(char));
-          znzread(mri->pedir, sizeof(char), len, fp);
-          break;
-
-        case TAG_FIELDSTRENGTH:
-          // znzreadFloatEx(&(mri->FieldStrength), fp); // Performs byte swap not in znzTAGwrite()
-          znzTAGreadFloat(&(mri->FieldStrength), fp);
-          break;
-
-        case TAG_GCAMORPH_META:
-          mri->warpFieldFormat = znzreadInt(fp);
-	  mri->gcamorphSpacing = znzreadInt(fp);
-	  mri->gcamorphExp_k   = znzreadFloat(fp);
-
-	  if (MGZ_TAG_DEBUG)
-	  {
-	    printf("[DEBUG] mghRead() TAG_GCAMORPH_META\n");
-	    printf("[DEBUG] mghRead() warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
-		   mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
-	  }
-          break;
-
-        case TAG_GCAMORPH_GEOM:
-	  mri->gcamorph_image_vg.read(fp);
-	  mri->gcamorph_atlas_vg.read(fp);
-	  //mri->gcamorph_image_vg.vgprint(true);
-	  //mri->gcamorph_atlas_vg.vgprint(true);
-	  break;
-        case TAG_GCAMORPH_AFFINE:
-          mri->gcamorphAffine = znzReadAutoAlignMatrix(fp);
-	  if (MGZ_TAG_DEBUG)
-	  {
-	    printf("[DEBUG] mghRead() TAG_GCAMORPH_AFFINE\n");
-            MatrixPrint(stdout, mri->gcamorphAffine);
-	  }
-	  break;
-        case TAG_GCAMORPH_LABELS:
-	  // allocate memory for mri->gcamorphLabel
-	  mri->initGCAMorphLabel();
-
-	  //printf("[DEBUG] read TAG_GCAMORPH_LABELS\n");
-	  for (int x = 0; x < mri->width; x++) {
-            for (int y = 0; y < mri->height; y++) {
-              for (int z = 0; z < mri->depth; z++) {
-                mri->gcamorphLabel[x][y][z] = znzreadInt(fp);
-                if (mri->gcamorphLabel != 0) {
-                  DiagBreak();
-                }
-              }
-            }
-          }
-	  break;
-        default:
-          znzTAGskip(fp, tag, (long long)len);
-          break;
-      }
-    }
-  }
-
+  // read TAGs
+  MRITAGread(mri, fp, fname);
+  
   // fclose(fp) ;
   znzclose(fp);
 
@@ -11307,7 +11185,7 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 int mghWrite(MRI *mri, const char *fname, int frame)
 {
   znzFile fp;
-  int ival, start_frame, end_frame, x, y, z, width, height, depth, unused_space_size, flen;
+  int ival, start_frame, end_frame, x, y, z, width, height, depth, unused_space_size;
   char buf[UNUSED_SPACE_SIZE + 1];
   float fval;
   short sval;
@@ -11532,93 +11410,8 @@ int mghWrite(MRI *mri, const char *fname, int frame)
   znzwriteFloat(mri->ti, fp);
   znzwriteFloat(mri->fov, fp);
 
-  if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
-  {
-    // output TAG_GCAMORPH_GEOM
-    znzwriteInt(TAG_GCAMORPH_GEOM, fp);
-    mri->gcamorph_image_vg.write(fp);
-    mri->gcamorph_atlas_vg.write(fp);
-
-    mri->gcamorph_image_vg.vgprint();
-    mri->gcamorph_atlas_vg.vgprint();
-
-    // output TAG_GCAMORPH_META data-length data
-    long long dlen = sizeof(int) + sizeof(int) + sizeof(float);
-    if (MGZ_TAG_DEBUG)
-      printf("[DEBUG] mghWrite() TAG_GCAMORPH_META dlen = %lld, warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
-	     dlen, mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
-    
-    znzwriteInt(TAG_GCAMORPH_META, fp);
-    znzwriteLong(dlen, fp);
-    znzwriteInt(mri->warpFieldFormat, fp);
-    znzwriteInt(mri->gcamorphSpacing, fp);
-    znzwriteFloat(mri->gcamorphExp_k, fp);
-
-    // output TAG_GCAMORPH_AFFINE
-    if (mri->gcamorphAffine)
-    {
-      if (MGZ_TAG_DEBUG)
-      {
-        printf("[DEBUG] mghWrite() TAG_GCAMORPH_AFFINE\n");
-        MatrixPrint(stdout, mri->gcamorphAffine);
-      }
-      // znzWriteMatrix will write data length (1600) after tagid
-      znzWriteMatrix(fp, mri->gcamorphAffine, TAG_GCAMORPH_AFFINE);
-    }
-
-    // output TAG_GCAMORPH_LABELS
-    if (mri->gcamorphLabel)
-    {
-      if (MGZ_TAG_DEBUG)
-        printf("[DEBUG] write TAG_GCAMORPH_LABELS\n");
-      znzwriteInt(TAG_GCAMORPH_LABELS, fp);
-      for (int x = 0; x < mri->width; x++)
-        for (int y = 0; y < mri->height; y++)
-          for (int z = 0; z < mri->depth; z++)
-            znzwriteInt(mri->gcamorphLabel[x][y][z], fp);
-    }
-
-    znzclose(fp);
-
-    return (NO_ERROR);
-  }
-
-  
-  // if mri->transform_fname has non-zero length
-  // I write a tag with strlength and write it
-  // I increase the tag_datasize with this amount
-  if ((flen = strlen(mri->transform_fname)) > 0) {
-    znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen + 1);
-  }
-  // If we have any saved tag data, write it.
-  if (NULL != mri->tag_data) {
-    // Int is 32 bit on 32 bit and 64 bit os and thus it is safer
-    znzwriteInt(mri->tag_data_size, fp);
-    znzwrite(mri->tag_data, mri->tag_data_size, 1, fp);
-  }
-
-  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign, TAG_AUTO_ALIGN);
-  if (mri->pedir)
-    znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir) + 1);
-  else
-    znzTAGwrite(fp, TAG_PEDIR, (void *)"UNKNOWN", strlen("UNKNOWN"));
-  if (mri->origRas2Vox)
-  {
-    printf("saving original ras2vox\n") ;
-    znzWriteMatrix(fp, mri->origRas2Vox, TAG_ORIG_RAS2VOX);
-  }
-
-  znzTAGwrite(fp, TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
-
-  znzTAGwriteMRIframes(fp, mri);
-
-  if (mri->ct) {
-    znzwriteInt(TAG_OLD_COLORTABLE, fp);
-    znzCTABwriteIntoBinary(mri->ct, fp);
-  }
-
-  // write other tags
-  for (int i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
+  // output TAGs
+  MRITAGwrite(mri, fp);
 
   // fclose(fp) ;
   znzclose(fp);
@@ -12476,4 +12269,240 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
   // There's more, but I ran out of steam ...
   // fprintf(fp,"          %d \n",hdr->);
   return (0);
+}
+
+
+void MRITAGread(MRI *mri, znzFile fp, const char *fname)
+{
+  // tag reading
+  if (getenv("FS_SKIP_TAGS") != NULL)
+    return;
+  
+  int tag;    
+  long long len;
+
+  while (1) {
+    tag = znzTAGreadStart(fp, &len);
+    if (tag == 0) break;
+
+    if (MGZ_TAG_DEBUG)
+      printf("[DEBUG] MRITAGread() znzTAGreadStart(): tag = %d, len = %lld\n", tag, len);
+      
+    switch (tag) {
+      case TAG_MRI_FRAME:
+        if (znzTAGreadMRIframes(fp, mri, len) != NO_ERROR)
+          fprintf(stderr, "couldn't read frame structure from file\n");
+        break;
+
+      case TAG_OLD_COLORTABLE:
+        // if reading colortable fails, it will print its own error message
+        mri->ct = znzCTABreadFromBinary(fp);
+        break;
+
+      case TAG_OLD_MGH_XFORM:
+      case TAG_MGH_XFORM: {
+        char tmpstr[1000];
+
+        // First, try a path relative to fname (not the abs path)
+        char *fnamedir = fio_dirname(fname);
+        sprintf(tmpstr, "%s/transforms/talairach.xfm", fnamedir);
+        free(fnamedir);
+        fnamedir = NULL;
+        znzgets(mri->transform_fname, len + 1, fp);
+        // If this file exists, copy it to transform_fname
+        if (FileExists(tmpstr)) strcpy(mri->transform_fname, tmpstr);
+        if (FileExists(mri->transform_fname)) {
+          // copied from corRead()
+          if (input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR) {
+            mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+            mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
+            mri->free_transform = 1;
+            if (DIAG_VERBOSE_ON) fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+          }
+          else {
+            errno = 0;
+            ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", mri->transform_fname);
+            mri->linear_transform = NULL;
+            mri->inverse_linear_transform = NULL;
+            mri->free_transform = 1;
+            (mri->transform_fname)[0] = '\0';
+          }
+        }
+        break;
+      }
+      case TAG_CMDLINE:
+        if (mri->ncmds >= MAX_CMDS)
+          ErrorExit(ERROR_NOMEMORY, "MRITAGread(%s): too many commands (%d) in file", fname, mri->ncmds);
+        mri->cmdlines[mri->ncmds] = (char *)calloc(len + 1, sizeof(char));
+        znzread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp);
+        mri->cmdlines[mri->ncmds][len] = 0;
+        mri->ncmds++;
+        break;
+
+      case TAG_AUTO_ALIGN:
+        mri->AutoAlign = znzReadAutoAlignMatrix(fp);
+        break;
+
+      // I'm not sure if this tag will be read correctly. Will do more tests later.
+      // mri->origRas2Vox can be set from mri_convert --store_orig_ras2vox (-so)
+      // znzReadMatrix() calls znzTAGreadStart() again. The file position won't be correct.
+      case TAG_ORIG_RAS2VOX:
+        mri->origRas2Vox = znzReadMatrix(fp);
+        break;
+
+      case TAG_PEDIR:
+        mri->pedir = (char *)calloc(len + 1, sizeof(char));
+        znzread(mri->pedir, sizeof(char), len, fp);
+        break;
+
+      case TAG_FIELDSTRENGTH:
+        // znzreadFloatEx(&(mri->FieldStrength), fp); // Performs byte swap not in znzTAGwrite()
+        znzTAGreadFloat(&(mri->FieldStrength), fp);
+        break;
+
+      case TAG_GCAMORPH_META:
+        mri->warpFieldFormat = znzreadInt(fp);
+        mri->gcamorphSpacing = znzreadInt(fp);
+	mri->gcamorphExp_k   = znzreadFloat(fp);
+
+	if (MGZ_TAG_DEBUG)
+	{
+	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_META\n");
+	  printf("[DEBUG] MRITAGread() warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
+	  mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
+	}
+        break;
+
+      case TAG_GCAMORPH_GEOM:
+        mri->gcamorph_image_vg.read(fp);
+	mri->gcamorph_atlas_vg.read(fp);
+	//mri->gcamorph_image_vg.vgprint(true);
+	//mri->gcamorph_atlas_vg.vgprint(true);
+	break;
+      case TAG_GCAMORPH_AFFINE:
+        mri->gcamorphAffine = znzReadAutoAlignMatrix(fp);
+        if (MGZ_TAG_DEBUG)
+        {
+          printf("[DEBUG] MRITAGread() TAG_GCAMORPH_AFFINE\n");
+          MatrixPrint(stdout, mri->gcamorphAffine);
+        }
+        break;
+      case TAG_GCAMORPH_LABELS:
+        // allocate memory for mri->gcamorphLabel
+        mri->initGCAMorphLabel();
+
+        //printf("[DEBUG] read TAG_GCAMORPH_LABELS\n");
+        for (int x = 0; x < mri->width; x++) {
+          for (int y = 0; y < mri->height; y++) {
+            for (int z = 0; z < mri->depth; z++) {
+              mri->gcamorphLabel[x][y][z] = znzreadInt(fp);
+              if (mri->gcamorphLabel != 0) {
+                DiagBreak();
+              }
+            }
+          }
+        }
+        break;
+      default:
+        znzTAGskip(fp, tag, (long long)len);
+        break;
+    }  // switch (tag)
+  }    // while (1)
+}
+
+
+void MRITAGwrite(MRI *mri, znzFile fp)
+{
+  if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
+  {
+    // output TAG_GCAMORPH_GEOM
+    znzwriteInt(TAG_GCAMORPH_GEOM, fp);
+    mri->gcamorph_image_vg.write(fp);
+    mri->gcamorph_atlas_vg.write(fp);
+
+    mri->gcamorph_image_vg.vgprint();
+    mri->gcamorph_atlas_vg.vgprint();
+
+    // output TAG_GCAMORPH_META data-length data
+    long long dlen = sizeof(int) + sizeof(int) + sizeof(float);
+    if (MGZ_TAG_DEBUG)
+      printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_META dlen = %lld, warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
+	     dlen, mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
+    
+    znzwriteInt(TAG_GCAMORPH_META, fp);
+    znzwriteLong(dlen, fp);
+    znzwriteInt(mri->warpFieldFormat, fp);
+    znzwriteInt(mri->gcamorphSpacing, fp);
+    znzwriteFloat(mri->gcamorphExp_k, fp);
+
+    // output TAG_GCAMORPH_AFFINE
+    if (mri->gcamorphAffine)
+    {
+      if (MGZ_TAG_DEBUG)
+      {
+        printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_AFFINE\n");
+        MatrixPrint(stdout, mri->gcamorphAffine);
+      }
+      // znzWriteMatrix will write data length (1600) after tagid
+      znzWriteMatrix(fp, mri->gcamorphAffine, TAG_GCAMORPH_AFFINE);
+    }
+
+    // output TAG_GCAMORPH_LABELS
+    if (mri->gcamorphLabel)
+    {
+      if (MGZ_TAG_DEBUG)
+        printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_LABELS\n");
+      znzwriteInt(TAG_GCAMORPH_LABELS, fp);
+      for (int x = 0; x < mri->width; x++)
+        for (int y = 0; y < mri->height; y++)
+          for (int z = 0; z < mri->depth; z++)
+            znzwriteInt(mri->gcamorphLabel[x][y][z], fp);
+    }
+
+    return;
+  }
+
+  
+  // if mri->transform_fname has non-zero length
+  // I write a tag with strlength and write it
+  // I increase the tag_datasize with this amount
+  int flen = 0;
+  if ((flen = strlen(mri->transform_fname)) > 0) {
+    znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen + 1);
+  }
+#if 0  
+  // mri->tag_data and mri->tag_data_size don't seem to be set (2024-01-11)
+  // If we have any saved tag data, write it.
+  if (NULL != mri->tag_data) {
+    // Int is 32 bit on 32 bit and 64 bit os and thus it is safer
+    znzwriteInt(mri->tag_data_size, fp);
+    znzwrite(mri->tag_data, mri->tag_data_size, 1, fp);
+  }
+#endif  
+
+  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign, TAG_AUTO_ALIGN);
+  if (mri->pedir)
+    znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir) + 1);
+  else
+    znzTAGwrite(fp, TAG_PEDIR, (void *)"UNKNOWN", strlen("UNKNOWN"));
+
+  // mri->origRas2Vox can be set from mri_convert --store_orig_ras2vox (-so)
+  if (mri->origRas2Vox)
+  {
+    printf("saving original ras2vox\n") ;
+    znzWriteMatrix(fp, mri->origRas2Vox, TAG_ORIG_RAS2VOX);
+  }
+
+  znzTAGwrite(fp, TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
+
+  znzTAGwriteMRIframes(fp, mri);
+
+  if (mri->ct) {
+    znzwriteInt(TAG_OLD_COLORTABLE, fp);
+    znzCTABwriteIntoBinary(mri->ct, fp);
+  }
+
+  // write other tags
+  for (int i = 0; i < mri->ncmds; i++)
+    znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);  
 }
