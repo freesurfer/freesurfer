@@ -46,6 +46,7 @@ set fsgd = ();
 set SrcAnatSurf = 0;
 set SrcAnatVol = 0;
 set DoResample = 1;
+set ForceUpdate = 0;
 
 # for volume-based only
 set talres = 2;
@@ -211,17 +212,22 @@ foreach sess ($SessList)
 
 end # Loop over sessions
 
-echo "------------------------------------" |& tee -a $LF
-set cmd = (mri_concat $maplist --o $outvol)
-if($paireddiff) set cmd = ($cmd --paired-diff --prune)
-if($pairedavg)  set cmd = ($cmd --paired-avg --prune)
-if($pairedsum)  set cmd = ($cmd --paired-sum --prune)
-if($mean)       set cmd = ($cmd --mean --prune)
-if($#gmean)     set cmd = ($cmd --gmean $gmean); # dont prune
-pwd |& tee -a $LF
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+set ud = `UpdateNeeded $outvol $maplist`
+if($ud || $ForceUpdate) then
+  echo "------------------------------------" |& tee -a $LF
+  set cmd = (mri_concat $maplist --o $outvol)
+  if($paireddiff) set cmd = ($cmd --paired-diff --prune)
+  if($pairedavg)  set cmd = ($cmd --paired-avg --prune)
+  if($pairedsum)  set cmd = ($cmd --paired-sum --prune)
+  if($mean)       set cmd = ($cmd --mean --prune)
+  if($#gmean)     set cmd = ($cmd --gmean $gmean); # dont prune
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+else
+  echo "Updated not needed for $outvol" | tee -a $LF
+endif
 
 if($cleanup) rm -r $tmpdir
 
@@ -265,8 +271,6 @@ if($nframes > 1 && $DoSplit) then
   rm $outvol
 endif
 
-echo "" | tee -a $LF
-echo "" | tee -a $LF
 echo "Started at $StartTime" | tee -a $LF
 echo "Ended   at `date`"     | tee -a $LF
 echo "isxconcat0-sess completed" | tee -a $LF
@@ -441,7 +445,17 @@ while( $#argv != 0 )
       set DoSplit = 1;
       breaksw
 
+    case "--force":
+    case "-force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+    case "-no-force":
+     set ForceUpdate = 0
+     breaksw
+
     case "-debug":
+    case "--debug":
       set verbose = 1;
       set echo = 1;
       breaksw
@@ -601,6 +615,7 @@ usage_exit:
   echo "   -fsgd fsgdfile : for comparing subject order"
   echo ""
   echo "   -help"
+  echo "   -force : force update of output files"
   echo "   -debug"
   echo "   -tmpdir dir    : use this dir for temporary storage (implies -nocleanup)"
   echo "   -nocleanup     : do not delete tmpdir"

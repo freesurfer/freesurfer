@@ -62,6 +62,7 @@ set projfrac = (); # The default will be 0.5, set below
 set DoProjFracAvg = 0;
 set trgsubject = fsaverage; 
 set fsgd = ();
+set ForceUpdate = 0;
 
 set sessargs = ();
 set tmpdir = ();
@@ -155,7 +156,7 @@ if($#flac == 0) cp $analysis/analysis.* $outdir
 # Go thru each session, get DOF, etc
 set sessinfofile = $outtop/$analysis/sess.info.txt
 set subjlistfile = $outtop/subjectlist.txt
-set grouplistfiletmp = $outtop/grouplist.tmp.txt 
+set grouplistfiletmp = $outtop/grouplist.tmp.$$.txt 
 rm -f $sessinfofile $subjlistfile $grouplistfiletmp
 @ DOF = 0;
 @ nthsess = 0;
@@ -228,6 +229,7 @@ foreach hemi ($hemilist)
       if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
     endif
   endif
+  if($ForceUpdate) set cmd = ($cmd -force)
   echo "cd `pwd`" |& tee -a $LF
   echo $cmd       |& tee -a $LF
   $cmd            |& tee -a $LF
@@ -235,18 +237,24 @@ foreach hemi ($hemilist)
 
   # Make a single mask = 0 unless all input masks are != 0
   set maskvol = $outdir/"$SpStr"mask.$FSF_OUTPUT_FORMAT
-  set cmd = (mri_binarize --i $masksvol --frame-and --o $maskvol)
-  echo $cmd       |& tee -a $LF
-  $cmd            |& tee -a $LF
-  if($status) exit 1;
+  set ud = `UpdateNeeded $maskvol $masksvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_binarize --i $masksvol --frame-and --o $maskvol)
+    echo $cmd       |& tee -a $LF
+    $cmd            |& tee -a $LF
+    if($status) exit 1;
+  endif
 
   if($hemi == mni305 || $hemi == cvs_avg35_inMNI152) then
     # Take intersection of single mask and subcort mask
     set maskvol2 = $outdir/"$SpStr"subcort.mask.$FSF_OUTPUT_FORMAT
-    set cmd = (mri_mask $maskvol $subcortmask $maskvol2)
-    echo $cmd       |& tee -a $LF
-    $cmd            |& tee -a $LF
-    if($status) exit 1;
+    set ud = `UpdateNeeded $maskvol2 $maskvol`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_mask $maskvol $subcortmask $maskvol2)
+      echo $cmd       |& tee -a $LF
+      $cmd            |& tee -a $LF
+      if($status) exit 1;
+    endif
   endif
 
   # Go thru the maps in the contrasts
@@ -299,6 +307,7 @@ foreach hemi ($hemilist)
           if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
         endif
       endif
+      if($ForceUpdate) set cmd = ($cmd -force)
       echo "cd `pwd`" |& tee -a $LF
       echo $cmd       |& tee -a $LF
       $cmd            |& tee -a $LF
@@ -406,6 +415,7 @@ foreach hemi ($hemilist)
       if($ToVol)  cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
       if($ToSurf) cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
     endif
+    if($ForceUpdate) set cmd = ($cmd -force)
     echo "cd `pwd`" |& tee -a $LF
     echo $cmd       |& tee -a $LF
     $cmd            |& tee -a $LF
@@ -427,6 +437,7 @@ if($DoAnats) then
         if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
         if($paireddiff) set cmd = ($cmd -paired-diff)
         if($pairedavg)  set cmd = ($cmd -paired-avg)
+        if($ForceUpdate) set cmd = ($cmd -force)
         echo "cd `pwd`" |& tee -a $LF
         echo $cmd       |& tee -a $LF
         $cmd            |& tee -a $LF
@@ -441,6 +452,7 @@ if($DoAnats) then
       if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
       if($paireddiff) set cmd = ($cmd -paired-diff)
       if($pairedavg)  set cmd = ($cmd -paired-avg)
+      if($ForceUpdate) set cmd = ($cmd -force)
       echo "cd `pwd`" |& tee -a $LF
       echo $cmd       |& tee -a $LF
       $cmd            |& tee -a $LF
@@ -660,6 +672,16 @@ while( $#argv != 0 )
       set SplitMVC = 0;
       breaksw
 
+    case "--force":
+    case "-force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+    case "-no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--debug":
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -870,6 +892,7 @@ usage_exit:
   echo "   -fsgd fsgdfile : for comparing subject order"
   echo ""
   echo "   -help"
+  echo "   -force : force update of output files"
   echo "   -debug"
   echo "   -tmpdir dir : use dir for temporary storage (implies -nocleanup)"
   echo "   -nocleanup  : do not delete tmpdir"
