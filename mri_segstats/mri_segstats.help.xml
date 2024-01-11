@@ -115,9 +115,9 @@ white surface. This is more accurate than from the aseg. The aseg values for the
       <argument>--sqrt</argument>
       <explanation>compute the square root of the input prior to computing stats.</explanation>
       <argument>--mul val</argument>
-      <explanation>multiply input by val</explanation>
+      <explanation>multiply input by val (multiple --mul ok; combines with --div)</explanation>
       <argument>--div val</argument>
-      <explanation>divide input by val</explanation>
+      <explanation>divide input by val (multiple --div ok; combines with --mul)</explanation>
       <argument>--snr</argument>
       <explanation>save mean/std as extra column in output table</explanation>
       <argument>--abs</argument>
@@ -170,6 +170,8 @@ For each segmentation, computes the average waveform across all the voxels in th
       <explanation>Same as --avgwf except that the resulting waveforms are stored in a binary mri volume format (eg, analyze, nifti, mgh, etc) with number of columns equal to the number segmentations, number of rows = slices = 1, and the number of frames equal that of the input volume. This may be more convenient than saving as an ascii text file. The order of segmentations is the same order as in the summary file.</explanation>
       <argument>--avgwf-remove-mean </argument>
       <explanation>Remove temporal mean from avgwf and avgwfvol </explanation>
+      <argument>--avgwf-norm-mean NormVal</argument>
+      <explanation>Normalize intensity by multpling waveform by NormVal/MeanVal  </explanation>
       <argument>--sfavg textfile</argument>
       <explanation>save mean across space and frame</explanation>
       <argument>--vox C R S</argument>

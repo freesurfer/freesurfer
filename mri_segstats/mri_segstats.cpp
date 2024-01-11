@@ -118,6 +118,7 @@ char *SpatFrameAvgFile = NULL;
 int DoFrameAvg = 0;
 int DoFrameSum = 0;
 int RmFrameAvgMn = 0;
+double NormFrameAvgMn = 0;
 int DoAccumulate = 0;
 int frame = 0;
 int synth = 0;
@@ -177,7 +178,7 @@ double LabelThresh = 0;
 int UseLabelThresh = 0;
 
 int DoMultiply = 0;
-double MultVal = 0;
+double MultVal = 1;
 
 int DoSNR = 0;
 int UseRobust = 0;
@@ -1433,6 +1434,7 @@ int main(int argc, char **argv)
       }
       favgmn[n] /= invol->nframes;
       if(RmFrameAvgMn) for(f=0; f < invol->nframes; f++) favg[n][f] -= favgmn[n];
+      if(NormFrameAvgMn != 0) for(f=0; f < invol->nframes; f++) favg[n][f] *= (NormFrameAvgMn/favgmn[n]);
     }
     printf("\n");
 
@@ -1610,20 +1612,20 @@ static int parse_commandline(int argc, char **argv)
 
     else if ( !strcmp(option, "--mul") )
     {
-      if(nargc < 1)
-      {
-        argnerr(option,1);
-      }
+      if(nargc < 1) argnerr(option,1);
       DoMultiply = 1;
-      sscanf(pargv[0],"%lf",&MultVal);
+      double v;
+      sscanf(pargv[0],"%lf",&v);
+      MultVal *= v;
       nargsused = 1;
     }
     else if ( !strcmp(option, "--div") )
     {
       if(nargc < 1) argnerr(option,1);
       DoMultiply = 1;
-      sscanf(pargv[0],"%lf",&MultVal);
-      MultVal = 1.0/MultVal;
+      double v;
+      sscanf(pargv[0],"%lf",&v);
+      MultVal /= v;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--robust"))
@@ -1924,15 +1926,18 @@ static int parse_commandline(int argc, char **argv)
     }
     else if ( !strcmp(option, "--avgwf") )
     {
-      if (nargc < 1)
-      {
-        argnerr(option,1);
-      }
+      if(nargc < 1) argnerr(option,1);
       FrameAvgFile = pargv[0];
       DoFrameAvg = 1;
       nargsused = 1;
     }
     else if ( !strcmp(option, "--avgwf-remove-mean") ) RmFrameAvgMn = 1;
+    else if ( !strcmp(option, "--avgwf-norm-mean") ){
+      // Note: cannot just use --mul here because it would get divided out
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&NormFrameAvgMn);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--sumwf") )
     {
       if (nargc < 1) argnerr(option,1);
