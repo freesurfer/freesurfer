@@ -23,6 +23,7 @@ set altargs = ()
 set patch = ()
 set annotoutline = 1
 set overlaymethod = "mid_to_min"
+set vtxno = ()
 if($?FV_PATIENT_ORIENTATION == 0) setenv FV_PATIENT_ORIENTATION 1
 if($?FV_ROTATE_AROUND_CURSOR == 0) setenv FV_ROTATE_AROUND_CURSOR 0
 
@@ -69,6 +70,7 @@ if(! $UseTkSurfer) then
     set curvfile = $SUBJECTS_DIR/$subject/surf/$hemi.$curv
     set surfarg = "$surf":"curvature=$curvfile"
     if($nthsurf != $#surflist) set surfarg = "$surfarg":"visible=0"
+    if($nthsurf == 1 && $#vtxno) set surfarg = "$surfarg":"goto=$vtxno"
     @ nthannot = 0;
     foreach annot ($annotlist) 
       @ nthannot = $nthannot + 1
@@ -257,6 +259,10 @@ while( $#argv != 0 )
       set annotoutline = 0
       breaksw
 
+    case "-vtxno":
+      set vtxno = $argv[1]; shift;
+      breaksw
+
     case "-tksurfer":
     case "-tkm":
       set UseTkSurfer = 1;
@@ -427,6 +433,7 @@ usage_exit:
   echo "-vgl : runs freeview with /usr/pubsw/bin/vglrun"
   echo "-no-vgl : does not run freeview with /usr/pubsw/bin/vglrun"
   echo "-no-outline : do not show annots as outline"
+  echo "-vtxno vtxno : put cursor on vtxno on the first surface"
   echo "-neuro : use neurological orientation instead of radiological"
   echo "-rotate-around-cursor (-rca) : in 3d view, rotate around cursor (use -no- to turn off)"
   echo "-linear, -linearopaque, -piecewise, -min_to_max (default) : overlay heat scale"
