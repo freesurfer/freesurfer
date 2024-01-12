@@ -24,6 +24,7 @@ set SVDSynth = 0;
 set UseB0DC = 0;
 set UseExtract = 0
 set funcstem = (); # default fmcpr set in fcseed-sess
+set RescaleType = ()
 
 set Overwrite = 0;
 set cleanup = 1;
@@ -71,6 +72,7 @@ echo "SVDSynth $SVDSynth" >> $fcconfig
 echo "DoWM $DoWM"         >> $fcconfig
 echo "UseB0DC $UseB0DC"   >> $fcconfig
 echo "UseExtract $UseExtract"   >> $fcconfig
+echo "RescaleType $RescaleType"   >> $fcconfig
 if($#funcstem) echo "funcstem $funcstem"   >> $fcconfig
 if($#rlf)       echo "RunListFile $rlf"     >> $fcconfig
 if($#roicfg)    echo "roicfg $roicfg"       >> $fcconfig
@@ -205,6 +207,16 @@ while( $#argv != 0 )
       set UseExtract = 1;
       breaksw
 
+    case "-no-rescale":
+      set RescaleType = 0;
+      breaksw
+    case "-rescale-global":
+      set RescaleType = 1;
+      breaksw
+    case "-rescale-local":
+      set RescaleType = 2;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -282,6 +294,17 @@ check_params:
     endif
   endif
 
+  if($#RescaleType == 0) then
+    if(! $DoSVD) then
+      echo "ERROR: you must pick a rescale type"
+      echo "  -no-rescale"
+      echo "  -rescale-global"
+      echo "  -rescale-local"
+      exit 1;
+    endif
+    set RescaleType = 0
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -314,8 +337,14 @@ usage_exit:
   echo "  -extract : use extract_seg_waveform "
   echo "    has better PVC and can use b0dc and does not need a fill thresh; only with -mean"
   echo ""
-  echo "  -mean : compute the mean waveform over the voxels of the ROI"
+  echo "  -mean : compute the mean waveform over the spatial voxels of the ROI"
   echo "  -pca  : compute the PCA/SVD of the waveforms over the voxels of the ROI (or -svd)"
+  echo ""
+  echo "New as of 1/11/2024"
+  echo "  -no-rescale : do not rescale the intensity of the seed waveform (replicates 7.4.1 and before)"
+  echo "  -rescale-global : rescale the intensity of the seed waveform based on the mean over the brain mask"
+  echo "  -rescale-local :  rescale the intensity of the seed waveform based on the mean over the ROI"
+  echo "  It is recommended to use a scaling method, typically -rescale-global (note: does not apply to -pca)"
   echo ""
   echo " -fcname fcname : name of output file (default is configname)"
   echo " -mask  : create a mask for segmentation-based. Good for checking"

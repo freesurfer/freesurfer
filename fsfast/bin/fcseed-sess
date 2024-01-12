@@ -13,6 +13,7 @@ set maskfile = ();
 set segidlist = ();
 set UpdateOnly = 1;
 set regfilename = ();
+set RequireRescaleType = 1
 
 set cleanup = 1;
 set nolog = 0;
@@ -95,6 +96,11 @@ foreach sess ($SessList)
     echo $cmdargs | tee -a $LLF
     cat $FREESURFER_HOME/build-stamp.txt | tee -a $LLF
     echo "" | tee -a $LLF
+
+    set gmfile = $rundir/global.meanval.dat
+    if(! -e $gmfile) exit 1
+    set gmval = `cat $gmfile`
+    echo "GlobalMeanVal $gmval" | tee -a $LF
 
     set outfile = $rundir/$fcname
     set UpdateNeeded = 0;
@@ -205,6 +211,8 @@ foreach sess ($SessList)
         # Compute mean time course inside the mask
         set cmd = (mri_segstats --i $f --seg $mask --id 1 \
           --sum $tmpdir/junk.sum --avgwfvol $tmpdir/avgwf.mgh)
+        if($RescaleType == 1) set cmd = ($cmd --mul 100 --div $gmval)
+        if($RescaleType == 2) set cmd = ($cmd --avgwf-norm-mean 100)
         echo $cmd | tee -a $LLF
         $cmd | tee -a $LLF
         if($status) exit 1;
@@ -226,6 +234,8 @@ foreach sess ($SessList)
         set cmd = (extract_seg_waveform --seg $seganat --i $f --id $segidlist\
           --reg $reg --demean --o $rundir/$fcname)
         if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        if($RescaleType == 1) set cmd = ($cmd --mul 100 --div $gmval)
+        if($RescaleType == 2) set cmd = ($cmd --rescale-local 100)
         echo $cmd | tee -a $LLF
         $cmd | tee -a $LLF
         if($status) exit 1;
@@ -243,6 +253,9 @@ foreach sess ($SessList)
       set cmd = (mri_segstats --sqr --i $tmpdir/glm/eres.mgh  \
         --seg $mask --id 1  --sum $tmpdir/junk.sum \
         --avgwf $rundir/$fcname)
+      # Not sure if this should be done here as I can't remember the original app
+      if($RescaleType == 1) set cmd = ($cmd --mul 100 --div $gmval)
+      if($RescaleType == 2) set cmd = ($cmd --avgwf-norm-mean 100)
       echo $cmd | tee -a $LLF
       $cmd | tee -a $LLF
       if($status) exit 1;
@@ -303,6 +316,10 @@ while( $#argv != 0 )
     case "-no-mask":
     case "-no-make-mask":
       set MakeMask = 0;
+      breaksw
+
+    case "-no-require-rescale-type":
+      set RequireRescaleType = 0
       breaksw
 
     case "-nolog":
@@ -381,7 +398,7 @@ check_params:
   set tmp = `cat $fcconfig | awk '{if($1 == "funcstem") print $2}'`
   if($#tmp) set funcstem = $tmp;
 
-  # Note: Unless UseExtract, this is imperfect for B0DC because
+  # Note: Unless UseExtract, B0DC is imperfect because
   # label2vol cannot take a b0 map yet This just uses the reg computed
   # with B0DC so that it does not die
   set UseB0DC = 0;
@@ -391,6 +408,23 @@ check_params:
   set UseExtract = 0;
   set tmp = `cat $fcconfig | awk '{if($1 == "UseExtract") print $0}'`
   if($#tmp) set UseExtract = $tmp[2];
+
+  set tmp = `cat $fcconfig | awk '{if($1 == "RescaleType") print $0}'`
+  if($#tmp == 0) then
+    if($RequireRescaleType && $DoSVD == 0) then
+      echo "ERROR: this config file $fcconfig does not have a rescaling specification"
+      echo "It is recommened that you reconfigure this fcseed to have a scaling type"
+      echo "See https://surfer.nmr.mgh.harvard.edu/fswiki/ReleaseNotes"
+      echo "To run this anyway, add -no-require-rescale-type to the command line"
+      exit 1
+    endif
+    echo "Setting RescaleType to 0"
+    set RescaleType = 0
+  else
+    set RescaleType = $tmp[2];
+    echo "Setting RescaleType to $RescaleType"
+  endif
+
 
   if($MakeMask) set maskfile = $fcname.mask
 

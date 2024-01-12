@@ -16,6 +16,9 @@ set regheader = 0;
 set indexlist = ()
 set ForceUpdate = 0
 set demean = 0
+set MulVal = ()
+set DivVal = ()
+set RescaleLocal = ();
 
 set tmpdir = ();
 set cleanup = 1;
@@ -133,6 +136,9 @@ set ud = `UpdateNeeded $avgwfmri $fsegbb $segbb`
 if($ud || $ForceUpdate) then
   set cmd = (mri_segstats --i $fsegbb --seg $segbb --id 1 --avgwfvol $avgwfmri)
   if(! $demean) set cmd = ($cmd --avgwf $outwf)
+  if($#MulVal)  set cmd = ($cmd --mul $MulVal)
+  if($#DivVal)  set cmd = ($cmd --div $DivVal)
+  if($#RescaleLocal)  set cmd = ($cmd --avgwf-norm-mean $RescaleLocal)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit
@@ -240,6 +246,22 @@ while( $#argv != 0 )
       breaksw
     case "--no-demean":
       set demean = 0
+      breaksw
+
+    case "-mul":
+    case "--mul":
+      if($#argv < 1) goto arg1err;
+      set MulVal = $argv[1];shift
+      breaksw
+    case "-div":
+    case "--div":
+      if($#argv < 1) goto arg1err;
+      set DivVal = $argv[1];shift
+      breaksw
+    case "--rescale-local":
+    case "-rescale-local":
+      if($#argv < 1) goto arg1err;
+      set RescaleLocal = $argv[1];shift
       breaksw
 
     case "--force":
@@ -371,6 +393,10 @@ usage_exit:
   echo " --regheader"
   echo " --demean : remove mean, first, and second order trends"
   echo " --o waveform.dat"
+  echo ""
+  echo " --mul mulval : multiply by mulval (will be combined with --div)"
+  echo " --div divval : divide by divval  (will be combined with --mul)"
+  echo "  -rescale-local NormVal: rescale the intensity of the waveform based on the mean over the ROI"
   echo ""
 
   if(! $PrintHelp) exit 1;
