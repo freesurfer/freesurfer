@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
   int  out_orientation_flag = FALSE;
   char out_orientation_string[STRLEN];
   char colortablefile[STRLEN] = "";
+  COLOR_TABLE *ctembedded=NULL;
   char tmpstr[STRLEN], *stem, *ext;
   char ostr[4] = {'\0','\0','\0','\0'};
   char *errmsg = NULL;
@@ -2112,6 +2113,9 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  // Copy embedded colortable because it will get lost
+  if(mri->ct) ctembedded = CTABdeepCopy(mri->ct);
+
   if (upper_thresh_flag)
   {
     MRI *mri_tmp ;
@@ -3687,6 +3691,7 @@ int main(int argc, char *argv[])
     mri->ct = CTABreadASCII(colortablefile);
     if (!mri->ct) fs::fatal() << "could not read lookup table from " << colortablefile;
   }
+  else if(ctembedded) mri->ct = ctembedded;
 
   /*------ Finally, write the output -----*/
   
