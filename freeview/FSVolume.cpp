@@ -1860,7 +1860,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
         double scale[4];
         for (int i = 1; i <= 3; i++)
         {
-          scale[i] = qSqrt(m_matReg->rptr[1][i]*m_matReg->rptr[1][i] + m_matReg->rptr[2][i]*m_matReg->rptr[2][i] + m_matReg->rptr[3][i]*m_matReg->rptr[3][i]);
+          scale[i] = sqrt(m_matReg->rptr[1][i]*m_matReg->rptr[1][i] + m_matReg->rptr[2][i]*m_matReg->rptr[2][i] + m_matReg->rptr[3][i]*m_matReg->rptr[3][i]);
           if (scale[i] == 0)
             scale[i] = 1;
         }
