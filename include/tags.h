@@ -53,6 +53,7 @@
 #define TAG_FIELDSTRENGTH           43
 #define TAG_ORIG_RAS2VOX            44
 
+#define MATRIX_STRLEN (4 * 4 * 100)
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGread(FILE *fp, void *buf, long long len);

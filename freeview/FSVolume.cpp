@@ -1854,7 +1854,28 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
       MATRIX* t2r = MRIgetVoxelToVoxelXform( rasMRI, m_MRIRef );
       MatrixMultiply( vox2vox, t2r, t2r );
 
-      MRIvol2Vol( m_MRI, rasMRI, t2r, m_nInterpolationMethod, 0 );
+      if (m_MRI->nframes == 3)
+      {
+        MATRIX* rot = MatrixAlloc(3, 3, MATRIX_REAL);
+        double scale[4];
+        for (int i = 1; i <= 3; i++)
+        {
+          scale[i] = sqrt(m_matReg->rptr[1][i]*m_matReg->rptr[1][i] + m_matReg->rptr[2][i]*m_matReg->rptr[2][i] + m_matReg->rptr[3][i]*m_matReg->rptr[3][i]);
+          if (scale[i] == 0)
+            scale[i] = 1;
+        }
+        for (int i = 1; i <= 3; i++)
+        {
+          for (int j = 1; j <= 3; j++)
+          {
+            *MATRIX_RELT(rot, j, i) = m_matReg->rptr[i][j]/scale[j];
+          }
+        }
+        MRIvol2VolR( m_MRI, rasMRI, t2r, m_nInterpolationMethod, 0, rot );
+        MatrixFree(&rot);
+      }
+      else
+        MRIvol2Vol( m_MRI, rasMRI, t2r, m_nInterpolationMethod, 0 );
 
       // copy vox2vox
       MatrixInverse( t2r, vox2vox );

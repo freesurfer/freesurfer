@@ -26,7 +26,8 @@
 #include "machine.h"
 #include "tags.h"
 
-#define MATRIX_STRLEN (4 * 4 * 100)
+// moved to tags.h
+//#define MATRIX_STRLEN (4 * 4 * 100)
 
 /* For this to skip the tagid and data correctly, data-length is needed after tagid.
  * The format is 'tagid data-length data'.
