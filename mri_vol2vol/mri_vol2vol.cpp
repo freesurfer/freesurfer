@@ -622,6 +622,7 @@ int DoMultiply=0;
 double MultiplyVal=0;
 int DownSample[3] = {0,0,0}; // downsample source
 int pedir = 2; // for VSM 1=x, 2=y, 3=z
+char *ctabfile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1089,6 +1090,13 @@ int main(int argc, char **argv) {
     MRImultiplyConst(out, MultiplyVal, out);
   }
 
+  if(ctabfile){
+    out->ct = CTABreadASCII(ctabfile);
+    if(!out->ct){
+      printf("ERROR: reading %s\n",ctabfile);
+      exit(1);
+    }
+  }
   if(mov->ct) out->ct = CTABdeepCopy(mov->ct);
 
   err = MRIwrite(out,outvolfile);
@@ -1464,11 +1472,18 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&SynthSeed);
       synth = 1;
       nargsused = 1;
-    } else if (istringnmatch(option, "--sd",4)) {
+    } 
+    else if (istringnmatch(option, "--sd",4)) {
       if (nargc < 1) argnerr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
       nargsused = 1;
-    } else if (istringnmatch(option, "--rot",0)) {
+    } 
+    else if (istringnmatch(option, "--ctab",4)) {
+      if(nargc < 1) argnerr(option,1);
+      ctabfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--rot",0)) {
       if (nargc < 3) argnerr(option,3);
       // Angles are in degrees
       sscanf(pargv[0],"%lf",&angles[0]);
@@ -1724,6 +1739,7 @@ printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
 printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
 printf("  --shear Sxy Sxz Syz : xz is in-plane\n");
 printf("  --reg-final regfinal.dat : final reg after rot and trans (but not inv)\n");
+printf("  --ctab ctabfile : embed colortable into output (note: this will override any embedded ctab)\n");
 printf("\n");
 printf("  --synth : replace input with white gaussian noise\n");
 printf("  --seed seed : seed for synth (def is to set from time of day)\n");
