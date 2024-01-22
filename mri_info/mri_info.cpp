@@ -49,6 +49,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
+static void __printTagsToFile(MRI *mri);
 
 
 const char *Progname ;
@@ -106,7 +107,9 @@ static int PrintDump = 0;
 static int VoxelCRS[3];
 static FILE *fpout;
 static int PrintToFile = 0;
+static int PrintTagsToFile = 0;
 static char *outfile = NULL;
+static char *outtagfile = NULL;
 static int debug = 0;
 static int intype=MRI_VOLUME_TYPE_UNKNOWN;
 static char *intypestr=NULL;
@@ -440,6 +443,14 @@ static int parse_commandline(int argc, char **argv)
       nargc --;
       pargv ++;
     }
+    else if (!strcasecmp(option, "--otags"))
+    {
+      // print TAG info to stdout, and save the binary data to file
+      PrintTagsToFile = 1;
+      outtagfile = pargv[0];
+      nargc --;
+      pargv ++;
+    }    
     else if (!strcasecmp(option, "-it") ||
              !strcasecmp(option, "--in_type"))
     {
@@ -531,6 +542,7 @@ static void print_usage(void)
          "(0-based, all frames)\n");
   printf("   --entropy : compute and print entropy \n");
   printf("   --o file : print flagged results to file \n");
+  printf("   --otags file: print TAG info to stdout, and save the binary data to file \n");
   printf("   ----orig_ras2vox : print orig Ras2Vox matrix if present\n") ;
   printf("   --in_type type : explicitly specify file type "
          "(see mri_convert) \n");
@@ -1139,6 +1151,12 @@ static void do_file(char *fname)
     return;
   }
 
+  if (PrintTagsToFile)
+  {
+    __printTagsToFile(mri);
+    return;
+  }
+
   fprintf(fpout,"Volume information for %s\n", fname);
   // mri_identify has been called but the result is not stored
   // and thus I have to call it again
@@ -1293,3 +1311,135 @@ static void do_file(char *fname)
 
 } /* end do_file */
 
+
+// print TAG info to stdout, and save the binary data to file
+void __printTagsToFile(MRI *mri)
+{
+    printf("\n==============================================================\n");
+    printf("save TAG data as %s\n", outtagfile);
+    
+    int use_compression = 0;
+    int flen = strlen(outtagfile);
+    if (outtagfile[flen - 1] == 'z')
+      use_compression = 1;
+
+    printf("use_compression = %d\n", use_compression);
+
+    znzFile fp = znzopen(outtagfile, "w", use_compression);
+    MRITAGwrite(mri, fp);
+    znzclose(fp);
+
+    /****** begin printing mgz warp TAGs ******/ 
+    if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
+    {
+       printf("TAG <TAG_GCAMORPH_GEOM>:\n");
+       printf("source volume geometry (%s):\n", (mri->gcamorph_image_vg.valid) ? "valid" : "invalid");
+       mri->gcamorph_image_vg.vgprint(true);
+       printf("target volume geometry (%s):\n", (mri->gcamorph_atlas_vg.valid) ? "valid" : "invalid");
+       mri->gcamorph_atlas_vg.vgprint(true);
+
+       printf("TAG <TAG_GCAMORPH_META>:\n");
+       printf("  warpFieldFormat: %d\n",  mri->warpFieldFormat);
+       printf("  gcamorphSpacing: %d\n",  mri->gcamorphSpacing);
+       printf("  gcamorphExp_k:   %.6f\n", mri->gcamorphExp_k);
+
+       printf("TAG <TAG_GCAMORPH_AFFINE>:\n");
+       if (mri->gcamorphAffine)
+         MatrixPrintFmt(fpout, "%10f", mri->gcamorphAffine);
+       else
+         printf("  No gcamorphAffine matrix present\n");
+
+       printf("TAG <TAG_GCAMORPH_LABELS>:\n");
+       if (mri->gcamorphLabel)
+         printf("  gcamorphLabel info present\n");
+       else
+         printf("  No gcamorphLabel info present\n");
+    
+       return;
+    }
+    /****** printing mgz warp TAGs ******/
+  
+    // print detailed TAG info
+    printf("TAG <TAG_MGH_XFORM>: %s\n", mri->transform_fname);
+    
+    printf("TAG <TAG_AUTO_ALIGN>:\n");
+    if (mri->AutoAlign != NULL)
+      MatrixPrintFmt(fpout, "%10f", mri->AutoAlign);
+    else
+      printf("  No auto align matrix present\n");
+
+    // PhEncDir
+    if (mri->pedir)
+      printf("TAG <TAG_PEDIR>: %s\n", mri->pedir);
+
+    printf("TAG <TAG_ORIG_RAS2VOX>:\n");
+    if (mri->origRas2Vox != NULL)
+      MatrixPrintFmt(fpout, "%10f", mri->origRas2Vox);
+    else
+      printf("  No orig ras2vox matrix present\n");
+
+    printf("TAG <TAG_FIELDSTRENGTH>: %.6f\n", mri->FieldStrength);
+
+    printf("TAG <TAG_CMDLINE>:\n");
+    for (int i=0; i < mri->ncmds; i++)
+    {
+      printf("  %s\n\n", mri->cmdlines[i]);
+    }
+
+    printf("TAG <TAG_MRI_FRAME>:\n");
+    for (int fno = 0; fno < mri->nframes; fno++)
+    {
+      MRI_FRAME *frame = &mri->frames[fno];
+      printf("  type: %d\n", frame->type);
+      printf("  TE:   %.6f\n", frame->TE);
+      printf("  TR:   %.6f\n", frame->TR);
+      printf("  flip: %.6f\n", frame->flip);
+      printf("  TI:   %.6f\n", frame->TI);
+      printf("  TD:   %.6f\n", frame->TD);
+      printf("  TM:   %.6f\n", frame->TM);
+      printf("  sequence_type:  %d\n", frame->sequence_type);
+      printf("  echo_spacing:   %.6f\n", frame->echo_spacing);
+      printf("  echo_train_len: %.6f\n", frame->echo_train_len);
+      for (int i = 0; i < 3; i++)   printf("  read_dir[%d]:  %.6f\n", i, frame->read_dir[i]);
+      for (int i = 0; i < 3; i++)   printf("  pe_dir[%d]:    %.6f\n", i, frame->pe_dir[i]);
+      for (int i = 0; i < 3; i++)   printf("  slice_dir[%d]: %.6f\n", i, frame->slice_dir[i]);
+      printf("  label: %d\n", frame->label);
+      printf("  name:  %s\n", frame->name);
+      printf("  dof: %d\n", frame->dof);
+      printf("  m_ras2vox:\n");
+      if (frame->m_ras2vox == NULL)
+	printf("  No frame[%d] m_ras2vox matrix present\n", fno);
+      else
+        MatrixPrintFmt(fpout, "%10f", frame->m_ras2vox);
+      printf("  thresh: %.6f\n", frame->thresh);
+      printf("  units:  %d\n", frame->units);
+      if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED)  // also store diffusion info
+      {
+        printf("  DX:      %.6f\n", frame->DX);
+        printf("  DY:      %.6f\n", frame->DY);
+        printf("  DZ:      %.6f\n", frame->DZ);
+
+        printf("  DR:      %.6f\n", frame->DR);
+        printf("  DP:      %.6f\n", frame->DP);
+        printf("  DS:      %.6f\n", frame->DS);
+        printf("  bvalue:  %.6f\n", frame->bvalue);
+        printf("  TM:      %.6f\n", frame->TM);
+
+        printf("  D1_ramp: %ld\n", frame->D1_ramp);
+        printf("  D1_flat: %ld\n", frame->D1_flat);
+        printf("  D1_amp:  %.6f\n", frame->D1_amp);
+
+        printf("  D2_ramp: %ld\n", frame->D2_ramp);
+        printf("  D2_flat: %ld\n", frame->D2_flat);
+        printf("  D2_amp:  %.6f\n", frame->D2_amp);
+
+        printf("  D3_ramp: %ld\n", frame->D3_ramp);
+        printf("  D3_flat: %ld\n", frame->D3_flat);
+        printf("  D3_amp:  %.6f\n", frame->D3_amp);
+
+        printf("  D4_ramp: %ld\n", frame->D4_ramp);
+        printf("  D4_flat: %ld\n", frame->D4_flat);
+        printf("  D4_amp:  %.6f\n", frame->D4_amp);
+      }
+    }
+}
