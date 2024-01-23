@@ -27,6 +27,7 @@ ENV LOCAL_DIR /usr/local/freesurfer/local
 ENV FSFAST_HOME /usr/local/freesurfer/fsfast
 ENV FMRI_ANALYSIS_DIR /usr/local/freesurfer/fsfast
 ENV FUNCTIONALS_DIR /usr/local/freesurfer/sessions
+ENV FS_LICENSE /usr/local/freesurfer/.license/license.txt
 
 # set default fs options
 ENV FS_OVERRIDE 0
