@@ -505,11 +505,15 @@ int GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam)
   GCAMinvert(gcam, mri);
   free(mridir);
 
+  GCA_MORPH *inv_gcam = GCAMfillInverse(gcam);
+
   gcambase = fio_basename(gcamfname, ".m3z");
   sprintf(tmpstr, "%s/%s.inv.m3z", gcamdir, gcambase);
   printf("Saving inverse to %s\n", tmpstr);
-  GCAMwrite(gcam, tmpstr);
+  GCAMwrite(inv_gcam, tmpstr);
 
+  GCAMfree(&inv_gcam);
+  
   if (freegcam) GCAMfree(&gcam);
   free(gcamdir);
   free(gcambase);
@@ -16475,13 +16479,14 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
   inv_gcam->image = gcam->atlas;
   inv_gcam->atlas = gcam->image;
 
-  sprintf(tmpstr, "%s", (gcam->image).fname);
-  mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
-  if (mri == NULL) {
-    printf("ERROR: reading %s\n", tmpstr);
-    return (NULL);
-  }
-  if ((gcam->mri_xind == NULL) || (gcam->mri_yind == NULL) || (gcam->mri_zind == NULL)) {
+  if ((gcam->mri_xind == NULL) || (gcam->mri_yind == NULL) || (gcam->mri_zind == NULL)) {    
+    sprintf(tmpstr, "%s", (gcam->image).fname);
+    mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
+    if (mri == NULL) {
+      printf("ERROR: reading %s\n", tmpstr);
+      return (NULL);
+    }
+    
     // Must invert explicitly
     printf("GCAMfillInverse: Must invert gcam explicitely! \n");
     GCAMinvert(gcam, mri);
