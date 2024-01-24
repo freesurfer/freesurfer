@@ -2215,20 +2215,24 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "invert-and-save"))
   {
-    printf("Loading, Inverting, Saving, Exiting ...\n");
-    err = GCAMwriteInverse(argv[2],NULL);
+    // -invert-and-save gcam invgcam
+    printf("Loading gcam\n");
+    GCA_MORPH *gcam = GCAMread(argv[2]);
+    if(!gcam) exit(1);
+    printf("Computing inverse of GCAM\n");
+    err = GCAMinvert(gcam);
+    if(err) exit(err);
+    printf("Filling inverse of GCAM\n");
+    GCA_MORPH *inv_gcam = GCAMfillInverse(gcam);
+    if(!inv_gcam) exit(1);
+    printf("Saving inverse to %s\n", argv[3]);
+    err = GCAMwrite(inv_gcam, argv[3]);
     exit(err);
   }
   else if (!stricmp(option, "histo-norm"))
   {
     printf("using prior subject histograms for initial GCA renormalization\n") ;
     renorm_with_histos = 1 ;
-  }
-  else if (!stricmp(option, ""))
-  {
-    printf("using histogram matching of prior subjects for initial gca renormalization\n") ;
-    err = GCAMwriteInverse(argv[2],NULL);
-    exit(err);
   }
   else switch (toupper(*option))
     {

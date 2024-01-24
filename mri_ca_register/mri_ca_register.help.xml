@@ -50,7 +50,7 @@
       <argument>-ri</argument>
       <explanation>allows reading of multiple intensity normalization</explanation>
       <argument>-align</argument>
-      <argument>-invert-and-save gcamfile</argument>
+      <argument>-invert-and-save gcamfile invgcamfile</argument>
       <argument>-dist distance</argument>
       <argument>-regularize regularize</argument>
       <argument>-regularize-mean regularizemean</argument>

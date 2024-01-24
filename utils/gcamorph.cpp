@@ -453,74 +453,6 @@ int __m3zWrite(const GCA_MORPH *gcam, const char *fname)
   return (NO_ERROR);
 }
 
-/*-------------------------------------------------------------------------
-  GCAMwriteInverse() - saves GCAM inverse to basename(gcamfname).inv.m3z
-  in the same directory as the GCAM (eg, mri/transforms).
-
-  This function can be run in  one of two ways:
-    1. GCAMwriteInverse(gcamfile,NULL) - reads in gcam, inverts,
-       saves inverse, then frees gcam.
-    2. GCAMwriteInverse(gcamfile,gcam) - pass gcam as arg.
-       Computes the inverse then saves the inverse (does not free gcam).
-       Note that the GCAM will be inverted!
-
-  If the inverse must be computed, then it reads in the header for
-  mri/orig.mgz. See also GCAMreadAndInvert().
-  -----------------------------------------------------------------*/
-int GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam)
-{
-  char *gcamdir, *mridir, tmpstr[2000], *gcambase;
-  MRI *mri;
-  int freegcam;
-
-  // Read in gcam if not passed
-  freegcam = 0;
-  if (gcam == NULL) {
-    printf("Reading %s \n", gcamfname);
-    gcam = GCAMread(gcamfname);
-    if (gcam == NULL) return (1);
-    freegcam = 1;
-  }
-  gcamdir = fio_dirname(gcamfname);
-
-  // Need a template MRI in order to compute inverse
-  mridir = fio_dirname(gcamdir);
-  sprintf(tmpstr, "%s", (gcam->image).fname);
-  if (!fio_FileExistsReadable(tmpstr)) {
-    sprintf(tmpstr, "%s/orig.mgz", mridir);
-    if (!fio_FileExistsReadable(tmpstr)) {
-      printf("ERROR: cannot find template for %s\n", gcamfname);
-      return (1);
-    }
-  }
-  mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
-  if (mri == NULL) {
-    printf("ERROR: reading %s\n", tmpstr);
-    GCAMfree(&gcam);
-    return (1);
-  }
-
-  // Invert
-  printf("Inverting GCAM\n");
-  GCAMinvert(gcam, mri);
-  free(mridir);
-
-  GCA_MORPH *inv_gcam = GCAMfillInverse(gcam);
-
-  gcambase = fio_basename(gcamfname, ".m3z");
-  sprintf(tmpstr, "%s/%s.inv.m3z", gcamdir, gcambase);
-  printf("Saving inverse to %s\n", tmpstr);
-  GCAMwrite(inv_gcam, tmpstr);
-
-  GCAMfree(&inv_gcam);
-  
-  if (freegcam) GCAMfree(&gcam);
-  free(gcamdir);
-  free(gcambase);
-
-  return (0);
-}
-
 int GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam)
 {
   char tmpstr[2000];
@@ -7524,8 +7456,12 @@ MRI *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
   return (mri);
 }
 
-// To be clear, this does not invert the gcam. Rather, it populates mri_{x,y,z}ind MRI structs
-// in the gcam which is used to apply the inverse. 
+// To be clear, this does not invert the gcam. Rather, it populates
+// mri_{x,y,z}ind MRI structs in the gcam which is used to apply the
+// inverse. mri can be (and maybe should be) NULL or just not passed
+// (ie, GCAMinvert(gcam)); if it is NULL or not there, then an mri
+// from gcam->image is created. If mri is not NULL, then it must match
+// gcam->image anyway. Not sure why mri was ever put in there.
 int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 {
   int x, y, z, width, height, depth;
@@ -7533,6 +7469,12 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   GCA_MORPH_NODE *gcamn;
   double xf, yf, zf;
   float num;
+  int freemri;
+  if(mri == NULL){
+    VOL_GEOM *vg = &(gcam->image);
+    mri = MRIallocHeader(vg->width,vg->height,vg->depth,MRI_UCHAR,1);
+    freemri = 1;
+  }
 
   if(gcam->mri_xind) return (NO_ERROR); /*  mri_{x,y,z}ind already computed*/
 
@@ -7662,6 +7604,7 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
     MRIwrite(gcam->mri_yind, "yi.mgz");
     MRIwrite(gcam->mri_zind, "zi.mgz");
   }
+  if(freemri) MRIfree(&mri);
   return (NO_ERROR);
 }
 
