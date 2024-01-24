@@ -938,7 +938,7 @@ main(int argc, char *argv[])
       {
         fp = fopen(tablefile,"a");
         fprintf(fp, "%-40s", fio_basename(names[i],NULL)) ;
-        fprintf(fp, "%5d", dofs[i]);
+        fprintf(fp, "  %5d", dofs[i]);
         fprintf(fp, "  %5.0f", areas[i]) ;
         fprintf(fp, "  %5.0f", volumes[i]) ;
         fprintf(fp, "  %5.3f %5.3f",
