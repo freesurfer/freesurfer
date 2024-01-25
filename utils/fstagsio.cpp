@@ -33,17 +33,36 @@ FStagsIO::~FStagsIO()
 }
 
 
-// the following getlen_*() methods return TAG length as one of the following:
-//   TAG w/o  length: tagid + len(tagdata)
-//   TAG w/ a length: tagid + sizeof(long long) + len(tagdata)
-long long FStagsIO::getlen_tag(int tag, long long len, bool niftiheaderext)
+// the following getlen_*() methods return TAG length as following:
+//
+// if addtaglength == true,
+//   if niftiheaderext == false,
+//       TAG w/o  data-length: tagid + len(tagdata)
+//       TAG w/ a data-length: tagid + sizeof(long long) + len(tagdata)
+//    else (niftiheaderext == true)
+//       TAG w/ a data-length: tagid + sizeof(long long) + len(tagdata)
+// otherwise,
+//   return len(tagdata)
+//
+// notes:
+//   1. when getlen_*() are called from write_*(), we are getting len(tagdata) only,
+//        set 'addtaglength = false', niftiheaderext is ignored
+//   2. when getlen_*() are called to calculate the total length of nifti header extension,
+//      we would like to have a data-length field for all TAGs,
+//        set 'addtaglength = true' (default), 'niftiheaderext = true'
+//        
+long long FStagsIO::getlen_tag(int tag, long long len, bool niftiheaderext, bool addtaglength)
 {
-  long long dlen = 4;
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
   
-  if (niftiheaderext ||
-      (tag != TAG_OLD_COLORTABLE &&
-       tag != TAG_GCAMORPH_GEOM && tag != TAG_GCAMORPH_TYPE && tag != TAG_GCAMORPH_LABELS))
-    dlen += sizeof(long long);
+    if (niftiheaderext ||
+        (tag != TAG_OLD_COLORTABLE &&
+         tag != TAG_GCAMORPH_GEOM && tag != TAG_GCAMORPH_TYPE && tag != TAG_GCAMORPH_LABELS))
+      dlen += sizeof(long long);
+  }
 
   dlen += len;
 
@@ -51,22 +70,31 @@ long long FStagsIO::getlen_tag(int tag, long long len, bool niftiheaderext)
 }
 
 
-long long FStagsIO::getlen_matrix()
+long long FStagsIO::getlen_matrix(bool addtaglength)
 {
-  long long dlen = 4;
-  dlen += sizeof(long long);
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
   dlen += MATRIX_STRLEN;  // ??? MATRIX_STRLEN = (4 * 4 * 100) enough for matrix ???
   
   return dlen;
 }
 
 
-long long FStagsIO::getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext)
+long long FStagsIO::getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext, bool addtaglength)
 {
-  long long dlen = 4;
+  long long dlen = 0;
 
-  if (niftiheaderext)
-    dlen += sizeof(long long);
+  if (addtaglength)
+  {
+    dlen += 4;
+
+    if (niftiheaderext)
+      dlen += sizeof(long long);
+  }
 
   // needs to be consistent with znzCTABwriteIntoBinary()
   int version = ctab->version;
@@ -95,23 +123,32 @@ long long FStagsIO::getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext
 
 
 // ??? can we get rid of TAG_MRI_FRAME
-// ??? 10 * mri->nframes * sizeof(MRI_FRAME)
-long long FStagsIO::getlen_mri_frames(MRI *mri)
+// ??? it writes '10 * mri->nframes * sizeof(MRI_FRAME)' bytes to disk
+// ??? only thing set seems to be the identity matrix m_ras2vox
+long long FStagsIO::getlen_mri_frames(MRI *mri, bool addtaglength)
 {
-  long long dlen = 4;
-  dlen += sizeof(long long);
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
   dlen += 10 * mri->nframes * sizeof(MRI_FRAME);
 
   return dlen;
 }
 
 
-long long FStagsIO::getlen_gcamorph_geom(bool niftiheaderext)
+long long FStagsIO::getlen_gcamorph_geom(bool niftiheaderext, bool addtaglength)
 {
-  long long dlen = 4;
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
   
-  if (niftiheaderext)
-    dlen += sizeof(long long);
+    if (niftiheaderext)
+      dlen += sizeof(long long);
+  }
 
   // this needs to be consistent with write_gcamorph_geom()/VOL_GEOM.write()
   int geom_len = 4 * sizeof(int) + 5 * sizeof(float) + 512;
@@ -122,10 +159,14 @@ long long FStagsIO::getlen_gcamorph_geom(bool niftiheaderext)
 
 
 // needs to be consistent with write_gcamorph_meta()
-long long FStagsIO::getlen_gcamorph_meta()
+long long FStagsIO::getlen_gcamorph_meta(bool addtaglength)
 {
-  long long dlen = 4;
-  dlen += sizeof(long long);
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
   dlen += sizeof(int) + sizeof(int) + sizeof(float);
   
   return dlen;
@@ -133,12 +174,16 @@ long long FStagsIO::getlen_gcamorph_meta()
 
 
 // TAG_GCAMORPH_LABELS is in legnth-less format for .mgz;
-long long FStagsIO::getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext)
+long long FStagsIO::getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext, bool addtaglength)
 {
-  long long dlen = 4;
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
   
-  if (niftiheaderext)
-    dlen += sizeof(long long);
+    if (niftiheaderext)
+      dlen += sizeof(long long);
+  }
   
   dlen += (x * y * z * len);
 
@@ -216,7 +261,7 @@ int FStagsIO::write_old_colortable(COLOR_TABLE *ctab)
   znzwriteInt(TAG_OLD_COLORTABLE, fp);
   if (niftiheaderext)
   {
-    long long dlen = getlen_old_colortable(ctab);
+    long long dlen = getlen_old_colortable(ctab, false, false);
     znzwriteLong(dlen, fp);
   }
   
@@ -336,7 +381,7 @@ int FStagsIO::write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target)
   
   if (niftiheaderext)
   {
-    long long dlen = getlen_gcamorph_geom();
+    long long dlen = getlen_gcamorph_geom(false, false);
     znzwriteLong(dlen, fp);
   }
   
@@ -361,8 +406,8 @@ int FStagsIO::write_gcamorph_meta(int warpFieldFormat, int gcamorphSpacing, doub
     fstart = znztell(fp);
   
   znzwriteInt(TAG_GCAMORPH_META, fp);
-  
-  long long dlen = getlen_gcamorph_meta();
+
+  long long dlen = getlen_gcamorph_meta(false);
   znzwriteLong(dlen, fp);
   znzwriteInt(warpFieldFormat, fp);
   znzwriteInt(gcamorphSpacing, fp);
@@ -389,7 +434,7 @@ int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel
   
   if (niftiheaderext)
   {
-    long long dlen = getlen_gcamorph_labels(x0, y0, z0, sizeof(int));
+    long long dlen = getlen_gcamorph_labels(x0, y0, z0, sizeof(int), false, false);
     znzwriteLong(dlen, fp);
   }
   

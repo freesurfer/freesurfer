@@ -15,16 +15,31 @@ public:
   FStagsIO(znzFile fp, bool niftiheaderext=false);
   ~FStagsIO();
 
-  // the following getlen_*() methods return TAG length as one of the two:
-  //   TAG w/o  length: tagid + len(tagdata)
-  //   TAG w/ a length: tagid + sizeof(long long) + len(tagdata)
-  static long long getlen_tag(int tag, long long len, bool niftiheaderext=false);
-  static long long getlen_matrix();
-  static long long getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext=false);
-  static long long getlen_mri_frames(MRI *mri);
-  static long long getlen_gcamorph_geom(bool niftiheaderext=false);
-  static long long getlen_gcamorph_meta();
-  static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false); 
+  // the following getlen_*() methods return TAG length as following:
+  //
+  // if addtaglength == true,
+  //   if niftiheaderext == false,
+  //       TAG w/o  data-length: tagid + len(tagdata)
+  //       TAG w/ a data-length: tagid + sizeof(long long) + len(tagdata)
+  //    else (niftiheaderext == true)
+  //       TAG w/ a data-length: tagid + sizeof(long long) + len(tagdata)
+  // otherwise,
+  //   return len(tagdata)
+  //
+  // notes:
+  //   1. when getlen_*() are called from write_*(), we are getting len(tagdata) only,
+  //        set 'addtaglength = false', niftiheaderext is ignored
+  //   2. when getlen_*() are called to calculate the total length of nifti header extension,
+  //      we would like to have a data-length field for all TAGs,
+  //        set 'addtaglength = true' (default), 'niftiheaderext = true'
+  //
+  static long long getlen_tag(int tag, long long len, bool niftiheaderext=false, bool addtaglength=true);
+  static long long getlen_matrix(bool addtaglength=true);
+  static long long getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext=false, bool addtaglength=true);
+  static long long getlen_mri_frames(MRI *mri, bool addtaglength=true);
+  static long long getlen_gcamorph_geom(bool niftiheaderext=false, bool addtaglength=true);
+  static long long getlen_gcamorph_meta(bool addtaglength=true);
+  static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false, bool addtaglength=true); 
 
   // methods to write various TAGs including tagid and len(tagdata) if the TAG has a length
   int write_tag(int tag, void *data, long long dlen);
