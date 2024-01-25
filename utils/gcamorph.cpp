@@ -7469,7 +7469,7 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   GCA_MORPH_NODE *gcamn;
   double xf, yf, zf;
   float num;
-  int freemri;
+  int freemri = 0;
   if(mri == NULL){
     VOL_GEOM *vg = &(gcam->image);
     mri = MRIallocHeader(vg->width,vg->height,vg->depth,MRI_UCHAR,1);
