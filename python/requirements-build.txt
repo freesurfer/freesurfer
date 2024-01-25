@@ -17,7 +17,7 @@ fonttools==4.47.2
 fsspec==2023.12.2
 gast==0.4.0
 google-auth-oauthlib==1.0.0
-google-auth==2.26.2
+google-auth==2.27.0
 google-pasta==0.2.0
 grpcio==1.60.0
 h5py==3.10.0
@@ -76,7 +76,7 @@ trimesh==4.0.10
 typing_extensions==4.5.0
 tzdata==2023.4
 urllib3==1.26.15
-voxelmorph==0.2
+voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
 wrapt==1.16.0
 xxhash==3.4.1
 zipp==3.17.0
