@@ -124,7 +124,11 @@ if [ $generate -eq 1 ]; then
    ## remove spaces around anpersand in version specs with URL's
    ## comment out entries for which pip reports no version (pyfs, qatools)
    ## comment out entries not available on MacOS (nvidia, triton)
-   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' > $build_req_new
+
+   voxelmoph_url_when_version_invalid="voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8"
+
+   # $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' > $build_req_new
+   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmoph_url_when_version_invalid}';' > $build_req_new
 
    if [ $(wc -l < $build_req_new) -eq 0 ]; then
       echo "$s: $build_req_new has no entries so cannot use it to update requirements-build.txt"
