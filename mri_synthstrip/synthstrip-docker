@@ -11,7 +11,7 @@ from __future__ import print_function
 # default FreeSurfer `mri_synthstrip` command (use the --help flag for more info).
 # Upon first use, the relevant docker image will be automatically pulled from
 # DockerHub. To use a different SynthStrip version, update the variable below.
-version = '1.5'
+version = '1.6'
 
 # ----------------------------------------------------------------------------
 
@@ -51,7 +51,7 @@ mounts = ' '.join(['-v %s:%s' % (p, p) for p in mounts])
 # Set UID and GID to avoid output files owned by root
 user = '-u %s:%s' % (os.getuid(), os.getgid())
 
-print('Running SynthStrip from Docker')
+print('Running SynthStrip version %s from Docker' % version)
 
 # Get image tag
 image = 'freesurfer/synthstrip:' + version
@@ -84,7 +84,5 @@ proc = subprocess.Popen(command, shell=True)
 proc.communicate()
 if proc.returncode == 137:
     print('Container ran out of memory, try increasing RAM in Docker preferences.')
-    exit(proc.returncode)
-if proc.returncode != 0:
-    print('Error running image.')
-    exit(proc.returncode)
+
+exit(proc.returncode)

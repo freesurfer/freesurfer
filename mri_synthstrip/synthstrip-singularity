@@ -12,7 +12,7 @@ from __future__ import print_function
 # info). Before the first use, the Singularity image must be pulled from the
 # Docker Hub, using the following command:
 #
-#     singularity pull synthstrip.1.5.sif docker://freesurfer/synthstrip:1.5
+#     singularity pull synthstrip.1.6.sif docker://freesurfer/synthstrip:1.6
 #
 # After pulling the image, set the below `image_path` variable to the absolute
 # path of the downloaded SIF file. You only need to pull the image once.
