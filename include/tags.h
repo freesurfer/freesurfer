@@ -28,6 +28,8 @@
 #define TAG_CMDLINE                 3
 #define TAG_USEREALRAS              4
 #define TAG_COLORTABLE              5
+#define TAG_INTENT_ENCODED_VERSION  6   // for nifti1 header extension only, version: intent encoded - '((MGZ_INTENT & 0xff ) << 8) | MGH_VERSION', (MGH_VERSION=1)
+#define TAG_DOF                     7   // for nifti1 header extension only, dof
 
 #define TAG_GCAMORPH_GEOM           10
 #define TAG_GCAMORPH_TYPE           11
@@ -52,6 +54,8 @@
 #define TAG_MRI_FRAME               42
 #define TAG_FIELDSTRENGTH           43
 #define TAG_ORIG_RAS2VOX            44
+#define TAG_SCAN_PARAMETERS         45  // for nifti1 header extension only, includes tr=hdr.pixdim[4], te, ri, flip_angle, fieldstrength, pedir
+                                        // ??? should we still keep TAG_FIELDSTRENGTH and TAG_PEDIR in nifti1 header extension ???
 
 #define MATRIX_STRLEN (4 * 4 * 100)
 

@@ -191,6 +191,58 @@ long long FStagsIO::getlen_gcamorph_labels(int x, int y, int z, int len, bool ni
 }
 
 
+long long FStagsIO::getlen_intent_encoded_version(int version, bool addtaglength)
+{
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
+  dlen += sizeof(version);
+  
+  return dlen;  
+}
+
+
+long long FStagsIO::getlen_dof(int dof, bool addtaglength)
+{
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
+  dlen += sizeof(dof);
+  
+  return dlen;  
+}
+
+
+long long FStagsIO::getlen_scan_parameters(MRI *mri, bool addtaglength)
+{
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
+
+  // this needs to be consistent with write_scan_parameters()
+  dlen += sizeof(mri->tr);
+  dlen += sizeof(mri->te);
+  dlen += sizeof(mri->ti);
+  dlen += sizeof(mri->flip_angle);
+  dlen += sizeof(mri->FieldStrength);
+  if (mri->pedir)
+    dlen += strlen(mri->pedir) + 1;
+  else
+    dlen += strlen("UNKNOWN");
+
+  return dlen;  
+}
+
+
 // tags.cpp::znzTAGwrite()
 // 
 // output TAG in the following format:
@@ -453,6 +505,86 @@ int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel
 }
 
 
+// write TAG_INTENT_ENCODED_VERSION (nifti header extension only)
+int FStagsIO::write_intent_encoded_version(int version)
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+  
+  znzwriteInt(TAG_INTENT_ENCODED_VERSION, fp);
+
+  long long dlen = getlen_intent_encoded_version(version, false);
+  znzwriteLong(dlen, fp);
+  znzwriteInt(version, fp);
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_INTENT_ENCODED_VERSION, fend-fstart, fstart, fend);
+  }
+  
+  return NO_ERROR;  
+}
+
+
+// write TAG_DOF (nifti header extension only)
+int FStagsIO::write_dof(int dof)
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+  
+  znzwriteInt(TAG_DOF, fp);
+
+  long long dlen = getlen_dof(dof, false);
+  znzwriteLong(dlen, fp);
+  znzwriteInt(dof, fp);
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_DOF, fend-fstart, fstart, fend);
+  }
+
+  return NO_ERROR;  
+}
+
+
+// write TAG_SCAN_PARAMETERS (nifti header extension only)
+int FStagsIO::write_scan_parameters(MRI *mri)
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+  
+  znzwriteInt(TAG_SCAN_PARAMETERS, fp);
+
+  long long dlen = getlen_scan_parameters(mri, false);
+  znzwriteLong(dlen, fp);
+  znzwriteFloat(mri->tr, fp);
+  znzwriteFloat(mri->te, fp);
+  znzwriteFloat(mri->ti, fp);
+  znzwriteDouble(mri->flip_angle, fp);
+  // ??? todo: check how is fov calculated ???
+  // skip fov, it can be calculated from other parameters
+  // znzwriteFloat(mri->fov, fp);
+  znzwriteFloat(mri->FieldStrength, fp);
+  if (mri->pedir)
+    znzwrite(mri->pedir, sizeof(char), strlen(mri->pedir) + 1, fp);
+  else
+    znzwrite((void *)"UNKNOWN", sizeof(char), strlen("UNKNOWN"), fp);
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_SCAN_PARAMETERS, fend-fstart, fstart, fend);
+  }
+  
+  return NO_ERROR;  
+}
+
+  
 // tags.cpp::znzTAGreadStart()
 int FStagsIO::read_tagid_len(long long *plen, int tagwithzerolen)
 {
@@ -643,6 +775,52 @@ int FStagsIO::read_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel)
         gcamorphLabel[x][y][z] = znzreadInt(fp);
   
   return NO_ERROR;
+}
+
+
+// read TAG_INTENT_ENCODED_VERSION (nifti header extension only)
+int FStagsIO::read_intent_encoded_version(int *version)
+{
+  *version = znzreadInt(fp);
+  
+  return NO_ERROR;  
+}
+
+
+// read TAG_DOF (nifti header extension only)
+int FStagsIO::read_dof(int *dof)
+{
+  *dof = znzreadInt(fp);
+
+  return NO_ERROR;  
+}
+
+
+// read TAG_SCAN_PARAMETERS (nifti header extension only)
+int FStagsIO::read_scan_parameters(MRI *mri, long long dlen)
+{
+  mri->tr = znzreadFloat(fp);
+  dlen -= sizeof(mri->tr);
+  
+  mri->te = znzreadFloat(fp);
+  dlen -= sizeof(mri->te);
+  
+  mri->ti = znzreadFloat(fp);
+  dlen -= sizeof(mri->ti);
+  
+  mri->flip_angle = znzreadDouble(fp);
+  dlen -= sizeof(mri->flip_angle);
+  
+  // ??? todo: check how is fov calculated ???
+  // skip fov, it can be calculated from other parameters
+  // znzwriteFloat(mri->fov, fp);
+  mri->FieldStrength = znzreadFloat(fp);
+  dlen -= sizeof(mri->FieldStrength);
+  
+  mri->pedir = (char *)calloc(dlen + 1, sizeof(char));
+  znzread(mri->pedir, sizeof(char), dlen, fp);
+
+  return NO_ERROR;  
 }
 
 
