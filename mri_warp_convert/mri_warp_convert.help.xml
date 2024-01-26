@@ -62,9 +62,9 @@
       <explanation>output file with displacements in source-voxel space</explanation>
     </required-flagged>
     <optional-flagged>
-      <intro>While M3Z contains src geometry information, other file formats are missing this information and you need to explicitly pass it:</intro>
       <argument>-g, --insrcgeom &lt;geom.mgz&gt;</argument>
-      <explanation>specify source image geometry (moving volume)</explanation>
+      <explanation>Specify volume geometry of the input to the warp space, i.e., srcgeom shares an RAS space with the warp volume. Usually this is identical to the geom of the warp volume itself (if the warp input is in a format that has such info). This also allows the input to the warp to have a different geometry than the warp itself, though this is probably better handled with -lta1.
+</explanation>
       <argument>-d, --downsample</argument>
       <explanation>Downsample output M3Z to spacing of 2.</explanation>
       <argument>-lta1 LTA (or -lta1-inv)</argument>

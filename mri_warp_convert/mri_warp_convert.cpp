@@ -276,9 +276,16 @@ GCAM* readFSL(const string& warp_file)
 }
 
 // Read a warp file containing displacements in RAS or LPS space.
+// Note src_geom is the geom of the input to the warp space. Most of
+// the time, this is just the same as the warp volume.
 GCAM* read_world(const string& warp_file, const string& src_geom,
     bool is_lps=false)
 {
+  // Poor names here: in=warp volume. src defines the geometry of
+  // input space of the warp which shares a RAS with the warp. So a
+  // given CRS in the input space can be converted to an RAS which can
+  // be converted to a CRS in the wapr volume.  Most of the time this
+  // is just the same as the warp. It does make it confusing.
   MRI* in = MRIread( warp_file.c_str() );
   if (in == NULL) {
     cerr << "ERROR: couldn't read input warp from " << warp_file << endl;
@@ -286,11 +293,12 @@ GCAM* read_world(const string& warp_file, const string& src_geom,
   }
   MRI* src = MRIread( src_geom.c_str() );
   if (src == NULL) {
-	cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
+	cerr << "ERROR: couldn't read source/atlas geometry from " << src_geom << endl;
     return NULL;
   }
 
   GCA_MORPH* out = GCAMalloc(in->width, in->height, in->depth) ;
+  //int GCAMinitVolGeom(GCAM *gcam, MRI *mri_image, MRI *mri_atlas)
   GCAMinitVolGeom(out, src, in) ;
   out->type = GCAM_VOX;
 
@@ -364,7 +372,7 @@ GCAM* read_voxel(const string& warp_file, const string& src_geom)
   }
   MRI* src = MRIread( src_geom.c_str() );
   if (src == NULL) {
-	cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
+	cerr << "ERROR: couldn't read atlas/source geometry from " << src_geom << endl;
     return NULL;
   }
 
@@ -612,9 +620,8 @@ int main(int argc, char *argv[])
 	printf("ERROR: --inspm only handles abs-ras or abs-crs\n");
 	exit(1);
       }
-	
       if(P.in_src_geom.empty()){
-	printf("ERROR: --inspm needs source geometry, use --insrcgeom or -g to specify\n");
+	printf("ERROR: --inspm needs source/atlas geometry, use --insrcgeom or -g to specify\n");
 	exit(1);
       }
       gcam = readSPM(P.in_warp.c_str(),P.in_src_geom);
@@ -909,10 +916,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "INSRCGEOM") || !strcmp(option, "G"))
   {
+    // Note src_geom is the geom of the input to the warp space, ie,
+    // it shares a RAS with the warp volume. Most of the time, this is
+    // just the same as the warp volume.
     P.in_src_geom = string(argv[1]);
     nargs = 1;
     cout << "--insrcgeom: " << P.in_src_geom
-         << " source image (geometry)." << endl;
+         << " atlas/source image (used for geometry)." << endl;
   }
   else if (!strcmp(option, "LTA1")) {
     P.lta1 = LTAread(argv[1]);
@@ -1010,7 +1020,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
         need_geom = false;
   }
   if (P.in_src_geom.empty() && need_geom) {
-    cerr << endl << endl << "ERROR: specified input warp requires --insrcgeom"
+    cerr << endl << endl << "ERROR: specified input warp requires atlas --insrcgeom"
          << endl << endl;
     return false;
   }
