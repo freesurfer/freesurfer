@@ -27,5 +27,5 @@ Once this is built and pushed to the [Docker Hub](https://hub.docker.com/u/frees
 ```bash
 sed -i "s/^\(version = \).*/\1'$VERSION'/" synthstrip-docker
 sed -i "s/\(synthstrip.\)[0-9.]*\(\.\|$\)/\1$VERSION\2/g" synthstrip-singularity
-git diff singularity-*
+git diff synthstrip-*
 ```
