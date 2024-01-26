@@ -267,13 +267,13 @@ void MRI::initSlices()
       for (int row = 0; row < height; row++) {
         slices[slice][row] = (unsigned char *)ptr;
         switch (type) {
+        case MRI_RGB:
         case MRI_UCHAR:
           ptr = (void *)((unsigned char*)ptr + vox_per_row); break;
         case MRI_SHORT:
           ptr = (void *)((short *)ptr + vox_per_row); break;
         case MRI_USHRT:
           ptr = (void *)((unsigned short *)ptr + vox_per_row); break;
-        case MRI_RGB:
         case MRI_INT:
           ptr = (void *)((int *)ptr + vox_per_row); break;
         case MRI_LONG:
@@ -1436,7 +1436,7 @@ size_t MRIsizeof(int mritype)
   switch (mritype) {
     case MRI_UCHAR:  return sizeof(char);
     case MRI_INT:    return sizeof(int);
-    case MRI_RGB:    return sizeof(int);
+    case MRI_RGB:    return sizeof(char);
     case MRI_LONG:   return sizeof(long);
     case MRI_FLOAT:  return sizeof(float);
     case MRI_TENSOR: return sizeof(float);
@@ -1595,6 +1595,7 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 
   if (mri->ischunked) {
     switch (mri->type) {
+    case MRI_RGB:
     case MRI_UCHAR:
       return (float)* ((unsigned char *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
@@ -1604,7 +1605,6 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
     case MRI_USHRT:
       return (float)* ((unsigned short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
-    case MRI_RGB:
     case MRI_INT:
       return (float)* ((int *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
@@ -1618,6 +1618,7 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
   }
 
   switch (mri->type) {
+  case MRI_RGB:
   case MRI_UCHAR:
     return ((float)MRIseq_vox(mri, c, r, s, f));
     break;
@@ -1627,7 +1628,6 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
   case MRI_USHRT:
     return ((float)MRIUSseq_vox(mri, c, r, s, f));
     break;
-  case MRI_RGB:
   case MRI_INT:
     return ((float)MRIIseq_vox(mri, c, r, s, f));
     break;
@@ -1649,6 +1649,7 @@ float MRIgetVoxVal2(const MRI *mri, int c, int r, int s, int f)
   if (s < 0) return mri->outside_val;
 
   switch (mri->type) {
+  case MRI_RGB:
   case MRI_UCHAR:
     return ((float)MRIseq_vox(mri, c, r, s, f));
     break;
@@ -1658,7 +1659,6 @@ float MRIgetVoxVal2(const MRI *mri, int c, int r, int s, int f)
   case MRI_USHRT:
     return ((float)MRIUSseq_vox(mri, c, r, s, f));
     break;
-  case MRI_RGB:
   case MRI_INT:
     return ((float)MRIIseq_vox(mri, c, r, s, f));
     break;
@@ -1711,6 +1711,7 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 
   if (mri->ischunked) {
     switch (mri->type) {
+    case MRI_RGB:
     case MRI_UCHAR:
       *((unsigned char *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
@@ -1720,7 +1721,6 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
     case MRI_USHRT:
       *((unsigned short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
-    case MRI_RGB:
     case MRI_INT:
       *((int *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
@@ -1734,6 +1734,7 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   }
 
   switch (mri->type) {
+  case MRI_RGB:
   case MRI_UCHAR:
     MRIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
@@ -1743,7 +1744,6 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   case MRI_USHRT:
     MRIUSseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
-  case MRI_RGB:
   case MRI_INT:
     MRIIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
@@ -1787,6 +1787,7 @@ int MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval)
   }
 
   switch (mri->type) {
+  case MRI_RGB:
   case MRI_UCHAR:
     MRIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
@@ -1796,7 +1797,6 @@ int MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval)
   case MRI_USHRT:
     MRIUSseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
-  case MRI_RGB:
   case MRI_INT:
     MRIIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
@@ -5728,9 +5728,12 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
   height = mri_src->height;
   depth = mri_src->depth;
 
+  int rgb=1;
+  if(mri_src->type == MRI_RGB) rgb=3;
+
   if (!mri_dst) {
     if (mri_src->slices)
-      mri_dst = MRIallocSequence(width, height, depth, mri_src->type, mri_src->nframes);
+      mri_dst = MRIallocSequence(width, height, depth, mri_src->type, rgb*mri_src->nframes);
     else {
       mri_dst = MRIallocHeader(width, height, depth, mri_src->type, 1);
       mri_dst->nframes = mri_src->nframes;
@@ -5746,6 +5749,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
     bytes = width;
     switch (mri_src->type) {
     case MRI_UCHAR:
+    case MRI_RGB:
       bytes *= sizeof(BUFTYPE);
       break;
     case MRI_SHORT:
@@ -5765,7 +5769,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
       break;
     }
 
-    for (frame = 0; frame < mri_src->nframes; frame++) {
+    for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
       for (z = 0; z < depth; z++) {
         for (y = 0; y < height; y++) {
           memmove(mri_dst->slices[z + frame * depth][y], mri_src->slices[z + frame * depth][y], bytes);
@@ -5778,7 +5782,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
     case MRI_FLOAT:
       switch (mri_dst->type) {
       case MRI_SHORT: /* float --> short */
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               sdst = &MRISseq_vox(mri_dst, 0, y, z, frame);
@@ -5792,7 +5796,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       case MRI_USHRT: /* float --> unsigned short */
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               unsigned short *usdst = &MRIUSseq_vox(mri_dst, 0, y, z, frame);
@@ -5806,7 +5810,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       case MRI_UCHAR: /* float --> unsigned char */
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               cdst = &MRIseq_vox(mri_dst, 0, y, z, frame);
@@ -5829,10 +5833,11 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         break;
       }
       break;
+    case MRI_RGB:
     case MRI_UCHAR:
       switch (mri_dst->type) {
       case MRI_FLOAT: /* unsigned char --> float */
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               fdst = &MRIFseq_vox(mri_dst, 0, y, z, frame);
@@ -5854,7 +5859,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
     case MRI_SHORT:
       switch (mri_dst->type) {
       case MRI_FLOAT: /* short --> float */
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               fdst = &MRIFseq_vox(mri_dst, 0, y, z, frame);
@@ -5868,7 +5873,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
         }
         break;
       case MRI_UCHAR:
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               cdst = &MRIseq_vox(mri_dst, 0, y, z, frame);
@@ -5892,7 +5897,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
     case MRI_INT:
       switch (mri_dst->type) {
       case MRI_FLOAT: /* unsigned char --> float */
-        for (frame = 0; frame < mri_src->nframes; frame++) {
+        for (frame = 0; frame < rgb*mri_src->nframes; frame++) {
           for (z = 0; z < depth; z++) {
             for (y = 0; y < height; y++) {
               fdst = &MRIFseq_vox(mri_dst, 0, y, z, frame);
@@ -7723,21 +7728,28 @@ MRI *MRIdownsampleN(MRI *src, MRI *dst, int Fc, int Fr, int Fs, int KeepType)
   int width, height, depth, type;
   double val;
 
-  if (src->width % Fc != 0) {
-    printf("ERROR: MRIdownsampleN: width=%d, Fc=%d\n", src->width, Fc);
-    return (NULL);
+  if(0){
+    // This does not appear to be necessary in that it will run and generate
+    // an acceptable downsampled image if these conditions are not met.
+    if(src->width % Fc != 0) {
+      printf("ERROR: MRIdownsampleN: width=%d, Fc=%d\n", src->width, Fc);
+      return (NULL);
+    }
+    if(src->height % Fr != 0) {
+      printf("ERROR: MRIdownsampleN: height=%d, Fr=%d\n", src->height, Fr);
+      return (NULL);
+    }
+    if(src->depth % Fs != 0) {
+      printf("ERROR: MRIdownsampleN: depth=%d, Fs=%d\n", src->depth, Fs);
+      return (NULL);
+    }
   }
-  if (src->height % Fr != 0) {
-    printf("ERROR: MRIdownsampleN: height=%d, Fr=%d\n", src->height, Fr);
-    return (NULL);
-  }
-  if (src->depth % Fs != 0) {
-    printf("ERROR: MRIdownsampleN: depth=%d, Fs=%d\n", src->depth, Fs);
-    return (NULL);
-  }
-  width = src->width / Fc;
+
+  // Note that this ratio may not be an integer, so there is some
+  // secret rounding happening
+  width  = src->width  / Fc;
   height = src->height / Fr;
-  depth = src->depth / Fs;
+  depth  = src->depth  / Fs;
 
   if (dst == NULL) {
     type = MRI_FLOAT;
