@@ -39,7 +39,10 @@ public:
   static long long getlen_mri_frames(MRI *mri, bool addtaglength=true);
   static long long getlen_gcamorph_geom(bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_gcamorph_meta(bool addtaglength=true);
-  static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false, bool addtaglength=true); 
+  static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false, bool addtaglength=true);
+  static long long getlen_intent_encoded_version(int version, bool addtaglength=true);
+  static long long getlen_dof(int dof, bool addtaglength=true);
+  static long long getlen_scan_parameters(MRI *mri, bool addtaglength=true);
 
   // methods to write various TAGs including tagid and len(tagdata) if the TAG has a length
   int write_tag(int tag, void *data, long long dlen);
@@ -50,6 +53,11 @@ public:
   int write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target);
   int write_gcamorph_meta(int warpFieldFormat, int gcamorphSpacing, double gcamorphExp_k);
   int write_gcamorph_labels(int x, int y, int z, int ***gcamorphLabel);  
+
+  // these are for nifti header extension only
+  int write_intent_encoded_version(int version);
+  int write_dof(int dof);
+  int write_scan_parameters(MRI *mri);
 
   // retrieve tagid, datalength
   // if the TAG is in 'tagid len data' format, *plen = len(data);
@@ -67,6 +75,11 @@ public:
   int read_gcamorph_meta(int *warpFieldFormat, int *gcamorphSpacing, double *gcamorphExp_k);
   int read_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel);
 
+  // for nifti header extension only
+  int read_intent_encoded_version(int *version);
+  int read_dof(int *dof);
+  int read_scan_parameters(MRI *mri, long long dlen);
+  
   // skip tag data (len of bytes)
   int skip_tag(int tag, long long len);
 private:
