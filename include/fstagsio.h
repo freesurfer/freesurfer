@@ -40,7 +40,6 @@ public:
   static long long getlen_gcamorph_geom(bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_gcamorph_meta(bool addtaglength=true);
   static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false, bool addtaglength=true);
-  static long long getlen_intent_encoded_version(int version, bool addtaglength=true);
   static long long getlen_dof(int dof, bool addtaglength=true);
   static long long getlen_scan_parameters(MRI *mri, bool addtaglength=true);
 
@@ -55,7 +54,6 @@ public:
   int write_gcamorph_labels(int x, int y, int z, int ***gcamorphLabel);  
 
   // these are for nifti header extension only
-  int write_intent_encoded_version(int version);
   int write_dof(int dof);
   int write_scan_parameters(MRI *mri);
 

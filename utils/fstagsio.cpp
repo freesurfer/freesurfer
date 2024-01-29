@@ -191,20 +191,6 @@ long long FStagsIO::getlen_gcamorph_labels(int x, int y, int z, int len, bool ni
 }
 
 
-long long FStagsIO::getlen_intent_encoded_version(int version, bool addtaglength)
-{
-  long long dlen = 0;
-  if (addtaglength)
-  {
-    dlen += 4;
-    dlen += sizeof(long long);
-  }
-  dlen += sizeof(version);
-  
-  return dlen;  
-}
-
-
 long long FStagsIO::getlen_dof(int dof, bool addtaglength)
 {
   long long dlen = 0;
@@ -502,29 +488,6 @@ int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel
   }
   
   return NO_ERROR;
-}
-
-
-// write TAG_INTENT_ENCODED_VERSION (nifti header extension only)
-int FStagsIO::write_intent_encoded_version(int version)
-{
-  long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
-    fstart = znztell(fp);
-  
-  znzwriteInt(TAG_INTENT_ENCODED_VERSION, fp);
-
-  long long dlen = getlen_intent_encoded_version(version, false);
-  znzwriteLong(dlen, fp);
-  znzwriteInt(version, fp);
-
-  if (Gdiag & DIAG_INFO)
-  {
-    long long fend = znztell(fp);
-    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_INTENT_ENCODED_VERSION, fend-fstart, fstart, fend);
-  }
-  
-  return NO_ERROR;  
 }
 
 
