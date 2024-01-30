@@ -275,6 +275,10 @@ int main(int argc, char *argv[])
   Progname = (Progname == NULL ? argv[0] : Progname + 1);
 
   /* ----- pass the command line to mriio ----- */
+  // ??? why call mriio_command_line() ???
+  // mriio_command_line() is defined in mriio.cpp.
+  // it constructs the command line in 'static char *command_line'.
+  // MRIaddCommandLine() adds command line to mri->cmdlines
   mriio_command_line(argc, argv);
 
   /* ----- catch no arguments here ----- */
@@ -1552,6 +1556,8 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(argv[i], "--diag") == 0 )
       get_ints(argc, argv, &i, &Gdiag_no, 1);
+    else if (strcmp(argv[i], "--diag-debug") == 0)
+      Gdiag |= DIAG_INFO;
     else if (strcmp(argv[i], "--mra") == 0 )
     {
       /* This flag forces DICOMread to first use 18,50 to get the slice thickness instead

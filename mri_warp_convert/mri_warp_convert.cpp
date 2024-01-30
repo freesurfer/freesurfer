@@ -972,6 +972,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     printUsage();
     exit(1);
   }
+  else if (!strcmp(option, "DIAG-DEBUG"))
+  {
+    Gdiag |= DIAG_INFO;
+    nargs = 0;
+  }
   else
   {
     cerr << endl << endl << "ERROR: Option: " << argv[0]

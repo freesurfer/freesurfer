@@ -165,7 +165,10 @@ typedef struct
 MRI_REGION ;
 
 
+// forward declarations
 struct VOL_GEOM;
+class  FStagsIO;
+
 MATRIX *MRIxfmCRS2XYZ( const VOL_GEOM *mri, int base ); /* Native Vox2RAS Matrix (scanner and xfm too) */
 MATRIX *MRIxfmCRS2XYZtkreg( const VOL_GEOM *mri );      // TkReg  Vox2RAS Matrix
 MATRIX *VGras2tkreg(VOL_GEOM *vg, MATRIX *ras2tkreg);
@@ -495,7 +498,7 @@ public:
   MRI_REGION roi;
 
   // ---- scan parameters ----
-  float tr = 0;                 // time to recovery
+  float tr = 0;                 // time to recovery, nifti1 hdr.pixdim[4]
   float te = 0;                 // time to echo
   float ti = 0;                 // time to inversion
   double flip_angle = 0;        // flip angle in radians
@@ -1616,7 +1619,7 @@ float MRIvolumeDeterminant(MRI *mri);
 MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
 
 void MRITAGread(MRI *mri, znzFile fp, const char *fname);
-void MRITAGwrite(MRI *mri, znzFile fp);
+void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderextension=false);
 
 int mriio_command_line(int argc, char *argv[]);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);

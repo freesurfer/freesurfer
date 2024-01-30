@@ -451,6 +451,8 @@ static int parse_commandline(int argc, char **argv)
       nargc --;
       pargv ++;
     }    
+    else if (strcasecmp(option, "--diag-debug") == 0)
+      Gdiag |= DIAG_INFO;
     else if (!strcasecmp(option, "-it") ||
              !strcasecmp(option, "--in_type"))
     {

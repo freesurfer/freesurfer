@@ -85,6 +85,7 @@
 #include "fscnpy.h"
 
 #include "warpfield.h"
+#include "fstagsio.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -97,6 +98,8 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
 
 #define MGZ_TAG_DEBUG 0
+
+static long long __getMRITAGlength(MRI *mri, bool niftiheaderext=false);
 
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
@@ -8390,8 +8393,6 @@ static MRI *niiRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error reading header from %s", fname));
   }
 
-  znzclose(fp);
-
   swapped_flag = FALSE;
   if (hdr.dim[0] < 1 || hdr.dim[0] > 7) {
     swapped_flag = TRUE;
@@ -8400,6 +8401,8 @@ static MRI *niiRead(const char *fname, int read_volume)
       ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): bad number of dimensions (%hd) in %s", hdr.dim[0], fname));
     }
   }
+
+  znzclose(fp);
 
   if (memcmp(hdr.magic, NII_MAGIC, 4) != 0) {
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): bad magic number in %s", fname));
@@ -8621,8 +8624,11 @@ static MRI *niiRead(const char *fname, int read_volume)
   }
 
   // ??? todo: implement reading nifti1 header extension ???
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] niiRead(): hdr.vox_offset = %ld\n", (long)hdr.vox_offset);
   
   // skip to image data hdr.vox_offset
+  // znzseek seems to work fine going forward on nii.gz, but not going backward
   if (znzseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1) {
     znzclose(fp);
     MRIfree(&mri);
@@ -8630,6 +8636,12 @@ static MRI *niiRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding voxel data in %s", fname));
   }
 
+  if (Gdiag & DIAG_INFO)
+  {
+    long here = znztell(fp);
+    printf("[DEBUG] niiRead(): after znzseek(%ld), file position = %ld\n", (long)hdr.vox_offset, here);
+  }
+  
   if (!scaledata) {
     // no voxel value scaling needed
     void *buf;
@@ -9408,9 +9420,8 @@ static int niiWrite(MRI *mri0, const char *fname)
   znzFile fp;
   int j, k, t;
   BUFTYPE *buf;
-  char *chbuf;
   struct nifti_1_header hdr;
-  int error, shortmax, use_compression, fnamelen, nfill;
+  int error, shortmax, use_compression, fnamelen;
   MRI *mri = NULL;
   int FreeMRI = 0;
 
@@ -9546,20 +9557,48 @@ static int niiWrite(MRI *mri0, const char *fname)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "niiWrite(): error opening file %s", fname));
   }
 
-  // White the header
+  /****** (NIFTI_ECODE_FREESURFER) begin calculating esize ******/
+  // get length of all mgz TAGs
+  bool niftiheaderext = true;
+  int mgztaglen = __getMRITAGlength(mri, niftiheaderext);
+  int esize = mgztaglen;
+  if (esize > 0)
+  {
+    esize += 8;  // int esize + int ecode
+    esize += 4;  // int mgz intent encoded version
+
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] niiWrite(): mgztaglen = %d, esize = %d\n", mgztaglen, esize);
+    
+    // esize needs to be multiple of 16 bytes
+    // borrowed from nifti1_io.c
+    // make multiple of 16
+    if (esize & 0xf)
+      esize = (esize + 0xf) & ~0xf;
+
+    // update hdr.vox_offset
+    hdr.vox_offset += esize;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] niiWrite(): updated vox_offset = %ld (mgztaglen = %d, esize = %d)\n",
+	     (long)hdr.vox_offset, mgztaglen, esize);
+  }
+  /****** (NIFTI_ECODE_FREESURFER) end calculating esize ******/
+  
+  // Write the header
   if (znzwrite(&hdr, sizeof(hdr), 1, fp) != 1) {
     znzclose(fp);
     errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "niiWrite(): error writing header to %s", fname));
   }
-
-
-  // ??? todo: implement writing nifti1 header extension (MGZ TAGs)???
   
-  // output extensions[4] = [0 0 0 0]
+  // output extensions[4], default (no header extensions) = [0 0 0 0]
   // Fill in space to the voxel offset
-  nfill = (int)hdr.vox_offset - sizeof(hdr);
-  chbuf = (char *)calloc(nfill, sizeof(char));
+  int nfill = 4;  // (int)hdr.vox_offset - sizeof(hdr);
+  char *chbuf = (char *)calloc(nfill, sizeof(char));
+  /****** (NIFTI_ECODE_FREESURFER) begin updating extensions ******/
+  if (esize > 0)
+    chbuf[0] = 1;  // extensions[4] = [1 0 0 0]
+  /****** (NIFTI_ECODE_FREESURFER) end updating extensions ******/
   if ((int)znzwrite(chbuf, sizeof(char), nfill, fp) != nfill) {
     znzclose(fp);
     errno = 0;
@@ -9567,6 +9606,35 @@ static int niiWrite(MRI *mri0, const char *fname)
   }
   free(chbuf);
 
+  /****** (NIFTI_ECODE_FREESURFER) begin outputting freesurfer header-extension ******/
+  // output freesurfer header-extension padded to multiple of 16 bytes
+  if (esize > 0)
+  {
+    // esize (int), ecode (int), header-extension-freesurfer
+    int ecode = NIFTI_ECODE_FREESURFER;
+    znzwrite(&esize, sizeof(int), 1, fp);
+    znzwrite(&ecode, sizeof(int), 1, fp);
+
+    // freesurfer header extension data is in big endian
+    znzwrite(&mri->version, sizeof(int), 1, fp);  // output intent encoded version
+    MRITAGwrite(mri, fp, niftiheaderext);
+
+    // pad header extension with 0 to multiple of 16 bytes
+    int reminder = esize - (mgztaglen + 12); // esize+ecode+version=12
+    if (reminder > 0)
+    {
+      unsigned char padzero[reminder] = {'\0'};
+      znzwrite(padzero, sizeof(unsigned char), reminder, fp);
+    }
+
+    if (Gdiag & DIAG_INFO)
+    {
+      printf("[DEBUG] niiWrite(): mgztaglen = %d, esize = %d, reminder = %d\n", mgztaglen, esize, reminder);
+      printf("[DEBUG] niiWrite(): write freesurfer header-extension, mgztaglen = %d, esize = %d, ecode = %d\n", mgztaglen, esize, ecode);
+    }
+  }
+  /****** (NIFTI_ECODE_FREESURFER) end outputting freesurfer header-extension ******/
+  
   // printf("In niiWrite():before dumping: %d, %d, %d, %d\n", mri->nframes,mri->depth,mri->width,mri->height );
   // output image data
   // Now dump the pixel data
@@ -10730,6 +10798,7 @@ static int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
     }
   }
   fend = znztell(fp);
+  // this assumes len is less than what just written 
   len -= (fend - here);  // unused space
   if (len > 0) {
     buf = (char *)calloc(len, sizeof(char));
@@ -11148,7 +11217,7 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
   // read TR, Flip, TE, TI, FOV
   if (znzreadFloatEx(&(mri->tr), fp)) {
     if (znzreadFloatEx(&fval, fp)) {
-      mri->flip_angle = fval;
+      mri->flip_angle = fval;  // ??? mri->flip_angle is a double, it is read/written as float ???
       // flip_angle is double. I cannot use the same trick.
       if (znzreadFloatEx(&(mri->te), fp)) {
         if (znzreadFloatEx(&(mri->ti), fp)) {
@@ -11180,7 +11249,7 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 
   strcpy(mri->fname, fname);
   return (mri);
-}
+} // end mghRead()
 
 int mghWrite(MRI *mri, const char *fname, int frame)
 {
@@ -11271,6 +11340,12 @@ int mghWrite(MRI *mri, const char *fname, int frame)
   memset(buf, 0, UNUSED_SPACE_SIZE * sizeof(char));
   znzwrite(buf, sizeof(char), unused_space_size, fp);
 
+  if (Gdiag & DIAG_INFO)
+  {
+    long long here = znztell(fp);
+    printf("[DEBUG] mghWrite() fpos = %-6lld (after header, before 4D data)\n", here);
+  }
+  
   struct timespec begin, end;
   if (getenv("FS_MGZIO_TIMING"))
   {
@@ -11404,12 +11479,24 @@ int mghWrite(MRI *mri, const char *fname, int frame)
            (USEVOXELBUF) ? " (USEVOXELBUF)" : "");
   }
 
+  if (Gdiag & DIAG_INFO)
+  {
+    long long here = znztell(fp);
+    printf("[DEBUG] mghWrite() fpos = %-6lld (after 4D data, before scan parameters)\n", here);
+  }
+  
   znzwriteFloat(mri->tr, fp);
-  znzwriteFloat(mri->flip_angle, fp);
+  znzwriteFloat(mri->flip_angle, fp);  // ??? mri->flip_angle is a double, it is read/written as float ???
   znzwriteFloat(mri->te, fp);
   znzwriteFloat(mri->ti, fp);
   znzwriteFloat(mri->fov, fp);
 
+  if (Gdiag & DIAG_INFO)
+  {
+    long long here = znztell(fp);
+    printf("[DEBUG] mghWrite() fpos = %-6lld (after scan parameters, before TAG)\n", here);
+  }
+  
   // output TAGs
   MRITAGwrite(mri, fp);
 
@@ -11417,7 +11504,7 @@ int mghWrite(MRI *mri, const char *fname, int frame)
   znzclose(fp);
 
   return (NO_ERROR);
-}
+} // end mghWrite()
 
 /*!
 \fn MRI *MRIreorder4(MRI *mri, int order[4])
@@ -12285,7 +12372,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
     tag = znzTAGreadStart(fp, &len);
     if (tag == 0) break;
 
-    if (MGZ_TAG_DEBUG)
+    if (Gdiag & DIAG_INFO)
       printf("[DEBUG] MRITAGread() znzTAGreadStart(): tag = %d, len = %lld\n", tag, len);
       
     switch (tag) {
@@ -12357,6 +12444,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
 
       case TAG_FIELDSTRENGTH:
         // znzreadFloatEx(&(mri->FieldStrength), fp); // Performs byte swap not in znzTAGwrite()
+	// mri->FieldStrength is written to file in native endian, needs to be read in native endian
         znzTAGreadFloat(&(mri->FieldStrength), fp);
         break;
 
@@ -12365,7 +12453,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
         mri->gcamorphSpacing = znzreadInt(fp);
 	mri->gcamorphExp_k   = znzreadFloat(fp);
 
-	if (MGZ_TAG_DEBUG)
+	if (Gdiag & DIAG_INFO)
 	{
 	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_META\n");
 	  printf("[DEBUG] MRITAGread() warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
@@ -12381,7 +12469,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
 	break;
       case TAG_GCAMORPH_AFFINE:
         mri->gcamorphAffine = znzReadAutoAlignMatrix(fp);
-        if (MGZ_TAG_DEBUG)
+        if (Gdiag & DIAG_INFO)
         {
           printf("[DEBUG] MRITAGread() TAG_GCAMORPH_AFFINE\n");
           MatrixPrint(stdout, mri->gcamorphAffine);
@@ -12408,67 +12496,68 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
         break;
     }  // switch (tag)
   }    // while (1)
-}
+} // end MRITAGread()
 
 
-void MRITAGwrite(MRI *mri, znzFile fp)
+void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
 {
+  FStagsIO fstagsio(fp, niftiheaderext);
   if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
     // output TAG_GCAMORPH_GEOM
-    znzwriteInt(TAG_GCAMORPH_GEOM, fp);
-    mri->gcamorph_image_vg.write(fp);
-    mri->gcamorph_atlas_vg.write(fp);
+    fstagsio.write_gcamorph_geom(&mri->gcamorph_image_vg, &mri->gcamorph_atlas_vg);
 
     mri->gcamorph_image_vg.vgprint();
     mri->gcamorph_atlas_vg.vgprint();
 
     // output TAG_GCAMORPH_META data-length data
-    long long dlen = sizeof(int) + sizeof(int) + sizeof(float);
-    if (MGZ_TAG_DEBUG)
+    if (Gdiag & DIAG_INFO)
+    {
+      long long dlen = sizeof(int) + sizeof(int) + sizeof(float);
       printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_META dlen = %lld, warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
 	     dlen, mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
+    }
     
-    znzwriteInt(TAG_GCAMORPH_META, fp);
-    znzwriteLong(dlen, fp);
-    znzwriteInt(mri->warpFieldFormat, fp);
-    znzwriteInt(mri->gcamorphSpacing, fp);
-    znzwriteFloat(mri->gcamorphExp_k, fp);
+    fstagsio.write_gcamorph_meta(mri->warpFieldFormat, mri->gcamorphSpacing, mri->gcamorphExp_k);
 
     // output TAG_GCAMORPH_AFFINE
     if (mri->gcamorphAffine)
     {
-      if (MGZ_TAG_DEBUG)
+      if (Gdiag & DIAG_INFO)
       {
         printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_AFFINE\n");
         MatrixPrint(stdout, mri->gcamorphAffine);
       }
       // znzWriteMatrix will write data length (1600) after tagid
-      znzWriteMatrix(fp, mri->gcamorphAffine, TAG_GCAMORPH_AFFINE);
+      fstagsio.write_matrix(mri->gcamorphAffine, TAG_GCAMORPH_AFFINE);
     }
 
     // output TAG_GCAMORPH_LABELS
     if (mri->gcamorphLabel)
     {
-      if (MGZ_TAG_DEBUG)
+      if (Gdiag & DIAG_INFO)
         printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_LABELS\n");
-      znzwriteInt(TAG_GCAMORPH_LABELS, fp);
-      for (int x = 0; x < mri->width; x++)
-        for (int y = 0; y < mri->height; y++)
-          for (int z = 0; z < mri->depth; z++)
-            znzwriteInt(mri->gcamorphLabel[x][y][z], fp);
+
+      fstagsio.write_gcamorph_labels(mri->width, mri->height, mri->depth, mri->gcamorphLabel);
     }
 
     return;
   }
 
-  
+  if (niftiheaderext)
+  {
+    // extra TAGs for nifti header extension
+    // TAG_DOF, TAG_SCAN_PARAMETERS
+    fstagsio.write_dof(mri->dof);
+    fstagsio.write_scan_parameters(mri);
+  }
+
   // if mri->transform_fname has non-zero length
   // I write a tag with strlength and write it
   // I increase the tag_datasize with this amount
   int flen = 0;
   if ((flen = strlen(mri->transform_fname)) > 0) {
-    znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen + 1);
+    fstagsio.write_tag(TAG_MGH_XFORM, mri->transform_fname, flen + 1);
   }
 #if 0  
   // mri->tag_data and mri->tag_data_size don't seem to be set (2024-01-11)
@@ -12480,29 +12569,177 @@ void MRITAGwrite(MRI *mri, znzFile fp)
   }
 #endif  
 
-  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign, TAG_AUTO_ALIGN);
-  if (mri->pedir)
-    znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir) + 1);
-  else
-    znzTAGwrite(fp, TAG_PEDIR, (void *)"UNKNOWN", strlen("UNKNOWN"));
+  if (mri->AutoAlign) fstagsio.write_matrix(mri->AutoAlign, TAG_AUTO_ALIGN);
+  // ??? todo: skip TAG_PEDIR for nifti header extension ???
+  if (!niftiheaderext)
+  {
+    if (mri->pedir)
+      fstagsio.write_tag(TAG_PEDIR, mri->pedir, strlen(mri->pedir) + 1);
+    else
+      fstagsio.write_tag(TAG_PEDIR, (void *)"UNKNOWN", strlen("UNKNOWN"));
+  }
 
   // mri->origRas2Vox can be set from mri_convert --store_orig_ras2vox (-so)
   if (mri->origRas2Vox)
   {
     printf("saving original ras2vox\n") ;
-    znzWriteMatrix(fp, mri->origRas2Vox, TAG_ORIG_RAS2VOX);
+    fstagsio.write_matrix(mri->origRas2Vox, TAG_ORIG_RAS2VOX);
   }
 
-  znzTAGwrite(fp, TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
+  // ??? todo: skip TAG_FIELDSTRENGTH for nifti header extension ???
+  if (!niftiheaderext)
+    // mri->FieldStrength is written to file in native endian, needs to be read in native endian
+    fstagsio.write_tag(TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
 
-  znzTAGwriteMRIframes(fp, mri);
+  fstagsio.write_mri_frames(mri);
 
   if (mri->ct) {
-    znzwriteInt(TAG_OLD_COLORTABLE, fp);
-    znzCTABwriteIntoBinary(mri->ct, fp);
+    fstagsio.write_old_colortable(mri->ct);
   }
 
   // write other tags
   for (int i = 0; i < mri->ncmds; i++)
-    znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);  
-}
+    fstagsio.write_tag(TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
+} // end MRITAGwrite()
+
+
+// calculate lengh of all TAG data include tagids and 8 bytes for len(tagdata) of each TAG, if the TAG has length format
+// MRITAGwrite() and MRITAGread() need to be consistent with this function.
+long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
+{
+  long long dlen = 0, taglen = 0;
+
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __getMRITAGlength(): dlen = %-6lld\n", dlen);
+  
+  if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
+  {
+    // output TAG_GCAMORPH_GEOM
+    taglen = FStagsIO::getlen_gcamorph_geom(niftiheaderext);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_GEOM);
+    
+    // output TAG_GCAMORPH_META data-length data
+    taglen = FStagsIO::getlen_gcamorph_meta();  //sizeof(int) + sizeof(int) + sizeof(float);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_META);    
+
+    // output TAG_GCAMORPH_AFFINE
+    if (mri->gcamorphAffine)
+    {
+      taglen = FStagsIO::getlen_matrix();
+      dlen += taglen;
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_AFFINE);
+    }
+
+    // output TAG_GCAMORPH_LABELS
+    if (mri->gcamorphLabel)
+    {
+      taglen = FStagsIO::getlen_gcamorph_labels(mri->width, mri->height, mri->depth, sizeof(int), niftiheaderext);
+      dlen += taglen;
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_LABELS);
+    }
+
+    return dlen;
+  }
+
+  if (niftiheaderext)
+  {
+    // extra TAGs for nifti header extension
+    // TAG_DOF, TAG_SCAN_PARAMETERS
+    taglen = FStagsIO::getlen_dof(mri->dof);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_DOF);
+    
+    taglen = FStagsIO::getlen_scan_parameters(mri);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_SCAN_PARAMETERS);
+  }
+
+  
+  // if mri->transform_fname has non-zero length
+  // I write a tag with strlength and write it
+  // I increase the tag_datasize with this amount
+  int flen = 0;
+  if ((flen = strlen(mri->transform_fname)) > 0) {
+    taglen = FStagsIO::getlen_tag(TAG_MGH_XFORM, flen + 1, niftiheaderext);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_MGH_XFORM);
+  }
+
+  if (mri->AutoAlign)
+  {
+    taglen = FStagsIO::getlen_matrix();
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_AUTO_ALIGN);
+  }
+
+  // ??? todo: skip TAG_PEDIR for nifti header extension ???
+  if (!niftiheaderext)
+  {
+    if (mri->pedir)
+    {
+      taglen = FStagsIO::getlen_tag(TAG_PEDIR, strlen(mri->pedir) + 1, niftiheaderext);
+      dlen += taglen;
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_PEDIR);
+    }
+    else
+    {
+      taglen = FStagsIO::getlen_tag(TAG_PEDIR, strlen("UNKNOWN"), niftiheaderext);
+      dlen += taglen;
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_PEDIR);
+    }
+  }
+
+  // mri->origRas2Vox can be set from mri_convert --store_orig_ras2vox (-so)
+  if (mri->origRas2Vox)
+  {
+    taglen = FStagsIO::getlen_matrix();
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_ORIG_RAS2VOX);
+  }
+
+  // ??? todo: skip TAG_FIELDSTRENGTH for nifti header extension ???
+  if (!niftiheaderext)
+  {
+    taglen = FStagsIO::getlen_tag(TAG_FIELDSTRENGTH, sizeof(mri->FieldStrength), niftiheaderext);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_FIELDSTRENGTH);
+  }
+
+  taglen = FStagsIO::getlen_mri_frames(mri);
+  dlen += taglen;
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_MRI_FRAME);
+
+  if (mri->ct)
+  {
+    taglen = FStagsIO::getlen_old_colortable(mri->ct, niftiheaderext);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_OLD_COLORTABLE);
+  }
+
+  // write other tags
+  for (int i = 0; i < mri->ncmds; i++)
+  {
+    taglen = FStagsIO::getlen_tag(TAG_CMDLINE, strlen(mri->cmdlines[i]) + 1, niftiheaderext);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_CMDLINE);
+  }
+
+  return dlen;
+} // end __getMRITAGlength()
