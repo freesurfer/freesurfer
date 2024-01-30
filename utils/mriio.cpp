@@ -9623,7 +9623,8 @@ static int niiWrite(MRI *mri0, const char *fname)
     int reminder = esize - (mgztaglen + 12); // esize+ecode+version=12
     if (reminder > 0)
     {
-      unsigned char padzero[reminder] = {'\0'};
+      unsigned char padzero[reminder];
+      memset(padzero, 0, reminder);
       znzwrite(padzero, sizeof(unsigned char), reminder, fp);
     }
 
