@@ -319,7 +319,7 @@ main(int argc, char *argv[]) {
         sprintf(fname, "%s/%s/mri/transforms/talairach.m3z", sdir, argv[i]) ;
         gcam = GCAMreadAndInvert(fname);
         if (gcam == NULL) exit(1);
-        GCAMmorphSurf(mris, gcam, 1); // 1=apply inverse
+        GCAMmorphSurf(mris, gcam);
         GCAMfree(&gcam);
       } else {
         printf("ERROR: don't know what to do with %s\n",xform_name);
@@ -512,7 +512,7 @@ get_option(int argc, char *argv[]) {
     case 'T':
       TargTempVolPath = argv[2] ;
       nargs = 1 ;
-      printf("using xform %s...\n", xform_name) ;
+      printf("using target %s...\n", TargTempVolPath);
       break ;
     case '?':
     case 'U':
