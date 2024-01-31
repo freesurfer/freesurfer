@@ -510,7 +510,9 @@ static int parse_commandline(int argc, char **argv) {
       MRISfree(&trgsurf);
       exit(0);
     }
-    else if (!strcasecmp(option, "--m3z") || !strcasecmp(option, "--inv-m3z") ) {
+    else if (!strcasecmp(option, "--gcam") || !strcasecmp(option, "--m3z") || !strcasecmp(option, "--inv-m3z") ){
+      // Note: behavior is not changed with --inv-m3z now because it is automatically determined
+      // whether the gcam needs to be inverted
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
       MRIS *m3zsurf = MRISread(pargv[0]);
@@ -519,20 +521,7 @@ static int parse_commandline(int argc, char **argv) {
       GCA_MORPH *gcam;
       gcam = GCAMread(pargv[1]);
       if(gcam==NULL) exit(1);
-      int DoInv;
-      if(!strcasecmp(option, "--m3z")){
-	// Ironically, mapping the surface from source to target requires that the gca be invertex
-	MRI *mri_tmp ;
-	mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT) ;
-	useVolGeomToMRI(&gcam->image, mri_tmp);
-	printf("Inverting GCAM\n");
-	GCAMinvert(gcam, mri_tmp) ;
-	MRIfree(&mri_tmp) ;
-	DoInv=1;
-      } 
-      else DoInv=0;
-      printf("DoInv %d\n",DoInv);
-      int err = GCAMmorphSurf(m3zsurf, gcam, DoInv);
+      int err = GCAMmorphSurf(m3zsurf, gcam);
       if(err) exit(1);
       if(center_surface) MRIScenter(m3zsurf, m3zsurf);
       printf("Writing surf to %s\n",pargv[2]);

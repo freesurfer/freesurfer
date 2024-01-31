@@ -142,9 +142,9 @@ struct GCA_MORPH
   int  neg ;
   double exp_k ;
   int  spacing ; // poor choice to make this an int
-  MRI  *mri_xind ;    /* MRI ->gcam transform */
-  MRI  *mri_yind ;
-  MRI  *mri_zind ;
+  MRI  *mri_xind=NULL ;    /* MRI ->gcam transform */
+  MRI  *mri_yind=NULL ;
+  MRI  *mri_zind=NULL ;
   VOL_GEOM   image;             /* image that the transforms maps to  */
   VOL_GEOM   atlas ;            /* atlas for the transform       */
   int        ninputs ;
@@ -520,7 +520,7 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam,
 int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma);
 
 #include "mrisurf.h"
-int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam, int sampleInverse);
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
 
 MRI *GCAMMScomputeOptimalScale(GCAM_MS *gcam_ms,
                                TRANSFORM *transform,

@@ -3271,6 +3271,9 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
     if(surf==NULL) return(NULL);
 
     if(asp->xform_name){
+      char *ext = fio_extension(asp->xform_name);
+      sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
+
       if (!strcmp(asp->xform_name,"talairach.xfm")) {
 	printf("  Applying linear transform %s\n",asp->xform_name);
 	XFM = DevolveXFMWithSubjectsDir(subject, NULL, asp->xform_name, fsenv->SUBJECTS_DIR);
@@ -3278,25 +3281,24 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 	MRISmatrixMultiply(surf, XFM);
 	MatrixFree(&XFM);
       } 
-      else if (!strcmp(asp->xform_name,"talairach.m3z")) {
+      else if(!strcmp(ext,"m3z") || !strcmp(ext,"mgz") || !strcmp(ext,"mgh")){
 	printf("  Applying GCA Morph %s\n",asp->xform_name);
-	sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
-	printf("   reading %s\n",tmpstr);
-	gcam = GCAMreadAndInvert(tmpstr);
+	gcam = GCAMread(tmpstr);
 	if(gcam == NULL) return(NULL);
-	GCAMmorphSurf(surf, gcam, 1); //1=map from anat to atlas
+	GCAMmorphSurf(surf, gcam);
 	GCAMfree(&gcam);
       } 
-      else {
-	sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
+      else if(!strcmp(ext,"lta")){
 	printf("  Applying linear transform %s\n",tmpstr);
 	LTA *lta = LTAread(tmpstr);
 	if(lta==NULL) exit(1);
 	int err = MRISltaMultiply(surf, lta);
 	if(err) return(NULL);
-	//sprintf(tmpstr, "./%s.%s", asp->hemi, subject);
-	//MRISwrite(surf,tmpstr);
 	LTAfree(&lta);
+      }
+      else {
+	printf("ERROR: don't know what to do with %s\n",tmpstr);
+	return(NULL);
       }
     }
 

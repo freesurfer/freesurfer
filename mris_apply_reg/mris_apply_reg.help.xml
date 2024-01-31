@@ -40,8 +40,8 @@
       <explanation> apply an LTA registration to a surface</explanation>
       <argument>--lta-rot source-surf ltafile outputsurf</argument>
       <explanation> apply just the rotational components of an LTA registration to a surface</explanation>
-      <argument>--m3z source-surf m3zfile outputsurf</argument>
-      <explanation> apply an M3Z registration to a surface</explanation>
+      <argument>--gcam source-surf gcamfile outputsurf</argument>
+      <explanation> apply a GCA morph registration to a surface (was --m3z)</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>--streg srcreg2 trgreg2</argument>

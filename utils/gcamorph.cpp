@@ -5549,8 +5549,27 @@ int GCAMsampleInverseMorphRAS(
   from native anat to atlas). If sampleInverst=0, it will map from
   atlas to native native anat.
   ---------------------------------------------------------------------*/
-int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam, int sampleInverse)
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 {
+  printf("GCAMorphSurf\n");
+  int m = GCAMgeomMatch(&mris->vg, gcam);
+  if(m==0) {
+    int gd = Gdiag_no;
+    Gdiag_no = 1;
+    GCAMgeomMatch(&mris->vg, gcam);	
+    Gdiag_no = gd;
+    return(1);
+  }
+  int sampleInverse = 0;
+  if(m == 2){ // must match the atlas=1, else invert
+    printf("  Inverted GCAM needed\n");
+    sampleInverse = 1;
+    if(gcam->mri_xind && gcam->mri_yind && gcam->mri_zind) printf("  GCAM already inverted\n");
+    else {
+      printf("  Inverting GCAM \n");fflush(stdout);
+      GCAMinvert(gcam);
+    }
+  } 
   printf("GCAMorphSurf sampleInverse=%d\n",sampleInverse);
 
   MRISfreeDistsButNotOrig(mris);
