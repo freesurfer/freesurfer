@@ -37,7 +37,7 @@ set fname = $argv[1];
 set dname = `dirname $fname`;
 set fname = `basename $fname`;
 
-foreach ext (mgh mgz nii nii.gz img bhdr annot m3z)
+foreach ext (mgh mgz nii nii.gz img bhdr annot m3z gii)
   set tmp = `basename $fname .$ext`;
   if($fname != $tmp) then
     echo $ext
