@@ -638,6 +638,13 @@ if arg.out_fixed:
         out = mov.new(out)
     out.save(arg.out_fixed)
 
+vmpeak = sf.system.vmpeak();
+if(vmpeak is not None):
+    print('#@# mri_synthmoph %s threads %d VmPeak %s' % (arg.model,arg.threads,vmpeak));
 
 print('Thank you for choosing SynthMorph. Please cite us!')
 print(rewrap(ref))
+
+sys.exit(0);
+
+
