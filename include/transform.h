@@ -232,6 +232,7 @@ int TransformSampleReal2(TRANSFORM *transform,
 
 const char *LTAtransformTypeName(int ltatype);
 int LTAdump(FILE *fp, LTA *lta);
+int LTAdumpVolGeom(FILE *fp, VG *vg);
 int LTAdumpLinearTransform(FILE *fp, LT *lt);
 int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
