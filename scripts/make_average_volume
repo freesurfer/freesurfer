@@ -34,6 +34,7 @@ set sdout = ();
 set DoASeg = 1;
 set cleanup = 1;
 set DoXHemi = 0;
+set ConfFlag = "-conform"
 set ctab = ()
 
 set cmdargs = ($argv);
@@ -96,7 +97,7 @@ set tmpdir = $outdir/tmp/make_average_vol-tmp-$$
 mkdir -p $tmpdir
 
 #----------------------------------------------------------
-foreach volid (orig nu T1 brain)
+foreach volid (nu norm wm) #orig nu T1 brain wm # wm needed for surfaces?
   set invollist = ();
 
   foreach subject ($SUBJECTS)
@@ -134,9 +135,9 @@ foreach volid (orig nu T1 brain)
     set invollist = ($invollist $xfmvol);
   end
 
-  # Average the volumes together
+  # Average the volumes together (this will conform as well unless -noconform)
   set outvol = $outdir/mri/$volid.mgz
-  set cmd = (mri_average $invollist $outvol)
+  set cmd = (mri_average $ConfFlag $invollist $outvol)
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) exit 1;
@@ -158,7 +159,12 @@ foreach volid (orig nu T1 brain)
 
 end
 
-cp $outdir/mri/brain.mgz $outdir/mri/brainmask.mgz
+pushd $outdir/mri/
+ln -s nu.mgz orig.mgz
+ln -s nu.mgz T1.mgz
+ln -s norm.mgz brain.mgz
+ln -s norm.mgz brainmask.mgz
+popd
 
 set outtalxfm = $outdir/mri/transforms/talairach.xfm
 rm -f $outtalxfm
@@ -367,6 +373,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--xform":
+    case "--v-xform":
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
         set getting_subjects = 0;
@@ -430,7 +437,7 @@ while( $#argv != 0 )
       endif
       breaksw
 
-    # These are flags passed to make_average_subject, but dont apply here
+    # These are 0-arg flags passed to make_average_subject, but dont apply here
     case "--no-link":
     case "--link":
     case "--no-surf":
@@ -450,8 +457,8 @@ while( $#argv != 0 )
       endif
       breaksw
 
-    # These are flags passed to make_average_subject, but dont apply here.
-    # Need to eat the arguments.
+    # These 1-arg flags passed to make_average_subject, but dont apply here.
+    # Need to eat the argument.
     case "--surfreg":
     case "--surf-reg":
     case "--surf_reg":
@@ -459,12 +466,13 @@ while( $#argv != 0 )
     case "--annot"
     case "--meas"
     case "--rca-threads":
+    case "--s-xform":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
         shift;
       endif
-      set SurfReg = $argv[1]; shift;
+      shift;
       breaksw
 
     case "--keep-all-orig":
@@ -493,6 +501,24 @@ while( $#argv != 0 )
 
     case "--xhemi":
       set DoXHemi = 1;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    case "--conform":
+    case "-conform":
+      set ConfFlag = "-conform"
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+    case "--no-conform":
+    case "-no-conform":
+    case "-noconform":
+      set ConfFlag = "-noconform"
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

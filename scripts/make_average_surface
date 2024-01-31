@@ -31,7 +31,7 @@ set PrintHelp = 0;
 set UseSymLink = 1;
 set sdout = ();
 set inputargs = ($argv);
-set surflist = (white pial orig)
+set surflist = (white pial)
 set ForceUpdate = 0
 
 if ( $?SUBJECTS) then
@@ -237,6 +237,9 @@ foreach hemi ($hemilist)
     endif
     echo ""  | tee -a $LF
   end # loop over surfaces
+  pushd surf
+  ln -sf $hemi.white $hemi.orig
+  popd
 
   #--------------------------------------------------------------
   # Create sphere and sphere.reg.  mris_make_average_surface creates
@@ -250,9 +253,9 @@ foreach hemi ($hemilist)
     set icoreg = ${FREESURFER_HOME}/average/surf/${hemi}.sphere.ico$ico_no.reg 
   endif
   set ud = (`UpdateNeeded surf/$hemi.sphere $templatevol $icoreg`)
-  set cmd = (mris_convert --vol-geom $templatevol $icoreg surf/$hemi.sphere)
-    if($ud || $ForceUpdate) then
-      echo $cmd  | tee -a $LF
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_convert --vol-geom $templatevol $icoreg surf/$hemi.sphere)
+    echo $cmd  | tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
       echo "mris_convert failed"  | tee -a $LF
@@ -279,20 +282,26 @@ foreach hemi ($hemilist)
   pwd | tee -a $LF
 
   # Smooth white to get smoothwm (should average the indiv smoothwms?)
-  set cmd = (mris_smooth -nw -n 5 ./${hemi}.white ./${hemi}.smoothwm)
-  echo $cmd |& tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-  echo "" | tee -a $LF
+  set ud = `UpdateNeeded ./${hemi}.smoothwm ./${hemi}.white `
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_smooth -nw -n 5 ./${hemi}.white ./${hemi}.smoothwm)
+    echo $cmd |& tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    echo "" | tee -a $LF
+  endif
 
   # Inflate the smoothwm
-  set niters = "-n 15";
-  if($ico_no <= 5) set niters = "-n 2";
-  set cmd = (mris_inflate -dist .01 -f .001 -no-save-sulc $niters ./${hemi}.smoothwm ./${hemi}.inflated)
-  echo $cmd |& tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-  echo "" | tee -a $LF
+  set ud = `UpdateNeeded ./${hemi}.inflated ./${hemi}.smoothwm`
+  if($ud || $ForceUpdate) then
+    set niters = "-n 15";
+    if($ico_no <= 5) set niters = "-n 2";
+    set cmd = (mris_inflate -dist .01 -f .001 -no-save-sulc $niters ./${hemi}.smoothwm ./${hemi}.inflated)
+    echo $cmd |& tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    echo "" | tee -a $LF
+  endif
 
   cd $sdout/$average_subject
 
@@ -301,7 +310,7 @@ foreach hemi ($hemilist)
     foreach annot ($annotlist)
       set cmd = (annot2std --o label/$hemi.$annot.annot --$hemi \
         --f $subjlistfile --t $average_subject --a $annot \
-        --srcsurfreg $sphere_reg --trgsurfreg sphere.reg)
+        --srcsurfreg $sphere_reg --trgsurfreg sphere.reg --overwrite)
       if($DoXHemi) set cmd = ($cmd --xhemi)
       echo $cmd | tee -a $LF
       $cmd |& tee -a $LF
@@ -312,7 +321,7 @@ foreach hemi ($hemilist)
     if($DoCortexLabel) then
       set annot = $ddir/label/$hemi.aparc.a2009s.annot
       if(! -e $annot) then
-        echo "ERROR: cannto find $annot" |& tee -a $LF
+        echo "ERROR: cannot find $annot" |& tee -a $LF
         exit 1;
       endif
       # Create tmpdir
@@ -350,7 +359,7 @@ foreach hemi ($hemilist)
       if($status) exit 1;
       rm -rf $tmpdir; # Cleanup
     endif # DoCortexLabel
-  endif
+  endif # UseAnnot
 
   # Create average surface measures
   foreach meas ($measlist)
@@ -526,6 +535,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--xform":
+    case "--s-xform":
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
         set getting_subjects = 0;
@@ -704,16 +714,7 @@ while( $#argv != 0 )
       endif
       breaksw
 
-    # These are flags passed to make_average_subject, but dont apply here
-    case "--ctab":
-    case "--rca-threads":
-      if ( $getting_subjects ) then
-        # got em all, from --subjects variable arg loop
-        set getting_subjects = 0;
-        shift;
-      endif
-      shift;
-      breaksw
+    # These 0-arg flags passed to make_average_subject, but dont apply here.
     case "--no-surf":
     case "--no-vol":
     case "--force":
@@ -721,11 +722,30 @@ while( $#argv != 0 )
     case "--keep-all-orig":
     case "--no-ribbon":
     case "--ctab-default":
+    case "--conform":
+    case "-conform":
+    case "--no-conform":
+    case "-no-conform":
+    case "-noconform":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
       endif
       breaksw
+
+    # These 1-arg flags passed to make_average_subject, but dont apply here.
+    # Need to eat the argument.
+    case "--ctab":
+    case "--rca-threads":
+    case "--v-xform":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      shift;
+      breaksw
+
 
     default:
       if ( $getting_subjects ) then
