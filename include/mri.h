@@ -1717,9 +1717,9 @@ MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,
 int MRInormalizeSequence(MRI *mri, float target) ;
 
 int setDirectionCosine(MRI *mri, int orientation);
-int getSliceDirection(MRI *mri);
+int getSliceDirection(VOL_GEOM *mri);
 int mriOKforSurface(MRI *mri); // check whether the volume is conformed or not
-int mriConformed(MRI *mri) ;
+int mriConformed(VOL_GEOM *mri) ; // IsConformed
 int MRIfindRightSize(VOL_GEOM *mri, float conform_size);
 float MRIfindMinSize(VOL_GEOM *mri, int *conform_width);
 
@@ -1773,7 +1773,7 @@ float MRIfovCol(MRI *mri);
 int MRIdircosToOrientationString(VOL_GEOM *mri, char *ostr);
 int MRIorientationStringToDircos(MRI *mri, const char *ostr);
 char *MRIcheckOrientationString(const char *ostr);
-char *MRIsliceDirectionName(MRI *mri);
+char *MRIsliceDirectionName(VOL_GEOM *mri);
 MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 MRI *MRIconformSliceOrder(MRI *mri);
 

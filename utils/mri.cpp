@@ -15339,7 +15339,7 @@ int MRIdircosToOrientationString(VOL_GEOM *mri, char *ostr)
   orientation base on the direction cosine. If mri->ras_good_flag=0,
   then "unknown" is returned.
   -------------------------------------------------------------------*/
-char *MRIsliceDirectionName(MRI *mri)
+char *MRIsliceDirectionName(VOL_GEOM *mri)
 {
   char ostr[4];
   const char *slicedir = NULL;

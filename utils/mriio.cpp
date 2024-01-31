@@ -256,7 +256,7 @@ int setDirectionCosine(MRI *mri, int orientation)
 #define isCloseToOne(a) (fabs(fabs(a) - 1) < 0.1)
 
 // here I take the narrow view of slice_direction
-int getSliceDirection(MRI *mri)
+int getSliceDirection(VOL_GEOM *mri)
 {
   int direction = MRI_UNDEFINED;
 
@@ -298,7 +298,7 @@ int mriOKforSurface(MRI *mri)
     return 1;
 }
 
-int mriConformed(MRI *mri)
+int mriConformed(VOL_GEOM *mri) // IsConformed
 {
   // first check slice direction
   if (getSliceDirection(mri) != MRI_CORONAL)
