@@ -499,19 +499,18 @@ int GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam)
   return (0);
 }
 /*----------------------------------------------------------------------
-  GCAMreadAndInvert() - reads morph and inverts. If the inverse
-  exists on disk, then it is read in instead of being computed. The
-  files that compose the inverse morph are talairach.m3z.inv.{x,y,z}.mgh,
-  which are assumed to live in the same directory as the forward morph,
-  which is assumed to be in mri/transforms. This is important because,
-  if the morph must be explicitly inverted, it will read in the header
-  for mri/orig.mgz (or die trying).
+  GCAMreadAndInvert() - reads morph and inverts. If the inverse exists
+  on disk, then it is read in instead of being computed. The files
+  that compose the inverse morph are talairach.m3z.inv.{x,y,z}.mgh,
+  which are assumed to live in the same directory as the forward
+  morph, which is assumed to be in mri/transforms.  Remember, this is
+  not actually inverting the GCAM but rather filling in the inverse
+  parts of the GCAM structure.
   ----------------------------------------------------------------------*/
 GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
 {
   GCA_MORPH *gcam;
-  char tmpstr[2000], *gcamdir, *mridir;
-  MRI *mri;
+  char tmpstr[2000], *gcamdir;
   int xexists, yexists, zexists;
 
   // Read GCAM
@@ -566,17 +565,20 @@ GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
   else {
     // Must invert explicitly
     printf("Inverting Morph\n");
-    // Need template mri
-    mridir = fio_dirname(gcamdir);
-    sprintf(tmpstr, "%s/%s", mridir,(gcam->image).fname);
+    // Need template mri (actually, you don't)
+    //char *mridir = fio_dirname(gcamdir);
+    //sprintf(tmpstr, "%s/%s", mridir,(gcam->image).fname);
     //sprintf(tmpstr, "%s", (gcam->image).fname); // was this. always fail?
-    mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
-    if (mri == NULL) {
-      printf("ERROR: reading %s\n", tmpstr);
-      return (NULL);
-    }
-    GCAMinvert(gcam, mri);
-    free(mridir);
+    //MRI *mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
+    //if (mri == NULL) {
+    //  printf("ERROR: reading %s\n", tmpstr);
+    //  return (NULL);
+    //}
+    //GCAMinvert(gcam, mri);
+    //free(mridir);
+    // Remember, this is not actually inverting the GCAM but rather filling
+    // in the inverse parts of the GCAM structure.
+    GCAMinvert(gcam);
   }
 
   free(gcamdir);
@@ -16327,6 +16329,8 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
         lta1 = LTAinvert(lta1, /*output*/lta1);
       }
       else {
+	printf("gcam->image vol geom\n");
+	LTAdumpVolGeom(stdout, &gcam->image);
         ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): LTA 1 geometry does not match");
       }
     }
@@ -17383,3 +17387,25 @@ GCA_MORPH *GCAMchangeVolGeom(GCA_MORPH *gcam, MRI *mri_src, MRI *mri_dst)
   return (gcam_out);
 }
 
+/*!
+  \fn int GCAMgeomMatch(VOL_GEOM *mri, GCAM *gcam)
+  \brief Determines whether the given volume geometry/mri is the GCAM
+  atlas (1), image (2), or neither (0). This can be used to determine
+  whether the GCAM needs to be inverted.
+ */
+int GCAMgeomMatch(VOL_GEOM *mri, GCAM *gcam)
+{
+  if(vg_isEqual(&gcam->atlas, mri)) return(1);
+  if(vg_isEqual(&gcam->image, mri)) return(2);
+  if(Gdiag_no){
+    printf("GCAMgeomMatch(): not match\n");
+    printf("Input ====================\n");
+    LTAdumpVolGeom(stdout,mri);
+    printf("Atlas ====================\n");
+    LTAdumpVolGeom(stdout,&gcam->atlas);
+    printf("Image ====================\n");
+    LTAdumpVolGeom(stdout,&gcam->image);
+    fflush(stdout);
+  }
+  return(0);
+}

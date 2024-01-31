@@ -662,5 +662,6 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   int gcamSmoothGradient( GCA_MORPH *gcam, int navgs );
 
 MRI *GCAMtoMRI(GCAM *gcam, MRI *mri);
+int GCAMgeomMatch(VOL_GEOM *mri, GCAM *gcam);
 
 #endif
