@@ -634,16 +634,19 @@ static void do_file(char *fname)
   ext = fio_extension(fname);
   if (ext == NULL)
     ErrorExit(ERROR_UNSUPPORTED, "%s: could not parse extension from %s", Progname, fname) ;
-  if (!(strstr(ext, "m3d") == 0 && strstr(ext, "m3z") == 0
-     && strstr(ext, "M3D") == 0 && strstr(ext, "M3Z") == 0)){
+
+  mri = MRIreadHeader(fname, intype);
+  int mriintent = mri->intent;
+  MRIfree(&mri);
+
+  if ((!(strstr(ext, "m3d") == 0 && strstr(ext, "m3z") == 0
+	 && strstr(ext, "M3D") == 0 && strstr(ext, "M3Z") == 0)) ||
+      mriintent == 3){
     fprintf(fpout,"Input file is a 3D morph.\n");
 
     gcam = NULL;
     gcam = GCAMread(fname);
-    if (!gcam)
-    {
-      return;
-    }
+    if (!gcam) return;
 
     const char *type = "UNKNOWN";
     if (gcam->type == GCAM_RAS) {
