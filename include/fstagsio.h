@@ -61,7 +61,7 @@ public:
   // if the TAG is in 'tagid len data' format, *plen = len(data);
   // otherwise, *plen = 0
   // after the call, the file pointer points to the data
-  int read_tagid_len(long long *plen, int tagwithzerolen);
+  int read_tagid_len(long long *plen, int tagwithzerolen=0);
 
   // the file pointer should pass tagid and datalength, and point to the data
   int read_data(void *databuf, long long len);

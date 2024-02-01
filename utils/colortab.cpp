@@ -34,8 +34,6 @@
 #include "proto.h"
 #include "utils.h"
 
-#include "fsbufferio.h"
-
 /* Different binary i/o versions. */
 static int CTABwriteIntoBinaryV1(COLOR_TABLE *ct, FILE *fp);
 static int CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp);
@@ -947,68 +945,6 @@ int znzCTABwriteIntoBinary(COLOR_TABLE *ct, znzFile fp)
 
   return (result);
 }
-
-
-/*-------------------------------------------------------------------
-  ----------------------------------------------------------------*/
-/*
- * there are also 
- *   CTABwriteInfoBinary(), CTABwriteInfoBinaryV1(), CTABwriteInfoBinaryV2();
- *   znzCTABwriteInfoBinary(), znzCTABwriteInfoBinaryV1(), znzCTABwriteInfoBinaryV2().
- *
- * only V2 is implemented here
- */
-int CTABwriteIntoBinaryBuffer(COLOR_TABLE *ct, FSbufferIO *fsbufio)
-{
-  int structure;
-  int i, t;
-  int num_entries_to_write;
-
-  
-#if 0 // commented it out for now  
-  if (NULL == ct) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABwriteIntoBinaryBuffer: ct was NULL"));
-  if (ctbuf == NULL) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABwriteIntoBinaryBuffer: fp was NULL"));
-#endif  
-
-  /* Write our negative version number. */
-  fsbufio->write_int(-2);
-
-  /* First we write the number of entries we have. Note that this is
-  really the max structure index; some of these entries could be
-  blank. */
-  fsbufio->write_int(ct->nentries);
-
-  /* Now the length of the filename and the filename with an extra
-  character for the null terminator. */
-  fsbufio->write_int(strlen(ct->fname) + 1);
-  fsbufio->write_buf(ct->fname, strlen(ct->fname) + 1);
-
-  /* We have to run through our table and count our non-null
-  entries. */
-  num_entries_to_write = 0;
-  for (i = 0; i < ct->nentries; i++)
-    if (NULL != ct->entries[i]) num_entries_to_write++;
-  fsbufio->write_int(num_entries_to_write);
-
-  /* Now for each bin, if it's not null, write it to the stream. */
-  for (structure = 0; structure < ct->nentries; structure++) {
-    if (NULL != ct->entries[structure]) {
-      /* Write the structure number, then name, then color
-      info. */
-      fsbufio->write_int(structure);
-      fsbufio->write_int(strlen(ct->entries[structure]->name) + 1);
-      fsbufio->write_buf(ct->entries[structure]->name, strlen(ct->entries[structure]->name) + 1);
-      fsbufio->write_int(ct->entries[structure]->ri);
-      fsbufio->write_int(ct->entries[structure]->gi);
-      fsbufio->write_int(ct->entries[structure]->bi);
-      t = 255 - ct->entries[structure]->ai; /* alpha = 255-trans */
-      fsbufio->write_int(t);
-    }
-  }
-
-  return (NO_ERROR);  
-}
-
 
 /*-------------------------------------------------------------------
   ----------------------------------------------------------------*/

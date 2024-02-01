@@ -667,6 +667,7 @@ static int parse_commandline(int argc, char **argv) {
     nargsused = 0;
 
     if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--diag-debug")) Gdiag |= DIAG_INFO;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;

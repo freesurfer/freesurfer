@@ -557,6 +557,13 @@ int FStagsIO::read_tagid_len(long long *plen, int tagwithzerolen)
   tag = znzreadInt(fp);
   if (znzeof(fp)) return (0);
 
+  // for nifti header extension, there is a data-length for all TAGs
+  if (niftiheaderext)
+  {
+    *plen = znzreadLong(fp);  // read data-length for the tagid
+    return tag;
+  }
+  
   if (tagwithzerolen && tagwithzerolen == tag)
   {
     /* This is to handle following situation: 
