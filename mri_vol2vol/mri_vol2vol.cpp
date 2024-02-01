@@ -1295,7 +1295,13 @@ static int parse_commandline(int argc, char **argv) {
       printf("Matrix from regfile:\n");
       MatrixPrint(stdout,R);
       printf("\n");
-      if (err) exit(1);
+      if(err) exit(1);
+      // Now read it as an lta to have the lta
+      lta = LTAread(regfile) ;
+      if(lta == NULL){
+	printf("ERROR reading LTA %s !\n",regfile);        
+	exit(1) ;
+      }
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--lta",0) || istringnmatch(option, "--lta-inv",0)) {
@@ -1312,11 +1318,11 @@ static int parse_commandline(int argc, char **argv) {
 	printf("ERROR reading LTA %s !\n",regfile);        
 	exit(1) ;
       }
-      if (!lta->xforms[0].src.valid){
+      if(!lta->xforms[0].src.valid){
 	printf("ERROR LTA %s has no valid src geometry!\n",regfile);        
 	exit(1) ;       
       }
-      if (!lta->xforms[0].dst.valid){
+      if(!lta->xforms[0].dst.valid){
 	printf("ERROR LTA %s has no valid dst geometry!\n",regfile);        
 	exit(1) ; 
       }
@@ -2130,9 +2136,15 @@ static void check_options(void) {
     exit(1);
   }
 
-  if (targvolfile == NULL && DownSample[0]==0){
-    printf("ERROR: No target volume supplied.\n");
-    exit(1);
+  if(targvolfile == NULL){
+    if(lta && ! invert){
+      printf("Getting target volume geom from lta destination\n");
+      targ = MRIallocFromVolGeom(&lta->xforms[0].dst, MRI_UCHAR, 1,1);
+    }
+    else if(DownSample[0]==0){
+      printf("ERROR: No target volume supplied.\n");
+      exit(1);
+    }
   }
 
   if(outvolfile == NULL && DispFile == NULL) {
@@ -2185,7 +2197,7 @@ static void check_options(void) {
     }
   }
   
-  if(lta != NULL && !fstal){
+  if(lta != NULL && !fstal && targvolfile){
     MRI *mrimovtmp,*mritrgtmp;
     printf("%s %s\n",movvolfile,targvolfile);
     mrimovtmp = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
