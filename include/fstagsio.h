@@ -34,7 +34,7 @@ public:
   //        set 'addtaglength = true' (default), 'niftiheaderext = true'
   //
   static long long getlen_tag(int tag, long long len, bool niftiheaderext=false, bool addtaglength=true);
-  static long long getlen_matrix(bool addtaglength=true);
+  static long long getlen_matrix(bool niftiheaderext, bool addtaglength=true);
   static long long getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_mri_frames(MRI *mri, bool addtaglength=true);
   static long long getlen_gcamorph_geom(bool niftiheaderext=false, bool addtaglength=true);
@@ -80,6 +80,11 @@ public:
   
   // skip tag data (len of bytes)
   int skip_tag(int tag, long long len);
+
+private:
+  int __write_matrix_niftiheaderext(MATRIX *M, int tag=0);
+  MATRIX* __read_matrix_niftiheaderext();
+  
 private:
   znzFile fp;
 

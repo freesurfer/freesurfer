@@ -8639,7 +8639,7 @@ static MRI *niiRead(const char *fname, int read_volume)
   if (Gdiag & DIAG_INFO)
   {
     long here = znztell(fp);
-    printf("[DEBUG] niiRead(): after znzseek(%ld), file position = %ld\n", (long)hdr.vox_offset, here);
+    printf("[DEBUG] niiRead(): zeek to image data, after znzseek(%ld), file position = %ld\n", (long)hdr.vox_offset, here);
   }
   
   if (!scaledata) {
@@ -11494,6 +11494,7 @@ int mghWrite(MRI *mri, const char *fname, int frame)
 
   if (Gdiag & DIAG_INFO)
   {
+    printf("[DEBUG] tr = %.6f, flip_angle = %.6f, te = %.6f, ti = %.6f, fov = %.6f\n", mri->tr, mri->flip_angle, mri->te, mri->ti, mri->fov);
     long long here = znztell(fp);
     printf("[DEBUG] mghWrite() fpos = %-6lld (after scan parameters, before TAG)\n", here);
   }
@@ -12571,7 +12572,6 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
 #endif  
 
   if (mri->AutoAlign) fstagsio.write_matrix(mri->AutoAlign, TAG_AUTO_ALIGN);
-  // ??? todo: skip TAG_PEDIR for nifti header extension ???
   if (!niftiheaderext)
   {
     if (mri->pedir)
@@ -12587,7 +12587,6 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
     fstagsio.write_matrix(mri->origRas2Vox, TAG_ORIG_RAS2VOX);
   }
 
-  // ??? todo: skip TAG_FIELDSTRENGTH for nifti header extension ???
   if (!niftiheaderext)
     // mri->FieldStrength is written to file in native endian, needs to be read in native endian
     fstagsio.write_tag(TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
@@ -12630,7 +12629,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     // output TAG_GCAMORPH_AFFINE
     if (mri->gcamorphAffine)
     {
-      taglen = FStagsIO::getlen_matrix();
+      taglen = FStagsIO::getlen_matrix(niftiheaderext);
       dlen += taglen;
       if (Gdiag & DIAG_INFO)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_AFFINE);
@@ -12677,13 +12676,12 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
 
   if (mri->AutoAlign)
   {
-    taglen = FStagsIO::getlen_matrix();
+    taglen = FStagsIO::getlen_matrix(niftiheaderext);
     dlen += taglen;
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_AUTO_ALIGN);
   }
 
-  // ??? todo: skip TAG_PEDIR for nifti header extension ???
   if (!niftiheaderext)
   {
     if (mri->pedir)
@@ -12705,13 +12703,12 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   // mri->origRas2Vox can be set from mri_convert --store_orig_ras2vox (-so)
   if (mri->origRas2Vox)
   {
-    taglen = FStagsIO::getlen_matrix();
+    taglen = FStagsIO::getlen_matrix(niftiheaderext);
     dlen += taglen;
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_ORIG_RAS2VOX);
   }
 
-  // ??? todo: skip TAG_FIELDSTRENGTH for nifti header extension ???
   if (!niftiheaderext)
   {
     taglen = FStagsIO::getlen_tag(TAG_FIELDSTRENGTH, sizeof(mri->FieldStrength), niftiheaderext);
