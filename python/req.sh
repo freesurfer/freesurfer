@@ -21,6 +21,7 @@ if [ $# == 0 ]; then
    echo "$s:              requirements-extra.txt --> requirements-build-extra.txt"
    echo "$s: --rm-links   Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git"
    echo "$s: --uninstall  Remove soft python packages that should not be re-distributes and/or are not needed"
+   echo "$s: --reinstall  Re-install any python modules that were previously uninstalled (using generated postinstall.sh)"
    exit 0
 fi
 
@@ -32,6 +33,7 @@ add_links=0
 rm_links=0
 generate=0
 uninstall=0
+reinstall=0
 
 while [[ $# -gt 0 ]] && [[ "$1" == "--"* ]] ;
 do
@@ -42,28 +44,35 @@ do
         "--generate" )
            echo "$s: (Re)generate the requirements-build.txt and requirements-build-extra.txt files using the fspython found under your current INSTALL_PREFIX."
            generate=1
-           if [[ $add_links -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 ]]; then
+           if [[ $add_links -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--add-links" )
            echo "$s: Remove original requirements.txt and requirements-extra.txt and create soft links to them from requirements-build.txt and requirements-build-extra.txt."
            add_links=1
-           if [[ $generate -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 ]]; then
+           if [[ $generate -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--rm-links" )
            echo "$s: Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git."
            rm_links=1
-           if [[ $generate -eq 1 ||$add_links -eq 1 || $uninstall -eq 1 ]]; then
+           if [[ $generate -eq 1 ||$add_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--uninstall" )
            echo "$s: Remove packages that include libs/code we cannot re-distribute and/or are not cross-platform compatible."
            uninstall=1
-           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 ]]; then
+           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 || $reinstall -eq 1 ]]; then
+              echo "$s: Only 1 argument allowed" && exit 1
+           fi
+           ;;
+        "--reinstall" )
+           echo "$s: Reinstall any python modules we may have uninstalled."
+           reinstall=1
+           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1|| $uninstall -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
@@ -103,6 +112,8 @@ if [ "$install_path" == "" ]; then
 else
    echo "$s: Using install path $install_path"
 fi 
+
+nvidia_subdir="$install_path/python/lib/python3.8/site-packages/nvidia"
 
 if [ $generate -eq 1 ]; then
    # If requirements files not soft links and modified, then stop and do not clobber
@@ -229,26 +240,75 @@ if [ $rm_links -eq 1 ]; then
 fi
 
 if [ $uninstall -eq 1 ]; then
+   # check contents of nvidia directory
+   echo "Contents of nvidia subdir BEFORE UNINSTALL"
+   ls $nvidia_subdir
 
    func_setup_fspython
-
-   # remove nvidia packages with compiled cuda shared libs (installed as dependency on linux but not MacOS)
+   # remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
    # remove triton
-   fspython -m pip freeze | grep "^nvidia\|^triton" > /dev/null
+   fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
    if [ $? -eq 0 ]; then
-      rm -f uninstall.txt
-      fspython -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > uninstall.txt
+      rm -f postinstall.list
+      fspython -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
       echo -n "$s: Uninstalling: "
-      cat uninstall.txt | tr -s '\n' ' ' && echo
-      yes | fspython -m pip uninstall -q -r uninstall.txt > /dev/null 2>&1
+      cat postinstall.list | tr -s '\n' ' ' && echo
+      yes | fspython -m pip uninstall -q -r postinstall.list > /dev/null 2>&1
       if [ $? -ne 0 ]; then
-         echo "$s: pip uninstall failed - exiting."
+         echo "$s: pip UNINSTALL failed - exiting."
          exit 1
+      else
+         echo "fspython UNINSTALL returned status 0"
       fi
+
+      # check contents of nvidia directory
+      echo "Contents of nvidia subdir AFTER UNINSTALL"
+      ls $nvidia_subdir
+
+      # create a postinstall script to reinstall what was deleted
+      if [ -e ./postinstall.list ]; then
+         rm -f postinstall.sh
+         echo -n "yes | fspython -m pip install " > postinstall.sh
+         cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
+         chmod 755 postinstall.sh
+         # also save these in the fspython distribution
+         cp -p -f postinstall.list $install_path/python/.
+         cp -p -f postinstall.sh $install_path/python/.
+         cat $install_path/python/postinstall.sh
+      else
+         echo "Cannor find list of removed modules postinstall.list to create postinstall.sh"
+      fi
+
    else
       echo "$s: Found nothing to uninstall in output from pip freeze."
    fi
 fi
+
+
+if [ $reinstall -eq 1 ]; then
+   if [ -e $install_path/python/postinstall.sh ]; then
+      # check contents of nvidia directory
+      echo "Contents of nvidia subdir BEFORE REINSTALL"
+      ls $nvidia_subdir
+
+      func_setup_fspython
+      # (cd $install_path/python && bash -x postinstall.sh)
+      bash -x $install_path/python/postinstall.sh
+      if [ $? -ne 0 ]; then
+         echo "$s: pip REINSTALL failed - exiting."
+         exit 1
+      else
+         echo "fspython REINSTALL returned status 0"
+      fi
+
+      # check contents of nvidia directory
+      echo "Contents of nvidia subdir AFTER REINSTALL"
+      ls $nvidia_subdir
+   else
+      echo "Cannot find postinstall script postinstall.sh to re-install python modules"
+   fi
+fi
+
 
 # echo "--------------------------------- end of req.sh ------------------------------"
 echo "$s: end"
