@@ -75,6 +75,7 @@ static int PrintNRows = 0;
 static int PrintNSlices = 0;
 static int PrintDim = 0;
 static int PrintRes = 0;
+static int PrintMinRes = 0;
 static int PrintDOF = 0;
 static int PrintNFrames = 0;
 static int PrintMidFrame = 0;
@@ -320,6 +321,10 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintRes = 1;
     }
+    else if (!strcasecmp(option, "--min-res"))
+    {
+      PrintMinRes = 1;
+    }
     else if (!strcasecmp(option, "--dof"))
     {
       PrintDOF = 1;
@@ -505,6 +510,7 @@ static void print_usage(void)
   printf("   --fa : print flip angle to stdout\n");
   printf("   --pedir : print phase encode direction\n");
   printf("   --res : print col row slice and frame resolution \n");
+  printf("   --min-res : print minimum of col row and slice resolutions (not frame) \n");
   printf("   --cres : print column voxel size (xsize)\n");
   printf("   --rres : print row    voxel size (ysize)\n");
   printf("   --sres : print slice  voxel size (zsize)\n");
@@ -860,6 +866,11 @@ static void do_file(char *fname)
   {
     fprintf(fpout,"%9.7f %9.7f %9.7f %9.7f\n",
             mri->xsize,mri->ysize,mri->zsize,mri->tr);
+    return;
+  }
+  if (PrintMinRes)
+  {
+    fprintf(fpout,"%9.7f\n",MIN(mri->xsize,MIN(mri->ysize,mri->zsize)));
     return;
   }
   if (PrintDOF)
