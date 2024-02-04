@@ -70,7 +70,7 @@ long long FStagsIO::getlen_tag(int tag, long long len, bool niftiheaderext, bool
 }
 
 
-long long FStagsIO::getlen_matrix(bool addtaglength)
+long long FStagsIO::getlen_matrix(bool niftiheaderext, bool addtaglength)
 {
   long long dlen = 0;
   if (addtaglength)
@@ -78,7 +78,11 @@ long long FStagsIO::getlen_matrix(bool addtaglength)
     dlen += 4;
     dlen += sizeof(long long);
   }
-  dlen += MATRIX_STRLEN;  // ??? MATRIX_STRLEN = (4 * 4 * 100) enough for matrix ???
+
+  if (niftiheaderext)
+    dlen += 16 * sizeof(float);
+  else
+    dlen += MATRIX_STRLEN;  // MATRIX_STRLEN = (4 * 4 * 100)
   
   return dlen;
 }
@@ -262,6 +266,15 @@ int FStagsIO::write_tag(int tag, void *data, long long dlen)
 // tags.cpp::znzWriteMatrix()
 int FStagsIO::write_matrix(MATRIX *M, int tag)
 {
+  if (Gdiag & DIAG_INFO)
+  {
+    printf("[DEBUG] FStagsIO::write_matrix()\n");
+    MatrixPrint(stdout, M);
+  }
+  
+  if (niftiheaderext)
+    return __write_matrix_niftiheaderext(M, tag);
+  
   long long dlen = MATRIX_STRLEN;
   char matbuf[dlen];
 
@@ -284,7 +297,13 @@ int FStagsIO::write_matrix(MATRIX *M, int tag)
           M->rptr[4][2],
           M->rptr[4][3],
           M->rptr[4][4]);
-  
+
+  if (Gdiag & DIAG_INFO)
+  {
+    printf("[DEBUG] FStagsIO::write_matrix() TAG = %-4d, len = %-6lld\n", tag, dlen);
+    printf("[DEBUG] FStagsIO::write_matrix() %s\n", matbuf);
+  }
+    
   return write_tag(tag, matbuf, dlen);
 }
 
@@ -557,6 +576,13 @@ int FStagsIO::read_tagid_len(long long *plen, int tagwithzerolen)
   tag = znzreadInt(fp);
   if (znzeof(fp)) return (0);
 
+  // for nifti header extension, there is a data-length for all TAGs
+  if (niftiheaderext)
+  {
+    *plen = znzreadLong(fp);  // read data-length for the tagid
+    return tag;
+  }
+  
   if (tagwithzerolen && tagwithzerolen == tag)
   {
     /* This is to handle following situation: 
@@ -603,33 +629,44 @@ int FStagsIO::read_data(void *databuf, long long len)
 // tags.cpp::znzReadAutoAlignMatrix()
 MATRIX* FStagsIO::read_matrix()
 {
-  MATRIX *M;
-  char buf[MATRIX_STRLEN];
+  MATRIX *M = NULL;
+  if (niftiheaderext)
+    M = __read_matrix_niftiheaderext();
+  else
+  {
+    char buf[MATRIX_STRLEN];
 
-  /* no fscanf equivalent in zlib!! have to hack it */
-  znzread(buf, sizeof(unsigned char), MATRIX_STRLEN, fp);
-  M = MatrixAlloc(4, 4, MATRIX_REAL);
-  char ch[100];
-  sscanf(buf,
-         "%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-         ch,
-         &(M->rptr[1][1]),
-         &(M->rptr[1][2]),
-         &(M->rptr[1][3]),
-         &(M->rptr[1][4]),
-         &(M->rptr[2][1]),
-         &(M->rptr[2][2]),
-         &(M->rptr[2][3]),
-         &(M->rptr[2][4]),
-         &(M->rptr[3][1]),
-         &(M->rptr[3][2]),
-         &(M->rptr[3][3]),
-         &(M->rptr[3][4]),
-         &(M->rptr[4][1]),
-         &(M->rptr[4][2]),
-         &(M->rptr[4][3]),
-         &(M->rptr[4][4]));
+    /* no fscanf equivalent in zlib!! have to hack it */
+    znzread(buf, sizeof(unsigned char), MATRIX_STRLEN, fp);
+    M = MatrixAlloc(4, 4, MATRIX_REAL);
+    char ch[100];
+    sscanf(buf,
+           "%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+             ch,
+           &(M->rptr[1][1]),
+           &(M->rptr[1][2]),
+           &(M->rptr[1][3]),
+           &(M->rptr[1][4]),
+           &(M->rptr[2][1]),
+           &(M->rptr[2][2]),
+           &(M->rptr[2][3]),
+           &(M->rptr[2][4]),
+           &(M->rptr[3][1]),
+           &(M->rptr[3][2]),
+           &(M->rptr[3][3]),
+           &(M->rptr[3][4]),
+           &(M->rptr[4][1]),
+           &(M->rptr[4][2]),
+           &(M->rptr[4][3]),
+           &(M->rptr[4][4]));
+  }
 
+  if (Gdiag & DIAG_INFO)
+  {
+    printf("[DEBUG] FStagsIO::read_matrix()\n");
+    MatrixPrint(stdout, M);
+  }
+    
   return (M);
 }
 
@@ -663,7 +700,16 @@ int FStagsIO::read_mri_frames(MRI *mri, long len)
     frame->label = znzreadInt(fp);
     znzread(frame->name, sizeof(char), STRLEN, fp);
     frame->dof = znzreadInt(fp);
-    frame->m_ras2vox = znzReadMatrix(fp);
+
+    // the embedded matrix has tag and data-length 
+    long long matlen = 0;
+    int mattag = read_tagid_len(&matlen);
+    frame->m_ras2vox = read_matrix();  // znzReadMatrix(fp);
+    if (Gdiag & DIAG_INFO)
+    {
+      printf("[DEBUG] FStagsIO::read_mri_frame() TAG = %-4d, len = %-6lld\n", mattag, matlen);
+      MatrixPrint(stdout, frame->m_ras2vox);
+    }    
 
     frame->thresh = znzreadFloat(fp);
     frame->units = znzreadInt(fp);
@@ -802,4 +848,70 @@ int FStagsIO::skip_tag(int tag, long long len)
 #else
   return (znzseek(fp, len, SEEK_CUR));  // doesn't work for gzipped files
 #endif  
+}
+
+
+int FStagsIO::__write_matrix_niftiheaderext(MATRIX *M, int tag)
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+
+  if (tag > 0)
+  {
+    znzwriteInt(tag, fp);
+
+    long long dlen = getlen_matrix(niftiheaderext, false);
+    znzwriteLong(dlen, fp);
+  }
+  
+  znzwriteFloat(M->rptr[1][1], fp);
+  znzwriteFloat(M->rptr[1][2], fp);
+  znzwriteFloat(M->rptr[1][3], fp);
+  znzwriteFloat(M->rptr[1][4], fp);
+  znzwriteFloat(M->rptr[2][1], fp);
+  znzwriteFloat(M->rptr[2][2], fp);
+  znzwriteFloat(M->rptr[2][3], fp);
+  znzwriteFloat(M->rptr[2][4], fp);
+  znzwriteFloat(M->rptr[3][1], fp);
+  znzwriteFloat(M->rptr[3][2], fp);
+  znzwriteFloat(M->rptr[3][3], fp);
+  znzwriteFloat(M->rptr[3][4], fp);
+  znzwriteFloat(M->rptr[4][1], fp);
+  znzwriteFloat(M->rptr[4][2], fp);
+  znzwriteFloat(M->rptr[4][3], fp);
+  znzwriteFloat(M->rptr[4][4], fp);
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] FStagsIO::__write_matrix_niftiheaderext() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", tag, fend-fstart, fstart, fend);
+  }
+  
+  return NO_ERROR;
+}
+
+
+MATRIX* FStagsIO::__read_matrix_niftiheaderext()
+{
+  MATRIX *M = MatrixAlloc(4, 4, MATRIX_REAL);
+
+  M->rptr[1][1] = znzreadFloat(fp);
+  M->rptr[1][2] = znzreadFloat(fp);
+  M->rptr[1][3] = znzreadFloat(fp);
+  M->rptr[1][4] = znzreadFloat(fp);
+  M->rptr[2][1] = znzreadFloat(fp);
+  M->rptr[2][2] = znzreadFloat(fp);
+  M->rptr[2][3] = znzreadFloat(fp);
+  M->rptr[2][4] = znzreadFloat(fp);
+  M->rptr[3][1] = znzreadFloat(fp);
+  M->rptr[3][2] = znzreadFloat(fp);
+  M->rptr[3][3] = znzreadFloat(fp);
+  M->rptr[3][4] = znzreadFloat(fp);
+  M->rptr[4][1] = znzreadFloat(fp);
+  M->rptr[4][2] = znzreadFloat(fp);
+  M->rptr[4][3] = znzreadFloat(fp);
+  M->rptr[4][4] = znzreadFloat(fp);
+
+  return (M);
 }

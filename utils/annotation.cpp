@@ -1281,6 +1281,7 @@ MRI *ReadAnnotAsMRISeg(char *annotfname, int volume_flag)
   file has an embedded lookup table so that it can convert annotation values
   to segmentation indices. See also ReadAnnotAsMRISeg().
 */
+// can't find any usages (2024-02-01)
 MRI *readAnnotationIntoSeg(const std::string& filename)
 {
   FILE *f = fopen(filename.c_str(), "r");
@@ -1324,6 +1325,7 @@ MRI *readAnnotationIntoSeg(const std::string& filename)
   seg MRI has a lookup table so that it can convert segmentation indices to
   annotation values.
 */
+// can't find any usages (2024-02-01)
 void writeAnnotationFromSeg(const MRI *overlay, const std::string& filename)
 {
   FILE *f = fopen(filename.c_str(), "wb");

@@ -28,6 +28,7 @@ extern char *annotation_table_file;
 #endif
 
 MRI *ReadAnnotAsMRISeg(char *annotfname, int volume_flag); // reads index like a normal seg
+// the following two functions are not used (2024-02-01)
 MRI *readAnnotationIntoSeg(const std::string& filename); // reads annot
 void writeAnnotationFromSeg(const MRI *annot, const std::string& filename);
 

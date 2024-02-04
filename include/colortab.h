@@ -32,8 +32,6 @@
 
 #define CTAB_VERSION_TO_WRITE 2
 
-class FSbufferIO;
-
 /* A color table entry. The index of the entry in the table itself is
    the structure index. */
 typedef struct
@@ -80,7 +78,6 @@ extern int ctabDuplicates;
    code) and then binary information for each entry. */
 COLOR_TABLE *CTABreadFromBinary(FILE *fp);
 int         CTABwriteIntoBinary(COLOR_TABLE *ct, FILE *fp);
-int         CTABwriteIntoBinaryBuffer(COLOR_TABLE *ct, FSbufferIO *fsbufio);
 
 /* zlib support */
 COLOR_TABLE * znzCTABreadFromBinary(znzFile fp);
