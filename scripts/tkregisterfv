@@ -453,6 +453,10 @@ while( $#argv != 0 )
       set interp = trilinear
       breaksw
 
+    case "--cubic":
+      set interp = cubic
+      breaksw
+
     case "--heat":
       set ColorMap = heat
       breaksw
@@ -687,6 +691,8 @@ usage_exit:
   echo "  --surf surfname : explicit path to surf to load"
   echo "  --aux-surf auxsurfname : explicit path to surf to load"
   echo "  --plane plane : cor, sag, ax"
+  echo "  --linear : use trilinear interp"
+  echo "  --cubic : use cubic interp"
   echo "  --no-config : do not automatically raise transform config window"
   echo "  --mov2 mov2 <--reg2 reg2> : provide a second mov (and possibly reg)"
   echo "  --mov3 mov3 <--reg3 reg3> : provide a third mov (and possibly reg)"
