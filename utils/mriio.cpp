@@ -98,7 +98,7 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
 
 #define MGZ_TAG_DEBUG 0
-#define KEEP_NII_OPEN 0
+#define KEEP_NII_OPEN 1
 
 static long long __getMRITAGlength(MRI *mri, bool niftiheaderext=false);
 static void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag);
