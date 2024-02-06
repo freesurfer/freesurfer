@@ -98,8 +98,10 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
 
 #define MGZ_TAG_DEBUG 0
+#define KEEP_NII_OPEN 0
 
 static long long __getMRITAGlength(MRI *mri, bool niftiheaderext=false);
+static void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag);
 
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
@@ -8402,7 +8404,8 @@ static MRI *niiRead(const char *fname, int read_volume)
     }
   }
 
-  znzclose(fp);
+  if (!KEEP_NII_OPEN)
+    znzclose(fp);
 
   if (memcmp(hdr.magic, NII_MAGIC, 4) != 0) {
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): bad magic number in %s", fname));
@@ -8557,7 +8560,7 @@ static MRI *niiRead(const char *fname, int read_volume)
   if (hdr.sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    // fprintf(stderr,"INFO: using NIfTI-1 sform \n");
+    fprintf(stderr,"INFO: using NIfTI-1 sform (sform_code=%d)\n", hdr.sform_code);
     if (niftiSformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -8566,7 +8569,7 @@ static MRI *niiRead(const char *fname, int read_volume)
   }
   else if (hdr.qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform \n");
+    fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", hdr.qform_code);
     if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -8614,16 +8617,47 @@ static MRI *niiRead(const char *fname, int read_volume)
     printf("-----------------------------------------\n");
   }
 
-  if (!read_volume) return (mri);
+  if (!KEEP_NII_OPEN)
+  {
+    fp = znzopen(fname, "r", use_compression);
+    if (fp == NULL) {
+      MRIfree(&mri);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error opening file %s", fname));
+    }
 
-  fp = znzopen(fname, "r", use_compression);
-  if (fp == NULL) {
-    MRIfree(&mri);
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error opening file %s", fname));
+    // skip to pass nifti1 header
+    long nift1_hdr_len = hdr.sizeof_hdr;  // sizeof(nifti_1_header) = 348;
+    if (znzseek(fp, nift1_hdr_len, SEEK_SET) == -1) {
+      znzclose(fp);
+      MRIfree(&mri);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding extension data in %s", fname));
+    }
+
+    if (Gdiag & DIAG_INFO)
+    {
+      long here = znztell(fp);
+      printf("[DEBUG] niiRead(): skip nifti1 header, after znzseek(%ld), file position = %ld\n", nift1_hdr_len, here);
+    }
+  } // if (!KEEP_NII_OPEN)
+
+  // implement reading nifti1 header extension  
+  nifti1_extender extdr;   /* defines extension existence  */
+  znzread(extdr.extension, 1, 4, fp); /* get extender */
+  if (extdr.extension[0] == 1)
+  {
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] niiRead(): process extension ...\n");
+    __niiReadHeaderextension(fp, mri, fname, swapped_flag);
   }
 
-  // ??? todo: implement reading nifti1 header extension ???
+  // Done if we are not reading the image data
+  if (!read_volume) {
+    znzclose(fp);
+    return (mri);
+  }
+    
   if (Gdiag & DIAG_INFO)
     printf("[DEBUG] niiRead(): hdr.vox_offset = %ld\n", (long)hdr.vox_offset);
   
@@ -9172,7 +9206,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
   if (hdr->sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    // fprintf(stderr,"INFO: using NIfTI-1 sform \n");
+    fprintf(stderr, "INFO: niiReadFromMriFsStruct() using NIfTI-1 sform (sform_code=%d)\n", hdr->sform_code);
     if (niftiSformToMri(mri, hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -9181,7 +9215,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
   }
   else if (hdr->qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform \n");
+    fprintf(stderr, "INFO: niiReadFromMriFsStruct() using NIfTI-1 qform (qform_code=%d)\n", hdr->qform_code);
     if (niftiQformToMri(mri, hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -12361,31 +12395,52 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
 }
 
 
-void MRITAGread(MRI *mri, znzFile fp, const char *fname)
+void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext)
 {
   // tag reading
   if (getenv("FS_SKIP_TAGS") != NULL)
     return;
+
+  FStagsIO fstagsio(fp, niftiheaderext);
   
-  int tag;    
   long long len;
 
   while (1) {
-    tag = znzTAGreadStart(fp, &len);
+    int tag = fstagsio.read_tagid_len(&len);
     if (tag == 0) break;
 
     if (Gdiag & DIAG_INFO)
-      printf("[DEBUG] MRITAGread() znzTAGreadStart(): tag = %d, len = %lld\n", tag, len);
+      printf("[DEBUG] MRITAGread(): tag = %d, len = %lld\n", tag, len);
       
     switch (tag) {
+      case TAG_DOF:
+	// nifti header extension only
+	if (niftiheaderext)
+	  fstagsio.read_dof(&mri->dof);
+	else
+	{
+	  printf("[WARN] skip unexpected tag TAG_DOF, nifti header extension only\n");
+          fstagsio.skip_tag(tag, len);
+	}
+        break;
+      case TAG_SCAN_PARAMETERS:
+	// nifti header extension only
+	if (niftiheaderext)
+	  fstagsio.read_scan_parameters(mri, len);
+	else
+	{
+	  printf("[WARN] skip unexpected tag TAG_SCAN_PARAMETERS, nifti header extension only\n");
+          fstagsio.skip_tag(tag, len);
+	}
+        break;
       case TAG_MRI_FRAME:
-        if (znzTAGreadMRIframes(fp, mri, len) != NO_ERROR)
+        if (fstagsio.read_mri_frames(mri, len) != NO_ERROR)
           fprintf(stderr, "couldn't read frame structure from file\n");
         break;
 
       case TAG_OLD_COLORTABLE:
         // if reading colortable fails, it will print its own error message
-        mri->ct = znzCTABreadFromBinary(fp);
+        mri->ct = fstagsio.read_old_colortable();
         break;
 
       case TAG_OLD_MGH_XFORM:
@@ -12397,7 +12452,8 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
         sprintf(tmpstr, "%s/transforms/talairach.xfm", fnamedir);
         free(fnamedir);
         fnamedir = NULL;
-        znzgets(mri->transform_fname, len + 1, fp);
+        //fstagsio.read_data(mri->transform_fname, len + 1);
+	fstagsio.read_data(mri->transform_fname, len);
         // If this file exists, copy it to transform_fname
         if (FileExists(tmpstr)) strcpy(mri->transform_fname, tmpstr);
         if (FileExists(mri->transform_fname)) {
@@ -12423,38 +12479,35 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
         if (mri->ncmds >= MAX_CMDS)
           ErrorExit(ERROR_NOMEMORY, "MRITAGread(%s): too many commands (%d) in file", fname, mri->ncmds);
         mri->cmdlines[mri->ncmds] = (char *)calloc(len + 1, sizeof(char));
-        znzread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp);
+        fstagsio.read_data(mri->cmdlines[mri->ncmds], len);
         mri->cmdlines[mri->ncmds][len] = 0;
         mri->ncmds++;
         break;
 
       case TAG_AUTO_ALIGN:
-        mri->AutoAlign = znzReadAutoAlignMatrix(fp);
+        mri->AutoAlign = fstagsio.read_matrix();
         break;
 
-      // I'm not sure if this tag will be read correctly. Will do more tests later.
       // mri->origRas2Vox can be set from mri_convert --store_orig_ras2vox (-so)
-      // znzReadMatrix() calls znzTAGreadStart() again. The file position won't be correct.
       case TAG_ORIG_RAS2VOX:
-        mri->origRas2Vox = znzReadMatrix(fp);
+        mri->origRas2Vox = fstagsio.read_matrix();
         break;
 
       case TAG_PEDIR:
+	// not for freesurfer nifti1 header extension
         mri->pedir = (char *)calloc(len + 1, sizeof(char));
-        znzread(mri->pedir, sizeof(char), len, fp);
+        fstagsio.read_data(mri->pedir, len);
         break;
 
       case TAG_FIELDSTRENGTH:
-        // znzreadFloatEx(&(mri->FieldStrength), fp); // Performs byte swap not in znzTAGwrite()
+	// not for freesurfer nifti1 header extension
 	// mri->FieldStrength is written to file in native endian, needs to be read in native endian
-        znzTAGreadFloat(&(mri->FieldStrength), fp);
+        fstagsio.read_data(&(mri->FieldStrength), sizeof(mri->FieldStrength));
         break;
 
       case TAG_GCAMORPH_META:
-        mri->warpFieldFormat = znzreadInt(fp);
-        mri->gcamorphSpacing = znzreadInt(fp);
-	mri->gcamorphExp_k   = znzreadFloat(fp);
-
+	// MGZ_INTENT_WARPMAP only	
+        fstagsio.read_gcamorph_meta(&mri->warpFieldFormat, &mri->gcamorphSpacing, &mri->gcamorphExp_k);
 	if (Gdiag & DIAG_INFO)
 	{
 	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_META\n");
@@ -12464,13 +12517,18 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
         break;
 
       case TAG_GCAMORPH_GEOM:
-        mri->gcamorph_image_vg.read(fp);
-	mri->gcamorph_atlas_vg.read(fp);
-	//mri->gcamorph_image_vg.vgprint(true);
-	//mri->gcamorph_atlas_vg.vgprint(true);
+	// MGZ_INTENT_WARPMAP only
+	fstagsio.read_gcamorph_geom(&(mri->gcamorph_image_vg), &(mri->gcamorph_atlas_vg));
+        if (Gdiag & DIAG_INFO)
+	{
+	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_GEOM\n");
+	  mri->gcamorph_image_vg.vgprint(true);
+	  mri->gcamorph_atlas_vg.vgprint(true);
+	}
 	break;
       case TAG_GCAMORPH_AFFINE:
-        mri->gcamorphAffine = znzReadAutoAlignMatrix(fp);
+	// MGZ_INTENT_WARPMAP only	
+        mri->gcamorphAffine = fstagsio.read_matrix();
         if (Gdiag & DIAG_INFO)
         {
           printf("[DEBUG] MRITAGread() TAG_GCAMORPH_AFFINE\n");
@@ -12478,23 +12536,17 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname)
         }
         break;
       case TAG_GCAMORPH_LABELS:
+	// MGZ_INTENT_WARPMAP only	
         // allocate memory for mri->gcamorphLabel
         mri->initGCAMorphLabel();
 
-        //printf("[DEBUG] read TAG_GCAMORPH_LABELS\n");
-        for (int x = 0; x < mri->width; x++) {
-          for (int y = 0; y < mri->height; y++) {
-            for (int z = 0; z < mri->depth; z++) {
-              mri->gcamorphLabel[x][y][z] = znzreadInt(fp);
-              if (mri->gcamorphLabel != 0) {
-                DiagBreak();
-              }
-            }
-          }
-        }
+	if (Gdiag & DIAG_INFO)
+          printf("[DEBUG] read TAG_GCAMORPH_LABELS\n");
+	
+        fstagsio.read_gcamorph_labels(mri->width, mri->height, mri->depth, mri->gcamorphLabel);
         break;
       default:
-        znzTAGskip(fp, tag, (long long)len);
+        fstagsio.skip_tag(tag, len);
         break;
     }  // switch (tag)
   }    // while (1)
@@ -12741,3 +12793,71 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
 
   return dlen;
 } // end __getMRITAGlength()
+
+
+// esize/ecode read is based on nifti_read_extensions()/nifti_read_next_extension()
+void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag)
+{
+  // loop through header extensions until we find NIFTI_ECODE_FREESURFER, or reach the end
+  while (1)
+  {
+    /* must start with 4-byte size, and 4-byte code */
+    int esize = 0, ecode = 0;
+    int count = znzread(&esize, 4, 1, fp);
+    if (count == 1) count += znzread(&ecode, 4, 1, fp);
+
+    int valid_ecode = 1;
+    if (ecode < NIFTI_ECODE_IGNORE ||    /* minimum code number (0) */
+        ecode > NIFTI_MAX_ECODE    ||    /* maximum code number     */
+        ecode & 1)                       /* cannot be odd           */
+      valid_ecode = 0;
+      
+    // it seems that znzseek() works fine on either .nii or .nii.gz
+    if (count != 2 || !valid_ecode) {
+      printf("[WARN] __niiReadHeaderextension(): no valid extension read, rollback bytes read\n");
+      znzseek(fp, -4 * count, SEEK_CUR); /* back up past any read */
+      break;                             /* no extension, no error condition */
+    }
+    else
+    {
+      if (swapped_flag) {
+	if (Gdiag & DIAG_INFO)
+          printf("[DEBUG] __niiReadHeaderextension(): pre-swap exts: ecode %d, esize %d\n", ecode, esize);
+
+        byteswapbuffloat(&esize, 4);
+        byteswapbuffloat(&ecode, 4);
+
+        /* 
+         * nifti_image_read() uses these two calls to swap bytes
+         * nifti_swap_4bytes(1, &size);
+         * nifti_swap_4bytes(1, &code);
+         */
+      }
+      
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] niiRead(): ecode %d, esize %d\n", ecode, esize);
+
+      if (ecode != NIFTI_ECODE_FREESURFER)
+	continue;
+      else
+      {
+        if (Gdiag & DIAG_INFO)
+          printf("[DEBUG] niiRead(): process NIFTI_ECODE_FREESURFER\n");
+	
+        // read intent encoded version
+        znzread(&mri->version, 4, 1, fp);
+        if (swapped_flag)
+          byteswapbuffloat(&mri->version, 4);
+
+        mri->intent  = (mri->version >> 8) & 0xff;  // content of the mgz file, annot, curv, warp, ...
+        if (Gdiag & DIAG_INFO)
+          printf("[DEBUG] niiRead(): version = %d, intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
+	
+        bool niftiheaderext = true;
+        MRITAGread(mri, fp, fname, niftiheaderext);
+
+        break;
+      }
+    }
+  }
+}

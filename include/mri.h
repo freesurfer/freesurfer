@@ -1618,7 +1618,7 @@ float MRIvolumeDeterminant(MRI *mri);
 
 MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
 
-void MRITAGread(MRI *mri, znzFile fp, const char *fname);
+void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderextension=false);
 void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderextension=false);
 
 int mriio_command_line(int argc, char *argv[]);
