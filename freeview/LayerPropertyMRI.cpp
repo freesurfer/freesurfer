@@ -119,6 +119,17 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   }
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
+  mHueTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
+  double dval = -180;
+  while (dval <= 180)
+  {
+    QColor c;
+    c.setHsvF(dval < 0?((dval+360)/360):(dval/360), 1, 1);
+    c.toRgb();
+    mHueTable->AddRGBAPoint(dval, c.redF(), c.greenF(), c.blueF(), 1 );
+    dval += 1;
+  }
+  mHueTable->Build();
 
   connect( this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(ContourChanged()), this, SIGNAL(PropertyChanged()) );
@@ -534,6 +545,8 @@ vtkScalarsToColors* LayerPropertyMRI::GetActiveLookupTable()
   case LUT:
   case Binary:
     return mLUTTable;
+  case Hue:
+    return mHueTable;
   default:
     return mColorMapTable;
     break;
@@ -792,6 +805,8 @@ void LayerPropertyMRI::OnColorMapChanged ()
   case Binary:
     break;
 
+  case Hue:
+    break;
   default:
     break;
   }

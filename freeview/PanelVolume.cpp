@@ -495,6 +495,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->comboBoxColorMap->addItem( "NIH", LayerPropertyMRI::NIH );
     ui->comboBoxColorMap->addItem( "PET", LayerPropertyMRI::PET );
     ui->comboBoxColorMap->addItem( "Binary", LayerPropertyMRI::Binary );
+    ui->comboBoxColorMap->addItem( "Hue", LayerPropertyMRI::Hue );
     for ( int i = 0; i < ui->comboBoxColorMap->count(); i++ )
     {
       if ( ui->comboBoxColorMap->itemData( i ).toInt() == nColorMap )
