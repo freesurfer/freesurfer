@@ -82,6 +82,7 @@ install_configured(
   fsr-checkxopts
   fsr-coreg  
   fsr-getxopts
+  fsr-longpreproc
   fsr-import
   fsvglrun
   fsxvfb
