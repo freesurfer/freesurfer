@@ -8,14 +8,14 @@ endif
 set VERSION = 'fsr-import @FS_VERSION@';
 
 set outdir = ();
-set modenamelist = ();
+set modenames = ();
 set inputlist = ();
 set cleanup = 1;
 set LF = ();
 set tmpdir = ()
 set debug = 0
 set ForceUpdate = 0
-set Conform = 1
+set Conform = 0 # Probably should eliminate these
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -71,31 +71,23 @@ if($?PBS_JOBID) then
 endif
 
 #========================================================
-# Get unique list of modes
-set tmpfile = /tmp/tmp.fsr-import.modes.$$
-rm -f $tmpfile
-foreach modename ($modenamelist)
-  echo $modename >> $tmpfile
-end
-set umodenamelist = (`cat $tmpfile | sort | uniq`)
-rm -f $tmpfile
-rm -f $outdir/modenames.txt
-foreach modename ($umodenamelist)
-  echo $modename >> $outdir/modenames.txt
-end
-echo $umodenamelist | tee -a $LF
+if(! -e $inlistfile) then
+  echo $inputlist > $inlistfile
+  echo $modenames  > $modenamefile
+  echo $umodenames > $umodenamefile
+endif
 
-foreach umodename ($umodenamelist)
+foreach umodename ($umodenames)
   @ nth = 0;
   @ ith = 0;
-  foreach modename ($modenamelist)
+  foreach modename ($modenames)
     @ nth = $nth + 1
     set input = $inputlist[$nth];
     if($modename != $umodename) continue;
     @ ith = $ith + 1
     set ithstr = `printf %03d $ith`
     # Call all outputs f or use modename?
-    set ofile = $outdir/$modename/r$ithstr.mgz
+    set ofile = $outdir/$modename/run$ithstr.mgz
     mkdir -p $outdir/$modename
     set ud = `UpdateNeeded $ofile $input`
     if($ud || $ForceUpdate) then
@@ -104,8 +96,6 @@ foreach umodename ($umodenamelist)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) goto error_exit
-    else
-      echo "$ofile update not needed" | tee -a $LF
     endif
   end
   echo $ith > $outdir/$umodename/nruns.txt
@@ -170,7 +160,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $input"
         exit 1;
       endif
-      set modenamelist = ($modenamelist $modename);
+      set modenames = ($modenames $modename);
       set inputlist = ($inputlist $input);
       breaksw
 
@@ -182,8 +172,9 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $input"
         exit 1;
       endif
-      set modenamelist = ($modenamelist $modename);
+      set modenames = ($modenames $modename);
       set inputlist = ($inputlist $input);
+      set HaveT1w = 1
       breaksw
 
     case "--t2w":
@@ -194,7 +185,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $input"
         exit 1;
       endif
-      set modenamelist = ($modenamelist $modename);
+      set modenames = ($modenames $modename);
       set inputlist = ($inputlist $input);
       breaksw
 
@@ -206,7 +197,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $input"
         exit 1;
       endif
-      set modenamelist = ($modenamelist $modename);
+      set modenames = ($modenames $modename);
       set inputlist = ($inputlist $input);
       breaksw
 
@@ -272,10 +263,54 @@ if($#outdir == 0) then
   echo "ERROR: must spec outdir"
   exit 1;
 endif
-if($#modenamelist == 0) then
+
+set inlistfile   = $outdir/log/fsr-import.inputlist.txt
+set modenamefile = $outdir/log/fsr-import.modenames.txt
+set umodenamefile = $outdir/log/fsr-import.unique.modenames.txt
+if(-e $inlistfile || -e $modenamefile || -e $umodenamefile) then
+  # Existing folder
+  if($#inputlist || $#modenames) then
+    echo "ERROR: $outdir already exist, do not specify inputs"
+    exit 1;
+  endif
+  foreach f ($inlistfile $modenamefile $umodenamefile)
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+  end
+  set inputlist = (`cat $inlistfile`)
+  set modenames = (`cat $modenamefile`)
+  set nmodes = $#modenames;
+  set umodenames = (`cat $umodenamefile`)
+  goto check_params_return;
+endif
+
+if($#modenames == 0) then
   echo "ERROR: must spec inputs"
   exit 1;
 endif
+
+# Get a unique list of modenames
+set tmp = /tmp/tmp.fsr-import-long.$$
+rm -f $tmp
+foreach m ($modenames)
+  echo $m >> $tmp
+end
+set umodenames = `cat $tmp | sort | uniq`
+rm -f $tmp
+
+# Get full paths to the inputs
+set inputlisttmp = ()
+foreach f ($inputlist)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+  set ftmp = `getfullpath $f`
+  set inputlisttmp = ($inputlisttmp $ftmp)
+end
+set inputlist = ($inputlisttmp)
 
 goto check_params_return;
 ############--------------##################

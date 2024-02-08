@@ -17,7 +17,7 @@ set selfname = `basename $0`
 
 set importdir = ();
 set outdir = ()
-set refmodename = ();
+set refmode = ();
 set threads = 1
 set cleanup = 1;
 set LF = ();
@@ -25,6 +25,7 @@ set tmpdir = ()
 set XOptsFile = ()
 set GlobXOptsFile = ()
 set ForceUpdate = 0
+set rtsat = 4.685
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -74,27 +75,17 @@ endif
 #========================================================
 date | tee -a $LF
 
-if($#XOptsFile) then
-  cp $XOptsFile $outdir/log
-endif
-
-# Create the refernce mode file
-if(! -e $outdir/refmode.txt) then
-  echo $refmodename > $outdir/refmode.txt
-endif
-
-if(! -e $outdir/modenames.txt) then
-  cp $importdir/modenames.txt $outdir/modenames.txt
+# Create the files to keep track of the inputs and params
+if(! -e $parfile) then
+  echo refmode $refmode >> $parfile
+  if($#XOptsFile) cp $XOptsFile $outdir/log/fsr-coreg.expert.txt
 endif
 
 # Go through each mode and do within mode registration
 echo "\nWithin-mode registration" | tee -a $LF
-set avglist = ()
-foreach modename ($modenamelist)
+foreach modename ($modenames)
   echo "$modename `date` -------------------------"
   set modedir = $outdir/$modename
-  set average = $modedir/$modename.native.mgz
-  set avglist = ($avglist $average)
   mkdir -p $modedir
 
   set nruns = `cat $importdir/$modename/nruns.txt`
@@ -102,12 +93,12 @@ foreach modename ($modenamelist)
   if($nruns == 1) then
     if("$outdir" == "$importdir") then
       pushd $modedir >& /dev/null
-      rm -f $modename.native.mgz
-      ln -s r001.mgz $modename.native.mgz
+      rm -f runavg.mgz
+      ln -s run001.mgz runavg.mgz
       popd >& /dev/null
     else
-      rm -f $modedir/$modename.native.mgz
-      ln -s $importdir/$modename/r001.mgz $modedir/$modename.native.mgz
+      rm -f $modedir/runavg.mgz
+      ln -s $importdir/$modename/run001.mgz $modedir/runavg.mgz
     endif
     echo "$modename, only one run, creating symlink" | tee -a $LF
     continue
@@ -120,8 +111,8 @@ foreach modename ($modenamelist)
   while ($nthrun < $nruns)
     @ nthrun = $nthrun + 1
     set nthrunstr = `printf %03d $nthrun`
-    set srcfile = $importdir/$modename/r$nthrunstr.mgz
-    set ltafile = $outdir/$modename/r$nthrunstr.lta
+    set srcfile = $importdir/$modename/run$nthrunstr.mgz
+    set ltafile = $outdir/$modename/reg$nthrunstr.lta
     if(! -e $srcfile) then
       echo "ERROR: cannot find $srcfile"
       exit 1;
@@ -130,6 +121,8 @@ foreach modename ($modenamelist)
     set ltalist = ($ltalist $ltafile)
   end
 
+  set average = $importdir/$modename/runavg.mgz
+
   # Check whether anything needs to be done
   set UN = `UpdateNeeded $average $srclist`
   if($UN == 0 && $ForceUpdate == 0) then
@@ -137,8 +130,8 @@ foreach modename ($modenamelist)
     continue
   endif
 
-  # If it gets here, then register runs together
-  set cmd = (mri_robust_template --template $average --mov $srclist --lta $ltalist --sat 4.685)
+  # If it gets here, then register refmode runs together
+  set cmd = (mri_robust_template --template $average --mov $srclist --lta $ltalist --sat $rtsat)
   set xopts = `fsr-getxopts $selfname-mri_robust_template $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   date | tee -a $LF
@@ -150,7 +143,7 @@ foreach modename ($modenamelist)
 end
 
 # Start a file for collecting tkregister commands
-if($#modenamelist > 1) then
+if($#modenames > 1) then
   set rc = $outdir/log/registration-check-commands
   rm -f $rc
   echo "# These are commands that can be used to check the cross-modal registration" | tee -a $rc
@@ -159,17 +152,15 @@ endif
 
 #---------------------------------------------------------------------------
 echo "\nBetween-mode registration" | tee -a $LF
-set refvol = $outdir/$refmodename/$refmodename.native.mgz
-foreach modename ($modenamelist)
+set refvol = $outdir/$refmode/runavg.mgz
+foreach modename ($modenames)
   echo "$modename `date` -------------------------" | tee -a $LF
 
-  if($modename == $refmodename) then
+  if($modename == $refmode) then
     # This is the reference mode, just create a link
     pushd $outdir/$modename >& /dev/null
-    rm -f $modename.mgz
-    ln -s $modename.native.mgz $modename.mgz
-    # rm -f $modename.header.mgz
-    # ln -s $modename.mgz $modename.header.mgz
+    rm -f runavg-refmodespace.mgz
+    ln -s runavg.mgz runavg-refmodespace.mgz
     # Create an LTA too?
     popd >& /dev/null
     continue
@@ -179,8 +170,8 @@ foreach modename ($modenamelist)
   # and whether it is different than the auto LTA. If the LTA
   # does not exist or is the same as the auto LTA, then it is
   # safe to copy any newly generated auto LTA to the LTA
-  set ltaauto = $outdir/$modename/$modename.reg-to-ref.auto.lta
-  set lta = $outdir/$modename/$modename.reg-to-ref.lta
+  set ltaauto = $outdir/$modename/reg.avg-to-refmodespace.auto.lta
+  set lta = $outdir/$modename/reg.avg-to-refmodespace.lta
   set LTAsAreDiff = 1;
   if(! -e $lta) set LTAsAreDiff = 0;
   if(-e $lta && -e $ltaauto) then
@@ -190,7 +181,7 @@ foreach modename ($modenamelist)
   # LTAsAreDiff will == 1 if lta does not exist or is the same as ltaauto
 
   # Run mri_coreg to create the auto lta
-  set movvol = $outdir/$modename/$modename.native.mgz
+  set movvol = $outdir/$modename/runavg.mgz
   set UN = `UpdateNeeded $ltaauto $movvol`
   if($UN == 1 || $ForceUpdate == 1) then
     set cmd = (mri_coreg --mov $movvol --ref $refvol --reg $ltaauto --threads $threads)
@@ -217,50 +208,67 @@ foreach modename ($modenamelist)
   echo $cmd | tee -a $rc
   echo "" | tee -a $rc
 
-  # Resample mode to reference mode space (use cubic)
-  # Should concatenate the run LTAs, then resample once and average
-  set outvol = $outdir/$modename/$modename.mgz
-  set UN = `UpdateNeeded $outvol $ltaauto $movvol`
-  if($UN == 1 || $ForceUpdate == 1) then
-    set cmd = (mri_vol2vol --mov $movvol --targ $refvol --reg $lta --o $outvol --interp cubic)
-    set xopts = `fsr-getxopts $selfname-mri_vol2vol $XOptsFile $GlobXOptsFile`;
-    set cmd = ($cmd $xopts)
+  set outvollist = ()
+  @ nthrun = 0;
+  while ($nthrun < $nruns)
+    @ nthrun = $nthrun + 1
+    set nthrunstr = `printf %03d $nthrun`
+    if($nruns > 1) then
+      set runreflta = $outdir/$modename/reg$nthrunstr.refmodespace.lta
+      set runlta = $outdir/$modename/reg$nthrunstr.lta
+      set UN = `UpdateNeeded $runreflta $runlta $lta`
+      if($UN == 1 || $ForceUpdate) then
+        set cmd = (mri_concatenate_lta $runlta $lta $runreflta)
+        set xopts = `fsr-getxopts $selfname-mri_concatenate_lta $XOptsFile $GlobXOptsFile`;
+        set cmd = ($cmd $xopts)
+        date | tee -a $LF
+        echo "cd `pwd`" | tee -a $LF
+        echo $cmd |& tee -a $LF
+        fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit
+      endif
+    else
+      set runreflta = $outdir/$modename/reg.avg-to-refmodespace.lta
+    endif
+
+    # Resample run to reference mode space (use cubic)
+    set movvol = $outdir/$modename/run$nthrunstr.mgz
+    set outvol = $outdir/$modename/run$nthrunstr-refmodespace.mgz
+    set UN = `UpdateNeeded $outvol $runreflta $movvol`
+    if($UN == 1 || $ForceUpdate == 1) then
+      set cmd = (mri_vol2vol --mov $movvol --reg $runreflta --o $outvol --interp cubic)
+      set xopts = `fsr-getxopts $selfname-mri_vol2vol $XOptsFile $GlobXOptsFile`;
+      set cmd = ($cmd $xopts)
+      date | tee -a $LF
+      echo "cd `pwd`" | tee -a $LF
+      echo $cmd |& tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
+    set outvollist = ($outvollist $outvol)
+  end # run
+
+  # Now average together. Should not have to worry about scale here
+  set outvol = $outdir/$modename/runavg-refmodespace.mgz
+  set UN = `UpdateNeeded $outvol $outvollist`
+  if($UN == 1 || $ForceUpdate) then
+    set cmd = (mri_concat $outvollist --mean --o $outvol)
     date | tee -a $LF
     echo "cd `pwd`" | tee -a $LF
     echo $cmd |& tee -a $LF
     fs_time $cmd |& tee -a $LF
     if($status) goto error_exit
-  else
-    echo "$modename, resampling update not needed" | tee -a $LF
   endif
 
-  if(0) then
-  # Change header to create reg to reference mode space (no
-  # resampling) This is better for surfaces. Might not need to do this
-  # here, prob only needed for the fsr output before running
-  # recon-all
-  set outvol = $outdir/$modename/$modename.regheader.mgz
-  set UN = `UpdateNeeded $outvol $lta $movvol`
-  if($UN == 1 || $ForceUpdate == 1) then
-    set cmd = (mri_vol2vol --mov $movvol --targ $refvol --reg $lta --o $outvol --no-resample)
-    date | tee -a $LF
-    echo "cd `pwd`" | tee -a $LF
-    echo $cmd |& tee -a $LF
-    fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit
-  else
-    echo "$modename, header update not needed" | tee -a $LF
-  endif
-  endif
+end #mode
 
-end
 date | tee -a $LF
 echo "" | tee -a $LF
 
-if($#modenamelist > 1) then
+if($#modenames > 1) then
   # Create one freeview command to look at all the resampled modes together
   set cmd = (freeview)
-  foreach modename ($modenamelist)
+  foreach modename ($modenames)
     set outvol = $outdir/$modename/$modename.mgz
     set cmd = ($cmd $outvol)
   end
@@ -274,10 +282,10 @@ endif
 # For fun, create a fsr command line (but don't run it)
 # Make sure that refmode is the first input because fsr
 # uses that for registration to the atlas (or not)
-set outvol = $outdir/$refmodename/$refmodename.mgz
+set outvol = $outdir/$refmode/$refmode.mgz
 set cmd = (fsr --i $outvol)
-foreach modename ($modenamelist)
-  if($modename == $refmodename) continue;
+foreach modename ($modenames)
+  if($modename == $refmode) continue;
   set outvol = $outdir/$modename/$modename.mgz
   set cmd = ($cmd --i $outvol)
 end
@@ -325,7 +333,8 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "--i":
+    case "--importdir":
+    case "--id":
       if($#argv < 1) goto arg1err;
       set importdir = $argv[1]; shift;
       if(! -e $importdir) then
@@ -342,7 +351,7 @@ while( $#argv != 0 )
     case "--ref":
     case "--refmode":
       if($#argv < 1) goto arg1err;
-      set refmodename = $argv[1]; shift;
+      set refmode = $argv[1]; shift;
       breaksw
 
     case "--nthreads":
@@ -413,46 +422,54 @@ if($#importdir == 0) then
   echo "ERROR: must spec importdir"
   exit 1;
 endif
-
-if($#outdir == 0) then
-  set outdir = $importdir
+if(! -e $importdir) then
+  echo "ERROR: $importdir does not exist"
+  exit 1
 endif
 
-# Make sure that specified reference mode matches the existing reference mode
-if(-e $outdir/refmode.txt) then
-  set refmodename0 = `cat $outdir/refmode.txt`
-  if($#refmodename != 0) then
-    if($refmodename != $refmodename0) then
-      echo "ERROR: specified refmode ($refmodename) does not match existing refmode ($refmodename0)"
-      exit 1;
-    endif
-  else
-    set refmodename = $refmodename0;
-  endif
-endif
-
-if($#refmodename == 0) then
-  echo "ERROR: must spec a reference mode"
-  exit 1;
-endif
-
-# Make sure reference mode is in the list of references
-set modenamelist = (`cat $importdir/modenames.txt`)
-set ok = 0;
-foreach modename ($modenamelist)
-  if("$refmodename" == "$modename") then
-    set ok = 1;
-    break;
-  endif
-end
-if(! $ok) then
-  echo "ERROR: reference mode $refmodename is not a mode"
-  echo "Available modes: $modenamelist"
-  exit 1;
-endif
-
+if($#outdir == 0) set outdir = $importdir
 set importdir = `getfullpath $importdir`
 set outdir    = `getfullpath $outdir`
+
+set modenamefile  = $importdir/log/fsr-import.modenames.txt
+set umodenamefile = $importdir/log/fsr-import.unique.modenames.txt
+foreach f ($modenamefile $umodenamefile)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
+set modenames = (`cat $modenamefile`)
+set nmodes = $#modenames;
+set umodenames = (`cat $umodenamefile`)
+
+set parfile = $outdir/log/fsr-coreg.par.txt
+if(-e $parfile) then
+  if($#refmode || $#XOptsFile) then
+    echo "ERROR: output already exists, don't spec input parameters"
+    exit 1
+  endif
+  set refmode = `cat $parfile | awk '{if($1=="refmode") print $2}'`
+  set xo = $outdir/log/fsr-coreg.expert.txt
+  if(-e $xo) set XOptsFile = $xo # wont be there if not using it
+else
+  if($#refmode == 0) then
+    echo "ERROR: must spec a reference mode with --ref"
+    echo " Choices for this input are $umodenames"
+    exit 1;
+  endif
+  # Make sure reference mode is in the list of references
+  set ok = 0;
+  foreach modename ($modenames)
+    if("$refmode" == "$modename") set ok = 1;
+  end
+  if(! $ok) then
+    echo "ERROR: reference mode $refmode is not a mode"
+    echo "Available modes: $modenames"
+    exit 1;
+  endif
+endif
+
 
 goto check_params_return;
 ############--------------##################
