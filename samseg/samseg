@@ -168,18 +168,18 @@ if($DoImport) then
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   # Coregister within and between modes, resample to reference mode
-  set cmd = (fsr-coreg --i $importdir --ref $refmodename --threads $threads --o $coregdir)
+  set cmd = (fsr-coreg --importdir $importdir --ref $refmodename --threads $threads --o $coregdir)
   if($ForceUpdate) set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   # Create input list, make sure refmodename is first
-  set outvol = $coregdir/$refmodename/$refmodename.mgz
+  set outvol = $coregdir/$refmodename/runavg-refmodespace.mgz
   set inputlist = ($outvol)
-  set modenamelist = (`cat $importdir/modenames.txt`)
+  set modenamelist = (`cat $importdir/log/fsr-import.modenames.txt`)
   foreach modename ($modenamelist)
     if($modename == $refmodename) continue;
-    set outvol = $coregdir/$modename/$modename.mgz
+    set outvol = $coregdir/$modename/runavg-refmodespace.mgz
     set inputlist = ($inputlist $outvol)
   end
 endif
@@ -222,6 +222,7 @@ if($DoValGrind) then
   set cmd = ($vg $cmd0)
 endif
 
+echo "\n\n" | tee -a $LF
 echo $cmd | tee -a $LF
 if($#Profile == 0) then
   fs_time $cmd |& tee -a $LF
@@ -854,7 +855,7 @@ if($#subject) then
   endif
   set outdir = $SUBJECTS_DIR/$subject/mri/samseg
   set importdir = $SUBJECTS_DIR/$subject/input
-  set coregdir  = $SUBJECTS_DIR/$subject/coreg
+  set coregdir  = $SUBJECTS_DIR/$subject/input
   # --conformed-to-min in new version of mri_info
   #set cmd = (mri_info --conformed-to-min $inputlist[1])
   #set isconformed = `$cmd | head -n 1`
@@ -868,7 +869,7 @@ if($#subject) then
   mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
 else
   set importdir = $outdir/input
-  set coregdir  = $outdir/coreg
+  set coregdir  = $outdir/input
 endif
 
 goto check_params_return;
