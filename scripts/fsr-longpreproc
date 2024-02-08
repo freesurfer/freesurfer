@@ -1,0 +1,636 @@
+#!/bin/tcsh -f
+# fsr-longpreproc - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set samsegtemplate = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2/template.nii 
+set VERSION = 'fsr-longpreproc @FS_VERSION@';
+set scriptname = `basename $0`
+
+set outdir = ();
+set tplist = ()
+set basemodenames = ()
+set threads = 1
+set ForceUpdate = 0;
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set UseMedian = 1
+set Conform = () # default is off
+set BaseType = () # Default is 1=rigid
+set ResampleToBase = 1
+set RegBaseToSamseg = 1
+set ConfBase = 0;
+set ResampleTPToBase = 1
+set Interp = () # default is cubic
+set XOptsFile = ()
+@ ntp = 0;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+setenv OMP_NUM_THREADS $threads
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/log
+set outdir = `getfullpath $outdir`
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/log/fsr-longpreproc.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fsr-longpreproc" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+# Create the files to keep track of the inputs and params
+if(! -e $tplistfile) then
+  echo $tplist > $tplistfile
+  rm -f $parfile
+  echo ntp $ntp >> $parfile
+  echo Conform $Conform >> $parfile
+  echo BaseType $BaseType >> $parfile
+  echo Interp $Interp >> $parfile
+  echo $umodenames > $umodenamesfile
+  if($#XOptsFile) cp $XOptsFile $outdir/log/fsr-longpreproc.expert.txt
+endif
+
+if($BaseType == 1) set BaseTypeName = rigid
+if($BaseType == 2) set BaseTypeName = affine
+
+set invollist = ()
+foreach tp ($tplist)
+  set invollist = ($invollist $tp/$refmode/runavg-refmodespace.mgz)
+end
+
+# First. create a base using robust reg on the refmode
+mkdir -p $outdir/$refmode
+pushd $outdir
+ln -sf $refmode refmode
+popd
+set rrstr = ""
+if($RegBaseToSamseg) set rrstr = rr.
+set rrltalist = ()
+set rrscalelist = ()
+@ tp = 0;
+foreach invol ($invollist)
+  @ tp = $tp + 1
+  set tpstr = `printf %03d $tp`
+  set rrlta = $outdir/$refmode/${rrstr}reg.tp$tpstr.lta
+  set rrltalist = ($rrltalist $rrlta)
+  set rrscale = $outdir/$refmode/${rrstr}reg.tp${tpstr}.scale
+  set rrscalelist = ($rrscalelist $rrscale)
+end
+set rrbase = $outdir/$refmode/${rrstr}base.mgz
+set ud = `UpdateNeeded $rrbase $invollist`
+if($ud || $ForceUpdate) then
+  # --average is 0 Mean or 1 Median
+  # --satit auto-detect good sensitivity (recommended for head or full brain scans)
+  # --sat 4.685 manually set outlier sensitivity (this is what is done in recon-all)
+  set cmd = (mri_robust_template --mov $invollist --lta $rrltalist \
+    --template $rrbase --iscaleout $rrscalelist \
+    --average 1 --iscale --sat 4.685) #--satit  
+  set subsample = (); # may make it faster to subsample, could be 200, not used in RCA
+  if($#subsample) set cmd = ($cmd  --subsample $subsample)
+  # Do not use these --inittp 1  --fixtp  --noit
+  set xopts = `fsr-getxopts longreg-robustreg $XOptsFile`;
+  set cmd = ($cmd $xopts)
+  echo "\n $cmd \n" |& tee -a $LF 
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+endif
+
+# Create a base space based on the samseg template (rigid)
+if($RegBaseToSamseg) then
+
+  # Create a new samseg template with the resolution of the input
+  # Would be better to create an output with the exact res and dim of the input
+  # Get the resolution (voxel size)
+  set tmp = /tmp/fsr-longpreproc.$$.txt
+  set cmd = (mri_info --o $tmp --res $invollist[1]);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  set res = `cat $tmp`
+  set cmd = (mri_info --o $tmp --dim $invollist[1]);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  set dim = `cat $tmp`
+  rm -f $tmp
+  # Create a new samseg template with this resolution. This is just a
+  # geom template so intensity does not matter (thus the uchar to
+  # reduce size)
+  set localtemplate = $outdir/samseg.template.nii.gz
+  if(! -e $localtemplate || $ForceUpdate) then
+    set cmd = (mri_convert $samsegtemplate $localtemplate -odt uchar \
+       -ois $res[1] -ojs $res[2] -oks $res[3] -oni $dim[1] -onj $dim[2] -onk $dim[3])
+    echo "\n $cmd \n" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  set samsegtemplate = $localtemplate
+
+  # Register the robust register base to samseg template
+  set samsegdir = $outdir/$refmode/samseg-rr.base
+  set samseglta = $samsegdir/template.lta
+  set ud = `UpdateNeeded $samseglta $rrbase`
+  if($ud || $ForceUpdate) then
+    set cmd = (samseg --i $rrbase --o $samsegdir --reg-only --threads $threads)
+    echo "\n $cmd \n" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  pushd $samsegdir
+  ln -sf $samsegtemplate  samseg.template.nii
+  popd
+
+  # Invert the registration
+  set samseginvlta = $samsegdir/template.inv.lta
+  set ud = `UpdateNeeded $samseginvlta $samseglta`
+  if($ud || $ForceUpdate) then
+    set cmd = (lta_convert --inlta $samseglta  --invert --outlta $samseginvlta)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a  $LF 
+    if($status) goto error_exit
+  endif
+
+  if($BaseType == 1) then
+    # Extract the registration parameters
+    set regparfile = $samsegdir/template.reg.par.dat
+    set ud = `UpdateNeeded $regparfile $samseginvlta`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_coreg --mat2par $samseginvlta)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a  $LF | tee $regparfile
+      if($status) goto error_exit
+    endif
+    # Make parameters rigid
+    set regpar = `cat $regparfile`
+    foreach k (7 8 9)
+      set  regpar[$k] = 1
+    end
+    foreach k (10 11 12)
+      set  regpar[$k] = 0
+    end
+    echo "rigid reg par $regpar" | tee -a $LF
+    # Create a rigid registration to the template space
+    set rigidlta = $samsegdir/rigid.lta
+    set ud = `UpdateNeeded $rigidlta $regparfile $rrbase`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_coreg --par2mat $regpar $rrbase $samsegtemplate $rigidlta)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a  $LF 
+      if($status) goto error_exit
+    endif
+  endif
+  if($BaseType == 2) set rigid = $samseginvlta # Rigid
+
+  if($ConfBase) then
+    # Make rigid reg to conformed template space
+    set rigidconflta = $samsegdir/rigid.conf.lta
+    set ud = `UpdateNeeded $rigidconflta $rigidlta`
+    if($ud || $ForceUpdate) then
+      set cmd = (lta_convert --inlta $rigidlta --trgconform --outlta $rigidconflta)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a  $LF 
+      if($status) goto error_exit
+    endif
+  else
+    # I'd like to set the output res to that of the input
+    set rigidconflta = $rigidlta
+  endif
+
+  # Process each time point
+  set flist = ()
+  @ tp = 0
+  foreach invol ($invollist)
+    @ tp = $tp + 1
+    echo "$tp `date` ==============================" | tee -a $LF
+    set tpstr = `printf %03d $tp`
+    # Concatenate the tp-to-base and the base-to-template LTAs
+    set rrlta = $outdir/$refmode/rr.reg.tp$tpstr.lta
+    set concatreg = $outdir/$refmode/reg.tp$tpstr.lta
+    set ud = `UpdateNeeded $concatreg $rrlta $rigidconflta`
+    if($ud || $ForceUpdate) then
+      # Note: as of Feb 6 2023, the LTA passed to samseg must be RAS2RAS (-out_type 1)!!!!
+      set cmd = (mri_concatenate_lta -out_type 1 $rrlta $rigidconflta $concatreg)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a  $LF 
+      if($status) goto error_exit
+    endif
+    if($ResampleTPToBase) then
+      # Resample time point to the base/template space 
+      # Apply intensity scaling too -- needed when combining TPs into the base
+      set rrscale = $outdir/$refmode/rr.reg.tp$tpstr.scale
+      set scale = `cat $rrscale`
+      echo "scale $scale" | tee -a $LF
+      set mulval = `echo "1.0/$scale" | bc -l`
+      set tpbase = $outdir/$refmode/tp$tpstr.base.mgz
+      set ud = `UpdateNeeded $tpbase $concatreg $invol $rrscale`
+      if($ud || $ForceUpdate) then
+        set cmd = (mri_vol2vol --interp $Interp --mov $invol  --reg $concatreg --o $tpbase --mul $mulval)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a  $LF 
+        if($status) goto error_exit
+      endif
+      set flist = ($flist $tpbase)
+    endif # Resample
+  end
+
+  if($ResampleTPToBase) then
+    # And finally create the base volume
+    set base = $outdir/$refmode/base.mgz
+    set ud = `UpdateNeeded $base $flist`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_concat $flist --mean --o $base)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a  $LF 
+      if($status) goto error_exit
+    endif
+  endif
+endif # RegBaseToSamseg
+
+
+# If mapping all to base, resample non-ref-modes to base and average across run
+foreach umode ($umodenames)
+  if($umode == $refmode && $RegBaseToSamseg) continue
+  @ tp = 0
+  while ($tp < $ntp)
+    @ tp = $tp + 1
+    set modevol = $tplist[$tp]/$umode/runavg-refmodespace.mgz # TP volume for this mode in native space
+    set tpstr = `printf %03d $tp`
+    set reg = $outdir/$refmode/reg.tp$tpstr.lta # TP-to-Base
+    set basemodedir = $outdir/$umode
+    set basemodevol = $basemodedir/tp$tpstr.base.mgz
+    if($ResampleToBase) then
+      set ud = `UpdateNeeded $basemodevol $reg $modevol`
+      if($ud || $ForceUpdate) then
+        mkdir -p $basemodedir
+        set cmd = (mri_vol2vol --interp $Interp --mov $modevol --reg $reg --o $basemodevol)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) goto error_exit
+      endif
+    endif
+  end
+end
+
+
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo "\n\n" | tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Fsr-Longpreproc-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Fsr-Longpreproc-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Fsr-Longpreproc-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fsr-longpreproc Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--tp":
+      if($#argv < 1) goto arg1err;
+      set tplist = ($tplist $argv[1]); shift
+
+    case "--rigid":
+      set BaseType = 1
+      breaksw
+    case "--affine":
+      set BaseType = 2
+      breaksw
+
+    case "--nearest":
+      set Interp = nearest
+      breaksw
+    case "--trilinear":
+    case "--linear":
+      set Interp = trilinear
+      breaksw
+    case "--cubic":
+      set Interp = cubic
+      breaksw
+
+    case "--reg-base-to-samseg":
+      set RegBaseToSamseg = 1
+      breaksw
+    case "--no-reg-base-to-samseg":
+      set RegBaseToSamseg = 0
+      breaksw
+
+    case "--no-reg-to-base":
+    case "--no-mc":
+      set DoRegToBase = 0;
+      set Resample = 0;
+      breaksw
+
+    case "--resample":
+      set Resample = 1;
+      set DoRegToBase = 1;
+      breaksw
+    case "--no-resample":
+      set Resample = 0;
+      # Might reg to base, might not
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift
+      breaksw
+
+    case "--force-update":
+      set ForceUpdate = 1
+      breaksw
+
+    case "--m":
+      if($#argv < 1) goto arg1err;
+      set mlist = ()
+      while(1)
+        set mlist = ($mlist $argv[1]); shift;
+        if($#argv == 0) break;
+        set dd = `echo $argv[1] | cut -c1-2`
+        if("$dd" == "--") break;
+      end
+      set basemodenames = ($mlist)
+      breaksw
+
+    case "--expert":
+    case "-expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+
+set tplistfile     = $outdir/log/fsr-longpreproc.tplist.txt
+set parfile        = $outdir/log/fsr-longpreproc.parameters.txt
+set umodenamesfile = $outdir/log/fsr-longpreproc.unique.modenames.txt
+
+if(-e $tplistfile || -e $parfile || -e $umodenamesfile) then 
+  # Existing folder (could be reusing one from import)
+  if($#tplist || $#Conform || $#BaseType || $#XOptsFile) then
+    echo "ERROR: $outdir already exist, do not specify inputs"
+    exit 1;
+  endif
+  foreach f ($tplistfile $parfile $umodenamesfile)
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+  end
+  set tplist = (`cat $tplistfile`)
+  set ntp =     `cat $parfile | awk '{if($1=="ntp") print $2}'`
+  set Conform = `cat $parfile | awk '{if($1=="Conform") print $2}'`
+  set BaseType = `cat $parfile | awk '{if($1=="BaseType") print $2}'`
+  set Interp =   `cat $parfile | awk '{if($1=="Interp") print $2}'`
+  set umodenames = (`cat $umodenamesfile`)
+
+  set xo = $outdir/log/expert.txt
+  if(-e $xo) set XOptsFile = $xo
+
+else # New inputs specified  ============================
+
+  set ntp = $#tplist
+  if($ntp < 2) then
+    echo "ERROR: must spec at least two time points with --tp flag"
+    exit 1;
+  endif
+
+  if($#Conform == 0)  set Conform = 0
+  if($#BaseType == 0) set BaseType = 1
+  if($#Interp == 0)   set Interp = cubic
+
+  # Get full paths to the TPs
+  set tplisttmp = ()
+  foreach f ($tplist)
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+    set ftmp = `getfullpath $f`
+    set tplisttmp = ($tplisttmp $ftmp)
+  end
+  set tplist = ($tplisttmp)
+
+  set uumodenamesfile = $tplist[1]/log/fsr-import.unique.modenames.txt
+  set umodenames = (`cat $uumodenamesfile`)
+
+  # Make sure that specified based modes appear in the modenames
+  if($#basemodenames) then
+    foreach bm ($basemodenames)
+      set err = 1
+      foreach m ($umodenames)
+        if($bm == $m) set err = 0;
+      end
+      if($err) then
+        echo "ERROR: base mode $bm not found in time point modes $modenames"
+        exit 1
+      endif
+    end
+    # Make sure base modes are unique
+    foreach bm1 ($basemodenames)
+      @ nhits = 0
+      foreach bm2 ($basemodenames)
+        if($bm1 == $bm2) @ nhits = $nhits + 1
+      end
+      if($nhits > 1) then
+        echo "ERROR: base mode $bm1 appears $nhits times, should be once"
+        exit 1
+      endif
+    end
+    set umodenames = ($basemodenames)
+  endif
+
+endif
+
+foreach tpdir ($tplist)
+  if(-e $tpdir/log/fsr-coreg.par.txt) continue
+  echo "ERROR: cannot find $tpdir"
+  exit 1
+end
+
+# Get mode names and check consistentcy of all TP inputs
+set coregparfile = $tplist[1]/log/fsr-coreg.par.txt
+set refmode = `cat $coregparfile | awk '{if($1=="refmode") print $2}'`
+echo $coregparfile
+cat $coregparfile
+echo refmode $refmode
+set uumodenamesfile = $tplist[1]/log/fsr-import.unique.modenames.txt
+set uumodenames = (`cat $uumodenamesfile`)
+foreach tpdir ($tplist)
+  set nd = `diff $coregparfile $tpdir/log/fsr-coreg.par.txt | wc -l`
+  if($nd > 0) then
+    echo "ERROR: time points differ in coreg par file"
+    echo $coregparfile $tpdir/log/fsr-coreg.par.txt
+    cat  $coregparfile $tpdir/log/fsr-coreg.par.txt
+    exit 1
+  endif
+  set nd = `diff $uumodenamesfile $tpdir/log/unique.modenames.txt | wc -l`
+  if($nd > 0) then
+    echo "ERROR: time points differ in unique modenames"
+    echo $uumodenamesfile $tpdir/log/fsr-import.unique.modenames.txt
+    cat $uumodenamesfile $tpdir/log/fsr-import.unique.modenames.txt
+    exit 1
+  endif
+  # Could do a more thorough check that fsr-coreg has been run (or just run it?)
+  set runavg = $tpdir/$refmode/runavg-refmodespace.mgz
+  if(! -e $runavg) then
+    echo "ERROR: cannot find $runavg"
+    exit 1
+  endif
+
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsr-longpreproc  --o outputdir "
+  echo " --i visit1mode1 <visit1mode2...> --i visit2mode1 <visit2mode2...>"
+  echo " --m mode1name <mode2name ...>"
+  echo " --refmode modname"
+  echo " --rigid/--affine (default is rigid)"
+  echo " --conform"
+  echo " --nearest/--trilinear/--cubic (default is cubic)"
+  echo " --mode1 <mode2 ...> : select a subset of modes"
+  echo " --threads nthreads"
+  echo " --force-update"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
