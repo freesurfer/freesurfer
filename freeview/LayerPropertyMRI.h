@@ -53,7 +53,7 @@ public:
   // The color map types in which a volume can be drawn.
   enum ColorMapType
   {
-    NoColorMap=-1, Grayscale, LUT, Heat, Jet, Turbo, GEColor, NIH, PET, DirectionCoded, Binary
+    NoColorMap=-1, Grayscale, LUT, Heat, Jet, Turbo, GEColor, NIH, PET, DirectionCoded, Binary, Hue
   };
 
   enum VectorInversion
@@ -523,6 +523,7 @@ private:
   vtkSmartPointer<vtkRGBAColorTransferFunction> mHeatScaleTable;
   vtkSmartPointer<vtkRGBAColorTransferFunction> mColorMapTable;
   vtkSmartPointer<vtkLookupTable> mDirectionCodedTable;
+  vtkSmartPointer<vtkRGBAColorTransferFunction> mHueTable;
   // ---------------------------------------------------------------------
 
 

@@ -13,8 +13,8 @@ contourpy==1.1.1
 cycler==0.12.1
 filelock==3.13.1
 flatbuffers==23.5.26
-fonttools==4.47.2
-fsspec==2023.12.2
+fonttools==4.48.1
+fsspec==2024.2.0
 gast==0.4.0
 google-auth-oauthlib==1.0.0
 google-auth==2.27.0

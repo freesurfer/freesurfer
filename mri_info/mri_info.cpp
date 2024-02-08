@@ -631,7 +631,8 @@ int PrettyMatrixPrint(MATRIX *mat)
 /***-------------------------------------------------------****/
 static void do_file(char *fname)
 {
-  MRI *mri ;
+  MRI *mri = NULL ;
+  int mriintent = MGZ_INTENT_UNKNOWN;
   MATRIX *m, *minv, *m2, *m2inv, *p ;
   int r,c,s,f;
   char ostr[5], *ext;
@@ -641,13 +642,26 @@ static void do_file(char *fname)
   if (ext == NULL)
     ErrorExit(ERROR_UNSUPPORTED, "%s: could not parse extension from %s", Progname, fname) ;
 
-  mri = MRIreadHeader(fname, intype);
-  int mriintent = mri->intent;
-  MRIfree(&mri);
+  intype = mri_identify(fname);
+  if (intype != MGH_MORPH)  // not .m3z/.m3d
+  {
+    if (!PrintVoxel && !PrintEntropy && !PrintStats && !PrintVoxVolSum)
+      mri = MRIreadHeader(fname, intype) ;
+    else
+      mri = MRIread(fname);
+
+    if(!mri)
+      exit(1);  // should exit with error here
+
+    mriintent = mri->intent;
+  }
 
   if ((!(strstr(ext, "m3d") == 0 && strstr(ext, "m3z") == 0
 	 && strstr(ext, "M3D") == 0 && strstr(ext, "M3Z") == 0)) ||
       mriintent == 3){
+    if (mri != NULL)  // if it is MGZ_INTENT_WARPMAP, read it as GCAM
+      MRIfree(&mri);
+    
     fprintf(fpout,"Input file is a 3D morph.\n");
 
     gcam = NULL;
@@ -679,18 +693,6 @@ static void do_file(char *fname)
   {
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
-  }
-  if (!PrintVoxel && !PrintEntropy && !PrintStats && !PrintVoxVolSum)
-  {
-    mri = MRIreadHeader(fname, intype) ;
-  }
-  else
-  {
-    mri = MRIread(fname);
-  }
-  if(!mri)
-  {
-    exit(1);  // should exit with error here
   }
 
   if(ZeroCRAS){
