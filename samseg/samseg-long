@@ -85,8 +85,8 @@ if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
 
+echo SAMSEG_DATA_DIR $SAMSEG_DATA_DIR  | tee -a $LF
 which run_samseg_long | tee -a $LF
-
 # Build the command line, first by specifying the inputs
 set cmd = (run_samseg_long -o $outdir --threads $threads)
 set deplist = ()
@@ -402,12 +402,14 @@ while( $#argv != 0 )
 
     case "--lesion":
       set Lesion = 1
+      setenv SAMSEG_DATA_DIR $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2_lesion
       breaksw
 
     case "--lesion-mask-structure":
       if($#argv < 1) goto arg1err;
       set LesionMaskStructure = $argv[1]; shift;
       set Lesion = 1
+      setenv SAMSEG_DATA_DIR $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2_lesion
       breaksw
 
     case "--lesion-mask-pattern":
@@ -426,6 +428,7 @@ while( $#argv != 0 )
       endif
       set LesionMaskPattern = ($mlist)
       set Lesion = 1
+      setenv SAMSEG_DATA_DIR $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2_lesion
       breaksw
 
     # These options below are for preprocessing
