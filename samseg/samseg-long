@@ -4,13 +4,14 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
+setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 0
 set VERSION = 'samseg-long @FS_VERSION@';
 set scriptname = `basename $0`
 
 set outdir = ();
-set inputlist = ()
-set DoRegToBase = ()
-setenv OMP_NUM_THREADS 1
+set basedir = ()
+set basemodenames = ()
+set threads = 1
 set ForceUpdate = 0;
 set tmpdir = ();
 set cleanup = 1;
@@ -18,11 +19,20 @@ set LF = ();
 set SaveWarp = 1;
 set SavePosteriors = 0
 set SaveProbabilities = 0;
-set DoMRF = 0;
-set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
 set Resample = 1;
-set UseMedian = 1
-set DoStats = 1
+set Interp = cubic
+set preprocdir = longpreproc
+set OptionsFile = ()
+set KeepHistory = 0
+
+# These are preprocessing options
+set inputlist = ()
+set modenames = ()
+set refmode = ();
+set nmodes = 0
+set ntp = 0
+set BaseType = rigid
+set Conform = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -41,6 +51,7 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+setenv OMP_NUM_THREADS $threads
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -51,17 +62,10 @@ set hour   = `date +%H`
 set min    = `date +%M`
 
 mkdir -p $outdir/log
-pushd $outdir > /dev/null
-set outdir = `pwd`;
-popd > /dev/null
-
-#if($#tmpdir == 0) then
-#  set tmpdir = `fs_temp_dir --scratch --base $outdir`
-#endif
-#mkdir -p $tmpdir
+set outdir = `getfullpath $outdir`
 
 # Set up log file
-if($#LF == 0) set LF = $outdir/log/samseg-long.log
+if($#LF == 0) set LF = $outdir/log/samseg-long.Y$year.M$month.D$day.H$hour.M$min.log
 if($LF != /dev/null) rm -f $LF
 echo "Log file for samseg-long" >> $LF
 date  | tee -a $LF
@@ -78,106 +82,99 @@ if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
 
-#========================================================
-mkdir -p $outdir/inputs/t1w
-@ nth = 0;
-foreach invol ($inputlist)
-  @ nth = $nth + 1
-  set nthstr = `printf %03d $nth`
-  # filename cannot have a dot in it
-  set volname = $outdir/inputs/t1w/input_$nthstr.mgz 
-  set ud = `UpdateNeeded $volname $invol`
-  if($ud || $ForceUpdate) then
-    set cmd = (mri_convert $invol $volname)
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  else
-    echo "Local copy does not need to be updated" | tee -a $LF
-  endif
+which run_samseg_long | tee -a $LF
+
+# Build the command line, first by specifying the inputs
+set cmd = (run_samseg_long -o $outdir --threads $threads)
+set deplist = ()
+@ nthtp = 0
+foreach tp ($tplist)
+  @ nthtp = $nthtp + 1
+  set tpstr = `printf %03d $nthtp`
+  set cmd = ($cmd -t)
+  foreach mode ($umodenames)
+    if($Resample) then
+      set f = $basedir/$mode/tp$tpstr.base.mgz
+    else
+      set f = $tp/$mode/runavg-refmodespace.mgz
+    endif
+    set cmd = ($cmd $f)
+    set deplist = ($deplist $f)
+  end
 end
 
-set regdir = $outdir/reg/t1w
-if($DoRegToBase) then
-  mkdir -p $regdir
-  # set names for ltas and output volumes
-  @ nth = 0
-  set TPLtas = ()
-  set TPIscales = ()
-  set RegVolumes = ()
-  set inputlist2 = ()
-  foreach input ($inputlist)
-    @ nth = $nth + 1
-    set nthstr = `printf %03d $nth`
-    set volname = $outdir/inputs/t1w/input_$nthstr.mgz 
-    set inputlist2 = ($inputlist2 $volname)
-    set nthlta = $regdir/input$nthstr.lta
-    set TPLtas=($TPLtas $nthlta)
-    set nthiscale = $regdir/input$nthstr-iscale.txt
-    set TPIscales=($TPIscales $nthiscale)
-    set regvol = $regdir/reg.$nthstr.mgz
-    set RegVolumes = ($RegVolumes $regvol)
-  end
-
-  set template = $regdir/mctemplate.mgz
-  set ud = `UpdateNeeded $template $inputlist2`
-  if($ud || $ForceUpdate) then
-    set cmd = (mri_robust_template --mov $inputlist2 --average $UseMedian --template $template \
-      --satit --iscale  --iscaleout $TPIscales --lta $TPLtas)
-    if(1 || $Resample) set cmd = ($cmd --mapmov $RegVolumes)
-    # --iscale allow also intensity scaling (default off). why not?
-    # --sat 4.6 vs --satit. --sat specifies oulier sensitivity vs autodetect. which?
-    # --inittp 1 --fixtp  - set tp 1 to target, defeats the purpose
-    # --noit - do not iterate, just create first template; not good
-    # --subsample 200 subsample if dim > # on all axes (default no subs.). ?????
-    # --average 1 : 0=mean, 1=median
-    echo $cmd | tee -a $LF
-    fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  else
-    echo "\nRegistration does not need to be updated\n" |& tee -a $LF
-  endif
-endif
-
-echo "\n\n" | tee -a $LF
-
-set cmd = (run_samseg_long -o $outdir)
-if($Resample) then
-  foreach v ($RegVolumes)
-    set cmd = ($cmd -t $v )
-  end
-else
-  foreach v ($inputlist2)
-    set cmd = ($cmd -t $v )
-  end
+# If not using inputs that have been resampled to base, then 
+# specify the proper registration from native space to the base
+if(! $Resample) then
   set cmd = ($cmd --tp-to-base-transform)
-  foreach lta ($TPLtas)
+  @ nthtp = 0
+  foreach tp ($tplist)
+    # Note: as of Feb 6 2023, the LTA passed to samseg must be RAS2RAS (-out_type 1)!!!!
+    @ nthtp = $nthtp + 1
+    set tpstr = `printf %03d $nthtp`
+    set lta = $basedir/refmode/reg.tp$tpstr.lta
     set cmd = ($cmd  $lta)
+    set deplist = ($deplist $lta)
   end
 endif
 if($SaveWarp) set cmd = ($cmd --save-warp)
 if($SavePosteriors) set cmd = ($cmd --save-posteriors)
-echo $cmd | tee -a $LF
-fs_time $cmd |& tee -a $LF
-if($status) goto error_exit;
+if($#OptionsFile) set cmd = ($cmd --options $OptionsFile)
+set tmpstr = `printf %03d $#tplist`
+set tst = $outdir/tp$tmpstr/samseg.csv
+set ud = `UpdateNeeded $tst $deplist`
+if($ud || $ForceUpdate) then
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  if(! $KeepHistory) rm -f $outdir/base/history.p
+endif
+echo $basedir > $outdir/base/basedir.txt
+echo $umodenames > $outdir/base/unodenames.txt
+echo $Resample > $outdir/base/resampletype.txt
 
-@ nth = 0
-while($nth < $#inputlist)
-  @ nth = $nth + 1
-  set nthstr = `printf %03d $nth`
-  set tpdir = $outdir/tp$nthstr
-  set seg = $tpdir/seg.mgz
-  set stats = $tpdir/seg.stats
-  set ud = `UpdateNeeded $stats $seg`
-  if(($ud || $ForceUpdate) && $DoStats) then
-    # Compute segstats
-    set cmd = (mri_segstats --ctab-default --seg $seg --sum $stats)
+if(! $Resample) then
+  # Copy LTAs into output folder for each time point. Or symlink? 
+  @ nthtp = 0
+  foreach tp ($tplist)
+    @ nthtp = $nthtp + 1
+    set tpstr = `printf %03d $nthtp`
+    set cmd = (cp $basedir/refmode/reg.tp$tpstr.lta $outdir/tp$tpstr/reg.to.base.lta)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
-    if($status) goto error_exit;
-  endif
-end
+  end
+endif
 
+# Create a command to view the result
+set cmd = (fsvglrun freeview )
+@ m = 0
+foreach mode ($umodenames)
+  @ m = $m + 1
+  set mstr = `printf %02d $m`
+  set cmd = ($cmd $outdir/base/mode${mstr}_bias_corrected.mgz:name=base.$mode)
+end  
+set cmd = ($cmd $outdir/base/seg.mgz:name=base.seg)
+@ nthtp = 0
+foreach tp ($tplist)
+  @ nthtp = $nthtp + 1
+  set tpstr = `printf %03d $nthtp`
+  set reg = ()
+  if(! $Resample) set reg = :reg=$outdir/tp$tpstr/reg.to.base.lta
+  @ m = 0
+  foreach mode ($umodenames)
+    @ m = $m + 1
+    set mstr = `printf %02d $m`
+    set f = $outdir/tp$tpstr/mode${mstr}_bias_corrected.mgz
+    set cmd = ($cmd ${f}:name=tp$tpstr.${mode}$reg)
+  end  
+  set f = $outdir/tp$tpstr/seg.mgz
+  set cmd = ($cmd ${f}:name=tp$tpstr.seg$reg)
+end
+echo "" | tee -a $LF
+echo "To view results run:" | tee -a $LF
+echo $cmd | tee -a $LF
+echo "" | tee -a $LF
+echo $cmd > $outdir/log/view-command
 
 #========================================================
 
@@ -224,30 +221,26 @@ while( $#argv != 0 )
       set outdir = $argv[1]; shift;
       breaksw
 
-    case "--i":
+    case "--b":
       if($#argv < 1) goto arg1err;
-      if(! -e $argv[1]) then
-        echo "ERROR: cannot find $argv[1]"
-        exit 1;
-      endif
-      set inputlist = ($inputlist $argv[1]); shift;
+      set basedir = $argv[1]; shift;
       breaksw
 
-    case "--reg-to-base":
-    case "--mc":
-      set DoRegToBase = 1;
-      # Might resample, might not
-      breaksw
-
-    case "--no-reg-to-base":
-    case "--no-mc":
-      set DoRegToBase = 0;
-      set Resample = 0;
+    case "--bm":
+      # Only run samseg on a subset of modes
+      if($#argv < 1) goto arg1err;
+      set mlist = ()
+      while(1)
+        set mlist = ($mlist $argv[1]); shift;
+        if($#argv == 0) break;
+        set dd = `echo $argv[1] | cut -c1-2`
+        if("$dd" == "--") break;
+      end
+      set basemodenames = ($mlist)
       breaksw
 
     case "--resample":
       set Resample = 1;
-      set DoRegToBase = 1;
       breaksw
     case "--no-resample":
       set Resample = 0;
@@ -256,7 +249,7 @@ while( $#argv != 0 )
 
     case "--threads":
       if($#argv < 1) goto arg1err;
-      setenv OMP_NUM_THREADS $argv[1]; shift
+      set threads = $argv[1]; shift
       breaksw
 
     case "--save-posteriors":
@@ -267,6 +260,19 @@ while( $#argv != 0 )
       echo "--save-probabilities currently does not work"
       exit 1
       set SaveProbabilities = 1;
+      breaksw
+
+    case "--options":
+      if($#argv < 1) goto arg1err;
+      set OptionsFile = $argv[1]; shift;
+      if(! -e $OptionsFile) then
+        echo "ERROR: cannot find $OptionsFile"
+        exit 1;
+      endif
+      breaksw
+
+    case "--keep-history":
+      set KeepHistory = 1
       breaksw
 
     case "--force-update":
@@ -312,6 +318,144 @@ while( $#argv != 0 )
       set echo = 1;
       breaksw
 
+    case "--charm":
+      setenv SAMSEG_DATA_DIR /autofs/space/sulc_001/users/charm-samseg
+      if(! -e $SAMSEG_DATA_DIR) then
+        echo "ERROR: cannot find $SAMSEG_DATA_DIR"
+        exit 1
+      endif
+      set DoCharm = 1
+      breaksw
+    case "--no-charm":
+      set DoCharm = 0
+      breaksw
+  
+    case "--cpvcw":
+      setenv SAMSEG_DATA_DIR $FREESURFER/average/samseg/samseg+cc+pons+verm+charm+wmcrowns
+      if(! -e $SAMSEG_DATA_DIR) then
+        echo "ERROR: cannot find $SAMSEG_DATA_DIR"
+        exit 1
+      endif
+      breaksw
+    case "--no-cpvcw":
+      unsetenv SAMSEG_DATA_DIR 
+      breaksw
+  
+    case "--no-block-coordinate-descent":
+    case "--no-bcd":
+      setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 1
+      breaksw
+    case "--block-coordinate-descent":
+    case "--bcd":
+      setenv SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT 0
+      breaksw
+
+    case "--logdomain-costandgradient-calculator":
+      setenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR 1
+      breaksw
+    case "--no-logdomain-costandgradient-calculator":
+      unsetenv SAMSEG_USE_LOGDOMAIN_COSTANDGRADIENT_CALCULATOR
+      breaksw
+
+    case "--view":
+      # This is a stand-alone option to easily view the output
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      pushd $outdir
+      set umodenames = t1w
+      if(-e $outdir/base/umodenames.txt) set umodenames = `cat $outdir/base/umodenames.txt`
+      set cmd = (fsvglrun freeview )
+      @ m = 0
+      foreach mode ($umodenames)
+        @ m = $m + 1
+        set mstr = `printf %02d $m`
+        set cmd = ($cmd base/mode${mstr}_bias_corrected.mgz:name=base.$mode)
+      end  
+      set cmd = ($cmd base/seg.mgz:name=base.seg)
+      @ nthtp = 0
+      while (1)
+        @ nthtp = $nthtp + 1
+        set tpstr = `printf %03d $nthtp`
+        @ m = 0
+        foreach mode ($umodenames)
+          @ m = $m + 1
+          set mstr = `printf %02d $m`
+          set f = tp$tpstr/mode${mstr}_bias_corrected.mgz
+          if(! -e $f) break
+          set cmd = ($cmd ${f}:name=tp$tpstr.$mode)
+        end  
+        set f = tp$tpstr/seg.mgz
+        if(! -e $f) break
+        set cmd = ($cmd ${f}:name=tp$tpstr.seg)               
+      end
+      echo $cmd
+      $cmd
+      popd
+      exit 0
+      breaksw
+
+    # These options below are for preprocessing
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set mlist = ()
+      while(1)
+        set mlist = ($mlist $argv[1]); shift;
+        if($#argv == 0) break;
+        set dd = `echo $argv[1] | cut -c1-2`
+        if("$dd" == "--") break;
+      end
+      @ ntp = $ntp + 1
+      if($nmodes == 0) set nmodes = $#mlist
+      if($#mlist != $nmodes) then
+        echo "ERROR: time point $ntp has $#mlist modes, expecting $nmodes"
+        exit 1;
+      endif
+      set inputlist = ($inputlist $mlist)
+      breaksw
+
+    case "--m":
+      if($#argv < 1) goto arg1err;
+      set mlist = ()
+      while(1)
+        set mlist = ($mlist $argv[1]); shift;
+        if($#argv == 0) break;
+        set dd = `echo $argv[1] | cut -c1-2`
+        if("$dd" == "--") break;
+      end
+      if($nmodes == 0) set nmodes = $#mlist
+      if($#mlist != $nmodes) then
+        echo "ERROR: modename list has $#mlist modes, expecting $nmodes"
+        exit 1;
+      endif
+      set modenames = ($mlist)
+      breaksw
+
+    case "--refmode":
+      if($#argv < 1) goto arg1err;
+      set refmode = $argv[1]; shift;
+      breaksw
+
+    case "--rigid":
+      set BaseType = rigid
+      breaksw
+    case "--affine":
+      set BaseType = affine
+      breaksw
+    case "--conform":
+      set Conform = 1
+      breaksw
+
+    case "--nearest":
+      set Interp = nearest
+      breaksw
+    case "--trilinear":
+    case "--linear":
+      set Interp = trilinear
+      breaksw
+    case "--cubic":
+      set Interp = cubic
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized. 
       echo $cmdline
@@ -331,21 +475,107 @@ if($#outdir == 0) then
   echo "ERROR: must spec outdir"
   exit 1;
 endif
-if($#inputlist < 2) then
-  echo "ERROR: must spec at least two inputs"
-  exit 1;
-endif
-if($#DoRegToBase == 0) then
-  echo "ERROR: must spec either --mc or --no-mc"
-  exit 1;
+
+if($#inputlist) then
+  if($#basedir) then
+    echo "ERROR: cannot specify both --b AND --i or --m"
+    exit 1
+  endif
+  # Get a unique list of modenames
+  set tmp = /tmp/tmp.samseg-long.$$
+  rm -f $tmp
+  foreach m ($modenames)
+    echo $m >> $tmp
+  end
+  set uumodenames = `cat $tmp | sort | uniq`
+  rm -f $tmp
+  @ tp = 0
+  set basedir = $outdir/$preprocdir
+  set longpreproc = (fsr-longpreproc --o $basedir --$BaseType --$Interp --threads $threads)
+  while ($tp < $ntp)
+    @ tp = $tp + 1
+    set tpstr = `printf %03d $tp`
+    set importdir = $outdir/inputs/tp$tpstr
+
+    # Import data
+    set cmd = (fsr-import --o $importdir)
+    foreach umode ($uumodenames)
+      set modeop = (--mode $umode)
+      if($umode == t1w || $umode == t2w || $umode == flair)  set modeop = (--$umode)
+      @ nthmode = 0
+      foreach mode ($modenames)
+        @ nthmode = $nthmode + 1
+        if($mode != $umode) continue
+        set k = `echo "($tp-1)*$nmodes + $nthmode"|bc`
+        echo "#@#TP $tp umode $umode mode $nthmode $mode k $k $inputlist[$k]" | tee -a $LF
+        set cmd = ($cmd $modeop $inputlist[$k])
+      end
+    end  
+    if($ForceUpdate)  set cmd = ($cmd --force-update)
+    if($Conform == 0) set cmd = ($cmd --no-conform)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+
+    # Within time point registration
+    # Could turn off resampling non-ref-modes if not resampling to base
+    set cmd = (fsr-coreg --importdir $importdir --ref $refmode --threads $threads)
+    if($ForceUpdate) set cmd = ($cmd --force-update)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+
+    set longpreproc = ($longpreproc --tp $importdir)
+  end
+
+  echo $longpreproc
+  $longpreproc
+  if($status) exit 1
+else
+  set basedir = $outdir/$preprocdir
 endif
 
-set inputlisttmp = ()
-foreach f ($inputlist)
-  set ftmp = `getfullpath $f`
-  set inputlisttmp = ($inputlisttmp $ftmp)
+set basedir = `getfullpath $basedir`
+set tplistfile = $basedir/log/fsr-longpreproc.tplist.txt
+set umodenamesfile = $basedir/log/fsr-longpreproc.unique.modenames.txt
+
+set tplist = (`cat $tplistfile`)
+set ntp = $#tplist
+
+set umodenames = (`cat $umodenamesfile`)
+# Make sure the refmode appears first (overridden if basemodes are specified)
+set a = $refmode
+foreach b ($umodenames)
+  if($b != $refmode) set a = ($a $b)
 end
-set inputlist = ($inputlisttmp)
+set umodenames = ($a);
+
+# Replace umodenames with basemodenames (if specified)
+if($#basemodenames) then
+  foreach bm ($basemodenames)
+    set err = 1
+    foreach m ($umodenames)
+      if($bm == $m) set err = 0;
+    end
+    if($err) then
+      echo "ERROR: base mode $bm not found in time point modes $umodenames"
+      exit 1
+    endif
+  end
+  # Make sure base modes are unique
+  foreach bm1 ($basemodenames)
+    @ nhits = 0
+    foreach bm2 ($basemodenames)
+      if($bm1 == $bm2) @ nhits = $nhits + 1
+    end
+    if($nhits > 1) then
+      echo "ERROR: base mode $bm1 appears $nhits times, should be once"
+      exit 1
+    endif
+  end
+  set umodenames = ($basemodenames)
+endif
+
 
 goto check_params_return;
 ############--------------##################
@@ -363,12 +593,29 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "samseg-long -o outputdir "
-  echo " --i input1 --i input2 ..."
-  echo " --mc, --no-mc : align all inputs using robust register (choose one)"
+  echo "samseg-long --o outputdir "
+  echo " --b longpreprocdir : input (output folder of fsr-longpreproc)"
   echo " --threads nthreads"
-  echo "  --save-posteriors : save posterior probs"
+  echo " --bm mode1 <mode2 ...> : use a subset of modes found in longpreproc"
+  echo " --no-resample : do not resample time point to base space (--resample)"
+  echo " --atlas alternative samseg atlas"
+  echo " --cpvcw"
+  echo " --charm"
+  echo " --save-posteriors : save posterior probs"
   echo " --force-update"
+  echo " --no-block-coordinate-descent"
+  echo " --logdomain-costandgradient-calculator"
+  echo " --keep-history : the history.p file is quite large"
+  echo " --view outputdir : stand-alone option to view the output"
+  echo ""
+  echo " Input spec when not using --b (must be a complete matrix of inputs)"
+  echo "  --i V1M1R1 <V1M1R2 ... V1M2R1 ...>"
+  echo "  --i V2M1R1 <V2M1R2 ... V2M2R1 ...>"
+  echo "  --m M1name M2name M3name ..."
+  echo "  --refmode modename : reference mode name (must be one from --m)"
+  echo "  --nearest/linear/cubic : interpolation method (default is $Interp)"
+  echo "  --affine : create base with affine transform instead of rigid (--rigid)"
+  echo "  --conform : conform the inputs when importing"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -379,23 +626,3 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-For longitudinal samseg analysis. All inputs must be a single modality. If
-you are going to run surface analysis, then they all must be T1w.
-
-samseg-long --i timepoint1.mgz --i timepoint2.mgz --mc --o samseglongdir
-
-This will create the samseglongdir folder. This folder will have a base
-folder and time point folders called tp001, tp002, etc. Each of these is a 
-samseg output folder.
-
-Create a base subject by transfering all the base samseg analysis to the
-recon-all base subject. The name of the base subject can be anything:
-   samseg2recon --base --s subject_base  --samseg samseglongdir
-Now run recon-all on the base
-   recon-all -s subject_base -autorecon2-samseg -autorecon3
-
-Create a subject for each time point by transfering all the samseg analysis 
-from that TP to the subject for that TP. The subject name can be anything
-   samseg2recon --long 2 --s long.tp002  --samseg samseglongdir
-Then run
-   recon-all -long-samseg subject_base long.tp002 -autorecon2-samseg -autorecon3
