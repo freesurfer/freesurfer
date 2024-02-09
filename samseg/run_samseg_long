@@ -35,6 +35,7 @@ parser.add_argument('--options', metavar='FILE', help='Override advanced options
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh of each timepoint in template space.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
+parser.add_argument('--save-probabilities', action='store_true', help='Save final modal class probabilities to "probabilities" subdirectory.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 parser.add_argument('--tp-to-base-transform', nargs='+', required=False, help='Transformation file for each time point to base.')
@@ -131,6 +132,7 @@ samseg_kwargs = dict(
     strengthOfLatentDeformationHyperprior=args.deformation_hyperprior,
     strengthOfLatentGMMHyperprior=args.gmm_hyperprior,
     savePosteriors=savePosteriors,
+    saveModelProbabilities=args.save_probabilities,
     saveMesh=args.save_mesh,
     saveHistory=args.history,
     visualizer=visualizer,

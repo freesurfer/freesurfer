@@ -27,6 +27,7 @@ set Lesion = 0
 set LesionMaskPattern = ()
 set LesionMaskStructure = ()
 set KeepHistory = 0
+set SaveMesh = 0;
 
 # These are preprocessing options
 set inputlist = ()
@@ -120,9 +121,10 @@ if(! $Resample) then
     set deplist = ($deplist $lta)
   end
 endif
-if($SaveWarp) set cmd = ($cmd --save-warp)
-if($SavePosteriors) set cmd = ($cmd --save-posteriors)
-if($SaveProbabilities) set cmd0 = ($cmd --save-probabilities)
+if($SaveWarp)          set cmd = ($cmd --save-warp)
+if($SavePosteriors)    set cmd = ($cmd --save-posteriors)
+if($SaveProbabilities) set cmd = ($cmd --save-probabilities)
+if($SaveMesh)          set cmd = ($cmd --save-mesh)
 if($Lesion)               set cmd = ($cmd --lesion)
 if($#LesionMaskStructure) set cmd = ($cmd --lesion-mask-structure $LesionMaskStructure)
 if($#LesionMaskPattern)   set cmd = ($cmd --lesion-mask-pattern   $LesionMaskPattern)
@@ -264,17 +266,19 @@ while( $#argv != 0 )
       breaksw
 
     case "--save-probabilities":
-      # This will run to the end without error but no probs will be saved
-      echo "--save-probabilities currently does not work"
-      exit 1
       set SaveProbabilities = 1;
       breaksw
 
     case "--save-p"
-      echo "--save-probabilities currently does not work"
-      exit 1
       set SavePosteriors = 1;
       set SaveProbabilities = 1;
+      breaksw
+
+    case "--save-mesh":
+      set SaveMesh = 1;
+      breaksw
+    case "--no-save-mesh":
+      set SaveMesh = 0;
       breaksw
 
     case "--options":
