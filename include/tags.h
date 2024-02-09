@@ -30,6 +30,7 @@
 #define TAG_COLORTABLE              5
 #define TAG_INTENT_ENCODED_VERSION  6   // for nifti1 header extension only, version: intent encoded - '((MGZ_INTENT & 0xff ) << 8) | MGH_VERSION', (MGH_VERSION=1)
 #define TAG_DOF                     7   // for nifti1 header extension only, dof
+#define TAG_RAS_XFORM               8   // for nifti1 header extension only, mri->x_[r|a|s], mri->y_[r|a|s], mri->z_[r|a|s], mri->c_[r|a|s]
 
 #define TAG_GCAMORPH_GEOM           10
 #define TAG_GCAMORPH_TYPE           11

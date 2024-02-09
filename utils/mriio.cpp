@@ -101,7 +101,8 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 #define KEEP_NII_OPEN 1
 
 static long long __getMRITAGlength(MRI *mri, bool niftiheaderext=false);
-static void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag);
+static int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag);
+static int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header *niihdr);
 
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
@@ -8556,67 +8557,6 @@ static MRI *niiRead(const char *fname, int read_volume)
   mri->zsize = hdr.pixdim[3];
   mri->tr = hdr.pixdim[4];
 
-  // Set the vox2ras matrix
-  if (hdr.sform_code != 0) {
-    // First, use the sform, if that is ok. Using the sform
-    // first makes it more compatible with FSL.
-    fprintf(stderr,"INFO: using NIfTI-1 sform (sform_code=%d)\n", hdr.sform_code);
-    if (niftiSformToMri(mri, &hdr) != NO_ERROR) {
-      MRIfree(&mri);
-      return (NULL);
-    }
-    mri->ras_good_flag = 1;
-  }
-  else if (hdr.qform_code != 0) {
-    // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", hdr.qform_code);
-    if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
-      MRIfree(&mri);
-      return (NULL);
-    }
-    mri->ras_good_flag = 1;
-  }
-  else {
-    // Should probably just die here.
-    fprintf(stderr, "WARNING: neither NIfTI-1 qform or sform are valid\n");
-    fprintf(stderr, "WARNING: your volume will probably be incorrectly oriented\n");
-    mri->x_r = -1.0;
-    mri->x_a = 0.0;
-    mri->x_s = 0.0;
-    mri->y_r = 0.0;
-    mri->y_a = 1.0;
-    mri->y_s = 0.0;
-    mri->z_r = 0.0;
-    mri->z_a = 0.0;
-    mri->z_s = 1.0;
-    mri->c_r = mri->xsize * mri->width / 2.0;
-    mri->c_a = mri->ysize * mri->height / 2.0;
-    mri->c_s = mri->zsize * mri->depth / 2.0;
-    mri->ras_good_flag = 0;
-  }
-
-  mri->xsize = mri->xsize * space_units_factor;
-  mri->ysize = mri->ysize * space_units_factor;
-  mri->zsize = mri->zsize * space_units_factor;
-  mri->c_r = mri->c_r * space_units_factor;
-  mri->c_a = mri->c_a * space_units_factor;
-  mri->c_s = mri->c_s * space_units_factor;
-  mri->tr = mri->tr * time_units_factor;
-
-  mri->fov = mri->xsize * mri->width;
-  mri->xstart = -(mri->xsize * mri->width) / 2.0;
-  mri->xend = (mri->xsize * mri->width) / 2.0;
-  mri->ystart = -(mri->ysize * mri->height) / 2.0;
-  mri->yend = (mri->ysize * mri->height) / 2.0;
-  mri->zstart = -(mri->zsize * mri->depth) / 2.0;
-  mri->zend = (mri->zsize * mri->depth) / 2.0;
-
-  if (Gdiag_no > 0) {
-    printf("nifti header ---------------------------------\n");
-    niiPrintHdr(stdout, &hdr);
-    printf("-----------------------------------------\n");
-  }
-
   if (!KEEP_NII_OPEN)
   {
     fp = znzopen(fname, "r", use_compression);
@@ -8643,13 +8583,43 @@ static MRI *niiRead(const char *fname, int read_volume)
   } // if (!KEEP_NII_OPEN)
 
   // implement reading nifti1 header extension  
+  int has_ecode_freesurfer = 0;
   nifti1_extender extdr;   /* defines extension existence  */
   znzread(extdr.extension, 1, 4, fp); /* get extender */
   if (extdr.extension[0] == 1)
   {
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] niiRead(): process extension ...\n");
-    __niiReadHeaderextension(fp, mri, fname, swapped_flag);
+    has_ecode_freesurfer = __niiReadHeaderextension(fp, mri, fname, swapped_flag);
+  }
+
+  if (!has_ecode_freesurfer)
+  {
+    int ret = __niiReadSetVox2ras(mri, &hdr);
+    if (ret)  // error
+      return NULL;
+  }
+
+  mri->xsize = mri->xsize * space_units_factor;
+  mri->ysize = mri->ysize * space_units_factor;
+  mri->zsize = mri->zsize * space_units_factor;
+  mri->c_r = mri->c_r * space_units_factor;
+  mri->c_a = mri->c_a * space_units_factor;
+  mri->c_s = mri->c_s * space_units_factor;
+  mri->tr = mri->tr * time_units_factor;
+
+  mri->fov = mri->xsize * mri->width;
+  mri->xstart = -(mri->xsize * mri->width) / 2.0;
+  mri->xend = (mri->xsize * mri->width) / 2.0;
+  mri->ystart = -(mri->ysize * mri->height) / 2.0;
+  mri->yend = (mri->ysize * mri->height) / 2.0;
+  mri->zstart = -(mri->zsize * mri->depth) / 2.0;
+  mri->zend = (mri->zsize * mri->depth) / 2.0;
+
+  if (Gdiag_no > 0) {
+    printf("nifti header ---------------------------------\n");
+    niiPrintHdr(stdout, &hdr);
+    printf("-----------------------------------------\n");
   }
 
   // Done if we are not reading the image data
@@ -12447,6 +12417,16 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
           fstagsio.skip_tag(tag, len);
 	}
         break;
+      case TAG_RAS_XFORM:
+	// nifti header extension only
+	if (niftiheaderext)
+	  fstagsio.read_ras_xform(mri);
+	else
+	{
+	  printf("[WARN] skip unexpected tag TAG_RAS_XFORM, nifti header extension only\n");
+          fstagsio.skip_tag(tag, len);
+	}	
+        break;
       case TAG_MRI_FRAME:
         if (fstagsio.read_mri_frames(mri, len) != NO_ERROR)
           fprintf(stderr, "couldn't read frame structure from file\n");
@@ -12618,9 +12598,10 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
   if (niftiheaderext)
   {
     // extra TAGs for nifti header extension
-    // TAG_DOF, TAG_SCAN_PARAMETERS
+    // TAG_DOF, TAG_SCAN_PARAMETERS, TAG_RAS_XFORM
     fstagsio.write_dof(mri->dof);
     fstagsio.write_scan_parameters(mri);
+    fstagsio.write_ras_xform(mri);
   }
 
   // if mri->transform_fname has non-zero length
@@ -12719,7 +12700,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   if (niftiheaderext)
   {
     // extra TAGs for nifti header extension
-    // TAG_DOF, TAG_SCAN_PARAMETERS
+    // TAG_DOF, TAG_SCAN_PARAMETERS, TAG_RAS_XFORM
     taglen = FStagsIO::getlen_dof(mri->dof);
     dlen += taglen;
     if (Gdiag & DIAG_INFO)
@@ -12729,6 +12710,11 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     dlen += taglen;
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_SCAN_PARAMETERS);
+
+    taglen = FStagsIO::getlen_ras_xform(mri);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_RAS_XFORM);
   }
 
   
@@ -12813,8 +12799,11 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
 
 
 // esize/ecode read is based on nifti_read_extensions()/nifti_read_next_extension()
-void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag)
+// return 1 if NIFTI_ECODE_FREESURFER found; otherwise, return 0
+int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag)
 {
+  int has_ecode_freesurfer = 0;
+  
   // loop through header extensions until we find NIFTI_ECODE_FREESURFER, or reach the end
   while (1)
   {
@@ -12858,6 +12847,9 @@ void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapp
 	continue;
       else
       {
+	has_ecode_freesurfer = 1;
+	mri->ras_good_flag = 1;
+	
         if (Gdiag & DIAG_INFO)
           printf("[DEBUG] niiRead(): process NIFTI_ECODE_FREESURFER\n");
 
@@ -12879,4 +12871,52 @@ void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapp
       }
     }
   }
+
+  return has_ecode_freesurfer;
+}
+
+
+// return 0 for success; 1 for error
+int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr)
+{
+  // Set the vox2ras matrix
+  if (niihdr->sform_code != 0) {
+    // First, use the sform, if that is ok. Using the sform
+    // first makes it more compatible with FSL.
+    fprintf(stderr,"INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
+    if (niftiSformToMri(mri, niihdr) != NO_ERROR) {
+      MRIfree(&mri);
+      return 1;
+    }
+    mri->ras_good_flag = 1;
+  }
+  else if (niihdr->qform_code != 0) {
+    // Then, try the qform, if that is ok
+    fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
+    if (niftiQformToMri(mri, niihdr) != NO_ERROR) {
+      MRIfree(&mri);
+      return 1;
+    }
+    mri->ras_good_flag = 1;
+  }
+  else {
+    // Should probably just die here.
+    fprintf(stderr, "WARNING: neither NIfTI-1 qform or sform are valid\n");
+    fprintf(stderr, "WARNING: your volume will probably be incorrectly oriented\n");
+    mri->x_r = -1.0;
+    mri->x_a = 0.0;
+    mri->x_s = 0.0;
+    mri->y_r = 0.0;
+    mri->y_a = 1.0;
+    mri->y_s = 0.0;
+    mri->z_r = 0.0;
+    mri->z_a = 0.0;
+    mri->z_s = 1.0;
+    mri->c_r = mri->xsize * mri->width / 2.0;
+    mri->c_a = mri->ysize * mri->height / 2.0;
+    mri->c_s = mri->zsize * mri->depth / 2.0;
+    mri->ras_good_flag = 0;
+  }
+
+  return 0;
 }

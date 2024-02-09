@@ -233,6 +233,25 @@ long long FStagsIO::getlen_scan_parameters(MRI *mri, bool addtaglength)
 }
 
 
+long long FStagsIO::getlen_ras_xform(MRI *mri, bool addtaglength)
+{
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
+
+  // this needs to be consistent with write_scan_parameters()
+  dlen += sizeof(mri->x_r); dlen += sizeof(mri->x_a); dlen += sizeof(mri->x_s);
+  dlen += sizeof(mri->y_r); dlen += sizeof(mri->y_a); dlen += sizeof(mri->y_s);
+  dlen += sizeof(mri->z_r); dlen += sizeof(mri->z_a); dlen += sizeof(mri->z_s);
+  dlen += sizeof(mri->c_r); dlen += sizeof(mri->c_a); dlen += sizeof(mri->c_s);
+
+  return dlen;  
+}
+
+
 // tags.cpp::znzTAGwrite()
 // 
 // output TAG in the following format:
@@ -567,6 +586,32 @@ int FStagsIO::write_scan_parameters(MRI *mri)
 }
 
   
+// write TAG_RAS_XFORM (nifti header extension only)
+int FStagsIO::write_ras_xform(MRI *mri)
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+  
+  znzwriteInt(TAG_RAS_XFORM, fp);
+
+  long long dlen = getlen_ras_xform(mri, false);
+  znzwriteLong(dlen, fp);
+  znzwriteFloat(mri->x_r, fp); znzwriteFloat(mri->x_a, fp); znzwriteFloat(mri->x_s, fp);
+  znzwriteFloat(mri->y_r, fp); znzwriteFloat(mri->y_a, fp); znzwriteFloat(mri->y_s, fp);
+  znzwriteFloat(mri->z_r, fp); znzwriteFloat(mri->z_a, fp); znzwriteFloat(mri->z_s, fp);
+  znzwriteFloat(mri->c_r, fp); znzwriteFloat(mri->c_a, fp); znzwriteFloat(mri->c_s, fp);
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_RAS_XFORM, fend-fstart, fstart, fend);
+  }
+  
+  return NO_ERROR;  
+}
+
+
 // tags.cpp::znzTAGreadStart()
 int FStagsIO::read_tagid_len(long long *plen, int tagwithzerolen)
 {
@@ -829,6 +874,18 @@ int FStagsIO::read_scan_parameters(MRI *mri, long long dlen)
   mri->pedir = (char *)calloc(dlen + 1, sizeof(char));
   znzread(mri->pedir, sizeof(char), dlen, fp);
 
+  return NO_ERROR;  
+}
+
+
+// read TAG_RAS_XFORM (nifti header extension only)
+int FStagsIO::read_ras_xform(MRI *mri)
+{
+  mri->x_r = znzreadFloat(fp); mri->x_a = znzreadFloat(fp); mri->x_s = znzreadFloat(fp);
+  mri->y_r = znzreadFloat(fp); mri->y_a = znzreadFloat(fp); mri->y_s = znzreadFloat(fp);
+  mri->z_r = znzreadFloat(fp); mri->z_a = znzreadFloat(fp); mri->z_s = znzreadFloat(fp);
+  mri->c_r = znzreadFloat(fp); mri->c_a = znzreadFloat(fp); mri->c_s = znzreadFloat(fp);
+  
   return NO_ERROR;  
 }
 
