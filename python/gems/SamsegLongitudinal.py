@@ -95,6 +95,7 @@ class SamsegLongitudinal:
         modeNames=None,
         pallidumAsWM=True,
         savePosteriors=False,
+        saveModelProbabilities=False,
         tpToBaseTransforms=None,
         ):
 
@@ -114,6 +115,7 @@ class SamsegLongitudinal:
         self.pallidumAsWM = pallidumAsWM
         self.savePosteriors = savePosteriors
         self.tpToBaseTransforms = tpToBaseTransforms
+        self.saveModelProbabilities = saveModelProbabilities
 
         # Check if all time point to base transforms are identity matrices.
         # If so, we can derive a combined 4D mask during preprocessing
@@ -364,8 +366,6 @@ class SamsegLongitudinal:
 
         if self.saveSSTResults:
             sstlabels, sstnames, sstVolumesInCubicMm, sstoptimizationSummary = self.sstModel.postProcess()
-
-            #
             if self.saveHistory:
                 self.history["sstVolumesInCubicMm"] = sstVolumesInCubicMm
 
@@ -743,22 +743,26 @@ class SamsegLongitudinal:
         # Using estimated parameters, segment and write out results for each time point
         #
         # =======================================================================================
+        #
+
+        sstDir = os.path.join(self.savePath, 'base')
+        os.makedirs(sstDir, exist_ok=True)
+        baseModel = self.sstModel;
+        # Save the final mesh collection
+        if self.saveModelProbabilities:
+            print('Saving base model probs')
+            baseModel.saveGaussianProbabilities(os.path.join(sstDir, 'probabilities') )
+        if saveWarp:
+            baseModel.saveWarpField(os.path.join(sstDir, 'template.m3z'))
 
         self.timepointVolumesInCubicMm = []
         for timepointNumber in range(self.numberOfTimepoints):
-            #
             timepointModel = self.timepointModels[timepointNumber]
-
-            #
             timepointModel.deformation = self.latentDeformation + timepointModel.deformation
             timepointModel.deformationAtlasFileName = self.latentDeformationAtlasFileName
             posteriors, biasFields, nodePositions, _, _ = timepointModel.computeFinalSegmentation()
-
-            #
             timepointDir = os.path.join(self.savePath, 'tp%03d' % (timepointNumber + 1))
             os.makedirs(timepointDir, exist_ok=True)
-
-            #
             timepointModel.savePath = timepointDir
             volumesInCubicMm = timepointModel.writeResults(biasFields, posteriors)
 
@@ -772,6 +776,10 @@ class SamsegLongitudinal:
                 deformedAtlasFileName = os.path.join(timepointModel.savePath, 'mesh.txt')
                 timepointModel.probabilisticAtlas.saveDeformedAtlas(timepointModel.modelSpecifications.atlasFileName,
                                                                     deformedAtlasFileName, nodePositions)
+
+            if self.saveModelProbabilities:
+                print('Saving model probs')
+                timepointModel.saveGaussianProbabilities( os.path.join(timepointModel.savePath, 'probabilities') )
 
             # Save the history of the parameter estimation process
             if self.saveHistory:
@@ -808,8 +816,7 @@ class SamsegLongitudinal:
             with open(os.path.join(self.savePath, 'history.p'), 'wb') as file:
                 pickle.dump(self.history, file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def generateSubjectSpecificTemplate(self):
-
+    def generateSubjectSpecificTemplate(self,saveWarp=False):
         sstDir = os.path.join(self.savePath, 'base')
         os.makedirs(sstDir, exist_ok=True)
 
@@ -834,10 +841,8 @@ class SamsegLongitudinal:
             sstFilename = os.path.join(sstDir, 'mode%02d_average.mgz' % (contrastNumber + 1))
             imageBuffer.save(sstFilename)
 
-            #
             sstFileNames.append(sstFilename)
 
-        #
         return sstFileNames
 
     def constructSstModel(self):
@@ -853,6 +858,7 @@ class SamsegLongitudinal:
             userOptimizationOptions=self.userOptimizationOptions,
             visualizer=self.visualizer,
             saveHistory=True,
+            savePosteriors=self.savePosteriors,
             targetIntensity=self.targetIntensity,
             targetSearchStrings=self.targetSearchStrings,
             modeNames=self.modeNames,
@@ -878,7 +884,7 @@ class SamsegLongitudinal:
                 targetSearchStrings=self.targetSearchStrings,
                 modeNames=self.modeNames,
                 pallidumAsWM=self.pallidumAsWM,
-                savePosteriors=self.savePosteriors
+                savePosteriors=self.savePosteriors,
             ))
 
             self.timepointModels[timepointNumber].mask = self.masks[timepointNumber]
