@@ -121,10 +121,10 @@ if($ud || $ForceUpdate) then
   # --sat 4.685 manually set outlier sensitivity (this is what is done in recon-all)
   set cmd = (mri_robust_template --mov $invollist --lta $rrltalist \
     --template $rrbase --iscaleout $rrscalelist \
-    --average 1 --iscale --sat 4.685) #--satit  
+    --average 1 --iscale --sat 4.685 --allow-diff-vox-size) #--satit  
   set subsample = (); # may make it faster to subsample, could be 200, not used in RCA
   if($#subsample) set cmd = ($cmd  --subsample $subsample)
-  # Do not use these --inittp 1  --fixtp  --noit
+  # Do not use these --inittp 1  --fixtp  --noit for base
   set xopts = `fsr-getxopts longreg-robustreg $XOptsFile`;
   set cmd = ($cmd $xopts)
   echo "\n $cmd \n" |& tee -a $LF 
