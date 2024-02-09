@@ -128,7 +128,7 @@ public:
       bool oneminusweights);
 
   //! Load all inputs
-  int loadMovables(const std::vector<std::string> &pmov, const std::vector<std::string>& masks = std::vector<std::string>());
+  int loadMovables(const std::vector<std::string> &pmov, const std::vector<std::string>& masks = std::vector<std::string>(),bool AllowDiffVoxSize=false);
   //! Load initial transforms
   int loadLTAs(const std::vector<std::string> nltas);
   //! Load initial intensity scales

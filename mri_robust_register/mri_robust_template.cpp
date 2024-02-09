@@ -42,6 +42,9 @@
 #include "diag.h"
 #include "mrimorph.h"
 #include "version.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 using namespace std;
 
@@ -120,6 +123,7 @@ struct Parameters
   double pairepsit;
   float  resthresh;
   double frobnormthresh;
+  bool AllowDiffVoxSize;
 };
 
 // Initializations:
@@ -127,7 +131,7 @@ static struct Parameters P =
 { vector<string>(0), vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
     0), vector<string>(0), false, false, false, false, false, false, false, false, false,
     5, -1.0, SAT, vector<string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false,
-    true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01, 0.01, 0.0001};
+  true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01, 0.01, 0.0001,false};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -229,7 +233,7 @@ int main(int argc, char *argv[])
     //int nnin = (int) P.mov.size();
     //assert (P.mov.size() >1);
     //assert (MR.loadMovables(P.mov)==nin);
-    int nin = MR.loadMovables(P.mov,P.masks);
+    int nin = MR.loadMovables(P.mov,P.masks,P.AllowDiffVoxSize);
     if (nin <=1)
     {
       std::cerr << "Could not load movables!" << std::endl;
@@ -662,6 +666,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0;
     cout << "--fixtp: Will map everything to init TP!" << endl;
   }
+  else if (!strcmp(option, "ALLOW-DIFF-VOX-SIZE"))
+  {
+    P.AllowDiffVoxSize = true;
+    nargs = 0;
+    cout << "--allow-diff-vox-size " << endl;
+  }
   else if (!strcmp(option, "SATIT"))
   {
     P.satit = true;
@@ -812,6 +822,14 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.frobnormthresh = atof(argv[1]);
     nargs = 1;
     cout << "--frobnorm-thresh: Matrix frobenius norm threshold " << P.frobnormthresh << endl;
+  }
+  else if (!strcmp(option, "THREADS"))
+  {
+    int threads = atoi(argv[1]);
+    nargs = 1;
+#ifdef _OPENMP
+    omp_set_num_threads(threads);
+#endif
   }
   else
   {

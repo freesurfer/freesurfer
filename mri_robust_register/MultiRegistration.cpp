@@ -128,7 +128,7 @@ unsigned int MultiRegistration::getSeed()
  \brief Loads the movable volumes as specified on command line
  \param P  Paramters for the initialization
  */
-int MultiRegistration::loadMovables(const std::vector<std::string>& pmov,const std::vector<std::string>& pmasks)
+int MultiRegistration::loadMovables(const std::vector<std::string>& pmov,const std::vector<std::string>& pmasks, bool AllowDiffVoxSize)
 {
 
   assert(mri_mov.size () == 0);
@@ -263,16 +263,25 @@ int MultiRegistration::loadMovables(const std::vector<std::string>& pmov,const s
           || fabs(mri_mov[i]->ysize - mri_mov[0]->ysize) > EPS
           || fabs(mri_mov[i]->zsize - mri_mov[0]->zsize) > EPS)
       {
-        cerr
+	if(!AllowDiffVoxSize){
+	  cerr
             << "ERROR: MultiRegistration::loadMovables: images have different voxel sizes.\n";
-        cerr << "  Currently not supported, maybe first make conform?\n";
-        cerr << "  Debug info: size(" << i << ") = " << mri_mov[i]->xsize
-            << ", " << mri_mov[i]->ysize << ", " << mri_mov[i]->zsize
-            << "   size(0) = " << mri_mov[0]->xsize << ", " << mri_mov[0]->ysize
-            << ", " << mri_mov[0]->zsize << endl;
-        ErrorExit(ERROR_BADFILE,
-            "MultiRegistration::loadMovables: voxel size is different %s.\n",
-            mov[i].c_str());
+	  cerr << "  Currently not supported, maybe first make conform?\n";
+	  cerr << "  Debug info: size(" << i << ") = " << mri_mov[i]->xsize
+	       << ", " << mri_mov[i]->ysize << ", " << mri_mov[i]->zsize
+	       << "   size(0) = " << mri_mov[0]->xsize << ", " << mri_mov[0]->ysize
+	       << ", " << mri_mov[0]->zsize << endl;
+	  ErrorExit(ERROR_BADFILE,
+		    "MultiRegistration::loadMovables: voxel size is different %s.\n",
+		    mov[i].c_str());
+	}
+	else {
+	  printf("WARNING: MultiRegistration::loadMovables: images have different voxel sizes.\n");
+	  printf("  mov[0] = (%g,%g,%g) mov[%d] = (%g,%g,%g)\n",
+		 mri_mov[0]->xsize,mri_mov[0]->ysize,mri_mov[0]->zsize,i,
+		 mri_mov[i]->xsize,mri_mov[i]->ysize,mri_mov[i]->zsize);
+	  printf("  BUT AllowDiffVoxSize set so continuing ...\n");
+	}
       }
     }
   }
