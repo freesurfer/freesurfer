@@ -122,6 +122,7 @@ if(! $Resample) then
 endif
 if($SaveWarp) set cmd = ($cmd --save-warp)
 if($SavePosteriors) set cmd = ($cmd --save-posteriors)
+if($SaveProbabilities) set cmd0 = ($cmd --save-probabilities)
 if($Lesion)               set cmd = ($cmd --lesion)
 if($#LesionMaskStructure) set cmd = ($cmd --lesion-mask-structure $LesionMaskStructure)
 if($#LesionMaskPattern)   set cmd = ($cmd --lesion-mask-pattern   $LesionMaskPattern)
@@ -263,8 +264,16 @@ while( $#argv != 0 )
       breaksw
 
     case "--save-probabilities":
+      # This will run to the end without error but no probs will be saved
       echo "--save-probabilities currently does not work"
       exit 1
+      set SaveProbabilities = 1;
+      breaksw
+
+    case "--save-p"
+      echo "--save-probabilities currently does not work"
+      exit 1
+      set SavePosteriors = 1;
       set SaveProbabilities = 1;
       breaksw
 
