@@ -12395,7 +12395,7 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
 }
 
 
-void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext)
+void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, long long mgztaglen)
 {
   // tag reading
   if (getenv("FS_SKIP_TAGS") != NULL)
@@ -12412,6 +12412,20 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext)
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] MRITAGread(): tag = %d, len = %lld\n", tag, len);
       
+    if (niftiheaderext)
+    {
+      // len returned from fstagsio.read_tagid_len() is len(tagdata)
+      // mgztaglen also includes the bytes for TAGs and data-length
+      mgztaglen -= (len + sizeof(long long) + sizeof(int));
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
+
+      // can't reply on znzeof() to detect end of tag data for nifti header extension
+      // because all the data follows the tags
+      if (mgztaglen == 0)
+        break;
+    }
+    
     switch (tag) {
       case TAG_DOF:
 	// nifti header extension only
@@ -12454,6 +12468,9 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext)
         fnamedir = NULL;
         //fstagsio.read_data(mri->transform_fname, len + 1);
 	fstagsio.read_data(mri->transform_fname, len);
+        if (Gdiag & DIAG_INFO)
+          printf("[DEBUG] MRITAGread() TAG_MGH_XFORM = %s (%lld)\n", mri->transform_fname, len);
+	
         // If this file exists, copy it to transform_fname
         if (FileExists(tmpstr)) strcpy(mri->transform_fname, tmpstr);
         if (FileExists(mri->transform_fname)) {
@@ -12843,6 +12860,8 @@ void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapp
       {
         if (Gdiag & DIAG_INFO)
           printf("[DEBUG] niiRead(): process NIFTI_ECODE_FREESURFER\n");
+
+        long long mgztaglen = esize - 12; // exclude esize, ecode, version
 	
         // read intent encoded version
         znzread(&mri->version, 4, 1, fp);
@@ -12854,7 +12873,7 @@ void __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapp
           printf("[DEBUG] niiRead(): version = %d, intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
 	
         bool niftiheaderext = true;
-        MRITAGread(mri, fp, fname, niftiheaderext);
+        MRITAGread(mri, fp, fname, niftiheaderext, mgztaglen);
 
         break;
       }
