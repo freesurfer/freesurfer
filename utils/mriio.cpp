@@ -103,6 +103,8 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 static long long __getMRITAGlength(MRI *mri, bool niftiheaderext=false);
 static int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag);
 static int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header *niihdr);
+static void __readFSniiextensionHeader(znzFile fp, MRI *mri);
+static void __writeFSniiextensionHeader(znzFile fp, MRI *mri);
 
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
@@ -9620,7 +9622,7 @@ static int niiWrite(MRI *mri0, const char *fname)
     znzwrite(&ecode, sizeof(int), 1, fp);
 
     // freesurfer header extension data is in big endian
-    znzwrite(&mri->version, sizeof(int), 1, fp);  // output intent encoded version
+    __writeFSniiextensionHeader(fp, mri);
     MRITAGwrite(mri, fp, niftiheaderext);
 
     // pad header extension with 0 to multiple of 16 bytes
@@ -12841,7 +12843,7 @@ int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swappe
       }
       
       if (Gdiag & DIAG_INFO)
-        printf("[DEBUG] niiRead(): ecode %d, esize %d\n", ecode, esize);
+        printf("[DEBUG] __niiReadHeaderextension(): ecode %d, esize %d\n", ecode, esize);
 
       if (ecode != NIFTI_ECODE_FREESURFER)
 	continue;
@@ -12851,18 +12853,13 @@ int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swappe
 	mri->ras_good_flag = 1;
 	
         if (Gdiag & DIAG_INFO)
-          printf("[DEBUG] niiRead(): process NIFTI_ECODE_FREESURFER\n");
+          printf("[DEBUG] __niiReadHeaderextension(): process NIFTI_ECODE_FREESURFER\n");
 
         long long mgztaglen = esize - 12; // exclude esize, ecode, version
-	
-        // read intent encoded version
-        znzread(&mri->version, 4, 1, fp);
-        if (swapped_flag)
-          byteswapbuffloat(&mri->version, 4);
 
-        mri->intent  = (mri->version >> 8) & 0xff;  // content of the mgz file, annot, curv, warp, ...
+	__readFSniiextensionHeader(fp, mri);
         if (Gdiag & DIAG_INFO)
-          printf("[DEBUG] niiRead(): version = %d, intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
+          printf("[DEBUG] __niiReadHeaderextension(): version = %d, intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
 	
         bool niftiheaderext = true;
         MRITAGread(mri, fp, fname, niftiheaderext, mgztaglen);
@@ -12873,7 +12870,7 @@ int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swappe
   }
 
   return has_ecode_freesurfer;
-}
+} // end of __niiReadHeaderextension()
 
 
 // return 0 for success; 1 for error
@@ -12919,4 +12916,63 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr)
   }
 
   return 0;
-}
+}  // end of __niiReadSetVox2ras()
+
+
+// freesurfer nifti header extension data is in big endian
+// first 4 bytes are as following:
+//   endian (1 byte), intent (unsigned short, 2 bytes), version (1 byte)
+void __readFSniiextensionHeader(znzFile fp, MRI *mri)
+{
+  unsigned char extheader[4] = {'\0'};
+  znzread(extheader, 4, 1, fp);
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __readFSniiextensionHeader(): %02x %02x %02x %02x\n", extheader[0], extheader[1], extheader[2], extheader[3]);
+  
+  unsigned char intent[2];
+  memcpy(&intent, &extheader[1], sizeof(intent));
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  intent[0] = extheader[2];
+  intent[1] = extheader[1];
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __readFSniiextensionHeader(): intent swapped byte order (%02x %02x) => (%02x %02x)\n", extheader[1], extheader[2], intent[0], intent[1]);
+#endif
+
+  unsigned short intentcode;
+  memcpy(&intentcode, &intent, sizeof(intentcode));
+  unsigned char version = extheader[3];
+  mri->version = ((intentcode & 0xff) << 8) | version;
+  mri->intent  = intentcode;
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __readFSniiextensionHeader(): intent = %d, version = %d\n", mri->intent, mri->version);
+}  // end of __readFSniiextensionHeader()
+
+
+// freesurfer nifti header extension data is in big endian
+// first 4 bytes are as following:
+//   endian (1 byte), intent (unsigned short, 2 bytes), version (1 byte)
+void __writeFSniiextensionHeader(znzFile fp, MRI *mri)
+{
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __writeFSniiextensionHeader(): intent = %d, version = %d\n", mri->intent, mri->version);
+  
+  unsigned char extheader[4] = {'\0'};
+  extheader[0] = '>';
+  
+  unsigned short intent = (mri->version >> 8) & 0xff;
+  memcpy(&extheader[1], &intent, sizeof(short));
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  unsigned char c = extheader[1];
+  extheader[1] = extheader[2];
+  extheader[2] = c;
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __writeFSniiextensionHeader(): intent swapped byte order (%02x %02x) => (%02x %02x)\n", c, extheader[1], extheader[1], extheader[2]);
+#endif
+
+  unsigned char version = mri->version & 0xff;
+  extheader[3] = version;
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] __writeFSniiextensionHeader(): %02x %02x %02x %02x\n", extheader[0], extheader[1], extheader[2], extheader[3]);
+  
+  znzwrite(extheader, sizeof(unsigned char), 4, fp);  // output intent encoded version
+}  // end of __writeFSniiextensionHeader()
