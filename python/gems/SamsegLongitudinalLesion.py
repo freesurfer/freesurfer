@@ -20,6 +20,7 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
         strengthOfLatentGMMHyperprior=0.5,
         strengthOfLatentDeformationHyperprior=20.0,
         saveSSTResults=True,
+        saveModelProbabilities=False,
         updateLatentMeans=True,
         updateLatentVariances=True,
         updateLatentMixtureWeights=True,
