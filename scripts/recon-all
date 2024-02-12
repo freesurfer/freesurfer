@@ -429,8 +429,11 @@ if($status) then
   exit 1;
 endif
 
-# Set global parameters defined by the config file 
-eval "`rca-config2csh $tmp_config`"
+# Set global parameters defined by the config file. rca-config2csh
+# will print out a bunch of "set" statements to set local
+# variables. This call assumes that there will be no superfluous
+# terminal output, but this is not necessarily the case, so grep with set
+eval "`rca-config2csh $tmp_config | grep set`"
 
 # Overwrite argv with all the arguments that were not recognized in the config
 set argv = ( "`cat $tmp_unknown_args`" )
