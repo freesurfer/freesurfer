@@ -1323,6 +1323,8 @@ endif
 ##---------- AUTORECON 1 -------------#
 #-----------             -------------#
 
+set origvol = $subjdir/mri/orig.mgz
+set rawavg  = $subjdir/mri/rawavg.mgz
 
 #-----------                            -----------#
 #----------- Motion Correct and Average -----------#
@@ -1396,9 +1398,6 @@ if($DoMotionCor) then
       goto error_exit;
     endif
   end
-
-  set origvol = $subjdir/mri/orig.mgz
-  set rawavg  = $subjdir/mri/rawavg.mgz
 
   # Only one run, copy to rawavg
   if($#RunList == 1) then
@@ -1539,6 +1538,18 @@ if($DoMotionCor) then
   endif
 
 endif # Motion Correction
+
+# Explicitly create an LTA to go from rawavg/native space to orig
+set lta = $mdir/rawavg2orig.lta 
+set ud = `UpdateNeeded $lta $origvol $rawavg`
+if($ud || $ForceUpdate) then
+  set cmd = (lta_convert --inlta identity.nofile --src $rawavg --trg $origvol --outlta $lta)
+  echo $cmd | tee -a $LF
+  if($RunIt) then
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
 
 set synthstrip = $mdir/synthstrip.mgz
 if($SynthStrip) then
