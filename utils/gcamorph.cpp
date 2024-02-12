@@ -1122,6 +1122,9 @@ GCA_MORPH *GCAMread(const char *fname)
   else if (type == MRI_MGH_FILE)
     gcam =  __warpfieldRead(fname);
 
+  if (gcam == NULL)
+    return NULL;
+  
   if (gcam->det > 0)  // reset gcamn->orig_area fields to be those of linear transform
   {
     int x, y, z;
