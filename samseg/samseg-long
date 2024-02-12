@@ -28,6 +28,7 @@ set LesionMaskPattern = ()
 set LesionMaskStructure = ()
 set KeepHistory = 0
 set SaveMesh = 0;
+set initlta = ()
 
 # These are preprocessing options
 set inputlist = ()
@@ -90,6 +91,7 @@ echo SAMSEG_DATA_DIR $SAMSEG_DATA_DIR  | tee -a $LF
 which run_samseg_long | tee -a $LF
 # Build the command line, first by specifying the inputs
 set cmd = (run_samseg_long -o $outdir --threads $threads)
+if(! $Resample) set cmd = ($cmd --force-different-resolutions)
 set deplist = ()
 @ nthtp = 0
 foreach tp ($tplist)
@@ -128,6 +130,7 @@ if($SaveMesh)          set cmd = ($cmd --save-mesh)
 if($Lesion)               set cmd = ($cmd --lesion)
 if($#LesionMaskStructure) set cmd = ($cmd --lesion-mask-structure $LesionMaskStructure)
 if($#LesionMaskPattern)   set cmd = ($cmd --lesion-mask-pattern   $LesionMaskPattern)
+if($#initlta) set cmd0 = ($cmd --init-reg $initlta)
 if($#OptionsFile) set cmd = ($cmd --options $OptionsFile)
 set tmpstr = `printf %03d $#tplist`
 set tst = $outdir/tp$tmpstr/samseg.csv
@@ -254,6 +257,17 @@ while( $#argv != 0 )
     case "--no-resample":
       set Resample = 0;
       # Might reg to base, might not
+      breaksw
+
+    case "--init-reg":
+    case "--initlta":
+      # Initial base-to-template
+      if($#argv < 1) goto arg1err;
+      set initlta = $argv[1]; shift;
+      if(! -e $initlta) then
+        echo "ERROR: cannot find $initlta"
+        exit 1
+      endif
       breaksw
 
     case "--threads":
@@ -582,7 +596,7 @@ if($#inputlist) then
   $longpreproc
   if($status) exit 1
 else
-  set basedir = $outdir/$preprocdir
+  if($#basedir == 0) set basedir = $outdir/$preprocdir
 endif
 
 set basedir = `getfullpath $basedir`
@@ -654,6 +668,7 @@ usage_exit:
   echo " --threads nthreads"
   echo " --bm mode1 <mode2 ...> : use a subset of modes found in longpreproc"
   echo " --no-resample : do not resample time point to base space (--resample)"
+  echo " --init-reg init.lta : initial registration (same as --initlta)"
   echo " --atlas alternative samseg atlas"
   echo " --cpvcw"
   echo " --charm"

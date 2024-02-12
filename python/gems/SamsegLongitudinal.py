@@ -172,23 +172,29 @@ class SamsegLongitudinal:
         self.historyOfTotalTimepointCost = None
         self.historyOfLatentAtlasCost = None
 
-    def segment(self, saveWarp=False):
+    def segment(self, saveWarp=False,initTransformFile=None):
         # =======================================================================================
         #
         # Main function that runs the whole longitudinal segmentation pipeline
         #
         # =======================================================================================
-        self.constructAndRegisterSubjectSpecificTemplate()
+        self.constructAndRegisterSubjectSpecificTemplate(initTransformFile)
         self.preProcess()
         self.fitModel()
         return self.postProcess(saveWarp=saveWarp)
 
-    def constructAndRegisterSubjectSpecificTemplate(self):
+    def constructAndRegisterSubjectSpecificTemplate(self,initTransformFile=None):
         # =======================================================================================
         #
         # Construction and affine registration of subject-specific template (sst)
         #
         # =======================================================================================
+
+        # Initialization transform for registration
+        initTransform = None
+        if initTransformFile:
+            trg = self.validateTransform(sf.load_affine(initTransformFile))
+            initTransform = convertRASTransformToLPS(trg.convert(space='world').matrix)
 
         # Generate the subject specific template (sst)
         self.sstFileNames = self.generateSubjectSpecificTemplate()
@@ -201,7 +207,7 @@ class SamsegLongitudinal:
         affine = Affine(imageFileName=self.sstFileNames[0],
                          meshCollectionFileName=affineRegistrationMeshCollectionFileName,
                          templateFileName=templateFileName)
-        self.imageToImageTransformMatrix, _ = affine.registerAtlas(savePath=sstDir, visualizer=self.visualizer)
+        self.imageToImageTransformMatrix, _ = affine.registerAtlas(savePath=sstDir, visualizer=self.visualizer,initTransform=initTransform)
 
 
     def preProcess(self):

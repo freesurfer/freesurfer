@@ -29,6 +29,7 @@ parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion m
 # optional processing options
 parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('--deformation-hyperprior', type=float, default=20.0, help='Strength of the latent deformation hyperprior.')
 parser.add_argument('--gmm-hyperprior', type=float, default=0.5, help='Strength of the latent GMM hyperprior.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
@@ -161,7 +162,7 @@ if args.lesion:
 else:
     samsegLongitudinal = gems.SamsegLongitudinal(**samseg_kwargs)
 
-samsegLongitudinal.segment(saveWarp=args.save_warp)
+samsegLongitudinal.segment(saveWarp=args.save_warp, initTransformFile=args.init_reg)
 
 # check memory usage
 vmpeak = sf.system.vmpeak();
