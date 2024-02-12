@@ -666,7 +666,11 @@ static void do_file(char *fname)
 
     gcam = NULL;
     gcam = GCAMread(fname);
-    if (!gcam) return;
+    if (!gcam)
+    {
+      fprintf(fpout, "Error reading %s\n", fname);
+      return;
+    }
 
     const char *type = "UNKNOWN";
     if (gcam->type == GCAM_RAS) {
