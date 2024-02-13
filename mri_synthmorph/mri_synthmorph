@@ -539,7 +539,7 @@ if arg.init:
         sf.system.fatal('initial transform geometry does not match images')
 
     net_to_mov = np.float32(ras_to_mov @ init.inv() @ fix_to_ras @ net_to_fix)
-    mov_to_new = np.float32(fix_to_net @ ras_to_fix @ init @ mov_to_ras)
+    mov_to_net = np.float32(fix_to_net @ ras_to_fix @ init @ mov_to_ras)
 
 
 # Take the input images to network space. When saving the moving image with the
