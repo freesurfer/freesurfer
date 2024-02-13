@@ -11,6 +11,7 @@ certifi==2024.2.2
 charset-normalizer==3.3.2
 contourpy==1.1.1
 cycler==0.12.1
+deepsurfer==0.1.1a0
 filelock==3.13.1
 flatbuffers==23.5.26
 fonttools==4.48.1
