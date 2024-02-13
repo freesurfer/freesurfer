@@ -192,10 +192,10 @@ class ProbabilisticAtlas:
                 globalTic = time.perf_counter()
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
                 globalToc = time.perf_counter()
-                print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
-                maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                #print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
+                #maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
-                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
+                #print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
                 historyOfMaximalDeformation.append(maximalDeformation)
                 if maximalDeformation == 0:
                     break
@@ -326,7 +326,7 @@ class ProbabilisticAtlas:
                 historyOfMaximalDeformation.append(maximalDeformation)
 
                 globalToc = time.perf_counter()
-                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
+                #print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
 
                 if computeHistoryOfDeformationCost:
                     tic = time.perf_counter()
