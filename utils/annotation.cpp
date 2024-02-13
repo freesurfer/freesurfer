@@ -1239,6 +1239,9 @@ MRI *ReadAnnotAsMRISeg(char *annotfname, int volume_flag)
   //printf("annot num %d\n",num);
   if(volume_flag) mri = MRIalloc(num,1,1,MRI_INT);
   else            mri = MRIallocHeader(num,1,1,MRI_INT,1);
+
+  mri->version = ((MGZ_INTENT_LABEL & 0xff ) << 8) | MGH_VERSION;
+  
   /* For each vertex, read in a vno and an int for the annotation value. Check the vno. */
   for(j = 0; j < num; j++) {
     vno = freadInt(fp);
