@@ -640,7 +640,7 @@ if arg.out_fixed:
 
 vmpeak = sf.system.vmpeak()
 if(vmpeak is not None):
-    print(f'#@# mri_synthmoph: {arg.model}, threads: {arg.threads}, VmPeak: {vmpeak}')
+    print(f'#@# mri_synthmorph: {arg.model}, threads: {arg.threads}, VmPeak: {vmpeak}')
 
 print('Thank you for choosing SynthMorph. Please cite us!')
 print(rewrap(ref))
