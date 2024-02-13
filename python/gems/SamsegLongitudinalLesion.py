@@ -134,11 +134,11 @@ class SamsegLongitudinalLesion(SamsegLongitudinal):
                 intensityMaskingSearchString=self.intensityMaskingSearchString,
                 sampler=self.sampler
             ))
-            self.timepointModels[timepointNumber].mask = self.sstModel.mask
+            self.timepointModels[timepointNumber].mask = self.masks[timepointNumber]
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
-            self.timepointModels[timepointNumber].voxelSpacing = self.sstModel.voxelSpacing
-            self.timepointModels[timepointNumber].transform = self.sstModel.transform
-            self.timepointModels[timepointNumber].cropping = self.sstModel.cropping
+            self.timepointModels[timepointNumber].voxelSpacing = self.voxelSpacings[timepointNumber]
+            self.timepointModels[timepointNumber].transform = self.transforms[timepointNumber]
+            self.timepointModels[timepointNumber].cropping = self.croppings[timepointNumber]
 
     def initializeLatentVariables(self):
 
