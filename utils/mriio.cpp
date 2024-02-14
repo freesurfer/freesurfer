@@ -7668,6 +7668,7 @@ MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
   }
 
   curvmri = MRIalloc(vnum, 1, 1, MRI_FLOAT);
+  curvmri->version = ((MGZ_INTENT_SHAPE & 0xff ) << 8) | MGH_VERSION;
   for (k = 0; k < vnum; k++) {
     curv = freadFloat(fp);
     MRIsetVoxVal(curvmri, k, 0, 0, 0, curv);

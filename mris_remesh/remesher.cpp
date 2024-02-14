@@ -1,3 +1,7 @@
+#ifdef NDEBUG
+#undef NDEBUG  // enable assert, prevent the program goes into infinite loop
+#endif
+
 #include <cassert>
 #include <queue>
 #include <utility>
