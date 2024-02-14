@@ -102,6 +102,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
                      int InterpMethod, int float2int, MRI *SrcHitVol,
                      int ProjDistFlag, int nskip);
 
+MRI *MRISapplyRegBCI(MRIS *reg1, MRIS *reg2, MRI *in); // barycentric interp
 MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,
 		  int ReverseMapFlag, int DoJac, int UseHash);
 MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,

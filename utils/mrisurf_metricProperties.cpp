@@ -3693,6 +3693,8 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
     x = v->cx;
     y = v->cy;
     z = v->cz;
+    // theta is the angle from the x-axis to the projection of the
+    // point in the xy-plane
     theta = atan2f(y, x);
     if (theta < 0.0f) {
       theta = 2 * M_PI + theta; /* make it 0 --> 2*PI */
@@ -3701,6 +3703,7 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
     if (d < 0.0) {
       d = 0.0;
     }
+    // phi is the angle from the z-axis to the ray (0->PI)
     phi = atan2f(sqrt(d), z);
     v->theta = theta;
     v->phi = phi;

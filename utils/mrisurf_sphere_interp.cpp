@@ -6,10 +6,10 @@
   Constructs a interpolator cache from a spherical surface and its
   internal vertex curv values.
 */
-SphericalInterpolator::SphericalInterpolator(MRIS *surf) : mris(surf)
+SphericalInterpolator::SphericalInterpolator(MRIS *surf, int which) : mris(surf)
 {
   // build the hash table for fast lookup
-  mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, mris->avg_vertex_dist / 2);
+  mht = MHTcreateFaceTable_Resolution(mris, which, mris->avg_vertex_dist / 2);
 
   // cache the radius for spherical to cartesian translations
   radius = MRISaverageRadius(mris);
@@ -148,10 +148,10 @@ bool SphericalInterpolator::searchBucket(int bx, int by, int bz, float x, float 
 
 /*
   Tests for intersection (using Möller–Trumbore algorithm) between face fno and the infinite
-  ray defined by (x, y, z). If found, interpolates the face value at the point of
+  ray that connects (0,0,0) and  (x,y,z). If found, interpolates the face value at the point of
   intersection and returns true.
 */
-bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float z, float *value)
+bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float z, float *value, double *w, bool interp)
 {
   FACE *face = &mris->faces[fno];
   Vec3 ray = Vec3(x, y, z);
@@ -180,6 +180,14 @@ bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float
 
   float l = 1.0f - v - u;
 
+  if(w){
+    w[0]  = l;
+    w[1]  = u;
+    w[2]  = v;
+  }
+
+  if(!interp) return true;
+
   // if the ray intersects, do interpolation here as we've already computed barycentric coordinates
   if (nearestneighbor == true) {
     std::vector<float> weights = {l, u, v};
@@ -193,3 +201,78 @@ bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float
 
   return true;
 }
+
+/*!
+  \fn int MHTfindClosestFaceSph(MRIS *surf, MRIS_HASH_TABLE *mht, SphericalInterpolator *si, double *cxyz, double *w, int debug)
+  \brief Finds the face "closest" to the given cxyz, where "closest"
+  means that the ray from 0 to cxyz intersects with the triangle.  The
+  test will be done with the v->c{xyz} (cannonical) coordinates (so
+  those need to be loaded), but the spherical coords (phi/theta) do
+  not need to be computed. The hash and si need to be computed from
+  the cannonical coords. If w is non-NULL, then the three barycentric
+  weights will be packed into it. This should have been in mrishash.cpp but
+  could not get it to compile.
+*/
+int MHTfindClosestFaceSph(MRIS *surf, MRIS_HASH_TABLE *mht, SphericalInterpolator *si, double *cxyz, double *w, int debug)
+{
+  int fno = -1;
+
+  // Cannonical coords, note that spherical coords (phi,theta) do not need to be computed
+  if(mht->which() != CANONICAL_VERTICES){
+    printf("MHTfindClosestFaceSph: ERROR: hash type is %d, must canonical %d\n",mht->which(),CANONICAL_VERTICES);
+    return(-1);
+  }
+
+  // Get the closest vertex to this point
+  float dmin;
+  int svtx = mht->findClosestVertexNoXYZ(cxyz[0],cxyz[1],cxyz[2], &dmin);
+  if(svtx < 0) {
+    printf("MHTfindClosestFaceSph: ERROR: could not find vertex closes to %g %g %g\n",cxyz[0],cxyz[1],cxyz[2]);
+    return(-1);
+  }
+
+  // Find all the faces within two hops of this vertex. Note: can't
+  // just look at faces adjacent to this vertex. It is a quirk of the
+  // spherical triangular mesh that a vertex can be closest to a point
+  // and that point not be encompassed by a triangle adjacent to that
+  // vertex. Could try to sort the final unique list based on proximity
+  int nHops = 2;
+  SURFHOPLIST *shl = SetSurfHopList(svtx, surf, nHops);
+  int *fnolist = (int*)calloc(sizeof(int),surf->nvertices);
+  int k = 0;
+  for(int nthhop = 0; nthhop < nHops; nthhop++) {
+    for(int i=0; i < shl->nperhop[nthhop]; i++){
+      int vtx = shl->vtxlist[nthhop][i];
+      VERTEX_TOPOLOGY *vts = &(surf->vertices_topology[vtx]);
+      for(int j = 0; j < vts->vnum; j++) {
+	fnolist[k] = vts->f[j];
+	k++;
+      }
+    }
+  }
+  int nunique;
+  int *ufnolist = unqiue_int_list(fnolist, k, &nunique);
+  free(fnolist);
+
+  // Now go through all the (unique) faces looking for one that encompasses this point. 
+  // This looks for the intersection of the ray that goes between 0 and cxyz. The
+  // weights w are computed in 3D space (important to prevent artifacts if it were
+  // done in phi/theta space, which will also sometimese fail).
+  int ok=0;
+  for(int i = 0; i < nunique; i++) {
+    fno = ufnolist[i];
+    float valval;
+    ok = si->testRayIntersection(fno, cxyz[0],cxyz[1],cxyz[2],&valval,w,false);
+    if(ok) break;
+  }
+  free(ufnolist);
+  SurfHopListFree(&shl);
+  if(!ok){
+    printf("MHTfindClosestFaceSph: ERROR: could not find triangle close to cxyz = [%g %g %g]; svtx=%d;nu=%d;k=%d;\n",
+	   cxyz[0],cxyz[1],cxyz[2],svtx,nunique,k);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(-1);
+  }
+  return(fno);
+}
+

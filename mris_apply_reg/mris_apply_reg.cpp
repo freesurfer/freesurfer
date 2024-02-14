@@ -531,6 +531,39 @@ static int parse_commandline(int argc, char **argv) {
       printf("mris_apply_reg done\n");
       exit(0);
     } 
+    else if (!strcasecmp(option, "--bci") || !strcasecmp(option, "--bci-xyz")){
+      MRIS *SurfSrc=NULL;
+      MRI *in=NULL;
+      if(!strcasecmp(option, "--bci")){
+	in = MRIread(pargv[0]);
+	if(in == NULL) exit(1);
+      }
+      else {
+	SurfSrc = MRISread(pargv[0]);
+	if(SurfSrc==NULL)  exit(1);
+	in = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc
+	MRIcopyMRIS(in, SurfSrc, 0, "x");
+	MRIcopyMRIS(in, SurfSrc, 1, "y");
+      }
+      MRIS *srcreg = MRISread(pargv[1]);
+      if(srcreg == NULL) exit(1);
+      MRIS *trgreg = MRISread(pargv[2]);
+      if(trgreg == NULL) exit(1);
+      MRISsaveVertexPositions(srcreg,CANONICAL_VERTICES);
+      MRISsaveVertexPositions(trgreg,CANONICAL_VERTICES);
+      MRI *TrgVal = MRISapplyRegBCI(srcreg, trgreg, in);
+      if(TrgVal == NULL) exit(1);
+      int err=0;
+      if(!strcasecmp(option, "--bci"))	err = MRIwrite(TrgVal,pargv[3]);
+      else {
+	MRIScopyMRI(trgreg,TrgVal,0,"x");
+	MRIScopyMRI(trgreg,TrgVal,1,"y");
+	MRIScopyMRI(trgreg,TrgVal,2,"z");
+	copyVolGeom(&SurfSrc->vg, &trgreg->vg);// once used MRI, now seems silly
+	err = MRISwrite(trgreg,pargv[3]);
+      }
+      exit(err);
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))

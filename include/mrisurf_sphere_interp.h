@@ -60,12 +60,13 @@ inline Vec3 cross(const Vec3 &u, const Vec3 &v) {
 class SphericalInterpolator
 {
 public:
-  SphericalInterpolator(MRIS *surf);
+  SphericalInterpolator(MRIS *surf, int which=CURRENT_VERTICES);
   ~SphericalInterpolator() { MHTfree(&mht); }
 
   float interp(double phi, double theta);
   void setOverlay(const float *array);
   bool nearestneighbor = false;
+  bool testRayIntersection(int fno, float x, float y, float z, float *value, double *w=NULL, bool interp=true);
 
 private:
   MRIS *mris;
@@ -76,5 +77,7 @@ private:
   std::vector<float> overlay;
 
   bool searchBucket(int bx, int by, int bz, float x, float y, float z, float *value);
-  bool testRayIntersection(int fno, float x, float y, float z, float *value);
 };
+
+int MHTfindClosestFaceSph(MRIS *surf, MRIS_HASH_TABLE *mht, SphericalInterpolator *si, 
+			  double *cxyz, double *w=NULL, int debug=0);

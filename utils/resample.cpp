@@ -72,6 +72,7 @@
 #include "mrishash.h"
 #include "mrisurf.h"
 #include "proto.h"  // nint
+#include "mrisurf_sphere_interp.h"
 
 #include "resample.h"
 
@@ -853,6 +854,90 @@ MRI *vol2surf_linear(MRI *SrcVol,
 
   return (TrgVol);
 }
+
+
+/*!
+\fn MRI *MRISapplyRegBCI(MRIS *reg1, MRIS *reg2, MRI *in)
+\brief Map from one surface to another using barycentric
+interpolation. Both reg1 and reg2 must have cannonical coords
+(v->c{xyz}) set (but spherical coords phi/theta are not needed).
+Ideally, this should just be an option in MRISapplyReg() but I wanted
+to get something working first. Note that there is no reverse map
+option, meaning that if a source vertex is not part of a triangle that
+hosts a target point, then there will be no input from that vertex.
+*/
+MRI *MRISapplyRegBCI(MRIS *reg1, MRIS *reg2, MRI *in)
+{
+  int vnodebug = 0;
+
+  // Cannonical coords (phi,theta) do not need to be computed, but the cannonical
+  // coordinates need to be loaded and stored in c{xyz}. This is a simple check:
+  VERTEX *vv = &(reg1->vertices[0]);
+  double rr = sqrt(vv->cx*vv->cx + vv->cy*vv->cy + vv->cz*vv->cz);
+  if(rr < .0001) {
+    printf("ERROR: MRISapplyRegBCI(): radius for surf1 is %g, are these canonical coords on the sphere)?\n",rr);
+    return(NULL);
+  }
+  vv = &(reg2->vertices[0]);
+  rr = sqrt(vv->cx*vv->cx + vv->cy*vv->cy + vv->cz*vv->cz);
+  if(rr < .0001) {
+    printf("ERROR: MRISapplyRegBCI(): radius for surf2 is %g, are these canonical coords on the sphere)?\n",rr);
+    return(NULL);
+  }
+
+  // Generate the hash and spherical interpolator from the canonical coords cxyz
+  MRIS_HASH_TABLE *mht = MHTcreateVertexTable_Resolution(reg1, CANONICAL_VERTICES, 16);
+  if(mht == NULL) {
+    printf("ERROR: MRISapplyRegBCI(): Could not create hash table\n");
+    return(NULL);
+  }
+  SphericalInterpolator si(reg1,CANONICAL_VERTICES);
+
+  // Allocate the output
+  MRI *out = MRIallocSequence(reg2->nvertices,1,1,in->type,in->nframes);
+  if(out == NULL) {
+    printf("ERROR: MRISapplyRegBCI(): Could not create output\n");
+    return(NULL);
+  }
+
+  // Go through each target vertex. Cannot do parallel because MHT
+  // does not support it: get this error: "lock or unlock, not thread
+  // 0, but claiming no parallelism". Not sure if it is from the
+  // MRIS_HASH_TABLE or SI or both. It would be nice to get this working.
+  int err = 0;
+  for(int vno=0; vno < reg2->nvertices; vno++){
+    VERTEX *v = &(reg2->vertices[vno]);
+    // Find the triangle in reg1 that is intersected from the ray that passes
+    // through 0 and cxyz; also get the barecentric interp weights.
+    double cxyz[3] = {v->cx,v->cy,v->cz};
+    double w[3];
+    int fno = MHTfindClosestFaceSph(reg1, mht, &si, &cxyz[0], &w[0], vno==vnodebug);
+    if(fno < 0){
+      printf("ERROR: MRISapplyRegBCI(): cannot find face for vno=%d\n",vno);
+      continue;
+      err = vno;
+    }
+    FACE *face = &(reg1->faces[fno]);
+    int vno0 = face->v[0];
+    int vno1 = face->v[1];
+    int vno2 = face->v[2];
+    for(int n=0; n < in->nframes; n++){
+      double val0 = MRIgetVoxVal(in,vno0,0,0,n);
+      double val1 = MRIgetVoxVal(in,vno1,0,0,n);
+      double val2 = MRIgetVoxVal(in,vno2,0,0,n);
+      double val = w[0]*val0 + w[1]*val1 + w[2]*val2;
+      MRIsetVoxVal(out,vno,0,0,n,val);
+    }
+  } //vertex
+
+  MHTfree(&mht);
+  if(err) {
+    MRIfree(&out);
+    return(NULL);
+  }
+  return(out);
+}
+
 
 /*!
 \fn MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,

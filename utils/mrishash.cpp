@@ -2479,6 +2479,12 @@ void MHTfindClosestFaceNoGeneric(MRIS_HASH_TABLE* mht,
                               pface_distance); }
 
 
+
+// This had to be moved to mrisurf_sphere_interp.cpp because something weird was happening 
+// with the includes.
+//int MHTfindClosestFaceSph(MRIS *surf, MRIS_HASH_TABLE *mht, SphericalInterpolator *si, 
+//			  double *cxyz, double *w=NULL, int debug=0);
+
 // These need to be tidied up
 
 int MHTfindClosestVertexNo2(

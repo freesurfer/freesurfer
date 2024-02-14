@@ -40,8 +40,6 @@
       <explanation> apply an LTA registration to a surface</explanation>
       <argument>--lta-rot source-surf ltafile outputsurf</argument>
       <explanation> apply just the rotational components of an LTA registration to a surface</explanation>
-      <argument>--gcam source-surf gcamfile outputsurf</argument>
-      <explanation> apply a GCA morph registration to a surface (was --m3z)</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>--streg srcreg2 trgreg2</argument>
@@ -50,6 +48,12 @@
       <explanation> Save output in curv format</explanation>
       <argument>--map-vertex vertexno srcsurf trgsurf outfile</argument>
       <explanation> Map vertex from source to target (stand-alone)</explanation>
+      <argument>--gcam source-surf gcamfile outputsurf</argument>
+      <explanation> stand-alone to apply a GCA morph registration to a surface (was --m3z)</explanation>
+      <argument>--bci input srcreg trgreg output</argument>
+      <explanation> stand-alone to map input to target via barycentric interpoloation </explanation>
+      <argument>--bci-xyz inputsurf srcreg trgreg output</argument>
+      <explanation> stand-alone to map input surface xyz to target via barycentric interpoloation </explanation>
     </optional-flagged>
   </arguments>
   <example>
