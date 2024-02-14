@@ -1,3 +1,7 @@
+#ifdef NDEBUG
+#undef NDEBUG  // enable assert
+#endif
+
 #include <cassert>
 #include <queue>
 #include <utility>
