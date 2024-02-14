@@ -825,10 +825,10 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "THREADS"))
   {
-    int threads = atoi(argv[1]);
     nargs = 1;
 #ifdef _OPENMP
-    omp_set_num_threads(threads);
+    // Does not speed things up much
+    omp_set_num_threads(atoi(argv[1]));
 #endif
   }
   else
