@@ -28,8 +28,9 @@ t -m affine -O out.mgz fixed.mgz moving.mgz
 compare_vol out.mgz affine.mgz --thresh 0.01
 
 # deformable registration with initialization
-t -m deform -i affine.lta -o out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz deform.mgz --thresh 0.01
+t -m deform -i affine.lta -o out_1.mgz -O out_2.mgz moving.mgz fixed.mgz
+compare_vol out_1.mgz deform_1.mgz --thresh 0.01
+compare_vol out_2.mgz deform_2.mgz --thresh 0.01
 
 # joint registration
 t -m joint -o out.mgz moving.mgz fixed.mgz
