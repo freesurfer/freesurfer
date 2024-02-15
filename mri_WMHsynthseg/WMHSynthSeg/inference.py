@@ -163,9 +163,9 @@ def main():
                 aff_upscaled[:-1, -1] = aff_upscaled[:-1, -1] - np.matmul(aff_upscaled[:-1, :-1], 0.5 * (factors - 1))
                 if crop:
                     siz_c = (np.ceil(np.array(upscaled.shape) / 32.0) * 32).astype(int)
-                    siz_c[0] = min(192, siz_c[0])
-                    siz_c[1] = min(224, siz_c[1])
-                    siz_c[2] = min(192, siz_c[2])
+                    siz_c[0] = 192 #min(192, siz_c[0])
+                    siz_c[1] = 224 #min(224, siz_c[1])
+                    siz_c[2] = 192 #min(192, siz_c[2])
                     cuboid = torch.zeros(tuple(siz_c), device=device)
                     if upscaled.shape[0] <= 192:
                         i1i = 0;
