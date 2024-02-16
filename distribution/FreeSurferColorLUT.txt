@@ -1200,6 +1200,9 @@
 7019  Envelope-Amygdala                                 141 21  100 0
 7020  Extranuclear-Amydala                              225 140 141 0
 
+7030 Left-Amygdala-Cortical-Junction               255 85 255   0
+7031 Right-Amygdala-Cortical-Junction              254 84 254   0
+
 7100  Brainstem-inferior-colliculus                     42  201 168 0
 7101  Brainstem-cochlear-nucleus                        168 104 162 0
 
