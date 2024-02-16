@@ -6772,23 +6772,29 @@ MRI *MRIapplyEdits(MRI *newauto, MRI *oldauto, MRI *manedit, MRI *outvol)
   the entowm.mgz can be created using mri_entowm_seg (a DL seg
   routine). The network was trained from manually labeling this area.
  */
-int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double rhVal)
+int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double rhVal, int ACJ)
 {
   printf("MRIfixEntoWM(): %g %g Level=%d\n",lhVal,rhVal,Level);
 
+  int lhga = 3201;
+  int rhga = 4201;
+  if(ACJ){
+    lhga = 7030;
+    rhga = 7031;
+  }
   int nchanged=0;
   for(int c=0; c < invol->width; c++){
     for(int r=0; r < invol->height; r++){
       for(int s=0; s < invol->depth; s++){
 	int i = MRIgetVoxVal(entowm,c,r,s,0);
 	if((i==3006 && (Level==1 || Level==3)) || 
-	   (i==3201 && (Level==2 || Level==3)) ){
+	   (i==lhga && (Level==2 || Level==3)) ){
 	  MRIsetVoxVal(invol,c,r,s,0,lhVal);
 	  nchanged++;
 	  continue;
 	}
 	if((i==4006 && (Level==1 || Level==3)) || 
-	   (i==4201 && (Level==2 || Level==3)) ){
+	   (i==rhga && (Level==2 || Level==3)) ){
 	  MRIsetVoxVal(invol,c,r,s,0,rhVal);
 	  nchanged++;
 	  continue;
@@ -6796,8 +6802,83 @@ int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double 
       }
     }
   }
-  printf("FixEntoWM(): nchanged = %d\n",nchanged);
+  printf("MRIfixEntoWM(): nchanged = %d\n",nchanged);
   return(nchanged);
+}
+
+/*!
+  \fn MRI *LabelAmygalaCortalJunction(MRI *seg, int topo, MRI *out)
+  \brief Labels the voxel on the boundary bet amyg and ctx. Needed
+  to create a white matter strand for surface placement. Seg should
+  be an aseg-like volume wiht amyg and ctx labeled before fixing
+  with surfaces (likely the aseg.presurf). topo should be 1,2,3;
+  likely 3. See also MRIfixEntoWM() for applying the mask.
+ */
+MRI *LabelAmygalaCortalJunction(MRI *seg, int topo, MRI *out)
+{
+  if(out==NULL){
+    out = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_INT,1);
+    MRIcopyHeader(seg, out);
+    MRIcopyPulseParameters(seg,out);
+    // Create a color table
+    out->ct = CTABalloc(7031+1);
+    for(int n = 0; n < 7030; n++){
+      // delete superfluous entries
+      free(out->ct->entries[n]);
+      out->ct->entries[n] = NULL;
+    }
+    for(int n = 0; n < 2; n++){
+      // These should match the default color table
+      CTE *cte;
+      if(n == 0){
+	cte = out->ct->entries[7030];
+	sprintf(cte->name,"Left-Amygdala-Cortical-Junction");
+	cte->ri = 255;
+	cte->gi = 85;
+	cte->bi = 255;
+      } else {
+	cte = out->ct->entries[7031];
+	sprintf(cte->name,"Right-Amygdala-Cortical-Junction");
+	cte->ri = 254;
+	cte->gi = 85;
+	cte->bi = 255;
+      }
+    }
+  }
+
+  int nhits = 0;
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nhits)
+#endif
+  for(int c=1; c < seg->width-1; c++){
+    for(int r=1; r < seg->height-1; r++){
+      for(int s=1; s < seg->depth-1; s++){
+	int id = MRIgetVoxVal(seg,c,r,s,0);
+	int outlabel;
+	if(id == 18) outlabel = 7030; // lh
+	else if(id == 54) outlabel = 7031; // rh
+	else continue;
+	for(int dc = -1; dc < 2; dc++){
+	  for(int dr = -1; dr < 2; dr++){
+	    for(int ds = -1; ds < 2; ds++){
+	      int dsum = abs(dc)+abs(dr)+abs(ds);
+	      if(dsum > topo) continue;
+	      int did = MRIgetVoxVal(seg,c+dc,r+dr,s+ds,0);
+	      if(did != 3 && did != 42) continue;
+	      MRIsetVoxVal(out,c+dc,r+dr,s+ds,0,outlabel);
+	      nhits ++;
+	    }
+	  }
+	}
+
+      }
+    }
+  }
+  printf("LabelAmygalaCortalJunction((): nhits = %d\n",nhits);
+  // Could remove islands and/or fill in holes, but have to separate lh and rh
+  //MRI *MRIremoveVolumeIslands(MRI *mask, double thresh, int nKeep, MRI *outvol)
+  //tmpvol = MRIremoveVolumeHoles(outvol, 0.5, 1, fillval, NULL);
+  return(out);
 }
 
 /*!

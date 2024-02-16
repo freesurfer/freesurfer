@@ -92,6 +92,10 @@ double FixEntoWMLhVal,FixEntoWMRhVal;
 int FixEntoWMLevel;
 MRI *entowm=NULL;
 
+double FixACJLhVal,FixACJRhVal;
+int FixACJ = 0;
+MRI *ACJ = NULL;
+
 int main(int argc, char *argv[])
 {
   MRI    *mri_wm, *mri_aseg, *mri_T1 ;
@@ -212,7 +216,8 @@ int main(int argc, char *argv[])
 	  
 	}
   }
-  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal);
+  if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal, 0);
+  if(ACJ)     MRIfixEntoWM(mri_wm, ACJ,                 3, FixACJLhVal,    FixACJRhVal, 1);
 
   printf("writing edited volume to %s....\n", output_file_name) ;
   MRIwrite(mri_wm, output_file_name) ;
@@ -295,7 +300,7 @@ get_option(int argc, char *argv[])
     int err = MRIwrite(fscmha.subcorticalmass,argv[5]);
     exit(err);
   }
-  else if(!stricmp(option, "fix-ento-wm") || !stricmp(option, "sa-fix-ento-wm"))
+  else if(!stricmp(option, "fix-ento-wm") || !stricmp(option, "sa-fix-ento-wm") )
   {
     // This is a bit of a hack to fill in WM in the gyrus ambiens that
     // is often so thin that it looks like GM. entowm.mgz is the output of mri_entowm_seg
@@ -316,11 +321,34 @@ get_option(int argc, char *argv[])
     if(!stricmp(option, "sa-fix-ento-wm")){
       MRI *invol = MRIread(argv[6]);
       if(invol==NULL) exit(1);
-      MRIfixEntoWM(invol, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal);
+      MRIfixEntoWM(invol, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal,0);
       int err = MRIwrite(invol,argv[7]);
       exit(err);
     }
     nargs = 4;
+  }
+  else if( !stricmp(option, "fix-acj") || !stricmp(option, "sa-fix-acj") )
+  {
+    // This is a bit of a hack to fill in WM in the amygdala-cortical junction (ACJ)
+    // --fix-acj aseg.presurf.mgz LhVal RhVal 
+    // --sa-fix-acj aseg.presurf.mgz LhVal RhVal input output
+    FixACJ = 1;
+    MRI *seg = MRIread(argv[2]);
+    if(seg==NULL) exit(1);
+    ACJ = LabelAmygalaCortalJunction(seg, 3, NULL); //3=topo=face,edge,corner neighbors
+    if(ACJ==NULL) exit(1);
+    MRIfree(&seg);
+    sscanf(argv[3],"%lf",&FixACJLhVal);
+    sscanf(argv[4],"%lf",&FixACJRhVal);
+    printf("Fixing ACJ %g %g\n",FixACJLhVal,FixACJRhVal);
+    if(!stricmp(option, "sa-fix-acj")){
+      MRI *invol = MRIread(argv[5]);
+      if(invol==NULL) exit(1);
+      MRIfixEntoWM(invol, ACJ, 3, FixACJLhVal, FixACJRhVal, 1);
+      int err = MRIwrite(invol,argv[6]);
+      exit(err);
+    }
+    nargs = 3;
   }
   else if (!stricmp(option, "debug_voxel"))
   {
