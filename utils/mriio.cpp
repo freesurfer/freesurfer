@@ -12376,7 +12376,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
 
   FStagsIO fstagsio(fp, niftiheaderext);
   
-  long long len;
+  long long len = 0;
 
   while (1) {
     int tag = fstagsio.read_tagid_len(&len);
@@ -12385,20 +12385,6 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] MRITAGread(): tag = %d, len = %lld\n", tag, len);
       
-    if (niftiheaderext)
-    {
-      // len returned from fstagsio.read_tagid_len() is len(tagdata)
-      // mgztaglen also includes the bytes for TAGs and data-length
-      mgztaglen -= (len + sizeof(long long) + sizeof(int));
-      if (Gdiag & DIAG_INFO)
-        printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
-
-      // can't reply on znzeof() to detect end of tag data for nifti header extension
-      // because all the data follows the tags
-      if (mgztaglen == 0)
-        break;
-    }
-    
     switch (tag) {
       case TAG_DOF:
 	// nifti header extension only
@@ -12549,6 +12535,22 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
         fstagsio.skip_tag(tag, len);
         break;
     }  // switch (tag)
+
+    if (niftiheaderext)
+    {
+      // len returned from fstagsio.read_tagid_len() is len(tagdata)
+      // mgztaglen also includes the bytes for TAGs and data-length
+      mgztaglen -= (len + sizeof(long long) + sizeof(int));
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
+
+      // can't reply on znzeof() to detect end of tag data for nifti header extension
+      // because all the data follows the tags
+      // mgztaglen may not reach 0 because the extension is padded to be multiple of 16 bytes
+      // check if there is at least 4 bytes (sizeof(int)) left 
+      if (mgztaglen < sizeof(int))
+        break;
+    }
   }    // while (1)
 } // end MRITAGread()
 
