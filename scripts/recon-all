@@ -1575,7 +1575,8 @@ if($UseSynthSeg || $CblumFromSynthSeg) then
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthseg $XOptsFile`;
-    set cmd = (mri_synthseg --i $origvol --o $synthseg --cpu --threads $OMP_NUM_THREADS $xopts)
+    set cmd = (mri_synthseg --i $origvol --o $synthseg --threads $OMP_NUM_THREADS $xopts)
+    if(! $UseGPU)  set cmd = ($cmd --cpu)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -3296,26 +3297,17 @@ endif
 #
 
 if($TopoFitLevel > 0) then
-  foreach hemi ($hemilist)
-    set surf = $sdir/$hemi.white.topofit
-    set ud = `UpdateNeeded $surf $mdir/norm.mgz`
-    if($ud || $ForceUpdate) then
-      set cmd = (mris_estimate_wm -s $subjid --hemi $hemi)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    pushd $sdir  
-    if($TopoFitLevel >= 1) then
-      ln -sf $hemi.white.topofit$FS_GII $hemi.orig.premesh$FS_GII
-      ln -sf $hemi.white.topofit$FS_GII $hemi.orig$FS_GII #remeshing only done during topofix
-    endif
-    if($TopoFitLevel >= 2) ln -sf $hemi.white.topofit$FS_GII $hemi.white.preaparc$FS_GII
-    if($TopoFitLevel >= 3) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere$FS_GII $hemi.sphere$FS_GII
-    if($TopoFitLevel >= 4) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere$FS_GII $hemi.sphere.reg$FS_GII
-    if($TopoFitLevel >= 5) ln -sf $hemi.white.topofit$FS_GII $hemi.white$FS_GII
-    popd
-  end
+  set cmd = (topofit --s $subjid --threads $OMP_NUM_THREADS)
+  if($#hemilist == 1)    set cmd = ($cmd --$hemilist)
+  if($TopoFitLevel == 1) set cmd = ($cmd --no-sphere)
+  if($UseGPU)            set cmd = ($cmd --gpu)
+  if($ForceUpdate)       set cmd = ($cmd --force)
+  #set cmd = ($cmd --ico7)
+  set xopts = `fsr-getxopts rca-topofit $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
 endif
 
 #----------------              -------------------#
@@ -3455,7 +3447,7 @@ endif
 #----------------           -------------------#
 ##---------------  -qsphere -------------------#
 #----------------           -------------------#
-if($DoQSphere && ( ! $longitudinal )) then
+if($DoQSphere && ( ! $longitudinal ) ) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
@@ -3670,7 +3662,7 @@ if($DoAutoDetGWStats) then
 endif
 
 set stopmaskscm = ()
-if($UseStopMaskSCM && ($DoWhitePreAparc || $DoWhiteSurfs)) then
+if($UseStopMaskSCM && ($DoWhitePreAparc || $DoWhiteSurfs) ) then
   set stopmaskscm = $mdir/stopmask.scm.mgz
   echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# StopMaskSCM `date`" |& tee -a $LF |& tee -a $CF
@@ -3994,6 +3986,7 @@ endif
 ##---------------       -surfreg       -------------------#
 #----------------                      -------------------#
 if($DoSurfReg) then
+  if(! $JosaReg) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
@@ -4003,7 +3996,7 @@ if($DoSurfReg) then
     $PWD |& tee -a $LF
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mris_register $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_register -curv)
+    set cmd = (mris_register -curv -threads $OMP_NUM_THREADS)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -4038,9 +4031,16 @@ if($DoSurfReg) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
+  else
+    set cmd = (josareg --s $subjid --threads $OMP_NUM_THREADS --no-post --links)
+    if($#hemilist == 1) set cmd = ($cmd --$hemilist)
+    set xopts = `fsr-getxopts rca-josareg $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd $xopts)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
 endif
-
-
 
 #----------------                  -------------------#
 ##---------------  -jacobian_white -------------------#
@@ -7140,6 +7140,7 @@ while( $#argv != 0 )
     case "-autorecon2-surfonly":
     case "-autorecon2-surfsonly":
     case "-autorecon2-surf":
+    case "-autorecon2-surfs":
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
       set DoInflate1       = 1;
@@ -8070,7 +8071,7 @@ check_params:
       exit 1;
     endif
 
-    if($TopoFitLevel >= 1 || $UseSynthSeg || $SynthStrip) then
+    if($TopoFitLevel >= 1 || $UseSynthSeg || $SynthStrip || $JosaReg) then
       if($?FS_ALLOW_DEEP == 0) setenv FS_ALLOW_DEEP 0
       if(! $FS_ALLOW_DEEP) then
         echo "ERROR: cannot use ML routines"
@@ -8079,6 +8080,10 @@ check_params:
     endif
 
     if($TopoFitLevel >= 1) then
+      if($DoConf2Hires) then
+        echo "ERROR: topofit not testd with conf2hires"
+        exit 1
+      endif
       # set DoSegmentation = 1; # wm.mgz is still needed later, so don't unset
       set DoFill           = 0;
       set DoTessellate     = 0;
@@ -8086,12 +8091,15 @@ check_params:
       set DoInflate1       = 0;
       set DoQSphere        = 0;
       set DoFix            = 0;
-      # Level1=replace ?h.orig
-      if($TopoFitLevel >= 2) set DoWhitePreAparc  = 0; # Level2=replace ?h.white.preaparc
-      if($TopoFitLevel >= 3) set DoSphere  = 0;        # Level3=replace ?h.sphere
-      if($TopoFitLevel >= 4) set DoSurfReg = 0;        # Level4=replace ?h.sphere.reg
-      if($TopoFitLevel >= 5) set DoWhiteSurfs = 0;     # Level5=replace ?h.white
+      set DoWhitePreAparc  = 0;
+      set DoWhiteSurfs     = 0;
+      set DoSmooth2        = 0;
+      set UseStopMaskSCM   = 0;
+      set DoPialSurfs      = 0;
+      if($TopoFitLevel >= 2) set DoSphere  = 0; 
     endif
+
+    if($JosaReg) set DoSurfReg = 1;
 
     if($UseSamseg && $UseSynthSeg) then
       echo "ERROR: cannot specify -samseg AND -synthseg"

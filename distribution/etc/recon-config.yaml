@@ -105,7 +105,19 @@ UseSynthSeg:
 TopoFitLevel:
     value: 0
     flags: -topofit
-    descr: TopoFit Level
+    descr: TopoFit Level (1 or 2)
+
+JosaReg:
+    value: 0
+    flags: -josareg
+    action: enable
+    descr: Use JOSA surface-based registration
+
+UseGPU:
+    value: 0
+    flags: -gpu
+    action: enable
+    descr: Use GPU for those GPU-enabled programs 
 
 SynthStrip:
     value: False
