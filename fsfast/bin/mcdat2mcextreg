@@ -11,6 +11,7 @@ set cleanup = 1;
 set LF = ();
 set PrintHelp = 0;
 set fmt = nii
+set ForceUpdate = 0
 
 set inputargs = ($argv);
 if($#argv == 0) goto usage_exit;
@@ -38,8 +39,12 @@ pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
-if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.mcdat2extreg.$$
-mkdir -p $tmpdir
+set ud = `UpdateNeeded $extreg $mcdat`
+if(! $ud && ! $ForceUpdate) then
+  echo "Update not needed"
+  echo "mcdat2mcextreg done\n"
+  exit 0
+endif
 
 if($#LF == 0) set LF = $outdir/mcdat2extreg.log
 if($LF != /dev/null) rm -f $LF
@@ -59,25 +64,36 @@ uname -a  | tee -a $LF
 # This can be read by mri_glmfit, which is then used to
 # convert it to an image "volume". 
 
-set tblfile = $tmpdir/table.dat
-rm -f $tblfile
-echo "Measure:MC Tx Ty Tz Rx Ry Rz" >> $tblfile
-cat $mcdat | awk '{print $1" "$2" "$3" "$4" "$5" "$6" "$7}' >> $tblfile
+if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.mcdat2extreg.$$
+mkdir -p $tmpdir
 
+set tblfile = $tmpdir/table.dat
+set ud = `UpdateNeeded $tblfile $mcdat`
+if($ud || $ForceUpdate) then
+  rm -f $tblfile
+  echo "Measure:MC Tx Ty Tz Rx Ry Rz" >> $tblfile
+  cat $mcdat | awk '{print $1" "$2" "$3" "$4" "$5" "$6" "$7}' >> $tblfile
+endif
+
+set yout = $tmpdir/y.out.mgh # using mgh here because nii is currently failing 2/17/24
 set glmdir = $tmpdir/glm
 set cmd = (mri_glmfit --table $tblfile --glmdir $glmdir --osgm)
-set cmd = ($cmd --y-out $tmpdir/y.out.$fmt --pca)
+set cmd = ($cmd --y-out $yout --pca)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 if($Demean == 0) then
-  mri_concat $tmpdir/y.out.$fmt --pca --o $tmpdir/pca.$fmt
+  set pca = $tmpdir/pca.$fmt
+  set cmd = (mri_concat $yout --pca --o $tmpdir/pca.$fmt)
+  echo $cmd
+  $cmd
   if($status) exit 1;
   set u = $tmpdir/pca.u.mtx
 else
   set u = $glmdir/pca-eres/u.mtx
 endif
+
 rm -f $extreg
 cat $u | awk '{print $1" "$2" "$3" "$4" "$5" "$6}' > $extreg
 if($status) exit 1;
@@ -139,6 +155,11 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--force":
+    case "--force-update":
+      set ForceUpdate = 1
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -189,7 +210,7 @@ arg1err:
 usage_exit:
   echo "mcdat2extreg --i mcdat --o extreg"
   echo "  --demean : remove mean"
-  echo ""
+  echo "  --force-update"
 
   if(! $PrintHelp) exit 1;
   echo $VERSION
