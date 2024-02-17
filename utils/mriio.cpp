@@ -12368,6 +12368,19 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
 }
 
 
+/*
+ * notes for NIFTI_ECODE_FREESURFER processing
+ *   - nifti header extension data is padded with zeros to be multiple of 16 bytes
+ *   - the number of padded bytes is between 0 and 15
+ *   - each TAG section is in this format: tagid (4 bytes), len(tag-data) (8 bytes), tag-data
+ *   - to prevent reading pass the extension data, before processing next TAG section, 
+ *        make sure there are at least 12 bytes (tagid+len(tag-data)) left
+ *   - if the number of leftover bytes are less than 12, they are padded bytes, break from processing loop;
+ *     otherwise, next read will return tag = 0, processing stops
+ *   - after processing stops, the file position should not pass vox_offset (offset where image data starts),
+ *        and it may not be at vox_offset either
+ *   - niiRead() needs to znzseek() to vox_offset before reading the image data
+ */
 void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, long long mgztaglen)
 {
   // tag reading
@@ -12380,7 +12393,13 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
 
   while (1) {
     int tag = fstagsio.read_tagid_len(&len);
-    if (tag == 0) break;
+    if (tag == 0)
+    {
+      if (Gdiag & DIAG_INFO)
+	printf("[DEBUG] MRITAGread(): remaining taglen = %lld (tag = %d, len = %lld)\n", mgztaglen, tag, len);
+      
+      break;
+    }
 
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] MRITAGread(): tag = %d, len = %lld\n", tag, len);
@@ -12540,15 +12559,16 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
     {
       // len returned from fstagsio.read_tagid_len() is len(tagdata)
       // mgztaglen also includes the bytes for TAGs and data-length
-      mgztaglen -= (len + sizeof(long long) + sizeof(int));
+      int len_tagheader = sizeof(long long) + sizeof(int);
+      mgztaglen -= (len + len_tagheader);
       if (Gdiag & DIAG_INFO)
         printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
 
       // can't reply on znzeof() to detect end of tag data for nifti header extension
       // because all the data follows the tags
-      // mgztaglen may not reach 0 because the extension is padded to be multiple of 16 bytes
-      // check if there is at least 4 bytes (sizeof(int)) left 
-      if (mgztaglen < sizeof(int))
+      // mgztaglen may not reach 0 because the extension is padded with zeros to be multiple of 16 bytes
+      // check if there is at least 12 bytes (sizeof(long long) + sizeof(int)) left 
+      if (mgztaglen < len_tagheader)
         break;
     }
   }    // while (1)
