@@ -219,7 +219,6 @@ long long FStagsIO::getlen_scan_parameters(MRI *mri, bool addtaglength)
   }
 
   // this needs to be consistent with write_scan_parameters()
-  dlen += sizeof(mri->tr);
   dlen += sizeof(mri->te);
   dlen += sizeof(mri->ti);
   dlen += sizeof(mri->flip_angle);
@@ -563,7 +562,6 @@ int FStagsIO::write_scan_parameters(MRI *mri)
 
   long long dlen = getlen_scan_parameters(mri, false);
   znzwriteLong(dlen, fp);
-  znzwriteFloat(mri->tr, fp);
   znzwriteFloat(mri->te, fp);
   znzwriteFloat(mri->ti, fp);
   znzwriteDouble(mri->flip_angle, fp);
@@ -853,9 +851,6 @@ int FStagsIO::read_dof(int *dof)
 // read TAG_SCAN_PARAMETERS (nifti header extension only)
 int FStagsIO::read_scan_parameters(MRI *mri, long long dlen)
 {
-  mri->tr = znzreadFloat(fp);
-  dlen -= sizeof(mri->tr);
-  
   mri->te = znzreadFloat(fp);
   dlen -= sizeof(mri->te);
   
