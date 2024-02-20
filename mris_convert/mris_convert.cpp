@@ -377,6 +377,7 @@ main(int argc, char *argv[])
       {
         printf("Converting surface XYZ coordinates from tkr to scanner space.\n");
         MRIStkr2Scanner(mris);
+	MRIScomputeMetricProperties(mris);
       }
       else
       {
@@ -395,6 +396,7 @@ main(int argc, char *argv[])
       {
         printf("Converting surface XYZ coordinates from scanner to tkr space.\n");
         MRISscanner2Tkr(mris);
+	MRIScomputeMetricProperties(mris);
       }
       else
       {
@@ -452,8 +454,10 @@ main(int argc, char *argv[])
   }
   else if (mris->patch)
     __convertMRISPatch(mris, out_fname);
-  else if (output_normals)
+  else if (output_normals){
+    printf("Outputting normals %s\n",out_fname);
     __convertNormals(mris, out_fname);
+  }
   else if (write_vertex_neighbors)
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
   else if(PrintXYZOnly)
