@@ -99,6 +99,8 @@ LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
 int ApplyScaleSurf(MRIS *surf, const double scale);
 double SourceSurfRegScale = 0;
 double TargetSurfRegScale = 0;
+int RegScannerRAS = 0;
+int XYZScannerRAS = 0; // convert the source surf xyz to scanner ras
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -127,6 +129,7 @@ int main(int argc, char *argv[]) {
   dump_options(stdout);
 
   // Load in surface registrations
+  if(RegScannerRAS) printf("Converting reg surf vertices to scanner RAS\n");
   for(n=0; n<nsurfs;n++){
     printf("%d Loading %s\n",n+1,SurfRegFile[n]);
     base = fio_basename(SurfRegFile[n],".tri");
@@ -135,8 +138,10 @@ int main(int argc, char *argv[]) {
       printf("   reading as ico 7, rescaling radius to 100\n");
       SurfReg[n] = ReadIcoByOrder(7, 100);
     }
-    else
+    else {
       SurfReg[n] = MRISread(SurfRegFile[n]);
+    }
+    if(! SurfReg[n]) exit(1);
     MRISsaveVertexPositions(SurfReg[n], TMP_VERTICES); // In case --vertex-pair is set
     free(base);
     if(SurfReg[n]==NULL) exit(1);
@@ -144,6 +149,7 @@ int main(int argc, char *argv[]) {
       printf("Loading patch %s\n",SurfPatchFile[n]);
       MRISreadPatch(SurfReg[n], SurfPatchFile[n]);
     }
+    if(RegScannerRAS) MRIStkr2Scanner(SurfReg[n]);
   }
 
   if(SourceSurfRegScale > 0){
@@ -180,6 +186,10 @@ int main(int argc, char *argv[]) {
     printf("Loading surface xyz %s\n",SurfXYZFile);
     SurfSrc = MRISread(SurfXYZFile);
     if(SurfSrc==NULL)  exit(1);
+    if(XYZScannerRAS) {
+      printf("Converting input surface to Scanner RAS\n");
+      MRIStkr2Scanner(SurfSrc);
+    }
     SrcVal = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc
     MRIcopyMRIS(SrcVal, SurfSrc, 0, "x");
     MRIcopyMRIS(SrcVal, SurfSrc, 1, "y");
@@ -246,6 +256,10 @@ int main(int argc, char *argv[]) {
     MRIScopyMRI(tmpsurf,TrgVal,1,"y");
     MRIScopyMRI(tmpsurf,TrgVal,2,"z");
     if(center_surface)  MRIScenter(tmpsurf, tmpsurf);
+    if(XYZScannerRAS) {
+      printf("Converting output surface back to tkRegRAS\n");
+      MRISscanner2Tkr(tmpsurf);
+    }
     MRISwrite(tmpsurf, TrgValFile);
     if(npatches > 0) MRISfree(&tmpsurf);
   }
@@ -303,6 +317,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ones")) DoSynthOnes = 1;
     else if (!strcasecmp(option, "--curv")) OutputCurvFormat=1;
     else if (!strcasecmp(option, "--center")) center_surface = 1 ;
+    else if (!strcasecmp(option, "--reg-scanner-ras")) RegScannerRAS = 1 ;
+    else if (!strcasecmp(option, "--xyz-scanner-ras")) XYZScannerRAS = 1 ;
+    else if (!strcasecmp(option, "--scanner-ras")) {RegScannerRAS = 1 ;XYZScannerRAS = 1 ;}
 
     else if (!strcasecmp(option, "--src") || !strcasecmp(option, "--sval") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);

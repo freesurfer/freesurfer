@@ -54,6 +54,10 @@
       <explanation> stand-alone to map input to target via barycentric interpoloation </explanation>
       <argument>--bci-xyz inputsurf srcreg trgreg output</argument>
       <explanation> stand-alone to map input surface xyz to target via barycentric interpoloation </explanation>
+      <argument>--reg-scanner-ras</argument>
+      <explanation> Convert registration surfaces to scanner RAS </explanation>
+      <argument>--xzy-scanner-ras</argument>
+      <explanation> Convert input surface xyz to scanner RAS, apply xform, then convert back to TkReg RAS </explanation>
     </optional-flagged>
   </arguments>
   <example>
