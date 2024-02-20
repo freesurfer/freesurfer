@@ -2361,13 +2361,13 @@ int MRISshiftCRAS(MRIS *mris, int shift)
   \brief Convert surface xyz coords from tkregister space (ie, the
   native space that the surface xyz coords are generated in) to
   scanner space. The surface coords must be in tkr space, no checking
-  is done to make sure. Use MRISscanner2Tkr() to reverse.
-  Sets mris->useRealRAS = 1;
+  is done to make sure, though useRealRAS must be 0. Use
+  MRISscanner2Tkr() to reverse.  Sets mris->useRealRAS = 1;
  */
 int MRIStkr2Scanner(MRIS *mris)
 {
+  if(mris->useRealRAS) return(0);
   MATRIX *M, *T, *Tinv, *S;
-
   S = vg_i_to_r(&mris->vg);
   T = TkrVox2RASfromVolGeom(&mris->vg);
   Tinv = MatrixInverse(T, NULL);
@@ -2385,11 +2385,13 @@ int MRIStkr2Scanner(MRIS *mris)
   \brief Convert surface xyz coords from scanner space to tkregister
   space (ie, the native space that the surface xyz coords are
   generated in). The surface coords must be in scanner space, no
-  checking is done to make sure. Use MRIStkr2Scanner() to reverse.
-  Sets mris->useRealRAS = 0;
+  checking is done to make sure. If useRealRAS=0, just returns without
+  doing anything. Use MRIStkr2Scanner() to reverse.  Sets
+  mris->useRealRAS = 0;
  */
 int MRISscanner2Tkr(MRIS *mris)
 {
+  if(mris->useRealRAS == 0) return(0);
   MATRIX *Q, *T, *Sinv, *S;
 
   S = vg_i_to_r(&mris->vg);
