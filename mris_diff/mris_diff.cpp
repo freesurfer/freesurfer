@@ -133,7 +133,7 @@ static int   okayBucketMax=1;
 static int   gridx=0, gridy=0, gridz=0;
 static float gridspacing=0;
 static char* gridFile=NULL;
-
+int UseScannerRAS = 0;
 
 static MRIS *surf1, *surf2;
 
@@ -433,6 +433,11 @@ int main(int argc, char *argv[]) {
   if (surf2 == NULL) {
     printf("ERROR: could not read %s\n",surf2path);
     exit(1);
+  }
+  if(UseScannerRAS){
+    printf("Converting to scanner RAS\n");
+    MRIStkr2Scanner(surf1);
+    MRIStkr2Scanner(surf2);
   }
 
   if (surf1->vg.valid != surf2->vg.valid)
@@ -982,6 +987,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-check-xyz")) CheckXYZ = 0;
     else if (!strcasecmp(option, "--no-check-nxyz")) CheckNXYZ = 0;
     else if (!strcasecmp(option, "--renumbered")) renumberedSpecified = 1;
+    else if (!strcasecmp(option, "--scanner-ras")) UseScannerRAS = 1;
     else if (!strcasecmp(option, "--ndist")) {
       ComputeNormalDist = 1;
       out_fname = pargv[0];
@@ -1093,6 +1099,12 @@ static int parse_commandline(int argc, char **argv) {
       if(surf1==NULL) exit(1);
       surf2 = MRISread(pargv[1]);
       if(surf2==NULL) exit(1);
+      if(UseScannerRAS){
+	printf("Converting to scanner RAS\n");
+	MRIStkr2Scanner(surf1);
+	MRIStkr2Scanner(surf2);
+      }
+
       // mindist will be on surf2
       int UseExact;
       sscanf(pargv[2],"%d",&UseExact);
@@ -1207,6 +1219,7 @@ static void print_usage(void) {
   printf("   --seed seed : set random seed for degenerate normals\n");
   printf("   --min-dist surf1 surf2 exactflag mindist : compute vertex-by-vert RMS distance between surfs\n");
   printf("     surfs do not need to have the same number of vertices. Output on surf2\n");
+  printf("   --scanner-ras : convert each surface to scanner RAS (applies to --min-dist as well)\n");
   printf("\n");
   printf("   --debug       turn on debugging\n");
   printf("   --gdiag_no Gdiag_no\n");
