@@ -644,7 +644,7 @@ if($?SLURM_JOB_ID) then
   echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
 endif
 
-# check for existence of bc (binary calculator)                                                                                               
+# check for existence of bc (binary calculator)
 # some minimal installs of centos do not have it
 set cmd = (which bc)
 $cmd >& /dev/null
@@ -3751,26 +3751,18 @@ if($DoCortexLabel) then
   cd $mdir
   set aseg = aseg.presurf.mgz
   foreach hemi ($hemilist)
-    set whitepreaparc = ../surf/$hemi.white.preaparc
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
     echo "#@# CortexLabel $hemi `date`" |& tee -a $LF |& tee -a $CF
-    set cortex = ../label/$hemi.cortex.label # Must have a "/" or LabelRead() fails
-    set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 0 $cortex)
-    # Label usually will not cover all of entowm fix. Adding entowm.mgz below will
-    # help, but not much, and could have unpredictable results, so not using it.
-    # The real fix is to fix the aseg.
-    if(0 && $FixEntoWM) set cmd = ($cmd entowm.mgz);
+    set whitepreaparc = ../surf/$hemi.white.preaparc
+    set cmd = (label-cortex --s $subjid --$hemi)
+    if($FixGA) set cmd = ($cmd --fix-ga)
+    if($ForceUpdate) set cmd = ($cmd --force-update)
     set xopts = `fsr-getxopts CortexLabel $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
-    echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
-    echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $cortex $whitepreaparc $aseg`
-    if($ud || $ForceUpdate) then
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-        echo $cmd > $touchdir/$hemi.cortex.touch
-      endif
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/$hemi.cortex.touch
     else
       echo "   Update not needed" |& tee -a $LF |& tee -a $CF
     endif
@@ -3778,7 +3770,6 @@ if($DoCortexLabel) then
     echo "#@# CortexLabel+HipAmyg $hemi `date`" |& tee -a $LF |& tee -a $CF
     set cortexha = ../label/$hemi.cortex+hipamyg.label # Must have a "/" or LabelRead() fails below
     set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 1 $cortexha)
-    if(0 && $FixEntoWM) set cmd = ($cmd entowm.mgz);
     set xopts = `fsr-getxopts CortexLabelHA $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
@@ -8503,6 +8494,10 @@ check_params:
     endif
   endif
 
+  if($FixGA && ! $FixEntoWM) then
+    echo "ERROR: --fix-ento-wm is necessary with --fix-ga"
+    exit 1
+  endif
 
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanFilled && ! $DoCleanSeed && ! $DoCleanCW256 && \

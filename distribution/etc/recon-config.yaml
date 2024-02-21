@@ -143,6 +143,12 @@ FixEntoWM:
     action: enable
     descr: Fix the WM in the area around entorhinal cortex and gyrus ambiens
     
+FixGA:
+    value: False
+    flags: -fix-ga
+    action: enable
+    descr: Fix the cortex label around gyrus ambiens
+    
 FixACJ:
     value: False
     flags: -fix-acj
