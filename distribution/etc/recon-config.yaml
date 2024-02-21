@@ -143,6 +143,12 @@ FixEntoWM:
     action: enable
     descr: Fix the WM in the area around entorhinal cortex and gyrus ambiens
     
+FixACJ:
+    value: False
+    flags: -fix-acj
+    action: enable
+    descr: Fix the WM in the area between amygdala and cortex
+    
 CblumFromSynthSeg:
     value: False
     flags: -cblum-from-synthseg

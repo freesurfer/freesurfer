@@ -3031,6 +3031,14 @@ if($DoMaskBFS) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+    if($FixACJ) then
+      set xopts = `fsr-getxopts bfsfixacj $XOptsFile $GlobXOptsFile`;
+      set cmd = (mri_edit_wm_with_aseg -sa-fix-acj aseg.presurf.mgz 255 255 \
+        $xopts brain.finalsurfs.mgz brain.finalsurfs.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
     # Copy brain.finalsurfs to manedit (applies to cross, base, and long)
     set cmd = (cp brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz)
     echo $cmd | tee -a $LF
@@ -3136,6 +3144,7 @@ if($DoSegmentation) then
     set cmd = (mri_edit_wm_with_aseg)
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
     if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 255 255)
+    if($FixACJ)    set cmd = ($cmd -fix-acj aseg.presurf.mgz 255 255)
     set cmd = ($cmd $xopts wm.seg.mgz brain.mgz aseg.presurf.mgz wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3163,6 +3172,13 @@ if($DoSegmentation) then
   if($FixEntoWM) then
     echo "Fixing entowm in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
     set cmd = (mri_edit_wm_with_aseg -sa-fix-ento-wm entowm.mgz 3 255 255 wm.mgz wm.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  if($FixACJ) then
+    echo "Fixing ACJ in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
+    set cmd = (mri_edit_wm_with_aseg -sa-fix-acj aseg.presurf.mgz 255 255 wm.mgz wm.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3706,7 +3722,7 @@ if($DoWhitePreAparc) then
     set cmd = (mris_place_surface --adgws-in $ads --wm $wm --threads $OMP_NUM_THREADS\
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
-    if($FixEntoWM) set cmd = ($cmd --restore-255) 
+    if($FixEntoWM || $FixACJ) set cmd = ($cmd --restore-255) 
     #if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1) # errors near Put/Insula
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
@@ -4258,7 +4274,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
-    if($FixEntoWM) set cmd = ($cmd --restore-255) 
+    if($FixEntoWM || $FixACJ) set cmd = ($cmd --restore-255) 
     if($UseHighMyelin) then
       # The factor is a value between 0 and 1 that changes how far
       # into GM the white surface will go. 1 is the same as not using
@@ -4327,7 +4343,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
-    if($FixEntoWM) set cmd = ($cmd --restore-255) 
+    if($FixEntoWM || $FixACJ) set cmd = ($cmd --restore-255) 
     if($longitudinal) then
       set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
       set cmd = ($cmd --blend-surf .25 $white)
@@ -7175,6 +7191,7 @@ while( $#argv != 0 )
     case "-autorecon2-cp":
     case "-autorecon2-noaseg":
       set DoNormalization2 = 1;
+      #set DoMaskBFS        = 1; # should this be active?
       set DoSegmentation   = 1;
 # no break!
     case "-autorecon2-wm":
