@@ -333,6 +333,25 @@ main(int argc, char *argv[])
       printf("Saving annotation colortable %s\n",annotctabfile);
       CTABwriteFileASCII(mris->ct,annotctabfile);
     }
+
+    for (int vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      int index;
+      VERTEX *v = &mris->vertices[vno] ;
+      CTABfindAnnotation(mris->ct, v->annotation, &index);
+      v->marked = index ;
+      if (index >= MAX_INDICES)
+      {
+        printf("ERROR: index = %d > MAX_INDICES = %d\n",index,MAX_INDICES);
+        exit(1);
+      }
+      else if (index < 0)
+      {
+        continue;
+      }
+      names[index] = mris->ct->entries[index]->name ;
+      //printf("idx=%d, name=%s\n",index,names[index]);
+    }
   }
 
   if (histo_flag)
@@ -444,75 +463,7 @@ main(int argc, char *argv[])
   }
   else if (annotation_name)
   {
-    int vno, index ;
-    VERTEX *v ;
-
-    if ((annotation_name[0] == '/') ||
-        !strncmp(annotation_name, "./", 2))// a full path
-    {
-      strcpy(full_name, annotation_name) ;
-    }
-    else  // build the full path string
-    {
-      char tmp[STRLEN] ;
-      int req = snprintf(tmp, STRLEN, "%s.", hemi) ;
-      if( req >= STRLEN ) {
-	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-      if (strstr(annotation_name, tmp) == NULL) // no hemi in string
-      {
-        if (strstr(annotation_name, ".annot") == NULL) {
-          int req = snprintf(full_name, STRLEN, "%s/%s/label/%s.%s.annot",
-			     sdir, sname, hemi, annotation_name) ;
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
-        } else {
-          int req = snprintf(full_name, STRLEN,
-			     "%s/%s/label/%s.%s",
-			     sdir, sname, hemi,annotation_name) ;
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
-	}
-      }
-      else
-      {
-        if (strstr(annotation_name, ".annot") == NULL) {
-          int req = snprintf(full_name, STRLEN, 
-			     "%s/%s/label/%s.annot", 
-			     sdir, sname, annotation_name) ;
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
-        } else {
-          int req = snprintf(full_name, STRLEN, 
-			     "%s/%s/label/%s", 
-			     sdir, sname,  annotation_name) ;
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
-	}
-      }
-
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      CTABfindAnnotation(mris->ct, v->annotation, &index);
-      v->marked = index ;
-      if (index >= MAX_INDICES)
-      {
-        printf("ERROR: index = %d > MAX_INDICES = %d\n",index,MAX_INDICES);
-        exit(1);
-      }
-      else if (index < 0)
-      {
-        continue;
-      }
-      names[index] = mris->ct->entries[index]->name ;
-      //printf("idx=%d, name=%s\n",index,names[index]);
-    }
+    MRISreadAnnotation_getfilename(mris, annotation_name, full_name);
   }
   else // do all of surface
   {

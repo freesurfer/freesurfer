@@ -575,6 +575,11 @@ typedef struct
 }
 VALS_VP;
 
+// functions to determine the filenames for curvature/annotation write/read
+int MRISwriteCurvature_getfilename(MRI_SURFACE *mris, const char *sname, char *curv_to_write);
+int MRISreadCurvatureFile_getfilename(MRI_SURFACE *mris, const char *sname, char *curv_to_read);
+int MRISwriteAnnotation_getfilename(MRI_SURFACE *mris, const char *sname, char *annot_to_write);
+int MRISreadAnnotation_getfilename(MRI_SURFACE *mris, const char *sname, char *annot_to_read);
 
 /* new functions */
 int MRISvectorRegister(MRI_SURFACE *mris,
