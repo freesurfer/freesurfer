@@ -1,0 +1,445 @@
+#!/bin/tcsh -f
+# label-cortex - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outdir = ();
+set subject = ();
+set hemilist = ();
+set ForceUpdate = 0
+set thresh = 0.01;
+set FixGA = 0;
+set tmpdir = ()
+set LF = ()
+
+set asegname = aseg.presurf
+set surfname = white.preaparc
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+# Set up log file
+if($LF != /dev/null) rm -f $LF
+echo "Log file for label-cortex" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+foreach hemi ($hemilist)
+
+  set ctxlabel = $outdir/$hemi.cortex.label
+  set whitepreaparc = $sdir/$hemi.$surfname
+  set ud = `UpdateNeeded $ctxlabel $whitepreaparc $aseg`
+  if(! $ud && ! $ForceUpdate) continue
+
+  # Label cortex using default method (no GA awareness)
+  if($FixGA) then
+    set ctxnoga = $tmpdir/$hemi.cortex-no-ga.label # Must have a "/" or LabelRead() fails
+  else
+    set ctxnoga = $ctxlabel
+  endif
+  set ud = `UpdateNeeded $ctxnoga $whitepreaparc $aseg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 0 $ctxnoga)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+  if(! $FixGA) continue
+
+  # The default method above will exclude any vertices that fall into
+  # hippo or amyg from the cortex label. This can be a problem for
+  # gyrus ambiens because inaccuracies in the seg often put hip/amyg
+  # on the medial side of GA, and so GA will not be in cortex as
+  # defined by the ?h.cortex.label. Below attempts to get a label for
+  # just the medial portion of gyrus ambiens and then merge it with
+  # the default label above. The basic idea is that the surface normal
+  # of the medial portion will point down and to the right (for left
+  # hemi) and down and to the left (for right hemi).
+
+  # Binarize gyrus ambiens segmentation from entowm.mgz (mri_entowm_seg)
+  if($hemi == lh) set m = 3201
+  if($hemi == rh) set m = 4201
+  set gavol  = $tmpdir/gyrus-ambiens.$hemi.mgz
+  set ud = `UpdateNeeded $gavol $entowm`
+  if($ud) then
+    set cmd = (mri_binarize --match $m --i $entowm --o $gavol)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Sample GA seg to the surface searching inwards 1mm
+  set gasurf = $tmpdir/$hemi.gyrus-ambiens.mgz
+  set ud = `UpdateNeeded $gasurf $entowm`
+  if($ud) then
+    set cmd = (mri_vol2surf --regheader $subject --hemi $hemi --surf $surfname\
+        --mov $gavol --projdist-max -1 0 .1 --o $gasurf)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Extract the normal vectors in RAS space
+  set nxyz = $tmpdir/$hemi.$surfname.nxyz.mgz
+  set ud = `UpdateNeeded $nxyz $whitepreaparc`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_convert --to-scanner -n $whitepreaparc $nxyz)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Create a mask of the normal-x. Sign changes depending upon hemi. For the left
+  # hemi, we want the vertices that point toward the right (+nx). Limit the mask
+  # to be in the GA binary mask.
+  set nxmask = $tmpdir/$hemi.nx.mask.mgz
+  set ud = `UpdateNeeded $nxmask $nxyz`
+  if($ud) then
+    set cmd = (mri_binarize --frame 0 --i $nxyz --mask $gasurf --o $nxmask)
+    if($hemi == lh) set cmd = ($cmd --min +$thresh)
+    if($hemi == rh) set cmd = ($cmd --max -$thresh)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Create a mask of the normal-z. We expect this to point down for both hemis.
+  # Limit the mask to be in the GA binary mask.
+  set nzmask = $tmpdir/$hemi.nz.mask.mgz
+  set ud = `UpdateNeeded $nzmask $nxyz`
+  if($ud) then
+    set cmd = (mri_binarize --frame 2 --i $nxyz --mask $gasurf --o $nzmask  --max -$thresh)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Take the intersection of the two masks (nx and nz); this should be on the medial side
+  set gamask = $tmpdir/$hemi.gyrus-ambiens.lat.mask.mgz
+  set ud = `UpdateNeeded $gamask $nxmask $nzmask`
+  if($ud) then
+    set cmd = (fscalc $nxmask and $nzmask -o $gamask)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Create a label of the medial side of the GA
+  set galabel = $tmpdir/$hemi.gyrus-ambiens.med.label
+  set ud = `UpdateNeeded $galabel $gamask`
+  if($ud) then
+    set cmd = (mri_cor2label --i $gamask  --l $galabel --surf-path $whitepreaparc --id 1 --thresh 0.5)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Merge the medial GA label with the default cortical label
+  set ud = `UpdateNeeded $ctxlabel $ctxnoga $galabel`
+  if($ud) then
+    set cmd = (mri_mergelabels -i $ctxnoga -i $galabel -o $ctxlabel)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+end
+
+echo "\nTo view results, run" | tee -a $LF
+echo $viewcmd  | tee -a $LF
+echo "\n" | tee -a $LF
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Label-Cortex-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Label-Cortex-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Label-Cortex-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "label-cortex Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--thresh":
+      if($#argv < 1) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "--fix-ga":
+      set FixGA = 1
+      breaksw
+    case "--no-fix-ga":
+      set FixGA = 0
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--force-update":
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if($#hemilist == 0) set hemilist = (lh rh)
+
+set sdir = $SUBJECTS_DIR/$subject/surf
+set ldir = $SUBJECTS_DIR/$subject/label
+set mdir = $SUBJECTS_DIR/$subject/mri
+
+# Check that needed inputs are there
+set aseg = $mdir/$asegname.mgz
+if(! -e $aseg) then
+  echo "ERROR: cannot find $aseg"
+  exit 1
+endif
+foreach hemi ($hemilist)
+  set whitepreaparc = $sdir/$hemi.$surfname
+  if(! -e $whitepreaparc) then
+    echo "ERROR: cannot find $whitepreaparc"
+    exit 1
+  endif
+end
+set entowm = ()
+if($FixGA) then
+  set entowm = $mdir/entowm.mgz
+  if(! -e $entowm) then
+    echo "ERROR: cannot find $entowm"
+    exit 1
+  endif
+endif
+
+# Create the new command here. It can be printed below if no update or
+# at the end of the program run
+set outdirview = $ldir
+if($#outdir) set outdirview = $outdir
+set viewcmd = (fsvglrun freeview)
+foreach hemi ($hemilist)
+  set whitepreaparc = $sdir/$hemi.$surfname
+  set viewcmd = ($viewcmd -f ${whitepreaparc}:label=$outdirview/$hemi.cortex.label)
+end
+
+# Check whether an update is needed
+set ud0 = 0
+foreach hemi ($hemilist)
+  set ctxlabel = $outdir/$hemi.cortex.label
+  set whitepreaparc = $sdir/$hemi.$surfname
+  set ud = `UpdateNeeded $ctxlabel $whitepreaparc $aseg $entowm`
+  if(! $ud) continue
+  set ud0 = 1
+end
+if(! $ud0 && ! $ForceUpdate) then
+  echo "Cortex label update not needed (use --force-update to rerun)."
+  echo " To view results, run"
+  echo $viewcmd 
+  echo ""
+  exit 0
+endif
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set hemistr = $hemilist[1];
+if($#hemilist == 2) set hemistr = lhrh
+
+if($#outdir) then
+  mkdir -p $outdir/log
+  pushd $outdir > /dev/null
+  set outdir = `pwd`;
+  popd > /dev/null
+  if($#LF == 0) set LF = $outdir/log/label-cortex.$hemistr.Y$year.M$month.D$day.H$hour.M$min.log
+  if($#tmpdir == 0) set tmpdir = $outdir/tmpdir
+else
+  mkdir -p $SUBJECTS_DIR/$subject/scripts/log
+  set outdir = $ldir
+  if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/log/label-cortex.$hemistr.Y$year.M$month.D$day.H$hour.M$min.log
+  if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.label-cortex.$$
+endif
+
+mkdir -p $tmpdir
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "label-cortex"
+  echo "  --s subject"
+  echo "  --lh/--rh : hemisphere (default is both)"
+  echo "  --o outdir (default is subject/label)"
+  echo "  --fix-ga : fix gyrus ambiens (--no-fix-ga)"
+  echo "  --thresh thresh : threshold for binarizing x and z normals ($thresh)"
+  echo "  --force-update"
+  echo "  --sd SUBJECTS_DIR"
+  echo "  --help "
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the ?h.cortex.label. By default, this will simply run mri_label2label 
+with the --label-cortex option. When --fix-ga is specfied, it will extend the
+label into the gyrus ambiens of entorhinal cortex. This requires that recon-all
+have been run with the -fix-ento-wm option.
+
+
