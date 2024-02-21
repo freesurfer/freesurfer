@@ -95,6 +95,9 @@ MRI *entowm=NULL;
 double FixACJLhVal,FixACJRhVal;
 int FixACJ = 0;
 MRI *ACJ = NULL;
+MRI *KeepHAILVCP(MRI *in, MRI *seg, int H, int A, int ILV, int CP, double lhval, double rhval, MRI *out);
+int KeepH=0, KeepA=0, KeepILV=0, KeepCP=0;
+double HILVCPlhVal,HILVCPrhVal;
 
 int main(int argc, char *argv[])
 {
@@ -219,6 +222,9 @@ int main(int argc, char *argv[])
   if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal, 0);
   if(ACJ)     MRIfixEntoWM(mri_wm, ACJ,                 3, FixACJLhVal,    FixACJRhVal, 1);
 
+  if(KeepH || KeepA || KeepILV || KeepCP)
+    KeepHAILVCP(mri_wm, mri_aseg, KeepH, KeepA, KeepILV, KeepCP, HILVCPlhVal, HILVCPrhVal, mri_wm);
+
   printf("writing edited volume to %s....\n", output_file_name) ;
   MRIwrite(mri_wm, output_file_name) ;
 
@@ -327,6 +333,15 @@ get_option(int argc, char *argv[])
     }
     nargs = 4;
   }
+  else if( !stricmp(option, "label-acj") ){
+    // Stand-alone option to label the ACJ from the aseg.presurf
+    MRI *seg = MRIread(argv[2]);
+    if(seg==NULL) exit(1);
+    ACJ = LabelAmygalaCortalJunction(seg, 3, NULL); //3=topo=face,edge,corner neighbors
+    if(ACJ==NULL) exit(1);
+    int err = MRIwrite(ACJ,argv[3]);
+    exit(err);
+  }
   else if( !stricmp(option, "fix-acj") || !stricmp(option, "sa-fix-acj") )
   {
     // This is a bit of a hack to fill in WM in the amygdala-cortical junction (ACJ)
@@ -349,6 +364,11 @@ get_option(int argc, char *argv[])
       exit(err);
     }
     nargs = 3;
+  }
+  else if( !stricmp(option, "keep-hailvcp") ){
+    sscanf(argv[2],"%lf",&HILVCPlhVal);
+    sscanf(argv[3],"%lf",&HILVCPrhVal);
+    KeepH=1, KeepA=1, KeepILV=1, KeepCP=1;
   }
   else if (!stricmp(option, "debug_voxel"))
   {
@@ -402,16 +422,11 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
   depth = mri_wm->depth ;
 
   non = noff = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = height-2 ; y > 0 ; y--)
-    {
-      for (x = 1 ; x < width-1 ; x++)
-      {
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = height-2 ; y > 0 ; y--)    {
+      for (x = 1 ; x < width-1 ; x++)      {
         if (x == Gx && y == Gy && z == Gz)
-        {
           DiagBreak() ;
-        }
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
 
         left = 0 ;
@@ -3185,4 +3200,35 @@ spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
   }
 
   return(NO_ERROR) ;
+}
+
+MRI *KeepHAILVCP(MRI *in, MRI *seg, int H, int A, int ILV, int CP, double lhval, double rhval, MRI *out)
+{
+
+ if(out == NULL){
+   out = MRIcopy(in,out);
+   MRIcopyHeader(seg, out);
+   MRIcopyPulseParameters(seg, out);
+ }
+ // check in, out, and seg are the same dim
+
+ #ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+#endif
+ for(int c=0; c < seg->width; c++){
+   for(int r=0; r < seg->height; r++){
+     for(int s=0; s < seg->depth; s++){
+       int segid = MRIgetVoxVal(seg,c,r,s,0);
+       if(H && segid == 17) MRIsetVoxVal(out,c,r,s,0,lhval);
+       if(H && segid == 53) MRIsetVoxVal(out,c,r,s,0,rhval);
+       if(A && segid == 18) MRIsetVoxVal(out,c,r,s,0,lhval);
+       if(A && segid == 54) MRIsetVoxVal(out,c,r,s,0,rhval);
+       if(ILV && segid ==  5) MRIsetVoxVal(out,c,r,s,0,lhval);
+       if(ILV && segid == 44) MRIsetVoxVal(out,c,r,s,0,rhval);
+       if(CP && segid == 31) MRIsetVoxVal(out,c,r,s,0,lhval);
+       if(CP && segid == 63) MRIsetVoxVal(out,c,r,s,0,rhval);
+     }
+   }
+ }
+ return(out);
 }

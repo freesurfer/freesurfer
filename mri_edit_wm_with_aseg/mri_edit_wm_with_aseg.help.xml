@@ -55,6 +55,10 @@
       <explanation>Insert lhval rhval at the amygdala-cortical junction. For wm.seg use 255. For brain.finalsurfs use 255. For filled use 255 and 127. </explanation>
       <argument>-sa-fix-acj aseg.presurf lhval rhval invol outvol</argument>
       <explanation>Stand-alone version of -fix-acj </explanation>
+      <argument>-label-acj aseg.presurf outvol</argument>
+      <explanation>Stand-alone option to output the ACJ labels</explanation>
+      <argument>-keep-hailvcp</argument>
+      <explanation>Experimental option to keep hippo/amyg/inf lat vent/choroid plexus in the subcortical mass.</explanation>
       <argument>-debug_voxel Gx Gy Gz</argument>
     </optional-flagged>
   </arguments>
