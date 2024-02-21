@@ -280,104 +280,11 @@ save in VTK as well.
 */
 int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_name)
 {
-  char fname[STRLEN], path[STRLEN], name[STRLEN];
-  const char *hemi;
-
-  switch (mris->hemisphere) {
-    case LEFT_HEMISPHERE:
-      hemi = "lh";
-      break;
-    case BOTH_HEMISPHERES:
-      hemi = "both";
-      break;
-    case RIGHT_HEMISPHERE:
-      hemi = "rh";
-      break;
-    default:
-      hemi = "unknown";
-      break;
-  }
-  
-  const char *cp = strchr(sname, '/');
-  if (!cp) /* no path - use same one as mris was read from */
-  {
-    FileNamePath(mris->fname, path);
-    cp = strchr(sname, '.');
-    if (!cp || ((cp - sname) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
-      if (getenv("FS_POSIX")) {
-        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        int req = snprintf(fname, STRLEN, "./%s.%s", hemi, sname);
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-      else {
-        int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, sname);  
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-    }
-    else {
-      if (getenv("FS_POSIX")) {
-        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        int req = snprintf(fname, STRLEN, "./%s", sname); 
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-      else {
-        int req = snprintf(fname, STRLEN, "%s/%s", path, sname);   
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-    }
-  }
-  else {
-    FileNamePath(sname, path);
-    FileNameOnly(sname, name);
-    cp = strchr(name, '.');
-    if (!cp || ((cp - name) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
-      int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, name); 
-      if( req >= STRLEN ) {
-        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-    else {
-      int req = snprintf(fname, STRLEN, "%s/%s", path, name); 
-      if( req >= STRLEN ) {
-        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-  }
-  if (Gdiag & DIAG_SHOW) {
-    fprintf(stdout, "writing curvature file %s\n", fname);
-  }
-
-  int mritype = mri_identify(fname);
-  int mristype = MRISfileNameType(fname);
-  if (mristype == MRIS_ASCII_FILE)
-    mritype = ASCII_FILE;
-
-  // it needs to read NEW_VERSION_MAGIC_NUMBER to determine type MRI_CURV_FILE
-  // it is the write function, file doesn't exist yet, it can't be MRI_CURV_FILE
-  if (mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE &&
-      mritype != ASCII_FILE    && mritype != VTK_FILE) 
-    mritype = MRI_VOLUME_TYPE_UNKNOWN;
-#if 0
-  if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
-       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
-      (mritype != ASCII_FILE && mritype != VTK_FILE)) 
-    mritype = MRI_VOLUME_TYPE_UNKNOWN;
-#endif
-
   char curv_to_write[1024] = {'\0'};
-  strcpy(curv_to_write, fname);
-
-  if (mritype == MRI_VOLUME_TYPE_UNKNOWN)
-    __MRISapplyFSGIIwrite(curv_to_write, fname, &mritype);
-
+  int mritype = MRISwriteCurvature_getfilename(mris, sname, curv_to_write);
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stdout, "writing curvature file %s\n", curv_to_write);
+    
   int error = NO_ERROR;
   if (mritype == MRI_MGH_FILE)
   {
@@ -1480,76 +1387,14 @@ int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius)
   ------------------------------------------------------*/
 int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname, int giftiDaNum, const COLOR_TABLE *ctab)
 {
-  char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
-
-  const char *cp = strchr(sname, '/');
-  if (!cp && mris != NULL) {
-    /* no path - use same one as mris was read from */
-    FileNameOnly(sname, fname_no_path);
-    //cp = strstr(fname_no_path, ".annot");
-    //if (!cp) {
-    //  strcat(fname_no_path, ".annot");
-    //}
-      
-    int need_hemi = stricmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
-      
-    FileNamePath(mris->fname, path);
-    if (!need_hemi) {
-      int req = snprintf(fname, STRLEN, "%s/../label/%s", path, fname_no_path); 
-      if( req >= STRLEN ) {
-	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-    else {
-      /* no hemisphere specified */
-      int req = snprintf(fname, STRLEN, "%s/../label/%s.%s", 
-			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path); 
-      if( req >= STRLEN ) {
-        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-  }
-  else {
-    strcpy(fname, sname); /* full path specified */
-    //cp = strstr(fname, ".annot");
-    //if (!cp) {
-    //  strcat(fname, ".annot");
-    //}
-  }
+  char annot_to_read[1024] = {'\0'};
+  int mritype = MRISreadAnnotation_getfilename(mris, sname, annot_to_read);
   
-  if(!fio_FileExistsReadable(fname)){
-    // File is not there, try adding .mgz
-    char tmpstr[2000];
-    sprintf(tmpstr,"%s.mgz",fname);
-    if(fio_FileExistsReadable(tmpstr)) strcpy(fname,tmpstr);
-    else if(fio_FileExistsReadable(sname)) {
-    // As a last resort, just assume the sname is the path
-      int req = snprintf(fname, STRLEN, "%s", sname);  
-      if( req >= STRLEN ) {
-	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-  }
-
   int error = NO_ERROR;
 
   if (mris != NULL)
     MRISclearAnnotations(mris);
-
-  int mritype = mri_identify(fname);
-  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
-  {
-    // attempt as .annot
-    strcat(fname, ".annot");
-    mritype = MGH_ANNOT;
-  }
-
-  char annot_to_read[1024] = {'\0'};
-  strcpy(annot_to_read, fname);
-
-  if (mritype == MGH_ANNOT)
-    __MRISapplyFSGIIread(annot_to_read, fname, &mritype);
-
+  
   if (mritype == MGH_ANNOT)
     error = __mrisreadannot(annot_to_read, mris, ctab);
   else if (mritype == MRI_MGH_FILE)
@@ -1909,82 +1754,10 @@ int MRISisCTABPresentInAnnotation(const char *fname, int *present)
 /*-----------------------------------------------------*/
 int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
 {
-  char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
-  
-  const char *cp = strchr(sname, '/');
-  if (!cp) /* no path - use same one as mris was read from */
-  {
-    FileNameOnly(sname, fname_no_path);
-    // .annot is no appended to the file name
-    //cp = strstr(fname_no_path, ".annot");
-    //if (!cp) {
-    //  strcat(fname_no_path, ".annot");
-    //}
-
-    int need_hemi = strncmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", 2);
-
-    FileNamePath(mris->fname, path);
-
-    if (!need_hemi) {
-      if (getenv("FS_POSIX")) {
-        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        int req = snprintf(fname, STRLEN, "./%s", fname_no_path);
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-      else {
-        // PW 2017/05/15: Legacy behaviour
-        int req = snprintf(fname, STRLEN, "%s/../label/%s", path, fname_no_path); 
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-    }
-    else { /* no hemisphere specified */
-      if (getenv("FS_POSIX")) {
-        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        int req = snprintf(fname, STRLEN, "./%s.%s",
-			   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-      else {
-        // PW 2017/05/15: Legacy behaviour
-        int req = snprintf(fname, STRLEN, "%s/../label/%s.%s",
-			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path); 
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-    }
-  }
-  else {
-    strcpy(fname, sname); /* full path specified */
-    // .annot is no appended to the file name
-    //cp = strstr(fname, ".annot");
-    //if (!cp) {
-    //  strcat(fname, ".annot");
-    //}
-  }
-
-  int error = NO_ERROR;
-
-  int mritype = mri_identify(fname);
-  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
-  {
-    // attempt as .annot
-    strcat(fname, ".annot");
-    mritype = MGH_ANNOT;
-  }
-
   char annot_to_write[1024] = {'\0'};
-  strcpy(annot_to_write, fname);
-
-  if (mritype == MGH_ANNOT)
-    __MRISapplyFSGIIwrite(annot_to_write, fname, &mritype);
-
+  int mritype = MRISwriteAnnotation_getfilename(mris, sname, annot_to_write);
+  
+  int error = NO_ERROR;
   if (mritype == MGH_ANNOT)
     error = __mriswriteannot(mris, annot_to_write);
   else if (mritype == GIFTI_FILE)
@@ -5322,61 +5095,10 @@ int mrisWriteAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
 
 int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, std::vector<OverlayInfoStruct> *poverlayinfo)
 {
-  char path[STRLEN], fname[STRLEN];
-
-  const char *cp = strchr(sname, '/');
-  if (!cp) /* no path - use same one as mris was read from */
-  {
-    if (getenv("FS_POSIX")) {
-      // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-      int req = snprintf(fname, STRLEN, "./%s", sname);    
-      if( req >= STRLEN ) {
-        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-      }
-    }
-    else {
-      cp = strchr(sname, '.');
-      FileNamePath(mris->fname, path);
-      if (cp && ((strncmp(cp - 2, "lh", 2) == 0) || (strncmp(cp - 2, "rh", 2) == 0))) {
-        int req = snprintf(fname, STRLEN, "%s/%s", path, sname); 
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-      }
-      else /* no hemisphere specified */
-      {
-        int req = snprintf(fname, STRLEN, "%s/%s.%s", 
-			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname); 
-	if( req >= STRLEN ) {
-	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	}
-
-      }
-    }
-  }
-  else {
-    strcpy(fname, sname); /* path specified explicitly */
-  }
-
-  int read_volume = TRUE;
-
-  // determine curvature file type
-  int mritype = mri_identify(fname);
-  int mristype = MRISfileNameType(fname);
-  if (mristype == MRIS_ASCII_FILE)
-    mritype = ASCII_FILE;
-
-  if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
-       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
-      (mritype != ASCII_FILE && mritype != VTK_FILE)) 
-    mritype = MRI_VOLUME_TYPE_UNKNOWN;
-
   char curv_to_read[1024] = {'\0'};
-  strcpy(curv_to_read, fname);
-
-  if (mritype == MRI_CURV_FILE || mritype == MRI_VOLUME_TYPE_UNKNOWN)
-    __MRISapplyFSGIIread(curv_to_read, fname, &mritype);
-
+  int mritype = MRISreadCurvatureFile_getfilename(mris, sname, curv_to_read);
+  
+  int read_volume = TRUE;
   int error = NO_ERROR;
   if (mritype == VTK_FILE)
     mris = MRISreadVTK(mris, curv_to_read);
@@ -7356,4 +7078,307 @@ void __MRISwriteTriangularSurfaceTags(MRIS *mris, FILE *fp)
   TAGwrite(fp, TAG_SURF_TRANSFORMEDSPACE, (void*)transformedspace, strlen(transformedspace));
   if (SURF_TAG_DEBUG)
     printf("[DEBUG] __MRISwriteTriangularSurfaceTags() TAG_SURF_TRANSFORMEDSPACE = %s\n", transformedspace);  
+}
+
+
+// determine filename for curvature write
+int MRISwriteCurvature_getfilename(MRI_SURFACE *mris, const char *sname, char *curv_to_write)
+{
+  char fname[STRLEN], path[STRLEN], name[STRLEN];
+  const char *hemi;
+
+  switch (mris->hemisphere) {
+    case LEFT_HEMISPHERE:
+      hemi = "lh";
+      break;
+    case BOTH_HEMISPHERES:
+      hemi = "both";
+      break;
+    case RIGHT_HEMISPHERE:
+      hemi = "rh";
+      break;
+    default:
+      hemi = "unknown";
+      break;
+  }
+  
+  const char *cp = strchr(sname, '/');
+  if (!cp) /* no path - use same one as mris was read from */
+  {
+    FileNamePath(mris->fname, path);
+    cp = strchr(sname, '.');
+    if (!cp || ((cp - sname) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
+      if (getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        int req = snprintf(fname, STRLEN, "./%s.%s", hemi, sname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+      else {
+        int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, sname);  
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+    }
+    else {
+      if (getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        int req = snprintf(fname, STRLEN, "./%s", sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+      else {
+        int req = snprintf(fname, STRLEN, "%s/%s", path, sname);   
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+    }
+  }
+  else {
+    FileNamePath(sname, path);
+    FileNameOnly(sname, name);
+    cp = strchr(name, '.');
+    if (!cp || ((cp - name) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
+      int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, name); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+    else {
+      int req = snprintf(fname, STRLEN, "%s/%s", path, name); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+  }
+
+  int mritype = mri_identify(fname);
+  int mristype = MRISfileNameType(fname);
+  if (mristype == MRIS_ASCII_FILE)
+    mritype = ASCII_FILE;
+
+  // it needs to read NEW_VERSION_MAGIC_NUMBER to determine type MRI_CURV_FILE
+  // it is the write function, file doesn't exist yet, it can't be MRI_CURV_FILE
+  if (mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE &&
+      mritype != ASCII_FILE    && mritype != VTK_FILE) 
+    mritype = MRI_VOLUME_TYPE_UNKNOWN;
+
+  strcpy(curv_to_write, fname);
+
+  if (mritype == MRI_VOLUME_TYPE_UNKNOWN)
+    __MRISapplyFSGIIwrite(curv_to_write, fname, &mritype);
+
+  return mritype;
+}
+
+// determine filename for curvature read
+int MRISreadCurvatureFile_getfilename(MRI_SURFACE *mris, const char *sname, char *curv_to_read)
+{
+  char path[STRLEN], fname[STRLEN];
+
+  const char *cp = strchr(sname, '/');
+  if (!cp) /* no path - use same one as mris was read from */
+  {
+    if (getenv("FS_POSIX")) {
+      // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+      int req = snprintf(fname, STRLEN, "./%s", sname);    
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+    else {
+      cp = strchr(sname, '.');
+      FileNamePath(mris->fname, path);
+      if (cp && ((strncmp(cp - 2, "lh", 2) == 0) || (strncmp(cp - 2, "rh", 2) == 0))) {
+        int req = snprintf(fname, STRLEN, "%s/%s", path, sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+      else /* no hemisphere specified */
+      {
+        int req = snprintf(fname, STRLEN, "%s/%s.%s", 
+			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+
+      }
+    }
+  }
+  else {
+    strcpy(fname, sname); /* path specified explicitly */
+  }
+
+  // determine curvature file type
+  int mritype = mri_identify(fname);
+  int mristype = MRISfileNameType(fname);
+  if (mristype == MRIS_ASCII_FILE)
+    mritype = ASCII_FILE;
+
+  if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
+       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
+      (mritype != ASCII_FILE && mritype != VTK_FILE)) 
+    mritype = MRI_VOLUME_TYPE_UNKNOWN;
+
+  strcpy(curv_to_read, fname);
+
+  if (mritype == MRI_CURV_FILE || mritype == MRI_VOLUME_TYPE_UNKNOWN)
+    __MRISapplyFSGIIread(curv_to_read, fname, &mritype);
+
+  return mritype;
+}
+
+// determine filename for annotation write
+int MRISwriteAnnotation_getfilename(MRI_SURFACE *mris, const char *sname, char *annot_to_write)
+{
+  char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
+  
+  const char *cp = strchr(sname, '/');
+  if (!cp) /* no path - use same one as mris was read from */
+  {
+    FileNameOnly(sname, fname_no_path);
+    // .annot is no appended to the file name
+    //cp = strstr(fname_no_path, ".annot");
+    //if (!cp) {
+    //  strcat(fname_no_path, ".annot");
+    //}
+
+    int need_hemi = strncmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", 2);
+
+    FileNamePath(mris->fname, path);
+
+    if (!need_hemi) {
+      if (getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        int req = snprintf(fname, STRLEN, "./%s", fname_no_path);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+      else {
+        // PW 2017/05/15: Legacy behaviour
+        int req = snprintf(fname, STRLEN, "%s/../label/%s", path, fname_no_path); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+    }
+    else { /* no hemisphere specified */
+      if (getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        int req = snprintf(fname, STRLEN, "./%s.%s",
+			   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+      else {
+        // PW 2017/05/15: Legacy behaviour
+        int req = snprintf(fname, STRLEN, "%s/../label/%s.%s",
+			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+    }
+  }
+  else {
+    strcpy(fname, sname); /* full path specified */
+    // .annot is no appended to the file name
+    //cp = strstr(fname, ".annot");
+    //if (!cp) {
+    //  strcat(fname, ".annot");
+    //}
+  }
+
+  int mritype = mri_identify(fname);
+  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
+  {
+    // attempt as .annot
+    strcat(fname, ".annot");
+    mritype = MGH_ANNOT;
+  }
+
+  strcpy(annot_to_write, fname);
+
+  if (mritype == MGH_ANNOT)
+    __MRISapplyFSGIIwrite(annot_to_write, fname, &mritype);
+
+  return mritype;
+}
+
+// determine filename for annotation read
+int MRISreadAnnotation_getfilename(MRI_SURFACE *mris, const char *sname, char *annot_to_read)
+{
+  char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
+
+  const char *cp = strchr(sname, '/');
+  if (!cp && mris != NULL) {
+    /* no path - use same one as mris was read from */
+    FileNameOnly(sname, fname_no_path);
+    //cp = strstr(fname_no_path, ".annot");
+    //if (!cp) {
+    //  strcat(fname_no_path, ".annot");
+    //}
+      
+    int need_hemi = stricmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      
+    FileNamePath(mris->fname, path);
+    if (!need_hemi) {
+      int req = snprintf(fname, STRLEN, "%s/../label/%s", path, fname_no_path); 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+    else {
+      /* no hemisphere specified */
+      int req = snprintf(fname, STRLEN, "%s/../label/%s.%s", 
+			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+  }
+  else {
+    strcpy(fname, sname); /* full path specified */
+    //cp = strstr(fname, ".annot");
+    //if (!cp) {
+    //  strcat(fname, ".annot");
+    //}
+  }
+  
+  if(!fio_FileExistsReadable(fname)){
+    // File is not there, try adding .mgz
+    char tmpstr[2000];
+    sprintf(tmpstr,"%s.mgz",fname);
+    if(fio_FileExistsReadable(tmpstr)) strcpy(fname,tmpstr);
+    else if(fio_FileExistsReadable(sname)) {
+    // As a last resort, just assume the sname is the path
+      int req = snprintf(fname, STRLEN, "%s", sname);  
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
+  }
+
+  int mritype = mri_identify(fname);
+  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
+  {
+    // attempt as .annot
+    strcat(fname, ".annot");
+    mritype = MGH_ANNOT;
+  }
+
+
+  strcpy(annot_to_read, fname);
+
+  if (mritype == MGH_ANNOT)
+    __MRISapplyFSGIIread(annot_to_read, fname, &mritype);
+
+  return mritype;
 }
