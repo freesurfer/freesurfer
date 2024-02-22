@@ -241,7 +241,7 @@ long long FStagsIO::getlen_ras_xform(MRI *mri, bool addtaglength)
     dlen += sizeof(long long);
   }
 
-  // this needs to be consistent with write_scan_parameters()
+  // this needs to be consistent with write_ras_xform()
   dlen += sizeof(mri->x_r); dlen += sizeof(mri->x_a); dlen += sizeof(mri->x_s);
   dlen += sizeof(mri->y_r); dlen += sizeof(mri->y_a); dlen += sizeof(mri->y_s);
   dlen += sizeof(mri->z_r); dlen += sizeof(mri->z_a); dlen += sizeof(mri->z_s);
@@ -867,7 +867,9 @@ int FStagsIO::read_scan_parameters(MRI *mri, long long dlen)
   dlen -= sizeof(mri->FieldStrength);
   
   mri->pedir = (char *)calloc(dlen + 1, sizeof(char));
-  znzread(mri->pedir, sizeof(char), dlen, fp);
+  long long bytesread = znzread(mri->pedir, sizeof(char), dlen, fp);
+  if (Gdiag & DIAG_INFO)
+    printf("[DEBUG] read_scan_parameters(): bytesread=%lld, dlen=%lld\n", bytesread, dlen);
 
   return NO_ERROR;  
 }

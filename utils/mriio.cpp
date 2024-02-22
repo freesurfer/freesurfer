@@ -8585,6 +8585,12 @@ static MRI *niiRead(const char *fname, int read_volume)
     }
   } // if (!KEEP_NII_OPEN)
 
+  if (Gdiag & DIAG_INFO)
+  {
+    long here = znztell(fp);
+    printf("[DEBUG] niiRead(): hdr.vox_offset = %ld, file position = %ld\n", (long)hdr.vox_offset, here);
+  }
+
   // implement reading nifti1 header extension  
   int has_ecode_freesurfer = 0;
   nifti1_extender extdr;   /* defines extension existence  */
@@ -8592,7 +8598,7 @@ static MRI *niiRead(const char *fname, int read_volume)
   if (extdr.extension[0] == 1)
   {
     if (Gdiag & DIAG_INFO)
-      printf("[DEBUG] niiRead(): process extension ...\n");
+      printf("[DEBUG] niiRead(): processing extension ...\n");
     has_ecode_freesurfer = __niiReadHeaderextension(fp, mri, fname, swapped_flag);
   }
 
@@ -12402,7 +12408,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
     }
 
     if (Gdiag & DIAG_INFO)
-      printf("[DEBUG] MRITAGread(): tag = %d, len = %lld\n", tag, len);
+      printf("[DEBUG] MRITAGread(): remaining taglen = %lld (tag = %d, len = %lld)\n", mgztaglen, tag, len);
       
     switch (tag) {
       case TAG_DOF:
@@ -12561,8 +12567,8 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       // mgztaglen also includes the bytes for TAGs and data-length
       int len_tagheader = sizeof(long long) + sizeof(int);
       mgztaglen -= (len + len_tagheader);
-      if (Gdiag & DIAG_INFO)
-        printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
+      //if (Gdiag & DIAG_INFO)
+      //  printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
 
       // can't reply on znzeof() to detect end of tag data for nifti header extension
       // because all the data follows the tags
@@ -12876,7 +12882,7 @@ int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swappe
 	mri->ras_good_flag = 1;
 	
         if (Gdiag & DIAG_INFO)
-          printf("[DEBUG] __niiReadHeaderextension(): process NIFTI_ECODE_FREESURFER\n");
+          printf("[DEBUG] __niiReadHeaderextension(): processing NIFTI_ECODE_FREESURFER ...\n");
 
         long long mgztaglen = esize - 12; // exclude esize, ecode, version
 
