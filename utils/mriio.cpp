@@ -8592,17 +8592,17 @@ static MRI *niiRead(const char *fname, int read_volume)
   }
 
   // implement reading nifti1 header extension  
-  int has_ecode_freesurfer = 0;
+  int has_ras_xform = 0;
   nifti1_extender extdr;   /* defines extension existence  */
   znzread(extdr.extension, 1, 4, fp); /* get extender */
   if (extdr.extension[0] == 1)
   {
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] niiRead(): processing extension ...\n");
-    has_ecode_freesurfer = __niiReadHeaderextension(fp, mri, fname, swapped_flag);
+    has_ras_xform = __niiReadHeaderextension(fp, mri, fname, swapped_flag);
   }
 
-  if (!has_ecode_freesurfer)
+  if (!has_ras_xform)
   {
     int ret = __niiReadSetVox2ras(mri, &hdr);
     if (ret)  // error
@@ -12387,7 +12387,7 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
  *        and it may not be at vox_offset either
  *   - niiRead() needs to znzseek() to vox_offset before reading the image data
  */
-void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, long long mgztaglen)
+void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, long long mgztaglen, int *has_ras_xform)
 {
   // tag reading
   if (getenv("FS_SKIP_TAGS") != NULL)
@@ -12433,6 +12433,9 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
         break;
       case TAG_RAS_XFORM:
 	// nifti header extension only
+	if (has_ras_xform != NULL)
+	  *has_ras_xform = 1;
+	
 	if (niftiheaderext)
 	  fstagsio.read_ras_xform(mri);
 	else
@@ -12833,7 +12836,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
 // return 1 if NIFTI_ECODE_FREESURFER found; otherwise, return 0
 int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag)
 {
-  int has_ecode_freesurfer = 0;
+  int has_ras_xform = 0;
   
   // loop through header extensions until we find NIFTI_ECODE_FREESURFER, or reach the end
   while (1)
@@ -12878,7 +12881,6 @@ int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swappe
 	continue;
       else
       {
-	has_ecode_freesurfer = 1;
 	mri->ras_good_flag = 1;
 	
         if (Gdiag & DIAG_INFO)
@@ -12891,14 +12893,14 @@ int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swappe
           printf("[DEBUG] __niiReadHeaderextension(): version = %d, intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
 	
         bool niftiheaderext = true;
-        MRITAGread(mri, fp, fname, niftiheaderext, mgztaglen);
+        MRITAGread(mri, fp, fname, niftiheaderext, mgztaglen, &has_ras_xform);
 
         break;
       }
     }
   }
 
-  return has_ecode_freesurfer;
+  return has_ras_xform;
 } // end of __niiReadHeaderextension()
 
 
