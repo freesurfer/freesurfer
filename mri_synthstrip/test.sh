@@ -9,6 +9,10 @@ compare_vol out.mgz stripped.mgz
 test_command mri_synthstrip --gpu -g -i in.mgz --out out.mgz
 compare_vol out.mgz stripped.mgz
 
+# CPU threads
+test_command mri_synthstrip --threads 4 -t 4 -i in.mgz --out out.mgz
+compare_vol out.mgz stripped.mgz
+
 # binary mask
 test_command mri_synthstrip --image in.mgz -m out.mgz
 compare_vol out.mgz mask.mgz
