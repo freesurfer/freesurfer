@@ -23,6 +23,7 @@ p.add_argument('-m', '--mask', metavar='FILE', help='save binary brain mask to f
 p.add_argument('-d', '--sdt', metavar='FILE', help='save distance transform to file')
 p.add_argument('-g', '--gpu', action='store_true', help='use the GPU')
 p.add_argument('-b', '--border', default=1, type=float, help='mask border threshold in mm, defaults to 1')
+p.add_argument('-t', '--threads', type=int, help='PyTorch CPU threads, PyTorch default if unset')
 p.add_argument('--no-csf', action='store_true', help='exclude CSF from brain border')
 p.add_argument('--model', metavar='FILE', help='alternative model weights')
 if len(sys.argv) == 1 or '-h' in sys.argv or '--help' in sys.argv:
@@ -45,15 +46,18 @@ if not args.out and not args.mask and not args.sdt:
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = True
 
-# configure GPU device
+# configure device
+gpu = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
 if args.gpu:
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     device = torch.device('cuda')
     device_name = 'GPU'
 else:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     device = torch.device('cpu')
     device_name = 'CPU'
+    if args.threads is not None:
+        torch.set_num_threads(args.threads)
 
 def extend_sdt(sdt, border=1):
     """Extend SynthStrip's narrow-band signed distance transform (SDT).
