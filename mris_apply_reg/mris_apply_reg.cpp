@@ -80,7 +80,10 @@ int checkoptsonly=0;
 struct utsname uts;
 
 char *SrcValFile=NULL;
-char *TrgValFile=NULL;
+char *LabelFiles[1000];
+int nLabelFiles=0;
+char *TrgValFiles[1000];
+int nTrgValFiles=0;
 char *SurfRegFile[100];
 char *SurfPatchFile[100];
 int ReverseMapFlag = 1;
@@ -92,7 +95,6 @@ int DoSynthRand = 0;
 int DoSynthOnes = 0;
 int SynthSeed = -1;
 char *AnnotFile = NULL;
-char *LabelFile = NULL;
 char *SurfXYZFile = NULL;
 int OutputCurvFormat=0;
 LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
@@ -194,14 +196,17 @@ int main(int argc, char *argv[]) {
     MRIcopyMRIS(SrcVal, SurfSrc, 0, "x");
     MRIcopyMRIS(SrcVal, SurfSrc, 1, "y");
   }
-  else if(LabelFile) {
-    LABEL *srclabel;
-    printf("Loading label %s\n",LabelFile);
-    srclabel = LabelRead(NULL, LabelFile);
-    if(srclabel == NULL) exit(1);
-    SrcVal = MRISlabel2Mask(SurfReg[0],srclabel,NULL);
-    printf("   %d points in input label\n",srclabel->n_points);
-    LabelFree(&srclabel);
+  else if(nLabelFiles > 0) {
+    SrcVal = MRIallocSequence(SurfReg[0]->nvertices,1,1,MRI_FLOAT,nLabelFiles);
+    for(int n=0; n < nLabelFiles; n++){
+      LABEL *srclabel;
+      printf("Loading label %s\n",LabelFiles[n]);
+      srclabel = LabelRead(NULL, LabelFiles[n]);
+      if(srclabel == NULL) exit(1);
+      printf("   %d points in input label\n",srclabel->n_points);
+      MRISlabel2Mask(SurfReg[0],srclabel,SrcVal,n);
+      LabelFree(&srclabel);
+    }
   }
   else {
     printf("Loading %s\n",SrcValFile);
@@ -233,22 +238,24 @@ int main(int argc, char *argv[]) {
     printf("Converting to target annot\n");
     err = MRISseg2annot(SurfReg[nsurfs-1],TrgVal,ctab);
     if(err) exit(1);
-    printf("Writing %s\n",TrgValFile);
-    MRISwriteAnnotation(SurfReg[nsurfs-1], TrgValFile);
+    printf("Writing %s\n",TrgValFiles[0]);
+    MRISwriteAnnotation(SurfReg[nsurfs-1], TrgValFiles[0]);
   } 
-  else if(LabelFile){
-    LABEL *label;
-    label = MRISmask2Label(SurfReg[nsurfs-1], TrgVal, 0, 10e-5);
-    printf("   %d points in output label\n",label->n_points);
-    err = LabelWrite(label,TrgValFile);
-    if(err){
-      printf("ERROR: writing label file %s\n",TrgValFile);
-      exit(1);
+  else if(nLabelFiles > 0){
+    for(int n=0; n < nLabelFiles; n++){
+      LABEL *label;
+      label = MRISmask2Label(SurfReg[nsurfs-1], TrgVal, n, 10e-5);
+      printf("   %d points in output label\n",label->n_points);
+      err = LabelWrite(label,TrgValFiles[n]);
+      if(err){
+	printf("ERROR: writing label file %s\n",TrgValFiles[n]);
+	exit(1);
+      }
+      LabelFree(&label);
     }
-    LabelFree(&label);
   }
   else if(SurfXYZFile){
-    printf("Writing surface to %s\n",TrgValFile);
+    printf("Writing surface to %s\n",TrgValFiles[0]);
     // If this is a patch, reload the target surf without the patch
     MRIS *tmpsurf = SurfReg[nsurfs-1];
     if(npatches > 0) tmpsurf = MRISread(SurfRegFile[nsurfs-1]);
@@ -260,20 +267,20 @@ int main(int argc, char *argv[]) {
       printf("Converting output surface back to tkRegRAS\n");
       MRISscanner2Tkr(tmpsurf);
     }
-    MRISwrite(tmpsurf, TrgValFile);
+    MRISwrite(tmpsurf, TrgValFiles[0]);
     if(npatches > 0) MRISfree(&tmpsurf);
   }
   else{
-    printf("Writing %s\n",TrgValFile);
+    printf("Writing %s\n",TrgValFiles[0]);
     err = 0;
     if(OutputCurvFormat){
       MRIScopyMRI(SurfReg[nsurfs-1], TrgVal, 0, "curv");
-      err = MRISwriteCurvature(SurfReg[nsurfs-1],TrgValFile);
+      err = MRISwriteCurvature(SurfReg[nsurfs-1],TrgValFiles[0]);
     }
     else
-      err = MRIwrite(TrgVal,TrgValFile);
+      err = MRIwrite(TrgVal,TrgValFiles[0]);
     if(err) {
-      printf("ERROR: writing to %s\n",TrgValFile);
+      printf("ERROR: writing to %s\n",TrgValFiles[0]);
       exit(1);
     }
   }
@@ -368,19 +375,21 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--sval-label") || !strcasecmp(option, "--src-label")){
       if (nargc < 1) CMDargNErr(option,1);
-      LabelFile = pargv[0];
-      if(!fio_FileExistsReadable(LabelFile)){
-	printf("ERROR: %s does not exist or is not readable by you\n",LabelFile);
+      LabelFiles[nLabelFiles] = pargv[0];
+      if(!fio_FileExistsReadable(LabelFiles[nLabelFiles])){
+	printf("ERROR: %s does not exist or is not readable by you\n",LabelFiles[nLabelFiles]);
 	exit(1);
       }
       DoJac = 0;
       ReverseMapFlag = 0;
+      nLabelFiles++;
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--trg") || !strcasecmp(option, "--tval") 
 	     || !strcasecmp(option, "--o")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      TrgValFile = pargv[0];
+      if(nargc < 1) CMDargNErr(option,1);
+      TrgValFiles[nTrgValFiles] = pargv[0];
+      nTrgValFiles++;
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--streg") || !strcasecmp(option, "--st")) {
@@ -605,6 +614,7 @@ static void print_usage(void) {
   printf("   --src srcvalfile : source values (surface overlay) Can also use --i\n");
   printf("   --src-annot srcannotfile : source annotation (implies --no-rev)\n");
   printf("   --src-label labelfile : source label (implies --no-rev)\n");
+  printf("     can have multiple --src-label; if so, must have multiple --trg for each\n");
   printf("   --src-xyz surfacefile : use xyz coords from given surface as input\n");
   printf(" Output specifcation (format depends on type of input):\n");
   printf("   --trg trgvalfile : (Can also use --o)\n");
@@ -655,7 +665,7 @@ static void print_version(void) {
 /*--------------------------------------------------------------*/
 static void check_options(void) {
   int n;
-  if(SrcValFile == NULL && AnnotFile == NULL && LabelFile == NULL && SurfXYZFile == NULL){
+  if(SrcValFile == NULL && AnnotFile == NULL && nLabelFiles == 0 && SurfXYZFile == NULL){
     printf("ERROR: need to specify source value file\n");
     exit(1);
   }
@@ -663,11 +673,11 @@ static void check_options(void) {
     printf("ERROR: cannot spec both --src and --src-annot\n");
     exit(1);
   }
-  if(SrcValFile && LabelFile){
+  if(SrcValFile && nLabelFiles > 0){
     printf("ERROR: cannot spec both --src and --src-label\n");
     exit(1);
   }
-  if(AnnotFile && LabelFile){
+  if(AnnotFile && nLabelFiles > 0){
     printf("ERROR: cannot spec both --src-annot and --src-label\n");
     exit(1);
   }
@@ -679,10 +689,16 @@ static void check_options(void) {
     printf("ERROR: cannot spec both --src and --src-xyz\n");
     exit(1);
   }
-  if(TrgValFile == NULL){
+  if(nTrgValFiles == 0){
     printf("ERROR: need to specify target value file\n");
     exit(1);
   }
+  if(nLabelFiles > 0 && nTrgValFiles != nLabelFiles){
+    printf("ERROR: number of input label files = %d, which does not equal the number of target files %d\n",
+	   nLabelFiles,nTrgValFiles);
+    exit(1);
+  }
+    
   if(nsurfs == 0){
     printf("ERROR: must specify at least one source:target registration pair\n");
     exit(1);
@@ -710,7 +726,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"srcvalfile  %s\n",SrcValFile);
-  fprintf(fp,"trgvalfile  %s\n",TrgValFile);
+  fprintf(fp,"trgvalfile  %s\n",TrgValFiles[0]);
   fprintf(fp,"nsurfs  %d\n",nsurfs);
   fprintf(fp,"jac  %d\n",DoJac);
   fprintf(fp,"revmap  %d\n",ReverseMapFlag);
