@@ -161,18 +161,20 @@ if($#GMM) cp $GMM $outdir/log/gmm.txt
 
 if($DoImport) then
   # Import the data
-  set cmd = (fsr-import $inputargs --o $importdir)
-  if($DoHiRes) set cmd = ($cmd --hires) # prevents conforming
-  if($ForceUpdate) set cmd = ($cmd --force-update)
-  echo $cmd | tee -a $LF
-  fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  # Coregister within and between modes, resample to reference mode
-  set cmd = (fsr-coreg --importdir $importdir --ref $refmodename --threads $threads --o $coregdir)
-  if($ForceUpdate) set cmd = ($cmd --force-update)
-  echo $cmd | tee -a $LF
-  fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  if(! -e $importdir) then
+    set cmd = (fsr-import $inputargs --o $importdir)
+    if($DoHiRes) set cmd = ($cmd --hires) # prevents conforming
+    if($ForceUpdate) set cmd = ($cmd --force-update)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # Coregister within and between modes, resample to reference mode
+    set cmd = (fsr-coreg --importdir $importdir --ref $refmodename --threads $threads --o $coregdir)
+    if($ForceUpdate) set cmd = ($cmd --force-update)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
   # Create input list, make sure refmodename is first
   set outvol = $coregdir/$refmodename/runavg-refmodespace.mgz
   set inputlist = ($outvol)
