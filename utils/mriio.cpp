@@ -12833,7 +12833,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
 
 
 // esize/ecode read is based on nifti_read_extensions()/nifti_read_next_extension()
-// return 1 if NIFTI_ECODE_FREESURFER found; otherwise, return 0
+// return 1 if TAG_RAS_FORM is available in NIFTI_ECODE_FREESURFER; otherwise, return 0
 int __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag)
 {
   int has_ras_xform = 0;

@@ -76,7 +76,6 @@ public:
   int read_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel);
 
   // for nifti header extension only
-  int read_intent_encoded_version(int *version);
   int read_dof(int *dof);
   int read_scan_parameters(MRI *mri, long long dlen);
   int read_ras_xform(MRI *mri);

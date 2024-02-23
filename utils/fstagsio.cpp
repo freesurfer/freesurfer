@@ -830,15 +830,6 @@ int FStagsIO::read_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel)
 }
 
 
-// read TAG_INTENT_ENCODED_VERSION (nifti header extension only)
-int FStagsIO::read_intent_encoded_version(int *version)
-{
-  *version = znzreadInt(fp);
-  
-  return NO_ERROR;  
-}
-
-
 // read TAG_DOF (nifti header extension only)
 int FStagsIO::read_dof(int *dof)
 {
