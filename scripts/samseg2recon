@@ -59,10 +59,7 @@ mkdir -p $SUBJECTS_DIR/$subject/scripts
 mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
 mkdir -p $SUBJECTS_DIR/$subject/mri/tmp
 
-if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.samseg2recon.$$
-  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/mri/tmp/tmpdir.samseg2recon.$$
-endif
+if($#tmpdir == 0) set tmpdir = $SUBJECTS_DIR/$subject/mri/tmp.samseg2recon
 mkdir -p $tmpdir
 
 # Set up log file
@@ -157,10 +154,13 @@ echo cd `pwd` | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 # Create a talairach.xfm (needed for mris_anatomical stats) 
-set cmd = (lta_convert --inlta talairach.lta --outmni talairach.xfm)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded talairach.xfm talairach.lta`
+if($ud || $ForceUpdate) then
+  set cmd = (lta_convert --inlta talairach.lta --outmni talairach.xfm)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 popd
 
 # Link the samseg template.m3z to the talairach.m3z
@@ -182,10 +182,10 @@ set bc = $samsegdir/mode01_bias_corrected.mgz
 # Need to rescale bias corrected such that WM is 110
 # Get mask of WM, eroded
 set wm = $tmpdir/wm.mask.mgh
-set cmd = (mri_binarize --i $segvol --match 2 41 --erode 2 --o $wm)
-echo $cmd | tee -a $LF
 set ud = `UpdateNeeded $wm $segvol`
 if($ud || $ForceUpdate) then
+  set cmd = (mri_binarize --i $segvol --match 2 41 --erode 2 --o $wm)
+  echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
   if($status) goto error_exit;
 else
@@ -193,10 +193,10 @@ else
 endif
 # Compute mean in the eroded WM mask
 set wmmeanfile = $tmpdir/wm.mask.mean.dat
-set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
-echo $cmd | tee -a $LF
 set ud = `UpdateNeeded $wmmeanfile $bc $wm`
 if($ud || $ForceUpdate) then
+  set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
+  echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
   if($status) goto error_exit;
 else
@@ -208,10 +208,10 @@ echo T1w wmmean $wmmean | tee -a $LF
 echo T1w scale $scale | tee -a $LF
 # Now rescale the BC so that WM is 110, save as nu
 set nu = $mdir/nu.mgz
-set cmd = (mri_concat $bc --mul $scale --o $nu)
-echo $cmd | tee -a $LF
 set ud = `UpdateNeeded $nu $bc $wmmeanfile`
 if($ud || $ForceUpdate) then
+  set cmd = (mri_concat $bc --mul $scale --o $nu)
+  echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
   if($status) goto error_exit;
 else
@@ -221,10 +221,10 @@ endif
 # Create a brain mask
 if($#mask == 0) then
   set mask = $tmpdir/mask.mgh
-  set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
-  echo $cmd | tee -a $LF
   set ud = `UpdateNeeded $mask $segvol`
   if($ud || $ForceUpdate) then
+    set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
+    echo $cmd | tee -a $LF
     fs_time $cmd | tee -a $LF
     if($status) goto error_exit;
   else
@@ -429,8 +429,8 @@ if($DoFill) then
   popd
 endif
 
-# Cleanup
-if($cleanup) rm -rf $tmpdir
+# Cleanup, or not; if so, all the UpdateNeeded is useless
+#if($cleanup) rm -rf $tmpdir
 
 # Done
 echo " " |& tee -a $LF
@@ -623,6 +623,7 @@ popd  > /dev/null
 
 if(! $#LongTP && ! $DoLongBase) then
   set coregdir = $SUBJECTS_DIR/$subject/coreg
+  set coregdir = $samsegdir/input
   if(! -e $coregdir) then
     set coregdir = $samsegdir/coreg
     if(! -e $coregdir) then
@@ -630,8 +631,8 @@ if(! $#LongTP && ! $DoLongBase) then
       exit 1;
     endif
   endif
-  set input = $coregdir/t1w/t1w.mgz
-  set modenamelist = (`cat $coregdir/modenames.txt`)
+  set input = $coregdir/t1w/runavg-refmodespace.mgz
+  set modenamelist = (`cat $coregdir/log/fsr-import.unique.modenames.txt`)
   set ok = 0;
   foreach mode ($modenamelist)
     if($mode == t1w) set ok = 1;
