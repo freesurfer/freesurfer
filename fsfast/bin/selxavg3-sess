@@ -135,7 +135,13 @@ else
     echo "WARNING: could not create $logdir"
     set LF = /dev/null
   else
-    set LF = $logdir/selxavg3-sess-$fsd-$analysis-$DateStr.log
+    if($#SessList == 1) then
+      # If there is only one session, give it it own log file
+      set ss = `basename $SessList`
+      set LF = $logdir/selxavg3-sess-$fsd-$analysis-$DateStr.$ss.log
+    else
+      set LF = $logdir/selxavg3-sess-$fsd-$analysis-$DateStr.$$.log
+    endif
     if(-e $LF) mv $LF $LF.old
   endif
 endif
