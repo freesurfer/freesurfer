@@ -86,6 +86,8 @@ char *TrgValFiles[1000];
 int nTrgValFiles=0;
 char *SurfRegFile[100];
 char *SurfPatchFile[100];
+char *LabelSurfFile=NULL;
+MRIS *LabelSurf=NULL;
 int ReverseMapFlag = 1;
 int DoJac = 0;
 int UseHash = 1;
@@ -229,6 +231,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if(LabelSurfFile) {
+    LabelSurf = MRISread(LabelSurfFile);
+    if(LabelSurf==NULL) exit(1);
+  }
+  else LabelSurf = SurfReg[nsurfs-1];
+
   // Apply registration to source
   TrgVal = MRISapplyReg(SrcVal, SurfReg, nsurfs, ReverseMapFlag, DoJac, UseHash);
   if(TrgVal == NULL) exit(1);
@@ -244,7 +252,7 @@ int main(int argc, char *argv[]) {
   else if(nLabelFiles > 0){
     for(int n=0; n < nLabelFiles; n++){
       LABEL *label;
-      label = MRISmask2Label(SurfReg[nsurfs-1], TrgVal, n, 10e-5);
+      label = MRISmask2Label(LabelSurf, TrgVal, n, 10e-5);
       printf("   %d points in output label\n",label->n_points);
       err = LabelWrite(label,TrgValFiles[n]);
       if(err){
@@ -385,6 +393,11 @@ static int parse_commandline(int argc, char **argv) {
       nLabelFiles++;
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--label-surf")){
+      if(nargc < 1) CMDargNErr(option,1);
+      LabelSurfFile = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--trg") || !strcasecmp(option, "--tval") 
 	     || !strcasecmp(option, "--o")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -615,6 +628,7 @@ static void print_usage(void) {
   printf("   --src-annot srcannotfile : source annotation (implies --no-rev)\n");
   printf("   --src-label labelfile : source label (implies --no-rev)\n");
   printf("     can have multiple --src-label; if so, must have multiple --trg for each\n");
+  printf("   --label-surf labelsurf : get xyz for label from labelsurf\n");
   printf("   --src-xyz surfacefile : use xyz coords from given surface as input\n");
   printf(" Output specifcation (format depends on type of input):\n");
   printf("   --trg trgvalfile : (Can also use --o)\n");
