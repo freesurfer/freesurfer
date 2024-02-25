@@ -88,6 +88,7 @@ char *SurfRegFile[100];
 char *SurfPatchFile[100];
 char *LabelSurfFile=NULL;
 MRIS *LabelSurf=NULL;
+int LabelKeepStat=1;
 int ReverseMapFlag = 1;
 int DoJac = 0;
 int UseHash = 1;
@@ -99,7 +100,7 @@ int SynthSeed = -1;
 char *AnnotFile = NULL;
 char *SurfXYZFile = NULL;
 int OutputCurvFormat=0;
-LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
+LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh, MRI *Stat);
 int ApplyScaleSurf(MRIS *surf, const double scale);
 double SourceSurfRegScale = 0;
 double TargetSurfRegScale = 0;
@@ -113,6 +114,7 @@ int main(int argc, char *argv[]) {
   MRI *SrcVal, *TrgVal;
   char *base;
   COLOR_TABLE *ctab=NULL;
+  MRI *SrcLabelStat=NULL,*TrgLabelStat=NULL;
 
   nargs = handleVersionOption(argc, argv, "mris_apply_reg");
   if (nargs && argc - nargs == 1) exit (0);
@@ -200,13 +202,15 @@ int main(int argc, char *argv[]) {
   }
   else if(nLabelFiles > 0) {
     SrcVal = MRIallocSequence(SurfReg[0]->nvertices,1,1,MRI_FLOAT,nLabelFiles);
+    if(LabelKeepStat) SrcLabelStat = MRIallocSequence(SurfReg[0]->nvertices,1,1,MRI_FLOAT,nLabelFiles);
     for(int n=0; n < nLabelFiles; n++){
       LABEL *srclabel;
       printf("Loading label %s\n",LabelFiles[n]);
       srclabel = LabelRead(NULL, LabelFiles[n]);
       if(srclabel == NULL) exit(1);
       printf("   %d points in input label\n",srclabel->n_points);
-      MRISlabel2Mask(SurfReg[0],srclabel,SrcVal,n);
+      MRISlabel2Mask(SurfReg[0],srclabel,SrcVal,n,0);
+      if(LabelKeepStat) MRISlabel2Mask(SurfReg[0],srclabel,SrcLabelStat,n,1);
       LabelFree(&srclabel);
     }
   }
@@ -240,6 +244,10 @@ int main(int argc, char *argv[]) {
   // Apply registration to source
   TrgVal = MRISapplyReg(SrcVal, SurfReg, nsurfs, ReverseMapFlag, DoJac, UseHash);
   if(TrgVal == NULL) exit(1);
+  if(SrcLabelStat) {
+    TrgLabelStat = MRISapplyReg(SrcLabelStat, SurfReg, nsurfs, ReverseMapFlag, DoJac, UseHash);
+    if(TrgLabelStat == NULL) exit(1);
+  }
 
   // Save output
   if(AnnotFile){
@@ -252,7 +260,7 @@ int main(int argc, char *argv[]) {
   else if(nLabelFiles > 0){
     for(int n=0; n < nLabelFiles; n++){
       LABEL *label;
-      label = MRISmask2Label(LabelSurf, TrgVal, n, 10e-5);
+      label = MRISmask2Label(LabelSurf, TrgVal, n, 10e-5, TrgLabelStat);
       printf("   %d points in output label\n",label->n_points);
       err = LabelWrite(label,TrgValFiles[n]);
       if(err){
@@ -323,6 +331,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--norev")) ReverseMapFlag = 0;
     else if (!strcasecmp(option, "--no-rev")) ReverseMapFlag = 0;
+    else if (!strcasecmp(option, "--rev")) ReverseMapFlag = 1;
     else if (!strcasecmp(option, "--nnf")) ReverseMapFlag = 0;
     else if (!strcasecmp(option, "--nnfr")) ReverseMapFlag = 1;
     else if (!strcasecmp(option, "--no-hash")) UseHash = 0;
@@ -332,6 +341,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ones")) DoSynthOnes = 1;
     else if (!strcasecmp(option, "--curv")) OutputCurvFormat=1;
     else if (!strcasecmp(option, "--center")) center_surface = 1 ;
+    else if (!strcasecmp(option, "--no-label-keep-stat")) LabelKeepStat = 0 ;
+    else if (!strcasecmp(option, "--label-keep-stat")) LabelKeepStat = 1 ;
     else if (!strcasecmp(option, "--reg-scanner-ras")) RegScannerRAS = 1 ;
     else if (!strcasecmp(option, "--xyz-scanner-ras")) XYZScannerRAS = 1 ;
     else if (!strcasecmp(option, "--scanner-ras")) {RegScannerRAS = 1 ;XYZScannerRAS = 1 ;}
@@ -389,7 +400,7 @@ static int parse_commandline(int argc, char **argv) {
 	exit(1);
       }
       DoJac = 0;
-      ReverseMapFlag = 0;
+      //ReverseMapFlag = 0; // Keep reverse now by default 2/25/2024
       nLabelFiles++;
       nargsused = 1;
     } 
@@ -626,8 +637,10 @@ static void print_usage(void) {
   printf(" Input specifcation (pick one):\n");
   printf("   --src srcvalfile : source values (surface overlay) Can also use --i\n");
   printf("   --src-annot srcannotfile : source annotation (implies --no-rev)\n");
-  printf("   --src-label labelfile : source label (implies --no-rev)\n");
-  printf("     can have multiple --src-label; if so, must have multiple --trg for each\n");
+  printf("   --src-label labelfile : source label (now usees --rev by default and maps the stat field)\n");
+  printf("      Can have multiple --src-label; if so, must have multiple --trg for each\n");
+  printf("      With reverse mapping,  produces the same result as mri_label2label (but not sorted and not stat)\n");
+  printf("      --no-label-keep-stat : do not map the stats field (may be a little faster)\n");
   printf("   --label-surf labelsurf : get xyz for label from labelsurf\n");
   printf("   --src-xyz surfacefile : use xyz coords from given surface as input\n");
   printf(" Output specifcation (format depends on type of input):\n");
@@ -638,7 +651,8 @@ static void print_usage(void) {
   printf("   --streg srcreg2 trgreg2 : more source and target reg files ...\n");
   printf("\n");
   printf("   --jac : use jacobian correction\n");
-  printf("   --no-rev : do not do reverse mapping\n");
+  printf("   --no-rev : do not do reverse mapping  (put after --src-label to enforce)\n");
+  printf("   --rev : perform reverse mapping (this is done by default)\n");
   printf("   --randn : replace input with WGN\n");
   printf("   --ones  : replace input with ones\n");
   printf("   --center  : place the center of the output surface at (0,0,0)\n");
@@ -761,7 +775,7 @@ void usage(FILE *stream)
   non-binary.  Values over thresh are used. The mask value is set to
   be the label stat.
  */
-LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
+LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh, MRI *Stat)
 {
   LABEL *label;
   int c, r, s, n, vtxno;
@@ -798,11 +812,15 @@ LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
 	label->lv[n].x = v->x;
 	label->lv[n].y = v->y;
 	label->lv[n].z = v->z;
-	label->lv[n].stat = val;
+	if(Stat) label->lv[n].stat = MRIgetVoxVal(Stat,c,r,s,frame);
+	else label->lv[n].stat = val;
 	n++;
       }
     }
   }
+  // Sort by vertex number. Actually it is already sorted by vertex number.
+  // Note: mri_label2label output is not sorted.
+  //qsort(label->lv, label->n_points, sizeof(LV), LabelVertexTableSortByVtxno);
 
   return(label);
 }
