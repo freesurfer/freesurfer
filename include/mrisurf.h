@@ -1782,7 +1782,7 @@ MRIS*  MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int 
 int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)  ;
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
-MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask, int frame=0);
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask, int frame=0, int statflag=0);
 int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris,
     LABEL *area,
     float *pdx,

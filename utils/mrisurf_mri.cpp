@@ -5926,9 +5926,10 @@ MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask)
   MRISlabel2Mask() - creates a mask from the label by setting each
   voxel corresponding to a label point to 1 with the rest 0.
   ------------------------------------------------------------------*/
-MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask, int frame)
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask, int frame, int statflag)
 {
   int vtxno, n;
+  double v = 1;
 
   if(mask == NULL)  // create mask as all 0s
     mask = MRIconst(surf->nvertices, 1, 1, frame+1, 0, NULL);
@@ -5945,7 +5946,8 @@ MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask, int frame)
       fflush(stdout);
       return (NULL);
     }
-    MRIsetVoxVal(mask, vtxno, 0, 0, frame, 1);
+    if(statflag) v = lb->lv[n].stat;
+    MRIsetVoxVal(mask, vtxno, 0, 0, frame, v);
   }
   return (mask);
 }
