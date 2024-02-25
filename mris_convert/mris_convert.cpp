@@ -151,6 +151,7 @@ static int cras_subtract = 0;
 static int ToScanner = 0;
 static int ToTkr = 0;
 static int ToSurfCoords = 0;
+int reverse_flag = 0;
 MRIS *SurfCoords = NULL;
 int WriteArea = 0;
 int nUpsample = 0,UpsampleSortType=0;
@@ -323,12 +324,17 @@ main(int argc, char *argv[])
     }
     else
     {
+      printf("Reading in %s\n",in_fname);
       mris = MRISread(in_fname, doTkrRASConvert) ;
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
-      if (center_surface)
-        MRIScenter(mris, mris) ;
+      if(reverse_flag) {
+	printf("Reversing faces\n");
+	MRISreverse(mris, REVERSE_X, 1) ;
+      }
+
+      if(center_surface) MRIScenter(mris, mris) ;
     }
   }
 
@@ -953,6 +959,7 @@ get_option(int argc, char *argv[])
   {
     RemoveVolGeom = 1;
   }
+  else if (!stricmp(option, "-left-right-rev")) reverse_flag = 1;
   else if (!stricmp(option, "-to-curv")) {
     // Convert to curv format
     MRI *ov = MRIread(argv[2]);

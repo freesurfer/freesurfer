@@ -126,6 +126,8 @@
       <explanation>shift center from scanner coordinate center (reverses --cras_add)</explanation>
       <argument>--to-curv input surf curvoutput</argument>
       <explanation>Convert input into curv format</explanation>
+      <argument>--left-right-rev </argument>
+      <explanation>Left-right reverse the input surface (reversing faces too)</explanation>
     </optional>
 
   </arguments>
