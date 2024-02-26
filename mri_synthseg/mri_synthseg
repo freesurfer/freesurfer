@@ -553,12 +553,12 @@ def preprocess(path_image, ct, n_levels=5, crop=None, min_pad=None, path_resampl
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
     if n_dims < 3:
-        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
+        raise Exception('input should have 3 dimensions, had %s' % n_dims)
     elif n_dims == 4 and n_channels == 1:
         n_dims = 3
         im = im[..., 0]
     elif n_dims > 3:
-        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
+        raise Exception('input should have 3 dimensions, had %s' % n_dims)
     elif n_channels > 1:
         print('Detected more than 1 channel, we keep the average.')
         im = np.mean(im, axis=-1)
