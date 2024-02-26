@@ -101,6 +101,7 @@ static char *vol_fname = NULL ;
 
 static int remove_negative = 1 ;
 int LeftRightRev = 0;
+int KeepVolGeom = 1;
 
 char *rusage_file=NULL;
 
@@ -423,6 +424,7 @@ main(int argc, char *argv[])
     fflush(stdout); fflush(stderr);
     fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
     fflush(stdout); fflush(stderr);
+    if(KeepVolGeom == 0)  mris->vg.valid = 0;
     MRISwrite(mris, out_fname) ;
   }
 
@@ -744,10 +746,10 @@ get_option(int argc, char *argv[])
             atoi(argv[2])) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "left-right-reverse"))
-  {
-    LeftRightRev = 1;
-  }
+  else if (!stricmp(option, "left-right-reverse")) LeftRightRev = 1;
+  else if (!stricmp(option, "remove-vol-geom")) KeepVolGeom = 0;
+  else if (!stricmp(option, "no-vol-geom")) KeepVolGeom = 0;
+
   else switch (toupper(*option))
     {
     case 'T':
