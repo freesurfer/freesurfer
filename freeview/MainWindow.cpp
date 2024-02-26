@@ -1451,6 +1451,8 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     QFile file(m_sSyncFilePath);
     file.remove();
   }
+  if(parser->Found("sphere-ignore-vg"))    setenv("FV_SPHERE_IGNORE_VG","1",1);
+  if(parser->Found("no-sphere-ignore-vg")) setenv("FV_SPHERE_IGNORE_VG","0",1);
 
   if (!QFile::exists(m_sSyncFilePath))
   {
@@ -3734,7 +3736,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("setsurfaceedgecolor") << subArgu );
         }
-        else if ( subOption == "affinexfm")
+        else if( subOption == "affinexfm" || subOption == "reg")
         {
           // The LTA can point in either direction as MRISltaMultiply()
           // will determine the right direction if it can
@@ -6584,6 +6586,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
                                   const QStringList& sup_files_in, const QVariantMap& sup_options)
 {
   QFileInfo fi( filename );
+  QString ext = fi.completeSuffix(); 
   m_strLastDir = fi.absolutePath();
   LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
   connect(layer, SIGNAL(CurrentVertexChanged(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
@@ -6643,8 +6646,18 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->GetProperty()->blockSignals(false);
 
   QVariantMap args;
-  if (sup_options.contains("ignore_vg"))
+  if(sup_options.contains("ignore_vg"))
     args["ignore_vg"] = sup_options["ignore_vg"];
+  // For sphere, ignore the vol geom by default
+  if(fi.fileName().contains("sphere")){
+    char *a = getenv("FV_SPHERE_IGNORE_VG");
+    if(a == NULL || strcmp(a,"0")!=0) args["ignore_vg"] = 1;
+  }
+  if(args["ignore_vg"].toInt()) {
+    printf("INFO: ignoring vol geom for %s\n",filename.toStdString().c_str());
+    printf("  If you want the vol geom, then add --no-sphere-ignore-vg or setenv FV_SPHERE_IGNORE_VG 0\n");
+  }
+
   if (sup_options.contains("affinexform_filename"))
     args["affinexform_filename"] = sup_options["affinexform_filename"];
 

@@ -188,6 +188,8 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "conform", "conform", "", "Conform the volume to the first loaded volume." ),
     CmdLineEntry( CMD_LINE_SWITCH, "trilinear", "trilinear", "", "Use trilinear as the default resample method." ),
     CmdLineEntry( CMD_LINE_SWITCH, "cubic", "cubic", "", "Use cubic as the default resample method." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "sphere-ignore-vg", "sphere-ignore-vg", "", "Ignore vol geom when surface has 'sphere' in the name."),
+    CmdLineEntry( CMD_LINE_SWITCH, "no-sphere-ignore-vg", "no-sphere-ignore-vg", "", "Do not ignore vol geom when surface has 'sphere' in the name"),
     CmdLineEntry( CMD_LINE_SWITCH, "smoothed", "smoothed", "", "Use smoothed display as the default display method for volumes." ),
     CmdLineEntry( CMD_LINE_OPTION, "colormap", "colormap", "<TYPE>", "Use the give colormap type as the colormap for all the volumes to be loaded after.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "dti", "dti", "<VECTOR> <FA>...", "Load one or more dti volumes. Need two files for each dti volume. First one is vector file. Second one is FA (brightness) file.", 2, 1000 ),
@@ -217,7 +219,9 @@ int main(int argc, char *argv[])
     "':opacity=value' Set surface opacity. Value ranges from 0 to 1.\n\n"
     "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'overlay', will use overlay color\n\n"
     "':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n"
-    "':affinexfm=filename' apply affine xfm LTA to the surface vertex xyz (automatically determines proper direction and converts to tkreg)\n\n"
+    "':reg=filename' apply affine xfm LTA to the surface vertex xyz (automatically determines proper direction and converts to tkreg); same as affinexfm\n\n"
+    "':affinexfm=filename' apply affine xfm LTA to the surface vertex xyz (automatically determines proper direction and converts to tkreg); same as reg\n\n"
+    "':ignore_vg=0,1' if 1, ignore the volume geom in the surface (good for sphere)\n\n"
     "':annot=filenames' Set annotation files to load.\n\n"
     "':annot_outline=flag' Show surface annotation as outline. flag can be 'true', 'yes' or '1'.\n\n"
     "':annot_zorder=number' Set z-order for rendering annotation.\n\n"

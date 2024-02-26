@@ -306,6 +306,10 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--keep-sphere-vol-geom":
+      setenv FV_SPHERE_IGNORE_VG 0
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -437,6 +441,7 @@ usage_exit:
   echo "-neuro : use neurological orientation instead of radiological"
   echo "-rotate-around-cursor (-rca) : in 3d view, rotate around cursor (use -no- to turn off)"
   echo "-linear, -linearopaque, -piecewise, -min_to_max (default) : overlay heat scale"
+  echo "--keep-sphere-vol-geom : do not ignore sphere volume geometry when loading sphere"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION
