@@ -1284,11 +1284,7 @@ static void do_file(char *fname)
 
       frame = &mri->frames[i] ;
 
-      if ((frame->type != 0) ||
-          (!FZERO(frame->TE)) ||
-          (!FZERO(frame->TR)) ||
-          (!FZERO(frame->flip)) ||
-          (frame->label != 0) ||
+      if ((frame->label != 0) ||
           (!FZERO(frame->thresh)))
       {
         frame_valid = 1 ;
@@ -1299,22 +1295,6 @@ static void do_file(char *fname)
         continue ;
       }
       printf("frame %d info:\n", i) ;
-      if (frame->type != 0)
-      {
-        printf("\ttype = %d\n", frame->type) ;
-      }
-      if (!FZERO(frame->TE))
-      {
-        printf("\tTE = %2.1fms\n", frame->TE) ;
-      }
-      if (!FZERO(frame->TR))
-      {
-        printf("\tTR = %2.1fms\n", frame->TR) ;
-      }
-      if (!FZERO(frame->flip))
-      {
-        printf("\tflip angle = %2.1f deg\n", DEGREES(frame->flip)) ;
-      }
       if (frame->label != 0)
       {
         printf("\tlabel = %s (%d)\n",
@@ -1412,56 +1392,8 @@ void __printTagsToFile(MRI *mri)
     for (int fno = 0; fno < mri->nframes; fno++)
     {
       MRI_FRAME *frame = &mri->frames[fno];
-      printf("  type: %d\n", frame->type);
-      printf("  TE:   %.6f\n", frame->TE);
-      printf("  TR:   %.6f\n", frame->TR);
-      printf("  flip: %.6f\n", frame->flip);
-      printf("  TI:   %.6f\n", frame->TI);
-      printf("  TD:   %.6f\n", frame->TD);
-      printf("  TM:   %.6f\n", frame->TM);
-      printf("  sequence_type:  %d\n", frame->sequence_type);
-      printf("  echo_spacing:   %.6f\n", frame->echo_spacing);
-      printf("  echo_train_len: %.6f\n", frame->echo_train_len);
-      for (int i = 0; i < 3; i++)   printf("  read_dir[%d]:  %.6f\n", i, frame->read_dir[i]);
-      for (int i = 0; i < 3; i++)   printf("  pe_dir[%d]:    %.6f\n", i, frame->pe_dir[i]);
-      for (int i = 0; i < 3; i++)   printf("  slice_dir[%d]: %.6f\n", i, frame->slice_dir[i]);
       printf("  label: %d\n", frame->label);
       printf("  name:  %s\n", frame->name);
-      printf("  dof: %d\n", frame->dof);
-      printf("  m_ras2vox:\n");
-      if (frame->m_ras2vox == NULL)
-	printf("  No frame[%d] m_ras2vox matrix present\n", fno);
-      else
-        MatrixPrintFmt(fpout, "%10f", frame->m_ras2vox);
       printf("  thresh: %.6f\n", frame->thresh);
-      printf("  units:  %d\n", frame->units);
-      if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED)  // also store diffusion info
-      {
-        printf("  DX:      %.6f\n", frame->DX);
-        printf("  DY:      %.6f\n", frame->DY);
-        printf("  DZ:      %.6f\n", frame->DZ);
-
-        printf("  DR:      %.6f\n", frame->DR);
-        printf("  DP:      %.6f\n", frame->DP);
-        printf("  DS:      %.6f\n", frame->DS);
-        printf("  bvalue:  %.6f\n", frame->bvalue);
-        printf("  TM:      %.6f\n", frame->TM);
-
-        printf("  D1_ramp: %ld\n", frame->D1_ramp);
-        printf("  D1_flat: %ld\n", frame->D1_flat);
-        printf("  D1_amp:  %.6f\n", frame->D1_amp);
-
-        printf("  D2_ramp: %ld\n", frame->D2_ramp);
-        printf("  D2_flat: %ld\n", frame->D2_flat);
-        printf("  D2_amp:  %.6f\n", frame->D2_amp);
-
-        printf("  D3_ramp: %ld\n", frame->D3_ramp);
-        printf("  D3_flat: %ld\n", frame->D3_flat);
-        printf("  D3_amp:  %.6f\n", frame->D3_amp);
-
-        printf("  D4_ramp: %ld\n", frame->D4_ramp);
-        printf("  D4_flat: %ld\n", frame->D4_flat);
-        printf("  D4_amp:  %.6f\n", frame->D4_amp);
-      }
     }
 }

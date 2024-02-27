@@ -36,7 +36,7 @@ public:
   static long long getlen_tag(int tag, long long len, bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_matrix(bool niftiheaderext, bool addtaglength=true);
   static long long getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext=false, bool addtaglength=true);
-  static long long getlen_mri_frames(MRI *mri, bool addtaglength=true);
+  static long long getlen_mri_frames(MRI *mri, bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_gcamorph_geom(bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_gcamorph_meta(bool addtaglength=true);
   static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false, bool addtaglength=true);
@@ -69,7 +69,7 @@ public:
   int read_data(void *databuf, long long len);
   MATRIX* read_matrix();
   COLOR_TABLE* read_old_colortable();
-  int read_mri_frames(MRI *mri, long len);
+  int read_mri_frames(MRI *mri, long long len);
   
   int read_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target);
   int read_gcamorph_meta(int *warpFieldFormat, int *gcamorphSpacing, double *gcamorphExp_k);
@@ -86,6 +86,8 @@ public:
 private:
   int __write_matrix_niftiheaderext(MATRIX *M, int tag=0);
   MATRIX* __read_matrix_niftiheaderext();
+  int __write_mri_frames_niftiheaderext(MRI *mri);
+  int __read_mri_frames_niftiheaderext(MRI *mri, long long len);
   
 private:
   znzFile fp;
