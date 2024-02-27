@@ -46,34 +46,6 @@ add_custom_command(
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# deepsurfer
-set(DEEPSURFER_LOCAL_PATH "/absolute/path/to/local/deepsurfer/code")
-# ?? ifdef on ENV setting for DEEPSURFER_LOCAL_PATH, else use default PKG_TARGET setting for site-packages ??
-# set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
-
-# set(DEEPSURFER_PYPROJECT "${DEEPSURFER_LOCAL_PATH}/pyproject.toml")
-# set(DEEPSURFER_PYPROJECT_NOSURFA "${CMAKE_BINARY_DIR}/deepsurfer-pyproject-nosurfa.toml")
-
-add_custom_target(setup_deepsurfer)
-# execute_process(
-#   COMMAND ${CMAKE_COMMAND} -E copy ${DEEPSURFER_PYPROJECT} ${DEEPSURFER_PYPROJECT_NOSURFA}  
-# )
-
-# file(READ ${DEEPSURFER_PYPROJECT_NOSURFA} contents)
-# string(REPLACE "surfa" "" contents ${contents})
-# file(WRITE ${DEEPSURFER_PYPROJECT_NOSURFA} ${contents})
-
-# message(STATUS "Installing Deepsurfer from local path: ${DEEPSURFER_LOCAL_PATH}")
-
-add_custom_command(
-  TARGET setup_deepsurfer
-  COMMAND
-    ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --ignore-installed --no-cache-dir --upgrade -e ${DEEPSURFER_LOCAL_PATH} ${PKG_TARGET}
-  WORKING_DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR} 
-)
-
-
 # default is least version specific or sparse requirements to allow for latest pkg revisions
 set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt")
 set(requirements_extra "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt")
@@ -109,18 +81,22 @@ if(INSTALL_PYTHON_DEPENDENCIES)
   install(CODE "
     message(STATUS \"Installing python package dependencies into fspython with cmd:\")
     message(STATUS \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\")
+
     execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\" RESULT_VARIABLE retcode)
+
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install python dependencies\")
     endif()
+
     execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin ! -name 'python3*' ! -name 'ds' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
+
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not remove pip-installed scripts\")
-    endif()"
-  )
+    endif()
 
-  file(CREATE_LINK "${CMAKE_INSTALL_PREFIX}/python/bin/ds" "${CMAKE_INSTALL_PREFIX}/bin/ds")
-
+    # Create the symbolic link after pip install
+    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_INSTALL_PREFIX}/python/bin/ds\" \"${CMAKE_INSTALL_PREFIX}/bin/ds\")
+  ")
 
   if(PATCH_FSPYTHON)
      # Use to workaround a python module not installing, e.g., problem with setup.py.
