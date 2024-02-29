@@ -51,6 +51,8 @@ option(PATCH_FSPYTHON "Build subdirs with source using gfortran" OFF)
 option(FSPYTHON_BUILD_REQ "Pip will use requirmenets files with a snapshot of pkg revisions when installing pkgs into fspython" OFF)
 option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
 option(TEST_WITH_CUDA "Allow tests to run that use cuda libs and require install of cuda drivers" OFF)
+option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
+
 
 #  Modern compilers on new platforms often provide many more warnings than older compilers
 #  for example the gcc 7.5.0 compiler warnings about falling through switch statements
@@ -549,7 +551,20 @@ add_subdirectory(vtkutils)
 add_subdirectory(fem_elastic)
 
 # build the gems library
-add_subdirectory(gems)
+if(NOT INTEGRATE_SAMSEG)
+  add_subdirectory(gems)
+else()
+  set(STANDALONE_SAMSEG_PATH "${CMAKE_SOURCE_DIR}/git-samseg.standalone")
+  set(STANDALONE_SAMSEG_URL  "https://github.com/freesurfer/samseg.git")
+
+  message(STATUS "git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}")
+  execute_process(COMMAND bash -c "git clone --quiet ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}" result_variable retcode)
+  if(NOT ${retcode} STREQUAL 0)
+    message(FATAL_ERROR "could not git clone standalone samseg")
+  endif()
+
+  add_subdirectory(${STANDALONE_SAMSEG_PATH}/gems)
+endif()
 
 # --------------------------------------------------
 #                      programs

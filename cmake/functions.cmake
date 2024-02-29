@@ -283,3 +283,77 @@ function(install_pyscript)
     )
   endforeach()
 endfunction()
+
+
+function(integrate_samseg)
+  # pip install samseg
+  if(NOT INSTALL_PYTHON_DEPENDENCIES)
+    set(PIP_FLAGS "--no-dependencies")
+  endif()
+  
+  set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
+
+  if(NOT DISTRIBUTE_FSPYTHON)
+    set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
+  endif()
+
+  install(CODE "
+    message(STATUS \" for HOST_OS=${HOST_OS} \")
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} \")
+    message(STATUS \" PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} PYTHON_INSTALL=${CMAKE_INSTALL_PREFIX}/python/bin/python3 PKG_TARGET=${PKG_TARGET} \")
+
+    message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not install Standalone Samseg\")
+    endif()"
+  )
+
+  # config the scripts
+  foreach(SCRIPT ${ARGN})
+    # config fspython wrapper script
+    #config_fspythonwrapper(${CMAKE_INSTALL_PREFIX}/bin/${SCRIPT})
+    config_fspythonwrapper(${SCRIPT})
+
+    # remove pip-installed cli wrapper from ${CMAKE_INSTALL_PREFIX}/python/bin/
+    if(DISTRIBUTE_FSPYTHON)
+      remove_files(${CMAKE_INSTALL_PREFIX}/python/bin/${SCRIPT})
+    endif()
+
+    set(SAMSEGCLI_DIR ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages)
+    if(NOT DISTRIBUTE_FSPYTHON)
+      set(SAMSEGCLI_DIR ${CMAKE_INSTALL_PREFIX}/python/packages)
+    endif()
+
+    # create links in ${CMAKE_INSTALL_PREFIX}/python/scripts/ to real python scripts in installed package
+    symlink(${SAMSEGCLI_DIR}/samseg/cli/${SCRIPT}.py ${CMAKE_INSTALL_PREFIX}/python/scripts/${SCRIPT})
+  endforeach()
+endfunction()
+
+
+# config_fspythonwrapper(<scripts>)
+# This function creates the fspython wrapper scripts in $FREESURFER_HOME/bin
+# for actual scripts in python/scripts.
+function(config_fspythonwrapper)
+  foreach(SCRIPT ${ARGN})
+    install(CODE "
+      message(STATUS \"Configuring fspython wrapper: ${CMAKE_INSTALL_PREFIX}/bin/${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/wrapper ${CMAKE_INSTALL_PREFIX}/bin/${SCRIPT} @ONLY)"
+    )
+  endforeach()
+endfunction()
+
+
+# remove the files given
+function(remove_files)
+  foreach(SCRIPT ${ARGN})
+    install(CODE "
+      message(STATUS \"Removing: ${SCRIPT}\")
+      execute_process(COMMAND bash -c \"rm -f ${SCRIPT}\" RESULT_VARIABLE retcode)
+      if(NOT \${retcode} STREQUAL 0)
+        message(FATAL_ERROR \"Could not remove ${SCRIPT}\")
+      endif()"
+    )
+  endforeach()
+endfunction()

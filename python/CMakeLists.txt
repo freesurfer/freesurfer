@@ -2,12 +2,15 @@ project(fspython)
 
 # build the cxx/python bindings for the below modules
 add_subdirectories(fsbindings)
-add_subdirectories(gems/cxx)
+if(NOT INTEGRATE_SAMSEG)
+  add_subdirectories(gems/cxx)
+endif()
 
 # run 'pip install' and direct package installs to freesurfer/python/packages
+# pass INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} environment variable for setup.py to act accordingly
 install(CODE "
   message(STATUS \"Installing python packages\")
-  execute_process(COMMAND bash -c \"${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
+  execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
   if(NOT \${retcode} STREQUAL 0)
     message(FATAL_ERROR \"Could not install python modules\")
   endif()"
