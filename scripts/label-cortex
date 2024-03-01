@@ -337,7 +337,7 @@ if(! -e $aseg) then
   exit 1
 endif
 foreach hemi ($hemilist)
-  set whitepreaparc = $sdir/$hemi.$surfname
+  set whitepreaparc = $sdir/$hemi.$surfname$FS_GII
   if(! -e $whitepreaparc) then
     echo "ERROR: cannot find $whitepreaparc"
     exit 1
