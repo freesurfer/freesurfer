@@ -512,7 +512,9 @@ $cmd |& tee -a $LogFile
 set cmd="mris_anatomical_stats -th3 -mgz -cortex ../label/rh.cortex.label -f ../stats/rh.aparc.DKTatlas.stats -b -a ../label/rh.aparc.DKTatlas.annot -c ../label/aparc.annot.DKTatlas.ctab $SNAME rh white"
 $cmd |& tee -a $LogFile
 
-ln -s $FREESURFER_HOME/subjects/fsaverage $SUBJECTS_DIR/
+if ( ! -e $SUBJECTS_DIR/fsaverage) then
+  ln -s $FREESURFER_HOME/subjects/fsaverage $SUBJECTS_DIR/
+endif  
 cd ../label
 
 # labels
