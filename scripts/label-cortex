@@ -255,6 +255,10 @@ while( $#argv != 0 )
       set FixGA = 0
       breaksw
 
+    case "--gii":
+      setenv FS_GII .gii
+      breaksw
+      
     case "--lh":
       set hemilist = (lh)
       breaksw
