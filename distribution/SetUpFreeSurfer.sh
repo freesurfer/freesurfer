@@ -38,5 +38,10 @@ fi
 # Enable or disable fsfast (enabled by default)
 #export NO_FSFAST=1
 
+# set user prompt to optional input string
+if [ $# -eq 1 ]; then
+  PS1="(fsenv-$1) [\h:\W]"
+fi
+
 # Call configuration script:
 source $FREESURFER_HOME/FreeSurferEnv.sh

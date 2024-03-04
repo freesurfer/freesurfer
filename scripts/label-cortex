@@ -255,6 +255,10 @@ while( $#argv != 0 )
       set FixGA = 0
       breaksw
 
+    case "--gii":
+      setenv FS_GII .gii
+      breaksw
+      
     case "--lh":
       set hemilist = (lh)
       breaksw
@@ -333,7 +337,7 @@ if(! -e $aseg) then
   exit 1
 endif
 foreach hemi ($hemilist)
-  set whitepreaparc = $sdir/$hemi.$surfname
+  set whitepreaparc = $sdir/$hemi.$surfname$FS_GII
   if(! -e $whitepreaparc) then
     echo "ERROR: cannot find $whitepreaparc"
     exit 1

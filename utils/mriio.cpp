@@ -3417,7 +3417,7 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
   FILE *fp;
   int nslices = 0, nt;
   int nx, ny, i;
-  ;
+
   int result;
   char fname[STRLEN];
   char extension[STRLEN];
@@ -10744,153 +10744,6 @@ static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
   }
 }
 
-static int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
-{
-  long long len = 0, fstart, fend, here;
-  int fno, i;
-  MRI_FRAME *frame;
-  char *buf;
-
-  // write some extra space so that we have enough room (can't seek in zz files)
-  len = 10 * mri->nframes * sizeof(MRI_FRAME);
-  znzTAGwriteStart(fp, TAG_MRI_FRAME, &fstart, len);
-  here = znztell(fp);
-  for (fno = 0; fno < mri->nframes; fno++) {
-    frame = &mri->frames[fno];
-    znzwriteInt(frame->type, fp);
-    znzwriteFloat(frame->TE, fp);
-    znzwriteFloat(frame->TR, fp);
-    znzwriteFloat(frame->flip, fp);
-    znzwriteFloat(frame->TI, fp);
-    znzwriteFloat(frame->TD, fp);
-    znzwriteFloat(frame->TM, fp);
-    znzwriteInt(frame->sequence_type, fp);
-    znzwriteFloat(frame->echo_spacing, fp);
-    znzwriteFloat(frame->echo_train_len, fp);
-    for (i = 0; i < 3; i++) znzwriteFloat(frame->read_dir[i], fp);
-    for (i = 0; i < 3; i++) znzwriteFloat(frame->pe_dir[i], fp);
-    for (i = 0; i < 3; i++) znzwriteFloat(frame->slice_dir[i], fp);
-    znzwriteInt(frame->label, fp);
-    znzwrite(frame->name, sizeof(char), STRLEN, fp);
-    znzwriteInt(frame->dof, fp);
-    if (frame->m_ras2vox && frame->m_ras2vox->rows > 0)
-      znzWriteMatrix(fp, frame->m_ras2vox, 0);
-    else {
-      MATRIX *m = MatrixAlloc(4, 4, MATRIX_REAL);
-      znzWriteMatrix(fp, m, 0);
-      MatrixFree(&m);
-    }
-    znzwriteFloat(frame->thresh, fp);
-    znzwriteInt(frame->units, fp);
-    if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED)  // also store diffusion info
-    {
-      znzwriteDouble(frame->DX, fp);
-      znzwriteDouble(frame->DY, fp);
-      znzwriteDouble(frame->DZ, fp);
-
-      znzwriteDouble(frame->DR, fp);
-      znzwriteDouble(frame->DP, fp);
-      znzwriteDouble(frame->DS, fp);
-      znzwriteDouble(frame->bvalue, fp);
-      znzwriteDouble(frame->TM, fp);
-
-      znzwriteLong(frame->D1_ramp, fp);
-      znzwriteLong(frame->D1_flat, fp);
-      znzwriteDouble(frame->D1_amp, fp);
-
-      znzwriteLong(frame->D2_ramp, fp);
-      znzwriteLong(frame->D2_flat, fp);
-      znzwriteDouble(frame->D2_amp, fp);
-
-      znzwriteLong(frame->D3_ramp, fp);
-      znzwriteLong(frame->D3_flat, fp);
-      znzwriteDouble(frame->D3_amp, fp);
-
-      znzwriteLong(frame->D4_ramp, fp);
-      znzwriteLong(frame->D4_flat, fp);
-      znzwriteDouble(frame->D4_amp, fp);
-    }
-  }
-  fend = znztell(fp);
-  // this assumes len is less than what just written 
-  len -= (fend - here);  // unused space
-  if (len > 0) {
-    buf = (char *)calloc(len, sizeof(char));
-    znzwrite(buf, len, sizeof(char), fp);
-    free(buf);
-  }
-  znzTAGwriteEnd(fp, fend);
-
-  return (NO_ERROR);
-}
-int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
-{
-  int fno, i;
-  long long fstart, fend;
-  MRI_FRAME *frame;
-  char *buf;
-
-  fstart = znztell(fp);
-  for (fno = 0; fno < mri->nframes; fno++) {
-    frame = &mri->frames[fno];
-    frame->type = znzreadInt(fp);
-    frame->TE = znzreadFloat(fp);
-    frame->TR = znzreadFloat(fp);
-    frame->flip = znzreadFloat(fp);
-    frame->TI = znzreadFloat(fp);
-    frame->TD = znzreadFloat(fp);
-    frame->TM = znzreadFloat(fp);
-    frame->sequence_type = znzreadInt(fp);
-    frame->echo_spacing = znzreadFloat(fp);
-    frame->echo_train_len = znzreadFloat(fp);
-    for (i = 0; i < 3; i++) frame->read_dir[i] = znzreadFloat(fp);
-    for (i = 0; i < 3; i++) frame->pe_dir[i] = znzreadFloat(fp);
-    for (i = 0; i < 3; i++) frame->slice_dir[i] = znzreadFloat(fp);
-    frame->label = znzreadInt(fp);
-    znzread(frame->name, sizeof(char), STRLEN, fp);
-    frame->dof = znzreadInt(fp);
-    frame->m_ras2vox = znzReadMatrix(fp);
-
-    frame->thresh = znzreadFloat(fp);
-    frame->units = znzreadInt(fp);
-    if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED) {
-      frame->DX = znzreadDouble(fp);
-      frame->DY = znzreadDouble(fp);
-      frame->DZ = znzreadDouble(fp);
-
-      frame->DR = znzreadDouble(fp);
-      frame->DP = znzreadDouble(fp);
-      frame->DS = znzreadDouble(fp);
-      frame->bvalue = znzreadDouble(fp);
-      frame->TM = znzreadDouble(fp);
-
-      frame->D1_ramp = znzreadLong(fp);
-      frame->D1_flat = znzreadLong(fp);
-      frame->D1_amp = znzreadDouble(fp);
-
-      frame->D2_ramp = znzreadLong(fp);
-      frame->D2_flat = znzreadLong(fp);
-      frame->D2_amp = znzreadDouble(fp);
-
-      frame->D3_ramp = znzreadLong(fp);
-      frame->D3_flat = znzreadLong(fp);
-      frame->D3_amp = znzreadDouble(fp);
-
-      frame->D4_ramp = znzreadLong(fp);
-      frame->D4_flat = znzreadLong(fp);
-      frame->D4_amp = znzreadDouble(fp);
-    }
-  }
-
-  fend = znztell(fp);
-  len -= (fend - fstart);
-  if (len > 0) {
-    buf = (char *)calloc(len, sizeof(char));
-    znzread(buf, len, sizeof(char), fp);
-    free(buf);
-  }
-  return (NO_ERROR);
-}
 
 #define UNUSED_SPACE_SIZE 256
 #define USED_SPACE_SIZE (3 * sizeof(float) + 4 * 3 * sizeof(float))
@@ -12675,7 +12528,9 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
     // mri->FieldStrength is written to file in native endian, needs to be read in native endian
     fstagsio.write_tag(TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
 
-  fstagsio.write_mri_frames(mri);
+  if (mri->nframes > 1 ||
+      (mri->frames[0].label != 0 || !FZERO(mri->frames[0].thresh)))
+    fstagsio.write_mri_frames(mri);
 
   if (mri->ct) {
     fstagsio.write_old_colortable(mri->ct);
@@ -12806,10 +12661,14 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_FIELDSTRENGTH);
   }
 
-  taglen = FStagsIO::getlen_mri_frames(mri);
-  dlen += taglen;
-  if (Gdiag & DIAG_INFO)
-    printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_MRI_FRAME);
+  if (mri->nframes > 1 ||
+      (mri->frames[0].label != 0 || !FZERO(mri->frames[0].thresh)))
+  {    
+    taglen = FStagsIO::getlen_mri_frames(mri, niftiheaderext);
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_MRI_FRAME);
+  }
 
   if (mri->ct)
   {

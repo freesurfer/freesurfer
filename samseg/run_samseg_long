@@ -108,10 +108,54 @@ if args.save_posteriors is not None and len(args.save_posteriors) == 0:
 else:
     savePosteriors = args.save_posteriors
 
+# define LTA type - reused from transform.h
+type_descriptions = {
+    0: "LINEAR_VOX_TO_VOX",
+    1: "LINEAR_RAS_TO_RAS",
+    2: "LINEAR_PHYSVOX_TO_PHYSVOX",
+    10: "TRANSFORM_ARRAY_TYPE",
+    11: "MORPH_3D_TYPE",
+    12: "MNI_TRANSFORM_TYPE",
+    13: "MATLAB_ASCII_TYPE",
+    14: "REGISTER_DAT",
+    15: "FSLREG_TYPE",
+    21: "LINEAR_CORONAL_RAS_TO_CORONAL_RAS",
+    "LINEAR_VOX_TO_VOX": "LINEAR_VOXEL_TO_VOXEL",
+    "LINEAR_CORONAL_RAS_TO_CORONAL_RAS": "LINEAR_COR_TO_COR",
+}
+
+def check_lta_file(filepath):
+    try:
+        with open(filepath, 'r') as file:
+            for line in file:
+                if "type" in line.lower():
+                    # Extract the type value, accounting for variable spacing around '='
+                    type_value = line.split('=')[-1].strip()
+                    try:
+                        type_value = int(type_value)
+                    except ValueError:
+                        pass  # Keep as string if conversion fails, to handle descriptive keys
+                    
+                    if type_value == 1:
+                        return True, "LTA is of type RAS-to-RAS, proceeding as before."
+                    elif type_value in type_descriptions:
+                        error_message = f"Error: LTA file type is {type_descriptions[type_value]}. Convert to RAS-to-RAS and try again."
+                        return False, error_message
+                    else:
+                        return False, "Error: LTA file type is of an unknown type."
+        return False, "Error: 'Type' line not found in the file - unable to determine if LTA is of type RAS-to-RAS."
+    except Exception as e:
+        return False, f"An error occurred: {str(e)}"
+
 tpToBaseTransforms = []
 if args.tp_to_base_transform:
     for tpTobase in args.tp_to_base_transform:
-        tpToBaseTransforms.append(sf.load_affine(tpTobase))
+        should_continue, message = check_lta_file(tpTobase)
+        if should_continue:
+            tpToBaseTransforms.append(sf.load_affine(tpTobase))
+        else:
+            print(message)
+            sys.exit(1)
 else:
     print("Assuming an identity transformation between base and each time point")
     for tp in args.timepoint:

@@ -91,6 +91,11 @@
 // standard itk image type
 typedef itk::Image<float, 3> ITKImageType;
 
+// struct MRI_FRAME is used in trc/dmri_mergepaths.cxx and freeview/LayerVolumeTrack.cpp.
+// The only fields used are label, name, and thresh.
+// m_ras2vox is initialized to identity matrix, but not used.
+// TAG_MRI_FRAME in .mgz/.mgh outputs the whole struct. Keep this struct for the program and data backward compatible.
+// TAG_MRI_FRAME in Freesurfer nifti header extension only outputs fields label, name, and thresh.
 typedef struct
 {
   int     type ;           // code for what is stored in this frame

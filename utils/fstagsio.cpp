@@ -46,7 +46,10 @@ FStagsIO::~FStagsIO()
 //
 // notes:
 //   1. when getlen_*() are called from write_*(), we are getting len(tagdata) only,
-//        set 'addtaglength = false', niftiheaderext is ignored
+//        set 'addtaglength = false'
+//      * len(tagdata) returned could be different depending on niftiheaderext
+//      * getlen_matrix() and getlen_mri_frames() return different len(tagdata) for
+//            .mgz/.mgh and fs nifti header extension
 //   2. when getlen_*() are called to calculate the total length of nifti header extension,
 //      we would like to have a data-length field for all TAGs,
 //        set 'addtaglength = true' (default), 'niftiheaderext = true'
@@ -70,6 +73,7 @@ long long FStagsIO::getlen_tag(int tag, long long len, bool niftiheaderext, bool
 }
 
 
+// data length is different depends on niftiheaderext
 long long FStagsIO::getlen_matrix(bool niftiheaderext, bool addtaglength)
 {
   long long dlen = 0;
@@ -126,10 +130,11 @@ long long FStagsIO::getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext
 }
 
 
-// ??? can we get rid of TAG_MRI_FRAME
-// ??? it writes '10 * mri->nframes * sizeof(MRI_FRAME)' bytes to disk
-// ??? only thing set seems to be the identity matrix m_ras2vox
-long long FStagsIO::getlen_mri_frames(MRI *mri, bool addtaglength)
+// data length is different depends on niftiheaderext
+// .mgz/.mgh outputs '10 * mri->nframes * sizeof(MRI_FRAME)' bytes to disk
+// Freesurfer nifti header extension only outputs fields label, name, and thresh
+// see comments in mri.h about struct MRI_FRAME
+long long FStagsIO::getlen_mri_frames(MRI *mri, bool niftiheaderext, bool addtaglength)
 {
   long long dlen = 0;
   if (addtaglength)
@@ -137,7 +142,18 @@ long long FStagsIO::getlen_mri_frames(MRI *mri, bool addtaglength)
     dlen += 4;
     dlen += sizeof(long long);
   }
-  dlen += 10 * mri->nframes * sizeof(MRI_FRAME);
+
+  if (niftiheaderext)
+  {
+    for (int fno = 0; fno < mri->nframes; fno++) {
+      MRI_FRAME *frame = &mri->frames[fno];
+      dlen += sizeof(frame->label);
+      dlen += sizeof(frame->name);
+      dlen += sizeof(frame->thresh);
+    }
+  }
+  else
+    dlen += 10 * mri->nframes * sizeof(MRI_FRAME);
 
   return dlen;
 }
@@ -336,7 +352,7 @@ int FStagsIO::write_old_colortable(COLOR_TABLE *ctab)
   znzwriteInt(TAG_OLD_COLORTABLE, fp);
   if (niftiheaderext)
   {
-    long long dlen = getlen_old_colortable(ctab, false, false);
+    long long dlen = getlen_old_colortable(ctab, niftiheaderext, false);
     znzwriteLong(dlen, fp);
   }
   
@@ -355,12 +371,15 @@ int FStagsIO::write_old_colortable(COLOR_TABLE *ctab)
 // mriio.cpp::znzTAGwriteMRIframes()
 int FStagsIO::write_mri_frames(MRI *mri)
 {
+  if (niftiheaderext)
+    return __write_mri_frames_niftiheaderext(mri);
+
   long long fstart = 0;
   if (Gdiag & DIAG_INFO)
     fstart = znztell(fp);
   
   // write some extra space so that we have enough room (can't seek in zz files)
-  long long len = 10 * mri->nframes * sizeof(MRI_FRAME);
+  long long len = getlen_mri_frames(mri, niftiheaderext, false);  //10 * mri->nframes * sizeof(MRI_FRAME);
 
   znzwriteInt(TAG_MRI_FRAME, fp);
   znzwriteLong(len, fp);
@@ -384,6 +403,7 @@ int FStagsIO::write_mri_frames(MRI *mri)
     znzwriteInt(frame->label, fp);
     znzwrite(frame->name, sizeof(char), STRLEN, fp);
     znzwriteInt(frame->dof, fp);
+
     if (frame->m_ras2vox && frame->m_ras2vox->rows > 0) {
       // znzwriteMatrix(fp, frame->m_ras2vox, 0);
       write_matrix(frame->m_ras2vox, 0);
@@ -394,6 +414,7 @@ int FStagsIO::write_mri_frames(MRI *mri)
       write_matrix(m, 0);      
       MatrixFree(&m);
     }
+
     znzwriteFloat(frame->thresh, fp);
     znzwriteInt(frame->units, fp);
     if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED)  // also store diffusion info
@@ -456,7 +477,7 @@ int FStagsIO::write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target)
   
   if (niftiheaderext)
   {
-    long long dlen = getlen_gcamorph_geom(false, false);
+    long long dlen = getlen_gcamorph_geom(niftiheaderext, false);
     znzwriteLong(dlen, fp);
   }
   
@@ -509,7 +530,7 @@ int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel
   
   if (niftiheaderext)
   {
-    long long dlen = getlen_gcamorph_labels(x0, y0, z0, sizeof(int), false, false);
+    long long dlen = getlen_gcamorph_labels(x0, y0, z0, sizeof(int), niftiheaderext, false);
     znzwriteLong(dlen, fp);
   }
   
@@ -722,8 +743,11 @@ COLOR_TABLE* FStagsIO::read_old_colortable()
 
 
 // mriio.cpp::znzTAGreadMRIframes()
-int FStagsIO::read_mri_frames(MRI *mri, long len)
+int FStagsIO::read_mri_frames(MRI *mri, long long len)
 {
+  if (niftiheaderext)
+    return __read_mri_frames_niftiheaderext(mri, len);
+  
   long long fstart = znztell(fp);
   for (int fno = 0; fno < mri->nframes; fno++) {
     MRI_FRAME *frame = &mri->frames[fno];
@@ -788,6 +812,11 @@ int FStagsIO::read_mri_frames(MRI *mri, long len)
   long long fend = znztell(fp);
   len -= (fend - fstart);
   if (len > 0) {
+    // write_mri_frames() outputs more than it is needed to disk
+    // skip any extra bytes
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] read_mri_frames() TAG = %-4d, bytes_read = %-6lld (%-6lld - %-6lld), skip extra bytes %lld\n", TAG_MRI_FRAME, fend-fstart, fstart, fend, len);
+	
     char *buf = (char *)calloc(len, sizeof(char));
     znzread(buf, len, sizeof(char), fp);
     free(buf);
@@ -959,4 +988,61 @@ MATRIX* FStagsIO::__read_matrix_niftiheaderext()
   M->rptr[4][4] = znzreadFloat(fp);
 
   return (M);
+}
+
+
+int FStagsIO::__write_mri_frames_niftiheaderext(MRI *mri)
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+  
+  znzwriteInt(TAG_MRI_FRAME, fp);
+
+  long long dlen = getlen_mri_frames(mri, niftiheaderext, false);
+  znzwriteLong(dlen, fp);
+  
+  for (int fno = 0; fno < mri->nframes; fno++) {
+    MRI_FRAME *frame = &mri->frames[fno];
+    znzwriteInt(frame->label, fp);
+    znzwrite(frame->name, sizeof(char), STRLEN, fp);
+    znzwriteFloat(frame->thresh, fp);
+  }
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_MRI_FRAME, fend-fstart, fstart, fend);
+  }
+  
+  return NO_ERROR;  
+}
+
+
+int FStagsIO::__read_mri_frames_niftiheaderext(MRI *mri, long long len)
+{
+  long long fstart = znztell(fp);
+  
+  for (int fno = 0; fno < mri->nframes; fno++) {
+    MRI_FRAME *frame = &mri->frames[fno];
+    frame->label = znzreadInt(fp);
+    znzread(frame->name, sizeof(char), STRLEN, fp);
+    frame->thresh = znzreadFloat(fp);
+  }
+
+  long long fend = znztell(fp);
+  len -= (fend - fstart);
+  if (len > 0) {
+    // previous version wrote more data under this TAG
+    // if len > 0, it is reading file generated with previous version write
+    // this is to skip those extra data, but the data read in are also wrong
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __read_mri_frames_niftiheaderext() TAG = %-4d, bytes_read = %-6lld (%-6lld - %-6lld), skip extra bytes %lld\n", TAG_MRI_FRAME, fend-fstart, fstart, fend, len);
+  
+    char *buf = (char *)calloc(len, sizeof(char));
+    znzread(buf, len, sizeof(char), fp);
+    free(buf);
+  }
+
+  return NO_ERROR;
 }

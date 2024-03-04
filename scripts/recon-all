@@ -3774,6 +3774,7 @@ if($DoCortexLabel) then
     set whitepreaparc = ../surf/$hemi.white.preaparc
     set cmd = (label-cortex --s $subjid --$hemi)
     if($FixGA) set cmd = ($cmd --fix-ga)
+    if($UseGifti) set cmd = ($cmd --gii)
     if($ForceUpdate) set cmd = ($cmd --force-update)
     set xopts = `fsr-getxopts CortexLabel $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)

@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import shutil
+import textwrap
+import argparse
+import surfa as sf
+
+
+# Settings.
+default = {
+    'method': 'linear',
+    'fill': 0,
+    'type': 'float32',
+}
+choices = {
+    'method': ('linear', 'nearest'),
+    'type': ('uint8', 'uint16', 'int16', 'int32', 'float32'),
+}
+
+
+def rewrap(text, width=None, hard='\t\n', hard_indent=0):
+    """Rewrap text such that lines fill the available horizontal space.
+
+    Reformats individual paragraphs of a text body, considering subsequent
+    lines with identical indentation as paragraphs. For unspecified width, the
+    function will attempt to determine the extent of the terminal.
+
+    Parameters
+    ----------
+    text : str
+        Text to rewrap.
+    width : int, optional
+        Maximum line width. None means the width of the terminal as determined
+        by `textwrap`, defaulting to 80 characters for background processes.
+    hard : str, optional
+        String interpreted as a hard break when terminating a line. Useful for
+        inserting a line break without changing the indentation level. Must end
+        with a line break and will be removed from the output text.
+    hard_indent : int, optional
+        Number of additional whitespace characters by which to indent the lines
+        following a hard break. See `hard`.
+
+    Returns
+    -------
+    out : str
+        Reformatted text.
+
+    """
+    # Inputs.
+    if width is None:
+        width = shutil.get_terminal_size().columns
+    lines = text.splitlines(keepends=True)
+
+    # Merge lines to paragraphs.
+    pad = []
+    pad_hard = []
+    par = []
+    for i, line in enumerate(lines):
+        ind = len(line) - len(line.lstrip())
+        if i == 0 or ind != pad[-1] or lines[i - 1].endswith(hard):
+            par.append('')
+            pad.append(ind)
+            pad_hard.append(ind)
+
+        if line.endswith(hard):
+            line = line.replace(hard, '\n')
+            pad_hard[-1] += hard_indent
+        par[-1] += line[ind:]
+
+    # Reformat paragraphs.
+    for i, _ in enumerate(par):
+        par[i] = textwrap.fill(
+            par[i], width,
+            initial_indent=' ' * pad[i], subsequent_indent=' ' * pad_hard[i],
+        )
+
+    return '\n'.join(par)
+
+
+# Documentation.
+n = '\033[0m' if sys.stdout.isatty() else ''
+b = '\033[1m' if sys.stdout.isatty() else ''
+u = '\033[4m' if sys.stdout.isatty() else ''
+prog = os.path.basename(sys.argv[0])
+doc = f'''{prog}
+
+{b}NAME{n}
+        {b}{prog}{n} - apply a SynthMorph transform to 3D images
+
+{b}SYNOPSIS{n}
+        {b}{prog}{n} [options] {u}trans{n} {u}image{n} {u}output{n}
+        [{u}image{n} {u}output{n} ...]
+
+{b}DESCRIPTION{n}
+        Apply a spatial transform {u}trans{n} estimated by SynthMorph to a 3D
+        {u}image{n} and write the result to {u}output{n}. You can pass any
+        number of image-output pairs to be processed in the same way.
+
+        The following options identically affect all image-output pairs.
+
+        {b}-H{n}
+                Update the voxel-to-world matrix of the output image instead of
+                resampling. For matrix transforms only. Not all software and
+                file formats support headers with shear from affine
+                registration.
+
+        {b}-i{n} {u}method{n}
+                Interpolation method ({', '.join(choices['method'])}). Defaults
+                to {default['method']}. Choose linear for images and nearest
+                for label (segmentation) maps.
+
+        {b}-t{n} {u}type{n}
+                Output data type ({', '.join(choices['type'])}). Defaults to
+                {default['type']}. Casting to a narrower type can result in
+                information loss.
+
+        {b}-f{n} {u}fill{n}
+                Extrapolation fill value for areas outside the field-of-view of
+                the input image. Defaults to {default['fill']}.
+
+        {b}-h{n}
+                Print this help text and exit.
+
+{b}IMAGE FORMAT{n}
+        Accepted file formats include: MGH (.mgz) and NIfTI (.nii.gz, .nii).
+
+{b}TRANSFORMS{n}
+        Refer to the help text of the registration utility for information on
+        transform file formats.
+
+        For converting, composing, and applying transforms, consider the
+        FreeSurfer tools lta_convert, mri_warp_convert, mri_concatenate_lta,
+        mri_concatenate_gcam, mri_convert, mri_info.
+
+{b}ENVIRONMENT{n}
+        The following environment variables affect {b}{prog}{n}:
+
+        SUBJECTS_DIR
+                Ignored unless {b}{prog}{n} runs inside a container. Mount the
+                host directory SUBJECTS_DIR to {u}/mnt{n} inside the container.
+                Defaults to the current working directory.
+
+{b}EXAMPLES{n}
+        Apply an affine transform to an image:
+                # {prog} affine.lta image.nii out.nii.gz
+
+        Apply a warp to an image, saving the output in floating-point format:
+                # {prog} -t float32 warp.mgz image.mgz out.mgz
+
+        Apply a transform to each of two images:
+                # {prog} warp.mgz image_1.mgz out_1.mgz image_2.mgz out_2.mgz
+
+        Transform a label map:
+                # {prog} -i nearest warp.mgz labels.mgz out.mgz
+
+{b}CONTACT{n}
+        Reach out to freesurfer@nmr.mgh.harvard.edu or at
+        https://github.com/voxelmorph/voxelmorph.
+
+{b}REFERENCES{n}
+        If you use SynthMorph in a publication, please cite us!
+'''
+
+
+# References.
+ref = '''
+Anatomy-specific acquisition-agnostic affine registration learned from fictitious images\t
+Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
+SPIE Medical Imaging: Image Processing, 12464, p 1246402, 2023\t
+https://doi.org/10.1117/12.2653251\t
+https://w3id.org/synthmorph/#papers (PDF)
+
+SynthMorph: learning contrast-invariant registration without acquired images\t
+Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
+IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022\t
+https://doi.org/10.1109/TMI.2021.3116879
+
+Website: https://w3id.org/synthmorph
+'''
+doc += textwrap.indent(ref, prefix=' ' * 8)
+
+
+# Arguments.
+p = argparse.ArgumentParser(add_help=False)
+p.add_argument('trans')
+p.add_argument('pairs', metavar='image output', nargs='+')
+p.add_argument('-H', dest='header_only', action='store_true')
+p.add_argument('-i', dest='method', choices=choices['method'], default=default['method'])
+p.add_argument('-t', dest='type', choices=choices['type'], default=default['type'])
+p.add_argument('-f', dest='fill', metavar='fill', type=float, default=default['fill'])
+p.add_argument('-h', action='store_true')
+
+
+# Help.
+if len(sys.argv) == 1:
+    p.print_usage()
+    exit(0)
+
+if any(f[0] == '-' and 'h' in f for f in sys.argv):
+    print(rewrap(doc), end='\n\n')
+    exit(0)
+
+
+# Parsing.
+arg = p.parse_args()
+
+if len(arg.pairs) % 2:
+    sf.system.fatal('did not receive even-length list of input-output pairs')
+
+
+# Transform.
+f = 'affine' if arg.trans.endswith('.lta') else 'warp'
+trans = getattr(sf, f'load_{f}')(arg.trans)
+
+
+# Application.
+pairs = zip(arg.pairs[::2], arg.pairs[1::2])
+prop = dict(method=arg.method, resample=not arg.header_only, fill=arg.fill)
+for inp, out in pairs:
+    sf.load_volume(inp).transform(trans, **prop).astype(arg.type).save(out)
+
+
+print('Thank you for choosing SynthMorph. Please cite us!')
+print(rewrap(ref))
