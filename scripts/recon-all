@@ -3983,7 +3983,7 @@ if($DoSphere) then
     if(! $longitudinal) then
       # default stream:
       set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
-      set cmd = (mris_sphere)
+      set cmd = (mris_sphere -threads $OMP_NUM_THREADS)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
       set cmd = ($cmd $xopts)
