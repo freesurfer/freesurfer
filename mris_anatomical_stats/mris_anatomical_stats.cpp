@@ -101,8 +101,8 @@ main(int argc, char *argv[])
   const char *surf_name ;
   int           ac, nargs, vno,n ;
   MRI_SURFACE   *mris, *mrisw, *mrisp ;
-  MRI           *mri_wm, *mri_kernel = NULL, *mri_orig, *mrisvol=NULL ;
-  double        gray_volume, wm_volume;
+  MRI           *mri_wm=NULL, *mri_kernel = NULL, *mri_orig, *mrisvol=NULL ;
+  double        gray_volume;
   double        mean_abs_mean_curvature, mean_abs_gaussian_curvature;
   double        intrinsic_curvature_index, folding_index ;
   FILE          *log_fp = NULL ;
@@ -181,23 +181,19 @@ main(int argc, char *argv[])
     std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
   }
 
-  if (MGZ)
-  {
-    strcat(fname, ".mgz");
-  }
+#if SHOW_WHITE_MATTER_VOLUME
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
-  voxelvolume = mri_wm->xsize * mri_wm->ysize * mri_wm->zsize;
   if (!mri_wm)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-              Progname, fname) ;
-
-  if (mri_kernel)
-  {
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",Progname, fname) ;
+  voxelvolume = mri_wm->xsize * mri_wm->ysize * mri_wm->zsize;
+  if(mri_kernel){
     fprintf(stderr, "smoothing brain volume with sigma = %2.3f\n", sigma) ;
     MRIconvolveGaussian(mri_wm, mri_wm, mri_kernel) ;
     MRIfree(&mri_kernel);
   }
+#endif
 
   req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, sname, hemi, surf_name) ;
   if( req >= STRLEN ) {
@@ -208,9 +204,9 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+  voxelvolume = mris->vg.xsize * mris->vg.ysize * mris->vg.zsize;
 
-  if (mris->group_avg_vtxarea_loaded)
-  {
+  if (mris->group_avg_vtxarea_loaded)  {
     printf("\n");
     printf("ERROR: subject %s is an average subject. mris_anatomical_stats\n",
            sname);
@@ -276,7 +272,9 @@ main(int argc, char *argv[])
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 
   MRIScomputeMetricProperties(mris) ;
-  wm_volume = MRISmeasureTotalWhiteMatterVolume(mri_wm) ;
+#if SHOW_WHITE_MATTER_VOLUME
+  double wm_volume = MRISmeasureTotalWhiteMatterVolume(mri_wm) ;
+#endif
 #if 0
   fprintf(stderr, "measuring gray matter thickness of surface...\n") ;
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
@@ -1036,10 +1034,7 @@ main(int argc, char *argv[])
     HISTOfree(&histo_gray) ;
   }
 
-  if (mri_wm)
-  {
-    MRIfree(&mri_wm);
-  }
+  if (mri_wm) MRIfree(&mri_wm);
   if (mri_kernel)
   {
     MRIfree(&mri_kernel);
@@ -1053,6 +1048,7 @@ main(int argc, char *argv[])
     MRIfree(&SurfaceMap);
   }
 
+  printf("mris_anatomical_stats done\n");
   exit(0) ;
   return(0) ;  /* for ansi */
 }
