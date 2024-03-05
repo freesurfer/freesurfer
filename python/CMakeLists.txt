@@ -98,7 +98,11 @@ if(INSTALL_PYTHON_DEPENDENCIES)
     endif()
 
     # Create the symbolic link after pip install
-    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_INSTALL_PREFIX}/python/bin/ds\" \"${CMAKE_INSTALL_PREFIX}/bin/ds\")
+    if(EXISTS ${CMAKE_INSTALL_PREFIX}/python/bin/ds)
+       execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_INSTALL_PREFIX}/python/bin/ds\" \"${CMAKE_INSTALL_PREFIX}/bin/ds\")
+    else()
+       message(STATUS \"Cannot create soft link because ${CMAKE_INSTALL_PREFIX}/python/bin/ds was not installed by pip install deepsurfer\")
+    endif()
   ")
 
   if(PATCH_FSPYTHON)
