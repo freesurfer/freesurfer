@@ -20,6 +20,10 @@
       <explanation>Corrected output datatype. Can be float, uchar, or int. Default is float.</explanation>
       <argument>-r, --replace-zeros offset scale remask</argument>
       <explanation>Replace 0s with offset + scale*rand(). Values will be remasked in the output if remask=1.</explanation>
+      <argument>-c, --rescale targetval seg segid1 ...</argument>
+      <explanation>Rescale so that voxels in the seg have a mean of targetval.</explanation>
+      <argument>--rescale-only</argument>
+      <explanation>Rescale so that voxels in the seg have a mean of targetval but do not perform bias correction (only rescale)</explanation>
     </optional-flagged>
   </arguments>
 </help>

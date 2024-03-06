@@ -27,9 +27,80 @@ For ANTs license information, see distribution/docs/license.ants.txt
 #include "romp_support.h"
 #endif
 
+MRI *MRIrescaleBySeg(MRI *in, MRI *seg, std::vector<int> ids, double targval, MRI *mask, MRI *out)
+{
+  int nhits=0;
+  double *sum = (double *) calloc(sizeof(double),in->nframes);
+
+  for(int c=0; c < in->width; c++){
+    for(int r=0; r < in->height; r++){
+      for(int s=0; s < in->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	int id = MRIgetVoxVal(seg,c,r,s,0);
+	for(int n=0; n < ids.size(); n++){
+	  if(id == ids[n]){
+	    nhits++;
+	    for(int f=0; f < in->nframes; f++){
+	      double val = MRIgetVoxVal(in,c,r,s,f);
+	      sum[f] += val;
+	    }
+	    break;
+	  }
+	} // search over ids
+      } // s
+    } // r
+  } //c
+
+  if(nhits == 0){
+    printf("ERROR: MRIrescaleBySeg() no voxels found\n");
+    free(sum);
+    return(NULL);
+  }
+
+  printf("MRIrescaleBySeg() nhits=%d\n",nhits);
+  for(int f=0; f < in->nframes; f++){
+    if(fabs(sum[f]) < 10e-10){
+      printf("ERROR: MRIrescaleBySeg(): frame %d has 0 mean\n",f);
+      free(sum);
+      return(NULL);
+    }
+    double mn = (sum[f]/(double)nhits);
+    sum[f] = targval/mn; // This is now a scale to multiply by
+  }
+
+  if(out == NULL) {
+    out = MRIallocSequence(in->width, in->height, in->depth, in->type, in->nframes);
+    MRIcopyHeader(in, out);
+    MRIcopyPulseParameters(in, out);
+  }
+
+  for(int c=0; c < in->width; c++){
+    for(int r=0; r < in->height; r++){
+      for(int s=0; s < in->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
+	  for(int f=0; f < in->nframes; f++){
+	    MRIsetVoxVal(out,c,r,s,f,0);
+	    continue;
+	  }
+	}
+	for(int f=0; f < in->nframes; f++){
+	  double val = MRIgetVoxVal(in,c,r,s,f)*sum[f];
+	  MRIsetVoxVal(out,c,r,s,f,val);
+	}
+      } // s
+    } // r
+  } //c
+
+  free(sum);
+  return(out);
+}
+
+
+
 
 int main(int argc, char **argv)
 {
+  int err=0;
   // parse args
   ArgumentParser parser;
   parser.addHelp(AntsN4BiasFieldCorrectionFs_help_xml, AntsN4BiasFieldCorrectionFs_help_xml_len);
@@ -41,11 +112,39 @@ int main(int argc, char **argv)
   parser.addArgument("-d", "--dtype", 1, String, false);
   parser.addArgument("-r", "--replace-zeros", 3, Float, false);// offset scale remaskflag
   parser.addArgument("-e", "--threads-nondetermistic", 1, Int, false);
+  parser.addArgument("-c", "--rescale", '+', String, false);// --rescale tval seg id1 id2 ...
+  parser.addArgument("--rescale-only"); // only rescale, do not BC
   parser.parse(argc, argv);
 
   std::string inputname = parser.retrieve<std::string>("input");
   std::string outputname = parser.retrieve<std::string>("output");
   std::vector<float> replace0 = parser.retrieve<std::vector<float>>("replace-zeros");
+  std::vector<std::string> rescaleopts = parser.retrieve<std::vector<std::string>>("--rescale");
+
+  bool rescaleonly = parser.exists("rescale-only");
+  if(rescaleonly && rescaleopts.size()==0){
+    printf("ERROR: --rescale-only specified but --rescale options not set\n");
+    exit(1);
+  }
+
+  int rescale = 0;
+  double rescaletarget = 0;
+  std::vector<int> rescaleids;
+  MRI *segrescale=NULL;
+  if(rescaleopts.size()>0){
+    if(rescaleopts.size()<3){
+      printf("--rescale requires at least 3 options\n");
+      exit(1);
+    }
+    rescale = 1;
+    sscanf(rescaleopts[0].c_str(),"%lf",&rescaletarget);
+    segrescale = MRIread(rescaleopts[1].c_str());
+    if(segrescale == NULL) exit(1);
+    for(int n = 2; n < rescaleopts.size(); n++) rescaleids.push_back(atoi(rescaleopts[n].c_str()));
+    printf("Rescaling %lf %s ",rescaletarget,rescaleopts[1].c_str());
+    for(int n = 0; n < rescaleids.size(); n++) printf("%d ",rescaleids[n]);
+    printf("\n");
+  }
 
   // More than 1 thread is nondet in ITK
   int threads = 1;
@@ -71,7 +170,25 @@ int main(int argc, char **argv)
     }
   }
 
+  MRI *mri_mask=NULL;
+  if (parser.exists("mask")) { 
+    // use mask if provided
+    std::string mask_filename = parser.retrieve<std::string>("mask");
+    mri_mask = MRIread(mask_filename.c_str());
+  }
+
   MRI* mri = MRIread(inputname.c_str());
+  if(rescale && rescaleonly){
+    MRI *tmp = MRIrescaleBySeg(mri, segrescale, rescaleids, rescaletarget, mri_mask, NULL);
+    if(tmp == NULL) exit(1);
+    MRIfree(&mri);
+    mri = tmp;
+    err = MRIwrite(mri, outputname.c_str());
+    if(err) exit(err);
+    printf("Input rescaled. Rescaling only specified, so exiting now\n");
+    printf("AntsN4BiasFieldCorrectionFs done\n");
+    exit(0);
+  }
 
   MRI *masknonzero = NULL, *mritmp = NULL;
   int nreplace = 0;
@@ -116,10 +233,8 @@ int main(int argc, char **argv)
 
   // image mask
   ITKImageType::Pointer maskImage;
-  if (parser.exists("mask")) { 
+  if(parser.exists("mask")) { 
     // use mask if provided
-    std::string mask_filename = parser.retrieve<std::string>("mask");
-    MRI* mri_mask = MRIread(mask_filename.c_str());
     for (int z = 0 ; z <mri_mask->depth ; z++) {
       for (int y = 0 ; y < mri_mask->height ; y++) {
         for (int x = 0 ; x < mri_mask->width ; x++) {
@@ -238,7 +353,15 @@ int main(int argc, char **argv)
     }
   }
 
-  MRIwrite(dest, outputname.c_str());
+  if(rescale){
+    MRI *tmp = MRIrescaleBySeg(dest, segrescale, rescaleids, rescaletarget, mri_mask, NULL);
+    if(tmp == NULL) exit(1);
+    MRIfree(&dest);
+    dest = tmp;
+  }
+
+  err = MRIwrite(dest, outputname.c_str());
+  if(err) exit(err);
   MRIfree(&dest);
   MRIfree(&mri);
 
