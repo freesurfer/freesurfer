@@ -47,7 +47,7 @@ numpy==1.24.3
 #nvidia-cusolver-cu12==11.4.5.107
 #nvidia-cusparse-cu12==12.1.0.106
 #nvidia-nccl-cu12==2.18.1
-#nvidia-nvjitlink-cu12==12.3.101
+#nvidia-nvjitlink-cu12==12.4.99
 #nvidia-nvtx-cu12==12.1.105
 oauthlib==3.2.2
 opencv-python==4.9.0.80
