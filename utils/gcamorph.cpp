@@ -1120,7 +1120,11 @@ GCA_MORPH *GCAMread(const char *fname)
   if (type == MGH_MORPH)
     gcam = __m3zRead(fname);
   else if (type == MRI_MGH_FILE)
+  {
     gcam =  __warpfieldRead(fname);
+    if (gcam != NULL && gcam->spacing == 0)
+      gcam->spacing = 1;
+  }
 
   if (gcam == NULL)
     return NULL;
