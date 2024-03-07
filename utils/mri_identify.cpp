@@ -338,50 +338,50 @@ int mri_identify(const char *fname_passed)
   // using extension to find type failed or verification failed
   //////////////////////////////////////////////////////////////
   // if type cannot be found then go through the list again
-  if (is_bruker(fname))
+  if (is_bruker(fname))    // by filename
     return (BRUKER_FILE);
-  else if (is_cor(fname))
+  else if (is_cor(fname))  // by filename
     return (MRI_CORONAL_SLICE_DIRECTORY);
-  else if (is_bshort(fname))
+  else if (is_bshort(fname))   // recognize .bshort
     return (BSHORT_FILE);
-  else if (is_bfloat(fname))
+  else if (is_bfloat(fname))   // recognize .bfloat
     return (BFLOAT_FILE);
   else if (IsSiemensDICOM(fname))
     return (SIEMENS_DICOM_FILE);
   else if (IsDICOM(fname))
     return (DICOM_FILE);
-  else if (is_genesis(fname))
+  else if (is_genesis(fname)) // by name, or first 4 bytes is GE_MAGIC
     return (GENESIS_FILE);
-  else if (is_signa(fname))
+  else if (is_nrrd(fname))   // .nrrd, or first 4 bytes is NRRD_MAGIC
+    return (NRRD_FILE);
+  else if (IDisCurv(fname))  // first 4 bytes is NEW_VERSION_MAGIC_NUMBER
+    return (MRI_CURV_FILE);
+  else if (is_signa(fname))   // first 14336 bytes
     return (SIGNA_FILE);
-  else if (is_ge_lx(fname))
+  else if (is_ge_lx(fname))   // byte 3228-3232 is GE_MAGIC
     return (GE_LX_FILE);
-  else if (is_sdt(fname))
+  else if (is_sdt(fname))     // append .spr
     return (SDT_FILE);
   else if (is_mgh(fname))
     return (MRI_MGH_FILE);
-  else if (is_mnc(fname))
+  else if (is_mnc(fname))     // .mnc, .mnc.gz, or first 3 bytes is "CDF"
     return (MRI_MINC_FILE);
-  else if (is_nifti1(fname))  // must appear before ANALYZE
+  else if (is_nifti1(fname))  // must appear before ANALYZE, byte 344-348 is NIFTI1_MAGIC
     return (NIFTI1_FILE);
-  else if (is_nii(fname))
+  else if (is_nii(fname))      // byte 344-348 is NII_MAGIC
     return (NII_FILE);
-  else if (is_analyze(fname))
+  else if (is_analyze(fname))  // .img, or .hdr
     return (MRI_ANALYZE_FILE);
-  else if (is_siemens(fname))
+  else if (is_siemens(fname))  // .ima, or check at certain location in the file
     return (SIEMENS_FILE);
-  else if (is_brik(fname))
+  else if (is_brik(fname))   // recognize BRIK
     return (BRIK_FILE);
-  else if (is_otl(fname))
+  else if (is_otl(fname))    // recognize .otl
     return (OTL_FILE);
-  else if (is_gdf(fname))
+  else if (is_gdf(fname))    // recognize .gdf
     return (GDF_FILE);
-  else if (is_ximg(fname))
+  else if (is_ximg(fname))   // always return false
     return (XIMG_FILE);
-  else if (is_nrrd(fname))
-    return (NRRD_FILE);
-  else if (IDisCurv(fname))
-    return (MRI_CURV_FILE);
   else if (type == MGH_MORPH)
     return (type);
   else if (type == MGH_AUTOENCODER)
