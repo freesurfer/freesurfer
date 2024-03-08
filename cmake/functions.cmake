@@ -287,23 +287,33 @@ endfunction()
 
 function(integrate_samseg)
   # pip install samseg
-  if(NOT INSTALL_PYTHON_DEPENDENCIES)
-    set(PIP_FLAGS "--no-dependencies")
-  endif()
-  
-  set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
-
   if(NOT DISTRIBUTE_FSPYTHON)
     set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
   endif()
+
+  if(NOT INSTALL_PYTHON_DEPENDENCIES)
+    set(PIP_FLAGS "--no-dependencies")
+  endif()
+
+  set(STANDALONE_SAMSEG_PATH "${CMAKE_CURRENT_BINARY_DIR}/git-samseg.standalone")
+  set(STANDALONE_SAMSEG_URL  "https://github.com/freesurfer/samseg.git")
+  
+  set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
 
   install(CODE "
     message(STATUS \" for HOST_OS=${HOST_OS} \")
     message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} \")
     message(STATUS \" PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} PYTHON_INSTALL=${CMAKE_INSTALL_PREFIX}/python/bin/python3 PKG_TARGET=${PKG_TARGET} \")
 
+    message(STATUS \" git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH} \")
+    execute_process(COMMAND bash -c \"git clone --quiet ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}\" result_variable retcode)
+    if(NOT ${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"could not git clone standalone samseg\")
+    endif()
+    
     message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
-    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_FLAGS} --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_FLAGS} --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install Standalone Samseg\")
     endif()"
