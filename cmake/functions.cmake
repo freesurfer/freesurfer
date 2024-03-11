@@ -291,10 +291,6 @@ function(integrate_samseg)
     set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
   endif()
 
-  if(NOT INSTALL_PYTHON_DEPENDENCIES)
-    set(PIP_FLAGS "--no-dependencies")
-  endif()
-
   set(STANDALONE_SAMSEG_PATH "${CMAKE_CURRENT_BINARY_DIR}/git-samseg.standalone")
   set(STANDALONE_SAMSEG_URL  "https://github.com/freesurfer/samseg.git")
   
@@ -310,10 +306,11 @@ function(integrate_samseg)
     if(NOT ${retcode} STREQUAL 0)
       message(FATAL_ERROR \"could not git clone standalone samseg\")
     endif()
-    
+
+    # no check/install samseg dependencies, all dependencies will be handled in requirement files
     message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
-    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_FLAGS} --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
-    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_FLAGS} --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install Standalone Samseg\")
     endif()"
