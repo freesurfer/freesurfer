@@ -475,7 +475,7 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
     ThresholdSet = 1;
   }
-  else if (!stricmp(option, "BB")|| !stricmp(option, "boundingbox"))
+  else if (!stricmp(option, "BB") || !stricmp(option, "crop") || !stricmp(option, "boundingbox"))
   {
     nPadBB[0] = (int)atoi(argv[2]);
     nPadBB[1] = (int)atoi(argv[2]);
@@ -485,7 +485,7 @@ get_option(int argc, char *argv[])
     nPadBB[5] = (int)atoi(argv[2]);
     DoBB = 1;
     nargs = 1;
-    printf("bounding box npad = %d\n",nPadBB[0]);
+    printf("cropping npad = %d\n",nPadBB[0]);
   }
   else if (!stricmp(option, "BBM")|| !stricmp(option, "boundingboxm"))
   {
