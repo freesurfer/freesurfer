@@ -622,10 +622,9 @@ set samsegdir = `pwd`
 popd  > /dev/null
 
 if(! $#LongTP && ! $DoLongBase) then
-  set coregdir = $SUBJECTS_DIR/$subject/coreg
-  set coregdir = $samsegdir/input
+  set coregdir = $SUBJECTS_DIR/$subject/input
   if(! -e $coregdir) then
-    set coregdir = $samsegdir/coreg
+    set coregdir = $samsegdir/input
     if(! -e $coregdir) then
       echo "ERROR: cannot find coreg dir"
       exit 1;

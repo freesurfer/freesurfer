@@ -163,7 +163,7 @@ if($DoImport) then
   # Import the data
   if(! -e $importdir) then
     set cmd = (fsr-import $inputargs --o $importdir)
-    if($DoHiRes) set cmd = ($cmd --hires) # prevents conforming
+    if(! $DoHiRes) set cmd = ($cmd --conform) # prevents conforming
     if($ForceUpdate) set cmd = ($cmd --force-update)
     echo $cmd | tee -a $LF
     fs_time $cmd |& tee -a $LF
