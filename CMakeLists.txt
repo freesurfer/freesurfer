@@ -558,19 +558,15 @@ add_subdirectory(vtkutils)
 add_subdirectory(fem_elastic)
 
 # build the gems library
+# If INTEGRATE_SAMSEG=ON,
+#   1. only integrate the python part of samseg for now
+#      python/packages/gems package is replaced with standalone samseg package
+#   2. samsegmesh2surf is not built, no need 'samseg' codes for building libkvlGEMSCommon.a
+#   3. 'samseg' codes are needed in build pass when we integrate C/C++ codes later
+#   4. 'samseg' can be added as a submodule for freesurfer to be pulled using
+#      'git clone --recurse-submodules https://github.com/yhuang43/freesurfer.git'.
 if(NOT INTEGRATE_SAMSEG)
-  add_subdirectory(gems)
-else()
-  set(STANDALONE_SAMSEG_PATH "${CMAKE_SOURCE_DIR}/git-samseg.standalone")
-  set(STANDALONE_SAMSEG_URL  "https://github.com/freesurfer/samseg.git")
-
-  message(STATUS "git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}")
-  execute_process(COMMAND bash -c "git clone --quiet ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}" result_variable retcode)
-  if(NOT ${retcode} STREQUAL 0)
-    message(FATAL_ERROR "could not git clone standalone samseg")
-  endif()
-
-  add_subdirectory(${STANDALONE_SAMSEG_PATH}/gems)
+  add_subdirectories(samsegmesh2surf gems)  
 endif()
 
 # --------------------------------------------------
@@ -673,7 +669,6 @@ add_subdirectories(
   mrisp_paint
   python
   samseg
-  samsegmesh2surf
   talairach_afd
   scripts
   tkregister2

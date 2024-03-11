@@ -4,6 +4,7 @@ import sys
 import glob
 import platform
 import operator
+import os
 import os.path as path
 from setuptools import setup, find_packages, Distribution
 

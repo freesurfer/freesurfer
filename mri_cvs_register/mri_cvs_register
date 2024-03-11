@@ -24,7 +24,7 @@
 #                      "maskmovinghemi"
 #
 #
-# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2010-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -348,13 +348,20 @@ echo "Ready for elastic registration (CVS: Step 2)" >> $sLF
 set Step2StartTime = `date +%s`;
 
 if ($maskmovinghemi) then
-  foreach ftype ($asegfname norm)
+  # 01/29/24: the below command breaks with aseg input -- use norm mask for aseg
+  #foreach ftype ($asegfname norm)
+  foreach ftype (norm)
     set cmd = (make_hemi_mask $hemiReq $mmri/$ftype.mgz $outdir/maskedmoving.$hemiReq.$ftype.nii.gz)
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   end
+  set cmd = (mri_mask $mmri/$asegfname.mgz $outdir/maskedmoving.$hemiReq.$ftype.nii.gz $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 endif
 
 ## Run the elastic registration
@@ -516,13 +523,21 @@ if ($masktargethemi) then
     if($status) exit 1;
   endif # longer version of taking hemi of target
 
-  foreach ftype ($asegfname norm)
+  # 01/29/24 make_hemi_mask does not work with aseg files!
+  # foreach ftype ($asegfname norm)
+  foreach ftype (norm)
     set cmd = (make_hemi_mask $hemiReq $tmri/$ftype.mgz $outdir/maskedtarget.$hemiReq.$ftype.nii.gz)
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   end
+  set cmd = (mri_mask $tmri/$asegfname.mgz $outdir/maskedtarget.$hemiReq.$ftype.nii.gz $outdir/maskedtarget.$hemiReq.$asegfname.nii.gz)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  
 endif
 
 if ($UseAseg) then

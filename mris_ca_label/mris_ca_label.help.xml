@@ -28,6 +28,8 @@
 	<description>For a single subject, produces an annotation file, in which each cortical surface vertex is assigned a neuroanatomical label.This automatic procedure employs data from a previously-prepared atlas file. An atlas file is created from a training set, capturing region data manually drawn by neuroanatomists combined with statistics on variability correlated to geometric information derived from the cortical model (sulcus and curvature). Besides the atlases provided with FreeSurfer, new ones can be prepared using mris_ca_train).</description>
   <arguments>
     <positional>
+      <argument>[options &lt;&gt;]</argument>
+      <explanation>optional flagged arguments</explanation>
       <argument>&lt;subject&gt;</argument>
       <explanation>subject id</explanation>
       <argument>&lt;hemi&gt;</argument>
@@ -47,27 +49,31 @@
       <explanation>specify the seed for the random number generator</explanation>
       <argument>-sdir &lt;subject dir&gt;</argument>
       <explanation>specify a subjects directory (default=$SUBJECTS_DIR)</explanation>
+      <argument>-aseg &lt;aseg volume&gt;</argument>
+      <explanation>specify a aseg volume to correct midline</explanation>
       <argument>-orig &lt;filename&gt;</argument>
       <explanation>specify filename of original surface (default=smoothwm)</explanation>
       <argument>-long</argument>
       <explanation>refines the initial labeling read-in from -r (default: disabled)</explanation>
-      <argument>-r &lt;filename&gt;</argument>
-      <explanation>file containing precomputed parcellation</explanation>
       <argument>-novar</argument>
       <explanation>sets all covariance matrices to the identify (default: disabled)</explanation>
       <argument>-nbrs &lt;number&gt;</argument>
       <explanation>neighborhood size (default=2)</explanation>
       <argument>-f &lt;number&gt;</argument>
       <explanation>applies mode filter &lt;number&gt; times before writing output (default=10)</explanation>
+      <argument>-l &lt;cortex label&gt;</argument>
+      <explanation>specify input cortex label</explanation>
       <argument>-t &lt;filename&gt;</argument>
       <explanation>specify parcellation table input file (default: none)</explanation>
-      <argument>-p &lt;filename&gt;</argument>
-      <explanation>output a file containing label probability (post,likelihood, prior)for each vertex.</explanation>
       <argument>-v &lt;number&gt;</argument>
       <explanation>diagnostic level (default=0)</explanation>
       <argument>-w &lt;number&gt; &lt;filename&gt;</argument>
       <explanation>writes-out snapshots of gibbs process every &lt;number&gt; iterations to &lt;filename&gt; (default=disabled)</explanation>
-      <argument>--help</argument>
+      <argument>-r &lt;filename&gt;</argument>
+      <explanation>file containing precomputed parcellation</explanation>
+      <argument>-p &lt;filename&gt;</argument>
+      <explanation>output a file containing label probability (post,likelihood, prior)for each vertex.</explanation>
+      <argument>-h|-u|--help</argument>
       <explanation>print help info</explanation>
       <argument>--version</argument>
       <explanation>print version info</explanation>

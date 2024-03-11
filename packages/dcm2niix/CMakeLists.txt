@@ -91,9 +91,9 @@ set(DCM2NIIX_SRCS
     nii_dicom_batch.cpp)
 
 
-option(USE_JNIfTI "Build with JNIfTI support" ON)
-if(USE_JNIfTI)
-    add_definitions(-DmyEnableJNIfTI)
+option(USE_JNIFTI "Build with JNIfTI support" ON)
+if(USE_JNIFTI)
+    add_definitions(-DmyEnableJNIFTI)
     set(DCM2NIIX_SRCS ${DCM2NIIX_SRCS} cJSON.cpp base64.cpp)
 endif()
 
@@ -109,8 +109,8 @@ if(BUILD_DCM2NIIXFSLIB)
         nii_ortho.cpp
         nii_dicom_batch.cpp)
 
-    if(USE_JNIfTI)
-        message("-- Build with JNIfTI support, USE_JNIfTI is ON")
+    if(USE_JNIFTI)
+        message("-- Build with JNIFTI support, USE_JNIFTI is ON")
         set(DCM2NIIXFSLIB_SRCS ${DCM2NIIXFSLIB_SRCS} cJSON.cpp base64.cpp)
     endif()
 endif()
