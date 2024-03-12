@@ -1044,19 +1044,32 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--match-ctab")) {
       if(nargc < 1) CMDargNErr(option,1);
+      // Load in the color table
       COLOR_TABLE *ctab = CTABreadASCII(pargv[0]);
       if(ctab==NULL) exit(1);
+      // Look for any ids to exclude after the color table
+      std::vector<int> xids; // ids to exclude
+      nth = 1;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	int xid;
+	sscanf(pargv[nth],"%d",&xid);
+	xids.push_back(xid);
+	nth++;
+      }
+      nargsused = nth;
+      // Make list of matching ids, excluding anything from above
       int ntotalsegid,n;
       CTABgetNumberOfTotalEntries(ctab,&ntotalsegid);
       for(n=0; n < ntotalsegid; n++){
 	int valid;
 	CTABisEntryValid(ctab,n,&valid);
 	if(!valid) continue;
+	int a = FindFirstMatch(xids, n);
+	if(a != -1) continue;
 	MatchValues[nMatch] = n;
 	nMatch ++;
       }
       CTABfree(&ctab);
-      nargsused = 1;
       DoMatch = 1;
     } 
     else if (!strcasecmp(option, "--subcort-gm")) {
@@ -1209,7 +1222,7 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
-  printf("   --match-ctab colortable  : match all entries in the given color table\n");
+  printf("   --match-ctab colortable <xid1 xid2...> : match all entries in the given color table, excluding optional xid1 ...\n");
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("      Replace every occurrence of (int) value V1 with value V2.\n");
   printf("      If multiple --replace args are specified, transitive replacements are performed by defaults.\n");
