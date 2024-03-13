@@ -300,6 +300,15 @@ function(integrate_samseg)
     set(APPLE_ARM64_DEF "APPLE_ARM64=ON")
   endif()
 
+  if(CMAKE_VERBOSE_MAKEFILE)
+    set(CMAKE_VERBOSE_MAKEFILE_DEF "CMAKE_VERBOSE_MAKEFILE=ON")
+  endif()
+
+  if(CMAKE_RULE_MESSAGES)
+    set(CMAKE_RULE_MESSAGES_DEF "CMAKE_RULE_MESSAGES=ON")
+  endif()
+    
+    
   install(CODE "
     message(STATUS \" for HOST_OS=${HOST_OS} \")
     message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} \")
@@ -313,8 +322,8 @@ function(integrate_samseg)
 
     # no check/install samseg dependencies, all dependencies will be handled in requirement files
     message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
-    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} CMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE} CMAKE_RULE_MESSAGES=${CMAKE_RULE_MESSAGES} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
-    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} CMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE} CMAKE_RULE_MESSAGES=${CMAKE_RULE_MESSAGES} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} ${CMAKE_VERBOSE_MAKEFILE_DEF} ${CMAKE_RULE_MESSAGES_DEF} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} ${CMAKE_VERBOSE_MAKEFILE_DEF} ${CMAKE_RULE_MESSAGES_DEF} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install Standalone Samseg\")
     endif()"
