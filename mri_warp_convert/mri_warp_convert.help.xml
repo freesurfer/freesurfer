@@ -75,6 +75,8 @@
       <explanation>specify warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>      
       <argument>--outwarpformat outwarp-format</argument>
       <explanation>specify warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
+      <argument>--vg-thresh vgthresh</argument>
+      <explanation>threshold for testing diffs in volume geom</explanation>
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):

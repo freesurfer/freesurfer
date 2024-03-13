@@ -967,6 +967,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     cout << "--outwarpformat: " << P.out_warpformat
          << " (specify output warp data format: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
   } 
+  else if (!strcmp(option, "VG-THRESH"))
+  {
+    sscanf(argv[1],"%lf",&vg_isEqual_Threshold);
+    printf("Setting vg_isEqual_Threshold to %lf\n",vg_isEqual_Threshold);
+    nargs = 1;
+  } 
   else if (!strcmp(option, "HELP") )
   {
     printUsage();

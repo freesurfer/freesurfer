@@ -16338,7 +16338,11 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
         lta2 = LTAinvert(lta2, /*output*/lta2);
       }
       else {
-        ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): LTA 2 geometry does not match");
+	printf("Atlas volume geom %g (%d, %d) \n",vg_isEqual_Threshold,
+	       vg_isNotEqualThresh(&gcam->atlas, &lta2->xforms[0].src,vg_isEqual_Threshold),
+	       vg_isNotEqualThresh(&gcam->atlas, &lta2->xforms[0].dst,vg_isEqual_Threshold));
+	vg_print(&gcam->atlas);
+        ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): LTA 2 geometry does not match atlas src or dst");
       }
     }
   }
