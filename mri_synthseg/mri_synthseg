@@ -52,6 +52,8 @@ def main():
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
     parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
+    parser.add_argument("--keepgeom", action="store_true", help="Force output geometry to be the same as input")
+    parser.add_argument("--addctab", action="store_true", help="Embed colortable into seg output")
     parser.add_argument("--photo", help="(optional) Photo-SynthSeg: segment 3D reconstructed stack of coronal dissection photos of the cerebrum; must be left, right, or both")
 
     # check for no arguments
@@ -155,8 +157,9 @@ def main():
     tf.config.threading.set_inter_op_parallelism_threads(args.threads)
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
-
-
+    lut_file = os.path.join(os.environ.get('FREESURFER_HOME'),'FreeSurferColorLUT.txt')
+    labels = None;
+    if(args.addctab): labels = sf.load_label_lookup(lut_file)
 
     # run prediction
     predict(
@@ -185,6 +188,8 @@ def main():
         cropping=args.crop,
         topology_classes=topology_classes,
         ct=args.ct,
+        keepgeom=args.keepgeom,
+        labels=labels
     )
 
 
@@ -217,7 +222,9 @@ def predict(path_images,
             names_qc,
             cropping,
             topology_classes,
-            ct):
+            ct,
+            keepgeom=False,
+            labels=None):
     '''
     Prediction pipeline.
     '''
@@ -344,7 +351,9 @@ def predict(path_images,
                                                    v1=(v1 or (photo is not None)))
 
             # write predictions to disc
-            save_volume(seg, aff, h, path_segmentations[i], dtype='int32')
+            sfimage = None;
+            if(keepgeom): sfimage = sf.load_volume(path_images[i]);
+            save_volume(seg, aff, h, path_segmentations[i], dtype='int32',resample_like_image=sfimage,labels=labels)
             if path_posteriors[i] is not None:
                 save_volume(posteriors, aff, h, path_posteriors[i], dtype='float32')
 
@@ -397,6 +406,7 @@ def predict(path_images,
             print(path_error_image)
         sys.exit(1)
     else:
+        print('\n#@# mri_synthseg vmpeak ',sf.system.vmpeak());
         print('\nIf you use this tool in a publication, please cite:')
         print('SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining')
         print('B. Billot, D.N. Greve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
@@ -1403,7 +1413,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
         return volume, aff, header
 
 
-def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3, resample_like_image=None, labels=None):
     """
     Save a volume.
     :param volume: volume to save
@@ -1440,7 +1450,23 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
             res = reformat_to_list(res, length=n_dims, dtype=None)
             nifty.header.set_zooms(res)
         nib.save(nifty, path)
-
+        if(resample_like_image is not None or labels is not None):
+            # This is a total hack to make the output take the same
+            # geom as the input and/or add a colortable to the
+            # output. Surfa-reads in the file writen by nibabel above,
+            # then reslices using the surface command to look like the
+            # resample_like_image (should be the original image as read
+            # by surf), then uses surfa to write out the volume. Should
+            # write the nibabel to some temp volume.
+            src = sf.load_volume(path); # re-read the nibabel volume with surfa
+            if(resample_like_image is not None):
+                res = resample_like_image._geometry.voxsize
+                # Could only do this if not iso1mm, but not sure if dim is right
+                print(f'Reslicing to have same geom as the input {res}')
+                newsrc = src.resample_like(resample_like_image, method='nearest')
+            else: newsrc = src;
+            if(labels is not None): newsrc.labels = labels;
+            newsrc.save(path);
 
 def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
     """
