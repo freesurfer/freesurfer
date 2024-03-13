@@ -27,6 +27,14 @@ RUN python3 -m pip install --user \
 COPY --chmod=0775 mri_synthstrip $FREESURFER_HOME
 COPY --chmod=0664 synthstrip.*.pt $FREESURFER_HOME/models/
 
+# export build artifacts
+RUN python3 -V >python.txt
+RUN python3 -m pip freeze >requirements.txt
+
+
+FROM scratch AS export
+COPY --from=build *.txt /
+
 
 # only copy files needed and only once to avoid unnecessary layers
 FROM base
