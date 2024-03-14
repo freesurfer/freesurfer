@@ -80,11 +80,19 @@ docker push freesurfer/synthmorph:latest
 ```
 
 
-# Final steps
+## Exporting Python requirements
+
+Export requirement files for users who wish to build a custom environment.
+
+```sh
+docker build --target export --output env .
+```
+
+
+## Final steps
 
 Lock the annexed weight files again to prevent modification.
 
 ```sh
 git annex lock synthmorph.*.h5
 ```
-

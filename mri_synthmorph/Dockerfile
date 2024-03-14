@@ -21,6 +21,15 @@ RUN python3 -m pip install --user \
     git+https://github.com/freesurfer/surfa.git@3c9cf585d3bde229ef9a8b170ae12a96707f3987 \
     git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
 
+RUN python3 -V >python.txt
+RUN python3 -m pip freeze >requirements.txt
+
+
+# Export Python requirements for reference. Build artifacts will only exist in
+# in the target stage `export`.
+FROM scratch AS export
+COPY --from=copy *.txt /
+
 
 # Exclude Git and caches from final image to save space. Copy only once to
 # avoid unnecessary container layers. Set working directory to /mnt for data
