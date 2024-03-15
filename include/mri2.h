@@ -166,6 +166,7 @@ MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask);
 HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, double bdelta);
 int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s);
 int QuadEulerCharChangeTest(int ForceFail);
+int QuadEulerCharChangeTest2(void);
 int QuadEulerCharChangeCheckReorder(MRI *mri, const char *testname, int decExpected);
 
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm);

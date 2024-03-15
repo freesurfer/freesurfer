@@ -5630,34 +5630,44 @@ HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, dou
   (vol). If the mesh has no topological defects, then it should have
   EC=2.  If the given voxel were to be added and the mesh regenerated,
   the mesh's EC would change by the amount returned by this function
-  (computed without having to have ever generated a mesh). No bounds
-  checking is done on (c,r,s); since the nearest neighbors are
-  evaluated, (c,r,s) should be within [1:dimsize-2]. If mask is used,
-  it should be the same size as vol. No neighbors are considered if
-  they are ouside of the mask (this has not been tested). A voxel in
-  vol or mask is considered "set" if its value is greather than 0.5.
-  There is no check to determine whether the passed voxel is in the
-  mask.  See also QuadEulerCharChangeTest().
+  (computed without having to have ever generate a mesh). When reading
+  the code below, that three things can happen when adding an element:
+  (1) it does not overlap with an existing element, so it will change
+  the EC. (2) It does overlap with an existing element and the element
+  will disappear from the mesh when the new one is added (and so
+  changes the EC), and (3) It does overlap with an existing element
+  and the element will not disappear (and so does NOT change the EC).
+  No bounds checking is done on (c,r,s); since the nearest neighbors
+  are evaluated, (c,r,s) should be within [1:dimsize-2]. If mask is
+  used, it should be the same size as vol. No neighbors are considered
+  if they are ouside of the mask (this has not been tested). A voxel
+  in vol or mask is considered "set" if its value is greather than
+  0.5.  There is no check to determine whether the passed voxel is in
+  the mask.  See also QuadEulerCharChangeTest().
 */
 int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
 {
-  int dc, dr, ds, dsum, nhits;
+  if(MRIgetVoxVal(vol,c,r,s,0)>0.5) return(0); // already set, so no change
+  int dc, dr, ds, dsum, nhits,debug=0;
   int deltaEC=0;
   for(dc = -1; dc <= 1; dc++){
     for(dr = -1; dr <= 1; dr++){
       for(ds = -1; ds <= 1; ds++){
 	if(mask && MRIgetVoxVal(mask,c+dc,r+dr,s+ds,0) < 0.5) continue;
 	dsum = fabs(dc) + fabs(dr) + fabs(ds);
-	if(dsum==1){ //face
+	if(dsum==0) continue; // no need to do itself
+	if(dsum==1){ //face neighbor
 	  // look at single voxel that shares this face
 	  if(MRIgetVoxVal(vol,c+dc,r+dr,s+ds,0) > 0.5){
 	    // face is already part of the surface so will lose both.
 	    // -1 means dont add new face and remove the face that is there
 	    deltaEC--;
+	    if(debug) printf("face %2d %2d %2d removed dEC=%d\n",dc,dr,ds,deltaEC);
 	    continue;
 	  }
 	  // If it gets here, then the face can be added, which increases the EC by 1
 	  deltaEC++;
+	  if(debug) printf("face %2d %2d %2d added dEC=%d\n",dc,dr,ds,deltaEC);
 	}
 	if(dsum==2){ //edge
 	  // Look at the three other voxels that share this edge
@@ -5684,14 +5694,18 @@ int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
 	    // No other voxels claims this edge, so, if this voxel is added
 	    // this edge causes the EC to decrease by 1
 	    deltaEC--;
+	    if(debug) printf("edge %2d %2d %2d added dEC=%d\n",dc,dr,ds,deltaEC);
 	  }
 	  if(nhits == 3) {	  
 	    // All 3 other voxels claim this edge. If the voxel is added,
 	    // then this edge will be lost, so EC increases by 1
 	    deltaEC++;
+	    if(debug) printf("edge %2d %2d %2d removed dEC=%d\n",dc,dr,ds,deltaEC);
 	  }
+	  // If nhits != 0 and nhits != 3 then the edge will correspond to an existing
+	  // edge that will not be lost by adding this voxel. As a result, no change in EC
 	}
-	if(dsum==3){ //corner
+	if(dsum==3){ //corner/vertex
 	  // Look at the seven other voxels that share this corner
 	  nhits = 0;
 	  if( MRIgetVoxVal(vol, c,    r,    s+ds, 0) > 0.5 ) nhits++;
@@ -5705,19 +5719,114 @@ int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
 	    // No other voxels claims this corner, so, if this voxel is added
 	    // this corner causes the EC to increase by 1
 	    deltaEC++;
+	    if(debug) printf("vertex %2d %2d %2d added dEC=%d\n",dc,dr,ds,deltaEC);
 	  }
 	  if(nhits == 7) {	  
 	    // All 7 other voxels claim this corner. If the voxel is added,
 	    // then this corner will be lost, so EC decreases by 1
 	    deltaEC--;
+	    if(debug) printf("vertex %2d %2d %2d removed dEC=%d\n",dc,dr,ds,deltaEC);
 	  }
-
+	  // If nhits != 0 and nhits != 7 then the vertex will correspond to an existing
+	  // vertex that will not be lost by adding this voxel. As a result, no change in EC
 	}
 	//printf("%2d %2d %2d   %d   %3d\n",dc,dr,ds,dsum,deltaEC);
       }
     }
   }
   return(deltaEC);
+}
+
+/*!
+  \fn int QuadEulerCharChangeTest2(void)
+  \brief Tests int QuadEulerCharChange() by creating some simple structures
+  and seeing how the EC changes when voxels are added nearby. This is not
+  an exhaustive test, but it covers a lot of territory. I wrote this not
+  knowing that I already had a QuadEulerCharChangeTest().
+ */
+int QuadEulerCharChangeTest2(void)
+{
+  // First, create an MRI structure and create a "sphere" where all
+  // voxels within a 3x3x3 are set *except* for the center voxel.
+  // This structure will be topologically defective.
+  MRI *mri;
+  mri = MRIallocSequence(10,10,10,MRI_INT,1);
+  for(int dc = -1; dc <= 1; dc++){
+    for(int dr = -1; dr <= 1; dr++){
+      for(int ds = -1; ds <= 1; ds++){
+	int dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum == 0) continue;
+	MRIsetVoxVal(mri,5+dc,5+dr,5+ds,0,1);
+      }
+    }
+  }
+
+  int err = 0, c;
+
+  // Test adding a cube that shares a single face  (nothing to do with sphere)
+  // dEC = 4 - 8 + (5-1) = 0
+  c = QuadEulerCharChange(mri, NULL, 4, 4, 3);
+  if(c != 0) {
+    printf("ERROR: add face dEC = %d exp 0\n",c);
+    err = 2;
+  }
+
+  // Add edge neighbor (nothing to do with sphere)
+  // dEC = 6 - 11 + 6 = +1
+  c = QuadEulerCharChange(mri, NULL, 4, 3, 3);
+  if(c != 1) {
+    printf("ERROR: add edge dEC = %d exp 1\n",c);
+    err = 3;
+  }
+
+  // Add vertex neighbor (nothing to do with sphere)
+  // dEC = 7 - 12 + 6 = +1
+  c = QuadEulerCharChange(mri, NULL, 3, 3, 3);
+  if(c != 1) {
+    printf("ERROR: add vertex dEC = %d exp 1\n",c);
+    err = 4;
+  }
+
+  // Test how filling in the center voxel changes the EC
+  // Adds no v, e, or f and all are  removed so dEC = -8 -(-12) + 6 = -2
+  c = QuadEulerCharChange(mri, NULL, 5, 5, 5);
+  if(c != -2) {
+    printf("ERROR: fill sphere dEC = %d exp -2\n",c);
+    err = 1;
+  }
+
+  // Unset a corner cube in the 3x3x3 and see what happens if set it
+  // dEC = 1 - (3-3) + (3-3) = 1
+  MRIsetVoxVal(mri,4,4,4,0,0);
+  c = QuadEulerCharChange(mri, NULL, 4, 4, 4);
+  if(c != 1){
+    printf("remove/add corner cube dEC = %d exp 1\n",c);
+    err = 5;
+  }
+  MRIsetVoxVal(mri,4,4,4,0,1);
+
+  // Unset a cube in the middle of the side of the 3x3x3 and see what happens if set it
+  // dEC = 0 -4 + (2-4) = +2
+  MRIsetVoxVal(mri,5,5,4,0,0);
+  c =QuadEulerCharChange(mri, NULL, 5, 5, 4);
+  if(c != 2) {
+    printf("ERROR: remove/add mid cube exp dEC = %d exp 2\n",c);
+    err = 6;
+  }
+  MRIsetVoxVal(mri,5,5,4,0,1);
+
+  // Unset a cube in the edge of the side of the 3x3x3 and see what happens if set it
+  // dEC = 0 - (1-4) + (2-4) = 1
+  MRIsetVoxVal(mri,4,5,4,0,0);
+  c = QuadEulerCharChange(mri, NULL, 4, 5, 4);
+  if(c != 1){
+    printf("ERROR: remove/add edge cube exp dEC = %d exp 1\n",c);
+    err = 7;
+  }
+  MRIsetVoxVal(mri,4,5,4,0,1);
+
+  MRIfree(&mri);
+  return(err);
 }
 
 /*!
