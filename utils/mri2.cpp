@@ -5647,7 +5647,9 @@ HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, dou
 */
 int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
 {
-  if(MRIgetVoxVal(vol,c,r,s,0)>0.5) return(0); // already set, so no change
+  // dont do this as it prevents the ability to see what would happen
+  // if this voxel were to be unset.
+  //if(MRIgetVoxVal(vol,c,r,s,0)>0.5) return(0); 
   int dc, dr, ds, dsum, nhits,debug=0;
   int deltaEC=0;
   for(dc = -1; dc <= 1; dc++){
@@ -5742,9 +5744,11 @@ int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
   \brief Tests int QuadEulerCharChange() by creating some simple structures
   and seeing how the EC changes when voxels are added nearby. This is not
   an exhaustive test, but it covers a lot of territory. I wrote this not
-  knowing that I already had a QuadEulerCharChangeTest().
+  knowing that I already had a QuadEulerCharChangeTest(). When TurnOnTestVoxel
+  is 1, then it will set the voxel being tested to 1 (in some cases). This should
+  not have any effect on the output.
  */
-int QuadEulerCharChangeTest2(void)
+int QuadEulerCharChangeTest2(int TurnOnTestVoxel)
 {
   // First, create an MRI structure and create a "sphere" where all
   // voxels within a 3x3x3 are set *except* for the center voxel.
@@ -5766,26 +5770,32 @@ int QuadEulerCharChangeTest2(void)
   // Test adding a cube that shares a single face  (nothing to do with sphere)
   // dEC = 4 - 8 + (5-1) = 0
   c = QuadEulerCharChange(mri, NULL, 4, 4, 3);
+  if(TurnOnTestVoxel) MRIsetVoxVal(mri,4,4,3,0,1);
   if(c != 0) {
     printf("ERROR: add face dEC = %d exp 0\n",c);
     err = 2;
   }
+  if(TurnOnTestVoxel) MRIsetVoxVal(mri,4,4,3,0,0);
 
   // Add edge neighbor (nothing to do with sphere)
   // dEC = 6 - 11 + 6 = +1
+  if(TurnOnTestVoxel) MRIsetVoxVal(mri,4,3,3,0,1);
   c = QuadEulerCharChange(mri, NULL, 4, 3, 3);
   if(c != 1) {
     printf("ERROR: add edge dEC = %d exp 1\n",c);
     err = 3;
   }
+  if(TurnOnTestVoxel) MRIsetVoxVal(mri,4,3,3,0,0);
 
   // Add vertex neighbor (nothing to do with sphere)
   // dEC = 7 - 12 + 6 = +1
+  if(TurnOnTestVoxel) MRIsetVoxVal(mri,3,3,3,0,1);
   c = QuadEulerCharChange(mri, NULL, 3, 3, 3);
   if(c != 1) {
     printf("ERROR: add vertex dEC = %d exp 1\n",c);
     err = 4;
   }
+  if(TurnOnTestVoxel) MRIsetVoxVal(mri,3,3,3,0,0);
 
   // Test how filling in the center voxel changes the EC
   // Adds no v, e, or f and all are  removed so dEC = -8 -(-12) + 6 = -2
