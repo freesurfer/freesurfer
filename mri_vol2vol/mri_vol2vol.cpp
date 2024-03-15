@@ -994,7 +994,8 @@ int main(int argc, char **argv) {
   else {
     Rtransform = (TRANSFORM *)calloc(sizeof(TRANSFORM),1);
     Rtransform->xform = (void *)TransformRegDat2LTA(mri_template, mov, R); // LZ: this is where the morphing goes wrong.....
-
+    MatrixPrintFmt(stdout,"% 2.8f",Rtransform);
+    
     printf("Reading gcam\n");
     if (defM3zPath)
       sprintf(gcamfile,"%s/%s/mri/transforms/%s",
@@ -1006,8 +1007,8 @@ int main(int argc, char **argv) {
       //mri_vol2vol --mov orig.mgz --morph --s subject --o orig.morphed.mgz
       gcam = GCAMread(gcamfile);
       if(gcam == NULL) exit(1);
-      printf("Applying reg to gcam\n");
-      GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
+      //printf("Applying reg to gcam\n");
+      //GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel // LZ 03/14/2024 -- coordinate systems do not line up if that transform is added
       printf("Applying morph to input\n");
       out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
 

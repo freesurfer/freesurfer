@@ -381,7 +381,8 @@ endif
 # * newtopology option should not be used
 ###
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
- set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+  #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
                        -topology_old -compress -pc_type jacobi -ksp_type preonly \
                        -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
  if ($BothHemis) then
@@ -421,6 +422,13 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
   $cmd |& tee -a $LF
   if($status) exit 1;
  endif
+
+ set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $regmoving --morph $outdir/${elasticmorph} --out_gcam $outdir/${elasticmorph:r}.m3z)
+ echo $cmd >> $LF
+ echo $cmd >> $sLF
+ $cmd |& tee -a $LF
+ if($status) exit 1;
+
 endif
 
 set Step2EndTime = `date +%s`;
@@ -447,16 +455,26 @@ if ($UseAseg) then
     set regmoving = $mmri/$voltype.mgz
   endif
 
+  # 0313/2024: changing to use m3z all the way through....
+  #if (!(-e $outdir/${elasticmorph:r}_${voltype}.mgz) || $CleanSurfReg) then 
+  #  # set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
+  #  set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $regmoving $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
+  #  echo $cmd >> $LF
+  #  echo $cmd >> $sLF
+  #  $cmd |& tee -a $LF
+  #  if($status) exit 1;
+  #endif
+
   if (!(-e $outdir/${elasticmorph:r}_${voltype}.mgz) || $CleanSurfReg) then 
-    # set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
-    set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $regmoving $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
+    set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${elasticmorph:r}.m3z --noDefM3zPath \
+			   --mov $regmoving --o $outdir/${elasticmorph:r}_${voltype}.mgz --interp nearest --no-save-reg)
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
+  
 endif
-
 
 ### REGISTRATION: STEP 3: # CVS_step3.csh
 ###     intensity-based volumetric registration
@@ -581,53 +599,30 @@ if ($UseAseg) then
 
 ## COMBINE the elastic and aseg nonlinear morphs and APPLY the outcome to the norm volume (for the next registration step)
 ## CREATE also the m3z version of the combined morph
-  set combined = combined_to${templateid}_elreg_$voltype.tm3d  
+
+## 03/13/2024: sidestep the tm3d format and use directly m3z (TODO: check compatibility with m3d format!!: $outdir/${combined:r}.${morphsuffix})
+
+  set combined = combined_to${templateid}_elreg_$voltype.m3z
   if (!(-e $outdir/$combined) || $CleanElReg || $CleanVolReg) then
-#    set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
-     set cmd = ( createMorph --out $outdir/$combined --template $regtarget \
-#                            --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
-                             --subject $regmoving --in gcam $outdir/${nl_regresult} \
-                             morph $outdir/${input}.tm3d )  
+    set cmd = (mri_concatenate_gcam $outdir/${input}.m3z $outdir/${nl_regresult} $outdir/$combined)
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
-  endif  
-
-  if (!(-e $outdir/${combined:r}.${morphsuffix}) || $CleanElReg || $CleanVolReg) then
-#    set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-     set cmd = (exportGcam --fixed $regtarget --moving $regmoving \
-                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})			  
-
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-
   endif
 
   # apply the gcam morph to aseg so  that 1 less interpolation is applied
-  set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
+  set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz
   if (!(-e $outdir/$outputfilename) || $CleanElReg || $CleanVolReg) then
-    # set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-    set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-    #                        --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
+    set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/$combined --noDefM3zPath \
                             --mov $regmoving --o $outdir/$outputfilename \
                             --interp nearest --no-save-reg )
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
-  endif
-
-  #if (-e  $outdir/$outputfilename ) then
-  #  set cmd = (rm -f $outdir/${nl_regresult:r}.mgz)
-  #  echo $cmd >> $LF
-  #  echo $cmd >> $sLF
-  #  $cmd |& tee -a $LF
-  #  if($status) exit 1;
-  #endif
-
+  endif               
+  
   set voltype  = norm
   if ($masktargethemi) then
     set regtarget = $outdir/maskedtarget.$hemiReq.$voltype.nii.gz
@@ -642,9 +637,7 @@ if ($UseAseg) then
 
   set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
   if (!(-e $outdir/$outputfilename) || $CleanElReg || $CleanVolReg) then
-    # set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-    set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-    #                        --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
+    set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/$combined --noDefM3zPath \
                             --mov $regmoving --o $outdir/$outputfilename \
                             --interp trilin --no-save-reg )
     echo $cmd >> $LF
@@ -652,12 +645,14 @@ if ($UseAseg) then
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
+
   set oldcombined = $combined
   set input = $outputfilename # input from aseg registration
   set basemorph = ${combined}
 endif # (aseg registration)
 
 ## Intensity-based registration; the default one. 
+echo INT BASED REG 0
 if ($UseInt) then
 set prefix = ()
 set voltype = norm
@@ -668,10 +663,14 @@ else
   set basemorph = $elasticmorph
 endif 
 
-if !(-e $outdir/${input} ) then 
+echo INT BASED REG 1
+
+if !(-e $outdir/${input}) then 
   echo 'ERROR: What happened? The ' $outdir/${input} ' file does not exist!'
   exit 1;
 endif
+
+echo INT BASED REG 2
 
 set nl_regresult = nlalign-$prefix${voltype}.${morphsuffix}
 if (!(-e $outdir/$nl_regresult) || $CleanVolReg) then 
@@ -696,32 +695,23 @@ if (!(-e $outdir/$nl_regresult) || $CleanVolReg) then
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
+
+echo INT BASED REG 3
+
 ## COMBINE the el_reg and the aseg morphs and APPLY it to the norm volumes (next registration step)
 ## CREATE also the m3z version of the combined morph
+
+## 03/13/2024: sidestep the tm3d format and use directly m3z (TODO: check compatibility with m3d format!!: $outdir/${combined:r}.${morphsuffix})
+
 if ($maskmovinghemi) then
   set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
 else
   set regmoving = $mmri/$voltype.mgz
 endif
 
-if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $CleanElReg || $CleanVolReg) then 
-
-  set combined = combined_to${templateid}_elreg_$prefix$voltype.tm3d  
-  # set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
-  set cmd = ( createMorph --out $outdir/$combined --template $regtarget \
-  #                         --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
-                        --subject $regmoving --in gcam $outdir/${nl_regresult} \
-                          morph $outdir/$basemorph ) 
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-endif
-
-if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.${morphsuffix}  ) || $CleanElReg || $CleanVolReg) then 
-  # set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-  set cmd = (exportGcam --fixed $regtarget --moving $regmoving \
-                        --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})
+if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.m3z) || $CleanElReg || $CleanVolReg) then 
+  set combined = combined_to${templateid}_elreg_$prefix$voltype.m3z
+  set cmd = (mri_concatenate_gcam $outdir/$basemorph $outdir/${nl_regresult} $outdir/$combined) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -730,6 +720,7 @@ endif
 
 endif # int-based registration
 
+## 03/13/2024
 set filesToDelete = ()
 if ($cleanup) then # deleting tm3d file!
   echo Cleaning up ...
@@ -771,14 +762,6 @@ if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfile
   if($status) exit 1;
 endif
 
-#if (-e  $outdir/$finaloutputfilename ) then
-#  set cmd = (rm -f $outdir/${nl_regresult:r}.mgz)
-#  echo $cmd >> $LF
-#  echo $cmd >> $sLF
-#  $cmd |& tee -a $LF
-#  if($status) exit 1; 
-#endif
-
 set oldfinaloutputfilename = $finaloutputfilename
 set voltype = $asegfname
 if ($masktargethemi) then
@@ -794,13 +777,9 @@ endif
 
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
-#  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
-#                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
-  # set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-  set cmd = ( mri_vol2vol  --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-  #                         --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename \
+  set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                          --mov $regmoving --o $outdir/$finaloutputfilename \
-                           --interp nearest --no-save-reg )
+                         --interp nearest --no-save-reg )
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
