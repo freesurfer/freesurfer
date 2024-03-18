@@ -994,8 +994,7 @@ int main(int argc, char **argv) {
   else {
     Rtransform = (TRANSFORM *)calloc(sizeof(TRANSFORM),1);
     Rtransform->xform = (void *)TransformRegDat2LTA(mri_template, mov, R); // LZ: this is where the morphing goes wrong.....
-    MatrixPrintFmt(stdout,"% 2.8f",Rtransform);
-    
+        
     printf("Reading gcam\n");
     if (defM3zPath)
       sprintf(gcamfile,"%s/%s/mri/transforms/%s",
