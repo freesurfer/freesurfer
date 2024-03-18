@@ -16444,21 +16444,26 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
 
 GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
 {
-  MRI *mri;
-  char tmpstr[2000];
   int width, height, depth;
-  int x, y, z;
-  GCA_MORPH_NODE *gcamn, *invgcamn;
-  GCA_MORPH *inv_gcam;
 
-  printf("Allocating inv_gcam...(%d, %d, %d)\n", gcam->width, gcam->height, gcam->depth);
-  inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth);  // NOTE: forces same moving and target coordinate spaces!!
+  // use source geometry as target for the inv gcam
+  VOL_GEOM *vg = &(gcam->image);
+  width = vg->width;
+  height = vg->height;
+  depth = vg->depth;
+
+  printf("Allocating inv_gcam...(%d, %d, %d)\n", width, height, depth);
+  GCA_MORPH *inv_gcam = GCAMalloc(width, height, depth);  // NOTE: forces same moving and target coordinate spaces!!
+  if (inv_gcam == NULL)
+    ErrorExit(ERROR_NOMEMORY, "GCAMfillInverse(): GCAMalloc failed");
+  
   inv_gcam->image = gcam->atlas;
   inv_gcam->atlas = gcam->image;
 
-  if ((gcam->mri_xind == NULL) || (gcam->mri_yind == NULL) || (gcam->mri_zind == NULL)) {    
+  if ((gcam->mri_xind == NULL) || (gcam->mri_yind == NULL) || (gcam->mri_zind == NULL)) {
+    char tmpstr[2000];
     sprintf(tmpstr, "%s", (gcam->image).fname);
-    mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
+    MRI *mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
     if (mri == NULL) {
       printf("ERROR: reading %s\n", tmpstr);
       return (NULL);
@@ -16467,22 +16472,21 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
     // Must invert explicitly
     printf("GCAMfillInverse: Must invert gcam explicitely! \n");
     GCAMinvert(gcam, mri);
+    MRIfree(&mri);
   }
 
   ////////
-  width = inv_gcam->width;
-  height = inv_gcam->height;
-  depth = inv_gcam->depth;
-
-  for (x = 0; x < width; x++) {
-    for (y = 0; y < height; y++) {
-      for (z = 0; z < depth; z++) {
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      for (int z = 0; z < depth; z++) {
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak();
         }
 
-        gcamn = &gcam->nodes[x][y][z];
-        invgcamn = &inv_gcam->nodes[x][y][z];
+	// accessing gcam with [x, y, z] will crash if gcam and inv_gcam don't have the same dimensions.
+	// ??? accessing gcam with index retrieved from gcam->mri_[x|y|z]ind instead ???
+        //gcamn = &gcam->nodes[x][y][z];
+        GCA_MORPH_NODE *invgcamn = &inv_gcam->nodes[x][y][z];
         // missing: all the checks
 
         invgcamn->origx = MRIgetVoxVal(gcam->mri_xind, x, y, z, 0);
@@ -16497,7 +16501,7 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
         invgcamn->yn = MRIgetVoxVal(gcam->mri_yind, x, y, z, 0);
         invgcamn->zn = MRIgetVoxVal(gcam->mri_zind, x, y, z, 0);
 
-        invgcamn->label = gcamn->label;
+        //invgcamn->label = gcamn->label;
       }
     }
   }
