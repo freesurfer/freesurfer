@@ -5700,7 +5700,7 @@ MRI *MRIvolTopoFix(MRI *binseg0, int onval, MRI *binseg, int ndilationsmax, int 
     printf("erode n=%d eno=%d\n",n,eno);
     MRI *mricopy = MRIcopy(binseg, NULL); // copy in case defect shows up here
     // Erode
-    MRI *mritmp = MRIerode6(binseg, NULL);
+    MRI *mritmp = MRIerodeNN(binseg,NULL,NEAREST_NEIGHBOR_FACE,1);
     // Protect the true seg voxels from erosion
     for(int k=1; k < crs.size(); k++)
       MRIsetVoxVal(mritmp,crs[k][0],crs[k][1],crs[k][2],0,onval);
@@ -5752,7 +5752,7 @@ the voxels are searched (eg, rotating the input could change results).
 int MRIvolTopoErodeOne(MRI *binvol, const MRI *keepmask)
 {
   // only consider voxels on the boundary of the input binvol
-  MRI *mrie6 = MRIerode6(binvol, NULL); 
+  MRI *mrie6 = MRIerodeNN(binvol,NULL,NEAREST_NEIGHBOR_FACE,1);
 
   int nhits=0;
   for(int c=1; c < binvol->width-1; c++){
