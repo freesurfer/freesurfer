@@ -1818,7 +1818,7 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
     }
   }
 
-  printf("MRIStessellate: nvertices = %d, nfaces = %d\n", vertex_index, face_index);
+  //printf("MRIStessellate: nvertices = %d, nfaces = %d\n", vertex_index, face_index);
   surf = MRISalloc(vertex_index, 2 * face_index);
   surf->type = MRIS_TRIANGULAR_SURFACE;
 
