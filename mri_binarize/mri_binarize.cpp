@@ -279,6 +279,7 @@ int DoCount = 1;
 int ReverseFaceOrder = 0;
 int FillHoles = 0;
 int RemoveIslands = 0;
+int FixVolTopology = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -689,6 +690,12 @@ int main(int argc, char *argv[]) {
     MRIfree(&OutVol);
     OutVol = tmpvol;
   }
+  if(FixVolTopology){
+    printf("Fixing volume topology\n");fflush(stdout);
+    MRI *tmpvol = MRIvolTopoFix(OutVol,BinVal,NULL);
+    MRIfree(&OutVol);
+    OutVol = tmpvol;
+  }
 
   // Save output
   if(OutVolFile) {
@@ -772,6 +779,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-fill-holes")) FillHoles = 0;
     else if (!strcasecmp(option, "--remove-islands")) RemoveIslands = 1;
     else if (!strcasecmp(option, "--no-remove-islands")) RemoveIslands = 0;
+    else if (!strcasecmp(option, "--fix-vol-topo")) FixVolTopology = 1;
+    else if (!strcasecmp(option, "--no-fix-vol-topo")) FixVolTopology = 0;
     else if (!strcasecmp(option, "--ctx-wm") || !strcasecmp(option, "--wm")){
       MatchValues[nMatch++] =  2;
       MatchValues[nMatch++] = 41;
@@ -1262,7 +1271,8 @@ static void print_usage(void) {
   printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
   printf("   --remove-islands, --no-remove-islands : remove islands in the mask\n");
-  printf("   --fill-holes, --no-fill-holes : remove holes in the mask (after removing islands if specified)\n");
+  printf("   --fill-holes, --no-fill-holes : remove pure holes in the mask (after removing islands if specified)\n");
+  printf("   --fix-vol-topo : fix topology in the volume by filling (surf derived will be topo correct)\n");
   printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");

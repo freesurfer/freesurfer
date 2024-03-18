@@ -5620,6 +5620,160 @@ HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, dou
   return(h);
 }
 
+/*!
+\fn MRI *MRIvolTopoFix(MRI *binseg0, int onval, MRI *binseg, int ndilationsmax, int nerodesmax, int ntopoerodesmax)
+\brief Fixes the topology of the binary segmentation using dilations and erosions. The segmentation must be
+binary with on value = onval. Fills holes only. The new segmentation will have all the same voxels as 
+the input seg plus whatever need to be added to make the seg topo correct. The method is deterministic when
+given all the same inputs, but there may be differences with simple shifts or crops. 
+*/
+MRI *MRIvolTopoFix(MRI *binseg0, int onval, MRI *binseg, int ndilationsmax, int nerodesmax, int ntopoerodesmax)
+{
+  if(binseg0 == binseg){
+    printf("ERROR: FillIt(): output=input\n");
+    return(NULL);
+  }
+  // mri has to be binarized with on-value=onval
+
+  // First check whether it is already topo correct
+  int nvertices, nfaces, nedges,eno,n;
+  MRIS *surf;
+  surf = MRIStessellate(binseg0,onval,0);
+  eno = MRIScomputeEulerNumber(surf, &nvertices, &nfaces, &nedges) ;
+  MRISfree(&surf);
+  if(eno == 2) return(binseg0);
+
+  binseg = MRIcopy(binseg0,binseg);
+  MRIcopyPulseParameters(binseg0,binseg);
+
+  // Get a list of the origninal voxels to protect them while eroding
+  // I think this could be multi-threaded
+  std::vector<std::vector<int>> crs;
+  for(int c=0; c < binseg->width; c++){
+    for(int r=0; r < binseg->height; r++){
+      for(int s=0; s < binseg->depth; s++){
+	double val = MRIgetVoxVal(binseg,c,r,s,0);
+	if(val < 0.5) continue;
+	std::vector<int> crs0;
+	crs0.push_back(c);
+	crs0.push_back(r);
+	crs0.push_back(s);
+	crs.push_back(crs0);
+      }
+    }
+  }
+  printf("Found %d voxels in binseg\n",(int)crs.size());
+
+  // Make a copy so can protect during topoerode
+  MRI *mrisrc = MRIcopy(binseg, NULL);
+  MRIcopyPulseParameters(binseg,mrisrc);
+
+  // Dilate until the topo defects go away
+  printf("\nDilating ============================\n");
+  n=0;
+  while(1){
+    n++;
+    printf("dilate n=%d eno=%d\n",n,eno);
+    MRI *mritmp = MRIdilate6(binseg, NULL);
+    MRIfree(&binseg);
+    binseg = mritmp;
+    surf = MRIStessellate(binseg,onval,0);
+    eno = MRIScomputeEulerNumber(surf, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&surf);
+    if(eno == 2 || n > ndilationsmax){
+      if(eno == 2)  printf("  no defects found, breaking from dilations\n");
+      else{
+	printf("  ERROR: number of dilations > ndilationsmax=%d\n",ndilationsmax);
+	return(NULL);
+      }
+      break;
+    }
+  }
+
+  // Erode until a topo defect appears (take the previous one)
+  // This is probably redundant with TopoErode below, but it 
+  // may speed things up.
+  printf("\nEroding ============================\n");
+  n=0;
+  while(1){
+    n++;
+    printf("erode n=%d eno=%d\n",n,eno);
+    MRI *mricopy = MRIcopy(binseg, NULL); // copy in case defect shows up here
+    // Erode
+    MRI *mritmp = MRIerode6(binseg, NULL);
+    // Protect the true seg voxels from erosion
+    for(int k=1; k < crs.size(); k++)
+      MRIsetVoxVal(mritmp,crs[k][0],crs[k][1],crs[k][2],0,onval);
+    // Test whether there is a defect after the erosion
+    surf = MRIStessellate(mritmp,onval,0);
+    eno = MRIScomputeEulerNumber(surf, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&surf);
+    if(eno != 2 || n > nerodesmax){
+      if(eno != 2)  printf("  defects found, breaking from erode, and reverting to previous\n");
+      else          printf("  WARNING: number of erodes > nerodesmax=%d\n",nerodesmax);
+      MRIfree(&mritmp);
+      MRIfree(&binseg);
+      binseg = mricopy;
+      break;
+    }
+    MRIfree(&mricopy);
+    MRIfree(&binseg);
+    binseg = mritmp;
+  }
+
+  printf("\nTopoEroding ============================\n");
+  n=0;
+  while(1){
+    n++;
+    int nhits = MRIvolTopoErodeOne(binseg, mrisrc);
+    surf = MRIStessellate(binseg,onval,0);
+    eno = MRIScomputeEulerNumber(surf, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&surf);
+    printf("n=%d nhits = %d eno=%d\n",n,nhits,eno);
+    if(nhits == 0 || n > ntopoerodesmax){
+      if(n > ntopoerodesmax) printf("  WARNING: number of topoerodes > max=%d\n",ntopoerodesmax);
+      break;
+    }
+  }
+
+  MRIcopyPulseParameters(mrisrc,binseg);
+  MRIfree(&mrisrc);
+
+  return(binseg);
+}
+
+/*!
+\fn int MRIvolTopoErodeOne(MRI *binvol, const MRI *keepmask)
+\brief Erodes a layer of boundary voxels. A boundary voxel is only eroded if its erosion 
+would not change the Euler characteristic. Binvol is a binary volume where on is >0.5.
+Voxels in the keepmask are not eroded. The final result may depend on the order that
+the voxels are searched (eg, rotating the input could change results).
+*/
+int MRIvolTopoErodeOne(MRI *binvol, const MRI *keepmask)
+{
+  // only consider voxels on the boundary of the input binvol
+  MRI *mrie6 = MRIerode6(binvol, NULL); 
+
+  int nhits=0;
+  for(int c=1; c < binvol->width-1; c++){
+    for(int r=1; r < binvol->height-1; r++){
+      for(int s=1; s < binvol->depth-1; s++){
+	if(keepmask && MRIgetVoxVal(keepmask,c,r,s,0)>0.5) continue;
+	int v = MRIgetVoxVal(binvol,c,r,s,0);
+	if(v < 0.5) continue; // voxel not set so can't erode
+	v = MRIgetVoxVal(mrie6,c,r,s,0);
+	if(v > 0.5) continue; // voxel not a boundary voxel
+	int dEC = QuadEulerCharChange(binvol, NULL, c, r, s);
+	if(dEC != 0) continue; // skip voxel because eroding it would change the EC
+	MRIsetVoxVal(binvol,c,r,s,0,0);
+	nhits++;
+      }
+    }
+  }
+  MRIfree(&mrie6);
+  return(nhits);
+}
+
 
 /*!
   \fn int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
