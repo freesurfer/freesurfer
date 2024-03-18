@@ -280,6 +280,7 @@ int ReverseFaceOrder = 0;
 int FillHoles = 0;
 int RemoveIslands = 0;
 int FixVolTopology = 0;
+int ErodeEdges = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -614,19 +615,20 @@ int main(int argc, char *argv[]) {
     printf("Dilating %d voxels in 3d\n",nDilate3d);
     for(n=0; n<nDilate3d; n++) MRIdilate(OutVol,OutVol);
   }
-  if(nErode3d > 0){
-    printf("Eroding %d voxels in 3d\n",nErode3d);
-    for(n=0; n<nErode3d; n++) MRIerode(OutVol,OutVol);
-  }
+  // This is the same as NNType = NEAREST_NEIGHBOR_CORNER, so use that
+  //if(nErode3d > 0){
+  //printf("Eroding %d voxels in 3d\n",nErode3d);
+  //for(n=0; n<nErode3d; n++) MRIerode(OutVol,OutVol);
+  //}
   if(nErode2d > 0){
     printf("Eroding %d voxels in 2d\n",nErode2d);
     for(n=0; n<nErode2d; n++) MRIerode2D(OutVol,OutVol);
   }
   if(nErodeNN > 0){
-    printf("Eroding %d voxels using %d\n",nErodeNN,NNType);
+    printf("Eroding %d voxels using %d ErodeEdges=%d\n",nErodeNN,NNType,ErodeEdges);
     mritmp = NULL;
     for(n=0; n<nErodeNN; n++) {
-      mritmp = MRIerodeNN(OutVol,mritmp,NNType);
+      mritmp = MRIerodeNN(OutVol,mritmp,NNType,ErodeEdges);
       MRIcopy(mritmp,OutVol);
     }
     MRIfree(&mritmp);
@@ -781,6 +783,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-remove-islands")) RemoveIslands = 0;
     else if (!strcasecmp(option, "--fix-vol-topo")) FixVolTopology = 1;
     else if (!strcasecmp(option, "--no-fix-vol-topo")) FixVolTopology = 0;
+    else if (!strcasecmp(option, "--erode-edges")) ErodeEdges = 1;
+    else if (!strcasecmp(option, "--no-erode-edges")) ErodeEdges = 0;
     else if (!strcasecmp(option, "--ctx-wm") || !strcasecmp(option, "--wm")){
       MatchValues[nMatch++] =  2;
       MatchValues[nMatch++] = 41;
@@ -985,7 +989,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
     else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
 
-    else if (!strcasecmp(option, "--bb")) {
+    else if(!strcasecmp(option, "--bb") || !strcasecmp(option, "--crop")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nPadBB);
       DoBB = 1;
@@ -1137,8 +1141,9 @@ static int parse_commandline(int argc, char **argv) {
       NNType = NEAREST_NEIGHBOR_EDGE;
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--erode-corner")) {
-      if (nargc < 1) CMDargNErr(option,1);
+    else if (!strcasecmp(option, "--erode-corner") || !strcasecmp(option, "--erode")) {
+      // Note: --erode used to set nErode3d, but this is the same as setting the corner
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErodeNN);
       NNType = NEAREST_NEIGHBOR_CORNER;
       nargsused = 1;
@@ -1235,7 +1240,7 @@ static void print_usage(void) {
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("      Replace every occurrence of (int) value V1 with value V2.\n");
   printf("      If multiple --replace args are specified, transitive replacements are performed by defaults.\n");
-  printf("    --no-transitive-replace : turn off transitive replacements \n");
+  printf("   --no-transitive-replace : turn off transitive replacements \n");
   printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
   printf("   --replace-nn V1 W : replace voxels=V1 with their nearest neighbor within a window of W voxels\n");
   printf("   --replaceonly-nn V1 W : replace voxels=V1 with their nearest neighbor within a window of W voxels and propagate other src voxels instead of binarizing\n");
@@ -1246,6 +1251,7 @@ static void print_usage(void) {
   printf("   --gm : match for all WM and VCSF and background, then invert\n");
   printf("   --subcort-gm : subcortical gray matter\n");
   printf("   --scm-lh, --scm-rh : subcortical mass (includes filling holes and removing islands)\n");
+  printf("   --ctab ctab : embed ctab into output\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
@@ -1270,10 +1276,11 @@ static void print_usage(void) {
   printf("   --erode-face   nerode: erode binarization using 'face' nearest neighbors\n");
   printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
+  printf("   --erode-edges : allow erode to erode around edges of volume (does not apply to --erode2d)\n");
   printf("   --remove-islands, --no-remove-islands : remove islands in the mask\n");
   printf("   --fill-holes, --no-fill-holes : remove pure holes in the mask (after removing islands if specified)\n");
   printf("   --fix-vol-topo : fix topology in the volume by filling (surf derived will be topo correct)\n");
-  printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
+  printf("   --crop npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary (--bb)\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
   printf("   --threads nthreads (won't apply to replace)\n");

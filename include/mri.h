@@ -942,15 +942,13 @@ MRI   *MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst);
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
+MRI   *MRIsetEdges(MRI *in, double SetVal, MRI *out);
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
-MRI   *MRIerodeNN(MRI *in, MRI *out, int NNDef);
+MRI   *MRIerodeNN(MRI *in, MRI *out, int NNDef, int ErodeEdges=0);
 MRI   *MRIerodeLabels(MRI *mri_src, MRI *mri_dst) ;
-MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
-                      MRI *mri_dst) ;
-MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh,
-                       MRI *mri_dst) ;
-MRI   *MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
-                      MRI *mri_dst) ;
+MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh,MRI *mri_dst) ;
+MRI   *MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh, MRI *mri_dst) ;
+MRI   *MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh, MRI *mri_dst) ;
 MRI   *MRIerodeZero(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerode2D(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);

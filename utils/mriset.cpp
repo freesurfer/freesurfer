@@ -358,31 +358,84 @@ MRI *MRImorph(MRI *mri_src, MRI *mri_dst, int which)
   }
   return (mri_dst);
 }
+
+/*!
+  \fn MRI *MRIsetEdges(MRI *in, double SetVal, MRI *out)
+  \brief Sets the edge values to the given SetVal;
+ */
+MRI *MRIsetEdges(MRI *in, double SetVal, MRI *out)
+{
+  out = MRIcopy(in,out);
+  if(!out) return(NULL);
+  MRIcopyPulseParameters(in, out);
+  if(in->ct) out->ct = CTABdeepCopy(in->ct);
+
+  int c, r, s, f, k;
+  for(k=0; k < 2; k++){
+    if(k==0) c = 0;
+    if(k==1) c = out->width-1;
+    for(r=0; r < out->height; r++){
+      for(s=0; s < out->depth; s++){
+	for(f=0; f < out->nframes; f++){
+	  MRIsetVoxVal(out,c,r,s,f,SetVal);
+	}
+      }
+    }
+    if(k==0) r = 0;
+    if(k==1) r = out->height-1;
+    for(c=0; c < out->width; c++){
+      for(s=0; s < out->depth; s++){
+	for(f=0; f < out->nframes; f++){
+	  MRIsetVoxVal(out,c,r,s,f,SetVal);
+	}
+      }
+    }
+    if(k==0) s = 0;
+    if(k==1) s = out->depth-1;
+    for(c=0; c < out->width; c++){
+      for(r=0; r < out->height; r++){
+	for(f=0; f < out->nframes; f++){
+	  MRIsetVoxVal(out,c,r,s,f,SetVal);
+	}
+      }
+    }
+  }
+
+  return(out);
+}
+
 /*!
   \fn MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
   \brief Erodes a mask by one voxel if any of the nearest neighbors of
   a voxel are non-zero. Nearest neighbor can be defined in one of three ways:
   NEAREST_NEIGHBOR_FACE, NEAREST_NEIGHBOR_EDGE, NEAREST_NEIGHBOR_CORNER
   When called with CORNER, this should give the same result as MRIerode().
+  If ErodeEdges is set, then voxels on the edge of the volume will be
+  eroded. Even without ErodeEdges being set, such voxels can still be eroded, but
+  if the in-volume voxels around an edge voxel are all set, then they will
+  not be eroded unless ErodeEdges is set.
 */
-MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
+MRI   *MRIerodeNN(MRI *in, MRI *out, int NNDef, int ErodeEdges)
 {
   int c, r, s, dc, dr, ds;
   double valmin, val;
 
-  if (in == out) {
+  if(in == out) {
     printf("ERROR: MRIerodeNN(): cannot be done in-place\n");
     return (NULL);
   }
-  if (!out) {
+  if(!out) {
     out = MRIallocSequence(in->width, in->height, in->depth, in->type, 1);
     MRIcopyHeader(in, out);
+    MRIcopyPulseParameters(in, out);
+    if(in->ct) out->ct = CTABdeepCopy(in->ct);
+  } else {
+    if(MRIdimMismatch(in, out, 0)) {
+      printf("ERROR: MRIerodeNN(): seg/out dim mismatch\n");
+      return (NULL);
+    }
+    MRIsetValues(out, 0);
   }
-  if (MRIdimMismatch(in, out, 0)) {
-    printf("ERROR: MRIerodeNN(): seg/out dim mismatch\n");
-    return (NULL);
-  }
-  MRIsetValues(out, 0);
 
   for (c = 0; c < in->width; c++) {
     for (r = 0; r < in->height; r++) {
@@ -394,14 +447,15 @@ MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
         for (dc = -1; dc <= 1; dc++) {
           for (dr = -1; dr <= 1; dr++) {
             for (ds = -1; ds <= 1; ds++) {
-              if (c + dc < 0 || c + dc > in->width - 1 || r + dr < 0 || r + dr > in->height - 1 || s + ds < 0 ||
-                  s + ds > in->depth - 1) {
+              if (c + dc < 0 || c + dc > in->width  - 1 || 
+		  r + dr < 0 || r + dr > in->height - 1 || 
+		  s + ds < 0 || s + ds > in->depth  - 1) {
+		// center voxel is on the edge
+		if(ErodeEdges) valmin = 0; // note 0, not the local min
                 continue;
               }
-              if (NNDef == NEAREST_NEIGHBOR_FACE)
-                if (abs(dc) + abs(dr) + abs(ds) > 1) continue;
-              if (NNDef == NEAREST_NEIGHBOR_EDGE)
-                if (abs(dc) + abs(dr) + abs(ds) > 2) continue;
+              if(NNDef == NEAREST_NEIGHBOR_FACE) if (abs(dc) + abs(dr) + abs(ds) > 1) continue;
+              if(NNDef == NEAREST_NEIGHBOR_EDGE) if (abs(dc) + abs(dr) + abs(ds) > 2) continue;
               val = MRIgetVoxVal(in, c + dc, r + dr, s + ds, 0);
               if (val < valmin) valmin = val;
             }
