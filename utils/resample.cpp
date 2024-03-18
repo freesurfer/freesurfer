@@ -870,8 +870,8 @@ MRI *MRISapplyRegBCI(MRIS *reg1, MRIS *reg2, MRI *in)
 {
   int vnodebug = 0;
 
-  // Cannonical coords (phi,theta) do not need to be computed, but the cannonical
-  // coordinates need to be loaded and stored in c{xyz}. This is a simple check:
+  // Spherical coords (phi,theta) do not need to be computed, but the cannonical
+  // cxyz coordinates need to be loaded and stored in c{xyz}. This is a simple check:
   VERTEX *vv = &(reg1->vertices[0]);
   double rr = sqrt(vv->cx*vv->cx + vv->cy*vv->cy + vv->cz*vv->cz);
   if(rr < .0001) {
