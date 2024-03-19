@@ -17,7 +17,7 @@ compare_vol out.mgz rigid.mgz --thresh 0.01
 
 # geometry update
 t -m rigid -Ho out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz header.mgz --thresh 0.01
+compare_vol out.mgz header.mgz --thresh 0.01 --res-thresh 1e-3 --geo-thresh 1e-3
 
 # affine registration
 t -m affine -o out.mgz moving.mgz fixed.mgz

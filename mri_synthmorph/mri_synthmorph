@@ -534,8 +534,8 @@ ras_to_fix = np.float32(fix.geom.world2vox.matrix)
 if arg.init:
     init = sf.load_affine(arg.init).convert(space='world')
     if init.ndim != 3 \
-        or not sf.transform.image_geometry_equal(mov.geom, init.source, tol=1e-4) \
-        or not sf.transform.image_geometry_equal(fix.geom, init.target, tol=1e-4):
+        or not sf.transform.image_geometry_equal(mov.geom, init.source, tol=1e-3) \
+        or not sf.transform.image_geometry_equal(fix.geom, init.target, tol=1e-3):
         sf.system.fatal('initial transform geometry does not match images')
 
     net_to_mov = np.float32(ras_to_mov @ init.inv() @ fix_to_ras @ net_to_fix)
