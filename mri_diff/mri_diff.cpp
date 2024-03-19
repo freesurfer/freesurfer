@@ -831,6 +831,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"v1        %s\n",InVol1File);
   fprintf(fp,"v2        %s\n",InVol2File);
   fprintf(fp,"pixthresh %lf\n",pixthresh);
+  fprintf(fp,"resthresh %lf\n",resthresh);
+  fprintf(fp,"geothresh %lf\n",geothresh);
   fprintf(fp,"checkres  %d\n",CheckResolution);
   fprintf(fp,"checkacq  %d\n",CheckAcqParams);
   fprintf(fp,"checkpix  %d\n",CheckPixVals);
