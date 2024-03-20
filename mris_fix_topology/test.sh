@@ -10,6 +10,10 @@ if [ "$host_os" == "macos12" ]; then
    TESTDATA_SUFFIX=".clang13"
 fi
 
+if [ "$host_os" == "centos9" ]; then
+   TESTDATA_SUFFIX=".gcc11"
+fi
+
 test_command mris_fix_topology -mgz -sphere qsphere.nofix -ga -seed 1234 subj1 lh
 if [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu20" ]] || [[ "$host_os" == "ubuntu22" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "centos9" ]] || [[ "$host_os" == "macos10" ]] || [[ "$host_os" == "macos12" ]]; then
    compare_surf subj1/surf/lh.orig subj1/surf/lh.orig.ref${TESTDATA_SUFFIX}
