@@ -185,7 +185,7 @@ else
 
   # Use mri_robust_template to create the rawavg (as with cross stream)
   # Do this even for conf2hires because it has to be resampled anyway
-  set ud = `UpdateNeeded $origvol $CrossList $concatLtas`
+  set ud = `UpdateNeeded $origvol $CrossList $ConcatLtas`
   if($ud || $ForceUpdate) then
     set cmd = (mri_robust_template --mov $CrossList --ixforms $ConcatLtas --average 1 \
       --noit --template $rawvol --iscalein $LongIscales)

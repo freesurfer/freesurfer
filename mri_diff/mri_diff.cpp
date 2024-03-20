@@ -831,6 +831,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"v1        %s\n",InVol1File);
   fprintf(fp,"v2        %s\n",InVol2File);
   fprintf(fp,"pixthresh %lf\n",pixthresh);
+  fprintf(fp,"resthresh %lf\n",resthresh);
+  fprintf(fp,"geothresh %lf\n",geothresh);
   fprintf(fp,"checkres  %d\n",CheckResolution);
   fprintf(fp,"checkacq  %d\n",CheckAcqParams);
   fprintf(fp,"checkpix  %d\n",CheckPixVals);
@@ -875,7 +877,9 @@ static void print_usage(void) {
   printf("   --rms        : print root mean squared diff. over all non-zero voxel\n");
   printf("   --count      : print number of differing voxels\n");
   printf("\n");
-  printf("   --thresh thresh : pix diffs must be greater than this \n");
+  printf("   --thresh thresh     : pix diffs must be greater than this \n");
+  printf("   --res-thresh thresh : resolution diffs must be greater than this \n");
+  printf("   --geo-thresh thresh : geometry diffs must be greater than this \n");
   printf("   --count-thresh nvox : there must be at least this many voxels that are diff\n");
   printf("   --log DiffFile : store diff info in this file. \n");
   printf("   --diff DiffVol : save difference image. \n");
