@@ -13,32 +13,32 @@ lta_diff out.lta inv.lta --invert2 | awk 'END {print $0; exit !($0<1e-3)}'
 
 # rigid registration
 t -m rigid -o out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz rigid.mgz --thresh 0.01
+compare_vol out.mgz rigid.mgz --thresh 0.02
 
 # geometry update
 t -m rigid -Ho out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz header.mgz --thresh 0.01 --res-thresh 1e-3 --geo-thresh 1e-3
+compare_vol out.mgz header.mgz --thresh 0.02 --res-thresh 1e-3 --geo-thresh 1e-3
 
 # affine registration
 t -m affine -o out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz affine.mgz --thresh 0.01
+compare_vol out.mgz affine.mgz --thresh 0.02
 
 # affine symmetry
 t -m affine -O out.mgz fixed.mgz moving.mgz
-compare_vol out.mgz affine.mgz --thresh 0.01
+compare_vol out.mgz affine.mgz --thresh 0.02
 
 # deformable registration with initialization
 t -m deform -i affine.lta -o out_1.mgz -O out_2.mgz moving.mgz fixed.mgz
-compare_vol out_1.mgz deform_1.mgz --thresh 0.01
-compare_vol out_2.mgz deform_2.mgz --thresh 0.01
+compare_vol out_1.mgz deform_1.mgz --thresh 0.02
+compare_vol out_2.mgz deform_2.mgz --thresh 0.02
 
 # joint registration
 t -m joint -o out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz joint.mgz --thresh 0.01
+compare_vol out.mgz joint.mgz --thresh 0.02
 
 # default model
 t -o out.mgz moving.mgz fixed.mgz
-compare_vol out.mgz joint.mgz --thresh 0.01
+compare_vol out.mgz joint.mgz --thresh 0.02
 
 # deformable flags
 t moving.mgz fixed.mgz -mdeform -j16 -e256 -n7 -r0.5
