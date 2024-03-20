@@ -727,6 +727,7 @@ int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
                             int hemi) ;
 int MRIasegContraLatLabel(int id);
 MRI *MRIlrswapAseg(MRI *aseg);
+MRI *MRIlrswapSeg(MRI *seg, MATRIX *lh, MATRIX *rh);
 MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt);
 int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct);
 MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);

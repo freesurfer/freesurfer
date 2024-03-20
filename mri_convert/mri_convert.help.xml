@@ -279,6 +279,12 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
       <explanation>Dilate segmentation boundaries Ndilate times (based on 6 nearest neighbors) to fill seg=0 voxels</explanation>
       <argument>--dil-seg-mask mask</argument>
       <explanation>Dilate segmentation boundaries to fill mask</explanation>
+      <argument>--left-right-reverse-pix</argument>
+      <explanation>Left-right reverse the pixels (KNOW WHAT YOU ARE DOING!!)</explanation>
+      <argument>--left-right-swap-label</argument>
+      <explanation>Swap left and right labels (works for aseg, aparc, aparc+aseg, wmparc, KNOW WHAT YOU ARE DOING!!)</explanation>
+      <argument>--left-right-swap-label-table lhtable rhtable </argument>
+      <explanation>Swap left and right labels (use lh/rhtable to indidicate what to swap, KNOW WHAT YOU ARE DOING!!)</explanation>
       <argument>-f,  --frame frameno [...]</argument>
       <explanation>keep only 0-based frame number(s)</explanation> 
       <argument>--mid-frame</argument>
