@@ -170,6 +170,7 @@ int QuadEulerCharChangeTest2(int TurnOnTestVoxel);
 int QuadEulerCharChangeCheckReorder(MRI *mri, const char *testname, int decExpected);
 MRI *MRIvolTopoFix(MRI *binseg0, int onval, MRI *binseg, int ndilationsmax=1000, int nerodesmax=1000, int ntopoerodesmax=1000);
 int MRIvolTopoErodeOne(MRI *binvol, const MRI *keepmask);
+int MRIvolTopoDilateOne(MRI *binvol, int onval=1);
 
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm);
 MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
