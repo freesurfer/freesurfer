@@ -186,6 +186,7 @@ int nPadOverride = -1;
 double segpvfresmm = 0.5; 
 MRI *GTMsimAnatSeg(GTM *gtm);
 MRI *GTMnoPVC(GTM *gtm);
+int ZeroRefRegion=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -494,6 +495,7 @@ int main(int argc, char *argv[])
   else  gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL); // identity
 
   if(gtm->mask){
+    // zero ref region? if so, then might should wait till the end
     sprintf(tmpstr,"%s/mask.nii.gz",AuxDir);
     MRIwrite(gtm->mask,tmpstr);
   }
@@ -747,6 +749,7 @@ int main(int argc, char *argv[])
       gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 					   gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
       sprintf(tmpstr,"%s/pvf.nii.gz",AuxDir);
+      // zero ref region? If so, then save/zero later?
       MRIwrite(gtm->ttpvf,tmpstr);
     }
   }
@@ -853,18 +856,21 @@ int main(int argc, char *argv[])
 
     MRI *mgx;
     mgx = GTMmgxpvc(gtm,1);
+    if(ZeroRefRegion) GTMzeroRefRegion(mgx, gtm);
     sprintf(tmpstr,"%s/mgx.ctxgm.nii.gz",OutDir);
     err = MRIwrite(mgx,tmpstr);
     if(err) exit(1);
     MRIfree(&mgx);
 
     mgx = GTMmgxpvc(gtm,2);
+    if(ZeroRefRegion) GTMzeroRefRegion(mgx, gtm);
     sprintf(tmpstr,"%s/mgx.subctxgm.nii.gz",OutDir);
     err = MRIwrite(mgx,tmpstr);
     if(err) exit(1);
     MRIfree(&mgx);
 
     mgx = GTMmgxpvc(gtm,3);
+    if(ZeroRefRegion) GTMzeroRefRegion(mgx, gtm);
     sprintf(tmpstr,"%s/mgx.gm.nii.gz",OutDir);
     err = MRIwrite(mgx,tmpstr);
     if(err) exit(1);
@@ -926,6 +932,7 @@ int main(int argc, char *argv[])
   if(SaveInput){
     if(gtm->rescale || gtm->DoSteadyState) sprintf(tmpstr,"%s/input.rescaled.nii.gz",OutDir);
     else  sprintf(tmpstr,"%s/input.nii.gz",OutDir);
+    if(ZeroRefRegion) GTMzeroRefRegion(gtm->yvol, gtm);
     printf("Writing input to %s\n",tmpstr);
     MRIwrite(gtm->yvol,tmpstr);
   }
@@ -1017,6 +1024,7 @@ int main(int argc, char *argv[])
 
   if(eresFile){
     gtmres = GTMmat2vol(gtm,gtm->res,NULL);
+    // zero ref region?
     MRIwrite(gtmres,eresFile);
     MRIfree(&gtmres);
   }
@@ -1103,6 +1111,7 @@ int main(int argc, char *argv[])
     GTMmeltzerpvc(gtm);
     sprintf(tmpstr,"%s/meltzer.nii.gz",OutDir);
     MeltzerPVCFile = strcpyalloc(tmpstr);
+    if(ZeroRefRegion) GTMzeroRefRegion(gtm->meltzer, gtm);
     err = MRIwrite(gtm->meltzer,MeltzerPVCFile);
     if(err) exit(1);
     sprintf(tmpstr,"%s/aux/meltzer.seg.nii.gz",OutDir);
@@ -1118,6 +1127,7 @@ int main(int argc, char *argv[])
     lgtmpvc = GTMlocal(gtm,NULL);
     for(n=0; n < gtm->ttpvf->nframes; n++){
       sprintf(tmpstr,"%s/lgtm.%02d.nii.gz",OutDir,n);
+      if(ZeroRefRegion) GTMzeroRefRegion(lgtmpvc[n], gtm);
       err = MRIwrite(lgtmpvc[n],tmpstr);
       if(err) exit(1);
       MRIfree(&lgtmpvc[n]);
@@ -1140,6 +1150,7 @@ int main(int argc, char *argv[])
     printf("Computing RBV\n");
     if(Gdiag_no > 0) PrintMemUsage(stdout);
     GTMrbv(gtm);
+    if(ZeroRefRegion) GTMzeroRefRegion(gtm->rbv, gtm);
     printf("Writing output to %s ...",RBVVolFile);fflush(stdout); mytimer.reset() ;
     err = MRIwrite(gtm->rbv,RBVVolFile);
     if(err){
@@ -1469,6 +1480,8 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = nth;
     }
+    else if(!strcasecmp(option, "--zero-ref-region")) ZeroRefRegion = 1;
+    else if(!strcasecmp(option, "--no-zero-ref-region")) ZeroRefRegion = 0;
     else if(!strcasecmp(option, "--meltzer")) {
       if(nargc < 3) CMDargNErr(option,3);
       sscanf(pargv[0],"%lf",&gtm->MeltzerBinThresh);
@@ -1725,6 +1738,7 @@ static void print_usage(void) {
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("   --replace-file : file with a list of Ids to replace\n");
   printf("   --rescale Id1 <Id2...>  : specify reference region(s) used to rescale (default is pons)\n");
+  printf("   --zero-ref-region : zero the reference region(s) in output maps\n");
   printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
   printf("   --ctab ctab : specify color table explicitly\n");
@@ -2591,6 +2605,4 @@ MRI *GTMnoPVC(GTM *gtm)
   free(nperseg);
   return(nopvc);
 }
-
-
 
