@@ -396,6 +396,8 @@
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
+559 Subcortical-Gray-Matter                123 187 221 0
+
 600 Tumor                                   254 254 254 0
 
 
