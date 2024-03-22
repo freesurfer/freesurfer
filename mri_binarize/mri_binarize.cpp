@@ -675,11 +675,6 @@ int main(int argc, char *argv[]) {
     OutVol = mritmp;
   }
 
-  // if we didn't binarize, copy any embedded color table from the input
-  if(replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
-  // Or copy the ctab passed on the command line
-  if(cmdlinectab) OutVol->ct = CTABdeepCopy(cmdlinectab);
-
   if(RemoveIslands){
     printf("Removing Volume Islands\n");fflush(stdout);
     MRI *tmpvol = MRIremoveVolumeIslands(OutVol, BinVal-0.5, BinVal, NULL);
@@ -698,6 +693,11 @@ int main(int argc, char *argv[]) {
     MRIfree(&OutVol);
     OutVol = tmpvol;
   }
+
+  // if we didn't binarize, copy any embedded color table from the input
+  if(replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
+  // Or copy the ctab passed on the command line
+  if(cmdlinectab) OutVol->ct = CTABdeepCopy(cmdlinectab);
 
   // Save output
   if(OutVolFile) {
