@@ -171,7 +171,7 @@ long long FStagsIO::getlen_gcamorph_geom(bool niftiheaderext, bool addtaglength)
   }
 
   // this needs to be consistent with write_gcamorph_geom()/VOL_GEOM.write()
-  int geom_len = 4 * sizeof(int) + 5 * sizeof(float) + 512;
+  int geom_len = 4 * sizeof(int) + 15 * sizeof(float) + 512;
   dlen += 2 * geom_len;
 
   return dlen;
