@@ -744,7 +744,7 @@ foreach cmd ($allinfocmds)
 end
 mri_motion_correct.fsl -version >> $LF
 #if (-e $FREESURFER_HOME/bin/flirt.fsl) flirt.fsl -version >> $LF
-nu_correct -version >> $LF
+if(! $DoAntsN3 && ! $DoAntsN4) nu_correct -version >> $LF
 
 # clean-up droppings
 if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
