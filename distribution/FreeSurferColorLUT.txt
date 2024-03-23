@@ -289,6 +289,10 @@
 275 ctx-lh-layer5                         230 120  78  0
 276 ctx-lh-layer6                         235 135  78  0
 277 ctx-lh-supragranular                  240 140  78  0
+278 SubiculumU                            20 119 165 0
+279 CA1U                                  255 108 108 0
+280 CA2U                                  167 130 199 0
+281 CA3U                                  0 202 0 0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
