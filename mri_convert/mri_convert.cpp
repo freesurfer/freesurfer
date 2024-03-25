@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
   char LeftRightMirrorHemi[STRLEN]; // which half to mirror (lh, rh)
   int LeftRightKeepFlag = FALSE;  // keep half of the image
   int LeftRightSwapLabel = FALSE;
+  MATRIX *lhswap=NULL,*rhswap=NULL;
   int FlipCols = FALSE;
   int SliceReverse = FALSE;
   int SliceBias  = FALSE;
@@ -432,6 +433,14 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(argv[i], "--left-right-swap-label") == 0)
     {
+      LeftRightSwapLabel = 1;
+    }
+    else if(strcmp(argv[i], "--left-right-swap-label-table") == 0)
+    {
+      get_string(argc, argv, &i, tmpstr);
+      lhswap = MatrixReadTxt(tmpstr,NULL);
+      get_string(argc, argv, &i, tmpstr);
+      rhswap = MatrixReadTxt(tmpstr,NULL);
       LeftRightSwapLabel = 1;
     }
     else if(strcmp(argv[i], "--flip-cols") == 0)
@@ -2219,8 +2228,11 @@ int main(int argc, char *argv[])
 
   if(LeftRightSwapLabel){
     printf("Performing left-right swap of labels\n");
-    // Good for aseg, aparc+aseg, wmparc, etc. Does not change geometry
-    mri2 = MRIlrswapAseg(mri);
+    if(lhswap == NULL){
+      // Good for aseg, aparc+aseg, wmparc, etc. Does not change geometry
+      mri2 = MRIlrswapAseg(mri);
+    } 
+    else mri2 = MRIlrswapSeg(mri,lhswap,rhswap);
     MRIfree(&mri);
     mri = mri2;
   }

@@ -2969,3 +2969,47 @@ int GTMwriteText(GTM *gtm, char *OutDir, int DeMean)
   }
   return(0);
 }
+
+/*!
+\fn int GTMzeroRefRegion(MRI *vol, GTM *gtm, double val=0)
+\brief Zero the voxels in the reference region. Actually sets them
+to val which is 0 by default.
+*/
+int GTMzeroRefRegion(MRI *vol, GTM *gtm, double val)
+{
+  int err = MRIdimMismatch(vol, gtm->gtmseg, 0);
+  if(err){
+    printf("ERROR: GTMzeroRefRegions(): dimension mismatch\n");
+    return(1);
+  }
+
+  if(Gdiag_no > 0) {
+    printf("GTMzeroRefRegions(): ");
+    for(int n=0; n < gtm->n_scale_refids; n++) printf("%d ",gtm->scale_refids[n]);
+    printf("\n");
+  }
+
+  int nhits = 0;
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nhits)
+#endif
+  for(int c=0; c < vol->width; c++){
+    for(int r=0; r < vol->height; r++){
+      for(int s=0; s < vol->depth; s++){
+	int segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	int within_refregion=0;
+	for(int n=0; n < gtm->n_scale_refids; n++){
+	  if(segid == gtm->scale_refids[n]){
+	    within_refregion=1;
+	    break;
+	  }
+	}
+	if(!within_refregion) continue; 
+	nhits++;
+	for(int f=0; f < vol->nframes; f++) MRIsetVoxVal(vol,c,r,s,f,val);
+      }
+    }
+  }
+  if(Gdiag_no > 0)  printf("GTMzeroRefRegions(): nhits = %d\n",nhits);
+  return(0);
+}

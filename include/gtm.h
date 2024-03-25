@@ -230,5 +230,6 @@ int GTMttPercent(GTM *gtm);
 int GTMsom(GTM *gtm);
 int GTMsegid2nthseg(GTM *gtm, int segid);
 int GTMwriteText(GTM *gtm, char *OutDir, int DeMean);
+int GTMzeroRefRegion(MRI *vol, GTM *gtm, double val=0);
 
 #endif

@@ -6,23 +6,163 @@ if(NOT INTEGRATE_SAMSEG)
   add_subdirectories(gems/cxx)
 endif()
 
-# run 'pip install' and direct package installs to freesurfer/python/packages
-# pass INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} environment variable for setup.py to act accordingly
-install(CODE "
-  message(STATUS \"Installing python packages\")
-  execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
-  if(NOT \${retcode} STREQUAL 0)
-    message(FATAL_ERROR \"Could not install python modules\")
-  endif()"
-  COMPONENT fspy
-)
+function(fspython_script_install)
+   # install the fspython script
+   if(APPLE_ARM64)
+      # Allow script to use local packages with the system or Apple recommended Anaconda python
+      install(PROGRAMS fspython.local DESTINATION bin RENAME fspython)
+   else()
+      install(PROGRAMS fspython DESTINATION bin)
+   endif()
+endfunction()
 
-# install the fspython script
-if(APPLE_ARM64)
-   # Allow script to use local packages with the system or Apple recommended Anaconda python
-   install(PROGRAMS fspython.local DESTINATION bin RENAME fspython)
-else()
-   install(PROGRAMS fspython DESTINATION bin)
+# TO DO  - write a python_3_10_base_install
+
+function(python_3_8_base_install)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.8)
+  if(EXISTS ${FSPYTHON_DIR}/bin/python3)
+    # specify the python to use
+    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.8m)
+    # install the barebones python distribution
+    INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
+    )
+  else()
+    message(FATAL_ERROR "Cannot find fspython distribution in FS_PACKAGES_DIR")
+  endif()
+endfunction()
+
+function(packages_install)
+   # run 'pip install' and direct package installs to freesurfer/python/packages
+   # pass INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} environment variable for setup.py to act accordingly
+   install(CODE "
+     message(STATUS \"Installing python packages\")
+     execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
+     if(NOT \${retcode} STREQUAL 0)
+       message(FATAL_ERROR \"Could not install python modules\")
+     endif()"
+     COMPONENT fspy
+   )
+endfunction()
+
+# pip can install under python/packages but many/most packages from the requirements files are installed under site-package
+function(sitepackages_install)
+  # default is least version specific or sparse requirements to allow for latest pkg revisions
+  set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt")
+  set(requirements_extra "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt")
+  if(FSPYTHON_BUILD_REQ)
+     # pip install current snapshot of (hardcoded) package revisions into fspython
+     if(NOT APPLE)
+        ## all linux OS
+        # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-linux.txt")
+        set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.txt")
+        set(requirements_extra "")
+     else()
+        if(NOT APPLE_ARM64)
+           ## darwin_x86_64
+           # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-darwin-intel.txt")
+  	 message(STATUS "For HOST_OS=${HOST_OS} using default requirements files")
+        else()
+           ## darwin_arm64
+  	 message(STATUS "For HOST_OS=${HOST_OS} - no requirements files currently in use with mininconda darwin_arm64.")
+        endif()
+     endif()
+  endif()
+  if(NOT APPLE_ARM64)
+     message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
+  endif() 
+
+  install(CODE "
+    message(STATUS \"Installing python package dependencies into fspython with cmd:\")
+    message(STATUS \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\")
+
+    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\" RESULT_VARIABLE retcode)
+
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not install python dependencies\")
+    endif()
+
+    execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin ! -name 'python3*' ! -name 'ds' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
+
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not remove pip-installed scripts\")
+    endif()
+
+    # Create the symbolic link after pip install
+    if(EXISTS ${CMAKE_INSTALL_PREFIX}/python/bin/ds)
+       execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_INSTALL_PREFIX}/python/bin/ds\" \"${CMAKE_INSTALL_PREFIX}/bin/ds\")
+    else()
+       message(STATUS \"Cannot create soft link because ${CMAKE_INSTALL_PREFIX}/python/bin/ds was not installed by pip install deepsurfer\")
+    endif()
+  ")
+endfunction()
+
+function(fspython_patch)
+   # Use to workaround a python module not installing, e.g., problem with setup.py.
+   # Enable with -DPATCH_FSPYTHON=ON as arg to cmake command to copy install from previous build.
+   # The path to the previous build must be available/mounted in the build container.
+   set(FSPYTHON_PREVIOUS_BUILD_BASE "/space/freesurfer/build/garnet/sandboxes/utility/freesurfer/dev.20221207")
+   install(CODE "
+     message(STATUS \"patching fspython distribution\")
+     execute_process(COMMAND bash -c \" ( cd ${FSPYTHON_PREVIOUS_BUILD_BASE}/python/lib/python3.8/site-packages && tar cpf - surfa* xxhash* ) | ( cd ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages && tar xpf - ) \" RESULT_VARIABLE patch)
+     if(NOT \${patch} STREQUAL 0)
+       message(FATAL_ERROR \"Could not patch fspython\")
+     endif()"
+   )
+endfunction()
+
+# used as current default for intel linux and mac builds
+if(DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
+   message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES ON")
+   # install base python distribution
+   # install C bindings, etc. under python/packages
+   # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
+   python_3_8_base_install()
+   packages_install()
+   sitepackages_install()
+   fspython_script_install()
+   if(PATCH_FSPYTHON)
+      fspython_patch()
+   endif()
+endif()
+
+# useful for basic debugging
+if(DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
+   message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES OFF")
+   # install base python distribution
+   # install C bindings, etc. under python/packages
+   # NO pre-installed site-packages, add fspython wrapper
+   python_3_8_base_install()
+   packages_install()
+   fspython_script_install()
+endif()
+
+# used for linking what's installed under site-packages to an external/3rd party, e.g., anaconda, python distribution
+# CMAKE_INSTALL_PREFIX/python/bin/python3 soft link not used
+if(NOT DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
+   message(STATUS For "HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES ON")
+   # Use an existing 3rd party python instead of base python distribution
+   # install C bindings, etc. under python/packages
+   # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
+   set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
+   packages_install()
+   sitepackages_install()
+   fspython_script_install()
+   if(PATCH_FSPYTHON)
+      fspython_patch()
+   endif()
+endif()
+
+# used for silicon Mac, -DAPPLE_ARM64, with download and install of external/3rd party miniconda arm64 python
+# CMAKE_INSTALL_PREFIX/python/bin/python3 soft link changed to point to anaconda python
+if(NOT DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
+   message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES OFF")
+   # Use an existing 3rd party python instead of base python distribution
+   # install C bindings, etc. under python/packages
+   # NO pre-installed site-packages, add fspython wrapper
+   packages_install()
+   fspython_script_install()
 endif()
 
 
@@ -49,74 +189,3 @@ add_custom_command(
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# default is least version specific or sparse requirements to allow for latest pkg revisions
-set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt")
-set(requirements_extra "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt")
-if(FSPYTHON_BUILD_REQ)
-   # pip install current snapshot of (hardcoded) package revisions into fspython
-   if(NOT APPLE)
-      ## all linux OS
-      # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-linux.txt")
-      set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.txt")
-      set(requirements_extra "")
-   else()
-      if(NOT APPLE_ARM64)
-         ## darwin_x86_64
-         # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-darwin-intel.txt")
-	 message(STATUS "For HOST_OS=${HOST_OS} using default requirements files")
-      else()
-         ## darwin_arm64
-	 message(STATUS "For HOST_OS=${HOST_OS} - no requirements files currently in use with mininconda darwin_arm64.")
-      endif()
-   endif()
-endif()
-if(NOT APPLE_ARM64)
-   message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
-endif() 
-
-# install any package requirements
-if(INSTALL_PYTHON_DEPENDENCIES)
-
-  if(NOT DISTRIBUTE_FSPYTHON)
-    set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
-  endif()
-
-  install(CODE "
-    message(STATUS \"Installing python package dependencies into fspython with cmd:\")
-    message(STATUS \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\")
-
-    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\" RESULT_VARIABLE retcode)
-
-    if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not install python dependencies\")
-    endif()
-
-    execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin ! -name 'python3*' ! -name 'ds' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
-
-    if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not remove pip-installed scripts\")
-    endif()
-
-    # Create the symbolic link after pip install
-    if(EXISTS ${CMAKE_INSTALL_PREFIX}/python/bin/ds)
-       execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_INSTALL_PREFIX}/python/bin/ds\" \"${CMAKE_INSTALL_PREFIX}/bin/ds\")
-    else()
-       message(STATUS \"Cannot create soft link because ${CMAKE_INSTALL_PREFIX}/python/bin/ds was not installed by pip install deepsurfer\")
-    endif()
-  ")
-
-  if(PATCH_FSPYTHON)
-     # Use to workaround a python module not installing, e.g., problem with setup.py.
-     # Enable with -DPATCH_FSPYTHON=ON as arg to cmake command to copy install from previous build.
-     # The path to the previous build must be available/mounted in the build container.
-     set(FSPYTHON_PREVIOUS_BUILD_BASE "/space/freesurfer/build/garnet/sandboxes/utility/freesurfer/dev.20221207")
-     install(CODE "
-       message(STATUS \"patching fspython distribution\")
-       execute_process(COMMAND bash -c \" ( cd ${FSPYTHON_PREVIOUS_BUILD_BASE}/python/lib/python3.8/site-packages && tar cpf - surfa* xxhash* ) | ( cd ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages && tar xpf - ) \" RESULT_VARIABLE patch)
-       if(NOT \${patch} STREQUAL 0)
-         message(FATAL_ERROR \"Could not patch fspython\")
-       endif()"
-     )
-  endif()
-
-endif()
