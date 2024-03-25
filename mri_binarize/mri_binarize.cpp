@@ -455,7 +455,7 @@ int main(int argc, char *argv[]) {
     for(frame = fstart; frame <= fend; frame++){
       // Do openmp for columns because often nframes = 1
       #ifdef HAVE_OPENMP
-      printf("Starting parallel %d\n",omp_get_num_threads());
+      //printf("Starting parallel %d\n",omp_get_num_threads());
       #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : nhits)
       #endif
       for (c=0; c < InVol->width; c++) {
