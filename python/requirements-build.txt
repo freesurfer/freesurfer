@@ -64,7 +64,7 @@ git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a
 python-dateutil==2.9.0.post0
 pytz==2024.1
 #qatoolspython==0.9.6b0
-requests-oauthlib==1.4.0
+requests-oauthlib==2.0.0
 requests==2.31.0
 rsa==4.9
 scikit-image==0.21.0

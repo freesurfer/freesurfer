@@ -429,20 +429,7 @@ add_subdirectory(packages)
 # symlink during install that points to the external python executable located by pybind
 option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" OFF)
 
-if(DISTRIBUTE_FSPYTHON)
-  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.8)
-  if(EXISTS ${FSPYTHON_DIR}/bin/python3)
-    # specify the python to use
-    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.8m)
-    # install the barebones python distribution
-    INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
-      DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
-    )
-  else()
-    message(FATAL_ERROR "Cannot find fspython distribution in FS_PACKAGES_DIR")
-  endif()
-endif()
+# code to install base python, e.g., 3.8, distribution moved to python/CMakeLists.txt 
 
 # initialize pybind for python wrapping
 set(PYBIND11_PYTHON_VERSION 3)

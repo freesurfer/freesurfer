@@ -100,13 +100,15 @@ MRI::Shape::Shape(const std::vector<int>& shape) {
   // validate dimensions
   int dims = shape.size();
   if ((dims != 3) && (dims != 4)) {
-    fs::fatal() << "MRI::Shape::Shape(): volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
+//    fs::fatal() << "MRI::Shape::Shape(): volume must be 3D or 4D (provided shape has " << dims << " dimensions" ;
+    std::cout << "MRI::Shape::Shape(): volume must be 3D or 4D (provided shape has " << dims << " dimensions)" << std::endl;
   }
 
   // validate size
   for (auto const & len : shape) {
     if(len <= 0) {
-      fs::fatal() << "MRI::Shape::Shape(): volume size must be greater than 0 in every dimension";
+//      fs::fatal() << "MRI::Shape::Shape(): volume size must be greater than 0 in every dimension";
+      std::cout << "MRI::Shape::Shape(): volume size must be greater than 0 in every dimension" << std::endl;
     }
   }
 
