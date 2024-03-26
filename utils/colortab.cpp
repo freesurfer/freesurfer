@@ -1119,6 +1119,10 @@ COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp)
                  "was %d",
                  len));
   name = (char *)malloc(len + 1);
+  /* 
+   * if the file comes from surfa.io.fsio.write_binary_lookup_table(), len = 0.
+   * if the file comes from freesurfer/utils/colortab.cpp::znzCTABwriteIntoBinaryV2(), len > 0.
+   */
   znzread(name, sizeof(char), len, fp);
   strncpy(ct->fname, name, STRLEN-1);
   free(name);

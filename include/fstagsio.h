@@ -37,7 +37,7 @@ public:
   static long long getlen_matrix(bool niftiheaderext, bool addtaglength=true);
   static long long getlen_old_colortable(COLOR_TABLE *ctab, bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_mri_frames(MRI *mri, bool niftiheaderext=false, bool addtaglength=true);
-  static long long getlen_gcamorph_geom(bool niftiheaderext=false, bool addtaglength=true);
+  static long long getlen_gcamorph_geom(const char *source_fname, const char *target_fname, bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_gcamorph_meta(bool addtaglength=true);
   static long long getlen_gcamorph_labels(int x, int y, int z, int len, bool niftiheaderext=false, bool addtaglength=true);
   static long long getlen_dof(int dof, bool addtaglength=true);

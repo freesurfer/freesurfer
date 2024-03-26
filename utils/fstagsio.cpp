@@ -159,7 +159,8 @@ long long FStagsIO::getlen_mri_frames(MRI *mri, bool niftiheaderext, bool addtag
 }
 
 
-long long FStagsIO::getlen_gcamorph_geom(bool niftiheaderext, bool addtaglength)
+// return different length depends on niftiheaderext
+long long FStagsIO::getlen_gcamorph_geom(const char *source_fname, const char *target_fname, bool niftiheaderext, bool addtaglength)
 {
   long long dlen = 0;
   if (addtaglength)
@@ -171,8 +172,18 @@ long long FStagsIO::getlen_gcamorph_geom(bool niftiheaderext, bool addtaglength)
   }
 
   // this needs to be consistent with write_gcamorph_geom()/VOL_GEOM.write()
-  int geom_len = 4 * sizeof(int) + 15 * sizeof(float) + 512;
-  dlen += 2 * geom_len;
+  if (!niftiheaderext)
+  {
+    int geom_len = 4 * sizeof(int) + 15 * sizeof(float) + 512;
+    dlen += 2 * geom_len;
+  }
+  else
+  {
+    int geom_len = 4 * sizeof(int) + 15 * sizeof(float) + sizeof(int);
+    geom_len *= 2;
+    geom_len += strlen(source_fname) + strlen(target_fname);
+    dlen += geom_len;
+  }
 
   return dlen;
 }
@@ -477,12 +488,12 @@ int FStagsIO::write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target)
   
   if (niftiheaderext)
   {
-    long long dlen = getlen_gcamorph_geom(niftiheaderext, false);
+    long long dlen = getlen_gcamorph_geom(source->fname, target->fname, niftiheaderext, false);
     znzwriteLong(dlen, fp);
   }
   
-  source->write(fp);
-  target->write(fp);
+  source->write(fp, niftiheaderext);
+  target->write(fp, niftiheaderext);
 
   if (Gdiag & DIAG_INFO)
   {
@@ -829,8 +840,8 @@ int FStagsIO::read_mri_frames(MRI *mri, long long len)
 // read TAG_GCAMORPH_GEOM data
 int FStagsIO::read_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target)
 {
-  source->read(fp);
-  target->read(fp);
+  source->read(fp, niftiheaderext);
+  target->read(fp, niftiheaderext);
 
   return NO_ERROR;
 }

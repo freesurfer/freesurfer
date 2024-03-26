@@ -343,10 +343,8 @@ struct VOL_GEOM
   };
 
   // write VOL_GEOM to znzFile
-  void write(znzFile fp)
+  void write(znzFile fp, bool niftiheaderext=false)
   {
-    char buf[512];
-
     znzwriteInt(valid, fp);
     znzwriteInt(width, fp);
     znzwriteInt(height, fp);
@@ -366,14 +364,30 @@ struct VOL_GEOM
     znzwriteFloat(c_r, fp);
     znzwriteFloat(c_a, fp);
     znzwriteFloat(c_s, fp);
-    
-    memset(buf, 0, 512 * sizeof(char));
-    strcpy(buf, fname);
-    znzwrite(buf, sizeof(char), 512, fp);    
+
+    int len_max = 512;    
+    if (!niftiheaderext)
+    {
+      char buf[len_max];    
+      memset(buf, 0, len_max * sizeof(char));
+      strncpy(buf, fname, len_max);
+      znzwrite(buf, sizeof(char), len_max, fp);
+    }
+    else
+    {
+      // variable length fname, if length = 0, no fname output follows
+      int len_fname = strlen(fname);
+      len_fname = (len_fname > len_max) ? len_max : len_fname;
+      znzwriteInt(len_fname, fp);
+      //printf("[DEBUG] VOL_GEOM::write() fname length= %-4d (%s)\n", len_fname, fname);
+
+      if (len_fname > 0)
+        znzwrite(fname, sizeof(char), len_fname, fp);
+    }
   }
 
   // read VOL_GEOM from znzFile
-  void read(znzFile fp)
+  void read(znzFile fp, bool niftiheaderext=false)
   {
     valid = znzreadInt(fp);
     width = znzreadInt(fp);
@@ -394,9 +408,35 @@ struct VOL_GEOM
     c_r = znzreadFloat(fp);
     c_a = znzreadFloat(fp);
     c_s = znzreadFloat(fp);
-    
-    memset(fname, 0, 512 * sizeof(char));
-    znzread(fname, sizeof(char), 512, fp);    
+
+    int len_max = 512;
+    if (!niftiheaderext)
+    {
+      memset(fname, 0, len_max * sizeof(char));
+      znzread(fname, sizeof(char), len_max, fp);
+    }
+    else
+    {
+      // variable length fname, if length = 0, no fname output follows
+      // read the first len_max bytes, skip the rest
+      int len_fname = znzreadInt(fp);
+      int to_read = (len_fname > len_max) ? len_max : len_fname;
+      if (to_read > 0)
+      {
+        znzread(fname, sizeof(char), to_read, fp);
+        //printf("[DEBUG] VOL_GEOM::read() fname length= %-4d (%s)\n", to_read, fname);
+
+	// skip the remaining bytes
+	int remaining = len_fname - to_read;
+	if (remaining > 0)
+	{
+	  char buf[remaining];
+	  znzread(buf, sizeof(char), remaining, fp);
+          //printf("[DEBUG] VOL_GEOM::read() fname skipped bytes = %-4d\n", remaining);
+	  
+	}
+      }
+    }
   }
 };
 
