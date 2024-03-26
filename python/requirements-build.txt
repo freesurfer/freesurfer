@@ -12,7 +12,7 @@ charset-normalizer==3.3.2
 contourpy==1.1.1
 cycler==0.12.1
 deepsurfer==0.1.1a4
-filelock==3.13.1
+filelock==3.13.3
 flatbuffers==24.3.7
 fonttools==4.50.0
 fsspec==2024.3.1
@@ -85,7 +85,7 @@ tifffile==2023.7.10
 torch==2.1.2
 tqdm==4.66.2
 transforms3d==0.4.1
-trimesh==4.2.0
+trimesh==4.2.2
 #triton==2.1.0
 typing_extensions==4.5.0
 tzdata==2024.1
