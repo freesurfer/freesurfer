@@ -370,7 +370,7 @@ struct VOL_GEOM
     {
       char buf[len_max];    
       memset(buf, 0, len_max * sizeof(char));
-      strncpy(buf, fname, len_max);
+      memcpy(buf, fname, len_max);
       znzwrite(buf, sizeof(char), len_max, fp);
     }
     else
