@@ -53,7 +53,9 @@ option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
 option(TEST_WITH_CUDA "Allow tests to run that use cuda libs and require install of cuda drivers" OFF)
 option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
 
-message(STATUS "User defined SAMSEG sandbox ${USER_SAMSEG_PATH}")
+if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
+  message(STATUS "User defined SAMSEG sandbox ${USER_SAMSEG_PATH}")
+endif()
 
 #  Modern compilers on new platforms often provide many more warnings than older compilers
 #  for example the gcc 7.5.0 compiler warnings about falling through switch statements
