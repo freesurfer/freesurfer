@@ -189,6 +189,8 @@ if [[ -z "$FSL_DIR" || $FS_OVERRIDE != 0 ]]; then
         export FSL_DIR=/usr/pubsw/packages/fsl/current
     elif [ -e /usr/local/pubsw/packages/fsl/current ]; then
         export FSL_DIR=/usr/local/pubsw/packages/fsl/current
+    elif [ -e $HOME/fsl ]; then
+        export FSL_DIR=$HOME/fsl
     elif [ -e /usr/local/fsl ]; then
         export FSL_DIR=/usr/local/fsl
     fi
@@ -437,7 +439,13 @@ fi
 ### ----------- FSL ------------ ####
 if [ -n "$FSL_DIR" ]; then
     export FSLDIR=$FSL_DIR
-    export FSL_BIN=$FSL_DIR/bin
+    # FSL >= 6.0.6
+    if [ -d $FSL_BIN/share/fsl/bin ]; then
+        export FSL_BIN=$FSL_DIR/share/fsl/bin
+    # FSL <= 6.0.5.2
+    else
+        export FSL_BIN=$FSL_DIR/bin
+    fi
     if [ ! -d $FSL_BIN ]; then
         if [[ $output == 1 ]]; then
             echo "WARNING: $FSL_BIN does not exist.";

@@ -180,6 +180,8 @@ if(! $?FSL_DIR  || $FS_OVERRIDE) then
         setenv FSL_DIR /usr/pubsw/packages/fsl/current
     else if ( -e /usr/local/pubsw/packages/fsl/current) then
         setenv FSL_DIR /usr/local/pubsw/packages/fsl/current
+    else if ( -e $HOME/fsl); then
+        setenv FSL_DIR $HOME/fsl
     else if ( -e /usr/local/fsl) then
         setenv FSL_DIR /usr/local/fsl
     endif
@@ -430,7 +432,13 @@ endif
 ### ----------- FSL ------------ ####
 if ( $?FSL_DIR ) then
     setenv FSLDIR $FSL_DIR
-    setenv FSL_BIN $FSL_DIR/bin
+    # FSL >= 6.0.6
+    if ( -d $FSL_DIR/share/fsl/bin) then
+        setenv FSL_BIN $FSL_DIR/share/fsl/bin
+    # FSL <= 6.0.5.2
+    else
+        setenv FSL_BIN $FSL_DIR/bin
+    endif
     if(! -d $FSL_BIN) then
         if( $output ) then
             echo "WARNING: $FSL_BIN does not exist.";
