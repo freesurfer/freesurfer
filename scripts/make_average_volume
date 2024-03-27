@@ -160,6 +160,7 @@ foreach volid (nu norm wm) #orig nu T1 brain wm # wm needed for surfaces?
 end
 
 pushd $outdir/mri/
+ln -s nu.mgz rawavg.mgz
 ln -s nu.mgz orig.mgz
 ln -s nu.mgz T1.mgz
 ln -s norm.mgz brain.mgz
@@ -206,6 +207,22 @@ if($DoASeg) then
       if($transform_fname != talairach.xfm) then
         set cmd = (mri_convert $invol $xfmvol --apply_transform $xfm \
            --resample_type nearest)
+        echo $cmd | tee -a $LF
+        $cmd  |& tee -a $LF
+        if($status) then
+          pwd |& tee -a $LF
+          echo "ERROR: mri_vol2vol failed." |& tee -a $LF
+          exit 1;
+        endif
+        if("$ConfFlag" == "-conform") then
+	  set cmd = (mri_convert $xfmvol --conform -rt nearest -ns 1 -odt int $xfmvol)
+          $cmd
+          if($status) then
+            pwd |& tee -a $LF
+            echo "ERROR: $cmd" |& tee -a $LF
+            exit 1;
+          endif
+        endif
       else
         set templatevol = $FREESURFER_HOME/average/mni305.cor.mgz
         set cmd = (mri_vol2vol --mov $invol --targ $templatevol --o $xfmvol --interp nearest)
@@ -216,13 +233,13 @@ if($DoASeg) then
         set bn = `basename $xfm .m3z`
         echo "bn = $bn"  | tee -a $LF
         if($bn0 == $bn.m3z) set cmd = ($cmd --m3z $bn0 --s $subject)
-      endif
-      echo $cmd | tee -a $LF
-      $cmd  |& tee -a $LF
-      if($status) then
-        pwd |& tee -a $LF
-        echo "ERROR: mri_vol2vol failed." |& tee -a $LF
-        exit 1;
+        echo $cmd | tee -a $LF
+        $cmd  |& tee -a $LF
+        if($status) then
+          pwd |& tee -a $LF
+          echo "ERROR: mri_vol2vol failed." |& tee -a $LF
+          exit 1;
+        endif
       endif
 
       set invollist = ($invollist $xfmvol);
@@ -230,6 +247,7 @@ if($DoASeg) then
     echo "--------------------------------------" | tee -a $LF
 
     # Concat and vote. 
+    # Make sure seg is same space as brainmask
     set cmd = (mri_concat $invollist --o $tmpdir/vote.mgz --vote \
       --mask $outdir/mri/brainmask.mgz --debug)
     echo $cmd | tee -a $LF
@@ -401,6 +419,16 @@ while( $#argv != 0 )
       set ctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
       breaksw
 
+    case "--threads"
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift
+      breaksw
+
     case "--sd":
     case "--sdir":
       if ( $getting_subjects ) then
@@ -467,6 +495,7 @@ while( $#argv != 0 )
     case "--meas"
     case "--rca-threads":
     case "--s-xform":
+    case "--s-dest-lta"
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

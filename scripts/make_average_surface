@@ -55,6 +55,9 @@ set UseAnnotTemplate = 0;
 set annotlist = ()
 set DoCortexLabel = 1;
 set NoSurf2Surf = "";
+set DestLTA = ()
+set ConfFlag = "-conform"
+set threads = 1
 
 # these should match latest declarations in recon-all
 set DESIKAN_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
@@ -222,8 +225,8 @@ foreach hemi ($hemilist)
   foreach surf ($surflist)
     echo "#@# Making average $hemi.$surf surface ---------------------"  | tee -a $LF
     date  | tee -a $LF
-    set cmd = (mris_make_average_surface $NoSurf2Surf $XFORM_FLAG \
-                -i $ico_no -o $surf -sdir-out $sdout\
+    set cmd = (mris_make_average_surface $NoSurf2Surf $ConfFlag $DestLTA $XFORM_FLAG \
+                -threads $threads -i $ico_no -o $surf -sdir-out $sdout\
                 ${hemi} \
                 ${surf} ${sphere_reg} \
                 ${average_subject} \
@@ -317,47 +320,22 @@ foreach hemi ($hemilist)
       if($status) exit 1
     end
 
-    # Create cortex label from Christophe's medial wall
+    # Create cortex label from Christophe's aparc
     if($DoCortexLabel) then
       set annot = $ddir/label/$hemi.aparc.a2009s.annot
       if(! -e $annot) then
         echo "ERROR: cannot find $annot" |& tee -a $LF
         exit 1;
       endif
-      # Create tmpdir
-      set tmpdir = $ddir/make_cortex_label.tmp.$$
-      rm -rf $tmpdir
-      mkdir -p $tmpdir
-      # Unload all of Christophe's labels into tmpdir
-      set cmd = (mri_annotation2label --subject $average_subject \
-        --hemi $hemi --outdir $tmpdir --annotation aparc.a2009s)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-      # Create the medial wall label
-      set unknown_label = $tmpdir/$hemi.Unknown.label
-      set mw_label = $tmpdir/$hemi.Medial_wall.label
-      if(! -e $unknown_label && ! -e $mw_label) then
-        echo "ERROR: cannot find $hemi.Unknown.label or $hemi.Medial_wall.label"
-        exit 1;
-      else if(-e $unknown_label && -e $mw_label) then
-        set cmd = (mri_mergelabels -i $unknown_label -i $mw_label -o $ddir/label/$hemi.Medial_wall.label)
-        echo $cmd |& tee -a $LF
-        $cmd |& tee -a $LF
-        if($status) exit 1;
-        rm -f $unknown_label $mw_label
-      else if(-e $unknown_label) then
-        mv $unknown_label $ddir/label/$hemi.Medial_wall.label
-      else if(-e $mw_label) then
-        mv $mw_label $ddir/label/$hemi.Medial_wall.label
-      endif
-      # Create the cortex label with all the remaining labels
       set ctxlabel = $ddir/label/$hemi.cortex.label
-      set cmd = (mri_mergelabels -o $ctxlabel -d $tmpdir)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-      rm -rf $tmpdir; # Cleanup
+      set white = $ddir/surf/$hemi.white
+      set ud = `UpdateNeeded $ctxlabel $annot $white`
+      if($ud || $ForceUpdate) then
+        set cmd = (mri_cor2label --i $annot --thresh 0.5 --surf-path $white --l $ctxlabel)
+        echo $cmd | tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1
+      endif
     endif # DoCortexLabel
   endif # UseAnnot
 
@@ -546,6 +524,16 @@ while( $#argv != 0 )
       set XFORM_FLAG = "-X $transform_fname";
       breaksw
 
+    case "--s-dest-lta":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if($#argv < 1) goto arg1err;
+      set DestLTA = "-d $argv[1]"; shift;
+      breaksw
+
     case "--ico":
     case "--i":
       if ( $getting_subjects ) then
@@ -583,6 +571,16 @@ while( $#argv != 0 )
       endif
       if($#argv < 1) goto arg1err;
       set annotlist = ($annotlist $argv[1]); shift;
+      breaksw
+
+    case "--threads"
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift
       breaksw
 
     case "--no-annot":
@@ -714,6 +712,24 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--conform":
+    case "-conform":
+      set ConfFlag = "-conform"
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+    case "--no-conform":
+    case "-no-conform":
+    case "-noconform":
+      set ConfFlag = "-noconform"
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     # These 0-arg flags passed to make_average_subject, but dont apply here.
     case "--no-surf":
     case "--no-vol":
@@ -722,11 +738,6 @@ while( $#argv != 0 )
     case "--keep-all-orig":
     case "--no-ribbon":
     case "--ctab-default":
-    case "--conform":
-    case "-conform":
-    case "--no-conform":
-    case "-no-conform":
-    case "-noconform":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

@@ -3255,7 +3255,7 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
     if(targsurfreg==NULL) return(NULL);
   }
   if(targsurfreg == NULL){
-    printf("ERROR: not target specified\n");
+    printf("ERROR: no target specified\n");
     return(NULL);
   }
 
@@ -3276,7 +3276,7 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
       char *ext = fio_extension(asp->xform_name);
       sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
 
-      if (!strcmp(asp->xform_name,"talairach.xfm")) {
+      if(!strcmp(asp->xform_name,"talairach.xfm")) {
 	printf("  Applying linear transform %s\n",asp->xform_name);
 	XFM = DevolveXFMWithSubjectsDir(subject, NULL, asp->xform_name, fsenv->SUBJECTS_DIR);
 	if(XFM == NULL) return(NULL);
@@ -3303,8 +3303,11 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 	return(NULL);
       }
     }
+    if(nth==0) copyVolGeom(&surf->vg,&targsurfreg->vg);
 
-    // Copy the surace XYZ into an MRI structure
+    // Could remove intersections here after applying xform
+
+    // Copy the surface XYZ into an MRI structure
     SrcXYZ = MRIcopyMRIS(NULL, surf, 2, "z"); // start at z to autoalloc
     MRIcopyMRIS(SrcXYZ, surf, 0, "x");
     MRIcopyMRIS(SrcXYZ, surf, 1, "y");
@@ -3316,10 +3319,8 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
     if(TargXYZ == NULL) return(NULL);
 
     // Accumulate
-    if(nth == 0)
-      TargXYZSum = MRIcopy(TargXYZ,TargXYZSum);
-    else
-      TargXYZSum = MRIadd(TargXYZSum,TargXYZ,TargXYZSum);
+    if(nth == 0) TargXYZSum = MRIcopy(TargXYZ,TargXYZSum);
+    else         TargXYZSum = MRIadd(TargXYZSum,TargXYZ,TargXYZSum);
 
     // keep track of the total area
     average_surface_area += surf->total_area ;
@@ -3335,6 +3336,24 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
   MRIScopyMRI(targsurfreg,TargXYZSum,0,"x");
   MRIScopyMRI(targsurfreg,TargXYZSum,1,"y");
   MRIScopyMRI(targsurfreg,TargXYZSum,2,"z");
+
+  LTA *DestLTA = NULL;
+  if(asp->DestLTA) DestLTA = asp->DestLTA;
+  if(asp->Conform && !mriConformed(&targsurfreg->vg)){
+    VOL_GEOM vgdest;
+    copyVolGeom(&targsurfreg->vg,&vgdest);
+    conformGeom(&vgdest,0,1,0);
+    DestLTA = TransformRegDat2LTA(&vgdest,&targsurfreg->vg,NULL);
+    LTAprint(stdout, DestLTA);
+  }
+  if(DestLTA){
+    // This can be good when the xform does not take it all the way to the
+    // target (eg, conformed) space.
+    printf("Applying LTA to output (Conform=%d)\n",asp->Conform);
+    int err = MRISltaMultiply(targsurfreg, DestLTA);
+    if(err) return(NULL);
+  }
+  if(asp->Conform && !mriConformed(&targsurfreg->vg)) LTAfree(&DestLTA);
 
   average_surface_area /= (double)asp->nsubjects ;
   MRIScomputeMetricProperties(targsurfreg);
