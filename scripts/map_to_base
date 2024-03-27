@@ -59,7 +59,7 @@ tp=$2
 input=$3
 rt=$4
 ldir=mri
-if [ "$rt" == "surface" ] ; then ldir=surf ; fi
+if [ "$rt" = "surface" ] ; then ldir=surf ; fi
 
 long=1
 tpid=$tp.long.$base
