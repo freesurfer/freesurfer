@@ -289,6 +289,10 @@
 275 ctx-lh-layer5                         230 120  78  0
 276 ctx-lh-layer6                         235 135  78  0
 277 ctx-lh-supragranular                  240 140  78  0
+278 SubiculumU                            20 119 165 0
+279 CA1U                                  255 108 108 0
+280 CA2U                                  167 130 199 0
+281 CA3U                                  0 202 0 0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
@@ -395,6 +399,8 @@
 556 left_CA4_DG                             51  17  18  0
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
+
+559 Subcortical-Gray-Matter                123 187 221 0
 
 600 Tumor                                   254 254 254 0
 
@@ -1200,6 +1206,9 @@
 7019  Envelope-Amygdala                                 141 21  100 0
 7020  Extranuclear-Amydala                              225 140 141 0
 
+7030 Left-Amygdala-Cortical-Junction               255 85 255   0
+7031 Right-Amygdala-Cortical-Junction              254 84 254   0
+
 7100  Brainstem-inferior-colliculus                     42  201 168 0
 7101  Brainstem-cochlear-nucleus                        168 104 162 0
 
@@ -1651,3 +1660,58 @@
 14174  wm_rh_S_temporal_sup                   223 220  60   0
 14175  wm_rh_S_temporal_transverse            221  60  60   0
 
+# Below are labels for the Yeo atlas (both 7 and 17)
+# https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation_Yeo2011
+15000  yeo7_lh_Unknown                     0   0   0   0
+15001  yeo7_lh_Net_1                     120  18 134    0
+15002  yeo7_lh_Net_2                      70 130 180    0
+15003  yeo7_lh_Net_3                       0 118  14    0
+15004  yeo7_lh_Net_4                     196  58 250    0
+15005  yeo7_lh_Net_5                     220 248 164    0
+15006  yeo7_lh_Net_6                     230 148  34    0
+15007  yeo7_lh_Net_7                     205  62  78    0
+15010  yeo7_rh_Net_Unknown                 0   0   0   0
+15011  yeo7_rh_Net_1                     120  18 134    0
+15012  yeo7_rh_Net_2                      70 130 180    0
+15013  yeo7_rh_Net_3                       0 118  14    0
+15014  yeo7_rh_Net_4                     196  58 250    0
+15015  yeo7_rh_Net_5                     220 248 164    0
+15016  yeo7_rh_Net_6                     230 148  34    0
+15017  yeo7_rh_Net_7                     205  62  78    0
+
+15100  yeo17_lh_Net_Unknown                0   0   0    0
+15101  yeo17_lh_Net_1                    120  18 134    0
+15102  yeo17_lh_Net_2                    255   0   0    0
+15103  yeo17_lh_Net_3                     70 130 180    0
+15104  yeo17_lh_Net_4                     42 204 164    0
+15105  yeo17_lh_Net_5                     74 155  60    0
+15106  yeo17_lh_Net_6                      0 118  14    0
+15107  yeo17_lh_Net_7                    196  58 250    0
+15108  yeo17_lh_Net_8                    255 152 213    0
+15109  yeo17_lh_Net_9                    220 248 164    0
+15110  yeo17_lh_Net_10                   122 135  50    0
+15111  yeo17_lh_Net_11                   119 140 176    0
+15112  yeo17_lh_Net_12                   230 148  34    0
+15113  yeo17_lh_Net_13                   135  50  74    0
+15114  yeo17_lh_Net_14                    12  48 255    0
+15115  yeo17_lh_Net_15                     0   0 130    0
+15116  yeo17_lh_Net_16                   255 255   0    0
+15117  yeo17_lh_Net_17                   205  62  78    0
+15120  yeo17_rh_Net_Unknown                0   0   0    0
+15121  yeo17_rh_Net_1                    120  18 134    0
+15122  yeo17_rh_Net_2                    255   0   0    0
+15123  yeo17_rh_Net_3                     70 130 180    0
+15124  yeo17_rh_Net_4                     42 204 164    0
+15125  yeo17_rh_Net_5                     74 155  60    0
+15126  yeo17_rh_Net_6                      0 118  14    0
+15127  yeo17_rh_Net_7                    196  58 250    0
+15128  yeo17_rh_Net_8                    255 152 213    0
+15129  yeo17_rh_Net_9                    220 248 164    0
+15130  yeo17_rh_Net_10                   122 135  50    0
+15131  yeo17_rh_Net_11                   119 140 176    0
+15132  yeo17_rh_Net_12                   230 148  34    0
+15133  yeo17_rh_Net_13                   135  50  74    0
+15134  yeo17_rh_Net_14                    12  48 255    0
+15135  yeo17_rh_Net_15                     0   0 130    0
+15136  yeo17_rh_Net_16                   255 255   0    0
+15137  yeo17_rh_Net_17                   205  62  78    0
