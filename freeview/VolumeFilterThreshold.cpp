@@ -39,7 +39,7 @@ bool VolumeFilterThreshold::Execute()
 {
   TriggerFakeProgress(50);
   vtkSmartPointer<vtkImageThreshold> filter = vtkSmartPointer<vtkImageThreshold>::New();
-  filter->SetInput( m_volumeInput->GetImageData() );
+  filter->SetInputData( m_volumeInput->GetImageData() );
   filter->SetReplaceIn(m_bReplaceIn?1:0);
   filter->SetReplaceOut(m_bReplaceOut?1:0);
   filter->SetInValue(m_dInValue);
