@@ -12255,7 +12255,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
     if (tag == 0)
     {
       if (Gdiag & DIAG_INFO)
-	printf("[DEBUG] MRITAGread(): remaining taglen = %lld (tag = %d, len = %lld)\n", mgztaglen, tag, len);
+	printf("[DEBUG] MRITAGread(): remaining taglen = %lld (tag = %d)\n", mgztaglen, tag);
       
       break;
     }
@@ -12431,7 +12431,11 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       // mgztaglen may not reach 0 because the extension is padded with zeros to be multiple of 16 bytes
       // check if there is at least 12 bytes (sizeof(long long) + sizeof(int)) left 
       if (mgztaglen < len_tagheader)
+      {
+	if (Gdiag & DIAG_INFO)
+	  printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
         break;
+      }
     }
   }    // while (1)
 } // end MRITAGread()
@@ -12554,7 +12558,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
   {
     // output TAG_GCAMORPH_GEOM
-    taglen = FStagsIO::getlen_gcamorph_geom(niftiheaderext);
+    taglen = FStagsIO::getlen_gcamorph_geom((mri->gcamorph_image_vg).fname, (mri->gcamorph_atlas_vg).fname, niftiheaderext);
     dlen += taglen;
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_GEOM);
