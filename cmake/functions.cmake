@@ -291,7 +291,17 @@ function(integrate_samseg)
     set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")
   endif()
 
+  set(PIP_INSTALL_FLAGS "--no-dependencies --disable-pip-version-check --upgrade")
   set(STANDALONE_SAMSEG_PATH "${CMAKE_CURRENT_BINARY_DIR}/git-samseg.standalone")
+  if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
+    set(STANDALONE_SAMSEG_PATH "${USER_SAMSEG_PATH}")
+    # editable samseg install doesn't work in the following build environments:
+    # 1. if DISTRIBUTE_FSPYTHON=OFF,
+    #       module samseg cannot be found
+    # 2. if DISTRIBUTE_FSPYTHON=ON and INSTALL_PYTHON_DEPENDENCIES=OFF,
+    #       samseg dependencies modules cannot be found
+    set(PIP_INSTALL_FLAGS "${PIP_INSTALL_FLAGS} --editable")
+  endif()
   set(STANDALONE_SAMSEG_URL  "https://github.com/freesurfer/samseg.git")
   
   set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
@@ -314,20 +324,33 @@ function(integrate_samseg)
     message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} \")
     message(STATUS \" PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} PYTHON_INSTALL=${CMAKE_INSTALL_PREFIX}/python/bin/python3 PKG_TARGET=${PKG_TARGET} \")
 
-    message(STATUS \" git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH} \")
-    execute_process(COMMAND bash -c \"git clone --quiet ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}\" result_variable retcode)
-    if(NOT ${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"could not git clone standalone samseg\")
+    if(\"${USER_SAMSEG_PATH}\" STREQUAL \"\")
+      message(STATUS \" git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH} \")
+      execute_process(COMMAND bash -c \"git clone --quiet ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}\" result_variable retcode)
+      if(NOT ${retcode} STREQUAL 0)
+        message(FATAL_ERROR \"could not git clone standalone samseg\")
+      endif()
     endif()
 
     # no check/install samseg dependencies, all dependencies will be handled in requirement files
     message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
-    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} ${CMAKE_VERBOSE_MAKEFILE_DEF} ${CMAKE_RULE_MESSAGES_DEF} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
-    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} ${CMAKE_VERBOSE_MAKEFILE_DEF} ${CMAKE_RULE_MESSAGES_DEF} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --no-dependencies --disable-pip-version-check ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} ${CMAKE_VERBOSE_MAKEFILE_DEF} ${CMAKE_RULE_MESSAGES_DEF} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${APPLE_ARM64_DEF} ${CMAKE_VERBOSE_MAKEFILE_DEF} ${CMAKE_RULE_MESSAGES_DEF} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install Standalone Samseg\")
     endif()"
   )
+
+  # ??? todo: retrieve samseg directory using get_package_dir(samseg samsegdir) ???
+  # set SAMSEGCLI_DIR, this is hard-coded for now
+  if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
+    set(SAMSEGCLI_DIR ${USER_SAMSEG_PATH})
+  else()
+    set(SAMSEGCLI_DIR ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages)
+    if(NOT DISTRIBUTE_FSPYTHON)
+      set(SAMSEGCLI_DIR ${CMAKE_INSTALL_PREFIX}/python/packages)
+    endif()
+  endif()
 
   # config the scripts
   foreach(SCRIPT ${ARGN})
@@ -340,14 +363,26 @@ function(integrate_samseg)
       remove_files(${CMAKE_INSTALL_PREFIX}/python/bin/${SCRIPT})
     endif()
 
-    set(SAMSEGCLI_DIR ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages)
-    if(NOT DISTRIBUTE_FSPYTHON)
-      set(SAMSEGCLI_DIR ${CMAKE_INSTALL_PREFIX}/python/packages)
-    endif()
-
     # create links in ${CMAKE_INSTALL_PREFIX}/python/scripts/ to real python scripts in installed package
     symlink(${SAMSEGCLI_DIR}/samseg/cli/${SCRIPT}.py ${CMAKE_INSTALL_PREFIX}/python/scripts/${SCRIPT})
   endforeach()
+endfunction()
+
+
+# get_package_dir(packagename packagedir)
+# retrieve package direcotry
+# ??? todo: this function needs work, it is not working ???
+function(get_package_dir PACKAGENAME PACKAGEDIR)
+  install(CODE "
+    message(STATUS \"get package ${PACKAGENAME} directory\")
+    execute_process(COMMAND package_dir=$(FREESURFER_HOME=${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/bin/fspython -c \"import ${PACKAGENAME}; print(${PACKAGENAME}.__path__[0])\"))
+    message(STATUS \"get package ${PACKAGENAME} directory ${package_dir}\")
+    set(PACKAGEDIR ${package_dir})"
+    
+
+    #execute_process(COMMAND FREESURFER_HOME=${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/bin/fspython -c \"import ${PACKAGENAME}; print(${PACKAGENAME}.__path__[0])\" OUTPUT_VARIABLE PACKAGEDIR)
+    #message(STATUS \"get package ${PACKAGENAME} directory OUTPUT_VARIABLE ${PACKAGEDIR}\")
+    )
 endfunction()
 
 
