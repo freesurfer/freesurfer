@@ -570,6 +570,7 @@ add_subdirectory(fem_elastic)
 if(NOT INTEGRATE_SAMSEG)
   add_subdirectories(samsegmesh2surf gems)  
 endif()
+message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 
 # --------------------------------------------------
 #                      programs
