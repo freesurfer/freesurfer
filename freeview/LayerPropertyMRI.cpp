@@ -120,11 +120,11 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHueTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
-  double dval = -180;
-  while (dval <= 180)
+  double dval = -90;
+  while (dval <= 90)
   {
     QColor c;
-    c.setHsvF(dval < 0?((dval+360)/360):(dval/360), 1, 1);
+    c.setHsvF((dval+90)/180, 1, 1);
     c.toRgb();
     mHueTable->AddRGBAPoint(dval, c.redF(), c.greenF(), c.blueF(), 1 );
     dval += 1;
