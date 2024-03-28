@@ -52,9 +52,15 @@ option(FSPYTHON_BUILD_REQ "Pip will use requirmenets files with a snapshot of pk
 option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
 option(TEST_WITH_CUDA "Allow tests to run that use cuda libs and require install of cuda drivers" OFF)
 option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
+option(APPLE_ARM64 "Mac arm64 build" OFF)
 
+message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
   message(STATUS "User defined SAMSEG sandbox ${USER_SAMSEG_PATH}")
+  if(NOT INTEGRATE_SAMSEG)
+    message(WARNING "set INTEGRATE_SAMSEG=ON, USER_SAMSEG_PATH only work with INTEGRATE_SAMSEG=ON")
+    set(INTEGRATE_SAMSEG ON)
+  endif()
 endif()
 
 #  Modern compilers on new platforms often provide many more warnings than older compilers
@@ -570,7 +576,6 @@ add_subdirectory(fem_elastic)
 if(NOT INTEGRATE_SAMSEG)
   add_subdirectories(samsegmesh2surf gems)  
 endif()
-message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 
 # --------------------------------------------------
 #                      programs
