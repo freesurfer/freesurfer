@@ -132,7 +132,7 @@ char *colortablefile = NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int c,r,s,f,n;
+  int c,r,s,f,n,err=0;
   double val,rval;
   FILE *fp;
   MRI *mritmp;
@@ -560,12 +560,13 @@ int main(int argc, char **argv)
 
   if(!NoOutput){
     printf("Saving\n");
-    if(!DoCurv)  MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
+    if(!DoCurv) err = MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
     else {
       printf("Saving in curv format\n");
       MRIScopyMRI(surf, mri, 0, "curv");
-      MRISwriteCurvature(surf,volid);
+      err = MRISwriteCurvature(surf,volid);
     }
+    if(err) exit(1);
   }
 
   if(sum2file){
