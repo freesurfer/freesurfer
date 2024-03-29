@@ -47,6 +47,7 @@ set UseB0DC = 0;
 set b0dcmapstem = b0dcmap
 set ApplySubCortMask = 1;
 set UseCVS = 0;
+set mc = mc
 
 set nolog = 0;
 set debug = 0;
@@ -491,6 +492,10 @@ while( $#argv != 0 )
       set maskstem = $argv[1]; shift;
       breaksw
 
+    case "-no-mc":
+      set mc = ""
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -537,8 +542,9 @@ if($ExpKeyNeeded && $#ExpKey == 0) then
 endif
 
 if($#instem == 0) then
-  if($PerRun)   set instem = fmcpr
-  if(! $PerRun) set instem = fmc
+  # Note that if no MC, then there will be no "pr" appended
+  set instem = f${mc}
+  if($mc != "" && $PerRun)   set instem = fmcpr
   if($#SliceOrder != 0) set instem = $instem.$SliceOrder
   if($#SliceDelayFile != 0) set instem = $instem.sdf
 endif
