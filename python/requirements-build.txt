@@ -13,7 +13,7 @@ contourpy==1.1.1
 cycler==0.12.1
 deepsurfer==0.1.1a4
 filelock==3.13.3
-flatbuffers==24.3.25
+flatbuffers==24.3.7
 fonttools==4.50.0
 fsspec==2024.3.1
 gast==0.4.0
@@ -56,8 +56,8 @@ packaging==24.0
 pandas==2.0.3
 pillow==10.2.0
 protobuf==4.25.3
-pyasn1==0.6.0
-pyasn1_modules==0.4.0
+pyasn1-modules==0.3.0
+pyasn1==0.5.1
 #pyfs==0.0.0
 pyparsing==3.1.2
 git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
@@ -85,7 +85,7 @@ tifffile==2023.7.10
 torch==2.1.2
 tqdm==4.66.2
 transforms3d==0.4.1
-trimesh==4.2.3
+trimesh==4.2.2
 #triton==2.1.0
 typing_extensions==4.5.0
 tzdata==2024.1
