@@ -43,6 +43,7 @@ public:
   static long long getlen_dof(int dof, bool addtaglength=true);
   static long long getlen_scan_parameters(MRI *mri, bool addtaglength=true);
   static long long getlen_ras_xform(MRI *mri, bool addtaglength=true);
+  static long long getlen_endtag(bool addtaglength=true);
 
   // methods to write various TAGs including tagid and len(tagdata) if the TAG has a length
   int write_tag(int tag, void *data, long long dlen);
@@ -58,6 +59,9 @@ public:
   int write_dof(int dof);
   int write_scan_parameters(MRI *mri);
   int write_ras_xform(MRI *mri);
+
+  // write end data tag
+  int write_endtag();
 
   // retrieve tagid, datalength
   // if the TAG is in 'tagid len data' format, *plen = len(data);

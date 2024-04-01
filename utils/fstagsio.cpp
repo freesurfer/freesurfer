@@ -278,6 +278,24 @@ long long FStagsIO::getlen_ras_xform(MRI *mri, bool addtaglength)
 }
 
 
+// this is for nifti1 header extension only
+//   TAG_END_NIIHDREXTENSION data-length=1 '*'
+// needs to be consistent with FStagsIO::write_endtag()
+long long FStagsIO::getlen_endtag(bool addtaglength)
+{
+  long long dlen = 0;
+  if (addtaglength)
+  {
+    dlen += 4;
+    dlen += sizeof(long long);
+  }
+
+  dlen += 1; // extra char '*'
+
+  return dlen;  
+}
+
+
 // tags.cpp::znzTAGwrite()
 // 
 // output TAG in the following format:
@@ -636,6 +654,41 @@ int FStagsIO::write_ras_xform(MRI *mri)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_RAS_XFORM, fend-fstart, fstart, fend);
+  }
+  
+  return NO_ERROR;  
+}
+
+
+/* write TAG_END_NIIHDREXTENSION (nifti header extension only)
+ * this needs to be the last tag.
+ *
+ * write TAG_END_NIIHDREXTENSION at the end of extension data to avoid the data to be truncated:
+ *   TAG_END_NIIHDREXTENSION (-1)  data-length (1) '*'
+ *
+ * If the extension data has trailing null characters or zeros at the end,
+ * nibabel.nifti1.Nifti1Extension.get_content() will truncate the data.
+ * See https://github.com/nipy/nibabel/blob/master/nibabel/nifti1.py#L629C1-L630C1,
+ * line 629:  'evalue = evalue.rstrip(b'\x00')'
+ */
+int FStagsIO::write_endtag()
+{
+  long long fstart = 0;
+  if (Gdiag & DIAG_INFO)
+    fstart = znztell(fp);
+  
+  znzwriteInt(TAG_END_NIIHDREXTENSION, fp);
+
+  long long dlen = getlen_endtag(false);
+  znzwriteLong(dlen, fp);
+
+  char endchar = '*';
+  znzwrite(&endchar, sizeof(char), dlen, fp);
+
+  if (Gdiag & DIAG_INFO)
+  {
+    long long fend = znztell(fp);
+    printf("[DEBUG] TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_END_NIIHDREXTENSION, fend-fstart, fstart, fend);
   }
   
   return NO_ERROR;  

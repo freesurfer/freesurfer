@@ -58,6 +58,7 @@
 #define TAG_ORIG_RAS2VOX            44
 #define TAG_SCAN_PARAMETERS         45  // for nifti1 header extension only, includes te, ri, flip_angle, fieldstrength, pedir
 
+#define TAG_END_NIIHDREXTENSION     -1  // end data tag, for nifti1 header extension only
 
 #define MATRIX_STRLEN (4 * 4 * 100)
 

@@ -12483,6 +12483,11 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
       fstagsio.write_gcamorph_labels(mri->width, mri->height, mri->depth, mri->gcamorphLabel);
     }
 
+    // write end tag for nifti header extension
+    // this needs to be the last tag (TAG_END_NIIHDREXTENSION)
+    if (niftiheaderext)
+      fstagsio.write_endtag();
+    
     return;
   }
 
@@ -12543,6 +12548,11 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
   // write other tags
   for (int i = 0; i < mri->ncmds; i++)
     fstagsio.write_tag(TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
+
+  // write end tag for nifti header extension
+  // this needs to be the last tag (TAG_END_NIIHDREXTENSION)
+  if (niftiheaderext)
+    fstagsio.write_endtag();
 } // end MRITAGwrite()
 
 
@@ -12587,6 +12597,15 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_LABELS);
     }
 
+    if (niftiheaderext)
+    {
+      // TAG_END_NIIHDREXTENSION
+      taglen = FStagsIO::getlen_endtag();
+      dlen += taglen;
+      if (Gdiag & DIAG_INFO)
+        printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_END_NIIHDREXTENSION);    
+    }
+  
     return dlen;
   }
 
@@ -12689,6 +12708,15 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     dlen += taglen;
     if (Gdiag & DIAG_INFO)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_CMDLINE);
+  }
+
+  if (niftiheaderext)
+  {
+    // TAG_END_NIIHDREXTENSION
+    taglen = FStagsIO::getlen_endtag();
+    dlen += taglen;
+    if (Gdiag & DIAG_INFO)
+      printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_END_NIIHDREXTENSION);    
   }
 
   return dlen;
