@@ -270,7 +270,7 @@ if [ $uninstall -eq 1 ]; then
          rm -f postinstall.sh
          ## echo -n "yes | fspython -m pip install " > postinstall.sh
          # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
-         echo "yes | fspython -m pip install --ignore-installed --disable-pip-version-check -r $install_path/python/requirements-build.txt" >> postinstall.sh
+         echo "yes | fspython -m pip install --ignore-installed --disable-pip-version-check -r ${CMAKE_SOURCE_DIR}/python/requirements-build.txt" >> postinstall.sh
 
          ## nvidia packages only re-installed if requirements.txt used
          # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
