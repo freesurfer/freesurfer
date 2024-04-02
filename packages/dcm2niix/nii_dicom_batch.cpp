@@ -10030,7 +10030,9 @@ void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmL
                    dcmList[indx].patientName, dcmList[indx].seriesNum, dcmList[indx].studyDate, dcmList[indx].studyTime,
                    dcmList[indx].TE, dcmList[indx].TR, dcmList[indx].flipAngle, dcmList[indx].xyzMM[1], dcmList[indx].xyzMM[2], 
                    dcmList[indx].phaseEncodingRC, dcmList[indx].pixelBandwidth, nameList->str[indx], dcmList[indx].imageType);
-      fclose(fp);
+
+      if (fp != stdout)
+        fclose(fp);
     }
 }
 #endif
