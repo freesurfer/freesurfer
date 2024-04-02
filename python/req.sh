@@ -268,15 +268,10 @@ if [ $uninstall -eq 1 ]; then
       # create a postinstall script to reinstall what was deleted
       if [ -e ./postinstall.list ]; then
          rm -f postinstall.sh
-         ## echo -n "yes | fspython -m pip install " > postinstall.sh
+         echo -n "yes | fspython -m pip install " > postinstall.sh
          # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
-         echo "yes | fspython -m pip install --ignore-installed --disable-pip-version-check -r ${CMAKE_SOURCE_DIR}/python/requirements-build.txt" >> postinstall.sh
-
-         ## nvidia packages only re-installed if requirements.txt used
-         # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
-         ## 03/2024 - exclude nvidia-cudnn-cu12 which breaks installation on Ubuntu linux
-         # cat postinstall.list | grep -v "nvidia-cudnn-cu12" | tr -s '\n' ' ' >> postinstall.sh
-
+         # 03/2024 - exclude nvidia-cudnn-cu12 which breaks installation on Ubuntu linux
+         cat postinstall.list | grep -v "nvidia-cudnn-cu12" | tr -s '\n' ' ' >> postinstall.sh
          chmod 755 postinstall.sh
          # also save these in the fspython distribution
          cp -p -f postinstall.list $install_path/python/.
