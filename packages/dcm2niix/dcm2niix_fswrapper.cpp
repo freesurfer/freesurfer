@@ -212,7 +212,7 @@ bool dcm2niix_fswrapper::isDICOM(const char* file)
  * interface to nii_loadDirCore() to search all dicom files from the directory input file is in,
  * and convert dicom files with the same series as given file.
  */
-int dcm2niix_fswrapper::dcm2NiiOneSeries(const char* dcmfile)
+int dcm2niix_fswrapper::dcm2NiiOneSeries(const char* dcmfile, bool convert)
 {
   // get seriesNo for given dicom file
   struct TDICOMdata tdicomData = readDICOM((char*)dcmfile);
@@ -225,19 +225,34 @@ int dcm2niix_fswrapper::dcm2NiiOneSeries(const char* dcmfile)
   tdcmOpts.seriesNumber[0] = seriesNo;
   tdcmOpts.numSeries = 1;
 
+  if (!convert)
+    tdcmOpts.isDumpNotConvert = true;  // retrieve dicom info only
+
   return nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
 }
 
-// interface to nii_getMrifsStruct()
+// interface to nii_dicom_batch.cpp::nii_getMrifsStruct()
 MRIFSSTRUCT* dcm2niix_fswrapper::getMrifsStruct(void)
 {
   return nii_getMrifsStruct();
 }
 
-// interface to nii_getMrifsStructVector()
+// interface to nii_dicom_batch.cpp::nii_getMrifsStructVector()
 std::vector<MRIFSSTRUCT>* dcm2niix_fswrapper::getMrifsStructVector(void)
 {
   return nii_getMrifsStructVector();
+}
+
+// interface to nii_dicom_batch.cpp::nii_clrMrifsStruct()
+void dcm2niix_fswrapper::clrMrifsStruct(void)
+{
+  nii_clrMrifsStruct();
+}
+
+// interface to nii_dicom_batch.cpp::nii_clrMrifsStructVector()
+void dcm2niix_fswrapper::clrMrifsStructVector(void)
+{
+  nii_clrMrifsStructVector();
 }
 
 // return nifti header saved in MRIFSSTRUCT

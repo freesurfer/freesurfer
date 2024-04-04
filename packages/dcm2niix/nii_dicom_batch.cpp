@@ -2418,7 +2418,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 		allB0 = false;
 	if (allB0) {
 		if (opts.isVerbose)
-			printMessage("Diffusion image without gradients: assuming %d volume B=0 series\n", numVol);
+		        printMessage("Diffusion image without gradients: assuming %d volume B=0 series\n", numVol);
 #ifdef USING_R
 		// The image hasn't been created yet, so the attributes must be deferred
 		images->addDeferredAttribute("bValues", std::vector<double>(numVol, 0.0));
@@ -2427,6 +2427,18 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 		char sep = '\t';
 		if (opts.isCreateBIDS)
 			sep = ' ';
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                mrifsStruct.numDti = numVol;
+                mrifsStruct.tdti = (TDTI *)malloc(numVol * sizeof(TDTI));
+                for (int i = 0; i < numVol; i++)
+	        {
+		    mrifsStruct.tdti[i].V[0] = 0;
+                    mrifsStruct.tdti[i].V[1] = 0;
+                    mrifsStruct.tdti[i].V[2] = 0;
+                    mrifsStruct.tdti[i].V[3] = 0;
+                }
+#else	
 		//save bval
 		char txtname[2048] = {""};
 		strcpy(txtname, pathoutname);
@@ -2446,6 +2458,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 			fprintf(fp, "\n");
 		}
 		fclose(fp);
+#endif  // USING_DCM2NIIXFSWRAPPER
 #endif
 	}
 	if (numDti < 1)
@@ -10030,7 +10043,9 @@ void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmL
                    dcmList[indx].patientName, dcmList[indx].seriesNum, dcmList[indx].studyDate, dcmList[indx].studyTime,
                    dcmList[indx].TE, dcmList[indx].TR, dcmList[indx].flipAngle, dcmList[indx].xyzMM[1], dcmList[indx].xyzMM[2], 
                    dcmList[indx].phaseEncodingRC, dcmList[indx].pixelBandwidth, nameList->str[indx], dcmList[indx].imageType);
-      fclose(fp);
+
+      if (fp != stdout)
+        fclose(fp);
     }
 }
 #endif

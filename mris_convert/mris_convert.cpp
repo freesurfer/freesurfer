@@ -173,7 +173,8 @@ main(int argc, char *argv[])
   char *in2_fname=NULL;
 
   std::string cmdline = getAllInfo(argc, argv, "mris_convert");
-
+  printf("%s\n", argv2cmdline(argc, argv));
+  
   nargs = handleVersionOption(argc, argv, "mris_convert");
   if (nargs && argc - nargs == 1)
   {
