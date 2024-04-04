@@ -15,6 +15,7 @@
  * 5. Precision,               return status = 105
  * 6. Pixel Data,              return status = 106
  * 7. m3z 3D Morph,            return status = 201
+ * 8. Color Table,             return status = 202
  */
 /*
  * Original Author: Doug Greve
@@ -75,6 +76,7 @@
   5. Precision,               return status = 105
   6. Pixel Data,              return status = 106
   7. m3z 3D Morph,            return status = 201
+  8. Color Table,             return status = 202
 
   Dimension is number of rows, cols, slices, and frames.
   Resolution is voxel size.
@@ -123,6 +125,7 @@
   106 Volumes differ in pixel data
   107 Volumes differ in orientation
   201 m3z 3D Morph differ
+  202 Volumes differ in Color Table
 
   ENDHELP
 */
@@ -163,6 +166,7 @@ double round(double x);
 #include "mri_identify.h"
 #include "gcamorph.h"
 
+static int diff_colortable(const COLOR_TABLE *ctab1, const COLOR_TABLE *ctab2);
 static void diff_mgh_morph(const char *file1, const char *file2);
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -183,7 +187,7 @@ struct utsname uts;
 char *InVol1File=NULL;
 char *InVol2File=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
-double pixthresh=0, resthresh=0, geothresh=0;
+double pixthresh=0, resthresh=0, geothresh=0, rgbthresh = 0;
 int diffcountthresh = 0;
 char *DiffFile=NULL;
 int DiffAbs=0, AbsDiff=1,DiffPct=0;
@@ -193,6 +197,7 @@ MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL, *DiffLabelVol=NULL;
 char *DiffVolFile=NULL;
 char *DiffLabelVolFile=NULL;
 
+int CheckColortable = 0;
 int CheckResolution=1;
 int CheckAcqParams=1;
 int CheckPixVals=1;
@@ -246,6 +251,7 @@ int main(int argc, char *argv[]) {
   //    exit(1);
   //  }
 
+  printf("%s\n", cmdline);
   if (DiffFile) {
     if (fio_FileExistsReadable(DiffFile)) unlink(DiffFile);
     if (fio_FileExistsReadable(DiffFile)) {
@@ -585,9 +591,9 @@ int main(int argc, char *argv[]) {
     printf("%d  only in second\n",n2);
     printf("%d - %d = %d difference (second-first)\n",l2,l1, l2-l1);
   }
-	// Do a diff on all labels:
-	// print label from vol1 if voxel label differes from vol2
-	else if(SegDiff == -1) {
+  // Do a diff on all labels:
+  // print label from vol1 if voxel label differes from vol2
+  else if(SegDiff == -1) {
     MRI* SegDiffVol = MRIallocSequence(InVol1->width,InVol1->height,
                                       InVol1->depth,MRI_INT,InVol1->nframes);
     MRIcopyHeader(InVol1,SegDiffVol);
@@ -645,6 +651,18 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (CheckColortable) {
+    printf("\nDiff embedded colortables ...\n");
+    int nctabdiff_count = diff_colortable(InVol1->ct, InVol2->ct);
+    if (nctabdiff_count > 0)
+    {
+      ExitStatus = 202;
+      printf("****** Found %d differences between color tables\n", nctabdiff_count);
+    }
+    else
+      printf("****** No difference found!\n");
+  }
+
   exit(ExitStatus);
   return(ExitStatus);
 }
@@ -691,6 +709,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ssd"))  PrintSSD = 1;
     else if (!strcasecmp(option, "--rms"))  {PrintRMS = 1;CheckPixVals=1;}
     else if (!strcasecmp(option, "--count"))  {CheckPixVals=1;}
+    else if (!strcasecmp(option, "--diff-ctab")) CheckColortable = 1;
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
@@ -710,18 +729,15 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       InVol2File = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--thresh")) {
+    } else if (!strcasecmp(option, "--thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&pixthresh);
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--count-thresh")) {
+    } else if (!strcasecmp(option, "--count-thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&diffcountthresh);
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--res-thresh")) {
+    } else if (!strcasecmp(option, "--res-thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&resthresh);
       CheckResolution=1;
@@ -730,6 +746,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&geothresh);
       CheckResolution=1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--rgb-thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&rgbthresh);
       nargsused = 1;
     } else if (!strcasecmp(option, "--diff-file") ||
                !strcasecmp(option, "--log")) {
@@ -745,13 +765,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       AvgDiffFile = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--diff_label_suspicious")) {
+    } else if (!strcasecmp(option, "--diff_label_suspicious")) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffLabelVolFile = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--merge-edits")) {
+    } else if (!strcasecmp(option, "--merge-edits")) {
       // newauto oldauto manedits mergedvol
       if(nargc < 4) CMDargNErr(option,4);
       MRI *newauto, *oldauto, *manedit, *mergedvol;
@@ -766,8 +784,7 @@ static int parse_commandline(int argc, char **argv) {
       int err = MRIwrite(mergedvol,pargv[3]);
       exit(err);
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--segdiff")) {
+    } else if (!strcasecmp(option, "--segdiff")) {
       if (nargc < 2) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SegDiff);
       SegDiffFile = pargv[1];
@@ -949,6 +966,7 @@ static void print_help(void) {
   printf("  5. Precision,               return status = 105\n");
   printf("  6. Pixel Data,              return status = 106\n");
   printf("  7. m3z 3D Morph,            return status = 201\n");
+  printf("  8. Color Talbe,             return status = 202\n");
   printf("\n");
   printf("Dimension is number of rows, cols, slices, and frames.\n");
   printf("Resolution is voxel size.\n");
@@ -1002,6 +1020,7 @@ static void print_help(void) {
   printf("106 Volumes differ in pixel data\n");
   printf("107 Volumes differ in orientation\n");
   printf("201 m3z 3D Morph differ\n");
+  printf("202 Volumes differ in Color Table\n");
   printf("\n");
 
   exit(1) ;
@@ -1211,4 +1230,73 @@ static void diff_mgh_morph(const char *file1, const char *file2)
     ExitStatus = 201;
     printf("%s doesn't contain m_affine matrix\n", file2);
   }
+}
+
+
+static int diff_colortable(const COLOR_TABLE *ctab1, const COLOR_TABLE *ctab2)
+{
+  if (ctab1 == NULL || ctab2 == NULL)
+  {
+    printf("[INFO] No colortables to diff\n");
+    return 0;
+  }
+
+  
+  int nctabdiffs = 0;
+  int todiff = ctab1->nentries;
+  if (ctab1->nentries != ctab2->nentries)
+  {
+    todiff = (ctab1->nentries < ctab2->nentries) ? ctab1->nentries : ctab2->nentries;
+    printf("[WARN] colortab number of entries (%d and %d) do not match. First %d entries will be compared.\n",
+           ctab1->nentries, ctab2->nentries, todiff);
+  }
+
+  for (int n = 0; n < todiff; n++)
+  {
+    COLOR_TABLE_ENTRY *cte1 = ctab1->entries[n];
+    COLOR_TABLE_ENTRY *cte2 = ctab2->entries[n];
+    if ((cte1 == NULL && cte2 != NULL) || (cte1 != NULL && cte2 == NULL))
+    {
+      nctabdiffs++;
+      if (verbose)
+        printf("[INFO] differ at entry %5d, colortable #%s has no entry\n", n, (cte1 == NULL) ? "1" : "2");
+    }
+    else if (cte1 != NULL && cte2 != NULL)
+    {
+      if (strcmp(cte1->name, cte2->name) != 0)
+      {
+        nctabdiffs++;
+        if (verbose)
+          printf("[INFO] differ at entry %5d, label name (%s) vs (%s)\n", n, cte1->name, cte2->name);
+      }
+      else if (cte1->ri != cte2->ri ||
+               cte1->gi != cte2->gi ||
+               cte1->bi != cte2->bi ||
+               cte1->ai != cte2->ai)
+      {
+        nctabdiffs++;
+        if (verbose)
+	{
+          printf("[INFO] differ at entry %5d, RGBi (%d, %d, %d, %d)\n", n, cte1->ri, cte1->gi, cte1->bi, cte1->ai);
+          printf("                                   (%d, %d, %d, %d)\n",  cte2->ri, cte2->gi, cte2->bi, cte2->ai);
+	}
+      }
+#if 0 
+      else if (fabs(cte1->rf - cte2->rf) > rgbthresh ||
+               fabs(cte1->gf - cte2->gf) > rgbthresh ||
+               fabs(cte1->bf - cte2->bf) > rgbthresh ||
+               fabs(cte1->af - cte2->af) > rgbthresh)
+      {
+        nctabdiffs++;
+        if (verbose)
+	{
+          printf("[INFO] differ at entry %5d, RGBf (%.8f, %.8f, %.8f, %.8f)\n", n, cte1->rf, cte1->gf, cte1->bf, cte1->af);
+	  printf("                                   (%.8f, %.8f, %.8f, %.8f)\n",  cte2->rf, cte2->gf, cte2->bf, cte2->af);
+	}
+      }
+#endif      
+    }
+  }
+
+  return nctabdiffs;
 }
