@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
 
     // read T1 volume
     sprintf(fname, "%s/%s/mri/T1.mgz", sdir, argv[i]) ;
-    if (fio_FileExistsReadable(fname)) mri = MRIreadHeader(fname,MRI_MGH_FILE);
+    if (fio_FileExistsReadable(fname)) mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN);
     else {
       sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
       mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;

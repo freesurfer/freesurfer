@@ -2596,6 +2596,7 @@ int MRISfileNameType(const char *fname)
   else if (!strcmp(ext, "MGH") || !strcmp(ext, "MGZ")) {
     type = MRI_MGH_FILE;  // surface-encoded volume
   }
+  // ??? todo: need to identify .nii & .nii.gz ???
   else if (!strcmp(ext, "NII")) {
     type = NII_FILE;  // surface-encoded volume
   }

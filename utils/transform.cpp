@@ -2060,7 +2060,7 @@ MATRIX *DevolveXFMWithSubjectsDir(const char *subjid, MATRIX *XFM, const char *x
   sprintf(dirname, "%s/%s/mri/orig.mgz", sd, subjid);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("Trying %s\n", dirname);
   if (fio_FileExistsReadable(dirname))
-    mriorig = MRIreadHeader(dirname, MRI_MGH_FILE);
+    mriorig = MRIreadHeader(dirname, MRI_VOLUME_TYPE_UNKNOWN);
   else
     mriorig = NULL;
 
@@ -2068,7 +2068,7 @@ MATRIX *DevolveXFMWithSubjectsDir(const char *subjid, MATRIX *XFM, const char *x
     sprintf(dirname, "%s/%s/mri/orig.mgh", sd, subjid);
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("Trying %s\n", dirname);
     if (fio_FileExistsReadable(dirname)) {
-      mriorig = MRIreadHeader(dirname, MRI_MGH_FILE);
+      mriorig = MRIreadHeader(dirname, MRI_VOLUME_TYPE_UNKNOWN);
     }
     else
       mriorig = NULL;

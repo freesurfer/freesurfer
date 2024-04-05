@@ -11775,7 +11775,7 @@ int MRIappend(MRI *mri, const char *fpref)
   char fname[STRLEN];
 
   MRIunpackFileName(fpref, &frame, &type, fname);
-  if (type == MRI_MGH_FILE || type == NII_FILE)
+  if (type == MRI_MGH_FILE)  // can only handle .mgh/.mgz, niiWrite() doesn't take frame as parameter
     return (mghAppend(mri, fname, frame));
   else {
     errno = 0;
@@ -11886,6 +11886,7 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
       *ptype = SIEMENS_FILE;
     else if (!strcmp(at, "MGH"))
       *ptype = MRI_MGH_FILE;
+    // ??? todo: need to identify .nii and .nii.gz ???
     else if (!strcmp(at, "NII"))
       *ptype = NII_FILE;
     else if (!strcmp(at, "MR"))
