@@ -73,7 +73,7 @@ GCAM* readM3Z(const string& warp_file)
   return gcam;
 }
 
-// input is MRI_MGH_FILE
+// input is MRI_MGH_FILE/NII_FILE
 GCAM *readMGZWarp(const string& mgzwarpfile)
 {
   Warpfield *warpfield = new Warpfield();

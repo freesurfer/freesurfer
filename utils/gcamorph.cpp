@@ -356,7 +356,7 @@ int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
   int type = mri_identify(fname);
   if (type == MGH_MORPH)
     return __m3zWrite(gcam, fname);
-  else if (type == MRI_MGH_FILE)
+  else if (type == MRI_MGH_FILE || type == NII_FILE)
     return __warpfieldWrite(gcam, fname);
 
   return ERROR_BADPARM;  
@@ -1119,7 +1119,7 @@ GCA_MORPH *GCAMread(const char *fname)
   int type = mri_identify(fname);
   if (type == MGH_MORPH)
     gcam = __m3zRead(fname);
-  else if (type == MRI_MGH_FILE)
+  else if (type == MRI_MGH_FILE || type == NII_FILE)
   {
     gcam =  __warpfieldRead(fname);
     if (gcam != NULL && gcam->spacing == 0)

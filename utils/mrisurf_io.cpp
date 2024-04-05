@@ -286,7 +286,7 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_na
     fprintf(stdout, "writing curvature file %s\n", curv_to_write);
     
   int error = NO_ERROR;
-  if (mritype == MRI_MGH_FILE)
+  if (mritype == MRI_MGH_FILE || mritype == NII_FILE)
   {
     MRI *TempMRI = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT);
     if (TempMRI == NULL)
@@ -1397,7 +1397,7 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname, int giftiDaNum, con
   
   if (mritype == MGH_ANNOT)
     error = __mrisreadannot(annot_to_read, mris, ctab);
-  else if (mritype == MRI_MGH_FILE)
+  else if (mritype == MRI_MGH_FILE || mritype == NII_FILE)
     error = __mrisreadseg2annot(annot_to_read, mris, ctab);
   else if (mritype == GIFTI_FILE)
   {
@@ -1492,10 +1492,10 @@ static int __mrisreadannot(const char *fannot, MRIS *mris, const COLOR_TABLE *ct
 }
 
 
-// read .mgh file (MRI_MGH_FILE)
+// read .mgh/.mgz, .nii/.nii.gz file (MRI_MGH_FILE/NII_FILE)
 static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE *ctab)
 {
-  printf("MRISurfAnnotation::MRISurfAnnotation(): reading %s as a surface seg\n", fannot);
+  printf("__mrisreadseg2annot(): reading %s as a surface seg\n", fannot);
   MRI *surfseg = MRIread(fannot);
   if (surfseg == NULL)
     return ERROR_NOFILE;
@@ -1503,7 +1503,7 @@ static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE
   // colortab is saved .mgz under TAG_OLD_COLORTABLE
   if (surfseg->ct == NULL && ctab == NULL)
   {
-    printf("ERROR: MRISurfAnnotation::MRISurfAnnotation(): %s does not have a colortable\n", fannot);
+    printf("ERROR: __mrisreadseg2annot(): %s does not have a colortable\n", fannot);
     MRIfree(&surfseg);
     return ERROR_NOFILE;
   }
@@ -1517,7 +1517,7 @@ static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE
   
   if(surfseg->width != mris->nvertices)
   {
-    printf("ERROR: MRISurfAnnotation::MRISurfAnnotation(): dimension mismatch %s=%d, surf=%d\n", fannot, surfseg->width, mris->nvertices);
+    printf("ERROR: __mrisreadseg2annot(): dimension mismatch %s=%d, surf=%d\n", fannot, surfseg->width, mris->nvertices);
     MRIfree(&surfseg);
     return ERROR_NOFILE;
   }
@@ -1529,7 +1529,7 @@ static int __mrisreadseg2annot(const char *fannot, MRIS *mris, const COLOR_TABLE
   int err = MRISseg2annot(mris, surfseg, surfseg->ct);
   if (err)
   {
-    printf("ERROR: MRISurfAnnotation::MRISurfAnnotation(): could not convert %s to an annotation\n", fannot);
+    printf("ERROR: __mrisreadseg2annot(): could not convert %s to an annotation\n", fannot);
     MRIfree(&surfseg);
     return ERROR_NOFILE;
   }
@@ -1765,7 +1765,7 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname, bool writect)
     int gifti_intent = (writect) ? NIFTI_INTENT_LABEL : NIFTI_INTENT_RGBA_VECTOR; 
     error = MRISwriteGIFTI(mris, gifti_intent, annot_to_write, NULL);
   }
-  else if (mritype == MRI_MGH_FILE)
+  else if (mritype == MRI_MGH_FILE || mritype == NII_FILE)
   {
     printf("MRISurfAnnotation::writeAnnotation((): writing %s as a surface seg\n", annot_to_write);
  
@@ -2387,7 +2387,7 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   int type = MRISfileNameType(surf_to_read);  /* using extension to get type */
   if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
       type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE        && 
-      type != MRI_MGH_FILE)
+      type != MRI_MGH_FILE             && type != NII_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
   //type = MRISfileNameType(surf_to_read);
@@ -2595,6 +2595,9 @@ int MRISfileNameType(const char *fname)
   }
   else if (!strcmp(ext, "MGH") || !strcmp(ext, "MGZ")) {
     type = MRI_MGH_FILE;  // surface-encoded volume
+  }
+  else if (!strcmp(ext, "NII")) {
+    type = NII_FILE;  // surface-encoded volume
   }
   else if (!strcmp(ext, "ANNOT")) {
     type = MRIS_ANNOT_FILE;
@@ -3589,7 +3592,7 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
       }
       version = -3; /* Not really sure what is appropriate here */
     }
-    else if (type == MRI_MGH_FILE) /* .mgh */
+    else if (type == MRI_MGH_FILE || type == NII_FILE) /* .mgh */
     {
       ErrorExit(ERROR_BADFILE, "ERROR: MRISread: cannot read surface data from file %s!\n", fname);
     }
@@ -4008,7 +4011,7 @@ static MRIS* MRISreadOverAlloc_old(const char *fname, double nVFMultiplier)
     }
     version = -3; /* Not really sure what is appropriate here */
   }
-  else if (type == MRI_MGH_FILE) /* .mgh */
+  else if (type == MRI_MGH_FILE || type == NII_FILE) /* .mgh */
   {
     ErrorExit(ERROR_BADFILE, "ERROR: MRISread: cannot read surface data from file %s!\n", fname);
   }
@@ -4400,7 +4403,7 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
   int type = MRISfileNameType(surf_to_read);  /* using extension to get type */
   if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
       type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE        && 
-      type != MRI_MGH_FILE)
+      type != MRI_MGH_FILE             && type != NII_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
   MRIS *mris = MRISreadOverAlloc(surf_to_read, 1.0);
@@ -5102,7 +5105,7 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, st
   int error = NO_ERROR;
   if (mritype == VTK_FILE)
     mris = MRISreadVTK(mris, curv_to_read);
-  else if (mritype == MRI_MGH_FILE || mritype == MRI_CURV_FILE)
+  else if (mritype == MRI_MGH_FILE || mritype == NII_FILE || mritype == MRI_CURV_FILE)
     error = __mrisreadcurvmri(mris, curv_to_read, mritype, read_volume, curvmri);
   else if (mritype == ASCII_FILE)
     error = mrisReadAsciiCurvatureFile(mris, curv_to_read, curvmri);
@@ -5115,166 +5118,18 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname, MRI *curvmri, st
     error = ERROR_BADFILE;
 
   return error;
-    
-
-#if 0
-  if (mritype == GIFTI_FILE) {
-    mris = mrisReadGIFTIfile(fname, mris);
-    if (mris) {
-      return (NO_ERROR);
-    }
-    else {
-      return (ERROR_BADFILE);
-    }
-  }
-  if (mritype == VTK_FILE) {
-    mris = MRISreadVTK(mris, fname);
-    return (NO_ERROR);
-  }
-
-  if (mritype != MRI_VOLUME_TYPE_UNKNOWN) {
-    // only MRI_CURV_FILE and MRI_MGH_FILE are allowed here
-    frame = MRISgetReadFrame();
-
-    // ??? why read the volume twice ???
-    //TempMRI = MRIreadHeader(fname, mritype);
-    //if (TempMRI == NULL) {
-    //  return (ERROR_BADFILE);
-    //}
-
-    // MRI_CURV_FILE will be read in as MRI - MRISreadCurvAsMRI();
-    // MRI_MGH_FILE - mghRead()
-    TempMRI = MRIread(fname);
-    if (TempMRI == NULL) {
-      return (ERROR_BADFILE);
-    }
-
-    if (TempMRI->nframes <= frame) {
-      printf("ERROR: attempted to read frame %d from %s\n", frame, fname);
-      printf("  but this file only has %d frames.\n", TempMRI->nframes);
-      return (ERROR_BADFILE);
-    }
-    nv = TempMRI->width * TempMRI->height * TempMRI->depth;
-    if (nv != mris->nvertices) {
-      printf("ERROR: number of vertices in %s does not match surface (%d,%d)\n", sname, nv, mris->nvertices);
-      return (1);
-    }
-    //MRIfree(&TempMRI);
-
-    vno = 0;
-    curvmin = 10000.0f;
-    curvmax = -10000.0f; /* for compiler warnings */
-    for (s = 0; s < TempMRI->depth; s++) {
-      for (r = 0; r < TempMRI->height; r++) {
-        for (c = 0; c < TempMRI->width; c++) {
-          curv = MRIgetVoxVal(TempMRI, c, r, s, frame);
-          if (s == 0 && r == 0 && c == 0) {
-            curvmin = curvmax = curv;
-          }
-          if (curv > curvmax) {
-            curvmax = curv;
-          }
-          if (curv < curvmin) {
-            curvmin = curv;
-          }
-          mris->vertices[vno].curv = curv;
-          vno++;
-        }
-      }
-    }
-    MRIfree(&TempMRI);
-    mris->max_curv = curvmax;
-    mris->min_curv = curvmin;
-    return (NO_ERROR);
-  } // (mritype != MRI_VOLUME_TYPE_UNKNOWN)
-
-  type = MRISfileNameType(fname);
-  if (type == MRIS_ASCII_TRIANGLE_FILE) {
-    return (mrisReadAsciiCurvatureFile(mris, fname));
-  }
-  else if (type == MRIS_GIFTI_FILE) {
-    mris = mrisReadGIFTIfile(fname, mris);
-    if (mris) {
-      return (NO_ERROR);
-    }
-    else {
-      return (ERROR_BADFILE);
-    }
-  }
-
-  // MRISfileNameType() returns one of these types:
-  //   MRIS_VOLUME_FILE, MRIS_ASCII_TRIANGLE_FILE, MRIS_GEO_TRIANGLE_FILE, MRIS_ICO_FILE, MRIS_VTK_FILE, MRIS_STL_FILE, MRIS_GIFTI_FILE, MRI_MGH_FILE, MRIS_ANNOT_FILE, MRIS_BINARY_QUADRANGLE_FILE.
-  //   MRIS_ASCII_TRIANGLE_FILE, MRIS_VTK_FILE, MRIS_GIFTI_FILE, MRI_CURV_FILE, MRI_MGH_FILE have been handled earlier.
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "reading curvature file...");
-  }
-
-  fp = fopen(fname, "r");
-  if (fp == NULL) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadCurvature: could not open %s", fname));
-
-  fread3(&vnum, fp);
-  if (vnum == NEW_VERSION_MAGIC_NUMBER) {
-    // If the first 3 bytes int = NEW_VERSION_MAGIC_NUMBER, IDisCurv() returns TRUE; 
-    // and mri_identify() identifies it as MRI_CURV_FILE, which should be handled earlier already.
-    // this should be treated as an error if it reaches here
-    fclose(fp);
-    return (MRISreadNewCurvatureFile(mris, fname));
-  }
-
-  // looks like the file format is
-  // int vnum (nvertices)
-  // int fnum (nfaces)
-  // int curv x nvertices, curv recalculated as float curv/100.0
-  // ??? is this the old curv format ???
-
-  // it will also reach here for MRIS_VOLUME_FILE, MRIS_GEO_TRIANGLE_FILE, MRIS_ICO_FILE, MRIS_STL_FILE, MRIS_ANNOT_FILE, MRIS_BINARY_QUADRANGLE_FILE
-  // ??? how will this work ???
-  fread3(&fnum, fp);
-  if (vnum != mris->nvertices) {
-    fclose(fp);
-    ErrorReturn(ERROR_NOFILE,
-                (ERROR_NOFILE,
-                 "MRISreadBinaryCurvature: incompatible vertex "
-                 "number in file %s",
-                 fname));
-  }
-  curvmin = 10000.0f;
-  curvmax = -10000.0f; /* for compiler warnings */
-  for (k = 0; k < vnum; k++) {
-    fread2(&i, fp);
-    curv = i / 100.0;
-
-    if (k == 0) {
-      curvmin = curvmax = curv;
-    }
-    if (curv > curvmax) {
-      curvmax = curv;
-    }
-    if (curv < curvmin) {
-      curvmin = curv;
-    }
-    mris->vertices[k].curv = curv;
-  }
-  mris->max_curv = curvmax;
-  mris->min_curv = curvmin;
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "done. min=%2.3f max=%2.3f\n", curvmin, curvmax);
-  }
-  fclose(fp);
-  return (NO_ERROR);
-#endif
 }
 
 
 int __mrisreadcurvmri(MRIS *mris, const char *fname, int type, int read_volume, MRI *curvmri)
 {
-  // only MRI_CURV_FILE and MRI_MGH_FILE are allowed here
+  // only MRI_CURV_FILE and MRI_MGH_FILE/NII_FILE are allowed here
   int frame = MRISgetReadFrame();
 
   // MRI_CURV_FILE will be read in as MRI - MRISreadCurvAsMRI();
   // MRI_MGH_FILE - mghRead()
   MRI *TempMRI = NULL;
-  if (type == MRI_MGH_FILE)
+  if (type == MRI_MGH_FILE)  // ??? todo: wrapper functions fsVolRead()/fsVolWrite() for niiRead()/mghRead() and niiWrite/mghWrite() ???
     TempMRI = mghRead(fname, read_volume, -1);
   else if (type == MRI_CURV_FILE)
     TempMRI = MRISreadCurvAsMRI(fname, read_volume);
@@ -7163,7 +7018,7 @@ int MRISwriteCurvature_getfilename(MRI_SURFACE *mris, const char *sname, char *c
 
   // it needs to read NEW_VERSION_MAGIC_NUMBER to determine type MRI_CURV_FILE
   // it is the write function, file doesn't exist yet, it can't be MRI_CURV_FILE
-  if (mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE &&
+  if (mritype != MRI_MGH_FILE  && mritype != NII_FILE  && mritype != GIFTI_FILE &&
       mritype != ASCII_FILE    && mritype != VTK_FILE) 
     mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
@@ -7221,7 +7076,7 @@ int MRISreadCurvatureFile_getfilename(MRI_SURFACE *mris, const char *sname, char
     mritype = ASCII_FILE;
 
   if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
-       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
+       mritype != MRI_MGH_FILE  && mritype != NII_FILE && mritype != GIFTI_FILE) &&
       (mritype != ASCII_FILE && mritype != VTK_FILE)) 
     mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
@@ -7297,7 +7152,7 @@ int MRISwriteAnnotation_getfilename(MRI_SURFACE *mris, const char *sname, char *
   }
 
   int mritype = mri_identify(fname);
-  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
+  if (mritype != MRI_MGH_FILE && mritype != NII_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
   {
     // attempt as .annot
     strcat(fname, ".annot");
@@ -7367,7 +7222,7 @@ int MRISreadAnnotation_getfilename(MRI_SURFACE *mris, const char *sname, char *a
   }
 
   int mritype = mri_identify(fname);
-  if (mritype != MRI_MGH_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
+  if (mritype != MRI_MGH_FILE && mritype != NII_FILE && mritype != GIFTI_FILE && mritype != MGH_ANNOT)
   {
     // attempt as .annot
     strcat(fname, ".annot");

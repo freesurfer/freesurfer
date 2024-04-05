@@ -11775,7 +11775,7 @@ int MRIappend(MRI *mri, const char *fpref)
   char fname[STRLEN];
 
   MRIunpackFileName(fpref, &frame, &type, fname);
-  if (type == MRI_MGH_FILE)
+  if (type == MRI_MGH_FILE || type == NII_FILE)
     return (mghAppend(mri, fname, frame));
   else {
     errno = 0;
@@ -11886,6 +11886,8 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
       *ptype = SIEMENS_FILE;
     else if (!strcmp(at, "MGH"))
       *ptype = MRI_MGH_FILE;
+    else if (!strcmp(at, "NII"))
+      *ptype = NII_FILE;
     else if (!strcmp(at, "MR"))
       *ptype = GENESIS_FILE;
     else if (!strcmp(at, "GE"))
@@ -11923,6 +11925,8 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
       *ptype = SDT_FILE;
     else if (is_mgh(outFname))
       *ptype = MRI_MGH_FILE;
+    else if (is_nii(outFname))
+      *ptype = NII_FILE;
     else if (is_mnc(outFname))
       *ptype = MRI_MINC_FILE;
     else if (is_bshort(outFname))
