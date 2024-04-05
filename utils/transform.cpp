@@ -1594,7 +1594,6 @@ int TransformFileNameType(const char *fname)
   if (!dot) dot = strrchr(buf, '.');
 
   if (dot) {
-    printf("dot %s\n",dot);
     dot++;
     StrUpper(buf);
     if (!strcmp(dot, "M3D"))
