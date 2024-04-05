@@ -1583,9 +1583,18 @@ int TransformFileNameType(const char *fname)
   number = strchr(buf, '#');
   if (number) *number = 0; /* don't consider : part of extension */
 
+  int nbuf = strlen(buf);
+  if(nbuf>6){
+    // Have to do something special here because nii.gz will have two
+    // dots, and the last dot will just lead to dot="gz"
+    if(!strcmp(&buf[nbuf-6],"nii.gz")) 
+      return (MORPH_3D_TYPE);    
+  }
+
   if (!dot) dot = strrchr(buf, '.');
 
   if (dot) {
+    printf("dot %s\n",dot);
     dot++;
     StrUpper(buf);
     if (!strcmp(dot, "M3D"))
@@ -1594,6 +1603,8 @@ int TransformFileNameType(const char *fname)
       return (MORPH_3D_TYPE);
     else if (!strcmp(dot, "MGZ"))
       return (MORPH_3D_TYPE);    
+    else if (!strcmp(dot, "NII"))
+      return (MORPH_3D_TYPE); 
     else if (!strcmp(dot, "OCT"))
       return (TRANSFORM_ARRAY_TYPE);
     else if (!strcmp(dot, "XFM"))
