@@ -226,7 +226,7 @@ static FILE*      G_FP                    = NULL;
 static int    Gb_strictExtensions   = 0;
 
 // Input 1
-static int        G_sizeCurv1             = 0;
+static unsigned long  G_sizeCurv1             = 0;
 static char*      G_pch_curvFile1         = NULL;
 static float*     G_pf_arrayCurv1         = NULL;
 static float*     G_pf_arrayCurv1Copy     = NULL;
@@ -239,10 +239,10 @@ static e_FILETYPE G_eFILETYPE1            = e_Unknown;
 // Input 2
 static int        Gb_curvFile2            = 0;  //  The second input
 static char*      G_pch_curvFile2         = NULL; //+ file is optional.
-static int        G_sizeCurv2             = 0;
+static unsigned long        G_sizeCurv2             = 0;
 static float*     G_pf_arrayCurv2         = NULL;
 static float*     G_pf_arrayCurv2Copy     = NULL;
-static int        G_sizeCurv2Copy         = 0;
+static unsigned long       G_sizeCurv2Copy         = 0;
 static int        G_FSFILETYPE2           = -1; // FreeSurfer type designator
 static e_FILETYPE G_eFILETYPE2            = e_Unknown;
 
@@ -259,11 +259,11 @@ static char*            G_pch_operator          = NULL;
 static e_operation      Ge_operation            = e_unknown;
 
 // Output file
-static int              G_sizeCurv3             = 0;
+static unsigned long    G_sizeCurv3             = 0;
 static char             G_pch_curvFile3[STRBUF];
 static float*           G_pf_arrayCurv3         = NULL;
 static float*           G_pf_arrayCurv3Copy     = NULL;
-static int              G_sizeCurv3Copy         = 0;
+static unsigned long    G_sizeCurv3Copy         = 0;
 static short            Gb_file3                = 0;
 static short            Gb_canWrite             = 0;
 static int              G_FSFILETYPE3           = -1; // FreeSurfer type designator
@@ -654,28 +654,28 @@ short CURV_arrayProgress_print(
 e_FILEACCESS
 VOL_fileRead(
   char*   apch_VolFileName,
-  int*    ap_vectorSize,
+  unsigned long*    ap_vectorSize,
   float*    apf_volData[]
 );
 
 e_FILEACCESS
 VOL_fileWrite(
   char*   apch_VolFileName,
-  int     a_vectorSize,
+  unsigned long     a_vectorSize,
   float*    apf_volData
 );
 
 e_FILEACCESS
 CURV_fileRead(
   char*   apch_curvFileName,
-  int*    ap_vectorSize,
+  unsigned long*    ap_vectorSize,
   float*    apf_curv[]
 );
 
 e_FILEACCESS
 CURV_fileWrite(
   char*   apch_curvFileName,
-  int     a_vectorSize,
+  unsigned long     a_vectorSize,
   float*    apf_curv
 );
 
@@ -859,7 +859,7 @@ error_expandCurv3(void)
 void
 output_init(void)
 {
-  int i;
+  unsigned long i;
   G_sizeCurv3   = G_sizeCurv1;
   G_pf_arrayCurv3 = (float*) xmalloc(G_sizeCurv1 * sizeof(float));
   for(i=0; i<G_sizeCurv3; i++)
@@ -958,7 +958,7 @@ fileIO_errorHander(
 e_FILEACCESS
 fileRead(
   char*     apch_fileName,
-  int*      ap_vectorSize,
+  unsigned long*      ap_vectorSize,
   float*      apf_curv[],
   e_FILETYPE*   aeFILETYPE,
   int*    a_FSFILETYPE)
@@ -990,7 +990,7 @@ fileRead(
 e_FILEACCESS
 fileWrite(
   char*     apch_fileName,
-  int       a_vectorSize,
+  unsigned long  a_vectorSize,
   float*      apf_curv
 )
 {
@@ -1085,7 +1085,7 @@ debuggingInfo_display()
 short
 CURV_set(
   float*        apf_array[],
-  int           a_size,
+  unsigned long a_size,
   float         af_val)
 {
   //
@@ -1096,7 +1096,7 @@ CURV_set(
   // POSTCONDITIONS
   // o apf_array is set to have all values set to <af_val>.
   //
-  int           i;
+  unsigned long          i;
   float*        pf_array        = NULL;
 
 //   if(*apf_array) free(*apf_array);
@@ -1124,7 +1124,7 @@ CURV_copy(
   // o contents of <apf_arrayDst> are copied to <apf_arraySrc>, i.e.
   //   <apf_arraySrc> = <apf_arrayDst>
   //
-  int   i;
+  unsigned long   i;
   for(i=0; i<a_size; i++)
   {
     apf_arraySrc[i]     = apf_arrayDst[i];
@@ -1144,9 +1144,9 @@ CURV_copy(
 short
 array_compressUsingLabelMask(
   float*      apf_input,
-  int         a_sizeInput,
+  unsigned long         a_sizeInput,
   float*      apf_output[],
-  int         a_sizeOutput
+  unsigned long a_sizeOutput
 )
 {
   //
@@ -1161,8 +1161,8 @@ array_compressUsingLabelMask(
   //
 
   short       ret             = 0;
-  int         n               = 0;
-  int         m               = 0;
+  unsigned long         n               = 0;
+  unsigned long         m               = 0;
   float*      pf_array        = NULL;
 
   if(!apf_input || !apf_output)
@@ -1315,8 +1315,8 @@ label_initialize(void)
   //
 
   short       ret             = 0;
-  int         n               = 0;
-  int         i               = 0;
+  unsigned long n = 0;
+  unsigned long i  = 0;
 
   G_sizeLabel = 0;
   if(!Gb_labelMask)
@@ -1371,9 +1371,9 @@ label_initialize(void)
 short
 array_expandUsingLabelMask(
   float*      apf_compressedIn[],
-  int         a_sizeInput,
+  unsigned long         a_sizeInput,
   float*      apf_outputTemplate,
-  int         a_sizeOutput
+  unsigned long         a_sizeOutput
 )
 {
   //
@@ -1389,8 +1389,8 @@ array_expandUsingLabelMask(
   //
 
   short       ret             = 0;
-  int         n               = 0;
-  int         m               = 0;
+  unsigned long  n               = 0;
+  unsigned long  m               = 0;
   float*      pf_inputCopy    = NULL;
   float*      pf_compressed   = NULL;
 
@@ -1520,6 +1520,8 @@ main(
   {
     ErrorExit(ERROR_BADPARM, "Unknown operation %s failed.\n", G_pch_operator);
   }
+  printf("#VMPC# mris_calc VmPeak  %d\n",GetVmPeak());
+
   return NO_ERROR;
 }
 
@@ -1832,14 +1834,14 @@ operation_lookup(
 e_FILEACCESS
 VOL_fileRead(
   char*   apch_volFileName,
-  int*    ap_vectorSize,
+  unsigned long*    ap_vectorSize,
   float*    apf_data[]
 )
 {
 
   char      pch_readMessage[STRBUF];
   int     i, j, k, f;
-  int     I             = 0;
+  unsigned long I = 0;
   MRI*      pMRI            = NULL;
   float*      pf_data           = NULL;
 
@@ -1855,10 +1857,14 @@ VOL_fileRead(
   {
     cprints("", "ok");
   }
-  Gp_MRI    = pMRI;   // Global pointer.
-  *ap_vectorSize  = pMRI->width*pMRI->height*pMRI->depth*pMRI->nframes;
+  *ap_vectorSize  = (unsigned long)pMRI->width*pMRI->height*pMRI->depth*pMRI->nframes;
   pf_data       = (float*) xmalloc(*ap_vectorSize * sizeof(float));
-  sprintf(pch_readMessage, "Packing %s", apch_volFileName);
+  if(!pf_data){
+    printf("Alloc failed\n");
+    exit(1);
+  }
+
+  printf("Packing\n"); fflush(stdout);
   for(f=0; f<pMRI->nframes; f++)        // number of frames
     for(i=0; i<pMRI->width; i++)  // 'x', i.e. columns in slice
       for(j=0; j<pMRI->height; j++) // 'y', i.e. rows in slice
@@ -1868,6 +1874,12 @@ VOL_fileRead(
           pf_data[I++]  = (float) MRIgetVoxVal(pMRI, i, j, k, f);
         }
   *apf_data = pf_data;
+  printf("Done packing\n"); fflush(stdout);
+
+  // Only need to keep the header around
+  //Gp_MRI = pMRI;
+  Gp_MRI = MRIcopyHeader(pMRI,NULL);   // Global pointer.
+  MRIfree(&pMRI); 
   return(e_OK);
 }
 
@@ -1882,7 +1894,7 @@ VOL_fileRead(
 e_FILEACCESS
 VOL_fileWrite(
   char*   apch_volFileName,
-  int     a_vectorSize,
+  unsigned long  a_vectorSize,
   float*    apf_data
 )
 {
@@ -1895,9 +1907,9 @@ VOL_fileWrite(
   // o Gp_MRI saved to <apchq_volFileName>.
   //
 
-  int     volSize;
+  unsigned long  volSize;
   int     i, j, k, f;
-  int     I           = 0;
+  unsigned long I=0;
   char    pch_readMessage[STRBUF];
   int     ret;
   e_FILEACCESS retfa;
@@ -1907,14 +1919,18 @@ VOL_fileWrite(
   {
     error_noVolumeStruct();
   }
-  volSize = Gp_MRI->width*Gp_MRI->height*Gp_MRI->depth*Gp_MRI->nframes;
+  volSize = (unsigned long)Gp_MRI->width*Gp_MRI->height*Gp_MRI->depth*Gp_MRI->nframes;
   if(volSize != a_vectorSize)
   {
     error_volumeWriteSizeMismatch();
   }
-  sprintf(pch_readMessage, "Packing %s", apch_volFileName);
+  sprintf(pch_readMessage, "Repacking %s", apch_volFileName);
+  fflush(stdout);  fflush(stderr);
   out = MRIallocSequence(Gp_MRI->width, Gp_MRI->height, Gp_MRI->depth, MRI_FLOAT, Gp_MRI->nframes);
   MRIcopyHeader(Gp_MRI,out);
+  MRIcopyPulseParameters(Gp_MRI,out);
+
+  printf("Unpacking\n");  fflush(stdout);
   for(f=0; f<Gp_MRI->nframes; f++)              // number of frames
     for(i=0; i<Gp_MRI->width; i++)        // 'x', i.e. columns in slice
       for(j=0; j<Gp_MRI->height; j++)     // 'y', i.e. rows in slice
@@ -1923,9 +1939,11 @@ VOL_fileWrite(
           CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
           MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
         }
+
   sprintf(pch_readMessage, "Saving result to '%s' (type = %s )",
           apch_volFileName, type_to_string (G_FSFILETYPE3));
   cprints(pch_readMessage, "");
+  fflush(stdout);  fflush(stderr);
   ret = MRIwrite(out, apch_volFileName);
   if(!ret)
   {
@@ -1953,7 +1971,7 @@ VOL_fileWrite(
 e_FILEACCESS
 CURV_fileRead(
   char*   apch_curvFileName,
-  int*    ap_vectorSize,
+  unsigned long*    ap_vectorSize,
   float*    apf_curv[]
 )
 {
@@ -1961,7 +1979,7 @@ CURV_fileRead(
   FILE*     FP_curv;
   int       vnum;
   int       nvertices;
-  int       i;
+  unsigned long   i;
   char      pch_readMessage[STRBUF];
   float*      pf_data           = NULL;
 
@@ -2010,7 +2028,7 @@ ascii_fileWrite(
 )
 {
   FILE* FP_curv;
-  int   i;
+  unsigned long i;
   char  pch_readMessage[STRBUF];
 
   if((FP_curv = fopen(apch_fileName, "w")) == NULL)
@@ -2033,7 +2051,7 @@ ascii_fileWrite(
 
 
 /*!
-  \fn CURV_fileWrite(char* apch_curvFileName, int* ap_vectorSize, float* apf_curv)
+  \fn CURV_fileWrite(char* apch_curvFileName, int* a_vectorSize, float* apf_curv)
   \brief Write a FreeSurfer curvature array to a file
   \param apch_curvFileName The name of a FreeSurfer curvature file.
   \param a_vectorSize Size (i.e. number of elements) of data array.
@@ -2043,12 +2061,12 @@ ascii_fileWrite(
 e_FILEACCESS
 CURV_fileWrite(
   char*   apch_curvFileName,
-  int     a_vectorSize,
+  unsigned long a_vectorSize,
   float*    apf_curv
 )
 {
   FILE* FP_curv;
-  int   i;
+  unsigned long i;
   char  pch_readMessage[STRBUF];
 
   if((FP_curv = fopen(apch_curvFileName, "w")) == NULL)
@@ -2056,7 +2074,7 @@ CURV_fileWrite(
     return(e_WRITEACCESSERROR);
   }
   fwrite3(NEW_VERSION_MAGIC_NUMBER, FP_curv);
-  fwriteInt(a_vectorSize, FP_curv);
+  fwriteInt((int)a_vectorSize, FP_curv);
   fwriteInt(G_nfaces, FP_curv);
   fwriteInt(G_valsPerVertex, FP_curv);
   sprintf(pch_readMessage, "Writing %s", apch_curvFileName);
@@ -2547,7 +2565,7 @@ CURV_functionRunABC( double (*F)(float f_A, float f_B) )
   //    to generate G_pf_arrayCurv3.
   //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
   //
-  int   i;
+  unsigned long i;
 
   ROMP_PF_begin
   #ifdef HAVE_OPENMP
@@ -2589,7 +2607,7 @@ CURV_functionRunAC( double (*F)(float f_A) )
   //    to generate G_pf_arrayCurv3.
   //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
   //
-  int   i;
+  unsigned long i;
   double f_a = 0.;
   double f_c = 0.;
 
