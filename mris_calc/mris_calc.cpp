@@ -1839,7 +1839,7 @@ VOL_fileRead(
 )
 {
 
-  char      pch_readMessage[STRBUF];
+  //char      pch_readMessage[STRBUF];
   int     i, j, k, f;
   unsigned long I = 0;
   MRI*      pMRI            = NULL;
@@ -1870,7 +1870,7 @@ VOL_fileRead(
       for(j=0; j<pMRI->height; j++) // 'y', i.e. rows in slice
         for(k=0; k<pMRI->depth; k++)    // 'z', i.e. # of slices
         {
-          CURV_arrayProgress_print(*ap_vectorSize, I, pch_readMessage);
+          //CURV_arrayProgress_print(*ap_vectorSize, I, pch_readMessage);
           pf_data[I++]  = (float) MRIgetVoxVal(pMRI, i, j, k, f);
         }
   *apf_data = pf_data;
@@ -1924,6 +1924,13 @@ VOL_fileWrite(
   {
     error_volumeWriteSizeMismatch();
   }
+
+  // Free before MRI alloc to reduce max
+  if(G_pf_arrayCurv1) free(G_pf_arrayCurv1);
+  if(G_pf_arrayCurv2) free(G_pf_arrayCurv2);
+  // this is where the output is stored, so don't free
+  //if(G_pf_arrayCurv3) free(G_pf_arrayCurv3);
+
   sprintf(pch_readMessage, "Repacking %s", apch_volFileName);
   fflush(stdout);  fflush(stderr);
   out = MRIallocSequence(Gp_MRI->width, Gp_MRI->height, Gp_MRI->depth, MRI_FLOAT, Gp_MRI->nframes);
@@ -1936,7 +1943,7 @@ VOL_fileWrite(
       for(j=0; j<Gp_MRI->height; j++)     // 'y', i.e. rows in slice
         for(k=0; k<Gp_MRI->depth; k++)      // 'z', i.e. # of slices
         {
-          CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
+          //CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
           MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
         }
 
