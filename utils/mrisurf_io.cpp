@@ -1258,6 +1258,7 @@ int MRISwritePatch(MRI_SURFACE *mris, const char *fname)
   float x, y, z;
   FILE *fp;
 
+  // ??? todo: exclude MRIS_VOLUME_FILE ???
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE)  // extension is ASC
   {
@@ -2385,12 +2386,12 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   strcpy(surf_to_read, fname);
   
   int type = MRISfileNameType(surf_to_read);  /* using extension to get type */
+  // ??? todo: exclude MRIS_VOLUME_FILE ???
   if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
       type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE        && 
-      type != MRI_MGH_FILE             && type != NII_FILE)
+      type != MRIS_VOLUME_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
-  //type = MRISfileNameType(surf_to_read);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, surf_to_read));
   }
@@ -2552,6 +2553,10 @@ int MRISfileNameType(const char *fname)
   int type;
   char *dot, ext[STRLEN], str[STRLEN], *idext;
 
+  // these extensions are considered as volume files:
+  //     nii, mgz, mgh, img, bhdr, nii.gz, _000.bfloat, _000.bshort
+  // type MRIS_VOLUME_FILE is returned
+
   // First check whether it is a volume format
   idext = IDextensionFromName(fname);
   if (idext != NULL) {
@@ -2594,11 +2599,8 @@ int MRISfileNameType(const char *fname)
     type = MRIS_GIFTI_FILE;
   }
   else if (!strcmp(ext, "MGH") || !strcmp(ext, "MGZ")) {
+    // it shouldn't get there, MRIS_VOLUME_FILE is returned for volume files
     type = MRI_MGH_FILE;  // surface-encoded volume
-  }
-  // ??? todo: need to identify .nii & .nii.gz ???
-  else if (!strcmp(ext, "NII")) {
-    type = NII_FILE;  // surface-encoded volume
   }
   else if (!strcmp(ext, "ANNOT")) {
     type = MRIS_ANNOT_FILE;
@@ -4223,10 +4225,12 @@ MRI_SURFACE *MRISfastRead(const char *fname)
   ------------------------------------------------------*/
 MRIS * MRISread(const char *fname, bool dotkrRasConvert)
 {
-  char *ext = fio_extension(fname);
-  if(ext != NULL && (strcmp(ext,"mgz")==0 || strcmp(ext,"mgh")==0 || strcmp(ext,"nii")==0 || strcmp(ext,"nii.gz")==0)){
-    printf("MRIread(): ERROR: input %s does not appear to be a surface (ext=%s)\n",fname,ext);
-    return(NULL);
+  // exit with error if input is MRIS_VOLUME_FILE
+  int type = MRISfileNameType(fname);  /* using extension to get type */
+  if (type == MRIS_VOLUME_FILE)
+  {
+    char *ext = fio_extension(fname);
+    ErrorExit(ERROR_BADFILE, "MRISread(): input %s does not appear to be a surface (ext=%s, MRIS_VOLUME_FILE)\n", fname, ext);
   }
 
   /* FS_GII read:
@@ -4237,10 +4241,8 @@ MRIS * MRISread(const char *fname, bool dotkrRasConvert)
   char surf_to_read[1024] = {'\0'};
   strcpy(surf_to_read, fname);
 
-  int type = MRISfileNameType(surf_to_read);  /* using extension to get type */
   if (type != MRIS_ASCII_TRIANGLE_FILE && type != MRIS_ICO_FILE && type != MRIS_GEO_TRIANGLE_FILE &&
-      type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE        && 
-      type != MRI_MGH_FILE             && type != NII_FILE)
+      type != MRIS_STL_FILE            && type != MRIS_VTK_FILE && type != MRIS_GIFTI_FILE)
     __MRISapplyFSGIIread(surf_to_read, fname, &type);
 
   MRIS *mris = MRISreadOverAlloc(surf_to_read, 1.0);
@@ -6190,12 +6192,12 @@ int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *out
 
 
 /* 1. when reading curvature, these file types are respected:
- *      MRI_MGH_FILE
+ *      MRI_MGH_FILE/NII_FILE
  *      ASCII_FILE
  *      VTK_FILE
  *      GIFTI_FILE
  * 2. when reading .annot, these file types are respected:
- *      MRI_MGH_FILE
+ *      MRI_MGH_FILE/NII_FILE
  *      GIFTI_FILE
  * 3. when reading surface, these file types are respected:
  *      MRIS_ASCII_TRIANGLE_FILE
@@ -6203,7 +6205,7 @@ int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *out
  *      MRIS_GEO_TRIANGLE_FILE
  *      MRIS_STL_FILE
  *      MRIS_VTK_FILE
- *      MRI_MGH_FILE
+ *      MRI_MGH_FILE/NII_FILE
  *      MRIS_GIFTI_FILE
  * 4. __MRISapplyFSGIIread() is called for 
  *      MGH_ANNOT (.annot)
@@ -6254,12 +6256,12 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
 }
 
 /* 1. when writing curvature, these file types are respected:
- *      MRI_MGH_FILE
+ *      MRI_MGH_FILE/NII_FILE
  *      ASCII_FILE
  *      VTK_FILE
  *      GIFTI_FILE
  * 2. when writing .annot, these file types are respected:
- *      MRI_MGH_FILE
+ *      MRI_MGH_FILE/NII_FILE
  *      GIFTI_FILE
  * 3. when writing surface, these file types are respected:
  *      MRIS_ASCII_TRIANGLE_FILE

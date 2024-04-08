@@ -1379,8 +1379,6 @@ MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
                                       MRI_REGION *region, int norm) ;
 int        MRIfileType(char *fname) ;
-int        MRIunpackFileName(const char *inFname, int *pframe, int *ptype,
-                             char *outFname) ;
 int        MRIisValid(MRI *mri) ;
 MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
 
