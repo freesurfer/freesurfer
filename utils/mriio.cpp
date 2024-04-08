@@ -11772,7 +11772,7 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
   ------------------------------------------------------*/
 int MRIappend(MRI *mri, const char *fpref)
 {
-  int type, frame;
+  int type = MRI_VOLUME_TYPE_UNKNOWN, frame;
   char fname[STRLEN];
 
   MRIunpackFileName(fpref, &frame, &type, fname);
@@ -11887,9 +11887,6 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
       *ptype = SIEMENS_FILE;
     else if (!strcmp(at, "MGH"))
       *ptype = MRI_MGH_FILE;
-    // ??? todo: need to identify .nii and .nii.gz ???
-    else if (!strcmp(at, "NII"))
-      *ptype = NII_FILE;
     else if (!strcmp(at, "MR"))
       *ptype = GENESIS_FILE;
     else if (!strcmp(at, "GE"))
@@ -11927,8 +11924,6 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
       *ptype = SDT_FILE;
     else if (is_mgh(outFname))
       *ptype = MRI_MGH_FILE;
-    else if (is_nii(outFname))
-      *ptype = NII_FILE;
     else if (is_mnc(outFname))
       *ptype = MRI_MINC_FILE;
     else if (is_bshort(outFname))
