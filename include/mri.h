@@ -290,21 +290,21 @@ struct VOL_GEOM
   void vgprint(bool nocheck=false)
   {
     if (valid == 1 || nocheck) {
-      fprintf(stderr, "volume geometry:\n");
+      fprintf(stdout, "volume geometry:\n");
       if (nocheck)
-        fprintf(stderr, "valid   : %d\n", valid);
-      fprintf(stderr, "extent  : (%d, %d, %d)\n", width, height, depth);
-      fprintf(stderr, "voxel   : (%7.4f, %7.4f, %7.4f)\n", xsize, ysize, zsize);
-      fprintf(stderr, "x_(ras) : (%7.4f, %7.4f, %7.4f)\n", x_r, x_a, x_s);
-      fprintf(stderr, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", y_r, y_a, y_s);
-      fprintf(stderr, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", z_r, z_a, z_s);
-      fprintf(stderr, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", c_r, c_a, c_s);
-      fprintf(stderr, "file    : %s\n", fname);
+        fprintf(stdout, "valid   : %d\n", valid);
+      fprintf(stdout, "extent  : (%d, %d, %d)\n", width, height, depth);
+      fprintf(stdout, "voxel   : (%7.4f, %7.4f, %7.4f)\n", xsize, ysize, zsize);
+      fprintf(stdout, "x_(ras) : (%7.4f, %7.4f, %7.4f)\n", x_r, x_a, x_s);
+      fprintf(stdout, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", y_r, y_a, y_s);
+      fprintf(stdout, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", z_r, z_a, z_s);
+      fprintf(stdout, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", c_r, c_a, c_s);
+      fprintf(stdout, "file    : %s\n", fname);
     }
     else
-      fprintf(stderr, "volume geometry: info is either not contained or not valid.\n");
+      fprintf(stdout, "volume geometry: info is either not contained or not valid.\n");
 
-    fflush(stderr);    
+    fflush(stdout);    
   }
   
   // return 1 if two VOL_GEOMs equal;

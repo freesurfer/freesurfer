@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
 
   // attempt to load curvature info, which has the side-effect of checking
   // that the number of vertices is the same (exiting with error if not)
-  if (curvfile) {
+  if (curvfile) {  // --c <curvfile>
     printf("\n");
     if (MRISreadCurvatureFile(mris,curvfile)) {
       printf("\n");
@@ -290,38 +290,18 @@ int main(int argc, char *argv[]) {
 
   // read number of vertices in annotation file, and check
   // that the number of vertices is the same (exiting with error if not)
-  if (annotfile) {
-    printf("\n");  
-    /* Open the file. */
-    FILE  *fp = fopen(annotfile,"r");
-    if (fp==NULL)
-      ErrorExit(ERROR_NOFILE, 
-                 "ERROR: could not read annot file %s",
-                 annotfile) ;
-
-    /* First int is the number of elements. */
-    int numVertices = freadInt(fp) ;
-    fclose(fp);
-
-    if (numVertices != mris->nvertices ) {
-      printf("\n");
-      printf("ERROR: %s has %d vertices, while %s has %d vertices!\n",
-             annotfile, numVertices, surffile, mris->nvertices);
+  if (annotfile) {  // --a <annotfile>
+    if (MRISreadAnnotation(mris, annotfile) != NO_ERROR)
+    {
+      printf("ERROR: failed to read annotation %s\n", annotfile);
       exit(1);
     }
-    printf((char*)"%s has the same number of vertices as %s\n",
-          annotfile,surffile);
 
     // also dump the colortable
-    COLOR_TABLE* ctab =  NULL;
-    int return_code = MRISreadCTABFromAnnotationIfPresent(annotfile, &ctab);
-    if (NO_ERROR != return_code) {
-      fprintf(stderr,"ERROR: could not open %s\n", annotfile);
-      return -1;
-    }
-    if (ctab != NULL) {
-      CTABprintASCII(ctab,stdout) ;
-    }
+    fflush(stdout);
+    if (mris->ct != NULL)
+      CTABprintASCII(mris->ct, stdout);
+    fflush(stdout);
   }
 
   if (rescale) {
@@ -585,11 +565,13 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--c") ) {
       if (nargc < 1) argnerr(option,1);
       curvfile = pargv[0];
+      gifti_disp_image = 0;
       nargsused = 1;
     } 
     else if ( !strcmp(option, "--a") ) {
       if (nargc < 1) argnerr(option,1);
       annotfile = pargv[0];
+      gifti_disp_image = 0;
       nargsused = 1;
     } 
     else if ( !strcmp(option, "--cog") ) {
