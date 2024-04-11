@@ -106,7 +106,6 @@ static int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header *niihdr);
 static void __readFSniiextensionHeader(znzFile fp, MRI *mri);
 static void __writeFSniiextensionHeader(znzFile fp, MRI *mri);
 
-static int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname) ;
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame, std::vector<MRI*> *mrivector=NULL);
 static MRI *corRead(const char *fname, int read_volume);
 static int corWrite(MRI *mri, const char *fname);
@@ -181,7 +180,6 @@ static MRI *sdtRead(const char *fname, int read_volume);
 // these two functions are made accessible to others
 //static MRI *mghRead(const char *fname, int read_volume, int frame);
 //static int mghWrite(MRI *mri, const char *fname, int frame);
-static int mghAppend(MRI *mri, const char *fname, int frame);
 
 /********************************************/
 
@@ -11761,189 +11759,6 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Write an MRI header and a set of data files to
-  the directory specified by 'fpref'
-  ------------------------------------------------------*/
-int MRIappend(MRI *mri, const char *fpref)
-{
-  int type = MRI_VOLUME_TYPE_UNKNOWN, frame;
-  char fname[STRLEN];
-
-  MRIunpackFileName(fpref, &frame, &type, fname);
-  if (type == MRI_MGH_FILE)  // can only handle .mgh/.mgz, niiWrite() doesn't take frame as parameter
-    return (mghAppend(mri, fname, frame));
-  else {
-    errno = 0;
-    ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "MRIappend(%s): file type not supported", fname));
-  }
-
-  return (NO_ERROR);
-}
-
-static int mghAppend(MRI *mri, const char *fname, int frame)
-{
-  FILE *fp;
-  int start_frame, end_frame, x, y, z, width, height, depth, nframes;
-
-  if (frame >= 0)
-    start_frame = end_frame = frame;
-  else {
-    start_frame = 0;
-    end_frame = mri->nframes - 1;
-  }
-  fp = fopen(fname, "rb");
-  if (!fp) /* doesn't exist */
-    return (mghWrite(mri, fname, frame));
-  fclose(fp);
-  fp = fopen(fname, "r+b");
-  if (!fp) {
-    errno = 0;
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "mghAppend(%s, %d): could not open file", fname, frame));
-  }
-
-  /* WARNING - this is dependent on the order of writing in mghWrite */
-  width = mri->width;
-  height = mri->height;
-  depth = mri->depth;
-  fseek(fp, 4 * sizeof(int), SEEK_SET);
-  nframes = freadInt(fp);
-  fseek(fp, 4 * sizeof(int), SEEK_SET);
-  fwriteInt(nframes + end_frame - start_frame + 1, fp);
-  fseek(fp, 0, SEEK_END);
-
-  for (frame = start_frame; frame <= end_frame; frame++) {
-    for (z = 0; z < depth; z++) {
-      for (y = 0; y < height; y++) {
-        switch (mri->type) {
-          case MRI_FLOAT:
-            for (x = 0; x < width; x++) {
-              fwriteFloat(MRIFseq_vox(mri, x, y, z, frame), fp);
-            }
-            break;
-          case MRI_UCHAR:
-            if ((int)fwrite(&MRIseq_vox(mri, 0, y, z, frame), sizeof(BUFTYPE), width, fp) != width) {
-              errno = 0;
-              ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghAppend: could not write %d bytes to %s", width, fname));
-            }
-            break;
-          default:
-            errno = 0;
-            ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mghAppend: unsupported type %d", mri->type));
-            break;
-        }
-      }
-    }
-  }
-
-  fclose(fp);
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname)
-{
-  char *number = NULL, *at = NULL, buf[STRLEN];
-  struct stat stat_buf;
-
-  strcpy(outFname, inFname);
-  if (MRIIO_Strip_Pound)
-    number = strrchr(outFname, '#');
-  else
-    number = NULL;
-
-  at = strrchr(outFname, '@');
-
-  if (at) *at = '\0';
-
-  if (number) /* '#' in filename indicates frame # */
-  {
-    if (sscanf(number + 1, "%d", pframe) < 1) *pframe = -1;
-    *number = 0;
-  }
-  else
-    *pframe = -1;
-
-  if (at) {
-    at = StrUpper(strcpy(buf, at + 1));
-    if (!strcmp(at, "MNC"))
-      *ptype = MRI_MINC_FILE;
-    else if (!strcmp(at, "MINC"))
-      *ptype = MRI_MINC_FILE;
-    else if (!strcmp(at, "BRIK"))
-      *ptype = BRIK_FILE;
-    else if (!strcmp(at, "SIEMENS"))
-      *ptype = SIEMENS_FILE;
-    else if (!strcmp(at, "MGH"))
-      *ptype = MRI_MGH_FILE;
-    else if (!strcmp(at, "MR"))
-      *ptype = GENESIS_FILE;
-    else if (!strcmp(at, "GE"))
-      *ptype = GE_LX_FILE;
-    else if (!strcmp(at, "IMG"))
-      *ptype = MRI_ANALYZE_FILE;
-    else if (!strcmp(at, "COR"))
-      *ptype = MRI_CORONAL_SLICE_DIRECTORY;
-    else if (!strcmp(at, "BSHORT"))
-      *ptype = BSHORT_FILE;
-    else if (!strcmp(at, "SDT"))
-      *ptype = SDT_FILE;
-    else {
-      errno = 0;
-      ErrorExit(ERROR_UNSUPPORTED, "unknown file type %s", at);
-    }
-  }
-  else /* no '@' found */
-  {
-    *ptype = -1;
-
-    if (is_genesis(outFname))
-      *ptype = GENESIS_FILE;
-    else if (is_ge_lx(outFname))
-      *ptype = GE_LX_FILE;
-    else if (is_brik(outFname))
-      *ptype = BRIK_FILE;
-    else if (is_siemens(outFname))
-      *ptype = SIEMENS_FILE;
-    else if (is_analyze(outFname))
-      *ptype = MRI_ANALYZE_FILE;
-    else if (is_signa(outFname))
-      *ptype = SIGNA_FILE;
-    else if (is_sdt(outFname))
-      *ptype = SDT_FILE;
-    else if (is_mgh(outFname))
-      *ptype = MRI_MGH_FILE;
-    else if (is_mnc(outFname))
-      *ptype = MRI_MINC_FILE;
-    else if (is_bshort(outFname))
-      *ptype = BSHORT_FILE;
-    else {
-      if (stat(outFname, &stat_buf) < 0) {
-        errno = 0;
-        ErrorReturn(ERROR_BADFILE, (ERROR_BAD_FILE, "can't stat file %s", outFname));
-      }
-      if (S_ISDIR(stat_buf.st_mode)) *ptype = MRI_CORONAL_SLICE_DIRECTORY;
-    }
-
-    if (*ptype == -1) {
-      errno = 0;
-      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unrecognized file type for file %s", outFname));
-    }
-  }
-
-  return (NO_ERROR);
-}
 
 /*---------------------------------------------------------------
   MRIwriteAnyFormat() - saves the data in the given mri structure to

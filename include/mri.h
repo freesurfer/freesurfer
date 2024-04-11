@@ -717,7 +717,6 @@ double MRImeanFrameThresh(MRI *mri, int frame, float thresh);
 /*
   int    MRIwrite(MRI *mri, char *fpref) ;
 */
-int    MRIappend(MRI *mri,const char *fpref) ;
 int    MRIwriteInfo(MRI *mri,const char *fpref) ;
 /* ch ov */
 /*
