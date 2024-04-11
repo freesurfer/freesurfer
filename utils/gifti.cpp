@@ -1358,6 +1358,7 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
     mri->nframes = frame_count;
     mri->intent = intent;
     mri->version = version;
+    mri->ct = ct;
     // not sure this is the best way to do this (dng, 4/4/17)
     if (image->numDA > 0) {
       char *stmp = gifti_get_meta_value(&image->darray[0]->meta, "TimeStep");
