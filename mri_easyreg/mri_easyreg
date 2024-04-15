@@ -93,6 +93,10 @@ def main():
         if np.sum(ref_seg_buffer>1000)==0:
             sf.system.fatal('No cortical labels found; does the segmentation include cortical parcels?')
         segmentation_net = None
+        # even nearest neighbour interpolation can cause issues with matching labels,
+        # so we need to handle the segmentation values
+        if np.issubdtype( ref_seg_buffer.dtype, float ):
+            ref_seg_buffer = np.round(ref_seg_buffer).astype(int)
     else:
         print('Segmenting reference image')
         print('   Reading reference image')
@@ -125,6 +129,10 @@ def main():
         flo_seg_buffer, flo_seg_aff, flo_h = load_volume(args.flo_seg, im_only=False, squeeze=True, dtype=None, aff_ref=None)
         if np.sum(flo_seg_buffer>1000)==0:
             sf.system.fatal('No cortical labels found; does the segmentation include cortical parcels?')
+        # even nearest neighbour interpolation can cause issues with matching labels,
+        # so we need to handle the segmentation values
+        if np.issubdtype( flo_seg_buffer.dtype, float ):
+            flo_seg_buffer = np.round(flo_seg_buffer).astype(int)
     else:
         print('Segmenting floating image')
         print('   Reading floating image')
