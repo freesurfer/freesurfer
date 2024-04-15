@@ -376,16 +376,16 @@ MRI* Warpfield::invert(GCA_MORPH *gcam, const int dataformat)
 GCA_MORPH *Warpfield::read(const char *fname)
 {
   int type = mri_identify(fname);
-  if (type != MRI_MGH_FILE)
+  if (type != MRI_MGH_FILE && type != NII_FILE)
   {
-    printf("[ERROR] Warpfield::read(): %s is not in mgz format\n", fname);
+    printf("[ERROR] Warpfield::read(): %s is not in mgz/nii format\n", fname);
     return NULL;
   }
   
   // the function doesn't handle invert warp
   __mgzVersion = ((MGZ_INTENT_WARPMAP & 0xff ) << 8) | MGH_VERSION;
 
-  __warpmap = mghRead(fname);
+  __warpmap = MRIread(fname);  //mghRead(fname);
   if (__warpmap == NULL)
   {
     printf("[ERROR] Warpfield::read() failed reading %s\n", fname);
@@ -522,16 +522,16 @@ GCA_MORPH *Warpfield::read(const char *fname)
 int Warpfield::write(const char *fname)
 {
   int type = mri_identify(fname);
-  if (type != MRI_MGH_FILE)
+  if (type != MRI_MGH_FILE && type != NII_FILE)
   {
-    printf("[ERROR] Warpfield::write(): %s is not in mgz format\n", fname);
+    printf("[ERROR] Warpfield::write(): %s is not in mgz/nii format\n", fname);
     exit(1);
   }
   
   if (__invert)
     __mgzVersion = ((MGZ_INTENT_WARPMAP_INV & 0xff ) << 8) | MGH_VERSION;
 
-  int ret = mghWrite(__warpmap, fname);
+  int ret = MRIwrite(__warpmap, fname);  //mghWrite(__warpmap, fname);
   if (ret)
     printf("ERROR: Warpfield::write(%s)\n", fname);
   

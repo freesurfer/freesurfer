@@ -290,21 +290,21 @@ struct VOL_GEOM
   void vgprint(bool nocheck=false)
   {
     if (valid == 1 || nocheck) {
-      fprintf(stderr, "volume geometry:\n");
+      fprintf(stdout, "volume geometry:\n");
       if (nocheck)
-        fprintf(stderr, "valid   : %d\n", valid);
-      fprintf(stderr, "extent  : (%d, %d, %d)\n", width, height, depth);
-      fprintf(stderr, "voxel   : (%7.4f, %7.4f, %7.4f)\n", xsize, ysize, zsize);
-      fprintf(stderr, "x_(ras) : (%7.4f, %7.4f, %7.4f)\n", x_r, x_a, x_s);
-      fprintf(stderr, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", y_r, y_a, y_s);
-      fprintf(stderr, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", z_r, z_a, z_s);
-      fprintf(stderr, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", c_r, c_a, c_s);
-      fprintf(stderr, "file    : %s\n", fname);
+        fprintf(stdout, "valid   : %d\n", valid);
+      fprintf(stdout, "extent  : (%d, %d, %d)\n", width, height, depth);
+      fprintf(stdout, "voxel   : (%7.4f, %7.4f, %7.4f)\n", xsize, ysize, zsize);
+      fprintf(stdout, "x_(ras) : (%7.4f, %7.4f, %7.4f)\n", x_r, x_a, x_s);
+      fprintf(stdout, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", y_r, y_a, y_s);
+      fprintf(stdout, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", z_r, z_a, z_s);
+      fprintf(stdout, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", c_r, c_a, c_s);
+      fprintf(stdout, "file    : %s\n", fname);
     }
     else
-      fprintf(stderr, "volume geometry: info is either not contained or not valid.\n");
+      fprintf(stdout, "volume geometry: info is either not contained or not valid.\n");
 
-    fflush(stderr);    
+    fflush(stdout);    
   }
   
   // return 1 if two VOL_GEOMs equal;
@@ -343,10 +343,8 @@ struct VOL_GEOM
   };
 
   // write VOL_GEOM to znzFile
-  void write(znzFile fp)
+  void write(znzFile fp, bool niftiheaderext=false)
   {
-    char buf[512];
-
     znzwriteInt(valid, fp);
     znzwriteInt(width, fp);
     znzwriteInt(height, fp);
@@ -366,14 +364,30 @@ struct VOL_GEOM
     znzwriteFloat(c_r, fp);
     znzwriteFloat(c_a, fp);
     znzwriteFloat(c_s, fp);
-    
-    memset(buf, 0, 512 * sizeof(char));
-    strcpy(buf, fname);
-    znzwrite(buf, sizeof(char), 512, fp);    
+
+    int len_max = 512;    
+    if (!niftiheaderext)
+    {
+      char buf[len_max];    
+      memset(buf, 0, len_max * sizeof(char));
+      memcpy(buf, fname, len_max);
+      znzwrite(buf, sizeof(char), len_max, fp);
+    }
+    else
+    {
+      // variable length fname, if length = 0, no fname output follows
+      int len_fname = strlen(fname);
+      len_fname = (len_fname > len_max) ? len_max : len_fname;
+      znzwriteInt(len_fname, fp);
+      //printf("[DEBUG] VOL_GEOM::write() fname length= %-4d (%s)\n", len_fname, fname);
+
+      if (len_fname > 0)
+        znzwrite(fname, sizeof(char), len_fname, fp);
+    }
   }
 
   // read VOL_GEOM from znzFile
-  void read(znzFile fp)
+  void read(znzFile fp, bool niftiheaderext=false)
   {
     valid = znzreadInt(fp);
     width = znzreadInt(fp);
@@ -394,9 +408,35 @@ struct VOL_GEOM
     c_r = znzreadFloat(fp);
     c_a = znzreadFloat(fp);
     c_s = znzreadFloat(fp);
-    
-    memset(fname, 0, 512 * sizeof(char));
-    znzread(fname, sizeof(char), 512, fp);    
+
+    int len_max = 512;
+    if (!niftiheaderext)
+    {
+      memset(fname, 0, len_max * sizeof(char));
+      znzread(fname, sizeof(char), len_max, fp);
+    }
+    else
+    {
+      // variable length fname, if length = 0, no fname output follows
+      // read the first len_max bytes, skip the rest
+      int len_fname = znzreadInt(fp);
+      int to_read = (len_fname > len_max) ? len_max : len_fname;
+      if (to_read > 0)
+      {
+        znzread(fname, sizeof(char), to_read, fp);
+        //printf("[DEBUG] VOL_GEOM::read() fname length= %-4d (%s)\n", to_read, fname);
+
+	// skip the remaining bytes
+	int remaining = len_fname - to_read;
+	if (remaining > 0)
+	{
+	  char buf[remaining];
+	  znzread(buf, sizeof(char), remaining, fp);
+          //printf("[DEBUG] VOL_GEOM::read() fname skipped bytes = %-4d\n", remaining);
+	  
+	}
+      }
+    }
   }
 };
 
@@ -677,7 +717,6 @@ double MRImeanFrameThresh(MRI *mri, int frame, float thresh);
 /*
   int    MRIwrite(MRI *mri, char *fpref) ;
 */
-int    MRIappend(MRI *mri,const char *fpref) ;
 int    MRIwriteInfo(MRI *mri,const char *fpref) ;
 /* ch ov */
 /*
@@ -1339,8 +1378,6 @@ MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
                                       MRI_REGION *region, int norm) ;
 int        MRIfileType(char *fname) ;
-int        MRIunpackFileName(const char *inFname, int *pframe, int *ptype,
-                             char *outFname) ;
 int        MRIisValid(MRI *mri) ;
 MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
 

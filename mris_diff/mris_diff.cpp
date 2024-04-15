@@ -393,6 +393,8 @@ int main(int argc, char *argv[]) {
   check_options();
   if (checkoptsonly) return(0);
 
+  printf("%s\n", cmdline);
+  
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR == NULL) {
     printf("INFO: SUBJECTS_DIR not defined in environment\n");

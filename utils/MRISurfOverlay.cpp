@@ -42,10 +42,10 @@ MRISurfOverlay::~MRISurfOverlay()
 /* static member method to return file type for the given file
  *
  *  The following file types are considered valid overlay files:
- *    MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
+ *    MRI_CURV_FILE, MRI_MGH_FILE/NII_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE
  * For file types other than those, return MRI_VOLUME_TYPE_UNKNOWN to callers.
  *
- * Notes: This class only handles MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE now.
+ * Notes: This class only handles MRI_CURV_FILE, MRI_MGH_FILE/NII_FILE, GIFTI_FILE now.
  */
 int MRISurfOverlay::getFileFormat(const char *foverlay)
 {
@@ -57,7 +57,7 @@ int MRISurfOverlay::getFileFormat(const char *foverlay)
     mritype = ASCII_FILE;
 
   if ((mritype != MRI_CURV_FILE &&     // it is NEW_VERSION_MAGIC_NUMBER if it has type MRI_CURV_FILE
-       mritype != MRI_MGH_FILE  && mritype != GIFTI_FILE) &&
+       mritype != MRI_MGH_FILE  && mritype != NII_FILE  && mritype != GIFTI_FILE) &&
       (mritype != ASCII_FILE && mritype != VTK_FILE)) 
     mritype = MRI_VOLUME_TYPE_UNKNOWN;
 
@@ -114,13 +114,13 @@ int MRISurfOverlay::read(int read_volume, MRIS *mris, bool mergegifti, bool spli
 /*
  * The following file formats are supported:
  *   shape measurements (.curv, .sulc, .area, .thickness), stats (.mgh), .gii
- *   (MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE). 
+ *   (MRI_CURV_FILE, MRI_MGH_FILE/NII_FILE, GIFTI_FILE). 
  *   MRI_CURV_FILE is the new CURV format with MAGICNO. = 16777215.
  *
  *   Overlay files can also be in ASCII_FILE, VTK_FILE, and old CURV formats (read). 
  *
  * The overlay data has 1D morphometry data (vertex-wise measures) or other per-vertex information.
- * The data is read into MRI representation in this class for MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE.
+ * The data is read into MRI representation in this class for MRI_CURV_FILE, MRI_MGH_FILE/NII_FILE, GIFTI_FILE.
  */
 int MRISurfOverlay::__readOneOverlay(OverlayInfoStruct *overlayInfo, int read_volume, MRIS *mris, bool usemri)
 {
@@ -181,9 +181,9 @@ int MRISurfOverlay::__readOneOverlay(OverlayInfoStruct *overlayInfo, int read_vo
 
 
 /* - Output overlay data to disk.
- * - file formats supported are MRI_CURV_FILE, MRI_MGH_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE.
+ * - file formats supported are MRI_CURV_FILE, MRI_MGH_FILE/NII_FILE, GIFTI_FILE, ASCII_FILE, VTK_FILE.
  * - ASCII_FILE, VTK_FILE, MRI_CURV_FILE can have only one frame of data. Use mris to output.
- * - MRI_MGH_FILE and GIFTI_FILE can have multi-frame data. mris is needed for GIFTI_FILE output.
+ * - MRI_MGH_FILE/NII_FILE and GIFTI_FILE can have multi-frame data. mris is needed for GIFTI_FILE output.
  */
 int MRISurfOverlay::write(MRIS *mris, const char *fout, bool mergegifti, bool splitgifti, const char *outdir)
 {
@@ -207,8 +207,8 @@ int MRISurfOverlay::write(MRIS *mris, const char *fout, bool mergegifti, bool sp
 
   if (noverlay > 1 &&
       (outtype == ASCII_FILE   || outtype == VTK_FILE || 
-       outtype == MRI_MGH_FILE || outtype == MRI_CURV_FILE))
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - ASCII_FILE/VTK_FILE/MRI_MGH_FILE/MRI_CURV_FILE has more than one overlay"));
+       outtype == MRI_MGH_FILE || outtype == NII_FILE || outtype == MRI_CURV_FILE))
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISurfOverlay::write() - ASCII_FILE/VTK_FILE/MRI_MGH_FILE/NII_FILE/MRI_CURV_FILE has more than one overlay"));
 
   int error = NO_ERROR;
   if (mergegifti)

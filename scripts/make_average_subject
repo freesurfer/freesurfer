@@ -36,6 +36,9 @@ set KeepAllOrig = 0;
 set DoRibbon = 1
 set hemilist = (lh rh);
 set rcathreads = 1
+# Turn off requirement to match version
+setenv REQUIRE_FS_MATCH 0
+
 
 set cmdargs = ($argv);
 
@@ -159,6 +162,12 @@ while( $#argv != 0 )
     case "--ico":
       if($#argv < 1) goto arg1err;
       set IcoOrder = $argv[1]; shift;
+      breaksw
+
+    case "--threads"
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift
+      set rcathreads = $threads
       breaksw
 
     case "--rca-threads":

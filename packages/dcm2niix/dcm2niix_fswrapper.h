@@ -24,16 +24,22 @@ public:
 
   // interface to nii_loadDirCore() to search all dicom files from the directory input file is in,
   // and convert dicom files with the same series as given file.
-  static int dcm2NiiOneSeries(const char* dcmfile);
+  static int dcm2NiiOneSeries(const char* dcmfile, bool convert=true);
 
-  // interface to nii_getMrifsStruct()
+  // interface to nii_dicom_batch.cpp::nii_getMrifsStruct()
   static MRIFSSTRUCT* getMrifsStruct(void);
+
+  // interface to nii_dicom_batch.cpp::nii_clrMrifsStruct()
+  static void clrMrifsStruct(void);
 
   // return nifti header saved in MRIFSSTRUCT 
   static nifti_1_header* getNiiHeader(void);
 
-  // interface to nii_getMrifsStructVector()
+  // interface to nii_dicom_batch.cpp::nii_getMrifsStructVector()
   static std::vector<MRIFSSTRUCT>* getMrifsStructVector(void);
+
+  // interface to nii_dicom_batch.cpp::nii_clrMrifsStructVector()
+  static void clrMrifsStructVector(void);
 
   // return image data saved in MRIFSSTRUCT
   static const unsigned char* getMRIimg(void);

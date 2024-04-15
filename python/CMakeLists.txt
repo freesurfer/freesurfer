@@ -112,6 +112,46 @@ function(fspython_patch)
    )
 endfunction()
 
+function(integrate_samseg)
+  # pip install samseg
+  set(PIP_INSTALL_FLAGS "--no-dependencies --disable-pip-version-check --upgrade")
+  set(STANDALONE_SAMSEG_PATH "${CMAKE_CURRENT_BINARY_DIR}/git-samseg.standalone")
+  if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
+    set(STANDALONE_SAMSEG_PATH "${USER_SAMSEG_PATH}")
+    # editable samseg install doesn't work in the following build environments:
+    # 1. if DISTRIBUTE_FSPYTHON=OFF,
+    #       module samseg cannot be found
+    # 2. if DISTRIBUTE_FSPYTHON=ON and INSTALL_PYTHON_DEPENDENCIES=OFF,
+    #       samseg dependencies modules cannot be found
+    set(PIP_INSTALL_FLAGS "${PIP_INSTALL_FLAGS} --editable")
+  endif()
+  set(STANDALONE_SAMSEG_URL  "https://github.com/freesurfer/samseg.git")
+  
+  set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
+        
+  install(CODE "
+    message(STATUS \" for HOST_OS=${HOST_OS} \")
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} \")
+    message(STATUS \" PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} PYTHON_INSTALL=${CMAKE_INSTALL_PREFIX}/python/bin/python3 PKG_TARGET=${PKG_TARGET} \")
+
+    if(\"${USER_SAMSEG_PATH}\" STREQUAL \"\")
+      message(STATUS \" git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH} \")
+      execute_process(COMMAND bash -c \"git clone --quiet ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH}\" result_variable retcode)
+      if(NOT ${retcode} STREQUAL 0)
+        message(FATAL_ERROR \"could not git clone standalone samseg\")
+      endif()
+    endif()
+
+    # no check/install samseg dependencies, all dependencies will be handled in requirement files
+    message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} APPLE_ARM64=${APPLE_ARM64} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} APPLE_ARM64=${APPLE_ARM64} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not install Standalone Samseg\")
+    endif()"
+  )
+endfunction()
+
 # used as current default for intel linux and mac builds
 if(DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES ON")
@@ -161,8 +201,15 @@ if(NOT DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
    # Use an existing 3rd party python instead of base python distribution
    # install C bindings, etc. under python/packages
    # NO pre-installed site-packages, add fspython wrapper
+   # set PKG_TARGET, this is needed for integrate_samseg()
+   set(PKG_TARGET "--target=${CMAKE_INSTALL_PREFIX}/python/packages")   
    packages_install()
    fspython_script_install()
+endif()
+
+
+if(INTEGRATE_SAMSEG)
+  integrate_samseg()
 endif()
 
 

@@ -265,7 +265,7 @@ int TransformCRS2MNI305(const MRI *mri, const double col, const double row, cons
 MATRIX *TranformAffineParams2Matrix(double *p, MATRIX *M);
 double *TranformExtractAffineParams(MATRIX *M, double *p);
 double TransformAffineParamTest(int niters, double thresh);
-
+int conformGeom(VOL_GEOM *vg, bool conform_min, float conform_size0, bool confkeepdc);
 
 // This is a class used to create a registration from landmarks, ie, 
 // when you have sets of matching points in both spaces.

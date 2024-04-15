@@ -73,7 +73,7 @@ GCAM* readM3Z(const string& warp_file)
   return gcam;
 }
 
-// input is MRI_MGH_FILE
+// input is MRI_MGH_FILE/NII_FILE
 GCAM *readMGZWarp(const string& mgzwarpfile)
 {
   Warpfield *warpfield = new Warpfield();
@@ -423,7 +423,8 @@ void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
 // Write an m3z file. Just calls down to GCAMwrite
 {
   GCA_MORPH* out = downsample ? GCAMdownsample2(gcam) : gcam;
-  GCAMwrite(out, fname.c_str());
+  int err = GCAMwrite(out, fname.c_str());
+  if(err) exit(1);
   if (downsample) {
       GCAMfree(&out);
   }

@@ -58,6 +58,8 @@ typedef struct {
   const char *xform_name; // eg, talairach.xfm
   int ReverseMapFlag; // map unmapped vertices in the source, generally 1
   int UseHash; // use hash table for speed, generally 1
+  LTA *DestLTA=NULL;
+  int Conform=0;
 } AVERAGE_SURFACE_PARAMS;
 MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp);
 AVERAGE_SURFACE_PARAMS *MRISaverageSurfaceParamAlloc(int nsubjects);

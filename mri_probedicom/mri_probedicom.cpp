@@ -119,6 +119,7 @@ int doSiemensASCIIAltDump(const char *dicomfile, FILE *fpout);
 
 /*size_t RepSize(int RepCode);*/
 const char *ElementValueFormat(DCM_ELEMENT *e);
+int DCMCompare_dcm2niix(char *dcmfile1, char *dcmfile2, double thresh);
 int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh);
 double DCMCompareThresh = .00001;
 
@@ -400,7 +401,7 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 2) argnerr(option,2);
       dicomfile1 = pargv[0];
       dicomfile2 = pargv[1];
-      if(DCMCompare(dicomfile1,dicomfile2,DCMCompareThresh)) exit(1);
+      if(DCMCompare_dcm2niix(dicomfile1,dicomfile2,DCMCompareThresh)) exit(1);
       exit(0);
       nargsused = 2;
     } 
@@ -1536,6 +1537,245 @@ int RenderImage(int argc, char **argv) {
   return(0);
 }
 #endif // HAVE_OPENGL
+
+
+/* compare on key DICOM tags using values retrieved by dcm2niix
+ *  0 Manufacturer (0008,0070)
+ *  1 Model (0008,1090)
+ *  2 Software Version (0018,1020)
+ *  3 Institution (0008,0080)
+ *  4 Imaging Frequency (0018,0084)
+ *  5 Pixel Frequency (0018,0095)
+ *  6 Field Strength (0018,0087)
+ *  7 Pulse Sequence (0018,0024)   
+ *  8 Flip Angle (0018,1314)
+ *  9 Echo Time (0018,0081)
+ * 10 Inversion Time (0018,0082)
+ * 11 Repetition Time (0018,0080)
+ * 12 Phase Encode Direction (0018,1312)
+ * 13 Pixel Spacing (0028,0030)
+ * 14 Rows (0028,0010)
+ * 15 Cols (0028,0011)
+ * 16 Slice Thickness (0018,0050)
+ * 17 Slice Distance (0018,0088)
+ */
+int DCMCompare_dcm2niix(char *dcmfile1, char *dcmfile2, double thresh)
+{
+  bool convert = false;
+
+  dcm2niix_fswrapper::clrMrifsStructVector();
+  
+  std::string tmpfile = makeTempFile(".txt");
+  FILE *tmpfp = fopen(tmpfile.c_str(), "w");
+  fprintf(tmpfp, "%s\n", dcmfile1);
+  fclose(tmpfp);
+  DCM2NIIX_DICOM_FLIST = tmpfile.c_str();
+  std::vector<MRIFSSTRUCT> *mrifsStruct_vector1 = DICOMRead3(dcmfile1, convert);
+ 
+  tmpfile = makeTempFile(".txt");
+  tmpfp = fopen(tmpfile.c_str(), "w");
+  fprintf(tmpfp, "%s\n", dcmfile2);
+  fclose(tmpfp);
+  DCM2NIIX_DICOM_FLIST = tmpfile.c_str();
+  std::vector<MRIFSSTRUCT> *mrifsStruct_vector2 = DICOMRead3(dcmfile2, convert);
+  
+  const struct TDICOMdata *tdicomData1 = &((*mrifsStruct_vector1)[0].tdicomData);
+  const struct TDICOMdata *tdicomData2 = &((*mrifsStruct_vector2)[1].tdicomData);
+
+  fprintf(stdout, "\n************************************************************\n");
+  
+  int nth = 0, isdiff = 0;
+  
+  // "Manufacturer";           (0x0008, 0x0070)
+  const char *mfr1 = dcm2niix_fswrapper::mfrCode2Str(tdicomData1->manufacturer);
+  const char *mfr2 = dcm2niix_fswrapper::mfrCode2Str(tdicomData2->manufacturer);
+  fprintf(stdout, "%2d Manufacturer (0008,0070) %s %s ", nth, mfr1, mfr2);
+  if (strcmp(mfr1, mfr2) != 0)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;
+  }
+  fprintf(stdout, "\n");
+  
+  // "Model";                  (0x0008, 0x1090)
+  nth++;  
+  fprintf(stdout, "%2d Model (0008,1090) %s %s ", nth, tdicomData1->manufacturersModelName, tdicomData2->manufacturersModelName);
+  if (strcmp(tdicomData1->manufacturersModelName, tdicomData2->manufacturersModelName) != 0)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;
+  }
+  fprintf(stdout, "\n");
+  
+  // "Software Version";       (0x0018, 0x1020)
+  nth++;    
+  fprintf(stdout, "%2d Software Version (0018,1020) %s %s ", nth, tdicomData1->softwareVersions, tdicomData2->softwareVersions);
+  if (strcmp(tdicomData1->softwareVersions, tdicomData2->softwareVersions) != 0)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;
+  }
+  fprintf(stdout, "\n");
+  
+  // "Institution";            (0x0008, 0x0080)
+  nth++;
+  fprintf(stdout, "%2d Institution (0008,0080) %s %s ", nth, tdicomData1->institutionName, tdicomData2->institutionName);
+  if (strcmp(tdicomData1->institutionName, tdicomData2->institutionName) != 0)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;
+  }
+  fprintf(stdout, "\n");
+
+  // "Imaging Frequency";      (0x0018, 0x0084)
+  nth++;
+  fprintf(stdout, "%2d Imaging Frequency (0018,0084) %f %f  ", nth, tdicomData1->imagingFrequency, tdicomData2->imagingFrequency);
+  if (fabs(tdicomData1->imagingFrequency - tdicomData2->imagingFrequency) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;            
+  }
+  fprintf(stdout, "\n");
+
+  // "Pixel Frequency";        (0x0018, 0x0095)
+  nth++;
+  fprintf(stdout, "%2d Pixel Frequency (0018,0095) %f %f  ", nth, tdicomData1->pixelBandwidth, tdicomData2->pixelBandwidth);
+  if (fabs(tdicomData1->pixelBandwidth - tdicomData2->pixelBandwidth) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;            
+  }
+  fprintf(stdout, "\n");
+  
+  // "Field Strength";         (0x0018, 0x0087)
+  nth++;
+  fprintf(stdout, "%2d Field Strength (0018,0087) %f %f  ", nth, tdicomData1->fieldStrength, tdicomData2->fieldStrength);
+  if (fabs(tdicomData1->fieldStrength - tdicomData2->fieldStrength) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;            
+  }
+  fprintf(stdout, "\n");
+  
+  // "Pulse Sequence";         (0x0018, 0x0024)
+  nth++;  
+  fprintf(stdout, "%2d Pulse Sequence (0018,0024) %s %s ", nth, tdicomData1->sequenceName, tdicomData2->sequenceName);
+  if (strcmp(tdicomData1->sequenceName, tdicomData2->sequenceName) != 0)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;
+  }
+  fprintf(stdout, "\n");
+
+  // dcm2niix doesn't seem to retrieve this
+  // kTransmitCoilName 0x0018 + (0x1251 << 16) // SH issue527
+  // "Transmitting Coil"       (0x0018, 0x1251)
+  
+  // "Flip Angle";             (0x0018, 0x1314)
+  nth++;
+  fprintf(stdout, "%2d Flip Angle (0018,1314) %f %f  ", nth, tdicomData1->flipAngle, tdicomData2->flipAngle);
+  if (fabs(tdicomData1->flipAngle - tdicomData2->flipAngle) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;            
+  }
+  fprintf(stdout, "\n");
+
+  // "Echo Time";              (0x18, 0x0081)
+  nth++;
+  fprintf(stdout, "%2d Echo Time (0018,0081) %f %f  ", nth, tdicomData1->TE, tdicomData2->TE);
+  if (fabs(tdicomData1->TE - tdicomData2->TE) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;            
+  }
+  fprintf(stdout, "\n");
+    
+  // "Inversion Time";         (0x0018, 0x0082)
+  nth++;
+  fprintf(stdout, "%2d Inversion Time (0018,0082) %f %f  ", nth, tdicomData1->TI, tdicomData2->TI);
+  if (fabs(tdicomData1->TI - tdicomData2->TI) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;    
+  }
+  fprintf(stdout, "\n");
+
+  // "Repetition Time";        (0x0018, 0x0080)
+  nth++;
+  fprintf(stdout, "%2d Repetition Time (0018,0080) %f %f  ", nth, tdicomData1->TR, tdicomData2->TR);
+  if (fabs(tdicomData1->TR - tdicomData2->TR) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;        
+  }
+  fprintf(stdout, "\n");
+
+  // "Phase Encode Direction"; (0x0018, 0x1312)
+  nth++;
+  fprintf(stdout, "%2d Phase Encode Direction (0018,1312) %c %c  ", nth, tdicomData1->phaseEncodingRC, tdicomData2->phaseEncodingRC);
+  if (tdicomData1->phaseEncodingRC != tdicomData2->phaseEncodingRC)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;    
+  }
+  fprintf(stdout, "\n");
+
+  // "Pixel Spacing";          (0x0028, 0x0030)
+  nth++;
+  fprintf(stdout, "%2d Pixel Spacing (0028,0030) (%f\\%f) (%f\\%f) ", nth, tdicomData1->xyzMM[1], tdicomData1->xyzMM[2], tdicomData2->xyzMM[1], tdicomData2->xyzMM[2]);
+  if (fabs(tdicomData1->xyzMM[1] - tdicomData2->xyzMM[1]) > thresh ||
+      fabs(tdicomData1->xyzMM[2] - tdicomData2->xyzMM[2]) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;    
+  }
+  fprintf(stdout, "\n");
+
+  // "Rows";                   (0x28, 0x0010)
+  nth++;
+  fprintf(stdout, "%2d Rows (0028,0010) %d %d  ", nth, tdicomData1->xyzDim[2], tdicomData2->xyzDim[2]);  
+  if (tdicomData1->xyzDim[2] != tdicomData2->xyzDim[2])
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;    
+  }
+  fprintf(stdout, "\n");
+   
+  // "Cols";                   (0x0028, 0x0011)
+  nth++;
+  fprintf(stdout, "%2d Cols (0028,0011) %d %d  ", nth, tdicomData1->xyzDim[1], tdicomData2->xyzDim[1]);
+  if (tdicomData1->xyzDim[1] != tdicomData2->xyzDim[1])
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;    
+  }
+  fprintf(stdout, "\n");
+   
+  // "Slice Thickness";        (0x0018, 0x0050)
+  nth++;
+  fprintf(stdout, "%2d Slice Thickness (0018,0050) %f %f  ", nth, tdicomData1->zThick, tdicomData2->zThick);
+  if (fabs(tdicomData1->zThick - tdicomData2->zThick) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;    
+  }
+  fprintf(stdout, "\n");
+
+  // "Slice Distance";         (0x0018, 0x0088)
+  nth++;
+  fprintf(stdout, "%2d Slice Distance (0018,0088) %f %f  ", nth, tdicomData1->zSpacing, tdicomData2->zSpacing);
+  if (fabs(tdicomData1->zSpacing - tdicomData2->zSpacing) > thresh)
+  {
+    fprintf(stdout, "  -------- Files differ\n");
+    isdiff = 1;
+  }
+  fprintf(stdout, "\n");
+
+  fflush(stdout);
+  
+  return isdiff;
+}
 
 
 int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh)

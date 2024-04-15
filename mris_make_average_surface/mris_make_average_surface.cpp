@@ -108,7 +108,10 @@ ENDHELP
 #include "fio.h"
 #include "gca.h"
 #include "gcamorph.h"
-
+#include "mrisurf_metricProperties.h"
+#ifdef _OPENMP
+#include "romp_support.h"
+#endif
 
 int main(int argc, char *argv[]) ;
 
@@ -130,9 +133,11 @@ const char *Progname ;
 static char *sdir = NULL, *sdirout = NULL;
 
 char *TargTempVolPath = NULL;
+LTA *DestLTA=NULL;
+int  RemoveIntersections = 0;
+int Conform=0;
 
-int
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN],
   *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
   int          ac, nargs, i, vno, n, err ;
@@ -218,6 +223,12 @@ main(int argc, char *argv[]) {
     asp->surfname = avg_surf_name;
     asp->surfregname = canon_surf_name;
     asp->xform_name = xform_name;
+    if(DestLTA && Conform){
+      printf("ERROR: cannot have -d (destination LTA) and -c (conform)\n");
+      exit(1);
+    }
+    asp->DestLTA = DestLTA;
+    asp->Conform = Conform;
     n=0;
     for (i = 5 ; i < argc ; i++) {
       asp->subjectlist[n] = strcpyalloc(argv[i]);
@@ -230,6 +241,15 @@ main(int argc, char *argv[]) {
     getVolGeom(mritemplate, &surf->vg);
     MRIfree(&mritemplate);
     
+    if(RemoveIntersections){
+      printf("Remvoing intersections\n");
+      int FillHoles = 1;
+      mrisMarkIntersections(surf,FillHoles);
+      int nintersections=0;
+      for(int n=0; n < surf->nvertices; n++) if(surf->vertices[n].marked) nintersections++;
+      printf("Found %d intersections\n",nintersections);
+      MRISremoveIntersections(surf,FillHoles) ;
+    }
     sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
     printf("writing average %s surface to %s\n", avg_surf_name, fname);
     MRISwrite(surf,fname) ;
@@ -279,7 +299,7 @@ main(int argc, char *argv[]) {
 
     // read T1 volume
     sprintf(fname, "%s/%s/mri/T1.mgz", sdir, argv[i]) ;
-    if (fio_FileExistsReadable(fname)) mri = MRIreadHeader(fname,MRI_MGH_FILE);
+    if (fio_FileExistsReadable(fname)) mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN);
     else {
       sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
       mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;
@@ -419,6 +439,7 @@ main(int argc, char *argv[]) {
   // This catches cases where vertex 0 and vertex 40969 have the same coordinate
   if(mris_ico->nvertices == 163842)
     MRISfixAverageSurf7(mris_ico);
+
   sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
@@ -480,6 +501,14 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "no-surf2surf")) {
     UseSurf2Surf = 0;
   } 
+  else if (!stricmp(option, "threads")) {
+    int threads=1;
+    sscanf(argv[2],"%d",&threads);
+    #ifdef _OPENMP
+    omp_set_num_threads(threads);
+    #endif
+    nargs = 1 ;
+  } 
   else if (!stricmp(option, "simple")) {
     // Stand-alone function to compute an average of surfaces
     // -simple averagesurf surf1 surf2 ...
@@ -499,6 +528,14 @@ get_option(int argc, char *argv[]) {
     int err = MRISwrite(avgsurf,argv[2]);
     exit(err);
   } 
+  else if (!stricmp(option, "conform")) {
+    Conform = 1;
+    printf("Mapping surfaces to conformed output space\n");
+  }
+  else if (!stricmp(option, "noconform")) {
+    Conform = 0;
+    printf("Not conforming output space\n");
+  }
   else switch (toupper(*option)) {
     case 'I':
       ico_no = atoi(argv[2]) ;
@@ -508,6 +545,15 @@ get_option(int argc, char *argv[]) {
       xform_name = argv[2] ;
       nargs = 1 ;
       printf("using xform %s...\n", xform_name) ;
+      break ;
+    case 'D':
+      DestLTA = LTAread(argv[2]);
+      printf("using dest LTA %s...\n", argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'R':
+      RemoveIntersections = 1;
+      printf("Removing intersections\n");
       break ;
     case 'T':
       TargTempVolPath = argv[2] ;
@@ -582,42 +628,19 @@ print_help(void) {
   printf("  outsubject  - name of subject to store the results in\n");
   printf("\n");
   printf("  OPTIONS\n");
+  printf("  -nonorm : Do not normalize area\n");
+  printf("  -d DestLTA : apply LTA to the average surface\n");
+  printf("  -i icoorder : Use given icosahedron order (default is 7)\n");
+  printf("  -r : remove intersections in the output\n");
+  printf("  -s surfname Use surfname instead of orig\n");
+  printf("  -t templatename : Volume to use as geometry template for output surfaces\n");
+  printf("  -x xfmname : Use transforms/xfmname instead of talairach.xfm\n");
+  printf("  -conform : map output to the conformed space (-noconform)\n");
   printf("\n");
-  printf("  -help \n");
-  printf("\n");
-  printf("  Print help and exit.\n");
-  printf("\n");
+  printf("  -help Print help and exit.\n");
   printf("  -version\n");
-  printf("\n");
-  printf("  Print version and exit\n");
-  printf("\n");
-  printf("  -sdir sdir\n");
-  printf("\n");
-  printf("  Use sdir instead of SUBJECTS_DIR\n");
-  printf("\n");
-  printf("  -sdir-out sdirout\n");
-  printf("\n");
-  printf("  Save results in sdirout/outsubject "
-         "instead of SUBJECTS_IDR/outsubject.\n");
-  printf("\n");
-  printf("  -nonorm\n");
-  printf("\n");
-  printf("  Do not normalize area\n");
-  printf("\n");
-  printf("  -i icoorder\n");
-  printf("\n");
-  printf("  Use given icosahedron order (default is 7)\n");
-  printf("\n");
-  printf("  -x xfmname\n");
-  printf("\n");
-  printf("  Use transforms/xfmname instead of talairach.xfm\n");
-  printf("\n");
-  printf("  -t templatename\n");
-  printf("\n");
-  printf("  Volume to use as geometry template for output surfaces\n");
-  printf("\n");
-  printf("  -s surfname\n");
-  printf("  Use surfname instead of orig\n");
+  printf("  -sdir sdir : Use sdir instead of SUBJECTS_DIR\n");
+  printf("  -sdir-out sdirout : Save results in sdirout/outsubject instead of SUBJECTS_IDR/outsubject.\n");
   printf("\n");
   printf("-surf2surf, -no-surf2surf\n");
   printf("  Use (don't use) surf2surf transform instead of parametric surface.\n");

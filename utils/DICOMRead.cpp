@@ -6056,9 +6056,10 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 /*--------------------------------------------------------------
   DICOMRead3() - generic dicom reader using dcm2niix_fswrapper. 
   --------------------------------------------------------------*/
-std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume)
+std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, bool convert)
 {
-  printf("Starting DICOMRead3()\n");
+  //printf("Starting DICOMRead3()\n");
+  printf("\n");
 
   if (!fio_FileExistsReadable(dcmfile)) {
     printf("ERROR: file %s does not exist.\n", dcmfile);
@@ -6107,7 +6108,7 @@ std::vector<MRIFSSTRUCT> *DICOMRead3(const char *dcmfile, int LoadVolume)
     sprintf(DCM2NIIX_OPTS, "%so=%s", DCM2NIIX_OPTS, DCM2NIIX_outdir);
   
   dcm2niix_fswrapper::setOpts(dcmdir, DCM2NIIX_OPTS);
-  int ret = dcm2niix_fswrapper::dcm2NiiOneSeries(dcmfile);
+  int ret = dcm2niix_fswrapper::dcm2NiiOneSeries(dcmfile, convert);
 
 #if 0
   MRIFSSTRUCT *mrifsStruct = NULL;

@@ -1058,9 +1058,13 @@ int main(int argc, char *argv[])
     {
       antialias_flag = TRUE;
     }
-    else if (strcmp(argv[i], "--nthreads") == 0)
+    else if(strcmp(argv[i], "--nthreads") == 0 || strcmp(argv[i], "--threads") == 0)
     {
       get_ints(argc, argv, &i, &nthreads, 1);
+#ifdef HAVE_OPENMP
+      printf("\nSet OPEN MP NUM threads to %d\n", nthreads);
+      omp_set_num_threads(nthreads);
+#endif
     }
     else if(strcmp(argv[i], "--fwhm") == 0)
     {
@@ -2445,15 +2449,6 @@ int main(int argc, char *argv[])
 
   if (antialias_flag == TRUE || fwhm > 0)
   {
-#ifdef HAVE_OPENMP
-    printf("\nSet OPEN MP NUM threads to %d\n", nthreads);
-    if (nthreads == 1)
-      printf("(%d avail. processors. Use --nthreads <> to set number of threads.)\n", omp_get_num_procs());
-    printf("\n");
-
-    omp_set_num_threads(nthreads);
-#endif
-
     if (antialias_flag == TRUE)
       applyGaussianFilter(mri, voxel_size, nthreads);
     else if (fwhm > 0)

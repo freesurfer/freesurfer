@@ -356,7 +356,7 @@ int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
   int type = mri_identify(fname);
   if (type == MGH_MORPH)
     return __m3zWrite(gcam, fname);
-  else if (type == MRI_MGH_FILE)
+  else if (type == MRI_MGH_FILE || type == NII_FILE)
     return __warpfieldWrite(gcam, fname);
 
   return ERROR_BADPARM;  
@@ -1119,7 +1119,7 @@ GCA_MORPH *GCAMread(const char *fname)
   int type = mri_identify(fname);
   if (type == MGH_MORPH)
     gcam = __m3zRead(fname);
-  else if (type == MRI_MGH_FILE)
+  else if (type == MRI_MGH_FILE || type == NII_FILE)
   {
     gcam =  __warpfieldRead(fname);
     if (gcam != NULL && gcam->spacing == 0)
@@ -4312,10 +4312,8 @@ int GCAMmorphPlistToSource(int N, float *points_in, GCA_MORPH *gcam, float *poin
 
 MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int sample_type)
 {
-  int width, height, depth, x, y, z, start_frame, end_frame;
-  int out_of_gcam;
-  float xd, yd, zd;
-  double val, xoff, yoff, zoff;
+  int width, height, depth, start_frame, end_frame;
+  double xoff, yoff, zoff;
 
   if (frame >= 0 && frame < mri_src->nframes) {
     start_frame = end_frame = frame;
@@ -4356,9 +4354,14 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
   }
 
   // x, y, z are the col, row, and slice (and xyz) in the gcam/target volume
-  for (x = 0; x < width; x++) {
-    for (y = 0; y < height; y++) {
-      for (z = 0; z < depth; z++) {
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+#endif
+  for (int x = 0; x < width; x++) {
+    float xd, yd, zd;
+    double val;
+    for (int y = 0; y < height; y++) {
+      for (int z = 0; z < depth; z++) {
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak();
         }
@@ -4370,7 +4373,7 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
         //   &xd, &yd, &zd);
 
         // Convert target-crs to input-crs
-        out_of_gcam = GCAMsampleMorph(gcam, (float)x, (float)y, (float)z, &xd, &yd, &zd);
+        int out_of_gcam = GCAMsampleMorph(gcam, (float)x, (float)y, (float)z, &xd, &yd, &zd);
 
         if (!out_of_gcam) {
           // Should not divide by src thick. If anything,
@@ -4381,12 +4384,13 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
           xd += xoff;
           yd += yoff;
           zd += zoff;
-          for (frame = start_frame; frame <= end_frame; frame++) {
+          for(int frame = start_frame; frame <= end_frame; frame++) {
             if (nint(xd) == Gx && nint(yd) == Gy && nint(zd) == Gz) {
               DiagBreak();
             }
 
-            if (xd > -1 && yd > -1 && ((mri_src->depth == 1 && zd == 0) || (mri_src->depth > 1 && zd > 0)) && xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth) {
+            if (xd > -1 && yd > -1 && ((mri_src->depth == 1 && zd == 0) || (mri_src->depth > 1 && zd > 0)) && 
+		xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth) {
               if (sample_type == SAMPLE_CUBIC_BSPLINE) {
                 MRIsampleBSpline(bspline, xd, yd, zd, frame, &val);
               }

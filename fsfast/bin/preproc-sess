@@ -279,6 +279,7 @@ foreach sess ($SessList)
     if($RegDOF != 6) set cmd = ($cmd -dof $RegDOF)
     if($PerRun)      set cmd = ($cmd -per-run)
     if($PerSess)     set cmd = ($cmd -per-session)
+    if($DoMC == 0)   set cmd = ($cmd -no-mc)
     if($#ProjFrac)   set cmd = ($cmd -projfrac $ProjFrac -expkey $ProjFracExpKey)
     if($#volsurffwhm) set cmd = ($cmd -volsurffwhm $volsurffwhm) # for testing
     if(! $UseCortexLabel) set cmd = ($cmd -no-cortex-label)
@@ -303,6 +304,7 @@ foreach sess ($SessList)
     if(! $ApplySubCortMask) set cmd = ($cmd -no-subcort-mask)
     if($PerRun)   set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
+    if($DoMC == 0)   set cmd = ($cmd -no-mc)
     if($ToCVS) set cmd = ($cmd -cvs)
     echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -815,6 +817,7 @@ check_params:
       endif    
     endif    
   else
+    # Don't append "pr" even if per-run
     set mcoutstem = $instem;
   endif
 

@@ -1583,6 +1583,14 @@ int TransformFileNameType(const char *fname)
   number = strchr(buf, '#');
   if (number) *number = 0; /* don't consider : part of extension */
 
+  int nbuf = strlen(buf);
+  if(nbuf>6){
+    // Have to do something special here because nii.gz will have two
+    // dots, and the last dot will just lead to dot="gz"
+    if(!strcmp(&buf[nbuf-6],"nii.gz")) 
+      return (MORPH_3D_TYPE);    
+  }
+
   if (!dot) dot = strrchr(buf, '.');
 
   if (dot) {
@@ -1594,6 +1602,8 @@ int TransformFileNameType(const char *fname)
       return (MORPH_3D_TYPE);
     else if (!strcmp(dot, "MGZ"))
       return (MORPH_3D_TYPE);    
+    else if (!strcmp(dot, "NII"))
+      return (MORPH_3D_TYPE); 
     else if (!strcmp(dot, "OCT"))
       return (TRANSFORM_ARRAY_TYPE);
     else if (!strcmp(dot, "XFM"))
@@ -2049,7 +2059,7 @@ MATRIX *DevolveXFMWithSubjectsDir(const char *subjid, MATRIX *XFM, const char *x
   sprintf(dirname, "%s/%s/mri/orig.mgz", sd, subjid);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("Trying %s\n", dirname);
   if (fio_FileExistsReadable(dirname))
-    mriorig = MRIreadHeader(dirname, MRI_MGH_FILE);
+    mriorig = MRIreadHeader(dirname, MRI_VOLUME_TYPE_UNKNOWN);
   else
     mriorig = NULL;
 
@@ -2057,7 +2067,7 @@ MATRIX *DevolveXFMWithSubjectsDir(const char *subjid, MATRIX *XFM, const char *x
     sprintf(dirname, "%s/%s/mri/orig.mgh", sd, subjid);
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("Trying %s\n", dirname);
     if (fio_FileExistsReadable(dirname)) {
-      mriorig = MRIreadHeader(dirname, MRI_MGH_FILE);
+      mriorig = MRIreadHeader(dirname, MRI_VOLUME_TYPE_UNKNOWN);
     }
     else
       mriorig = NULL;
@@ -5604,3 +5614,134 @@ fsPointSet RegLandmarks::Coords2PointSet(const LTA *lta)
   return(ps);
 }
 
+// this function is modified from mri_convert if (conform_flag)
+int conformGeom(VOL_GEOM *vg, bool conform_min, float conform_size0, bool confkeepdc)
+{
+  if(!conform_min && !conform_size0 && ! confkeepdc){
+    printf("ERROR: conformGeom(): all conform options are False\n");
+    return(1);
+  }
+
+  // make a copy of source VOL_GEOM, input VOL_GEOM will be updated in place
+  VOL_GEOM vg_src = *vg;
+
+  int conform_width = 256;
+  float conform_size = conform_size0;
+  if (conform_min == TRUE)
+    conform_size = MRIfindMinSize(vg, &conform_width);
+  else
+    conform_width = MRIfindRightSize(vg, conform_size);
+  
+  // the following codes are modified from MRIconformedTemplate()
+  vg->width = vg->height = vg->depth = conform_width;
+  vg->xsize  = vg->ysize = vg->zsize = conform_size;
+  if (confkeepdc)
+  {
+    char ostr[4];
+    int conform_FoV = conform_width * conform_size;
+    MRIdircosToOrientationString(&vg_src, ostr);
+
+    int iLR, iIS, iAP;
+    for (iLR = 0; iLR < 3; iLR++)
+      if (ostr[iLR] == 'L' || ostr[iLR] == 'R') break;
+    for (iIS = 0; iIS < 3; iIS++)
+      if (ostr[iIS] == 'I' || ostr[iIS] == 'S') break;
+    for (iAP = 0; iAP < 3; iAP++)
+      if (ostr[iAP] == 'A' || ostr[iAP] == 'P') break;
+    
+    printf("keeping DC %d %d %d\n", iLR, iIS, iAP);
+    printf("ostr %s, width %d, size %g\n", ostr, conform_width, conform_size);
+
+    int Nvox[3], FoV[3];
+    double delta[3];
+    
+    Nvox[0] = vg_src.width;
+    Nvox[1] = vg_src.height;
+    Nvox[2] = vg_src.depth;
+    delta[0] = vg_src.xsize;
+    delta[1] = vg_src.ysize;
+    delta[2] = vg_src.zsize;
+    
+    for (int c = 0; c < 3; c++)
+      FoV[c] = Nvox[c] * delta[c];
+
+    // K maps voxels in mri to voxels in mri_template
+    MATRIX *K = MatrixAlloc(4, 4, MATRIX_REAL);
+    K->rptr[4][4] = 1;
+
+    // If the delta=conform_size, then no interpolation will result
+    // Otherwise, there will be interpolation that depends on voxel size
+    // Using round() forces no interpolation at the edge of the FoV
+    // pad is the number of conformed voxels of padding when Nvox != conform_width
+    // set pad this way makes the C_RASs be about the same under general conditions
+
+    double step = delta[iLR] / conform_size;
+    double pad = round(((conform_FoV - FoV[iLR]) / 2.0) / conform_size);
+    if (ostr[iLR] == 'L') {
+      K->rptr[1][iLR + 1] = step;
+      K->rptr[1][4] = pad;
+    }
+    else {
+      K->rptr[1][iLR + 1] = -step;
+      K->rptr[1][4] = conform_width - pad;
+    }
+
+    step = delta[iIS] / conform_size;
+    pad = round(((conform_FoV - FoV[iIS]) / 2.0) / conform_size);
+    if (ostr[iIS] == 'I') {
+      K->rptr[2][iIS + 1] = step;
+      K->rptr[2][4] = pad;
+    }
+    else {
+      K->rptr[2][iIS + 1] = -step;
+      K->rptr[2][4] = conform_width - pad;
+    }
+
+    step = delta[iAP] / conform_size;
+    pad = round(((conform_FoV - FoV[iAP]) / 2.0) / conform_size);
+    if (ostr[iAP] == 'A') {
+      K->rptr[3][iAP + 1] = step;
+      K->rptr[3][4] = pad;
+    }
+    else {
+      K->rptr[3][iAP + 1] = -step;
+      K->rptr[3][4] = conform_width - pad;
+    }
+
+    MATRIX *invK = MatrixInverse(K, NULL);
+    MATRIX *Smri = MRIxfmCRS2XYZ(&vg_src, 0);
+    MATRIX *Stemp = MatrixMultiplyD(Smri, invK, NULL);
+    MRIsetVox2RASFromMatrix(vg, Stemp);
+
+    printf("K ---------------\n");
+    MatrixPrint(stdout, K);
+    printf("Kinv ---------------\n");
+    MatrixPrint(stdout, invK);
+    printf("Smri ---------------\n");
+    MatrixPrint(stdout, Smri);
+    printf("Stemp ---------------\n");
+    MatrixPrint(stdout, Stemp);
+    printf("----------------------\n");
+
+    MatrixFree(&K);
+    MatrixFree(&invK);
+    MatrixFree(&Smri);
+    MatrixFree(&Stemp);
+  }
+  else
+  {
+    // replicates old method exactly
+    // these are the same as VOL_GEOM initial values
+    vg->x_r = -1.0;
+    vg->x_a = 0.0;
+    vg->x_s = 0.0;
+    vg->y_r = 0.0;
+    vg->y_a = 0.0;
+    vg->y_s = -1.0;
+    vg->z_r = 0.0;
+    vg->z_a = 1.0;
+    vg->z_s = 0.0;
+    // ??? what about c_[ras] ???
+  }
+  return(0);
+}

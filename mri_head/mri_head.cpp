@@ -134,6 +134,8 @@ void dummy_identify(void) {
     printf("succeed\nGE LX\n");
   else if (type == MRI_MGH_FILE)
     printf("succeed\nmgh\n");
+  else if (type == NII_FILE)
+    printf("succeed\nnii\n");
   else if (type == MRI_MINC_FILE)
     printf("succeed\nminc\n");
   else if (type == MRI_ANALYZE_FILE)

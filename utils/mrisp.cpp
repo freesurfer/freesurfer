@@ -2132,7 +2132,7 @@ MRI_SP *MRISPread(char *fname)
   if (!mrisp) ErrorExit(ERROR_NOMEMORY, "MRISPread(%s): allocation failed", fname);
 
   type = mri_identify(fname) ;
-  if (type == MRI_MGH_FILE)
+  if (type == MRI_MGH_FILE || type == NII_FILE)
   {
     MRI *mri ;
     int r, c, f ;
