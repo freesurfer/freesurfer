@@ -187,6 +187,7 @@ class Freeview:
             verbose: Print the freeview command before running. Defaults to False.
             noclean: Do not remove temporary directory for debugging purposes.
             threads: Set number of OMP threads available to freeview.
+            novgl: Boolean (defaults to False). Run freeview without vglrun if set to True
         '''
 
         # compile the command
