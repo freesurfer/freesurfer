@@ -2072,7 +2072,8 @@ def nonlateral_aseg_recoder(include_lesions=False):
     rlut.target_lut = LookupTable()
     rlut.source_lut = source_lut
     for key in source_lut.keys():
-        if key >= 1000 and key < 3000:
+        if (key >= 1000 and key < 3000) or \
+           (key > 11000 and key < 13000):   # destrieux labels
             name = 'Left-Cerebral-Cortex'
         elif (key >= 3000 and key < 5000) or (key >= 13000 and key < 15000) or (key >= 250 and key <= 255):
             name = 'Left-Cerebral-White-Matter'
