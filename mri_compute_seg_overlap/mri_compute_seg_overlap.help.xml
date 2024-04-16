@@ -79,8 +79,8 @@
       <explanation>check all labels</explanation>
       <argument>-dice seg1 seg2 ctab ReportEmpty01 ExcludeId datfile tablefile</argument>
       <explanation>Standalone way to compute dice. ctab can = embedded. output = count1 count2 dice tpr fdr jaccard</explanation>
-      <argument>-tpfpfn outvol manseg autoseg segid1 <segid2></argument>
-      <explanation>Compute seg of TruePos, FalsePos, and TrueNeg for given segids</explanation>
+      <argument>-tpfpfn outvol manseg autoseg segid1 ... segidN</argument>
+      <explanation>Compute seg of TruePos, FalsePos, and TrueNeg for given (combined) segids</explanation>
     </optional-flagged>
   </arguments>
   <example>mri_compute_seg_overlap manual_seg.mgz aseg.mgz
