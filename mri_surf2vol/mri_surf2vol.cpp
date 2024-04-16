@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 	for (r=0; r < OutVol->height; r++) {
 	  for (s=0; s < OutVol->depth; s++) {
 	    v = MRIgetVoxVal(OutVol,c,r,s,0);
-	    if (v == -1) {
+	    if(v == 0) { // if(v == -1) why is this -1 instead of 0?
 	      // output is zero, replace with mergevol
 	      for (f=0; f < OutVol->nframes; f++) {
 		v = MRIgetVoxVal(TempVol,c,r,s,f);
