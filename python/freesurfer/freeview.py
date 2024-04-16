@@ -177,7 +177,7 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, title=None, opts='', verbose=False, noclean=False, threads=None):
+    def show(self, background=True, title=None, opts='', verbose=False, noclean=False, threads=None, novgl=False):
         '''Opens the configured freeview session.
 
         Args:
@@ -187,10 +187,14 @@ class Freeview:
             verbose: Print the freeview command before running. Defaults to False.
             noclean: Do not remove temporary directory for debugging purposes.
             threads: Set number of OMP threads available to freeview.
+            novgl: Boolean (defaults to False). Run freeview without vglrun if set to True
         '''
 
         # compile the command
-        command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
+        if novgl:
+            command = 'freeview %s %s' % (opts, ' '.join(self.flags))
+        else:
+            command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
 
         if title is not None:
             command += ' -subtitle "%s"' % title.replace('"', '\\"')
