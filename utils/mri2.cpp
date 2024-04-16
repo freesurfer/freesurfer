@@ -7280,3 +7280,156 @@ MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap)
 
   return(out);
 }
+
+
+/*!
+  \fn MRI *MRIcropSegHemi(MRI *aseg0, int hemi, int FoV)
+  \brief This function will crop around the segmentations found in a
+  given hemisphere (hemi=1=left, hemi=2=right). The hemi is determined
+  by the column (>128=left, <128=right). The output volume dimensions
+  are set up to have {c,r,s}FoV voxels in the col, row, and slice
+  directions centered around the centroid measured from all segs. If
+  the new FoV extends beyond the input FoV, then it is truncated.
+  Note that the segs from the other hemisphere are zeroed in the
+  output (for the cases that the FoV extends far enough that segs from
+  the other hemi could be included). This function is a bit of a hack.
+  I wrote it for a particular project and I wanted something fast. If
+  it is useful, it could be made more general. The output MRI will
+  share a RAS space with the input MRI.
+ */
+MRI *MRIcropSegHemi(MRI *seg0, int hemi, int cFoV, int rFoV, int sFoV)
+{
+  double csum=0, rsum=0, ssum=0;
+  int nhits=0;
+
+  // Make a copy so that the contra lateral can be zeroed
+  MRI *seg = MRIcopy(seg0,NULL);
+  if(seg0->ct) seg->ct = CTABdeepCopy(seg0->ct);
+
+  // Compute the centroid of the segs on a given hemi
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : csum, rsum, ssum, nhits)
+#endif
+  for(int c=0; c < seg->width; c++){
+    for(int r=0; r < seg->height; r++){
+      for(int s=0; s < seg->depth; s++){
+	int segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid == 0) continue;
+	// left is c>128, right is c<128
+	if( (hemi == 1 && c < 128) || (hemi == 2 && c > 128) ){
+	  MRIsetVoxVal(seg,c,r,s,0,0);
+	  continue;
+	}
+	csum += c;
+	rsum += r;
+	ssum += s;
+	nhits++;
+      }
+    }
+  }
+  csum /= nhits;
+  rsum /= nhits;
+  ssum /= nhits;
+
+  printf("MRIcropSegHemi(): hemi %d FoV = (%d,%d,%d) nhits=%d  centroid = (%g,%g,%g)\n",
+	 hemi,cFoV,rFoV,sFoV,nhits,csum,rsum,ssum);
+
+  // Create the region to extract
+  MRI_REGION region;
+  region.x = MAX(round(csum-cFoV/2),0);
+  region.y = MAX(round(rsum-rFoV/2),0);
+  region.z = MAX(round(ssum-sFoV/2),0);
+  region.dx = MIN(cFoV,seg->width);
+  region.dy = MIN(rFoV,seg->height);
+  region.dz = MIN(sFoV,seg->depth);
+
+  printf("Region\n");
+  REGIONprint(stdout,&region);
+
+  // And finally extract the FoV around the centroid
+  MRI *cropped = MRIextractRegion(seg, NULL, &region);
+
+  MRIfree(&seg);
+  return(cropped);
+}
+
+/*!
+  \fn MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpfn)
+  \brief Routine to create a segmentation of 1=true positives (tp),
+  2=false positives, (fp), and 3 = true negatives (tn, ie, misses). It
+  takes two segs (first one defines what is true). The vector of
+  segids are the collection of segmentations used for computation;
+  effectively, it binarizes each of the input seg volumes based on all
+  the segids, then computes the TP, etc, based on this binarization
+  (ie, all the segids are combined into a single seg; there are not
+  separate results for each segid in the segids vector). The output
+  seg will have a ctab where 1=tp=green, 2=fp=red, and 3=tn=yellow.
+  The purpose of this seg is to help understand where automatic
+  methods are making mistakes.
+ */
+MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpfn)
+{
+
+  printf("MRItpfpfnSeg(): segids ");
+  for(int n=0; n < segids.size(); n++) printf("%d ",segids[n]);
+  printf("\n");
+
+  if(tpfpfn == NULL){
+    tpfpfn = MRIclone(manseg, NULL);
+    MRIcopyPulseParameters(manseg, tpfpfn);
+  } 
+  else MRIconst(-1,-1,-1,-1,0,tpfpfn); // set MRI to 0
+
+  // Create a color table for the output seg
+  tpfpfn->ct = CTABalloc(4);
+
+  COLOR_TABLE_ENTRY *cte;
+  cte = tpfpfn->ct->entries[0];
+  sprintf(cte->name, "Unknown");
+
+  cte = tpfpfn->ct->entries[1];
+  sprintf(cte->name, "TruePos"); 
+  cte->ri = 0; cte->gi = 255; cte->bi = 0; 
+  cte->rf = 0;cte->gf = 1;cte->bf = 0;
+
+  cte = tpfpfn->ct->entries[2];
+  sprintf(cte->name, "FalsePos"); 
+  cte->ri = 255; cte->gi = 0; cte->bi = 0; 
+  cte->rf = 1;cte->gf = 0;cte->bf = 0;
+
+  cte = tpfpfn->ct->entries[3];
+  sprintf(cte->name, "TrueNeg-Miss"); cte->bi = 255; cte->bf = 1;
+  cte->ri = 255; cte->gi = 255; cte->bi = 0;
+  cte->rf = 1;cte->gf = 1;cte->bf = 0;
+
+  // Go through the volumes and compare
+  int nhits = 0, ntp=0, nfp=0, nfn=0, nman=0, nauto=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : nhits, ntp, nfp, nfn, nman, nauto)
+#endif
+  for(int c=0; c < manseg->width; c++){
+    for(int r=0; r < manseg->height; r++){
+      for(int s=0; s < manseg->depth; s++){
+	int manid = MRIgetVoxVal(manseg,c,r,s,0);
+	std::vector<unsigned int> manmatch = FindMatches(segids, manid);
+	int autoid = MRIgetVoxVal(autoseg,c,r,s,0);
+	std::vector<unsigned int> automatch = FindMatches(segids, autoid);
+	if(manmatch.size()==0 && automatch.size()==0) continue;
+	if(manmatch.size()!=0)  nman++;
+	if(automatch.size()!=0) nauto++;
+	int v=0;
+	if(manmatch.size()!=0 && automatch.size()!=0) {v = 1; ntp++;} // true pos
+	if(manmatch.size()==0 && automatch.size()!=0) {v = 2; nfp++;}// false pos
+	if(manmatch.size()!=0 && automatch.size()==0) {v = 3; nfn++;}// false neg/miss
+	MRIsetVoxVal(tpfpfn,c,r,s,0,v);
+	nhits ++;
+      }
+    }
+  }
+  // Compute some summary stats, mainly for QA/Debug
+  double dice = (double)ntp/(((double)nman+nauto)/2);
+  double tpr  = (double)ntp/nman;
+  double fdr  = (double)nfp/((double)nfp+ntp);
+  printf("nman = %d nauto = %d  dice = %6.4f tpr = %6.4f fdr = %6.4f\n",nman,nauto,dice,tpr,fdr);
+  return(tpfpfn);
+}
