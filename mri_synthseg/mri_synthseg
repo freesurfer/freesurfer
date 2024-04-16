@@ -49,6 +49,7 @@ def main():
     parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --i designates a folder.")
     parser.add_argument("--resample", help="(optional) Resampled image(s). Must be a folder if --i is a folder.")
     parser.add_argument("--crop", nargs='+', type=int, help="(optional) Only analyse an image patch of the given size.")
+    parser.add_argument("--autocrop", action="store_true", help="(optional) Ignore background voxels in FOV.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
     parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
@@ -158,8 +159,11 @@ def main():
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
     lut_file = os.path.join(os.environ.get('FREESURFER_HOME'),'FreeSurferColorLUT.txt')
-    labels = None;
+    labels = None
     if(args.addctab): labels = sf.load_label_lookup(lut_file)
+
+    if args.crop is not None and args.autocrop:
+        sf.system.fatal('Argument --autocrop cannot be used with --crop.')
 
     # run prediction
     predict(
@@ -186,6 +190,7 @@ def main():
         labels_qc=labels_qc,
         names_qc=names_qc_labels,
         cropping=args.crop,
+        autocrop=args.autocrop,
         topology_classes=topology_classes,
         ct=args.ct,
         keepgeom=args.keepgeom,
@@ -221,6 +226,7 @@ def predict(path_images,
             labels_qc,
             names_qc,
             cropping,
+            autocrop,
             topology_classes,
             ct,
             keepgeom=False,
@@ -310,6 +316,7 @@ def predict(path_images,
             image, aff, h, im_res, shape, pad_idx, crop_idx = preprocess(path_image=path_images[i],
                                                                          ct=ct,
                                                                          crop=cropping,
+                                                                         autocrop=autocrop,
                                                                          min_pad=min_pad,
                                                                          path_resample=path_resampled[i])
 
@@ -558,7 +565,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
            out_qc, unique_qc_file
 
 
-def preprocess(path_image, ct, n_levels=5, crop=None, min_pad=None, path_resample=None):
+def preprocess(path_image, ct, n_levels=5, crop=None, autocrop=False, min_pad=None, path_resample=None):
 
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
@@ -596,6 +603,21 @@ def preprocess(path_image, ct, n_levels=5, crop=None, min_pad=None, path_resampl
     if ct:
         im = np.clip(im, 0, 80)
     im = rescale_volume(im, new_min=0, new_max=1, min_percentile=0.5, max_percentile=99.5)
+
+    if autocrop and crop_idx is None:
+        nz_locs = np.argwhere(im > 0)
+        min_indices = np.min(nz_locs, axis=0)
+        max_indices = np.max(nz_locs, axis=0)
+        nz_crop = max_indices - min_indices + 2
+        crop_shape = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in nz_crop]
+        half_dim_diff = np.floor_divide([crop_shape[i] - nz_crop[i] for i in range(n_dims)], 2)
+        min_crop_idx = np.maximum(min_indices - half_dim_diff, 0)
+        max_crop_idx = np.minimum(min_crop_idx + crop_shape, im.shape[:n_dims])
+        crop_idx = np.concatenate([np.array(min_crop_idx), np.array(max_crop_idx)])
+        if n_dims == 2:
+            im = im[crop_idx[0]: crop_idx[2], crop_idx[1]: crop_idx[3], ...]
+        elif n_dims == 3:
+            im = im[crop_idx[0]: crop_idx[3], crop_idx[1]: crop_idx[4], crop_idx[2]: crop_idx[5], ...]
 
     # pad image
     input_shape = im.shape[:n_dims]
