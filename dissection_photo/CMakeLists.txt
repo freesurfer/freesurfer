@@ -29,5 +29,6 @@ if(BUILD_GUIS)
   add_subdirectory(fiducials_calibration)
   add_subdirectory(fiducials_correction)
   add_subdirectory(mask_extraction)
+  add_subdirectory(dissection_photo)
 
 endif()
