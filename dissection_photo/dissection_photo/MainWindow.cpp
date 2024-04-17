@@ -7,6 +7,8 @@
 #include <QScreen>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QTextStream>
+#include <QDebug>
 
 #define SCRIPT_RETROSPECTIVE "func_retrospective_correction.py"
 
