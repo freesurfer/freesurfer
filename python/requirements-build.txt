@@ -85,11 +85,12 @@ tifffile==2023.7.10
 torch==2.1.2
 tqdm==4.66.2
 transforms3d==0.4.1
-trimesh==4.3.0
+trimesh==4.3.1
 #triton==2.1.0
 typing_extensions==4.5.0
 tzdata==2024.1
 urllib3==1.26.15
+uv==0.1.32
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
 wrapt==1.16.0
 xxhash==3.4.1
