@@ -65,10 +65,13 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') || ...
   %  new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
   %end
   
+  % Using the 2nd sprintfs below allows for spaces in the file names
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
-    [status,msg] = unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
+    %[status,msg] = unix(sprintf('gunzip -c %s > %s', fname, new_fname));
+    [status,msg] = unix(sprintf("gunzip -c '%s' > '%s'", fname, new_fname));
   else
-    [status,msg] = unix(sprintf('zcat %s > %s', fname, new_fname)) ;
+    %[status,msg] = unix(sprintf('zcat %s > %s', fname, new_fname)) ;
+    [status,msg] = unix(sprintf("zcat '%s' > '%s'", fname, new_fname)) ;
   end
   if status ~= 0, fprintf('%s\n',msg) ; end
   fname = new_fname ;
