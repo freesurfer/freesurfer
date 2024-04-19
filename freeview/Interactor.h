@@ -46,7 +46,7 @@ public:
 
   enum EditMode
   {
-    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker, EM_Contour, EM_Shift, EM_Clone, EM_GeoSeg
+    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker, EM_Contour, EM_Shift, EM_Clone, EM_GeoSeg, EM_ScribblePrompt
   };
 
   int GetAction();

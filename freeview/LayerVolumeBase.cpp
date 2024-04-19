@@ -294,7 +294,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd, bool ig
   }
 }
 
-void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd, bool ignore_brush_size )
+void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd, bool ignore_brush_size, bool draw_as_box  )
 {
   int n1[3], n2[3];
   double* origin = m_imageData->GetOrigin();
@@ -305,7 +305,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
     n2[i] = ( int )( ( ras2[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  QVector<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd, ignore_brush_size );
+  QVector<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd, ignore_brush_size, draw_as_box );
   if ( !list.isEmpty() )
   {
     SetModified();
@@ -318,8 +318,53 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
   }
 }
 
-QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd, bool ignore_brush_size )
+void LayerVolumeBase::FillBoxByIndex(int *n1, int *n2, int nPlane)
 {
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  int n[3][2], n_dim[3][2];
+  for (int i = 0; i < 3; i++)
+  {
+    n[i][0] = qMin(n1[i], n2[i]);
+    n[i][1] = qMax(n1[i], n2[i]);
+    n_dim[i][0] = 0;
+    n_dim[i][1] = dim[i]-1;
+  }
+  n_dim[nPlane][0] = n_dim[nPlane][1] = n1[nPlane];
+  for (int i = n_dim[0][0]; i <= n_dim[0][1]; i++)
+  {
+    for (int j = n_dim[1][0]; j <= n_dim[1][1]; j++)
+    {
+      for (int k = n_dim[2][0]; k <= n_dim[2][1]; k++)
+      {
+        double fvalue = MyVTKUtils::GetImageDataComponent(ptr, dim, 1, i, j, k, 0, scalar_type);
+        if (fvalue == m_fFillValue)
+        {
+          MyVTKUtils::SetImageDataComponent(ptr, dim, 1, i, j, k, 0, scalar_type, 0);
+          fvalue = 0;
+        }
+        if (i >= n[0][0] && i <= n[0][1] && j >= n[1][0] && j <= n[1][1] && k >= n[2][0] && k <= n[2][1])
+        {
+          if (fvalue == 0)
+            MyVTKUtils::SetImageDataComponent(ptr, dim, 1, i, j, k, 0, scalar_type, m_fFillValue);
+        }
+      }
+    }
+    SetModified();
+    emit ActorUpdated();
+  }
+}
+
+QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd, bool ignore_brush_size, bool draw_as_box )
+{
+  QVector<int> list;
+  if (draw_as_box)
+  {
+    FillBoxByIndex(n1, n2, nPlane);
+    return list;
+  }
+
   int nx = 1, ny = 2;
   if ( nPlane == 1 )
   {
@@ -337,7 +382,6 @@ QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, boo
   int dy = y1 - y0;
   double t = 0.5;
   int n[3];
-  QVector<int> list;
   list = SetVoxelByIndex( n1, nPlane, bAdd, ignore_brush_size );
   if ( abs( dx ) > abs( dy ) )
   {

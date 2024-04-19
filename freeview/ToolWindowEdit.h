@@ -18,11 +18,14 @@
 #include "UIUpdateHelper.h"
 #include <QWidget>
 #include <QList>
+#include <QThread>
 
 namespace Ui
 {
 class ToolWindowEdit;
 }
+
+class ScribblePromptWorker;
 
 class ToolWindowEdit : public QWidget, public UIUpdateHelper
 {
@@ -60,8 +63,9 @@ protected slots:
   void OnColorPickerGeoSeg(const QColor& color);
   void OnSliderGeoOpacity(int nVal);
   void OnButtonGeoSegAbort();
-  void OnGeoSegFinished(double time);
   void OnGeoSegProgress(double val);
+
+  void OnSegFinished(double time);
 
 protected:
   virtual void showEvent(QShowEvent *);
@@ -76,7 +80,12 @@ private:
   QList<QWidget*>  m_widgetsConstrain;
   QList<QWidget*>  m_widgetsSmooth;
   QList<QWidget*>  m_widgetsContour;
-  QList<QWidget*>  m_widgetsGeoSeg;
+  QList<QWidget*>  m_widgetsSeg;
+  QList<QWidget*>  m_widgetsGeoSegOnly;
+  QList<QWidget*>  m_widgetsScribbleOnly;
+
+  ScribblePromptWorker* m_scribble;
+  QThread   m_threadScribble;
 };
 
 #endif // TOOLWINDOWEDIT_H

@@ -27,6 +27,9 @@
 #include <QSettings>
 #include <QDebug>
 #include "LayerPropertyMRI.h"
+#ifdef  SCRIBBLE_PROMPT
+#include "ScribblePromptWorker.h"
+#endif
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -50,6 +53,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ag->addAction( ui->actionColorPicker );
   ag->addAction( ui->actionClone );
   ag->addAction( ui->actionAutoSeg);
+  ag->addAction( ui->actionScribblePrompt );
   ag->addAction( ui->actionShift );
   ag->setExclusive( true );
 
@@ -61,9 +65,11 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->actionPolyLine->setData( Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setData( Interactor2DVoxelEdit::EM_Clone );
   ui->actionAutoSeg->setData( Interactor2DVoxelEdit::EM_GeoSeg);
+  ui->actionScribblePrompt->setData( Interactor2DVoxelEdit::EM_ScribblePrompt );
   ui->actionShift->setData( Interactor2DVolumeEdit::EM_Shift );
   ui->colorPickerGeoInside->setCurrentColor(Qt::green);
   ui->colorPickerGeoOutside->setCurrentColor(Qt::red);
+  ui->colorPickerBox->setCurrentColor(QColor(100,100,255));
   ui->colorPickerGeoFill->setCurrentColor(Qt::yellow);
   ui->widgetBusyIndicator->setColor(Qt::darkGray);
   ui->widgetBusyIndicator->setFixedSize(QSize(20,20));
@@ -91,6 +97,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->colorPickerGeoInside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoFill, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
+  connect(ui->colorPickerBox, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->sliderGeoOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderGeoOpacity(int)));
   connect(ui->pushButtonAbort, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegAbort()));
   connect(mainwnd, SIGNAL(SupplementLayerChanged()), this, SLOT(UpdateWidgets()));
@@ -142,15 +149,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->colorPickerContour
                    << ui->labelTipsContour;
 
-  m_widgetsGeoSeg  << ui->labelGeoLambda
-                   << ui->labelGeoMaxDistance
-                   << ui->checkBoxMaxForegroundDistance
-                   << ui->lineEditGeoMaxForegroundDistance
-                   << ui->labelGeoWsize
-                   << ui->lineEditGeoLambda
-                   << ui->spinBoxGeoWsize
-                   << ui->lineEditGeoMaxDistance
-                   << ui->pushButtonGeoGo
+  m_widgetsSeg     << ui->pushButtonGeoGo
                    << ui->pushButtonGeoClear
                    << ui->pushButtonGeoClearFilling
                    << ui->widgetGeoColors
@@ -159,11 +158,21 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->pushButtonGeoUndo
                    << ui->labelTipsGeoS
                    << ui->widgetBusyIndicator
-                   << ui->checkBoxApplySmoothing
-                   << ui->lineEditSmoothingStd
                    << ui->pushButtonAbort
                    << ui->checkBoxGeoSegOverwrite
                    << ui->labelGeoMessage;
+  m_widgetsGeoSegOnly  << ui->labelGeoMaxDistance
+                       << ui->checkBoxMaxForegroundDistance
+                       << ui->labelGeoLambda
+                       << ui->lineEditGeoMaxForegroundDistance
+                       << ui->labelGeoWsize
+                       << ui->lineEditGeoLambda
+                       << ui->spinBoxGeoWsize
+                       << ui->lineEditGeoMaxDistance
+                       << ui->checkBoxApplySmoothing
+                       << ui->lineEditSmoothingStd;
+  m_widgetsScribbleOnly << ui->labelBoxColor
+                        << ui->colorPickerBox;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -179,6 +188,13 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   }
 #endif
 
+#ifdef SCRIBBLE_PROMPT
+  m_scribble = new ScribblePromptWorker;
+  m_scribble->moveToThread(&m_threadScribble);
+  m_threadScribble.start();
+  connect(m_scribble, SIGNAL(ApplyFinished()), SLOT(OnButtonGeoSegClearFilling()), Qt::UniqueConnection);
+  connect(m_scribble, SIGNAL(ComputeFinished(double)), SLOT(OnSegFinished(double)), Qt::UniqueConnection);
+#endif
   m_bToUpdateWidgets = true;
 }
 
@@ -187,6 +203,11 @@ ToolWindowEdit::~ToolWindowEdit()
   QSettings settings;
   settings.setValue("ToolWindowVoxelEdit/Position", pos()-this->parentWidget()->pos());
 
+  m_threadScribble.quit();
+  m_threadScribble.wait();
+#ifdef SCRIBBLE_PROMPT
+  m_scribble->deleteLater();
+#endif
   delete ui;
 }
 
@@ -247,6 +268,7 @@ void ToolWindowEdit::OnIdle()
   ui->actionPolyLine->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Clone );
   ui->actionAutoSeg->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_GeoSeg );
+  ui->actionScribblePrompt->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_ScribblePrompt );
 
   ui->spinBoxBrushSize->setEnabled( view->GetAction() != Interactor2DVoxelEdit::EM_Fill );
   ui->spinBoxTolerance->setEnabled( view->GetAction() == Interactor2DVoxelEdit::EM_Fill );
@@ -300,10 +322,12 @@ void ToolWindowEdit::OnIdle()
     ui->sliderGeoOpacity->setValue(geos["Opacity"].toDouble()*100);
   if (geos.contains("FillColor"))
     ui->colorPickerGeoFill->setCurrentColor(geos["FillColor"].value<QColor>());
-  if (geos.contains("FillColor"))
+  if (geos.contains("ForegroundColor"))
     ui->colorPickerGeoInside->setCurrentColor(geos["ForegroundColor"].value<QColor>());
   if (geos.contains("BackgroundColor"))
     ui->colorPickerGeoOutside->setCurrentColor(geos["BackgroundColor"].value<QColor>());
+  if (geos.contains("BoxColor"))
+    ui->colorPickerBox->setCurrentColor(geos["BoxColor"].value<QColor>());
 
   int nAction = view->GetAction();
   ShowWidgets( m_widgetsBrushSize, nAction != Interactor2DVoxelEdit::EM_Contour &&
@@ -316,7 +340,9 @@ void ToolWindowEdit::OnIdle()
       nAction != Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
-  ShowWidgets( m_widgetsGeoSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
+  ShowWidgets( m_widgetsSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg || nAction == Interactor2DVoxelEdit::EM_ScribblePrompt);
+  ShowWidgets( m_widgetsGeoSegOnly, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
+  ShowWidgets( m_widgetsScribbleOnly, nAction == Interactor2DVoxelEdit::EM_ScribblePrompt);
 //  ui->widgetBusyIndicator->setVisible(ui->pushButtonGeoGo->isVisible() && !ui->pushButtonGeoGo->isEnabled());
   ui->widgetBusyIndicator->hide();
 
@@ -327,7 +353,8 @@ void ToolWindowEdit::OnIdle()
 
   ui->widgetClone->setVisible(nAction == Interactor2DVoxelEdit::EM_Clone);
 
-  ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg && nAction != Interactor2DVoxelEdit::EM_Contour);
+  ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg && nAction != Interactor2DVoxelEdit::EM_Contour &&
+                                 nAction != Interactor2DVoxelEdit::EM_ScribblePrompt);
 
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -356,6 +383,10 @@ void ToolWindowEdit::OnIdle()
   ui->pushButtonCloneCopyStructure->setEnabled(mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3);
   ui->pushButtonClonePaste->setEnabled( mri && mri->IsVisible() && mri->IsEditable() &&
                                nWnd >= 0 && nWnd < 3 && mri->IsValidToPaste( nWnd ) );
+
+#ifndef SCRIBBLE_PROMPT
+  ui->actionScribblePrompt->setVisible(false);
+#endif
 }
 
 void ToolWindowEdit::OnEditMode(QAction *act)
@@ -363,7 +394,9 @@ void ToolWindowEdit::OnEditMode(QAction *act)
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   mainwnd->SetAction( act->data().toInt() );
   BrushProperty* bp = mainwnd->GetBrushProperty();
-  if (act->data().toInt() == Interactor2DVoxelEdit::EM_GeoSeg && bp->GetReferenceLayer() == NULL)
+  if ((act->data().toInt() == Interactor2DVoxelEdit::EM_GeoSeg ||
+       act->data().toInt() == Interactor2DVoxelEdit::EM_ScribblePrompt)
+      && bp->GetReferenceLayer() == NULL)
   {
     QList<Layer*> layers = mainwnd->GetLayers("MRI");
     foreach (Layer* layer, layers)
@@ -624,22 +657,43 @@ void ToolWindowEdit::OnButtonGeoSegGo()
     LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
     if (mri_draw && mri_fill)
     {
-      double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
-      double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
-      double max_foreground_dist = ui->lineEditGeoMaxForegroundDistance->text().trimmed().toDouble();
-      if (!ui->checkBoxMaxForegroundDistance->isChecked())
-        max_foreground_dist = 0;
-      int wsize = ui->spinBoxGeoWsize->value();
-      mri_fill->ClearVoxels();
-      bool ok = false;
-      double std = 0;
-      if (ui->checkBoxApplySmoothing->isChecked())
-        std = ui->lineEditSmoothingStd->text().toDouble(&ok);
-      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0,
-                                     ui->checkBoxGeoSegOverwrite->isChecked() ? NULL : ((LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI")),
-                                     max_foreground_dist);
-      connect(mri_fill, SIGNAL(GeodesicSegmentationFinished(double)), this, SLOT(OnGeoSegFinished(double)), Qt::UniqueConnection);
-      connect(mri_fill, SIGNAL(GeodesicSegmentationProgress(double)), this, SLOT(OnGeoSegProgress(double)), Qt::UniqueConnection);
+      if (ui->actionAutoSeg->isChecked())
+      {
+        double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
+        double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
+        double max_foreground_dist = ui->lineEditGeoMaxForegroundDistance->text().trimmed().toDouble();
+        if (!ui->checkBoxMaxForegroundDistance->isChecked())
+          max_foreground_dist = 0;
+        int wsize = ui->spinBoxGeoWsize->value();
+        mri_fill->ClearVoxels();
+        bool ok = false;
+        double std = 0;
+        if (ui->checkBoxApplySmoothing->isChecked())
+          std = ui->lineEditSmoothingStd->text().toDouble(&ok);
+        mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0,
+                                       ui->checkBoxGeoSegOverwrite->isChecked() ? NULL : ((LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI")),
+                                       max_foreground_dist);
+        connect(mri_fill, SIGNAL(GeodesicSegmentationFinished(double)), this, SLOT(OnSegFinished(double)), Qt::UniqueConnection);
+        connect(mri_fill, SIGNAL(GeodesicSegmentationProgress(double)), this, SLOT(OnGeoSegProgress(double)), Qt::UniqueConnection);
+      }
+      else if (ui->actionScribblePrompt->isChecked())
+      {
+        MainWindow* mainwnd = MainWindow::GetMainWindow();
+        BrushProperty* bp = mainwnd->GetBrushProperty();
+        vtkImageData* imageData = mri_fill->GetImageData();
+        double* origin = imageData->GetOrigin();
+        double* voxel_size = imageData->GetSpacing();
+        double* ras = mri->GetSlicePosition();
+        int n[3];
+        for ( int i = 0; i < 3; i++ )
+        {
+          n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+        }
+        int nPlane = mainwnd->GetMainViewId();
+#ifdef SCRIBBLE_PROMPT
+        m_scribble->Compute((LayerMRI*)bp->GetReferenceLayer(), mri_fill, mri_draw, nPlane, n[nPlane], bp->GetFillValue());
+#endif
+      }
       ui->pushButtonGeoGo->setEnabled(false);
       ui->pushButtonGeoApply->setEnabled(false);
 //      ui->widgetBusyIndicator->show();
@@ -660,7 +714,7 @@ void ToolWindowEdit::OnButtonGeoSegAbort()
   ui->labelGeoMessage->clear();
 }
 
-void ToolWindowEdit::OnGeoSegFinished(double time_in_secs)
+void ToolWindowEdit::OnSegFinished(double time_in_secs)
 {
   ui->pushButtonGeoApply->setEnabled(true);
   ui->pushButtonGeoGo->setEnabled(true);
@@ -717,9 +771,12 @@ void ToolWindowEdit::OnColorPickerGeoSeg(const QColor &color)
       colors[0] = QColor(0,0,0,0);
       colors[1] = ui->colorPickerGeoInside->currentColor();
       colors[2] = ui->colorPickerGeoOutside->currentColor();
+      colors[3] = ui->colorPickerBox->currentColor();
+      colors[3].setAlpha(70);
       mri->GetProperty()->SetCustomColors(colors);
       bp->SetGeosSettings("ForegroundColor", colors[1]);
       bp->SetGeosSettings("BackgroundColor", colors[2]);
+      bp->SetGeosSettings("BoxColor", colors[3]);
     }
   }
   MainWindow::GetMainWindow()->RequestRedraw();

@@ -53,6 +53,8 @@ protected:
   QList<double>  m_dPolylinePoints;
 
   bool          m_bColorPicking;
+  int  m_nMouseStartX;
+  int  m_nMouseStartY;
 };
 
 #endif

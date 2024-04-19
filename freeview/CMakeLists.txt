@@ -205,6 +205,8 @@ if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils)
     VolumeFilterOptimal.cpp
     DialogSaveAllVolumes.cpp
     ToolWindowLesionPopup.cpp
+#    TorchScriptModule.cpp
+#    ScribblePromptWorker.cpp
     freeview.qrc
   )
 
@@ -314,5 +316,12 @@ if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils)
   else()
     install(TARGETS freeview DESTINATION bin)
   endif()
+
+  # for libtorch stuff
+#  if(APPLE)
+#    include_directories(/usr/local/lib/python3.10/site-packages/torch/include)
+#    link_directories(/usr/local/lib/python3.10/site-packages/torch/lib)
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib/python3.10/site-packages/torch/lib -ltorch -lc10 -ltorch_cpu")
+#  endif()
 
 endif()

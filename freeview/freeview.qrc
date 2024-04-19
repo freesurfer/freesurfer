@@ -138,5 +138,6 @@
         <file>resource/icons/volume_unlock.png</file>
         <file>resource/icons/view_neurological.png</file>
         <file>resource/icons/view_radiological.png</file>
+        <file>resource/icons/voxel_draw_scribble.png</file>
     </qresource>
 </RCC>
