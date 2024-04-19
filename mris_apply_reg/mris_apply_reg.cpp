@@ -560,7 +560,7 @@ static int parse_commandline(int argc, char **argv) {
       MRISfree(&trgsurf);
       exit(0);
     }
-    else if (!strcasecmp(option, "--gcam") || !strcasecmp(option, "--m3z") || !strcasecmp(option, "--inv-m3z") ){
+    else if (!strcasecmp(option, "--warp") || !strcasecmp(option, "--gcam") || !strcasecmp(option, "--m3z") || !strcasecmp(option, "--inv-m3z") ){
       // Note: behavior is not changed with --inv-m3z now because it is automatically determined
       // whether the gcam needs to be inverted
       if(nargc < 3) CMDargNErr(option,3);
@@ -580,6 +580,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 3;
       printf("mris_apply_reg done\n");
       exit(0);
+    } 
+    else if (!strcmp(option, "--vg-thresh")) {
+      sscanf(argv[1],"%lf",&vg_isEqual_Threshold);
+      printf("Setting vg_isEqual_Threshold to %lf\n",vg_isEqual_Threshold);
+      nargsused = 1;
     } 
     else if (!strcasecmp(option, "--bci") || !strcasecmp(option, "--bci-xyz")){
       MRIS *SurfSrc=NULL;

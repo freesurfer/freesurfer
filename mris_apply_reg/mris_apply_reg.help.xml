@@ -48,8 +48,10 @@
       <explanation> Save output in curv format</explanation>
       <argument>--map-vertex vertexno srcsurf trgsurf outfile</argument>
       <explanation> Map vertex from source to target (stand-alone)</explanation>
-      <argument>--gcam source-surf gcamfile outputsurf</argument>
-      <explanation> stand-alone to apply a GCA morph registration to a surface (was --m3z)</explanation>
+      <argument>--warp source-surf gcamfile outputsurf</argument>
+      <explanation> stand-alone to apply a GCA morph registration to a surface (was --m3z/--gcam)</explanation>
+      <argument>--vg-thresh thresh</argument>
+      <explanation> Set thresh for comparing VolGeom (put BEFORE --warp/--m3z/--gmca)</explanation>
       <argument>--bci input srcreg trgreg output</argument>
       <explanation> stand-alone to map input to target via barycentric interpoloation </explanation>
       <argument>--bci-xyz inputsurf srcreg trgreg output</argument>
