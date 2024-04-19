@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+$FREESURFER_HOME/bin/dissection_photo.app/Contents/MacOS/dissection_photo "$@"
+exit $?
