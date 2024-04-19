@@ -765,8 +765,8 @@
 # From Jean A
 5024 Low_TDP-43_Pathology_Density           170 238 44 0
 5025 Moderate_TDP-43_Pathology_Density      240 168 105 0
-5025 High_TDP-43_Pathology_Density          182 79 89 0
-5026 Severe_TDP-43_Pathology_Density        156 15 35 0
+5026 High_TDP-43_Pathology_Density          182 79 89 0
+5027 Severe_TDP-43_Pathology_Density        156 15 35 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005s flag) in which the aseg
