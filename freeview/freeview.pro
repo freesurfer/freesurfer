@@ -77,7 +77,9 @@ SOURCES += \
     LUTDataHolder.cpp \
     PanelODF.cpp \
     Region3D.cpp \
+    ScribblePromptWorker.cpp \
     ToolWindowLesionPopup.cpp \
+    TorchScriptModule.cpp \
     VolumeFilterOptimal.cpp \
     WindowEditAnnotation.cpp \
     main.cpp \
@@ -276,7 +278,9 @@ HEADERS  += \
     PanelSurface.h \
     PanelVolume.h \
     Region3D.h \
+    ScribblePromptWorker.h \
     ToolWindowLesionPopup.h \
+    TorchScriptModule.h \
     VolumeFilterOptimal.h \
     WindowEditAnnotation.h \
     qtcolorpicker.h \
@@ -598,6 +602,10 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -ldl -lz
     -framework Accelerate /usr/local/gfortran/lib/libgfortran.a
 
 #LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL
+
+INCLUDEPATH += /usr/local/lib/python3.10/site-packages/torch/include
+
+LIBS += -L/usr/local/lib/python3.10/site-packages/torch/lib -ltorch -lc10 -ltorch_cpu
 
 DESTDIR = ./
 }

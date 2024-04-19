@@ -41,7 +41,7 @@ public:
   virtual ~LayerVolumeBase();
 
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true, bool ignore_brush_size = false );
-  void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
+  void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true, bool ignore_brush_size = false, bool draw_as_box = false  );
   bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, bool b3D = false, char* mask_out = 0, bool ignore_exclusion = false );
   void CloneVoxelByRAS( double* ras, int nPlane );
   void CloneVoxelByRAS( double* ras1, double* ras2, int nPlane );
@@ -120,9 +120,10 @@ public slots:
 
 protected:
   QVector<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
-  QVector<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
+  QVector<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true, bool ignore_brush_size = false, bool draw_as_box = false  );
   QVector<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = NULL, bool ignore_exclusion = false );
   QVector<int> BorderFillByRAS(int *n, int nPlane);
+  void FillBoxByIndex( int* n1, int* n2, int nPlane);
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
   bool CloneVoxelByIndex( int* n, int nPlane );
   bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );

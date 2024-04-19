@@ -72,10 +72,10 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 
   PreprocessMouseEvent(event);
 
-  if (m_nAction == EM_GeoSeg)
+  if (m_nAction == EM_GeoSeg || m_nAction == EM_ScribblePrompt)
   {
-    if ( (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)
-         && !(event->modifiers() & CONTROL_MODIFIER))
+    if ( (event->button() == Qt::LeftButton || event->button() == Qt::RightButton))
+    //     && !(event->modifiers() & CONTROL_MODIFIER))
     {
       BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
       LayerMRI* mri = (LayerMRI*)bp->GetReferenceLayer();
@@ -101,6 +101,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         colors[0] = QColor(0,0,0,0);
         colors[1] = map.contains("ForegroundColor")?map["ForegroundColor"].value<QColor>():QColor(0,255,0);
         colors[2] = map.contains("BackgroundColor")?map["BackgroundColor"].value<QColor>():QColor(255,0,0);
+        colors[3] = map.contains("BoxColor")?map["BoxColor"].value<QColor>():QColor(100,100,255,70);
         layer_draw->GetProperty()->SetCustomColors(colors);
         layer_draw->GetProperty()->SetColorMapToLUT();
         layer_draw->SetName( "GEOS_DRAW" );
@@ -126,10 +127,15 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         lc->AddLayer(layer_draw);
       }
 
-      layer_draw->SetFillValue(event->button() == Qt::RightButton ? 2:1);
+      if (event->button() == Qt::RightButton)
+        layer_draw->SetFillValue(2);
+      else
+        layer_draw->SetFillValue((event->modifiers() & Qt::ControlModifier)?3:1);
       double ras[3];
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
+      m_nMouseStartX = event->x();
+      m_nMouseStartY = event->y();
       view->MousePositionToRAS( event->x(), event->y(), ras );
       layer_draw->SaveForUndo(view->GetViewPlane());
       if (event->modifiers() & Qt::ShiftModifier)
@@ -431,7 +437,7 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
 
   PreprocessMouseEvent(event);
 
-  if (m_nAction == EM_GeoSeg && m_bEditing)
+  if ((m_nAction == EM_GeoSeg || m_nAction == EM_ScribblePrompt) && m_bEditing)
   {
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
     QList<Layer*> layers = lc->GetLayers("MRI");    // Get foreground/background drawing layers
@@ -447,11 +453,17 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     if (!layer_draw)
       return false;
 
-    layer_draw->SetFillValue(event->buttons() & Qt::RightButton ? 2:1);
-    double ras1[3], ras2[3];
+    // if (event->button() == Qt::RightButton)
+    //   layer_draw->SetFillValue(2);
+    // else
+    //   layer_draw->SetFillValue((event->modifiers() & Qt::ControlModifier)?3:1);
+    double ras0[3], ras1[3], ras2[3];
+    view->MousePositionToRAS( m_nMouseStartX, m_nMouseStartY, ras0 );
     view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
     view->MousePositionToRAS( event->x(), event->y(), ras2 );
-    if (event->modifiers() & Qt::ShiftModifier)
+    if (event->modifiers() & Qt::ControlModifier)
+      layer_draw->SetVoxelByRAS( ras0, ras2, view->GetViewPlane(), true, false, true);
+    else if (event->modifiers() & Qt::ShiftModifier)
       layer_draw->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), false);
     else
       layer_draw->SetVoxelByRAS( ras1, ras2, view->GetViewPlane());
@@ -668,7 +680,8 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
       QMouseEvent* e = ( QMouseEvent* )event;
       bMouseEvent = true;
       if ( ( ( e->button() == Qt::MiddleButton || e->button() == Qt::RightButton ) && !m_bEditing ) ||
-           ( ( e->modifiers() & CONTROL_MODIFIER) && (e->modifiers() & Qt::ShiftModifier) ) )
+           ( ( e->modifiers() & CONTROL_MODIFIER) && (e->modifiers() & Qt::ShiftModifier) ) ||
+           (m_nAction == EM_GeoSeg || m_nAction == EM_ScribblePrompt))
       {
         Interactor2D::UpdateCursor( event, wnd );
         return;
@@ -719,7 +732,7 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
         }
       }
     }
-    else if (m_nAction != EM_GeoSeg)
+    else if (m_nAction != EM_GeoSeg && m_nAction != EM_ScribblePrompt)
     {
       wnd->setCursor( CursorFactory::CursorFill );
     }

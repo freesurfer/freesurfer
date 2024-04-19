@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>446</width>
+    <width>463</width>
     <height>1020</height>
    </rect>
   </property>
@@ -52,6 +52,7 @@
      <addaction name="actionColorPicker"/>
      <addaction name="separator"/>
      <addaction name="actionAutoSeg"/>
+     <addaction name="actionScribblePrompt"/>
      <addaction name="actionLiveWire"/>
      <addaction name="actionContour"/>
      <addaction name="separator"/>
@@ -581,84 +582,10 @@ distance</string>
           <property name="bottomMargin">
            <number>5</number>
           </property>
-          <item row="1" column="0">
-           <widget class="QLabel" name="labelGeoInsideColor">
-            <property name="text">
-             <string>Inside color</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="6">
            <widget class="QLabel" name="labelGeoFillColor">
             <property name="text">
              <string>Fill color</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3" rowspan="2">
-           <widget class="QPushButton" name="pushButtonGeoClear">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Clear</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
-          </item>
-          <item row="2" column="7" colspan="2">
-           <widget class="QSlider" name="sliderGeoOpacity">
-            <property name="maximum">
-             <number>100</number>
-            </property>
-            <property name="value">
-             <number>100</number>
-            </property>
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="4" rowspan="2">
-           <widget class="QPushButton" name="pushButtonGeoUndo">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Undo</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="labelGeoOutsideColor">
-            <property name="text">
-             <string>Outside color</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -684,11 +611,69 @@ distance</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="7">
-           <widget class="QtColorPicker" name="colorPickerGeoFill" native="true"/>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelGeoOutsideColor">
+            <property name="text">
+             <string>Outside color</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3" rowspan="2">
+           <widget class="QPushButton" name="pushButtonGeoClear">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="4" rowspan="2">
+           <widget class="QPushButton" name="pushButtonGeoUndo">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Undo</string>
+            </property>
+           </widget>
           </item>
           <item row="1" column="2">
            <widget class="QtColorPicker" name="colorPickerGeoInside" native="true"/>
+          </item>
+          <item row="1" column="7">
+           <widget class="QtColorPicker" name="colorPickerGeoFill" native="true"/>
+          </item>
+          <item row="2" column="6">
+           <widget class="QLabel" name="labelGeoOpacity">
+            <property name="text">
+             <string>Opacity</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
           </item>
           <item row="1" column="5">
            <spacer name="horizontalSpacer_4">
@@ -703,15 +688,44 @@ distance</string>
             </property>
            </spacer>
           </item>
-          <item row="2" column="6">
-           <widget class="QLabel" name="labelGeoOpacity">
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelBoxColor">
             <property name="text">
-             <string>Opacity</string>
+             <string>Box color</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
             </property>
            </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
+          </item>
+          <item row="2" column="7" colspan="2">
+           <widget class="QSlider" name="sliderGeoOpacity">
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelGeoInsideColor">
+            <property name="text">
+             <string>Inside color</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QtColorPicker" name="colorPickerBox" native="true"/>
           </item>
          </layout>
         </widget>
@@ -1284,10 +1298,10 @@ Alt + H to show/hide contour.
      <item>
       <widget class="QLabel" name="labelTipsGeoS">
        <property name="text">
-        <string>Left button to draw foreground.
-Right button to draw background.
+        <string>Left button to draw foreground (inside).
+Right button to draw background (outside).
 Shift + Left button to erase.
-</string>
+Ctrl/Cmd + Left button to draw box for ScribblePrompt.</string>
        </property>
       </widget>
      </item>
@@ -1452,6 +1466,18 @@ Shift + Left button to erase.
    </property>
    <property name="toolTip">
     <string>Move Label</string>
+   </property>
+  </action>
+  <action name="actionScribblePrompt">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_scribble.png</normaloff>:/resource/icons/voxel_draw_scribble.png</iconset>
+   </property>
+   <property name="text">
+    <string>Scribble Prompt</string>
    </property>
   </action>
  </widget>
