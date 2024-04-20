@@ -20,7 +20,7 @@ gast==0.4.0
 google-auth-oauthlib==1.0.0
 google-auth==2.29.0
 google-pasta==0.2.0
-grpcio==1.62.1
+grpcio==1.62.2
 h5py==3.11.0
 idna==3.7
 imageio==2.34.0
