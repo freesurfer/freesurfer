@@ -501,13 +501,13 @@ bool SurfacePath::SaveAsControlPoints(const QString &filename)
   }
 
   QTextStream out(&file);
+  out << "#!ascii label  , from subject  vox2ras=TkReg\n" << m_listVertices.size() << "\n";
   for (int n = 0; n < m_listVertices.size(); n++)
   {
     double pt[3];
     m_mris->GetRASAtVertex(m_listVertices[n], pt, m_mris->IsInflated()?FSSurface::SurfaceWhite:-1);
-    out << QString("%1 %2 %3\n").arg(pt[0]).arg(pt[1]).arg(pt[2]);
+    out << QString("%4 %1 %2 %3 0\n").arg(pt[0]).arg(pt[1]).arg(pt[2]).arg(m_listVertices[n]);
   }
-  out << QString("info\nnumpoints %1\nuseRealRAS 1\n").arg( m_listVertices.size() );
   return true;
 }
 

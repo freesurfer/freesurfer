@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>405</width>
+    <width>458</width>
     <height>1641</height>
    </rect>
   </property>
@@ -24,7 +24,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>405</width>
+     <width>458</width>
      <height>1641</height>
     </rect>
    </property>
@@ -110,6 +110,7 @@
         <addaction name="actionPathFill"/>
         <addaction name="actionDeletePath"/>
         <addaction name="actionClearMarks"/>
+        <addaction name="actionSaveMarks"/>
        </widget>
       </item>
      </layout>
@@ -1645,6 +1646,18 @@
    </property>
    <property name="text">
     <string>Clear Marks</string>
+   </property>
+  </action>
+  <action name="actionSaveMarks">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_save_marks.png</normaloff>:/resource/icons/surface_save_marks.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Marks</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
  </widget>

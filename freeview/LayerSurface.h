@@ -370,6 +370,8 @@ public:
 
   void ClearMarks();
 
+  void SaveMarks(const QString& filename);
+
   SurfaceLabel* CreateNewLabel(const QString& name = "");
 
   bool LoadParameterization(const QString& filename);

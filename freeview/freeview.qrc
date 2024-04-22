@@ -139,5 +139,6 @@
         <file>resource/icons/view_neurological.png</file>
         <file>resource/icons/view_radiological.png</file>
         <file>resource/icons/voxel_draw_scribble.png</file>
+        <file>resource/icons/surface_save_marks.png</file>
     </qresource>
 </RCC>

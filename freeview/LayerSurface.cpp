@@ -2607,6 +2607,14 @@ void LayerSurface::ClearMarks()
   }
 }
 
+void LayerSurface::SaveMarks(const QString &filename)
+{
+  if (m_marks)
+  {
+    m_marks->SaveAsControlPoints(filename);
+  }
+}
+
 void LayerSurface::EditPathPoint(int vno, bool remove)
 {
   if (!m_marks)
