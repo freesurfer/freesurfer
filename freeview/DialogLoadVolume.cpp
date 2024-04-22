@@ -61,12 +61,12 @@ void DialogLoadVolume::UpdateLUT()
 void DialogLoadVolume::OnOpen()
 {
   QString fn = ui->comboBoxFilenames->currentText().trimmed();
-  if (fn.isEmpty() || fn == "current folder")
+  if (fn == "current folder")
     fn = QDir::currentPath();
-  else
+  else if (!fn.isEmpty())
     fn =  QFileInfo(fn).absolutePath();
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select volume files",
-                                                         fn, // MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+                                                         fn.isEmpty()?m_strLastDir:MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
                                                          "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !filenames.isEmpty() )
   {
