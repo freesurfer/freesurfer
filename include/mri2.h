@@ -180,6 +180,7 @@ int MRIfixEntoWM(MRI *invol, const MRI *entowm, int Level, double lhVal, double 
 MRI *LabelAmygalaCortalJunction(MRI *seg, int topo, MRI *out);
 MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap);
 MRI *MRIcropSegHemi(MRI *seg0, int hemi, int cFoV, int rFoV, int sFoV);
+MRI *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh=0.5);
 MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpfn);
 
 /*!
