@@ -31,9 +31,11 @@
 #include <sys/stat.h>
 #include <iostream>
 
+#ifndef NO_FIPS_SUPPORT
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#endif
 
 #include "chklc.h"
 #include "diag.h"
@@ -85,6 +87,7 @@ static const char *isdir_msg =
     "ERROR: FS_LICENSE environment variable points to a folder not a file\n"
     "---------------------------------------------------------------------------\n";
 
+#ifndef NO_FIPS_SUPPORT
 // 256 bit key
 static unsigned char aes_256_cbc_key[] = { 0x3c, 0x3f, 0x78, 0x6d, 0x6c, 0x20, 0x76, 0x65,
 			                   0x72, 0x73, 0x69, 0x6f, 0x6e, 0x3d, 0x22, 0x31,
@@ -99,6 +102,7 @@ static unsigned char aes_256_cbc_iv[]  = { 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0
 static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
             unsigned char *iv, unsigned char *plaintext);	    
 static int __handleErrors_openssl();
+#endif
 
 // freeview will pass a msg buffer to chklc() call
 int chklc(char *msg)
@@ -254,14 +258,30 @@ int chklc(char *msg)
   // alpha-numeric. New license files have a 4th line with
   // a key generated using a proper salt.
   char *crypt_gkey = NULL;
-  int decryptedkey_len = 0;
+#ifndef NO_FIPS_SUPPORT  
   if (strcmp(key3, "") != 0) { // 5 line license file
     if (Gdiag_no > 0)
-      printf("[DEBUG] chklc() 5 line license file %s (key3=%s  %lu)\n", lfilename, key3, strlen(key3));
+      printf("[DEBUG] chklc() 5 line license file %s (len=%lu, key3=%s)\n", lfilename, strlen(key3), key3);
 
+    int decryptedkey_len = 0;
+    
     // base64 decode the key
     unsigned char decoded_encryptedkey[MAX_KEY_LEN] = {'\0'};
     int decoded_encryptedkey_len = EVP_DecodeBlock(decoded_encryptedkey, (unsigned char*)key3, strlen(key3));
+    if (decoded_encryptedkey_len < 0)
+    {
+      if (Gdiag_no > 0)
+        printf("[DEBUG] key3 len = %lu, decoded_encryptedkey_len = %d\n", strlen(key3), decoded_encryptedkey_len);
+
+      printf("ERROR: EVP_DecodeBlock() failed with 5-line file (%s)\n", lfilename);
+      fprintf(stderr, licmsg2, lfilename);
+      if (msg != NULL)
+      {
+        sprintf(msg, licmsg2, lfilename);
+        return 0;
+      }
+      exit(-1);
+    }
 
     // Decrypt the decoded_encryptedkey
     unsigned char decryptedkey[MAX_KEY_LEN] = {'\0'};
@@ -275,10 +295,11 @@ int chklc(char *msg)
     if (decryptedkey_len < 0)
     {
       printf("ERROR: __decrypt_openssl() failed with 5-line file (%s)\n", lfilename);
+      fprintf(stderr, licmsg2, lfilename);
       if (msg != NULL)
       {
-	sprintf(msg, "ERROR: __decrypt_openssl() failed with 5-line file (%s)\n", lfilename);
-	return 0;
+        sprintf(msg, licmsg2, lfilename);
+        return 0;
       }
       exit(1);
     }
@@ -293,8 +314,15 @@ int chklc(char *msg)
     crypt_gkey = (char*)malloc(decryptedkey_len+1);
     memset(crypt_gkey, 0, decryptedkey_len+1);
     memcpy(crypt_gkey, decryptedkey, decryptedkey_len);
+    crypt_gkey[strlen(key)] = '\0';
+
+    if (Gdiag_no > 0)
+      printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%d, strlen=%lu)\n", key, strlen(key), crypt_gkey, decryptedkey_len, strlen(crypt_gkey));
   }
   else if (strcmp(key2, "") != 0) {
+#else  
+  if (strcmp(key2, "") != 0) {
+#endif    
     // We have a 4 line license file.
     if (Gdiag_no > 0)
       printf("[DEBUG] chklc() 4 line license file %s\n", lfilename);
@@ -327,8 +355,6 @@ int chklc(char *msg)
 
   if (Gdiag_no > 0 && first_time) printf("crypt_gkey %s\n", crypt_gkey);
 
-  if (Gdiag_no > 0)
-    printf("[DEBUG] key = <%s> (%lu), crypt_gkey = <%s> (%d, strlen=%lu)\n", key, strlen(key), crypt_gkey, decryptedkey_len, strlen(crypt_gkey));
   if (memcmp(key, crypt_gkey, strlen(key)) != 0) {
     fprintf(stderr, licmsg2, lfilename);
     if (msg != NULL)
@@ -339,8 +365,10 @@ int chklc(char *msg)
     exit(-1);
   }
 
+#ifndef NO_FIPS_SUPPORT  
   if (strcmp(key3, "") != 0)
     free(crypt_gkey);
+#endif  
   
   if (Gdiag_no > 0 && first_time) printf("chklc() done\n");
   first_time = 0;
@@ -375,6 +403,7 @@ void cmp_glib_version(void)
 }
 #endif
 
+#ifndef NO_FIPS_SUPPORT
 // return -1 for errors
 static int __handleErrors_openssl()
 {
@@ -414,10 +443,7 @@ static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsi
   memset(todecrypttext, 0, todecrypttext_len);
   memcpy(todecrypttext, ciphertext, ciphertext_len);
   if (Gdiag_no > 0)
-  {
-    printf("[DEBUG] ciphertext_len    = %d, ciphertext    = %s\n", ciphertext_len, ciphertext);
-    printf("[DEBUG] todecrypttext_len = %d, todecrypttext = %s\n", todecrypttext_len, todecrypttext);
-  }
+    printf("[DEBUG] ciphertext_len = %d, todecrypttext_len = %d\n", ciphertext_len, todecrypttext_len);
     
   /*
    * Provide the message to be decrypted, and obtain the plaintext output.
@@ -443,3 +469,4 @@ static int __decrypt_openssl(unsigned char *ciphertext, int ciphertext_len, unsi
 
   return plaintext_len;
 }
+#endif
