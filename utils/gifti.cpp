@@ -1383,6 +1383,11 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
     int vno;
     for (vno = 0; vno < num_vertices; vno++) {
       float val = (float)gifti_get_DA_value_2D(scalars, vno, 0);
+      /* make the annotation volume consistent with MRISannot2seg()/ReadAnnotAsMRISeg()
+       * if val = -1, re-assign val = 0 (2024-04-23)
+       */
+      if (intent_code[intent_code_idx] == NIFTI_INTENT_LABEL && val == -1)
+	val = 0;
       MRIsetVoxVal(mri, vno, 0, 0, frame_count, val);
     }
     // printf("frame #%d\n",frame_count);
