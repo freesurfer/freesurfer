@@ -505,6 +505,12 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxOverlay->addItem( "Load correlation..." );
   ui->comboBoxOverlay->setCurrentIndex( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
   ShowWidgets(m_widgetsOverlay, layer && layer->GetActiveOverlayIndex() >= 0);
+  ui->widgetOverlayFrames->setVisible(layer && layer->GetActiveOverlay() && layer->GetActiveOverlay()->GetNumberOfFrames() > 1);
+  if (layer && layer->GetActiveOverlay())
+  {
+    ui->spinBoxOverlayFrame->setRange(0, layer->GetActiveOverlay()->GetNumberOfFrames()-1);
+    ui->spinBoxOverlayFrame->setValue(layer->GetActiveOverlay()->GetActiveFrame());
+  }
   if ( ui->comboBoxOverlay->currentIndex() == 0 )
   {
     this->m_wndConfigureOverlay->hide();
@@ -1612,4 +1618,9 @@ void PanelSurface::OnButtonSaveAnnotation()
       }
     }
   }
+}
+
+void PanelSurface::OnSpinBoxOverlayFrame(int n)
+{
+  m_wndConfigureOverlay->OnFrameChanged(n);
 }
