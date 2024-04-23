@@ -604,6 +604,7 @@ def preprocess(path_image, ct, n_levels=5, crop=None, autocrop=False, min_pad=No
         im = np.clip(im, 0, 80)
     im = rescale_volume(im, new_min=0, new_max=1, min_percentile=0.5, max_percentile=99.5)
 
+    # Automatically crop to bounding box of non-zero stuff in the re-normalised image
     if autocrop and crop_idx is None:
         nz_locs = np.argwhere(im > 0)
         min_indices = np.min(nz_locs, axis=0)
