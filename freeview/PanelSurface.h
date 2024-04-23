@@ -110,12 +110,14 @@ protected slots:
   void OnButtonCustomFillPath();
   void OnCustomFillTriggered(const QVariantMap& options);
   void OnButtonClearMarks();
+  void OnButtonSaveMarks();
   void OnLineEditLabelOpacity(const QString& text);
   void OnButtonLabelUp();
   void OnButtonLabelDown();
   void SetOverlayFrame(int nFrame);
   void OnButtonSaveAnnotation();
   void OnCycleAnnotation();
+  void OnSpinBoxOverlayFrame(int n);
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();

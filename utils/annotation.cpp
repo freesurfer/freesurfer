@@ -152,6 +152,7 @@ int read_named_annotation_table(const char *name)
     num_entries++;
   } while (cp && !feof(fp));
 
+  printf("read_named_annotation_table(%s): %d entries\n", name, num_entries);
   rewind(fp);
 
   atable = (ATABLE_ELT *)calloc(num_entries, sizeof(ATABLE_ELT));
@@ -205,7 +206,8 @@ int read_annotation_table(void)
     }
     num_entries++;
   } while (cp && !feof(fp));
-
+  printf("read_annotation_table(%s): %d entries\n", fname, num_entries);
+  
   rewind(fp);
 
   atable = (ATABLE_ELT *)calloc(num_entries, sizeof(ATABLE_ELT));
@@ -519,7 +521,8 @@ int set_atable_from_ctable(COLOR_TABLE *pct)
   if (num_entries <= 0) {
     return (ERROR_BAD_PARM);
   }
-
+  printf("set_atable_from_ctable(): %d entries\n", num_entries);
+  
   atable = (ATABLE_ELT *)calloc(num_entries, sizeof(ATABLE_ELT));
   for (i = 0; i < num_entries; i++) {
     cte = pct->entries[i];
@@ -918,6 +921,7 @@ MRI *MRISannot2seg(MRIS *surf, int base)
     if(annot != 0) nhits++;
     if(surf->ct) CTABfindAnnotation(surf->ct, annot, &segid);
     else         segid = annotation_to_index(annot);
+    // ReadAnnotAsMRISeg()/MRISreadGiftiAsMRI() are changed to be consistent (2024-04-23)
     if(segid == -1) segid = 0;  // Assume base is unknown
     MRIsetVoxVal(seg, k, 0, 0, 0, segid + base);
   }
@@ -1268,15 +1272,24 @@ MRI *ReadAnnotAsMRISeg(char *annotfname, int volume_flag)
     if(mri->ct) printf("colortable with %d entries read (originally %s)\n", mri->ct->nentries, mri->ct->fname);
   }
   fclose(fp);
+  
   if(volume_flag && mri->ct){
+    int nhits = 0;
     for(j = 0; j < num; j++) {
       // for some reason annot=0 is not in the ctab when running MRISseg2annot on the output
       int annot = MRIgetVoxVal(mri,j,0,0,0);
+      if (annot != 0) nhits++;
       int index;
       CTABfindIndexFromAnnotation(mri->ct, annot, &index);
+      /* make the annotation volume consistent with MRISannot2seg()/MRISreadGiftiAsMRI()
+       * if annot is not found in ctab, re-assign index = 0 (2024-04-23)
+       */
+      if (index == -1) index = 0;
       MRIsetVoxVal(mri,j,0,0,0,index);
     }
+    printf("ReadAnnotAsMRISeg(): nhits = %d\n", nhits);
   }
+  
   return(mri);
 }
 /*!

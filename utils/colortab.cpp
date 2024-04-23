@@ -1467,6 +1467,7 @@ int CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot)
   int annotation;
 
   if (NULL == ct) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABannotationAtIndex: ct was NULL"));
+  // invalid index -1 is treated as error. This is different from index_to_annotation().
   if (index < 0 || index >= ct->nentries)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABannotationAtIndex: index %d was OOB", index));
   if (NULL == annot) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABannotationAtIndex: output parameter was NULL"));

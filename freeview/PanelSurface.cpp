@@ -211,6 +211,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->actionPathFill, SIGNAL(triggered(bool)), SLOT(OnButtonCustomFillPath()));
 
   connect(ui->actionClearMarks, SIGNAL(triggered(bool)), SLOT(OnButtonClearMarks()));
+  connect(ui->actionSaveMarks, SIGNAL(triggered(bool)), SLOT(OnButtonSaveMarks()));
 
   connect(ui->toolButtonLabelUp, SIGNAL(clicked(bool)), SLOT(OnButtonLabelUp()));
   connect(ui->toolButtonLabelDown, SIGNAL(clicked(bool)), SLOT(OnButtonLabelDown()));
@@ -504,6 +505,12 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxOverlay->addItem( "Load correlation..." );
   ui->comboBoxOverlay->setCurrentIndex( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
   ShowWidgets(m_widgetsOverlay, layer && layer->GetActiveOverlayIndex() >= 0);
+  ui->widgetOverlayFrames->setVisible(layer && layer->GetActiveOverlay() && layer->GetActiveOverlay()->GetNumberOfFrames() > 1);
+  if (layer && layer->GetActiveOverlay())
+  {
+    ui->spinBoxOverlayFrame->setRange(0, layer->GetActiveOverlay()->GetNumberOfFrames()-1);
+    ui->spinBoxOverlayFrame->setValue(layer->GetActiveOverlay()->GetActiveFrame());
+  }
   if ( ui->comboBoxOverlay->currentIndex() == 0 )
   {
     this->m_wndConfigureOverlay->hide();
@@ -1508,6 +1515,19 @@ void PanelSurface::OnButtonClearMarks()
     surf->ClearMarks();
 }
 
+void PanelSurface::OnButtonSaveMarks()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if (!surf)
+    return;
+
+  QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+  QString fn = QFileDialog::getSaveFileName( this, "Select file",
+                                       dir.absolutePath(),
+                                       "All files (*)");
+  surf->SaveMarks(fn);
+}
+
 void PanelSurface::OnLineEditLabelOpacity(const QString &text)
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
@@ -1598,4 +1618,9 @@ void PanelSurface::OnButtonSaveAnnotation()
       }
     }
   }
+}
+
+void PanelSurface::OnSpinBoxOverlayFrame(int n)
+{
+  m_wndConfigureOverlay->OnFrameChanged(n);
 }

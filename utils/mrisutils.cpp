@@ -1303,7 +1303,8 @@ int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab)
     ano = index_to_annotation(segid);
     if(ano != -1 && segid != 0) nhits ++;
     if(ano == -1 && segid != 0) nmisses ++;
-    if(ano == -1) ano = 0;
+    if(ano == -1) ano = 0;  // no annotation associated with the segid
+                            // CTABannotationAtIndex() treats segid=-1 as error
     mris->vertices[vtxno].annotation = ano;
     if (vtxno == Gdiag_no)
       printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
