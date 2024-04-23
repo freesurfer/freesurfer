@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--fwd_field", help="(optional) Forward field")
     parser.add_argument("--bak_field", help="(optional) Inverse field")
     parser.add_argument("--affine_only", action="store_true", help="(optional) Skips nonlinear part")
+    parser.add_argument("--autocrop", action="store_true", help="(optional) Ignore background voxels in FOV.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1. You can use -1 to use all available cores")
 
     # parse commandline
@@ -102,6 +103,7 @@ def main():
         print('   Reading reference image')
         ref_image, ref_aff, ref_h, ref_im_res, ref_shape, ref_pad_idx, ref_crop_idx = preprocess(path_image=args.ref,
                                                                                                  crop=None, min_pad=128,
+                                                                                                 autocrop=args.autocrop,
                                                                                                  path_resample=None)
         print('   Setting up segmentation net')
         segmentation_net = build_seg_model(model_file_segmentation=path_model_segmentation,
@@ -138,6 +140,7 @@ def main():
         print('   Reading floating image')
         flo_image, flo_aff, flo_h, flo_im_res, flo_shape, ref_pad_idx, ref_crop_idx = preprocess(path_image=args.flo,
                                                                                                  crop=None, min_pad=128,
+                                                                                                 autocrop=args.autocrop,
                                                                                                  path_resample=None)
         if segmentation_net is None:
             print('   Setting up segmentation net')
@@ -500,7 +503,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
 
 
 
-def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=None):
+def preprocess(path_image, n_levels=5, crop=None, autocrop=False, min_pad=None, path_resample=None):
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
     if n_dims < 3:
@@ -535,6 +538,22 @@ def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=No
 
     # normalise image
     im = rescale_volume(im, new_min=0, new_max=1, min_percentile=0.5, max_percentile=99.5)
+
+    # automatically crop out obvious background
+    if autocrop and crop_idx is None:
+        nz_locs = np.argwhere(im > 0)
+        min_indices = np.min(nz_locs, axis=0)
+        max_indices = np.max(nz_locs, axis=0)
+        nz_crop = max_indices - min_indices + 2
+        crop_shape = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in nz_crop]
+        half_dim_diff = np.floor_divide([crop_shape[i] - nz_crop[i] for i in range(n_dims)], 2)
+        min_crop_idx = np.maximum(min_indices - half_dim_diff, 0)
+        max_crop_idx = np.minimum(min_crop_idx + crop_shape, im.shape[:n_dims])
+        crop_idx = np.concatenate([np.array(min_crop_idx), np.array(max_crop_idx)])
+        if n_dims == 2:
+            im = im[crop_idx[0]: crop_idx[2], crop_idx[1]: crop_idx[3], ...]
+        elif n_dims == 3:
+            im = im[crop_idx[0]: crop_idx[3], crop_idx[1]: crop_idx[4], crop_idx[2]: crop_idx[5], ...]
 
     # pad image
     input_shape = im.shape[:n_dims]
