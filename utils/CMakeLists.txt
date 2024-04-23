@@ -242,10 +242,21 @@ target_link_libraries(utils
   ${OMP_CXX_LIBRARIES}
 )
 
-if(NOT APPLE)
-  target_link_libraries(utils crypt crypto rt)
+if(FIPS_SUPPORT)
+   if(NOT APPLE)
+      set(crypto_lib "crypto")
+   else() 
+      set(crypto_lib "${OpenSSL_LIB_DIR}/libcrypto.a")
+   endif()
 else()
-  target_link_libraries(utils ${OpenSSL_LIB_DIR}/libcrypto.a)
+   set(crypto_lib "")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_FIPS_SUPPORT")
+endif()
+
+if(NOT APPLE)
+  target_link_libraries(utils crypt ${crypto_lib} rt)
+else() 
+  target_link_libraries(utils ${crypto_lib})
 endif()
 
 # utils binaries
