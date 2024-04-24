@@ -7359,15 +7359,15 @@ MRI *MRIcropSegHemi(MRI *seg0, int hemi, int cFoV, int rFoV, int sFoV)
 The centroid is computed from the voxels in mask that are >= thresh. If unspecified,
 thresh will be 0.5
  */
-MRI *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh)
+MRI_REGION *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh)
 {
   double csum=0, rsum=0, ssum=0;
   int cmin=10e5, cmax=0, rmin=10e5, rmax=0, smin=10e5, smax=0;
   int nhits=0;
 
   // Make a copy so that the contra lateral can be zeroed
-  MRI *crop = MRIcopy(mask,NULL);
-  if(mask->ct) crop->ct = CTABdeepCopy(mask->ct);
+  //MRI *crop = MRIcopy(mask,NULL);
+  //if(mask->ct) crop->ct = CTABdeepCopy(mask->ct);
 
   // Compute the centroid of the mask
 #ifdef HAVE_OPENMP
@@ -7378,7 +7378,7 @@ MRI *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh)
       for(int s=0; s < mask->depth; s++){
 	double v = MRIgetVoxVal(mask,c,r,s,0);
 	if(v < thresh) continue;
-	MRIsetVoxVal(crop,c,r,s,0,0);
+	//MRIsetVoxVal(crop,c,r,s,0,0);
 	csum += c;
 	rsum += r;
 	ssum += s;
@@ -7401,32 +7401,32 @@ MRI *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh)
 	 thresh,cFoV,rFoV,sFoV,nhits,csum,rsum,ssum,cmin,rmin,smin,cmax,rmax,smax,cmax-cmin+1,rmax-rmin+1,smax-smin+1);
 
   // Create the region to extract
-  MRI_REGION region;
-  region.x = MAX(round(csum-cFoV/2),0);
-  region.y = MAX(round(rsum-rFoV/2),0);
-  region.z = MAX(round(ssum-sFoV/2),0);
-  region.dx = MIN(cFoV,mask->width);
-  region.dy = MIN(rFoV,mask->height);
-  region.dz = MIN(sFoV,mask->depth);
+  MRI_REGION *region = (MRI_REGION *)calloc(sizeof(MRI_REGION),1);
+  region->x = MAX(round(csum-cFoV/2),0);
+  region->y = MAX(round(rsum-rFoV/2),0);
+  region->z = MAX(round(ssum-sFoV/2),0);
+  region->dx = MIN(cFoV,mask->width);
+  region->dy = MIN(rFoV,mask->height);
+  region->dz = MIN(sFoV,mask->depth);
 
-  printf("Region\n");
-  REGIONprint(stdout,&region);
+  printf("Region ");
+  REGIONprint(stdout,region);
 
   // Check for warnings
-  if(region.dx != cFoV) printf("WARNING: cFoV is %d, could not achieve %d\n",region.dx,cFoV);
-  if(region.dy != rFoV) printf("WARNING: rFoV is %d, could not achieve %d\n",region.dy,rFoV);
-  if(region.dz != sFoV) printf("WARNING: sFoV is %d, could not achieve %d\n",region.dz,sFoV);
-  if(region.x  > cmin)         printf("WARNING: clip cmin \n");
-  if(region.dx < (cmax-cmin) ) printf("WARNING: clip cmax \n");
-  if(region.y  > rmin)         printf("WARNING: clip rmin \n");
-  if(region.dy < (rmax-rmin) ) printf("WARNING: clip rmax \n");
-  if(region.z  > smin)         printf("WARNING: clip smin \n");
-  if(region.dz < (smax-smin) ) printf("WARNING: clip smax \n");
+  if(region->dx != cFoV) printf("WARNING: cFoV is %d, could not achieve %d\n",region->dx,cFoV);
+  if(region->dy != rFoV) printf("WARNING: rFoV is %d, could not achieve %d\n",region->dy,rFoV);
+  if(region->dz != sFoV) printf("WARNING: sFoV is %d, could not achieve %d\n",region->dz,sFoV);
+  if(region->x  > cmin)         printf("WARNING: clip cmin \n");
+  if(region->dx < (cmax-cmin) ) printf("WARNING: clip cmax \n");
+  if(region->y  > rmin)         printf("WARNING: clip rmin \n");
+  if(region->dy < (rmax-rmin) ) printf("WARNING: clip rmax \n");
+  if(region->z  > smin)         printf("WARNING: clip smin \n");
+  if(region->dz < (smax-smin) ) printf("WARNING: clip smax \n");
 
   // And finally extract the FoV around the centroid
-  MRI *cropped = MRIextractRegion(mask, NULL, &region);
+  //MRI *cropped = MRIextractRegion(mask, NULL, &region);
 
-  return(cropped);
+  return(region);
 }
 
 /*!
