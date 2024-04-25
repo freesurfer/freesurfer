@@ -27,10 +27,8 @@
 #include <QObject>
 #include <QString>
 
-
-
 #include "mri.h"
-
+#include "colortab.h"
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
@@ -181,6 +179,13 @@ public:
 
   void UpdateMaxHistCount(double* range, int nBins);
 
+  void SetColorTable(COLOR_TABLE* ctab);
+
+  COLOR_TABLE* GetEmbeddedColorTable()
+  {
+    return m_ctab;
+  }
+
 signals:
   void DataUpdated();
 
@@ -224,6 +229,8 @@ private:
   LayerMRI*  m_volumeCorrelationSource;
   float*    m_fCorrelationSourceData;
   float*    m_fCorrelationDataBuffer;
+
+  COLOR_TABLE* m_ctab;
 
   qint64    m_nID;
 };

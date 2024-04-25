@@ -456,7 +456,8 @@ bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QS
 {
   float* data = NULL;
   int nframes, nvertices;
-  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes, bSecondHalfData ) )
+  COLOR_TABLE* ctab = NULL;
+  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes, bSecondHalfData, &ctab ) )
   {
     return false;
   }
@@ -467,6 +468,12 @@ bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QS
   overlay->SetName( QFileInfo(filename).fileName() );
   overlay->SetFileName( filename );
   overlay->SetRegFileName( fn_reg );
+  if (ctab != NULL)
+  {
+    overlay->SetColorTable(ctab);
+    overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Embedded);
+    CTABfree(&ctab);
+  }
 
   m_overlays.push_back( overlay );
   SetActiveOverlay( m_overlays.size() - 1 );

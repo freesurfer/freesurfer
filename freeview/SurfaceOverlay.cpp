@@ -55,7 +55,8 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   m_bComputeCorrelation(false),
   m_volumeCorrelationSource(NULL),
   m_fCorrelationSourceData(NULL),
-  m_fCorrelationDataBuffer(NULL)
+  m_fCorrelationDataBuffer(NULL),
+  m_ctab(NULL)
 {
   InitializeData();
 
@@ -95,6 +96,9 @@ SurfaceOverlay::~SurfaceOverlay ()
 
   if (m_fCorrelationDataBuffer)
     delete[] m_fCorrelationDataBuffer;
+
+  if (m_ctab)
+    ::CTABfree(&m_ctab);
 }
 
 void SurfaceOverlay::InitializeData()
@@ -708,4 +712,10 @@ void SurfaceOverlay::UpdateMaxHistCount(double* range, int nBins)
   setProperty("HistMaxCount", nMaxCount);
   setProperty("HistRange", range[0]);
   setProperty("HistBins", nBins);
+}
+
+void SurfaceOverlay::SetColorTable(COLOR_TABLE *ctab)
+{
+  if (ctab)
+    m_ctab = ::CTABdeepCopy(ctab);
 }

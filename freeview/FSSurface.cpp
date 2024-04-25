@@ -492,7 +492,7 @@ bool FSSurface::LoadCurvature( const QString& filename )
 
 bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
                              float** data_out, int* nvertices_out, int* nframes_out,
-                             bool bUseSecondHalfData )
+                             bool bUseSecondHalfData, COLOR_TABLE** ctab_out )
 {
   //    int mritype = mri_identify((char*)( filename.toLatin1().data() ));
   //    qDebug() << "mritype " << mritype;
@@ -565,6 +565,10 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
     *data_out = data;
     *nframes_out = mri->nframes;
     *nvertices_out = m_MRIS->nvertices;
+
+    if (ctab_out && mri->ct != NULL)
+      *ctab_out = CTABdeepCopy(mri->ct);
+
     MRIfree(&mri);
     MatrixFree(&ras2vox_tkreg);
   }
@@ -607,6 +611,9 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
       *nframes_out = nframes;
     }
     *nvertices_out = m_MRIS->nvertices;
+    if (ctab_out && mri->ct != NULL)
+      *ctab_out = CTABdeepCopy(mri->ct);
+    MRIfree(&mri);
   }
 
   return true;
