@@ -1119,6 +1119,14 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--inlta: " << P.transin << " input LTA transform." << endl;
   }
+  if (!strcmp(option, "REGHEADER") )
+  {
+    P.transin = string("identity.nofile");
+    P.intype = intypes::LTA;
+    cout << "--regheader" << endl;
+    // lta_convert --inlta identity.nofile --src $mov  --trg $targ  --outlta $lta
+    // lta_convert --regheader --src $mov  --trg $targ  --outlta $lta
+  }
   else if (!strcmp(option, "INFSL") )
   {
     P.transin = string(argv[1]);
