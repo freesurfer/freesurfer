@@ -197,3 +197,63 @@ def registration(
         plt.figure(), plt.imshow(deformed_image, aspect="equal"), plt.title(
             "Perspective / pixel size corrected image"
         ), plt.show(block=False)
+
+
+#### Function added by Eugenio
+def fiducial_detection(
+    true_width,
+    true_height,
+    template,
+    des_template,
+    centers,
+    kp_template,
+    input_image,
+    output_file
+):
+    # Constants
+    sift_res = 1024  # resolution at which SIFT operates;  TODO: make consistent with that of main.py
+    reference_pixel_size = (
+        0.1  # resolution of the final, perspective corrected image (in mm)
+    )
+
+    # Read in new image to process
+    target = cv2.imread(input_image, cv2.IMREAD_GRAYSCALE)
+    target_fullsize_rgb = cv2.imread(input_image)
+
+    # Resize image so smaller dimension is sift_res
+    factor = sift_res / np.min(target.shape)
+    new_target_size = np.round(np.flip(target.shape) * factor).astype(int)
+    target = cv2.resize(target, dsize=new_target_size, interpolation=cv2.INTER_AREA)
+
+    # Detect keypoints with SIFT
+    sift = cv2.SIFT_create()
+    kp_target, des_target = sift.detectAndCompute(target, None)
+
+    # Keypoint Matching
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)  # Brute force is fine
+
+    # Match and extract points
+    matches = bf.match(des_template, des_target)
+    matches = sorted(matches, key=lambda x: x.distance)
+    template_pts = np.float32([kp_template[m.queryIdx].pt for m in matches]).reshape(
+        -1, 1, 2
+    )
+    target_pts = np.float32([kp_target[m.trainIdx].pt for m in matches]).reshape(
+        -1, 1, 2
+    )
+
+    # Fit transform and apply to corner
+    M, _ = cv2.findHomography(template_pts, target_pts, cv2.RANSAC, 2.0)
+    centers_target = cv2.perspectiveTransform(centers.reshape(-1, 1, 2), M)
+
+    # Now that we have detected the centers of the corners, we go back to the original coordinates
+    centers_target = centers_target / factor
+
+    # Write output to disk
+    f = open(output_file, "w")
+    f.write("TrueWidth: " + str(true_width) + '\n')
+    f.write("TrueHeight: " + str(true_height) + '\n')
+    for c in range(4):
+        f.write('Corner_' + str(c+1) + ': ' + str(centers_target[c,0,0]) + ',' + str(centers_target[c,0,1]) + '\n')
+    f.close()
+
