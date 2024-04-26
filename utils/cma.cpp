@@ -909,6 +909,12 @@ int MRIasegContraLatLabel(int id)
   case Right_Amygdala_Anterior:
     id2 = Left_Amygdala_Anterior;
     break;
+  case 138: //Left-Claustrum
+    id2 = 139;
+    break;
+  case 139: //Right-Claustrum
+    id2 = 138;
+    break;
   case 265: // Left-Eyeball
     id2 = 266; 
     break;
