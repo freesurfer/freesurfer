@@ -46,8 +46,12 @@
       <explanation>assume mask is a samseg segmentation and mask all non-brain labels</explanation>
       <argument>-crop npad</argument>
       <explanation>Crop volume around the mask. The bounding box is expanded by npad voxels in each direction. npad should be at least 1 to avoid clipping (same as -bb)</explanation>
+      <argument>-crop-crs cpad rpad spad</argument>
+      <explanation>Crop volume around the mask with given amount of padding</explanation>
       <argument>-crop-to-fov cFoV rFov sFov</argument>
       <explanation>Crop volume around the mask centroid so that the final volume is of size (cFoV,rFov,sFov) voxels </explanation>
+      <argument>-crop-to-fov-mm cFoVmm rFovmm sFovmm</argument>
+      <explanation>Same as -crop-to-fov but FoV specified in mm instead of voxels </explanation>
       <argument>-bbm npad1 npad2 npad3</argument>
       <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad[X] voxels in each direction. npad should be at least 1 to avoid clipping</explanation>
       <argument>-bbmm npad1a npad1b npad2a npad2b npad3a npad3b</argument>
