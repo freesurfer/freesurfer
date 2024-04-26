@@ -276,6 +276,37 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
       m_lut->AddRGBAPoint(m_customScale.at(i).first + m_dOffset, c.redF(), c.greenF(), c.blueF(), 1);
     }
   }
+  else if (nScale == CS_Embedded)
+  {
+    COLOR_TABLE* ctab = m_overlay->GetEmbeddedColorTable();
+    if ( ctab )
+    {
+      m_lut->AddRGBAPoint( 0, 0, 0, 0, 0 );
+      int cEntries;
+      CTABgetNumberOfTotalEntries( ctab, &cEntries );
+      bool last_is_valid = true;
+      for ( int nEntry = 1; nEntry < cEntries; nEntry++ )
+      {
+        int bValid;
+        CTABisEntryValid( ctab, nEntry, &bValid );
+        if ( bValid )
+        {
+          if (!last_is_valid)
+            last_is_valid = true;
+
+          float red, green, blue, alpha;
+          CTABrgbaAtIndexf( ctab, nEntry, &red, &green, &blue, &alpha );
+          m_lut->AddRGBAPoint( nEntry, red, green, blue, 1 );
+        }
+        else if (last_is_valid)
+        {
+          m_lut->AddRGBAPoint( nEntry, 0, 0, 0, 0 );
+          last_is_valid = false;
+        }
+      }
+      m_lut->AddRGBAPoint( cEntries, 0, 0, 0, 0 );
+    }
+  }
 
   m_lut->Build();
 }
@@ -694,6 +725,10 @@ void SurfaceOverlayProperty::MapOverlayColorFullScale( float* data, unsigned cha
     {
       dThHigh = m_dMaxStop + m_dOffset;
     }
+  }
+  else if (m_nColorScale == CS_Embedded)
+  {
+    dThLow = m_overlay->m_dMinValue-1e10;
   }
   for ( int i = 0; i < nPoints; i++ )
   {
