@@ -503,6 +503,11 @@ static int get_option(int argc, char *argv[])
     if(sd.seg1==NULL) exit(1);
     sd.seg2 = MRIread(argv[3]);
     if(sd.seg2==NULL) exit(1);
+    int dm = MRIdimMismatch(sd.seg1, sd.seg2, 0);
+    if(dm){
+      printf("ERROR: dimension mismatch %d\n",dm);
+      exit(1);
+    }
     if(strcmp(argv[4],"embedded")!=0){
       sd.ctab = CTABreadASCII(argv[4]);
       if(sd.ctab==NULL) exit(1);
