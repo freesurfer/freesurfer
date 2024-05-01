@@ -8,6 +8,8 @@ import numpy as np
 from PIL import Image
 import pathlib
 
+if not hasattr(Image, 'Resampling'):  # Pillow<9.0
+    Image.Resampling = Image
 
 class SplitArgs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):

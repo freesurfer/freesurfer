@@ -20,6 +20,8 @@ public:
 
   bool LoadImage(const QString& filename, const QStringList& preprocessed_masks);
 
+  void SetEditedPoints(const QList<QPoint>& pts);
+
   void paintEvent(QPaintEvent* e);
   void mousePressEvent(QMouseEvent* e);
   void mouseMoveEvent(QMouseEvent* e);

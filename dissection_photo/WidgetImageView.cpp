@@ -454,3 +454,14 @@ void WidgetImageView::SetMaskOpacity(double val)
   UpdateScaledImage();
   update();
 }
+
+void WidgetImageView::SetEditedPoints(const QList<QPoint>& pts)
+{
+  m_listPoints = pts;
+  m_imageOverlay = QImage();
+  m_listSelectedMasks.clear();
+  PrepareImage();
+  UpdateScaledImage();
+  HideMessage();
+  update();
+}

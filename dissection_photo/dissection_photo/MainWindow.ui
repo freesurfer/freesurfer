@@ -46,12 +46,18 @@
         </size>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="leftMargin">
+         <number>12</number>
+        </property>
+        <property name="topMargin">
+         <number>12</number>
+        </property>
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
-          <widget class="QWidget" name="page3">
+          <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <property name="leftMargin">
              <number>0</number>
@@ -67,9 +73,6 @@
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_2">
-              <property name="styleSheet">
-               <string notr="true">padding-bottom: 2px;</string>
-              </property>
               <property name="text">
                <string>Segmentation</string>
               </property>
@@ -337,7 +340,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="page4">
+          <widget class="QWidget" name="pageCC">
            <layout class="QVBoxLayout" name="verticalLayout_5">
             <property name="leftMargin">
              <number>0</number>
@@ -353,8 +356,8 @@
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_3">
-              <property name="styleSheet">
-               <string notr="true">padding-bottom: 2px;</string>
+              <property name="autoFillBackground">
+               <bool>false</bool>
               </property>
               <property name="text">
                <string>Connected Components</string>
@@ -437,6 +440,9 @@
               </item>
               <item row="0" column="3">
                <widget class="QPushButton" name="pushButtonNextCC">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -479,6 +485,9 @@
               </item>
               <item row="0" column="1">
                <widget class="QPushButton" name="pushButtonPreviousCC">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -524,7 +533,10 @@
                </spacer>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButtonSegmentation_2">
+               <widget class="QPushButton" name="pushButtonAllDone">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>120</width>
@@ -566,10 +578,10 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="page2">
+          <widget class="QWidget" name="pageCorrection">
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <property name="spacing">
-             <number>12</number>
+             <number>10</number>
             </property>
             <property name="leftMargin">
              <number>0</number>
@@ -852,6 +864,9 @@
               </item>
               <item row="0" column="3">
                <widget class="QPushButton" name="pushButtonNext">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -894,6 +909,9 @@
               </item>
               <item row="0" column="1">
                <widget class="QPushButton" name="pushButtonPrevious">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -940,6 +958,9 @@
               </item>
               <item>
                <widget class="QPushButton" name="pushButtonSegmentation">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="text">
                  <string>Proceed to Segmentation</string>
                 </property>
@@ -975,7 +996,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="page1">
+          <widget class="QWidget" name="pageStartUp">
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <property name="spacing">
              <number>5</number>
@@ -1249,7 +1270,7 @@
      <x>0</x>
      <y>0</y>
      <width>1251</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
@@ -1303,7 +1324,7 @@
    <slot>OnButtonOutputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>296</x>
+     <x>406</x>
      <y>242</y>
     </hint>
     <hint type="destinationlabel">
@@ -1319,8 +1340,8 @@
    <slot>OnButtonContinue()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>202</x>
-     <y>350</y>
+     <x>259</x>
+     <y>344</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -1351,8 +1372,8 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>275</x>
-     <y>73</y>
+     <x>373</x>
+     <y>86</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1424,6 +1445,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButtonSegmentation</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonProceedToSeg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>378</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>310</x>
+     <y>1068</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnButtonInputFolder()</slot>
@@ -1437,5 +1474,6 @@
   <slot>OnButtonNextCC()</slot>
   <slot>OnButtonProcess()</slot>
   <slot>OnButtonClear()</slot>
+  <slot>OnButtonProceedToSeg()</slot>
  </slots>
 </ui>
