@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QFileInfoList>
 #include <QProcess>
+#include <QVariantMap>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -34,11 +35,13 @@ private slots:
   void OnProcessStarted();
   void OnProcessFinished();
   void OnProcessError(QProcess::ProcessError);
+  void OnButtonProceedToSeg();
 
 private:
   void SetupScriptPath();
   void UpdateIndex();
   void LoadImage(int n);
+  QList<QPoint> GetCalibrationPointsList(const QVariantMap& info);
 
   Ui::MainWindow *ui;
   QString  m_strInputFolder;
@@ -51,8 +54,15 @@ private:
   int m_nNumberOfExpectedPoints;
   int m_nIndex;
   QList< QList<QPoint> > m_listData;
+  bool m_bCalibratiedMode;
   QString m_strPyScriptRetrospective;
+  QString m_strPyScriptFiducialsCorrection;
+  QString m_strPyScriptFiducialsDetection;
+  QString m_strPyScriptFiducialsCalibration;
 
   QProcess* m_proc;
+  QVariantMap  m_mapCalibrationInfo;
+
+  QString m_sTempDir;
 };
 #endif // MAINWINDOW_H

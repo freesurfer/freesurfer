@@ -3,5 +3,9 @@
         <file alias="func_retrospective_correction.py">../py_scripts/func_retrospective_correction.py</file>
         <file alias="horizontal.png">../py_scripts/horizontal.png</file>
         <file alias="vertical.png">../py_scripts/vertical.png</file>
+        <file alias="func_fiducials_correction.py">../py_scripts/func_fiducials_correction.py</file>
+        <file alias="func_fiducials_calibration.py">../py_scripts/func_fiducials_calibration.py</file>
+        <file alias="registration.py">../py_scripts/registration.py</file>
+        <file alias="func_fiducials_detection.py">../py_scripts/func_fiducials_detection.py</file>
     </qresource>
 </RCC>
