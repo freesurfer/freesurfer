@@ -103,8 +103,8 @@ def main():
         print('   Reading reference image')
         ref_image, ref_aff, ref_h, ref_im_res, ref_shape, ref_pad_idx, ref_crop_idx = preprocess(path_image=args.ref,
                                                                                                  crop=None, min_pad=128,
-                                                                                                 autocrop=args.autocrop,
-                                                                                                 path_resample=None)
+                                                                                                 path_resample=None,
+                                                                                                 autocrop=args.autocrop)
         print('   Setting up segmentation net')
         segmentation_net = build_seg_model(model_file_segmentation=path_model_segmentation,
                                            model_file_parcellation=path_model_parcellation,
@@ -140,8 +140,8 @@ def main():
         print('   Reading floating image')
         flo_image, flo_aff, flo_h, flo_im_res, flo_shape, ref_pad_idx, ref_crop_idx = preprocess(path_image=args.flo,
                                                                                                  crop=None, min_pad=128,
-                                                                                                 autocrop=args.autocrop,
-                                                                                                 path_resample=None)
+                                                                                                 path_resample=None,
+                                                                                                 autocrop=args.autocrop)
         if segmentation_net is None:
             print('   Setting up segmentation net')
             segmentation_net = build_seg_model(model_file_segmentation=path_model_segmentation,
@@ -503,7 +503,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
 
 
 
-def preprocess(path_image, n_levels=5, crop=None, autocrop=False, min_pad=None, path_resample=None):
+def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=None, autocrop=False):
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
     if n_dims < 3:
