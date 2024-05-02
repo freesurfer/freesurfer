@@ -190,11 +190,11 @@ def main():
         labels_qc=labels_qc,
         names_qc=names_qc_labels,
         cropping=args.crop,
-        autocrop=args.autocrop,
         topology_classes=topology_classes,
         ct=args.ct,
         keepgeom=args.keepgeom,
-        labels=labels
+        labels=labels,
+        autocrop=args.autocrop
     )
 
 
@@ -226,11 +226,11 @@ def predict(path_images,
             labels_qc,
             names_qc,
             cropping,
-            autocrop,
             topology_classes,
             ct,
             keepgeom=False,
-            labels=None):
+            labels=None,
+            autocrop=False):
     '''
     Prediction pipeline.
     '''
@@ -316,9 +316,9 @@ def predict(path_images,
             image, aff, h, im_res, shape, pad_idx, crop_idx = preprocess(path_image=path_images[i],
                                                                          ct=ct,
                                                                          crop=cropping,
-                                                                         autocrop=autocrop,
                                                                          min_pad=min_pad,
-                                                                         path_resample=path_resampled[i])
+                                                                         path_resample=path_resampled[i],
+                                                                         autocrop=autocrop)
 
             # prediction
             shape_input = add_axis(np.array(image.shape[1:-1]))
@@ -565,7 +565,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
            out_qc, unique_qc_file
 
 
-def preprocess(path_image, ct, n_levels=5, crop=None, autocrop=False, min_pad=None, path_resample=None):
+def preprocess(path_image, ct, n_levels=5, crop=None, min_pad=None, path_resample=None, autocrop=False):
 
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
