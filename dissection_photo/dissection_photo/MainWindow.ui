@@ -55,7 +55,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -82,14 +82,169 @@
              </widget>
             </item>
             <item>
-             <widget class="QWidget" name="widget" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="0,1,0,0">
+              <property name="topMargin">
+               <number>10</number>
+              </property>
+              <property name="bottomMargin">
+               <number>10</number>
+              </property>
+              <item>
+               <spacer name="horizontalSpacer_31">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="labelMaskFolder">
+                <property name="text">
+                 <string>Select folder that contains the mask images</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonLoadMasks">
+                <property name="minimumSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Load Masks</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_32">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_17">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <spacer name="horizontalSpacer_20">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QWidget" name="widget" native="true">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_10">
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLabel" name="label_3">
+                   <property name="text">
+                    <string>Brush size</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="spinBoxBrushSize">
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_21">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Fixed</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>1</width>
+                     <height>5</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_37">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QWidget" name="widget_2" native="true">
               <property name="minimumSize">
                <size>
                 <width>0</width>
                 <height>0</height>
                </size>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <layout class="QHBoxLayout" name="horizontalLayout_16">
                <property name="leftMargin">
                 <number>0</number>
                </property>
@@ -103,34 +258,37 @@
                 <number>0</number>
                </property>
                <item>
-                <spacer name="horizontalSpacer_29">
+                <spacer name="horizontalSpacer_36">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>111</width>
+                   <width>13</width>
                    <height>17</height>
                   </size>
                  </property>
                 </spacer>
                </item>
                <item>
-                <widget class="QLabel" name="label_3">
+                <widget class="QLabel" name="label_5">
                  <property name="text">
-                  <string>Brush size</string>
+                  <string>Opacity</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QSpinBox" name="spinBoxBrushSize">
-                 <property name="minimum">
-                  <number>1</number>
+                <widget class="QSlider" name="horizontalSliderSegOpacity">
+                 <property name="maximum">
+                  <number>100</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
                  </property>
                 </widget>
                </item>
                <item>
-                <spacer name="horizontalSpacer_21">
+                <spacer name="horizontalSpacer_34">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -146,30 +304,7 @@
                 </spacer>
                </item>
                <item>
-                <widget class="QToolButton" name="toolButtonFreeHand">
-                 <property name="text">
-                  <string>Free Hand</string>
-                 </property>
-                 <property name="checkable">
-                  <bool>true</bool>
-                 </property>
-                 <property name="checked">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QToolButton" name="toolButtonFill">
-                 <property name="text">
-                  <string>Fill</string>
-                 </property>
-                 <property name="checkable">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="horizontalSpacer_20">
+                <spacer name="horizontalSpacer_35">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -305,6 +440,9 @@
               </item>
               <item>
                <widget class="QPushButton" name="pushButtonCC">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="text">
                  <string>Proceed to CC</string>
                 </property>
@@ -342,6 +480,9 @@
           </widget>
           <widget class="QWidget" name="pageCC">
            <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="spacing">
+             <number>8</number>
+            </property>
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -959,7 +1100,7 @@
               <item>
                <widget class="QPushButton" name="pushButtonSegmentation">
                 <property name="enabled">
-                 <bool>false</bool>
+                 <bool>true</bool>
                 </property>
                 <property name="text">
                  <string>Proceed to Segmentation</string>
@@ -1175,6 +1316,65 @@
              <widget class="QLineEdit" name="lineEditPathOutput"/>
             </item>
             <item>
+             <spacer name="verticalSpacer_13">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>12</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_13">
+              <item>
+               <widget class="QLabel" name="label_9">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Select output directory for connected components </string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_30">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonFinalOutput">
+                <property name="text">
+                 <string>Choose Folder</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditPathFinalOutput"/>
+            </item>
+            <item>
              <spacer name="verticalSpacer_7">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -1281,6 +1481,9 @@
    <extends>QWidget</extends>
    <header location="global">WidgetImageView.h</header>
    <container>1</container>
+   <slots>
+    <slot>SetBrushSize(int)</slot>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources/>
@@ -1341,7 +1544,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>259</x>
-     <y>344</y>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -1461,6 +1664,182 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButtonCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonProceedToCC()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>228</x>
+     <y>262</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>365</x>
+     <y>1206</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonFinalOutput</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonFinalOutputFolder()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>375</x>
+     <y>312</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>986</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLoadMasks</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonLoadMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>365</x>
+     <y>81</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>698</x>
+     <y>1015</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSliderSegOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSliderSegOpacity(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>236</x>
+     <y>164</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>1103</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxBrushSize</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>widgetImageView</receiver>
+   <slot>SetBrushSize(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>243</x>
+     <y>130</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>583</x>
+     <y>475</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSegPrevious</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonPrevious()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>119</x>
+     <y>202</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>176</x>
+     <y>1167</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSegNext</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonNext()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>301</x>
+     <y>203</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>304</x>
+     <y>1018</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonPreviousCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonPrevious()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>145</x>
+     <y>109</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>137</x>
+     <y>968</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonNextCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonNext()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>283</x>
+     <y>108</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>251</x>
+     <y>1199</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonClearCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonClear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>298</x>
+     <y>74</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>332</x>
+     <y>1037</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonCreateMask</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonCreateMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>172</x>
+     <y>69</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>190</x>
+     <y>1010</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnButtonInputFolder()</slot>
@@ -1475,5 +1854,10 @@
   <slot>OnButtonProcess()</slot>
   <slot>OnButtonClear()</slot>
   <slot>OnButtonProceedToSeg()</slot>
+  <slot>OnButtonProceedToCC()</slot>
+  <slot>OnButtonFinalOutputFolder()</slot>
+  <slot>OnButtonLoadMask()</slot>
+  <slot>OnSliderSegOpacity(int)</slot>
+  <slot>OnButtonCreateMask()</slot>
  </slots>
 </ui>

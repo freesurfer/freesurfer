@@ -8,7 +8,7 @@
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
-    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7)
+    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7), m_nBrushSize(1), m_bMaskEdited(false)
 {
   setMouseTracking(true);
   m_colorPen = QColor(50,255,50);
@@ -62,6 +62,9 @@ bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, co
   m_sMessage.clear();
   m_sFilename = filename;
   m_sMaskFilename = mask;
+  m_imageMask = QImage();
+  if (!mask.isEmpty())
+    m_imageMask = ReadImageWithExifAwareness(m_sMaskFilename).convertToFormat(QImage::Format_ARGB32);
   m_imageOverlay = QImage();
   PrepareImage();
   if (!m_image.isNull())
@@ -118,10 +121,16 @@ void WidgetImageView::PrepareImage()
     m_image = image;
     if (!m_sMaskFilename.isEmpty())
     {
-      QImage mask_image = ReadImageWithExifAwareness(m_sMaskFilename);
       QPainter p(&m_image);
-      p.setCompositionMode(QPainter::CompositionMode_Multiply);
-      p.drawImage(0, 0, mask_image);
+      if (m_nEditMode == EM_EDIT_MASK)
+      {
+        p.setOpacity(m_dMaskOpacity);
+      }
+      else
+      {
+        p.setCompositionMode(QPainter::CompositionMode_Multiply);
+      }
+      p.drawImage(0, 0, m_imageMask);
       p.end();
     }
     if (!m_imageOverlay.isNull())
@@ -254,6 +263,10 @@ void WidgetImageView::paintEvent(QPaintEvent *e)
       }
     }
   }
+  else if (m_nEditMode == EM_EDIT_MASK)
+  {
+
+  }
   if (!m_sMessage.isEmpty())
   {
     QFont f = p.font();
@@ -274,6 +287,7 @@ void WidgetImageView::paintEvent(QPaintEvent *e)
 void WidgetImageView::mousePressEvent(QMouseEvent *e)
 {
   m_ptPress = e->pos();
+  m_ptPrev = e->pos();
   m_ptOldOffset = m_ptOffset;
   m_dOldScale = m_dScale;
   if (e->button() == Qt::LeftButton)
@@ -281,7 +295,12 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
     if (e->modifiers() & Qt::ControlModifier)
     {
       m_bDrawing = true;
-      if (m_nEditMode != EM_SELECT_MASK)
+      if (m_nEditMode == EM_EDIT_MASK)
+      {
+        m_bErasing = false;
+        FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
+      }
+      else if (m_nEditMode != EM_SELECT_MASK)
       {
         QPoint pt = ScreenToImage(m_ptPress);
         RECT_REGION region;
@@ -289,6 +308,15 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
         region.second = pt;
         m_listRegions << region;
         setCursor(Qt::CrossCursor);
+      }
+    }
+    else if (e->modifiers() & Qt::ShiftModifier)
+    {
+      if (m_nEditMode == EM_EDIT_MASK)
+      {
+        m_bDrawing = true;
+        m_bErasing = true;
+        FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
       }
     }
     else
@@ -360,6 +388,7 @@ void WidgetImageView::mouseReleaseEvent(QMouseEvent *e)
   m_bPanning = false;
   m_bZooming = false;
   m_bDrawing = false;
+  m_bErasing = false;
   unsetCursor();
 }
 
@@ -404,6 +433,11 @@ void WidgetImageView::mouseMoveEvent(QMouseEvent *e)
     region.second = pt_1;
     m_listRegions[m_listRegions.size()-1] = region;
     update();
+  }
+  else if (m_bDrawing && m_nEditMode == EM_EDIT_MASK)
+  {
+    FreeHandOnMaskImage(m_ptPrev, e->pos());
+    m_ptPrev = e->pos();
   }
   if (e->modifiers() & Qt::ControlModifier)
   {
@@ -464,4 +498,77 @@ void WidgetImageView::SetEditedPoints(const QList<QPoint>& pts)
   UpdateScaledImage();
   HideMessage();
   update();
+}
+
+void WidgetImageView::FreeHandOnMaskImage(const QPoint& scr_pt1, const QPoint& scr_pt2)
+{
+  QPoint pt1 = ScreenToImage(scr_pt1), pt2 = ScreenToImage(scr_pt2);
+  if (pt1 == pt2)
+    UpdatePointOnMaskImage(pt1);
+  else
+  {
+    int x0 = pt1.x(), x1 = pt2.x(), y0 = pt1.y(), y1 = pt2.y();
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    double t = 0.5;
+//    list = SetVoxelByIndex( n1, nPlane, bAdd, ignore_brush_size );
+    if ( abs( dx ) > abs( dy ) )
+    {
+      double m = (double) dy / (double) dx;
+      t += y0;
+      dx = ( dx < 0 ? -1 : 1 );
+      m *= dx;
+      while ( x0 != x1 )
+      {
+        x0 += dx;
+        t += m;
+        UpdatePointOnMaskImage(QPoint(x0, t));
+      }
+    }
+    else
+    {
+      double m = (double) dx / (double) dy;
+      t += x0;
+      dy = ( dy < 0 ? -1 : 1 );
+      m *= dy;
+      while ( y0 != y1 )
+      {
+        y0 += dy;
+        t += m;
+        UpdatePointOnMaskImage(QPoint(t, y0));
+      }
+    }
+  }
+  PrepareImage();
+  UpdateScaledImage();
+  update();
+}
+
+void WidgetImageView::UpdatePointOnMaskImage(const QPoint& pt_in)
+{
+  int nr = m_nBrushSize/2+1;
+  int w = m_imageMask.width(), h = m_imageMask.height();
+  for (int i = -nr+1; i < nr; i++)
+  {
+    for (int j = -nr+1; j < nr; j++)
+    {
+      QPoint pt(pt_in.x()+i, pt_in.y()+j);
+      if (pt.x() >= 0 && pt.x() < w && pt.y() >= 0 && pt.y() < h &&
+          sqrt(i*i+j*j) <= m_nBrushSize/2.0)
+      {
+        QRgb* p = (QRgb*)m_imageMask.scanLine(pt.y());
+        p[pt.x()] = QColor(m_bErasing?Qt::black:Qt::white).rgb();
+      }
+    }
+  }
+  m_bMaskEdited = true;
+}
+
+void WidgetImageView::SaveMaskIfEdited()
+{
+  if (m_bMaskEdited)
+  {
+    m_imageMask.save(m_sMaskFilename);
+    m_bMaskEdited = false;
+  }
 }

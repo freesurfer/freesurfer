@@ -53,7 +53,7 @@ public:
 
   QImage ReadImageWithExifAwareness(const QString& filename);
 
-  enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION, EM_SELECT_MASK };
+  enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION, EM_SELECT_MASK, EM_EDIT_MASK };
 
 signals:
   void LastRegionEdited(int n);
@@ -99,15 +99,25 @@ public slots:
 
   void SetMaskOpacity(double val);
 
+  void SetBrushSize(int n)
+  {
+    m_nBrushSize = n;
+  }
+
+  void SaveMaskIfEdited();
+
 private:
   void PrepareImage();
   void UpdateScaledImage(bool bSmooth = false);
   QPoint ScreenToImage(const QPoint& pt);
   void SetAlphaByMask(QImage& image);
+  void FreeHandOnMaskImage(const QPoint& scr_pt1, const QPoint& scr_pt2);
+  void UpdatePointOnMaskImage(const QPoint& pt_in);
 
   QString   m_sFilename;
   QString   m_sMaskFilename;
   QImage    m_image;
+  QImage    m_imageMask;
   QImage    m_imageScaled;
   QImage    m_imageOverlay;
   double    m_dScale;
@@ -115,9 +125,11 @@ private:
   QPoint    m_ptOffset;
   QPoint    m_ptOldOffset;
   QPoint    m_ptPress;
+  QPoint    m_ptPrev;
   bool      m_bPanning;
   bool      m_bZooming;
   bool      m_bDrawing;
+  bool      m_bErasing;
 
   int       m_nNumberOfExpectedPoints;
   int       m_nEditMode;
@@ -131,6 +143,9 @@ private:
   double    m_dMaskOpacity;
   QList<QImage> m_listAllMasks;
   QList<QImage> m_listSelectedMasks;
+  int      m_nBrushSize;
+
+  bool    m_bMaskEdited;
 };
 
 #endif // WIDGETIMAGEVIEW_H

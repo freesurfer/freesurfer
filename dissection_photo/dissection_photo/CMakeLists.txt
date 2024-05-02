@@ -8,6 +8,7 @@ if(BUILD_GUIS)
     ../WidgetImageView.cpp
     ../cnpy.cpp
     ../exif.cpp
+    ../connected_components/MaskProcessor.cpp
     MainWindow.cpp
     main.cpp
     dissection_photo.qrc
