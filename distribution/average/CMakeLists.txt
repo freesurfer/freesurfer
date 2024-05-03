@@ -37,6 +37,9 @@ install_symlinks(
 # fsaverage
 install_tarball(fsaverage.tar.gz DESTINATION subjects)
 
+# mni152
+install_tarball(mni_icbm152_nlin_asym_09c.tar.gz DESTINATION average)
+
 # samseg atlas
 add_subdirectory(samseg)
 
