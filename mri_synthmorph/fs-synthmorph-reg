@@ -809,10 +809,9 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "fs-synthmorph-reg -- frontend for running mri_synthmorph"
+  echo "fs-synthmorph-reg -- frontend for running mri_synthmorph (24GB)"
   echo "  --i invol"
   echo "  --t targetvol"
-  echo "    --mni : set targ=MNI152.1mm, unless --no-crop-mni where it will use MNI152.2mm"
   echo "  --warp warp.{m3z,mgz,nii.gz} : output warp file (or save in outdir)"
   echo "  --o outdir"
   echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.5mm.1.0mm.nii.gz  targ=MNI152.1mm)"
@@ -840,7 +839,9 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-This is a frontend for running mri_synthmorph, especially for registering to mni152 space. 
+This is a frontend for running mri_synthmorph, especially for
+registering to mni152 space.  For typical usage, it will consume about
+24GB of memory.
 
 Simple usage:
 
@@ -869,7 +870,16 @@ data. fs-synthmorph-reg assumes that the input is skull stripped (and
 registers to a skull stripped mni152 volume). If you want
 fs-synthmorph-reg to skull strip for you, then add --strip (uses
 mri_synthstrip). Note that if you pass a FS subject (--s), it will use
-the norm.mgz volume, which is already skull stripped.
+the norm.mgz volume, which is already skull stripped. Skull stripping
+can also speed things up when combined with cropping (see below).
+
+Cropping: internally, fs-synthmorph-reg will crop the input to a
+minimal window around non-zero voxels in the image. This can speed up
+the program dramatically and reduce its memory
+footprint. fs-synthmorph-reg will manage all of the transforms so that
+they all reference the uncropped space, ie, the user is completely
+insulated from the cropping process and its implications. To turn off
+cropping, use --no-crop.
 
 Target and Output MNI Resolution: the 1.5mm in the warp file name means
 that the registration is done to a version of the mni152 with an
@@ -898,9 +908,10 @@ you ONLY want the affine registration, then you can specify
 --affine-only.
 
 Arbitrary Targets: you can use fs-synthmorph-reg to register to target
-volumes other than the mni152. To do this, simply specify --t targetvol.
-You can have fs-synthmorph-reg skull strip the target by adding
---strip-target.
+volumes other than the mni152. To do this, simply specify --t
+targetvol.  You can have fs-synthmorph-reg skull strip the target by
+adding --strip-target. By default, the target will be cropped unless
+--no-crop (see Cropping above).
 
 Please cite SynthMorph:
 Anatomy-specific acquisition-agnostic affine registration learned from
