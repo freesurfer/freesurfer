@@ -447,7 +447,7 @@ void MainWindow::OnButtonProcess()
     foreach (QPoint pt, pts)
       list << QString::number(pt.x()) << QString::number(pt.y());
     QString fn = QFileInfo(ui->widgetImageView->GetFilename()).fileName();
-    QString out_fn = QFileInfo(m_strOutputFolder, fn.left(fn.lastIndexOf('.'))+"_corrected.npz").absoluteFilePath();
+    QString out_fn = QFileInfo(m_sTempDir, fn.left(fn.lastIndexOf('.'))+"_corrected.npz").absoluteFilePath();
     cmd << m_strPythonCmd << m_strPyScriptFiducialsCalibration
         << "--in_img" << QString("\"%1\"").arg(ui->widgetImageView->GetFilename())
         << "--points" << list.join(" ")
