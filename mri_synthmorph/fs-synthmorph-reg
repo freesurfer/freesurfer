@@ -4,7 +4,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-if($?FSMNI152DIR == 0) setenv FSMNI152DIR $FREESURFER/mni_icbm152_nlin_asym_09c
+if($?FSMNI152DIR == 0) setenv FSMNI152DIR $FREESURFER/average/mni_icbm152_nlin_asym_09c
 unsetenv FS_LOCAL_PYTHONPATH
 
 set VERSION = '$Id$';
