@@ -7,5 +7,6 @@
         <file alias="func_fiducials_calibration.py">../py_scripts/func_fiducials_calibration.py</file>
         <file alias="registration.py">../py_scripts/registration.py</file>
         <file alias="func_fiducials_detection.py">../py_scripts/func_fiducials_detection.py</file>
+        <file alias="func_mask_to_cc.py">../py_scripts/func_mask_to_cc.py</file>
     </qresource>
 </RCC>

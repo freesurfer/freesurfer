@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
   QRect rc = s.value("MainWindow/Geometry").toRect();
   if (rc.isValid() && QGuiApplication::primaryScreen()->geometry().contains(rc))
     setGeometry(rc);
+  ui->splitter->restoreState(s.value("MainWindow/SplitterState").toByteArray());
 
   QString path = s.value("CurrentFolder/Input").toString();
   if (!path.isEmpty())
@@ -42,6 +43,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->lineEditPathOutput->setText(path);
     ui->lineEditPathOutput->setCursorPosition( path.size() );
     m_strOutputFolder = path;
+  }
+  path = s.value("CurrentFolder/FinalOutput").toString();
+  if (!path.isEmpty())
+  {
+    ui->lineEditPathFinalOutput->setText(path);
+    ui->lineEditPathFinalOutput->setCursorPosition( path.size() );
+    m_strFinalOutputFolder = path;
   }
   path = s.value("CurrentFolder/Calibration").toString();
   if (!path.isEmpty())
@@ -67,7 +75,10 @@ MainWindow::~MainWindow()
   QSettings s;
   s.setValue("CurrentFolder/Input", m_strInputFolder);
   s.setValue("CurrentFolder/Output", m_strOutputFolder);
+  s.setValue("CurrentFolder/FinalOutput", m_strFinalOutputFolder);
   s.setValue("CurrentFolder/Calibration", m_strCalibrationFile);
+  s.setValue("MainWindow/Geometry", geometry());
+  s.setValue("MainWindow/SplitterState",  ui->splitter->saveState());
 
   delete ui;
 }
@@ -92,6 +103,16 @@ void MainWindow::OnButtonOutputFolder()
   }
 }
 
+void MainWindow::OnButtonFinalOutputFolder()
+{
+  QString path = QFileDialog::getExistingDirectory(this, "Select Folder", ui->lineEditPathFinalOutput->text());
+  if (!path.isEmpty())
+  {
+    ui->lineEditPathFinalOutput->setText(path);
+    ui->lineEditPathFinalOutput->setCursorPosition(path.size());
+  }
+}
+
 void MainWindow::OnButtonCalibrationFile()
 {
   QString path = QFileDialog::getOpenFileName(this, "Select Calibration File", ui->lineEditPathCalibrationFile->text());
@@ -102,10 +123,33 @@ void MainWindow::OnButtonCalibrationFile()
   }
 }
 
+void MainWindow::OnButtonLoadMask()
+{
+  QString path = QFileDialog::getExistingDirectory(this, "Select Folder", ui->lineEditPathFinalOutput->text());
+  if (!path.isEmpty())
+  {
+    ui->labelMaskFolder->setText(path);
+    m_strMaskFolder = path;
+    m_listMaskFiles = QDir(path).entryInfoList(QDir::Files, QDir::Name);
+    m_listInputFiles = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
+    if (!m_listInputFiles.isEmpty() && !m_listMaskFiles.isEmpty())
+    {
+      if (m_listInputFiles.size() != m_listMaskFiles.size())
+      {
+        qDebug() << "File counts do not match";
+      }
+      LoadImage(0);
+      ui->widgetSegCtrls->setEnabled(true);
+      UpdateIndex();
+    }
+  }
+}
+
 void MainWindow::OnButtonContinue()
 {
   m_strInputFolder = ui->lineEditPathInput->text().trimmed();
   m_strOutputFolder = ui->lineEditPathOutput->text().trimmed();
+  m_strFinalOutputFolder = ui->lineEditPathFinalOutput->text().trimmed();
   m_strCalibrationFile = ui->lineEditPathCalibrationFile->text().trimmed();
 
   if (m_strInputFolder.isEmpty() || !QDir(m_strInputFolder).exists())
@@ -115,7 +159,12 @@ void MainWindow::OnButtonContinue()
   }
   if (m_strOutputFolder.isEmpty() || !QDir(m_strOutputFolder).exists())
   {
-    QMessageBox::warning(this, "Error", "Output directory is not set or does not exist.");
+    QMessageBox::warning(this, "Error", "Output directory for corrected images is not set or does not exist.");
+    return;
+  }
+  if (m_strFinalOutputFolder.isEmpty() || !QDir(m_strFinalOutputFolder).exists())
+  {
+    QMessageBox::warning(this, "Error", "Output directory for connected components is not set or does not exist.");
     return;
   }
   if (!m_strCalibrationFile.isEmpty() && !QFile(m_strOutputFolder).exists())
@@ -139,6 +188,7 @@ void MainWindow::OnButtonContinue()
         << "--out_dir" << QString("\"%1\"").arg(m_strOutputFolder);
     m_proc->start(cmd.join(" "));
     m_proc->setProperty("task", "fiducials_correction");
+    ui->pageCorrection->setEnabled(false);
   }
 
   UpdateIndex();
@@ -164,6 +214,7 @@ void MainWindow::SetupScriptPath()
   // copy resource files
   static QTemporaryDir dir;
   m_sTempDir = dir.path();
+  // for retrospective correction
   {
     QFile file(QString(":/")+SCRIPT_RETROSPECTIVE);
     file.open(QFile::ReadOnly | QFile::Text);
@@ -191,7 +242,7 @@ void MainWindow::SetupScriptPath()
       QTimer::singleShot(0, qApp, SLOT(quit()));
     }
   }
-
+  // for calibration
   {
     QFile file(QString(":/")+SCRIPT_FIDUCIALS_CORRECTION);
     file.open(QFile::ReadOnly | QFile::Text);
@@ -222,39 +273,96 @@ void MainWindow::SetupScriptPath()
       QTimer::singleShot(0, qApp, SLOT(quit()));
     }
   }
+  // for CC
+  {
+    m_listStockColors << QColor(255,100,100) << QColor(255,255,100) << QColor(100,255,100)
+                      << QColor(110,245,255) << QColor(75,100,255) << QColor(255,128,0)
+                      << QColor(100,150,170) << QColor(120,60,220);
+    m_strPyScriptMaskToCC = QFileInfo(dir.path(),"func_mask_to_cc.py").absoluteFilePath();
+    QFile::copy(":/func_mask_to_cc.py", m_strPyScriptMaskToCC);
+  }
 }
 
 void MainWindow::UpdateIndex()
 {
-  ui->labelIndex->setText(tr("%1 / %2").arg(m_nIndex+1).arg(m_listInputFiles.size()));
+  QLabel* label = ui->labelIndex;
   if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
     ui->pushButtonPrevious->setEnabled(m_nIndex > 0);
     if (!m_bCalibratiedMode)
-      ui->pushButtonNext->setEnabled(m_nIndex < m_listData.size());
+      ui->pushButtonNext->setEnabled(m_nIndex < m_listPointData.size());
   }
+  if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
+  {
+    label = ui->labelIndexSeg;
+    ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
+    ui->pushButtonNextSeg->setEnabled(m_nIndex < m_listInputFiles.size()-1);
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  {
+    label = ui->labelIndexCC;
+    ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
+    ui->pushButtonNext->setEnabled(m_nIndex < m_listRegionData.size());
+  }
+  label->setText(tr("%1 / %2").arg(m_nIndex+1).arg(m_listInputFiles.size()));
 }
 
 void MainWindow::LoadImage(int n)
 {
   QList<QPoint> pts;
-  if (m_listData.size() > n)
-    pts = m_listData[n];
-  QString fn = m_listInputFiles[n].absoluteFilePath();
-  if (m_bCalibratiedMode && ui->stackedWidget->currentWidget() == ui->pageCorrection)
+  QList<RECT_REGION> rects;
+  QString fn = m_listInputFiles[n].absoluteFilePath(), mask_fn;
+  if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
-    QVariantMap info;
-    if (m_mapCalibrationInfo.contains(fn))
-      info = m_mapCalibrationInfo[fn].toMap();
-    else if (m_mapCalibrationInfo.contains("general"))
-      info = m_mapCalibrationInfo["general"].toMap();
-    pts.clear();
-    if (!info.isEmpty())
+    if (!m_bCalibratiedMode)
     {
-      pts = GetCalibrationPointsList(info);
+      if (m_listPointData.size() > n)
+        pts = m_listPointData[n];
+    }
+    else
+    {
+      QVariantMap info;
+      if (m_mapCalibrationInfo.contains(fn))
+        info = m_mapCalibrationInfo[fn].toMap();
+      else if (m_mapCalibrationInfo.contains("general"))
+        info = m_mapCalibrationInfo["general"].toMap();
+      if (!info.isEmpty())
+      {
+        pts = GetCalibrationPointsList(info);
+      }
     }
   }
-  ui->widgetImageView->LoadImage(fn, "", pts);
+  else if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
+  {
+    mask_fn = m_listMaskFiles[n].absoluteFilePath();
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  {
+    mask_fn = m_listMaskFiles[n].absoluteFilePath();
+    if (m_listRegionData.size() > n)
+      rects = m_listRegionData[n];
+  }
+  ui->widgetImageView->LoadImage(fn, mask_fn, pts, rects);
+  if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  {
+    QString fn_only = m_listMaskFiles[n].fileName();
+    fn_only.replace(QString(".")+QFileInfo(mask_fn).suffix(), ".npz");
+    if (!m_maskProcessor.Load(QFileInfo(m_sTempDir, fn_only).absoluteFilePath()))
+    {
+      QMessageBox::warning(this, "Error", "Failed to load processed npy files");
+      return;
+    }
+
+    if (!rects.isEmpty())
+    {
+      QList<QPoint> pts;
+      for (int i = 0; i < rects.size(); i++)
+        pts << rects[i].first << rects[i].second;
+      m_maskProcessor.LoadSelections(pts);
+      ui->widgetImageView->SetOverlay(m_maskProcessor.GetMaskImage(m_listStockColors));
+      ui->pushButtonNext->setEnabled(true);
+    }
+  }
 }
 
 QList<QPoint> MainWindow::GetCalibrationPointsList(const QVariantMap& info)
@@ -285,13 +393,25 @@ void MainWindow::OnButtonNext()
 {
   if (m_nIndex < m_listInputFiles.size()-1)
   {
+    if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
+    {
+      ui->widgetImageView->SaveMaskIfEdited();
+    }
     LoadImage(++m_nIndex);
     UpdateIndex();
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  {
+    ui->pushButtonAllDone->setEnabled(true);
   }
 }
 
 void MainWindow::OnButtonPrevious()
 {
+  if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
+  {
+    ui->widgetImageView->SaveMaskIfEdited();
+  }
   LoadImage(--m_nIndex);
   UpdateIndex();
 }
@@ -327,7 +447,7 @@ void MainWindow::OnButtonProcess()
     foreach (QPoint pt, pts)
       list << QString::number(pt.x()) << QString::number(pt.y());
     QString fn = QFileInfo(ui->widgetImageView->GetFilename()).fileName();
-    QString out_fn = QFileInfo(m_strOutputFolder, fn.left(fn.lastIndexOf('.'))+"_corrected.npz").absoluteFilePath();
+    QString out_fn = QFileInfo(m_sTempDir, fn.left(fn.lastIndexOf('.'))+"_corrected.npz").absoluteFilePath();
     cmd << m_strPythonCmd << m_strPyScriptFiducialsCalibration
         << "--in_img" << QString("\"%1\"").arg(ui->widgetImageView->GetFilename())
         << "--points" << list.join(" ")
@@ -346,10 +466,10 @@ void MainWindow::OnButtonProcess()
   {
     // execute script
     QList<QPoint> pts = ui->widgetImageView->GetEditedPoints();
-    if (m_nIndex < m_listData.size())
-      m_listData[m_nIndex] = pts;
+    if (m_nIndex < m_listPointData.size())
+      m_listPointData[m_nIndex] = pts;
     else
-      m_listData << pts;
+      m_listPointData << pts;
 
     QStringList strList;
     foreach (QPoint pt, pts)
@@ -449,6 +569,7 @@ void MainWindow::OnProcessFinished()
         ui->widgetImageView->SetEditedPoints(pts);
       }
     }
+    ui->pageCorrection->setEnabled(true);
   }
   else if (task == "fiducials_calibration")
   {
@@ -467,6 +588,15 @@ void MainWindow::OnProcessFinished()
         << "--out_dir" << QString("\"%1\"").arg(m_strOutputFolder);
     m_proc->start(cmd.join(" "));
     m_proc->setProperty("task", "fiducials_correction_single");
+  }
+  else if (task == "mask_to_cc")
+  {
+    if (!m_listInputFiles.isEmpty() && !m_listMaskFiles.isEmpty())
+      LoadImage(0);
+
+    ui->widgetImageView->HideMessage();
+    ui->pushButtonCreateMask->setEnabled(true);
+    UpdateIndex();
   }
 }
 
@@ -488,9 +618,66 @@ void MainWindow::OnButtonClear()
 {
   ui->widgetImageView->ClearEdits();
   ui->pushButtonNext->setEnabled(false);
+  ui->pushButtonNextCC->setEnabled(false);
+  ui->pushButtonAllDone->setEnabled(false);
+  m_maskProcessor.ClearBuffer();
 }
 
 void MainWindow::OnButtonProceedToSeg()
 {
   ui->stackedWidget->setCurrentWidget(ui->pageSegEdit);
+  ui->widgetImageView->SetEditMode(WidgetImageView::EM_EDIT_MASK);
+  m_nIndex = 0;
 }
+
+void MainWindow::OnButtonProceedToCC()
+{
+  ui->widgetImageView->SaveMaskIfEdited();
+
+  ui->stackedWidget->setCurrentWidget(ui->pageCC);
+  ui->widgetImageView->SetEditMode(WidgetImageView::EM_REGION);
+  connect(ui->widgetImageView, SIGNAL(LastRegionEdited(int)),
+                                      SLOT(OnLastRegionEdited(int)), Qt::QueuedConnection);
+
+  m_listInputFiles = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
+  QStringList cmd;
+  cmd << m_strPythonCmd << m_strPyScriptMaskToCC
+      << "--in_dir" << QString("\"%1\"").arg(m_strMaskFolder)
+      << "--out_dir" << QString("\"%1\"").arg(m_sTempDir);
+  m_proc->start(cmd.join(" "));
+  m_proc->setProperty("task", "mask_to_cc");
+  ui->pushButtonCreateMask->setEnabled(false);
+}
+
+void MainWindow::OnSliderSegOpacity(int n)
+{
+  ui->widgetImageView->SetMaskOpacity(n/100.0);
+}
+
+void MainWindow::OnLastRegionEdited(int n)
+{
+  RECT_REGION rc = ui->widgetImageView->GetEditedRegions().last();
+  if (m_maskProcessor.ProcessSelection(rc.first, rc.second, n+1))
+  {
+    ui->widgetImageView->SetOverlay(m_maskProcessor.GetMaskImage(m_listStockColors));
+  }
+  else
+  {
+    QMessageBox::warning(this, "Error", "Did not find any new slice");
+  }
+}
+
+void MainWindow::OnButtonCreateMask()
+{
+  QList<RECT_REGION> list = ui->widgetImageView->GetEditedRegions();
+  if (m_nIndex < m_listRegionData.size())
+    m_listRegionData[m_nIndex] = list;
+  else
+    m_listRegionData << list;
+
+  QString fn = QFileInfo(ui->widgetImageView->GetFilename()).fileName();
+  fn.replace(QString(".")+QFileInfo(fn).suffix(), "_mask.npy", Qt::CaseInsensitive);
+  m_maskProcessor.SaveToNpy(QFileInfo(m_strFinalOutputFolder, fn).absoluteFilePath());
+  ui->pushButtonNextCC->setEnabled(true);
+}
+

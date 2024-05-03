@@ -5,10 +5,14 @@
 #include <QFileInfoList>
 #include <QProcess>
 #include <QVariantMap>
+#include "WidgetImageView.h"
+#include "../connected_components/MaskProcessor.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+class QLabel;
 
 class MainWindow : public QMainWindow
 {
@@ -21,6 +25,7 @@ public:
 public slots:
   void OnButtonInputFolder();
   void OnButtonOutputFolder();
+  void OnButtonFinalOutputFolder();
   void OnButtonContinue();
   void OnButtonCalibrationFile();
   void OnTogglePointMode(bool b);
@@ -28,6 +33,8 @@ public slots:
   void OnButtonNext();
   void OnButtonProcess();
   void OnButtonClear();
+  void OnButtonLoadMask();
+  void OnButtonCreateMask();
 
 private slots:
   void OnProcessOutputMessage();
@@ -36,6 +43,9 @@ private slots:
   void OnProcessFinished();
   void OnProcessError(QProcess::ProcessError);
   void OnButtonProceedToSeg();
+  void OnButtonProceedToCC();
+  void OnSliderSegOpacity(int n);
+  void OnLastRegionEdited(int n);
 
 private:
   void SetupScriptPath();
@@ -47,22 +57,31 @@ private:
   QString  m_strInputFolder;
   QString  m_strOutputFolder;
   QString  m_strCalibrationFile;
+  QString  m_strFinalOutputFolder;
+  QString  m_strMaskFolder;
 
   QString  m_strPythonCmd;
 
   QFileInfoList  m_listInputFiles;
+  QFileInfoList  m_listMaskFiles;
+  QList< QList<RECT_REGION> > m_listRegionData;
+  QList<QColor> m_listStockColors;
+
   int m_nNumberOfExpectedPoints;
   int m_nIndex;
-  QList< QList<QPoint> > m_listData;
+  QList< QList<QPoint> > m_listPointData;
   bool m_bCalibratiedMode;
   QString m_strPyScriptRetrospective;
   QString m_strPyScriptFiducialsCorrection;
   QString m_strPyScriptFiducialsDetection;
   QString m_strPyScriptFiducialsCalibration;
+  QString m_strPyScriptMaskToCC;
 
   QProcess* m_proc;
   QVariantMap  m_mapCalibrationInfo;
 
   QString m_sTempDir;
+
+  MaskProcessor  m_maskProcessor;
 };
 #endif // MAINWINDOW_H
