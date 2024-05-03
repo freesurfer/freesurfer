@@ -9,6 +9,7 @@ if(BUILD_GUIS)
     ../cnpy.cpp
     ../exif.cpp
     ../connected_components/MaskProcessor.cpp
+    ../MyUtils.cpp
     MainWindow.cpp
     main.cpp
     dissection_photo.qrc

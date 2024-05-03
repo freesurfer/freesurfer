@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
   QRect rc = s.value("MainWindow/Geometry").toRect();
   if (rc.isValid() && QGuiApplication::primaryScreen()->geometry().contains(rc))
     setGeometry(rc);
+  ui->splitter->restoreState(s.value("MainWindow/SplitterState").toByteArray());
 
   QString path = s.value("CurrentFolder/Input").toString();
   if (!path.isEmpty())
@@ -77,6 +78,7 @@ MainWindow::~MainWindow()
   s.setValue("CurrentFolder/FinalOutput", m_strFinalOutputFolder);
   s.setValue("CurrentFolder/Calibration", m_strCalibrationFile);
   s.setValue("MainWindow/Geometry", geometry());
+  s.setValue("MainWindow/SplitterState",  ui->splitter->saveState());
 
   delete ui;
 }
@@ -137,7 +139,8 @@ void MainWindow::OnButtonLoadMask()
         qDebug() << "File counts do not match";
       }
       LoadImage(0);
-      ui->pushButtonCC->setEnabled(true);
+      ui->widgetSegCtrls->setEnabled(true);
+      UpdateIndex();
     }
   }
 }
@@ -185,6 +188,7 @@ void MainWindow::OnButtonContinue()
         << "--out_dir" << QString("\"%1\"").arg(m_strOutputFolder);
     m_proc->start(cmd.join(" "));
     m_proc->setProperty("task", "fiducials_correction");
+    ui->pageCorrection->setEnabled(false);
   }
 
   UpdateIndex();
@@ -281,13 +285,26 @@ void MainWindow::SetupScriptPath()
 
 void MainWindow::UpdateIndex()
 {
-  ui->labelIndex->setText(tr("%1 / %2").arg(m_nIndex+1).arg(m_listInputFiles.size()));
+  QLabel* label = ui->labelIndex;
   if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
     ui->pushButtonPrevious->setEnabled(m_nIndex > 0);
     if (!m_bCalibratiedMode)
       ui->pushButtonNext->setEnabled(m_nIndex < m_listPointData.size());
   }
+  if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
+  {
+    label = ui->labelIndexSeg;
+    ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
+    ui->pushButtonNextSeg->setEnabled(m_nIndex < m_listInputFiles.size()-1);
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  {
+    label = ui->labelIndexCC;
+    ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
+    ui->pushButtonNext->setEnabled(m_nIndex < m_listRegionData.size());
+  }
+  label->setText(tr("%1 / %2").arg(m_nIndex+1).arg(m_listInputFiles.size()));
 }
 
 void MainWindow::LoadImage(int n)
@@ -382,6 +399,10 @@ void MainWindow::OnButtonNext()
     }
     LoadImage(++m_nIndex);
     UpdateIndex();
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  {
+    ui->pushButtonAllDone->setEnabled(true);
   }
 }
 
@@ -548,6 +569,7 @@ void MainWindow::OnProcessFinished()
         ui->widgetImageView->SetEditedPoints(pts);
       }
     }
+    ui->pageCorrection->setEnabled(true);
   }
   else if (task == "fiducials_calibration")
   {
@@ -574,6 +596,7 @@ void MainWindow::OnProcessFinished()
 
     ui->widgetImageView->HideMessage();
     ui->pushButtonCreateMask->setEnabled(true);
+    UpdateIndex();
   }
 }
 
@@ -595,6 +618,8 @@ void MainWindow::OnButtonClear()
 {
   ui->widgetImageView->ClearEdits();
   ui->pushButtonNext->setEnabled(false);
+  ui->pushButtonNextCC->setEnabled(false);
+  ui->pushButtonAllDone->setEnabled(false);
   m_maskProcessor.ClearBuffer();
 }
 

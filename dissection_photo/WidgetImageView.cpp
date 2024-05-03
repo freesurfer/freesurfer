@@ -5,6 +5,7 @@
 #include "math.h"
 #include "exif.h"
 #include <QFile>
+#include "MyUtils.h"
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
@@ -60,9 +61,10 @@ QImage WidgetImageView::ReadImageWithExifAwareness(const QString& filename)
 bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, const QList<QPoint>& points, const QList<RECT_REGION>& regions)
 {
   m_sMessage.clear();
+  m_listMaskUndoBuffer.clear();
   m_sFilename = filename;
   m_sMaskFilename = mask;
-  m_imageMask = QImage();
+  m_imageOriginal = m_imageMask = QImage();
   if (!mask.isEmpty())
     m_imageMask = ReadImageWithExifAwareness(m_sMaskFilename).convertToFormat(QImage::Format_ARGB32);
   m_imageOverlay = QImage();
@@ -83,6 +85,7 @@ bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, co
 bool WidgetImageView::LoadImage(const QString &filename, const QStringList &preprocessed_masks)
 {
   m_sMessage.clear();
+  m_listMaskUndoBuffer.clear();
   m_sFilename = filename;
   m_listPreMasks = preprocessed_masks;
   m_imageCombinedMaskOverlay = QImage();
@@ -115,22 +118,27 @@ void WidgetImageView::SetAlphaByMask(QImage& image)
 
 void WidgetImageView::PrepareImage()
 {
-  QImage image = ReadImageWithExifAwareness(m_sFilename);
-  if (!image.isNull())
+  if (m_imageOriginal.isNull())
+    m_imageOriginal = ReadImageWithExifAwareness(m_sFilename);
+  if (!m_imageOriginal.isNull())
   {
-    m_image = image;
+    m_image = m_imageOriginal;
+    QImage image = m_imageMask;
     if (!m_sMaskFilename.isEmpty())
     {
       QPainter p(&m_image);
       if (m_nEditMode == EM_EDIT_MASK)
       {
         p.setOpacity(m_dMaskOpacity);
+        QPainter p2(&image);
+        p2.setCompositionMode(QPainter::CompositionMode_Darken);
+        p2.fillRect(image.rect(), QColor(200,200,255));
       }
       else
       {
         p.setCompositionMode(QPainter::CompositionMode_Multiply);
       }
-      p.drawImage(0, 0, m_imageMask);
+      p.drawImage(0, 0, image);
       p.end();
     }
     if (!m_imageOverlay.isNull())
@@ -298,6 +306,7 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
       if (m_nEditMode == EM_EDIT_MASK)
       {
         m_bErasing = false;
+        m_listMaskUndoBuffer << m_imageMask;
         FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
       }
       else if (m_nEditMode != EM_SELECT_MASK)
@@ -316,6 +325,7 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
       {
         m_bDrawing = true;
         m_bErasing = true;
+        m_listMaskUndoBuffer << m_imageMask;
         FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
       }
     }
@@ -323,7 +333,16 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
       m_bPanning = true;
   }
   else if (e->button() == Qt::RightButton)
-    m_bZooming = true;
+  {
+    if (e->modifiers() & Qt::ControlModifier)
+    {
+      m_bDrawing = true;
+      m_listMaskUndoBuffer << m_imageMask;
+      FloodFillMaskImage(m_ptPress);
+    }
+    else
+      m_bZooming = true;
+  }
 }
 
 QPoint WidgetImageView::ScreenToImage(const QPoint &pt_in)
@@ -373,9 +392,7 @@ void WidgetImageView::mouseReleaseEvent(QMouseEvent *e)
         if (qRed(img.pixel(pt.x(), pt.y())) > 0 && !m_listSelectedMasks.contains(img))
         {
           m_listSelectedMasks << img;
-          PrepareImage();
-          UpdateScaledImage();
-          update();
+          UpdateAll();
           break;
         }
       }
@@ -475,18 +492,14 @@ void WidgetImageView::ClearEdits()
   m_listRegions.clear();
   m_imageOverlay = QImage();
   m_listSelectedMasks.clear();
-  PrepareImage();
-  UpdateScaledImage();
   HideMessage();
-  update();
+  UpdateAll();
 }
 
 void WidgetImageView::SetMaskOpacity(double val)
 {
   m_dMaskOpacity = val;
-  PrepareImage();
-  UpdateScaledImage();
-  update();
+  UpdateAll();
 }
 
 void WidgetImageView::SetEditedPoints(const QList<QPoint>& pts)
@@ -494,10 +507,8 @@ void WidgetImageView::SetEditedPoints(const QList<QPoint>& pts)
   m_listPoints = pts;
   m_imageOverlay = QImage();
   m_listSelectedMasks.clear();
-  PrepareImage();
-  UpdateScaledImage();
+  UpdateAll();
   HideMessage();
-  update();
 }
 
 void WidgetImageView::FreeHandOnMaskImage(const QPoint& scr_pt1, const QPoint& scr_pt2)
@@ -539,15 +550,14 @@ void WidgetImageView::FreeHandOnMaskImage(const QPoint& scr_pt1, const QPoint& s
       }
     }
   }
-  PrepareImage();
-  UpdateScaledImage();
-  update();
+  UpdateAll();
 }
 
 void WidgetImageView::UpdatePointOnMaskImage(const QPoint& pt_in)
 {
   int nr = m_nBrushSize/2+1;
   int w = m_imageMask.width(), h = m_imageMask.height();
+  QRgb fill_val = QColor(m_bErasing?Qt::black:Qt::white).rgb();
   for (int i = -nr+1; i < nr; i++)
   {
     for (int j = -nr+1; j < nr; j++)
@@ -557,7 +567,7 @@ void WidgetImageView::UpdatePointOnMaskImage(const QPoint& pt_in)
           sqrt(i*i+j*j) <= m_nBrushSize/2.0)
       {
         QRgb* p = (QRgb*)m_imageMask.scanLine(pt.y());
-        p[pt.x()] = QColor(m_bErasing?Qt::black:Qt::white).rgb();
+        p[pt.x()] = fill_val;
       }
     }
   }
@@ -570,5 +580,56 @@ void WidgetImageView::SaveMaskIfEdited()
   {
     m_imageMask.save(m_sMaskFilename);
     m_bMaskEdited = false;
+  }
+}
+
+void WidgetImageView::FloodFillMaskImage(const QPoint& pt_in)
+{
+  QPoint pt = ScreenToImage(pt_in);
+  int w = m_imageMask.width(), h = m_imageMask.height();
+  if (pt.x() < 0 || pt.x() >= w || pt.y() < 0 || pt.y() >= h)
+    return;
+
+  char* buf = new char[w*h];
+  memset(buf, 0, w*h);
+  for (int j = 0; j < h; j++)
+  {
+    QRgb* p = (QRgb*)m_imageMask.scanLine(j);
+    for (int i = 0; i < w; i++)
+    {
+      if (qRed(p[i]) > 0)
+        buf[j*w+i] = 1;
+    }
+  }
+  MyUtils::FloodFill(buf, pt.x(), pt.y(), w, h, 1, 1);
+  QRgb fill_val = QColor(Qt::white).rgb();
+  for (int j = 0; j < h; j++)
+  {
+    QRgb* p = (QRgb*)m_imageMask.scanLine(j);
+    for (int i = 0; i < w; i++)
+    {
+      if (buf[j*w+i] > 0)
+        p[i] = fill_val;
+    }
+  }
+  delete[] buf;
+  m_bMaskEdited = true;
+  UpdateAll();
+}
+
+void WidgetImageView::UpdateAll()
+{
+  PrepareImage();
+  UpdateScaledImage();
+  update();
+}
+
+void WidgetImageView::UndoLastMaskEdit()
+{
+  if (!m_listMaskUndoBuffer.isEmpty())
+  {
+    m_imageMask = m_listMaskUndoBuffer.last();
+    m_listMaskUndoBuffer.removeLast();
+    UpdateAll();
   }
 }
