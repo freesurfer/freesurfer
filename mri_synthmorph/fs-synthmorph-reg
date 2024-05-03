@@ -1,0 +1,924 @@
+#!/bin/tcsh -f
+# fs-synthmorph-reg - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+if($?FSMNI152DIR == 0) setenv FSMNI152DIR $FREESURFER/mni_icbm152_nlin_asym_09c
+unsetenv FS_LOCAL_PYTHONPATH
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outdir = ();
+set subject = ();
+set m3z = ();
+set m3zinv = ()
+set invol = ()
+set targvol = ()
+set lta2 = ()
+set vgthresh = 1e-5
+set StripInput = 0
+set StripTarget = 0
+
+set threads = 1
+set ForceUpdate = 0
+set antsreg = antsRegistrationSyNQuick.sh
+set UseQuick = 0
+set CropInput = 1
+set CropTarget = 1
+set MNITarget = 1
+set MNITargetRes = 1.5mm
+set MNIOutputRes = 1.0mm
+set DoCBIG = 0
+set DoTest = 0
+set dim = 3
+set UseAnts = 0 # 0 means use synthmorph
+set ComputeInverse = 1
+set PitStr = ""
+set AffineOnly = 0
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+if($#outdir) then
+  mkdir -p $outdir/log
+else
+  set outdir = `dirname $m3z`
+  mkdir -p $outdir
+endif
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) set tmpdir = $outdir/tmp
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/log/fs-synthmorph-reg.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fs-synthmorph-reg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+# Note: Ants might not be deterministc with threads
+setenv OMP_NUM_THREADS $threads
+setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $threads
+
+if($StripInput) then
+  set involstripped = $tmpdir/invol.stripped.nii.gz
+  set ud = `UpdateNeeded $involstripped $invol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_synthstrip -i $invol -o $involstripped  -t $threads)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+  set invol = $involstripped
+endif
+if($StripTarget) then
+  set targvolstripped = $tmpdir/targ.stripped.nii.gz
+  set ud = `UpdateNeeded $targvolstripped $targvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_synthstrip -i $targvol -o $targvolstripped -t $threads)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+  set targvol = $targvolstripped
+endif
+
+if($CropInput) then # Crop for speed
+  # Input volume
+  set involcrop = $tmpdir/invol.crop.nii.gz
+  set ud = `UpdateNeeded $involcrop $invol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_mask -bb 3 $invol $invol $involcrop)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+  # To get back to the full FoV
+  set regcroptoinvol = $tmpdir/reg.crop-to-invol.lta
+  set ud = `UpdateNeeded $regcroptoinvol $involcrop $invol`
+  if($ud || $ForceUpdate) then
+    set cmd = (lta_convert --inlta identity.nofile --src $involcrop \
+      --trg $invol  --outlta $regcroptoinvol)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
+  endif
+else
+  set involcrop = $invol
+  set regcroptoinvol = ()
+endif
+
+if($CropTarget) then
+  if(! $MNITarget) then
+    # Target vol
+    set targvolcrop = $tmpdir/targvol.crop.nii.gz
+    set ud = `UpdateNeeded $targvolcrop $targvol`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_mask -crop 3 $targvol $targvol $targvolcrop)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1
+    endif
+    # To get back to the full FoV
+    set regcroptotarg = $tmpdir/reg.crop-to-targ.lta
+    set ud = `UpdateNeeded $regcroptotarg $targvolcrop $targvol`
+    if($ud || $ForceUpdate) then
+      set cmd = (lta_convert --inlta identity.nofile --src $targvolcrop \
+        --trg $targvol  --outlta $regcroptotarg)
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1
+    endif
+  else
+    set targvolcrop   = $FSMNI152DIR/reg-targets/mni152.${MNITargetRes}$PitStr.cropped.nii.gz
+    set regcroptotarg = $FSMNI152DIR/reg-targets/reg.${MNITargetRes}.cropped.to.${MNIOutputRes}.lta
+    # Note that lta does not have PitStr
+  endif
+else
+  set targvolcrop = $targvol
+  set regcroptotarg = ()
+endif
+
+if($UseAnts) then
+# Compute both the affine and the warp with ANTs. The Affine goes from
+# the input croped space to the target cropped space. The warp goes
+# from target cropped to target cropped.
+set warp      = $tmpdir/reg.1Warp.nii.gz
+set affinemat = $tmpdir/reg.0GenericAffine.mat
+set ud = `UpdateNeeded $warp $involcrop $targvol`
+if($ud || $ForceUpdate) then
+  date | tee -a $LF
+  pushd $tmpdir # this program can crash if stuff in the current dir
+  if(! $DoCBIG) then
+    set cmd = ($antsreg -d $dim -m $involcrop -f $targvolcrop -o reg. -n $threads)
+  else
+  set cmd = (antsRegistration --dimensionality $dim \
+      --output [reg.,reg.Warped.nii.gz,reg.InverseWarped.nii.gz] \
+      --initial-moving-transform [ $involcrop, $targvolcrop, 1 ] \
+      --collapse-output-transforms 1 \
+      --use-histogram-matching 1  \
+      --use-estimate-learning-rate-once 1 \
+      --metric mattes[ $fixed, $moving, 1, 32, regular, 0.3] \
+        --transform affine[ 0.1 ] \
+        --convergence [ 100x100x200, 1.e-8, 20 ] \
+        --smoothing-sigmas  4x2x1vox \
+        --shrink-factors 3x2x1 -l 1 \
+      -metric cc[ $fixed, $moving, 1, 4] \
+        --transform SyN[ .20, 3, 0] \
+        --convergence [ 100x100x50, 0, 5 ] \
+        --smoothing-sigmas  1x0.5x0vox \
+        --shrink-factors 4x2x1)
+  endif
+  echo "\n\n"| tee -a $LF 
+  echo $cmd | tee -a $LF 
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+  echo "\n\n"| tee -a $LF 
+  if($CropInput || $CropTarget) then
+    # Somehow ANTs will change the geom slightly, so map it back to the
+    # the target space. This is a bit of a hack that seems to work, but
+    # it is not principled (ie, it was derived by trial and error, so
+    # there is a danger that it will not work all the time).
+    set cmd = (mri_vol2vol --regheader --targ $targvolcrop --mov $warp --o $warp)
+    echo "\n\n"| tee -a $LF 
+    echo $cmd | tee -a $LF 
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "\n\n"| tee -a $LF 
+  endif
+  popd
+endif
+
+# Convert the ANTs affine to txt file (maps involcrop to the input of the targvolcrop space)
+set affinetxt = $tmpdir/reg.0GenericAffine.txt
+set ud = `UpdateNeeded $affinetxt $affinemat`
+if($ud || $ForceUpdate) then
+  date | tee -a $LF
+  set cmd = (ConvertTransformFile $dim $affinemat $affinetxt --hm --ras)
+  echo "\n\n"| tee -a $LF 
+  echo $cmd | tee -a $LF 
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+  echo "\n\n"| tee -a $LF 
+endif
+
+# Convert the ANTs affine to an LTA
+set affinelta = $tmpdir/reg.0GenericAffine.lta
+set ud = `UpdateNeeded $affinelta $affinetxt`
+if($ud || $ForceUpdate) then
+  date | tee -a $LF
+  set cmd = (lta_convert --src $involcrop --trg $targvolcrop --outlta $affinelta)
+  if($dim == 2) set cmd = ($cmd --inniftyreg2d $affinetxt);
+  if($dim == 3) set cmd = ($cmd --inniftyreg   $affinetxt);
+  echo "\n\n"| tee -a $LF 
+  echo $cmd | tee -a $LF 
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+  echo "\n\n"| tee -a $LF 
+endif
+
+# Create one lta that maps from the uncropped input vol space to the taret space
+if($CropInput || $CropTarget) then
+  set regcroptargtocropinvol = $tmpdir/reg.croptarg_to_cropinvol.lta
+  set ud = `UpdateNeeded $regcroptargtocropinvol $affinelta $regcroptoinvol`
+  if($ud || $ForceUpdate) then
+    date | tee -a $LF
+    set cmd = (mri_concatenate_lta -invert1 -invertout $affinelta $regcroptoinvol $regcroptargtocropinvol)
+    echo "\n\n"| tee -a $LF 
+    echo $cmd | tee -a $LF 
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "\n\n"| tee -a $LF 
+  endif
+else
+  set regcroptargtocropinvol = $affinelta
+endif
+
+# Concatenate the affines and the warp (ANTS)
+set ud = `UpdateNeeded $m3z $warp $targvolcrop $regcroptargtocropinvol $regcroptotarg `
+if($ud || $ForceUpdate) then
+  date | tee -a $LF
+  set cmd = (mri_warp_convert --initk $warp --insrcgeom $targvolcrop \
+    --lta1-inv $regcroptargtocropinvol --outm3z $m3z --vg-thresh $vgthresh)
+  if($#regcroptotarg) set cmd = ($cmd --lta2 $regcroptotarg)
+  echo "\n\n"| tee -a $LF 
+  echo $cmd | tee -a $LF 
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+  echo "\n\n"| tee -a $LF 
+endif
+
+else # End ANTS ================= else Use synthmorph
+
+set gpuopt = ""
+# Compute both the affine, maps from involcrop to targvolcrop
+set affinelta = $outdir/aff.lta
+set ud = `UpdateNeeded $affinelta $involcrop $targvolcrop`
+if($ud || $ForceUpdate) then
+  date | tee -a $LF
+  set cmd = (mri_synthmorph -m affine -t $affinelta $involcrop $targvolcrop  -j $threads $gpuopt)
+  echo "\n\n"| tee -a $LF 
+  echo $cmd | tee -a $LF 
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Create one lta that maps from the uncropped input vol space to the (cropped) target space
+if($CropInput || $CropTarget) then
+  set reginvoltocroptarg = $tmpdir/reg.invol_to_croptarg.lta 
+  set ud = `UpdateNeeded $reginvoltocroptarg $affinelta $regcroptoinvol`
+  if($ud || $ForceUpdate) then
+    date | tee -a $LF
+    set cmd = (mri_concatenate_lta -invert1 -invertout $affinelta $regcroptoinvol $reginvoltocroptarg)
+    echo "\n\n"| tee -a $LF 
+    echo $cmd | tee -a $LF 
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "\n\n"| tee -a $LF 
+  endif
+  if($MNITarget) then
+    # Create one lta that maps from the uncropped input vol space to the uncropped target space
+    # This produces a linear tranform that can be used to map from target to input volume just
+    # like the nonlinear transform
+    set regtargtoinvol = $outdir/reg.targ_to_invol.lta
+    set ud = `UpdateNeeded $regtargtoinvol $reginvoltocroptarg`
+    if($ud || $ForceUpdate) then
+      set regtargtocropped = $FSMNI152DIR/reg-targets/reg.$MNIOutputRes.to.$MNITargetRes.cropped.lta
+      set cmd = (mri_concatenate_lta -invert2 $regtargtocropped $reginvoltocroptarg $regtargtoinvol)
+      echo $cmd | tee -a $LF 
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      echo "\n\n"| tee -a $LF 
+    endif
+  endif
+else
+  set reginvoltocroptarg = $affinelta
+endif
+
+if($AffineOnly) then
+  echo "AffineOnly specified, so exiting now" | tee -a $LF
+  goto done
+endif
+
+# Now compute the nonlinear part
+set deform = $tmpdir/deform.mgz
+set smvol = $tmpdir/synthmorph.out.mgz
+set ud = `UpdateNeeded $deform $affinelta $involcrop $targvolcrop`
+if($ud) then
+  set cmd = (mri_synthmorph -m deform -t $deform -i $affinelta $involcrop $targvolcrop -j $threads $gpuopt)
+  if($DoTest) set cmd = ($cmd -o $smvol); # can be a pain when you want to rerun to create test output
+  echo "\n\n" | tee -a $LF
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Compute warp to the full FoV of the input (synthmorph)
+set ud = `UpdateNeeded $m3z $deform $targvolcrop $reginvoltocroptarg $regcroptotarg`
+if($ud || $ForceUpdate) then
+  # This call is not intuitive to me. It appears that the insrcgeom
+  # will set the vox2ras for the image-side of the warp. The warp
+  # maps from target voxel to cropped input RAS. The insrcgeom
+  # indicates how to go from that RAS to a CRS in the cropped input,
+  # then the lta1 indicates how to go from the cropped CRS to the
+  # uncropped CRS.
+  set cmd = (mri_warp_convert --inras $deform --insrcgeom $involcrop\
+     --outm3z $m3z --lta1-inv $regcroptoinvol --vg-thresh $vgthresh)
+  if($#regcroptotarg) set cmd = ($cmd --lta2 $regcroptotarg)
+  echo "\n\n$cmd" | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+endif # Synthmorph
+
+if($ComputeInverse) then
+  set ud = `UpdateNeeded $m3zinv $m3z`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_ca_register -invert-and-save $m3z $m3zinv)
+    echo "\n\n$cmd" | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+# Test against output generated by the registration program
+if($DoTest) then
+  if($UseAnts) then
+    set mvol = $tmpdir/reg.Warped.nii.gz
+  else
+    set mvol = $smvol
+  endif
+  if($CropInput || $CropTarget) then
+    # Ants will output to the cropped target space, need to resample
+    # to the full uncropped space.
+    set mvol2 = $tmpdir/morph.out.nii.gz
+    set ud = `UpdateNeeded $mvol2 $mvol $targvol`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_vol2vol --regheader --mov $mvol --targ $targvol --o $mvol2)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) exit 1
+    endif
+    set mvol = $mvol2
+  endif
+
+  set ud = `UpdateNeeded $testvol $invol $m3z $mvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert -rt nearest $invol -at $m3z $testvol)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) exit 1
+    set cmd = (mri_diff --po $testvol $mvol)
+    echo $cmd | tee -a $LF
+    $cmd | tee $tmpdir/test.diff.dat |& tee -a $LF
+  endif
+  echo "tkmeditfv -f $targvol -aux $testvol"  |& tee -a $LF
+endif
+
+#========================================================
+
+done:
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Fs-Synthmorph-Reg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Fs-Synthmorph-Reg-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Fs-Synthmorph-Reg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fs-synthmorph-reg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      if(! -e $invol) then
+        echo "ERROR: cannot find $invol"
+        exit 1
+      endif
+      set invol = `getfullpath $invol`
+      breaksw
+
+    case "--t":
+      if($#argv < 1) goto arg1err;
+      set targvol = $argv[1]; shift;
+      if(! -e $targvol) then
+        echo "ERROR: cannot find $targvol"
+        exit 1
+      endif
+      set targvol = `getfullpath $targvol`
+      set MNITarget = 0
+      set Crop = 1
+      breaksw
+
+    case "--warp":
+    case "--m3z":
+      if($#argv < 1) goto arg1err;
+      set m3z = $argv[1]; shift;
+      breaksw
+
+    case "--affine-only":
+      set AffineOnly = 1
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--vg-thresh":
+      if($#argv < 1) goto arg1err;
+      set vgthresh = $argv[1]; shift;
+      breaksw
+
+    case "--synthmorph":
+      set UseAnts = 0
+      breaksw
+    case "--ants":
+      set UseAnts = 1
+      breaksw
+
+    case "--test":
+      set DoTest = 1
+      breaksw
+    case "--no-test":
+      set DoTest = 0
+      breaksw
+
+    case "--2d":
+      set dim = 2
+      set DoTest = 0
+      breaksw
+
+    case "--quick":
+      set antsreg = antsRegistrationSyNQuick.sh
+      set UseQuick = 1
+      breaksw
+    case "--no-quick":
+    case "--syn":
+      set antsreg = antsRegistrationSyN.sh
+      set UseQuick = 0
+      breaksw
+
+    case "--crop":
+     set CropInput = 1
+     set CropTarget = 1
+     breaksw
+    case "--no-crop":
+     set CropInput = 0
+     set CropTarget = 0
+     breaksw
+
+    case "--strip":
+     set StripInput = 1
+     set StripTarget = 1
+     breaksw
+    case "--no-strip":
+     set StripInput = 0
+     set StripTarget = 0
+     breaksw
+    case "--strip-input":
+     set StripInput = 1
+     breaksw
+    case "--no-strip-input":
+     set StripInput = 0
+     breaksw
+    case "--strip-target":
+     set StripTarget = 1
+     breaksw
+    case "--no-strip-target":
+     set StripTarget = 0
+     breaksw
+
+    case "--inv":
+     set ComputeInverse = 1
+     breaksw
+    case "--no-inv":
+     set ComputeInverse = 0
+     breaksw
+
+    case "--mni":
+     set MNITarget = 1
+     breaksw
+    case "--no-nmni":
+     set MNITarget = 0
+     breaksw
+
+    case "--mni-res":
+    case "--mni-int-res":
+    case "--mni-targ-res":
+      if($#argv < 1) goto arg1err;
+      set MNITargetRes = $argv[1]; shift;
+      if($MNITargetRes != 1.0mm && $MNITargetRes != 1.5mm && $MNITargetRes != 2.0mm) then
+        echo "ERROR: --mni-res must be 1.0mm, 1.5mm, or 2.0mm"
+        exit 1
+      endif
+      set MNITarget = 1
+      breaksw
+
+    case "--mni-output-res":
+    case "--mni-out-res":
+      if($#argv < 1) goto arg1err;
+      set MNIOutputRes = $argv[1]; shift;
+      if($MNIOutputRes != 1.0mm && $MNIOutputRes != 1.5mm && $MNIOutputRes != 2.0mm && $MNIOutputRes != conformed) then
+        echo "ERROR: --mni-out-res must be 1.0mm, 1.5mm, 2.0mm, or conformed"
+        exit 1
+      endif
+      set MNITarget = 1
+      breaksw
+
+    case "--mni-1":
+      set MNIOutputRes = 1.0mm
+      set MNITarget = 1
+      breaksw
+
+    case "--mni-1.5":
+      set MNIOutputRes = 1.5mm
+      set MNITarget = 1
+      breaksw
+
+    case "--mni-2":
+      set MNIOutputRes = 2.0mm
+      set MNITarget = 1
+      breaksw
+
+    case "--mni-conformed":
+      set MNIOutputRes = conformed
+      set MNITarget = 1
+      breaksw
+
+    case "--pituitary":
+      set PitStr = ".pit"
+      breaksw
+
+    case "--cbig":
+     set DoCBig = 1
+     breaksw
+    case "--no-cbig":
+     set DoCBig = 0
+     breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($UseAnts == -1) then
+  echo "ERROR: must spec either --ants or --synthmorph"
+  exit 1
+endif
+
+# This will keep the temp stuff from being deleted
+if($#outdir && $#tmpdir == 0) then
+  set tmpdir = $outdir
+  set cleanup = 0
+endif
+
+if($#subject) then
+  set sd = $SUBJECTS_DIR/$subject
+  if(! -e $sd) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  if($#invol == 0)  set invol = $sd/mri/norm.mgz
+  if($#outdir == 0 && $MNITarget) then
+    if($UseAnts) then
+      set outdir = $sd/mri/transforms/ants.warp.$MNITargetRes.$MNIOutputRes$PitStr
+    else
+      set outdir = $sd/mri/transforms/synthmorph.$MNITargetRes.$MNIOutputRes$PitStr
+    endif
+    #don't create particular files in the transform dir
+    #set m3z = $outdir.nii.gz
+    #set m3zinv = $outdir.inv.nii.gz # Just in case the invert is requested
+  endif
+endif
+
+# This is too complicated now as it is not just setting the target volume to 
+# the cropped; have to set the reg-crop-to-target too
+#if($MNITarget) set CropTarget = 0; 
+
+if($#outdir == 0) then
+  echo "ERROR: must spec output dir"
+  exit 1
+endif
+if($#invol == 0) then
+  echo "ERROR: must spec input volume"
+  exit 1
+endif
+foreach f ($invol $targvol) 
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1
+  endif
+end
+
+mkdir -p $outdir
+set outdir = `getfullpath $outdir`
+if($#m3z == 0) then
+  if($MNITarget) then
+     # Lose ants vs synthseg distinction in the output
+     set m3z = $outdir/warp.to.mni152.${MNITargetRes}.${MNIOutputRes}.nii.gz
+     set m3zinv = $outdir/warp.to.mni152.${MNITargetRes}.${MNIOutputRes}.inv.nii.gz
+  else
+     set m3z = $outdir/warp.nii.gz
+     set m3zinv = $outdir/warp.inv.nii.gz
+  endif
+endif 
+
+if($ComputeInverse && $#m3zinv == 0) then
+  set stem = `fname2stem $m3z`
+  set ext  = `fname2ext $m3z`
+  set m3zinv = $stem.inv.$ext
+endif
+
+if($#targvol && $MNITarget) then
+  echo "ERROR: cannot specify both target volume and mni target"
+  exit 1
+endif
+
+# MNI is already skull stripped
+if($MNITarget) set targvol = $FSMNI152DIR/reg-targets/mni152.${MNIOutputRes}${PitStr}.nii.gz
+
+if($UseQuick) then
+  set antsreg = antsRegistrationSyNQuick.sh
+else
+  set antsreg = antsRegistrationSyN.sh
+endif
+
+set testvol = ()
+if($DoTest) set testvol = $outdir/test.nii.gz
+
+set ud1 = `UpdateNeeded $m3z $targvol $invol $testvol`
+set ud2 = 0
+if($ComputeInverse) set ud2 = `UpdateNeeded $m3zinv $targvol $invol`
+if($ud1 == 0 && $ud2 == 0 && $ForceUpdate == 0) then
+  echo "fs-synthmorph-reg: update not needed"
+  exit 0
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fs-synthmorph-reg -- frontend for running mri_synthmorph"
+  echo "  --i invol"
+  echo "  --t targetvol"
+  echo "    --mni : set targ=MNI152.1mm, unless --no-crop-mni where it will use MNI152.2mm"
+  echo "  --warp warp.{m3z,mgz,nii.gz} : output warp file (or save in outdir)"
+  echo "  --o outdir"
+  echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.5mm.1.0mm.nii.gz  targ=MNI152.1mm)"
+  echo "  --threads threads"
+  echo "  --mni-targ-res 1.0mm, 1.5mm, 2.0mm (default is 1.5mm)"
+  echo "  --mni-out-res 1.0mm, 1.5mm, 2.0mm, conformed (default is 1.0mm)"
+  echo "  --no-inv : do not compute warp inverse (computed by default)"
+  echo "  --affine-only : only perform the affine registration part"
+  echo "  --strip : skull strip input and target"
+  echo "  --strip-input : skull strip input"
+  echo "  --strip-target : skull strip target"
+  echo "  --pituitary : select the MNI target volume that does not mask out the pituitary"
+  echo "  --test : resample the input volume to the output space and store as test.nii.gz"
+  echo "  --vg-thresh vgthresh : threshold for testing diffs in volume geom"
+  echo "  --ants : use ANTs registration intstead of synthmorph"
+  echo "  --tmp tmpdir"
+  echo "  "
+
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a frontend for running mri_synthmorph, especially for registering to mni152 space. 
+
+Simple usage:
+
+fs-synthmorph-reg --i inputvol.nii.gz --o synthmorphdir
+
+This will register to the mni152 saving output files in synthmorphdir. The nonlinear 
+warp will be outdir/warp.to.mni152.1.5mm.1.0mm.nii.gz which can be applied like:
+
+mri_convert inputvol.nii.gz -at warp.to.mni152.1.5mm.1.0mm.nii.gz inputvol.mni152.nii.gz
+
+which can be checked with
+
+freeview inputvol.mni152.nii.gz $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/mni152.1.0mm.nii.gz 
+
+If you have created the warp from a FreeSurfer subject space (either with --s or passing a 
+conformed volume), then you can apply the warp to the surfaces, eg,
+
+mris_apply_reg --warp lh.white warp.to.mni152.1.5mm.1.0mm.inv.nii.gz lh.warp.mni152
+
+which you can check with
+
+freeview inputvol.mni152.nii.gz $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/mni152.1.0mm.nii.gz -f lh.warp.mni152
+
+Skull stripping: it is best to apply mri_synthmorph to skull stripped
+data. fs-synthmorph-reg assumes that the input is skull stripped (and
+registers to a skull stripped mni152 volume). If you want
+fs-synthmorph-reg to skull strip for you, then add --strip (uses
+mri_synthstrip). Note that if you pass a FS subject (--s), it will use
+the norm.mgz volume, which is already skull stripped.
+
+Target and Output MNI Resolution: the 1.5mm in the warp file name means
+that the registration is done to a version of the mni152 with an
+isotropic resolution of 1.5mm (this will be how finely the warp field
+is sampled). The 1.0mm means that the warp file will actually warp to
+the the mni152 with an isotropic resolution of 1.0mm. The reason for
+this difference is that the warp field itself is pretty smooth and
+does not need very fine resolution; making the resolution finer just
+slows things down. When applying the warp field to a data set, one
+often wants to have the output be at 1mm.  You can change the
+resolution of the warp field with the --mni-targ-res flag (options are
+1.0mm, 1.5mm, 2.0mm). You can change the resolution of the output in
+several ways. From this program, you can specify the output resolution
+with --mni-out-res (options are 1.0mm, 1.5mm, 2.0mm). You can also
+create an LTA file to the desired output resolution and then use
+mri_warp_convert to change the warp.  Or you can create an LTA file to
+the desired resolution, and then use mri_vol2vol --gcam to apply the
+warp and the LTA (instead of mri_convert, which will only the the
+warp).
+
+Affine and affine-only: by default, this script will perform a
+non-linear registration to the target space. The first step of this
+will be to perform an affine registration.  Sometimes, this is useful
+too. This affine registration is stored in reg.targ_to_invol.lta.  If
+you ONLY want the affine registration, then you can specify
+--affine-only.
+
+Arbitrary Targets: you can use fs-synthmorph-reg to register to target
+volumes other than the mni152. To do this, simply specify --t targetvol.
+You can have fs-synthmorph-reg skull strip the target by adding
+--strip-target.
+
+Please cite SynthMorph:
+Anatomy-specific acquisition-agnostic affine registration learned from
+fictitious images
+Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)
+SPIE Medical Imaging: Image Processing, 12464, p 1246402, 2023
+https://doi.org/10.1117/12.2653251
+https://malte.cz/#papers (PDF)
+
+SynthMorph: learning contrast-invariant registration without acquired images
+Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV
+IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022
+https://doi.org/10.1109/TMI.2021.3116879
+
+If you use SynthStrip in your analysis, please cite:
+SynthStrip: Skull-Stripping for Any Brain Image
+A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann
+NeuroImage 206 (2022), 119474
+https://doi.org/10.1016/j.neuroimage.2022.119474
+Website: https://w3id.org/synthstrip
+
