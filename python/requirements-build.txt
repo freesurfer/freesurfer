@@ -26,7 +26,7 @@ idna==3.7
 imageio==2.34.1
 importlib_metadata==7.1.0
 importlib_resources==6.4.0
-joblib==1.4.0
+joblib==1.4.2
 keras==2.13.1
 kiwisolver==1.4.5
 lazy_loader==0.4
@@ -83,7 +83,7 @@ termcolor==2.4.0
 threadpoolctl==3.5.0
 tifffile==2023.7.10
 torch==2.1.2
-tqdm==4.66.2
+tqdm==4.66.4
 transforms3d==0.4.1
 trimesh==4.3.2
 #triton==2.1.0
