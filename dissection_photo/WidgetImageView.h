@@ -28,6 +28,7 @@ public:
   void mouseReleaseEvent(QMouseEvent* e);
   void wheelEvent(QWheelEvent* e);
   void resizeEvent(QResizeEvent* e);
+  void keyPressEvent(QKeyEvent* e);
 
   bool eventFilter(QObject *watched, QEvent *event);
 

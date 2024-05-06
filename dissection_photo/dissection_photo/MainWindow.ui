@@ -61,7 +61,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -152,7 +152,7 @@
             <item>
              <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Shift+Left button to remove. Ctrl+Right click to flood fill. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to remove. Shift+Left click to flood fill. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="wordWrap">
                <bool>true</bool>

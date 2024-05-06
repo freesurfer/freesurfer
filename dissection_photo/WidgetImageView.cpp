@@ -6,6 +6,7 @@
 #include "exif.h"
 #include <QFile>
 #include "MyUtils.h"
+#include <QGuiApplication>
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
@@ -132,7 +133,7 @@ void WidgetImageView::PrepareImage()
         p.setOpacity(m_dMaskOpacity);
         QPainter p2(&image);
         p2.setCompositionMode(QPainter::CompositionMode_Darken);
-        p2.fillRect(image.rect(), QColor(200,200,255));
+        p2.fillRect(image.rect(), QColor(0,255,0));
       }
       else
       {
@@ -273,7 +274,14 @@ void WidgetImageView::paintEvent(QPaintEvent *e)
   }
   else if (m_nEditMode == EM_EDIT_MASK)
   {
-
+    if (QGuiApplication::queryKeyboardModifiers() & Qt::ControlModifier)
+    {
+      QPointF pt = this->mapFromGlobal(QCursor::pos());
+      p.setBrush(QColor(255,0,0, 100));
+      p.setPen(Qt::NoPen);
+      double r = m_nBrushSize/2.0*m_imageScaled.width()/m_image.width();
+      p.drawEllipse(pt, r, r);
+    }
   }
   if (!m_sMessage.isEmpty())
   {
@@ -321,12 +329,11 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
     }
     else if (e->modifiers() & Qt::ShiftModifier)
     {
+      m_bDrawing = true;
       if (m_nEditMode == EM_EDIT_MASK)
       {
-        m_bDrawing = true;
-        m_bErasing = true;
         m_listMaskUndoBuffer << m_imageMask;
-        FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
+        FloodFillMaskImage(m_ptPress);
       }
     }
     else
@@ -336,9 +343,13 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
   {
     if (e->modifiers() & Qt::ControlModifier)
     {
-      m_bDrawing = true;
-      m_listMaskUndoBuffer << m_imageMask;
-      FloodFillMaskImage(m_ptPress);
+      if (m_nEditMode == EM_EDIT_MASK)
+      {
+        m_bDrawing = true;
+        m_bErasing = true;
+        m_listMaskUndoBuffer << m_imageMask;
+        FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
+      }
     }
     else
       m_bZooming = true;
@@ -407,6 +418,7 @@ void WidgetImageView::mouseReleaseEvent(QMouseEvent *e)
   m_bDrawing = false;
   m_bErasing = false;
   unsetCursor();
+  update();
 }
 
 void WidgetImageView::mouseMoveEvent(QMouseEvent *e)
@@ -458,10 +470,21 @@ void WidgetImageView::mouseMoveEvent(QMouseEvent *e)
   }
   if (e->modifiers() & Qt::ControlModifier)
   {
-    setCursor(Qt::CrossCursor);
+    if (m_nEditMode == EM_EDIT_MASK)
+      update();
+    else
+      setCursor(Qt::CrossCursor);
   }
 
   QWidget::mouseMoveEvent(e);
+}
+
+void WidgetImageView::keyPressEvent(QKeyEvent* e)
+{
+  if (m_bDrawing && m_nEditMode == EM_EDIT_MASK && e->modifiers() & Qt::ControlModifier)
+  {
+    update();
+  }
 }
 
 void WidgetImageView::wheelEvent(QWheelEvent* e)
