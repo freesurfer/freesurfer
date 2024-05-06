@@ -1908,7 +1908,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
       }
     }
   }
-  
+  ˚
   unsigned char c[4] = { 0, 0, 0, 255 };
   double scale = scale_overall;
   scale *= GetProperty()->GetVectorDisplayScale();
@@ -1939,6 +1939,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
 
   double actor_pos[3] = {0,0,0};
   actor_pos[nPlane] = voxel_size[nPlane]*(nPlane==2?-dim[nPlane]:dim[nPlane])/2;
+  if (m_dTinyOffset < 0)
+  {
+    actor_pos[1] = -actor_pos[1];
+    actor_pos[2] = -actor_pos[2];
+  }
   m_glyphActor2D[nPlane]->SetPosition(actor_pos);
   m_vectorDotActor2D[nPlane]->SetPosition(actor_pos);
   int nSkip = GetProperty()->GetVectorSkip()+1;
