@@ -1908,7 +1908,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
       }
     }
   }
-  ˚
+
   unsigned char c[4] = { 0, 0, 0, 255 };
   double scale = scale_overall;
   scale *= GetProperty()->GetVectorDisplayScale();
