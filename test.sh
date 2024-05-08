@@ -168,6 +168,17 @@ export FSLOUTPUTTYPE="NIFTI_GZ"
 # source the local freesurfer distribution
 export PATH="$FREESURFER_HOME/bin:$PATH"
 
+if [ ! -z "$FREESURFER_FSPYTHON" ]; then
+   if [ -e "$FREESURFER_FSPYTHON" ]; then
+      export FREESURFER_HOME_FALLBACK="${FREESURFER_HOME}"
+      export PATH="${FREESURFER_FSPYTHON}/bin:${PATH}"
+   fi
+elif [ -e "$FREESURFER_HOME/../fspython" ]; then
+   export FREESURFER_FSPYTHON="${FREESURFER_HOME}/../fspython"
+   export FREESURFER_HOME_FALLBACK="${FREESURFER_HOME}"
+   export PATH="${FREESURFER_FSPYTHON}/bin:${PATH}"
+fi
+
 # set martinos license for internal developers
 if [ -e "/autofs/space/freesurfer/.license" ] ; then
     export FS_LICENSE="/autofs/space/freesurfer/.license"

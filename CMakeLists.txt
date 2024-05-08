@@ -53,6 +53,7 @@ option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
 option(TEST_WITH_CUDA "Allow tests to run that use cuda libs and require install of cuda drivers" OFF)
 option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" ON)
+option(FSPYTHON_INSTALL_TREE "install fspython distro and scripts to a separate install tree" OFF)
 option(APPLE_ARM64 "Mac arm64 build" OFF)
 
 message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
@@ -943,6 +944,10 @@ if(EXISTS "./mri_make_bem_surfaces")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    endif()
+endif()
+
+if(FSPYTHON_INSTALL_TREE)
+   message(STATUS "For HOST_OS=${HOST_OS} FSPYTHON_INSTALL_PREFIX=${FSPYTHON_INSTALL_PREFIX}")
 endif()
 
 if(INFANT_MODULE)

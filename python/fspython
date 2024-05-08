@@ -3,6 +3,29 @@
 # check for freesurfer home
 [ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
 
+# Use FREESURFER_FSPYTHON if set in the environment, else if ../fspython subdir exists
+# parallel to CMAKE_INSTALL_PREFIX, default to that relative path for FREESURFER_FSPYTHON.
+# Then update environment - set PATH to contain FREESURFER_FSPYTHON/bin and force
+# FREESURFER_HOME to FREESURFER_FPSYHTON in order to find model files, etc.
+
+func_setup_fspython_env()
+{
+   export FREESURFER_HOME_FALLBACK="${FREESURFER_HOME}"
+   export FREESURFER_HOME="${FREESURFER_FSPYTHON}"
+   echo ${PATH} | grep "${FREESURFER_FSPYTHON}" > /dev/null
+   if [ $? -ne 0 ]; then
+      export PATH="${FREESURFER_FSPYTHON}/bin:${PATH}"
+   fi
+}
+if [ ! -z "$FREESURFER_FSPYTHON" ]; then
+   if [ -e "$FREESURFER_FSPYTHON" ]; then
+      func_setup_fspython_env
+   fi
+elif [ -e "$FREESURFER_HOME/../fspython" ]; then
+   export FREESURFER_FSPYTHON="${FREESURFER_HOME}/../fspython"
+   func_setup_fspython_env
+fi
+
 # point to freesurfer-installed packages and make sure that PYTHONPATH is entirely
 # overwritten, since we don't want any user packages to interfere with things.
 # Allow this to be overridden with the FS_LOCAL_PYTHONPATH env var

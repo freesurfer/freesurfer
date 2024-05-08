@@ -22,14 +22,28 @@ else()
 endif()
 
 function(fspython_script_install)
-   # install the fspython script
+   # install the fspython script 
    if(APPLE_ARM64)
       # Allow script to use local packages with the system or Apple recommended Anaconda python
       install(PROGRAMS fspython.local DESTINATION bin RENAME fspython)
+      if(FSPYTHON_INSTALL_TREE)
+         install(PROGRAMS fspython.local DESTINATION ../fspython/bin RENAME fspython)
+      endif() 
    else()
+      # FIX ME: for now install in both main FS tree and separate fspython tree
       install(PROGRAMS fspython DESTINATION bin)
+      if(FSPYTHON_INSTALL_TREE)
+         install(PROGRAMS fspython DESTINATION ../fspython/bin)
+      endif()
    endif()
 endfunction()
+
+if(FSPYTHON_INSTALL_TREE)
+   set(FSPYTHON_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/\.\./fspython" CACHE PATH "fspython install path" FORCE)
+   # install(DIRECTORY DESTINATION ${FSPYTHON_INSTALL_PREFIX}) 
+else()
+   set(FSPYTHON_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "fspython install path" FORCE)
+endif()
 
 # TO DO  - write a python_3_10_base_install
 
@@ -41,7 +55,7 @@ function(python_3_8_base_install)
     set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.8m)
     # install the barebones python distribution
     INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
-      DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
+      DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
     )
   else()
     message(FATAL_ERROR "Cannot find fspython distribution in FS_PACKAGES_DIR")
@@ -53,8 +67,7 @@ function(packages_install)
    # pass INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} environment variable for setup.py to act accordingly
    install(CODE "
      message(STATUS \"Installing python packages\")
-     message(STATUS \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${CMAKE_INSTALL_PREFIX}/python/packages\")
-     execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
+     execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${FSPYTHON_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
      if(NOT \${retcode} STREQUAL 0)
        message(FATAL_ERROR \"Could not install python modules\")
      endif()"
@@ -91,24 +104,25 @@ function(sitepackages_install)
 
   install(CODE "
     message(STATUS \"Installing python package dependencies into fspython with cmd:\")
-    message(STATUS \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\")
-    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\" RESULT_VARIABLE retcode)
+    message(STATUS \"${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\")
+
+    execute_process(COMMAND bash -c \"${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET}\" RESULT_VARIABLE retcode)
 
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install python dependencies\")
     endif()
 
-    execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin ! -name 'python3*' ! -name 'ds' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
+    execute_process(COMMAND bash -c \"find ${FSPYTHON_INSTALL_PREFIX}/python/bin ! -name 'python3*' ! -name 'ds' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
 
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not remove pip-installed scripts\")
     endif()
 
     # Create the symbolic link after pip install
-    if(EXISTS ${CMAKE_INSTALL_PREFIX}/python/bin/ds)
-       execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_INSTALL_PREFIX}/python/bin/ds\" \"${CMAKE_INSTALL_PREFIX}/bin/ds\")
+    if(EXISTS ${FSPYTHON_INSTALL_PREFIX}/python/bin/ds)
+       execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${FSPYTHON_INSTALL_PREFIX}/python/bin/ds\" \"${FSPYTHON_INSTALL_PREFIX}/bin/ds\")
     else()
-       message(STATUS \"Cannot create soft link because ${CMAKE_INSTALL_PREFIX}/python/bin/ds was not installed by ${PIP_SUBSTRING} deepsurfer\")
+       message(STATUS \"Cannot create soft link because ${FSPYTHON_INSTALL_PREFIX}/python/bin/ds was not installed by pip install deepsurfer\")
     endif()
   ")
 endfunction()
@@ -120,7 +134,7 @@ function(fspython_patch)
    set(FSPYTHON_PREVIOUS_BUILD_BASE "/space/freesurfer/build/garnet/sandboxes/utility/freesurfer/dev.20221207")
    install(CODE "
      message(STATUS \"patching fspython distribution\")
-     execute_process(COMMAND bash -c \" ( cd ${FSPYTHON_PREVIOUS_BUILD_BASE}/python/lib/python3.8/site-packages && tar cpf - surfa* xxhash* ) | ( cd ${CMAKE_INSTALL_PREFIX}/python/lib/python3.8/site-packages && tar xpf - ) \" RESULT_VARIABLE patch)
+     execute_process(COMMAND bash -c \" ( cd ${FSPYTHON_PREVIOUS_BUILD_BASE}/python/lib/python3.8/site-packages && tar cpf - surfa* xxhash* ) | ( cd ${FSPYTHON_INSTALL_PREFIX}/python/lib/python3.8/site-packages && tar xpf - ) \" RESULT_VARIABLE patch)
      if(NOT \${patch} STREQUAL 0)
        message(FATAL_ERROR \"Could not patch fspython\")
      endif()"
@@ -129,7 +143,7 @@ endfunction()
 
 function(integrate_samseg)
   # pip install samseg
-  set(PIP_INSTALL_FLAGS "${PIP_NODEP_ARG} --disable-pip-version-check --upgrade")
+  set(PIP_INSTALL_FLAGS "--no-dependencies --disable-pip-version-check --upgrade")
   set(STANDALONE_SAMSEG_PATH "${CMAKE_CURRENT_BINARY_DIR}/git-samseg.standalone")
   if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
     set(STANDALONE_SAMSEG_PATH "${USER_SAMSEG_PATH}")
@@ -147,7 +161,7 @@ function(integrate_samseg)
   install(CODE "
     message(STATUS \" for HOST_OS=${HOST_OS} \")
     message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} \")
-    message(STATUS \" PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} PYTHON_INSTALL=${CMAKE_INSTALL_PREFIX}/python/bin/python3 PKG_TARGET=${PKG_TARGET} \")
+    message(STATUS \" PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} PYTHON_INSTALL=${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 PKG_TARGET=${PKG_TARGET} \")
 
     if(\"${USER_SAMSEG_PATH}\" STREQUAL \"\")
       message(STATUS \" git clone ${STANDALONE_SAMSEG_URL} ${STANDALONE_SAMSEG_PATH} \")
@@ -159,8 +173,8 @@ function(integrate_samseg)
 
     # no check/install samseg dependencies, all dependencies will be handled in requirement files
     message(STATUS \" installing standalone samseg from ${STANDALONE_SAMSEG_PATH} \") 
-    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} APPLE_ARM64=${APPLE_ARM64} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
-    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} APPLE_ARM64=${APPLE_ARM64} ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
+    message(STATUS \" ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} APPLE_ARM64=${APPLE_ARM64} ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \")
+    execute_process(COMMAND bash -c \"ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} CMAKE_C_COMPILER=${CMAKE_C_COMPILER} CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} APPLE_ARM64=${APPLE_ARM64} ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m pip install ${PIP_INSTALL_FLAGS} ${STANDALONE_SAMSEG_PATH} ${PKG_TARGET} \" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install Standalone Samseg\")
     endif()"
@@ -194,13 +208,13 @@ if(DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
 endif()
 
 # used for linking what's installed under site-packages to an external/3rd party, e.g., anaconda, python distribution
-# CMAKE_INSTALL_PREFIX/python/bin/python3 soft link not used
+# FSPYTHON_INSTALL_PREFIX/python/bin/python3 soft link not used
 if(NOT DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    message(STATUS For "HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES ON")
    # Use an existing 3rd party python instead of base python distribution
    # install C bindings, etc. under python/packages
    # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
-   set(PKG_TARGET "${pip_target_option}=${CMAKE_INSTALL_PREFIX}/python/packages")
+   set(PKG_TARGET "--target=${FSPYTHON_INSTALL_PREFIX}/python/packages")
    packages_install()
    sitepackages_install()
    fspython_script_install()
@@ -210,14 +224,14 @@ if(NOT DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
 endif()
 
 # used for silicon Mac, -DAPPLE_ARM64, with download and install of external/3rd party miniconda arm64 python
-# CMAKE_INSTALL_PREFIX/python/bin/python3 soft link changed to point to anaconda python
+# FSPYTHON_INSTALL_PREFIX/python/bin/python3 soft link changed to point to anaconda python
 if(NOT DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
    message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES OFF")
    # Use an existing 3rd party python instead of base python distribution
    # install C bindings, etc. under python/packages
    # NO pre-installed site-packages, add fspython wrapper
    # set PKG_TARGET, this is needed for integrate_samseg()
-   set(PKG_TARGET "${pip_target_option}=${CMAKE_INSTALL_PREFIX}/python/packages")   
+   set(PKG_TARGET "--target=${FSPYTHON_INSTALL_PREFIX}/python/packages")   
    packages_install()
    fspython_script_install()
 endif()
@@ -232,11 +246,11 @@ endif()
 # surfa
 set(SURFA_LOCAL_PATH "/absolute/path/to/local/surfa/code")
 # ?? ifdef on ENV setting for SURFA_LOCAL_PATH, else use default PKG_TARGET setting for site-packages ??
-# set(PKG_TARGET "${pip_target_option}=${CMAKE_INSTALL_PREFIX}/python/packages")
+# set(PKG_TARGET "--target=${FSPYTHON_INSTALL_PREFIX}/python/packages")
 
 add_custom_target(setup_surfa)
 
-file(GLOB_RECURSE surfa_dists ${CMAKE_INSTALL_PREFIX}/python/packages/surfa-*.dist-info)
+file(GLOB_RECURSE surfa_dists ${FSPYTHON_INSTALL_PREFIX}/python/packages/surfa-*.dist-info)
 
 foreach(dist ${surfa_dists})
   file(REMOVE_RECURSE ${dist})
@@ -246,7 +260,7 @@ endforeach()
 add_custom_command(
   TARGET setup_surfa 
   COMMAND 
-    ${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} --ignore-installed --no-cache-dir --upgrade -e ${SURFA_LOCAL_PATH} ${PKG_TARGET} 
+    ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m pip install --ignore-installed --no-cache-dir --upgrade -e ${SURFA_LOCAL_PATH} ${PKG_TARGET} 
   WORKING_DIRECTORY 
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
