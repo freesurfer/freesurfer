@@ -29,6 +29,7 @@ public:
   void wheelEvent(QWheelEvent* e);
   void resizeEvent(QResizeEvent* e);
   void keyPressEvent(QKeyEvent* e);
+  void keyReleaseEvent(QKeyEvent* e);
 
   bool eventFilter(QObject *watched, QEvent *event);
 
@@ -152,6 +153,7 @@ private:
   int      m_nBrushSize;
 
   bool    m_bMaskEdited;
+  bool    m_bModifierDown;
   QList<QImage>  m_listMaskUndoBuffer;
 };
 

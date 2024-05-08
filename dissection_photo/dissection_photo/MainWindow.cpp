@@ -175,12 +175,15 @@ void MainWindow::OnButtonContinue()
   m_listInputFiles = QDir(m_strInputFolder).entryInfoList(QDir::Files, QDir::Name);
 
   ui->stackedWidget->setCurrentWidget(ui->pageCorrection);
+  ui->widgetImageView->SetEditMode(WidgetImageView::EM_POINT);
+  ui->widgetImageView->SetNumberOfExpectedPoints(4);
 
   m_bCalibratiedMode = !m_strCalibrationFile.isEmpty();
   ui->labelTitle->setText(m_bCalibratiedMode?"Calibrated Mode":"Retrospective Mode");
-  ui->widgetPointMode->setVisible(!m_bCalibratiedMode);
-  if (m_bCalibratiedMode)
+//  ui->widgetPointMode->setEnabled(!m_bCalibratiedMode);
+  if (m_bCalibratiedMode && !m_listInputFiles.isEmpty())
   {
+    /*
     QStringList cmd;
     cmd << m_strPythonCmd << m_strPyScriptFiducialsCorrection
         << "--in_dir" << QString("\"%1\"").arg(m_strInputFolder)
@@ -189,12 +192,23 @@ void MainWindow::OnButtonContinue()
     m_proc->start(cmd.join(" "));
     m_proc->setProperty("task", "fiducials_correction");
     ui->pageCorrection->setEnabled(false);
+    */
+    QStringList cmd;
+    cmd << m_strPythonCmd << m_strPyScriptFiducialsDetection
+        << "--in_image" << m_listInputFiles[0].absoluteFilePath()
+        << "--calibration_file" << QString("\"%1\"").arg(m_strCalibrationFile)
+        << "--out_file" << m_strPyScriptFiducialsDetection + ".txt";
+    m_proc->start(cmd.join(" "));
+    m_proc->setProperty("task", "fiducials_detection");
+    m_proc->setProperty("output_file", cmd.last());
   }
 
   UpdateIndex();
 
   if (!m_listInputFiles.isEmpty())
     LoadImage(m_nIndex);
+
+  ui->pushButtonNext->setEnabled(false);
 }
 
 void MainWindow::OnTogglePointMode(bool b)
@@ -202,11 +216,11 @@ void MainWindow::OnTogglePointMode(bool b)
   if (!b)
     return;
 
-  bool b4Points = (sender() == ui->radioButton4Points);
-  ui->labelRectWidth->setText(b4Points?"Rectangle width (mm)":"Ruler width (mm)");
-  ui->labelRectHeight->setVisible(b4Points);
-  ui->lineEditRectHeight->setVisible(b4Points);
-  ui->widgetImageView->SetNumberOfExpectedPoints(b4Points?4:2);
+  bool b2Points = (sender() == ui->radioButton2Points);
+  ui->labelRectWidth->setText(b2Points?"Ruler width (mm)":"Rectangle width (mm)");
+  ui->labelRectHeight->setVisible(!b2Points);
+  ui->lineEditRectHeight->setVisible(!b2Points);
+  ui->widgetImageView->SetNumberOfExpectedPoints(b2Points?2:(sender() == ui->radioButton3Points?3:4));
 }
 
 void MainWindow::SetupScriptPath()
@@ -289,7 +303,7 @@ void MainWindow::UpdateIndex()
   if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
     ui->pushButtonPrevious->setEnabled(m_nIndex > 0);
-    if (!m_bCalibratiedMode)
+//    if (!m_bCalibratiedMode)
       ui->pushButtonNext->setEnabled(m_nIndex < m_listPointData.size());
   }
   if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
@@ -302,7 +316,7 @@ void MainWindow::UpdateIndex()
   {
     label = ui->labelIndexCC;
     ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
-    ui->pushButtonNext->setEnabled(m_nIndex < m_listRegionData.size());
+    ui->pushButtonNextSeg->setEnabled(m_nIndex < m_listRegionData.size());
   }
   label->setText(tr("%1 / %2").arg(m_nIndex+1).arg(m_listInputFiles.size()));
 }
@@ -314,10 +328,20 @@ void MainWindow::LoadImage(int n)
   QString fn = m_listInputFiles[n].absoluteFilePath(), mask_fn;
   if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
-    if (!m_bCalibratiedMode)
+    if (true) // !m_bCalibratiedMode)
     {
       if (m_listPointData.size() > n)
         pts = m_listPointData[n];
+      else if (m_mapCalibrationInfo.contains("general"))
+      {
+        QVariantMap info = m_mapCalibrationInfo["general"].toMap();
+        if (!info.isEmpty())
+        {
+          pts = GetCalibrationPointsList(info);
+          ui->lineEditRectWidth->setText(info["width"].toString());
+          ui->lineEditRectHeight->setText(info["height"].toString());
+        }
+      }
     }
     else
     {
@@ -360,7 +384,6 @@ void MainWindow::LoadImage(int n)
         pts << rects[i].first << rects[i].second;
       m_maskProcessor.LoadSelections(pts);
       ui->widgetImageView->SetOverlay(m_maskProcessor.GetMaskImage(m_listStockColors));
-      ui->pushButtonNext->setEnabled(true);
     }
   }
 }
@@ -371,19 +394,9 @@ QList<QPoint> MainWindow::GetCalibrationPointsList(const QVariantMap& info)
   QPoint pt;
   for (int i = 0; i < 4; i++)
   {
-    QString id_str = QString("corner%1").arg(i), id_str_2 = QString("end_point%1").arg(i);
+    QString id_str = QString("corner%1").arg(i);
     pt.setX(info[id_str].toList().first().toDouble());
     pt.setY(info[id_str].toList().last().toDouble());
-    pts << pt;
-    if (info.contains(id_str_2))
-    {
-      pt.setX(info[id_str_2].toList().first().toDouble());
-      pt.setY(info[id_str_2].toList().last().toDouble());
-    }
-    else
-    {
-      pt.setX(pt.x()+2);
-    }
     pts << pt;
   }
   return pts;
@@ -403,6 +416,10 @@ void MainWindow::OnButtonNext()
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
     ui->pushButtonAllDone->setEnabled(true);
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
+  {
+    ui->pushButtonSegmentation->setEnabled(true);
   }
 }
 
@@ -429,7 +446,7 @@ void MainWindow::OnButtonProcess()
     if (!bOK)
       dHeight = -1;
   }
-  if (m_bCalibratiedMode)
+  if (false)
   {
     double w = 1, h = 1;
     bool bOK;
@@ -570,11 +587,12 @@ void MainWindow::OnProcessFinished()
       }
     }
     ui->pageCorrection->setEnabled(true);
+    ui->pushButtonNext->setEnabled(false);
   }
   else if (task == "fiducials_calibration")
   {
     QString calibration_file = sender()->property("output_file").toString();
-    qDebug() << calibration_file;
+//    qDebug() << calibration_file;
     QDir dir(m_sTempDir);
     QString fn = ui->widgetImageView->GetFilename();
     QString sub_dir = QFileInfo(fn).completeBaseName();
@@ -635,6 +653,7 @@ void MainWindow::OnButtonProceedToCC()
   ui->widgetImageView->SaveMaskIfEdited();
 
   ui->stackedWidget->setCurrentWidget(ui->pageCC);
+  m_nIndex = 0;
   ui->widgetImageView->SetEditMode(WidgetImageView::EM_REGION);
   connect(ui->widgetImageView, SIGNAL(LastRegionEdited(int)),
                                       SLOT(OnLastRegionEdited(int)), Qt::QueuedConnection);
@@ -679,5 +698,6 @@ void MainWindow::OnButtonCreateMask()
   fn.replace(QString(".")+QFileInfo(fn).suffix(), "_mask.npy", Qt::CaseInsensitive);
   m_maskProcessor.SaveToNpy(QFileInfo(m_strFinalOutputFolder, fn).absoluteFilePath());
   ui->pushButtonNextCC->setEnabled(true);
+  ui->widgetImageView->ShowMessage("Mask created and saved");
 }
 
