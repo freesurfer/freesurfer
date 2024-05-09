@@ -94,8 +94,9 @@ endif()
 
 install(PROGRAMS dmri_ac.sh DESTINATION bin)
 
-install_pyscript(
-	diffusionUtils
-	anatomiCutsUtils
-	dmri_violinPlots
-)
+if (FSPYTHON_INSTALL_TREE)
+   install_pyscript_fspython_tree(diffusionUtils anatomiCutsUtils dmri_violinPlots)
+else()
+   install_pyscript(diffusionUtils anatomiCutsUtils dmri_violinPlots)
+endif()
+

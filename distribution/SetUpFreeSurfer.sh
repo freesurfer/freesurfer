@@ -14,6 +14,19 @@ if [ -z $FREESURFER_HOME ]; then
     return
 fi
 
+func_setup_fspython_path()
+{
+   export PATH="${FREESURFER_FSPYTHON}/bin:${PATH}"
+}
+if [ ! -z "$FREESURFER_FSPYTHON" ]; then
+   if [ -e "$FREESURFER_FSPYTHON" ]; then
+      func_setup_fspython_path
+   fi
+elif [ -e "$FREESURFER_HOME/../fspython" ]; then
+   export FREESURFER_FSPYTHON="${FREESURFER_HOME}/../fspython"
+   func_setup_fspython_path
+fi
+
 # Set this to your subjects/ dir, usually freesurfer/subjects/
 if [ -z $SUBJECTS_DIR ]; then
     export SUBJECTS_DIR=$FREESURFER_HOME/subjects

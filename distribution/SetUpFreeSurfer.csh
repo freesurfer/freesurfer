@@ -13,7 +13,16 @@ if (! $?FREESURFER_HOME) then
     echo " ERROR: Environment variable FREESURFER_HOME must be defined prior to sourcing Freesurfer." 
     exit
 endif    
- 
+
+if ($?FREESURFER_FSPYTHON) then 
+   if ( -d $FREESURFER_FSPYTHON ) then
+      set path = ( $FREESURFER_FSPYTHON/bin $path )
+   endif
+else if ( -d $FREESURFER_HOME/../fspython/bin ) then
+   setenv FREESURFER_FSPYTHON $FREESURFER_HOME/../fspython
+   set path = ( $FREESURFER_FSPYTHON/bin $path )
+endif
+
 # Set this to your subjects/ dir, usually freesurfer/subjects/
 if (! $?SUBJECTS_DIR) then
     setenv SUBJECTS_DIR $FREESURFER_HOME/subjects

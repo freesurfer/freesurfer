@@ -10,7 +10,8 @@
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
-    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7), m_nBrushSize(1), m_bMaskEdited(false)
+    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7),
+    m_nBrushSize(1), m_bMaskEdited(false), m_bModifierDown(false)
 {
   setMouseTracking(true);
   m_colorPen = QColor(50,255,50);
@@ -67,7 +68,23 @@ bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, co
   m_sMaskFilename = mask;
   m_imageOriginal = m_imageMask = QImage();
   if (!mask.isEmpty())
+  {
     m_imageMask = ReadImageWithExifAwareness(m_sMaskFilename).convertToFormat(QImage::Format_ARGB32);
+    if (m_nEditMode == EM_EDIT_MASK)  // remove background
+    {
+      for (int y = 0; y < m_imageMask.height(); y++)
+      {
+        QRgb* p = (QRgb*)m_imageMask.scanLine(y);
+        for (int x = 0; x < m_imageMask.width(); x++)
+        {
+          if (qRed(p[x]) == 0)
+          {
+            p[x] = qRgba(0,0,0,0);
+          }
+        }
+      }
+    }
+  }
   m_imageOverlay = QImage();
   PrepareImage();
   if (!m_image.isNull())
@@ -132,7 +149,7 @@ void WidgetImageView::PrepareImage()
       {
         p.setOpacity(m_dMaskOpacity);
         QPainter p2(&image);
-        p2.setCompositionMode(QPainter::CompositionMode_Darken);
+        p2.setCompositionMode(QPainter::CompositionMode_SourceIn);
         p2.fillRect(image.rect(), QColor(0,255,0));
       }
       else
@@ -274,7 +291,7 @@ void WidgetImageView::paintEvent(QPaintEvent *e)
   }
   else if (m_nEditMode == EM_EDIT_MASK)
   {
-    if (QGuiApplication::queryKeyboardModifiers() & Qt::ControlModifier)
+    if (m_bModifierDown)
     {
       QPointF pt = this->mapFromGlobal(QCursor::pos());
       p.setBrush(QColor(255,0,0, 100));
@@ -316,6 +333,7 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
         m_bErasing = false;
         m_listMaskUndoBuffer << m_imageMask;
         FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
+        m_bModifierDown = true;
       }
       else if (m_nEditMode != EM_SELECT_MASK)
       {
@@ -329,11 +347,13 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
     }
     else if (e->modifiers() & Qt::ShiftModifier)
     {
-      m_bDrawing = true;
       if (m_nEditMode == EM_EDIT_MASK)
       {
+        m_bDrawing = true;
+        m_bErasing = true;
+        m_bModifierDown = true;
         m_listMaskUndoBuffer << m_imageMask;
-        FloodFillMaskImage(m_ptPress);
+        FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
       }
     }
     else
@@ -343,12 +363,11 @@ void WidgetImageView::mousePressEvent(QMouseEvent *e)
   {
     if (e->modifiers() & Qt::ControlModifier)
     {
+      m_bDrawing = true;
       if (m_nEditMode == EM_EDIT_MASK)
       {
-        m_bDrawing = true;
-        m_bErasing = true;
         m_listMaskUndoBuffer << m_imageMask;
-        FreeHandOnMaskImage(m_ptPrev, m_ptPrev);
+        FloodFillMaskImage(m_ptPress);
       }
     }
     else
@@ -424,6 +443,7 @@ void WidgetImageView::mouseReleaseEvent(QMouseEvent *e)
 void WidgetImageView::mouseMoveEvent(QMouseEvent *e)
 {
   QPoint dpt = e->pos() - m_ptPress;
+  m_bModifierDown = false;
   if (m_bPanning)
   {
     m_ptOffset = m_ptOldOffset + dpt;
@@ -468,10 +488,13 @@ void WidgetImageView::mouseMoveEvent(QMouseEvent *e)
     FreeHandOnMaskImage(m_ptPrev, e->pos());
     m_ptPrev = e->pos();
   }
-  if (e->modifiers() & Qt::ControlModifier)
+  if (e->modifiers() & Qt::ControlModifier || e->modifiers() & Qt::ShiftModifier)
   {
     if (m_nEditMode == EM_EDIT_MASK)
+    {
+      m_bModifierDown = true;
       update();
+    }
     else
       setCursor(Qt::CrossCursor);
   }
@@ -481,8 +504,19 @@ void WidgetImageView::mouseMoveEvent(QMouseEvent *e)
 
 void WidgetImageView::keyPressEvent(QKeyEvent* e)
 {
-  if (m_bDrawing && m_nEditMode == EM_EDIT_MASK && e->modifiers() & Qt::ControlModifier)
+  if (m_nEditMode == EM_EDIT_MASK &&
+      (e->key() == Qt::Key_Control || e->key() == Qt::Key_Shift))
   {
+    m_bModifierDown = true;
+    update();
+  }
+}
+
+void WidgetImageView::keyReleaseEvent(QKeyEvent* e)
+{
+  if (e->key() == Qt::Key_Control || e->key() == Qt::Key_Shift)
+  {
+    m_bModifierDown = false;
     update();
   }
 }
@@ -545,7 +579,7 @@ void WidgetImageView::FreeHandOnMaskImage(const QPoint& scr_pt1, const QPoint& s
     int dx = x1 - x0;
     int dy = y1 - y0;
     double t = 0.5;
-//    list = SetVoxelByIndex( n1, nPlane, bAdd, ignore_brush_size );
+    //    list = SetVoxelByIndex( n1, nPlane, bAdd, ignore_brush_size );
     if ( abs( dx ) > abs( dy ) )
     {
       double m = (double) dy / (double) dx;
@@ -580,7 +614,7 @@ void WidgetImageView::UpdatePointOnMaskImage(const QPoint& pt_in)
 {
   int nr = m_nBrushSize/2+1;
   int w = m_imageMask.width(), h = m_imageMask.height();
-  QRgb fill_val = QColor(m_bErasing?Qt::black:Qt::white).rgb();
+  QRgb fill_val = QColor(m_bErasing?QColor(0,0,0,0):Qt::white).rgba();
   for (int i = -nr+1; i < nr; i++)
   {
     for (int j = -nr+1; j < nr; j++)
@@ -601,7 +635,18 @@ void WidgetImageView::SaveMaskIfEdited()
 {
   if (m_bMaskEdited)
   {
-    m_imageMask.save(m_sMaskFilename);
+    QImage image = m_imageMask;
+    // restore black background
+    for (int j = 0; j < image.height(); j++)
+    {
+      QRgb* p = (QRgb*)image.scanLine(j);
+      for (int i = 0; i < image.width(); i++)
+      {
+        if (qRed(p[i]) == 0)
+          p[i] = qRgba(0,0,0,255);
+      }
+    }
+    image.save(m_sMaskFilename);
     m_bMaskEdited = false;
   }
 }

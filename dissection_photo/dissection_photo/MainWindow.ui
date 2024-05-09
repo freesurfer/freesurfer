@@ -152,7 +152,7 @@
             <item>
              <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to remove. Shift+Left click to flood fill. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
@@ -902,19 +902,26 @@
                 </spacer>
                </item>
                <item>
+                <widget class="QRadioButton" name="radioButton2Points">
+                 <property name="text">
+                  <string>2 Points</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton3Points">
+                 <property name="text">
+                  <string>3 Points</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QRadioButton" name="radioButton4Points">
                  <property name="text">
                   <string>4 Points</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radioButton2Points">
-                 <property name="text">
-                  <string>2 Points</string>
                  </property>
                 </widget>
                </item>
@@ -1198,7 +1205,7 @@
               <item>
                <widget class="QPushButton" name="pushButtonSegmentation">
                 <property name="enabled">
-                 <bool>true</bool>
+                 <bool>false</bool>
                 </property>
                 <property name="minimumSize">
                  <size>
@@ -1616,8 +1623,8 @@
    <slot>OnButtonCalibrationFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>335</x>
-     <y>151</y>
+     <x>432</x>
+     <y>167</y>
     </hint>
     <hint type="destinationlabel">
      <x>397</x>
@@ -1664,7 +1671,7 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>225</x>
+     <x>397</x>
      <y>78</y>
     </hint>
     <hint type="destinationlabel">
@@ -1680,7 +1687,7 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>373</x>
+     <x>201</x>
      <y>86</y>
     </hint>
     <hint type="destinationlabel">
@@ -1696,8 +1703,8 @@
    <slot>OnButtonPrevious()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>108</x>
-     <y>315</y>
+     <x>189</x>
+     <y>322</y>
     </hint>
     <hint type="destinationlabel">
      <x>100</x>
@@ -1958,6 +1965,38 @@
     <hint type="destinationlabel">
      <x>883</x>
      <y>399</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton3Points</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTogglePointMode(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>299</x>
+     <y>76</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>342</x>
+     <y>-130</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAllDone</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>234</x>
+     <y>248</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>542</x>
+     <y>1024</y>
     </hint>
    </hints>
   </connection>
