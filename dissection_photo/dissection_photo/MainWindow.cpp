@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <QTextStream>
 #include <QDebug>
+#include <QDateTime>
 
 #define SCRIPT_RETROSPECTIVE "func_retrospective_correction.py"
 #define SCRIPT_FIDUCIALS_CORRECTION "func_fiducials_correction.py"
@@ -18,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
   , ui(new Ui::MainWindow), m_nIndex(0)
 {
   ui->setupUi(this);
+  addAction(ui->actionToggleMask);
   ui->stackedWidget->setCurrentWidget(ui->pageStartUp);
 
   m_strPythonCmd = PY_COMMAND;
@@ -132,15 +134,51 @@ void MainWindow::OnButtonLoadMask()
     m_strMaskFolder = path;
     m_listMaskFiles = QDir(path).entryInfoList(QDir::Files, QDir::Name);
     m_listInputFiles = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
-    if (!m_listInputFiles.isEmpty() && !m_listMaskFiles.isEmpty())
+    if (!m_listInputFiles.isEmpty())
     {
-      if (m_listInputFiles.size() != m_listMaskFiles.size())
+      bool bRunNNUnet = true;
+      if (m_listInputFiles.size() == m_listMaskFiles.size())
       {
-        qDebug() << "File counts do not match";
+        QMessageBox msgbox(this);
+        msgbox.setIcon(QMessageBox::Question);
+        QAbstractButton* yesBtn = msgbox.addButton("Re-generate and Overwrite", QMessageBox::YesRole);
+        msgbox.addButton("Load Existing Masks", QMessageBox::NoRole);
+        msgbox.setText("Existing masks found in the folder. You can choose to load them directly, or re-generate with nnunet. Re-generating will overwrite the existing files.");
+        msgbox.setWindowTitle("Existing Masks");
+        msgbox.exec();
+        if (msgbox.clickedButton() != yesBtn)
+          bRunNNUnet = false;
       }
-      LoadImage(0);
-      ui->widgetSegCtrls->setEnabled(true);
-      UpdateIndex();
+      if (bRunNNUnet)
+      {
+        QStringList cmd;
+        QDir dir(m_sTempDir);
+        QString temp_in = QString("tmp_in_%1").arg(QDateTime::currentMSecsSinceEpoch());
+        QString temp_out = QString("tmp_out_%1").arg(QDateTime::currentMSecsSinceEpoch());
+        dir.mkdir(temp_in);
+        dir.mkdir(temp_out);
+        for (int i = 0; i < m_listInputFiles.size(); i++)
+        {
+          QFile::copy(m_listInputFiles[i].absoluteFilePath(),
+                      QFileInfo(QString("%1/%2").arg(m_sTempDir).arg(temp_in), m_listInputFiles[i].fileName()).absoluteFilePath());
+        }
+        cmd << m_strPythonCmd << QString("\"%1/process_directory.py\"").arg(m_strNNUnetScriptFolder)
+            << "--in_dir" << QString("\"%1\"").arg(m_sTempDir+"/"+temp_in)
+            << "--out_dir" << QString("\"%1\"").arg(m_sTempDir+"/"+temp_out)
+            << "--model_path" << QString("\"%1\"").arg(m_strNNUnetModelFolder);
+        m_proc->start(cmd.join(" "));
+        m_proc->setProperty("task", "nnunet");
+        m_proc->setProperty("output_folder", path);
+        m_proc->setProperty("temp_output_folder", m_sTempDir+"/"+temp_out);
+        ui->pageSegEdit->setEnabled(false);
+        m_elapsedTimer.start();
+      }
+      else
+      {
+        LoadImage(0);
+        ui->widgetSegCtrls->setEnabled(true);
+        UpdateIndex();
+      }
     }
   }
 }
@@ -177,38 +215,24 @@ void MainWindow::OnButtonContinue()
   ui->stackedWidget->setCurrentWidget(ui->pageCorrection);
   ui->widgetImageView->SetEditMode(WidgetImageView::EM_POINT);
   ui->widgetImageView->SetNumberOfExpectedPoints(4);
+  ui->widgetImageView->SetMaskOpacity(0.7);
 
   m_bCalibratiedMode = !m_strCalibrationFile.isEmpty();
   ui->labelTitle->setText(m_bCalibratiedMode?"Calibrated Mode":"Retrospective Mode");
-//  ui->widgetPointMode->setEnabled(!m_bCalibratiedMode);
-  if (m_bCalibratiedMode && !m_listInputFiles.isEmpty())
-  {
-    /*
-    QStringList cmd;
-    cmd << m_strPythonCmd << m_strPyScriptFiducialsCorrection
-        << "--in_dir" << QString("\"%1\"").arg(m_strInputFolder)
-        << "--calibration_file" << QString("\"%1\"").arg(ui->lineEditPathCalibrationFile->text().trimmed())
-        << "--out_dir" << QString("\"%1\"").arg(m_strOutputFolder);
-    m_proc->start(cmd.join(" "));
-    m_proc->setProperty("task", "fiducials_correction");
-    ui->pageCorrection->setEnabled(false);
-    */
-    QStringList cmd;
-    cmd << m_strPythonCmd << m_strPyScriptFiducialsDetection
-        << "--in_image" << m_listInputFiles[0].absoluteFilePath()
-        << "--calibration_file" << QString("\"%1\"").arg(m_strCalibrationFile)
-        << "--out_file" << m_strPyScriptFiducialsDetection + ".txt";
-    m_proc->start(cmd.join(" "));
-    m_proc->setProperty("task", "fiducials_detection");
-    m_proc->setProperty("output_file", cmd.last());
-  }
-
-  UpdateIndex();
 
   if (!m_listInputFiles.isEmpty())
     LoadImage(m_nIndex);
+  UpdateIndex();
 
   ui->pushButtonNext->setEnabled(false);
+
+  QFileInfoList flist = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
+  if (flist.size() == m_listInputFiles.size())
+  {
+    ui->pushButtonSegmentation->setEnabled(true);
+    QMessageBox::information(this->ui->widgetControl, "Existing Corrected Images",
+                             "Existing corrected images found in the folder. You can skip this ection by clicking 'Go to Segmentation' button directly.");
+  }
 }
 
 void MainWindow::OnTogglePointMode(bool b)
@@ -224,7 +248,10 @@ void MainWindow::OnTogglePointMode(bool b)
 }
 
 void MainWindow::SetupScriptPath()
-{
+{  
+  m_strNNUnetScriptFolder = QProcessEnvironment::systemEnvironment().value("NNUNET_SCRIPT_DIR");
+  m_strNNUnetModelFolder = QProcessEnvironment::systemEnvironment().value("NNUNET_MODEL_DIR");
+
   // copy resource files
   static QTemporaryDir dir;
   m_sTempDir = dir.path();
@@ -302,9 +329,9 @@ void MainWindow::UpdateIndex()
   QLabel* label = ui->labelIndex;
   if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
+    QFileInfoList flist = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
     ui->pushButtonPrevious->setEnabled(m_nIndex > 0);
-//    if (!m_bCalibratiedMode)
-      ui->pushButtonNext->setEnabled(m_nIndex < m_listPointData.size());
+    ui->pushButtonNext->setEnabled(m_nIndex < flist.size());
   }
   if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
   {
@@ -328,33 +355,8 @@ void MainWindow::LoadImage(int n)
   QString fn = m_listInputFiles[n].absoluteFilePath(), mask_fn;
   if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
-    if (true) // !m_bCalibratiedMode)
-    {
-      if (m_listPointData.size() > n)
-        pts = m_listPointData[n];
-      else if (m_mapCalibrationInfo.contains("general"))
-      {
-        QVariantMap info = m_mapCalibrationInfo["general"].toMap();
-        if (!info.isEmpty())
-        {
-          pts = GetCalibrationPointsList(info);
-          ui->lineEditRectWidth->setText(info["width"].toString());
-          ui->lineEditRectHeight->setText(info["height"].toString());
-        }
-      }
-    }
-    else
-    {
-      QVariantMap info;
-      if (m_mapCalibrationInfo.contains(fn))
-        info = m_mapCalibrationInfo[fn].toMap();
-      else if (m_mapCalibrationInfo.contains("general"))
-        info = m_mapCalibrationInfo["general"].toMap();
-      if (!info.isEmpty())
-      {
-        pts = GetCalibrationPointsList(info);
-      }
-    }
+    if (m_listPointData.size() > n)
+      pts = m_listPointData[n];
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
   {
@@ -367,7 +369,22 @@ void MainWindow::LoadImage(int n)
       rects = m_listRegionData[n];
   }
   ui->widgetImageView->LoadImage(fn, mask_fn, pts, rects);
-  if (ui->stackedWidget->currentWidget() == ui->pageCC)
+  if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
+  {
+    if (pts.isEmpty())
+    {
+      QStringList cmd;
+      cmd << m_strPythonCmd << m_strPyScriptFiducialsDetection
+          << "--in_image" << QString("\"%1\"").arg(fn)
+          << "--calibration_file" << QString("\"%1\"").arg(m_strCalibrationFile)
+          << "--out_file" << m_strPyScriptFiducialsDetection + ".txt";
+      m_proc->start(cmd.join(" "));
+      m_proc->setProperty("task", "fiducials_detection");
+      m_proc->setProperty("output_file", cmd.last());
+      ui->pageCorrection->setEnabled(false);
+    }
+  }
+  else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
     QString fn_only = m_listMaskFiles[n].fileName();
     fn_only.replace(QString(".")+QFileInfo(mask_fn).suffix(), ".npz");
@@ -439,9 +456,9 @@ void MainWindow::OnButtonProcess()
   double dWidth = ui->lineEditRectWidth->text().trimmed().toDouble(&bOK);
   double dHeight = 1;
   int nExpectedPoints = 2;
-  if (ui->radioButton4Points->isChecked() || m_bCalibratiedMode)
+  if (ui->radioButton4Points->isChecked() || ui->radioButton3Points->isChecked())
   {
-    nExpectedPoints = 4;
+    nExpectedPoints = (ui->radioButton4Points->isChecked()?4:3);
     dHeight = ui->lineEditRectHeight->text().trimmed().toDouble(&bOK);
     if (!bOK)
       dHeight = -1;
@@ -578,21 +595,16 @@ void MainWindow::OnProcessFinished()
 
       ui->lineEditRectWidth->setText(info["width"].toString());
       ui->lineEditRectHeight->setText(info["height"].toString());
-      m_mapCalibrationInfo["general"] = info;
-      QString fn = ui->widgetImageView->GetFilename();
-      if (!m_mapCalibrationInfo.contains(fn))
-      {
-        QList<QPoint> pts = GetCalibrationPointsList(info);
-        ui->widgetImageView->SetEditedPoints(pts);
-      }
+      QList<QPoint> pts = GetCalibrationPointsList(info);
+      ui->widgetImageView->SetEditedPoints(pts);
     }
     ui->pageCorrection->setEnabled(true);
-    ui->pushButtonNext->setEnabled(false);
+    UpdateIndex();
   }
   else if (task == "fiducials_calibration")
   {
     QString calibration_file = sender()->property("output_file").toString();
-//    qDebug() << calibration_file;
+    //    qDebug() << calibration_file;
     QDir dir(m_sTempDir);
     QString fn = ui->widgetImageView->GetFilename();
     QString sub_dir = QFileInfo(fn).completeBaseName();
@@ -616,6 +628,21 @@ void MainWindow::OnProcessFinished()
     ui->pushButtonCreateMask->setEnabled(true);
     UpdateIndex();
   }
+  else if (task == "nnunet")
+  {
+    qDebug() << "nnUNet elapsed time in secs: " << m_elapsedTimer.elapsed()/1000;
+    QFileInfoList list = QDir(m_proc->property("temp_output_folder").toString()).entryInfoList(QDir::Files, QDir::Name);
+    QString out_folder = m_proc->property("output_folder").toString();
+    for (int i = 0; i < list.size(); i++)
+    {
+      QFile::copy(list[i].absoluteFilePath(), QFileInfo(out_folder, list[i].fileName()).absoluteFilePath());
+    }
+    m_listMaskFiles = QDir(out_folder).entryInfoList(QDir::Files, QDir::Name);
+    ui->pageSegEdit->setEnabled(true);
+    LoadImage(0);
+    ui->widgetSegCtrls->setEnabled(true);
+    UpdateIndex();
+  }
 }
 
 void MainWindow::OnProcessOutputMessage()
@@ -635,10 +662,8 @@ void MainWindow::OnProcessErrorMessage()
 void MainWindow::OnButtonClear()
 {
   ui->widgetImageView->ClearEdits();
-  ui->pushButtonNext->setEnabled(false);
-  ui->pushButtonNextCC->setEnabled(false);
-  ui->pushButtonAllDone->setEnabled(false);
   m_maskProcessor.ClearBuffer();
+  UpdateIndex();
 }
 
 void MainWindow::OnButtonProceedToSeg()
@@ -656,7 +681,7 @@ void MainWindow::OnButtonProceedToCC()
   m_nIndex = 0;
   ui->widgetImageView->SetEditMode(WidgetImageView::EM_REGION);
   connect(ui->widgetImageView, SIGNAL(LastRegionEdited(int)),
-                                      SLOT(OnLastRegionEdited(int)), Qt::QueuedConnection);
+          SLOT(OnLastRegionEdited(int)), Qt::QueuedConnection);
 
   m_listInputFiles = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
   QStringList cmd;
@@ -701,3 +726,10 @@ void MainWindow::OnButtonCreateMask()
   ui->widgetImageView->ShowMessage("Mask created and saved");
 }
 
+void MainWindow::OnToggleMask()
+{
+  if (ui->widgetImageView->GetMaskOpacity() == 0)
+    ui->widgetImageView->SetMaskOpacity(ui->horizontalSliderSegOpacity->value()/100.0);
+  else
+    ui->widgetImageView->SetMaskOpacity(0);
+}

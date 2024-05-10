@@ -5,6 +5,7 @@
 #include <QFileInfoList>
 #include <QProcess>
 #include <QVariantMap>
+#include <QElapsedTimer>
 #include "WidgetImageView.h"
 #include "../connected_components/MaskProcessor.h"
 
@@ -46,6 +47,7 @@ private slots:
   void OnButtonProceedToCC();
   void OnSliderSegOpacity(int n);
   void OnLastRegionEdited(int n);
+  void OnToggleMask();
 
 private:
   void SetupScriptPath();
@@ -60,9 +62,13 @@ private:
   QString  m_strFinalOutputFolder;
   QString  m_strMaskFolder;
 
+  QString  m_strNNUnetScriptFolder;
+  QString  m_strNNUnetModelFolder;
+
   QString  m_strPythonCmd;
 
   QFileInfoList  m_listInputFiles;
+  QFileInfoList  m_listOutputFiles;
   QFileInfoList  m_listMaskFiles;
   QList< QList<RECT_REGION> > m_listRegionData;
   QList<QColor> m_listStockColors;
@@ -78,10 +84,10 @@ private:
   QString m_strPyScriptMaskToCC;
 
   QProcess* m_proc;
-  QVariantMap  m_mapCalibrationInfo;
 
   QString m_sTempDir;
 
   MaskProcessor  m_maskProcessor;
+  QElapsedTimer  m_elapsedTimer;
 };
 #endif // MAINWINDOW_H

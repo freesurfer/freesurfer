@@ -111,7 +111,7 @@
               <item>
                <widget class="QLabel" name="labelMaskFolder">
                 <property name="text">
-                 <string>Select folder that contains the mask images</string>
+                 <string>Select folder to store the mask images</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -130,7 +130,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Load Masks</string>
+                 <string>Select Folder</string>
                 </property>
                </widget>
               </item>
@@ -152,7 +152,7 @@
             <item>
              <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;p&gt;Ctrl + Z to toggle mask visibility.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
@@ -170,7 +170,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>2</height>
+                <height>5</height>
                </size>
               </property>
              </spacer>
@@ -300,7 +300,7 @@
                        <number>100</number>
                       </property>
                       <property name="value">
-                       <number>50</number>
+                       <number>70</number>
                       </property>
                       <property name="orientation">
                        <enum>Qt::Horizontal</enum>
@@ -1585,6 +1585,14 @@
     </rect>
    </property>
   </widget>
+  <action name="actionToggleMask">
+   <property name="text">
+    <string>Toggle Mask</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1607,8 +1615,8 @@
    <slot>OnButtonInputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>415</x>
-     <y>70</y>
+     <x>485</x>
+     <y>65</y>
     </hint>
     <hint type="destinationlabel">
      <x>509</x>
@@ -1623,8 +1631,8 @@
    <slot>OnButtonCalibrationFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>432</x>
-     <y>167</y>
+     <x>485</x>
+     <y>157</y>
     </hint>
     <hint type="destinationlabel">
      <x>397</x>
@@ -1655,8 +1663,8 @@
    <slot>OnButtonContinue()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>267</x>
-     <y>463</y>
+     <x>302</x>
+     <y>433</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -1687,8 +1695,8 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>201</x>
-     <y>86</y>
+     <x>293</x>
+     <y>92</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1719,8 +1727,8 @@
    <slot>OnButtonNext()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>269</x>
-     <y>314</y>
+     <x>368</x>
+     <y>322</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
@@ -1735,8 +1743,8 @@
    <slot>OnButtonProcess()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>145</x>
-     <y>229</y>
+     <x>249</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
      <x>261</x>
@@ -1751,8 +1759,8 @@
    <slot>OnButtonClear()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>227</y>
+     <x>335</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
      <x>247</x>
@@ -1783,8 +1791,8 @@
    <slot>OnButtonProceedToCC()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>265</x>
-     <y>352</y>
+     <x>312</x>
+     <y>329</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
@@ -1799,8 +1807,8 @@
    <slot>OnButtonFinalOutputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>415</x>
-     <y>361</y>
+     <x>485</x>
+     <y>336</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
@@ -1815,8 +1823,8 @@
    <slot>OnButtonLoadMask()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>365</x>
-     <y>81</y>
+     <x>479</x>
+     <y>97</y>
     </hint>
     <hint type="destinationlabel">
      <x>698</x>
@@ -1831,8 +1839,8 @@
    <slot>OnSliderSegOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>369</x>
-     <y>204</y>
+     <x>413</x>
+     <y>184</y>
     </hint>
     <hint type="destinationlabel">
      <x>576</x>
@@ -1847,8 +1855,8 @@
    <slot>SetBrushSize(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>174</x>
-     <y>210</y>
+     <x>210</x>
+     <y>190</y>
     </hint>
     <hint type="destinationlabel">
      <x>583</x>
@@ -1863,8 +1871,8 @@
    <slot>OnButtonPrevious()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>176</x>
-     <y>290</y>
+     <x>216</x>
+     <y>270</y>
     </hint>
     <hint type="destinationlabel">
      <x>176</x>
@@ -1879,8 +1887,8 @@
    <slot>OnButtonNext()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>328</x>
-     <y>290</y>
+     <x>368</x>
+     <y>270</y>
     </hint>
     <hint type="destinationlabel">
      <x>304</x>
@@ -1895,8 +1903,8 @@
    <slot>OnButtonPrevious()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>176</x>
-     <y>192</y>
+     <x>104</x>
+     <y>59</y>
     </hint>
     <hint type="destinationlabel">
      <x>137</x>
@@ -1911,8 +1919,8 @@
    <slot>OnButtonNext()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>328</x>
-     <y>192</y>
+     <x>165</x>
+     <y>59</y>
     </hint>
     <hint type="destinationlabel">
      <x>251</x>
@@ -1927,8 +1935,8 @@
    <slot>OnButtonClear()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>155</y>
+     <x>170</x>
+     <y>53</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -1943,8 +1951,8 @@
    <slot>OnButtonCreateMask()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>209</x>
-     <y>155</y>
+     <x>124</x>
+     <y>53</y>
     </hint>
     <hint type="destinationlabel">
      <x>190</x>
@@ -1959,8 +1967,8 @@
    <slot>UndoLastMaskEdit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>230</x>
-     <y>236</y>
+     <x>288</x>
+     <y>222</y>
     </hint>
     <hint type="destinationlabel">
      <x>883</x>
@@ -1975,8 +1983,8 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>299</x>
-     <y>76</y>
+     <x>379</x>
+     <y>92</y>
     </hint>
     <hint type="destinationlabel">
      <x>342</x>
@@ -1991,12 +1999,28 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>248</y>
+     <x>144</x>
+     <y>72</y>
     </hint>
     <hint type="destinationlabel">
      <x>542</x>
      <y>1024</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleMask</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>625</x>
+     <y>453</y>
     </hint>
    </hints>
   </connection>
@@ -2020,5 +2044,6 @@
   <slot>OnSliderSegOpacity(int)</slot>
   <slot>OnButtonCreateMask()</slot>
   <slot>OnButtonUndoMaskEdit()</slot>
+  <slot>OnToggleMask()</slot>
  </slots>
 </ui>
