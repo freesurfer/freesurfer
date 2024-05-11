@@ -464,7 +464,7 @@
                     </size>
                    </property>
                    <property name="text">
-                    <string>1 / 6</string>
+                    <string/>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
@@ -715,7 +715,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>1 / 6</string>
+                 <string/>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -1146,7 +1146,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>1 / 6</string>
+                 <string/>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>

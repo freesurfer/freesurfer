@@ -70,6 +70,8 @@ MainWindow::MainWindow(QWidget *parent)
   connect(m_proc, SIGNAL(started()), SLOT(OnProcessStarted()));
   connect(m_proc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(OnProcessFinished()), Qt::QueuedConnection);
   connect(m_proc, SIGNAL(errorOccurred(QProcess::ProcessError)), SLOT(OnProcessError(QProcess::ProcessError)));
+
+  connect(&m_fileWatcher, SIGNAL(directoryChanged(QString)), SLOT(OnFileChanged(QString)), Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow()
@@ -162,16 +164,18 @@ void MainWindow::OnButtonLoadMask()
           QFile::copy(m_listInputFiles[i].absoluteFilePath(),
                       QFileInfo(QString("%1/%2").arg(m_sTempDir).arg(temp_in), m_listInputFiles[i].fileName()).absoluteFilePath());
         }
+        QString temp_out_dir = m_sTempDir+"/"+temp_out;
         cmd << m_strPythonCmd << QString("\"%1/process_directory.py\"").arg(m_strNNUnetScriptFolder)
             << "--in_dir" << QString("\"%1\"").arg(m_sTempDir+"/"+temp_in)
-            << "--out_dir" << QString("\"%1\"").arg(m_sTempDir+"/"+temp_out)
+            << "--out_dir" << QString("\"%1\"").arg(temp_out_dir)
             << "--model_path" << QString("\"%1\"").arg(m_strNNUnetModelFolder);
         m_proc->start(cmd.join(" "));
         m_proc->setProperty("task", "nnunet");
         m_proc->setProperty("output_folder", path);
-        m_proc->setProperty("temp_output_folder", m_sTempDir+"/"+temp_out);
+        m_proc->setProperty("temp_output_folder", temp_out_dir);
         ui->pageSegEdit->setEnabled(false);
         m_elapsedTimer.start();
+        m_fileWatcher.addPath(temp_out_dir);
       }
       else
       {
@@ -251,6 +255,10 @@ void MainWindow::SetupScriptPath()
 {  
   m_strNNUnetScriptFolder = QProcessEnvironment::systemEnvironment().value("NNUNET_SCRIPT_DIR");
   m_strNNUnetModelFolder = QProcessEnvironment::systemEnvironment().value("NNUNET_MODEL_DIR");
+  if (m_strNNUnetModelFolder.isEmpty())
+    qDebug() << "NNUNET_MODEL_DIR is not set!";
+  if (m_strNNUnetScriptFolder.isEmpty())
+    qDebug() << "NNUNET_SCRIPT_DIR is not set!";
 
   // copy resource files
   static QTemporaryDir dir;
@@ -732,4 +740,9 @@ void MainWindow::OnToggleMask()
     ui->widgetImageView->SetMaskOpacity(ui->horizontalSliderSegOpacity->value()/100.0);
   else
     ui->widgetImageView->SetMaskOpacity(0);
+}
+
+void MainWindow::OnFileChanged(const QString& path)
+{
+//  qDebug() << path;
 }

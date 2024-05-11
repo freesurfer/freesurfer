@@ -8,6 +8,7 @@
 #include <QElapsedTimer>
 #include "WidgetImageView.h"
 #include "../connected_components/MaskProcessor.h"
+#include <QFileSystemWatcher>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -48,6 +49,7 @@ private slots:
   void OnSliderSegOpacity(int n);
   void OnLastRegionEdited(int n);
   void OnToggleMask();
+  void OnFileChanged(const QString& path);
 
 private:
   void SetupScriptPath();
@@ -89,5 +91,6 @@ private:
 
   MaskProcessor  m_maskProcessor;
   QElapsedTimer  m_elapsedTimer;
+  QFileSystemWatcher  m_fileWatcher;
 };
 #endif // MAINWINDOW_H
