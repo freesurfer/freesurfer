@@ -9,8 +9,6 @@ endif()
 set(UV_INSTEAD_OF_PIP_INSTALL OFF)
 # set(UV_INSTEAD_OF_PIP_INSTALL ON)
 
-# /usr/local/freesurfer/dev_20240510/python/bin/python3 -m uv pip install --upgrade -r /home/rd521/space_freesurfer/build/docker_rocky8/trunk/rd521-dev/python/requirements-build.txt --python /usr/local/freesurfer/dev_20240510/python
-
 if(UV_INSTEAD_OF_PIP_INSTALL)
    ## 04/2024 allow option for uv package installer (added to fspython base distro)
    set(PIP_SUBSTRING "uv pip install")
