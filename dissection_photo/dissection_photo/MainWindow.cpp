@@ -350,8 +350,8 @@ void MainWindow::UpdateIndex()
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
     label = ui->labelIndexCC;
-    ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
-    ui->pushButtonNextSeg->setEnabled(m_nIndex < m_listRegionData.size());
+    ui->pushButtonPreviousCC->setEnabled(m_nIndex > 0);
+    ui->pushButtonNextCC->setEnabled(m_nIndex < m_listRegionData.size());
   }
   label->setText(tr("%1 / %2").arg(m_nIndex+1).arg(m_listInputFiles.size()));
 }
