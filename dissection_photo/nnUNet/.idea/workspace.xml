@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="98b42bcf-0a46-437f-a265-413fb9a6aa1a" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/nnunetv2/imageio/simpleitk_reader_writer.py" beforeDir="false" afterPath="$PROJECT_DIR$/nnunetv2/imageio/simpleitk_reader_writer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nnunetv2/training/logging/nnunet_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/nnunetv2/training/logging/nnunet_logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nnunetv2/training/nnUNetTrainer/nnUNetTrainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/nnunetv2/training/nnUNetTrainer/nnUNetTrainer.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="2gFBywtrx9GwVaQTmFU8XIWGXQ5" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RunManager">
+    <configuration name="process_directory" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="nnUNet" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="/autofs/space/panamint_005/users/iglesias/software/FS741/python/bin/python3" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/process_directory.py" />
+      <option name="PARAMETERS" value="--in_dir /cluster/scratch/wednesday/forJackson/example_inputs_no_preproc/ --out_dir /tmp/pred --model_path /cluster/scratch/wednesday/forJackson/nnUNet_results/Dataset000_downsampledUnet/nnUNetTrainer__nnUNetPlans__2d/" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="98b42bcf-0a46-437f-a265-413fb9a6aa1a" name="Default Changelist" comment="" />
+      <created>1715283703234</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1715283703234</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="534" y="389" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1715288109171">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state x="534" y="389" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.24.2153.1410@0.24.2153.1410" timestamp="1715288109171" />
+    <state width="2131" height="291" key="GridCell.Tab.0.bottom" timestamp="1715292136462">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.0.bottom/0.24.2153.1410@0.24.2153.1410" timestamp="1715292136462" />
+    <state width="2131" height="291" key="GridCell.Tab.0.center" timestamp="1715292136461">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.0.center/0.24.2153.1410@0.24.2153.1410" timestamp="1715292136461" />
+    <state width="2131" height="291" key="GridCell.Tab.0.left" timestamp="1715292136460">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.0.left/0.24.2153.1410@0.24.2153.1410" timestamp="1715292136460" />
+    <state width="2131" height="291" key="GridCell.Tab.0.right" timestamp="1715292136461">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.0.right/0.24.2153.1410@0.24.2153.1410" timestamp="1715292136461" />
+    <state width="2131" height="291" key="GridCell.Tab.1.bottom" timestamp="1715292133768">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.1.bottom/0.24.2153.1410@0.24.2153.1410" timestamp="1715292133768" />
+    <state width="2131" height="291" key="GridCell.Tab.1.center" timestamp="1715292133767">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.1.center/0.24.2153.1410@0.24.2153.1410" timestamp="1715292133767" />
+    <state width="2131" height="291" key="GridCell.Tab.1.left" timestamp="1715292133767">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.1.left/0.24.2153.1410@0.24.2153.1410" timestamp="1715292133767" />
+    <state width="2131" height="291" key="GridCell.Tab.1.right" timestamp="1715292133768">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state width="2131" height="291" key="GridCell.Tab.1.right/0.24.2153.1410@0.24.2153.1410" timestamp="1715292133768" />
+    <state x="558" y="366" width="1037" height="735" key="SettingsEditor" timestamp="1715283804815">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state x="558" y="366" width="1037" height="735" key="SettingsEditor/0.24.2153.1410@0.24.2153.1410" timestamp="1715283804815" />
+    <state x="839" y="647" width="477" height="173" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1715283973306">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state x="839" y="647" width="477" height="173" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.24.2153.1410@0.24.2153.1410" timestamp="1715283973306" />
+    <state x="739" y="346" width="672" height="678" key="search.everywhere.popup" timestamp="1715290753120">
+      <screen x="0" y="24" width="2153" height="1410" />
+    </state>
+    <state x="739" y="346" width="672" height="678" key="search.everywhere.popup/0.24.2153.1410@0.24.2153.1410" timestamp="1715290753120" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/nnunetv2/inference/JHU_inference.py</url>
+          <line>148</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file:///autofs/homes/002/iglesias/python/code/nnUNet/nnunetv2/inference/predict_from_raw_data.py</url>
+          <line>369</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
