@@ -27,7 +27,7 @@ public:
 public slots:
   void OnButtonInputFolder();
   void OnButtonOutputFolder();
-  void OnButtonFinalOutputFolder();
+  void OnButtonOutputFolderCC();
   void OnButtonContinue();
   void OnButtonCalibrationFile();
   void OnTogglePointMode(bool b);

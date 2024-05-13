@@ -61,7 +61,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -592,6 +592,30 @@
                <set>Qt::AlignCenter</set>
               </property>
              </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_15" stretch="1,0">
+              <property name="bottomMargin">
+               <number>20</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="labelPathCC">
+                <property name="text">
+                 <string>Select directory to store computed connected components files</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonOpenCC">
+                <property name="text">
+                 <string>Select Folder</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item>
              <widget class="QLabel" name="label_4">
@@ -1427,65 +1451,6 @@
              <widget class="QLineEdit" name="lineEditPathOutput"/>
             </item>
             <item>
-             <spacer name="verticalSpacer_13">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_13">
-              <item>
-               <widget class="QLabel" name="label_9">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>1</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Select output directory for connected components </string>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_30">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButtonFinalOutput">
-                <property name="text">
-                 <string>Choose Folder</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="lineEditPathFinalOutput"/>
-            </item>
-            <item>
              <spacer name="verticalSpacer_7">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -1664,7 +1629,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>302</x>
-     <y>433</y>
+     <y>346</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -1792,27 +1757,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>329</y>
+     <y>362</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
      <y>1206</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonFinalOutput</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnButtonFinalOutputFolder()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>485</x>
-     <y>336</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>986</y>
     </hint>
    </hints>
   </connection>
@@ -1840,7 +1789,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>413</x>
-     <y>184</y>
+     <y>217</y>
     </hint>
     <hint type="destinationlabel">
      <x>576</x>
@@ -1856,7 +1805,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>210</x>
-     <y>190</y>
+     <y>223</y>
     </hint>
     <hint type="destinationlabel">
      <x>583</x>
@@ -1872,7 +1821,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>216</x>
-     <y>270</y>
+     <y>303</y>
     </hint>
     <hint type="destinationlabel">
      <x>176</x>
@@ -1888,7 +1837,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>368</x>
-     <y>270</y>
+     <y>303</y>
     </hint>
     <hint type="destinationlabel">
      <x>304</x>
@@ -1903,8 +1852,8 @@
    <slot>OnButtonPrevious()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>104</x>
-     <y>59</y>
+     <x>216</x>
+     <y>234</y>
     </hint>
     <hint type="destinationlabel">
      <x>137</x>
@@ -1919,8 +1868,8 @@
    <slot>OnButtonNext()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>165</x>
-     <y>59</y>
+     <x>368</x>
+     <y>234</y>
     </hint>
     <hint type="destinationlabel">
      <x>251</x>
@@ -1935,8 +1884,8 @@
    <slot>OnButtonClear()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>170</x>
-     <y>53</y>
+     <x>355</x>
+     <y>197</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -1951,8 +1900,8 @@
    <slot>OnButtonCreateMask()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>124</x>
-     <y>53</y>
+     <x>249</x>
+     <y>197</y>
     </hint>
     <hint type="destinationlabel">
      <x>190</x>
@@ -1968,7 +1917,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>288</x>
-     <y>222</y>
+     <y>255</y>
     </hint>
     <hint type="destinationlabel">
      <x>883</x>
@@ -1999,8 +1948,8 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>144</x>
-     <y>72</y>
+     <x>312</x>
+     <y>301</y>
     </hint>
     <hint type="destinationlabel">
      <x>542</x>
@@ -2021,6 +1970,22 @@
     <hint type="destinationlabel">
      <x>625</x>
      <y>453</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonOpenCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonOutputFolderCC()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>423</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>412</x>
+     <y>-101</y>
     </hint>
    </hints>
   </connection>
@@ -2045,5 +2010,6 @@
   <slot>OnButtonCreateMask()</slot>
   <slot>OnButtonUndoMaskEdit()</slot>
   <slot>OnToggleMask()</slot>
+  <slot>OnButtonOutputFolderCC()</slot>
  </slots>
 </ui>

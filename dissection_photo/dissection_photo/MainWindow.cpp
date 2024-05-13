@@ -46,13 +46,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->lineEditPathOutput->setCursorPosition( path.size() );
     m_strOutputFolder = path;
   }
-  path = s.value("CurrentFolder/FinalOutput").toString();
-  if (!path.isEmpty())
-  {
-    ui->lineEditPathFinalOutput->setText(path);
-    ui->lineEditPathFinalOutput->setCursorPosition( path.size() );
-    m_strFinalOutputFolder = path;
-  }
   path = s.value("CurrentFolder/Calibration").toString();
   if (!path.isEmpty())
   {
@@ -107,13 +100,38 @@ void MainWindow::OnButtonOutputFolder()
   }
 }
 
-void MainWindow::OnButtonFinalOutputFolder()
+void MainWindow::OnButtonOutputFolderCC()
 {
-  QString path = QFileDialog::getExistingDirectory(this, "Select Folder", ui->lineEditPathFinalOutput->text());
+  QString path = QFileDialog::getExistingDirectory(this, "Select Folder", ui->labelPathCC->text());
   if (!path.isEmpty())
   {
-    ui->lineEditPathFinalOutput->setText(path);
-    ui->lineEditPathFinalOutput->setCursorPosition(path.size());
+    ui->labelPathCC->setText(path.trimmed());
+    m_strFinalOutputFolder = path.trimmed();
+    QFileInfoList list = QDir(m_strFinalOutputFolder).entryInfoList(QDir::Files, QDir::Name);
+    bool bRun = true;
+    if (list.size() == m_listInputFiles.size())
+    {
+      QMessageBox msgbox(this);
+      msgbox.setIcon(QMessageBox::Question);
+      QAbstractButton* yesBtn = msgbox.addButton("Overwrite", QMessageBox::YesRole);
+      msgbox.addButton("Cancel", QMessageBox::NoRole);
+      msgbox.setText("Existing files found in the folder. You can choose to overwrite them. Or cancel and select a different folder.");
+      msgbox.setWindowTitle("Existing Files");
+      msgbox.exec();
+      if (msgbox.clickedButton() != yesBtn)
+        bRun = false;
+    }
+
+    if (bRun)
+    {
+      QStringList cmd;
+      cmd << m_strPythonCmd << m_strPyScriptMaskToCC
+          << "--in_dir" << QString("\"%1\"").arg(m_strMaskFolder)
+          << "--out_dir" << QString("\"%1\"").arg(m_sTempDir);
+      m_proc->start(cmd.join(" "));
+      m_proc->setProperty("task", "mask_to_cc");
+      ui->pushButtonCreateMask->setEnabled(false);
+    }
   }
 }
 
@@ -129,7 +147,7 @@ void MainWindow::OnButtonCalibrationFile()
 
 void MainWindow::OnButtonLoadMask()
 {
-  QString path = QFileDialog::getExistingDirectory(this, "Select Folder", ui->lineEditPathFinalOutput->text());
+  QString path = QFileDialog::getExistingDirectory(this, "Select Folder", ui->lineEditPathOutput->text());
   if (!path.isEmpty())
   {
     ui->labelMaskFolder->setText(path);
@@ -191,7 +209,6 @@ void MainWindow::OnButtonContinue()
 {
   m_strInputFolder = ui->lineEditPathInput->text().trimmed();
   m_strOutputFolder = ui->lineEditPathOutput->text().trimmed();
-  m_strFinalOutputFolder = ui->lineEditPathFinalOutput->text().trimmed();
   m_strCalibrationFile = ui->lineEditPathCalibrationFile->text().trimmed();
 
   if (m_strInputFolder.isEmpty() || !QDir(m_strInputFolder).exists())
@@ -204,11 +221,7 @@ void MainWindow::OnButtonContinue()
     QMessageBox::warning(this, "Error", "Output directory for corrected images is not set or does not exist.");
     return;
   }
-  if (m_strFinalOutputFolder.isEmpty() || !QDir(m_strFinalOutputFolder).exists())
-  {
-    QMessageBox::warning(this, "Error", "Output directory for connected components is not set or does not exist.");
-    return;
-  }
+
   if (!m_strCalibrationFile.isEmpty() && !QFile(m_strOutputFolder).exists())
   {
     QMessageBox::warning(this, "Error", "Calibration file does not exist.");
@@ -692,13 +705,6 @@ void MainWindow::OnButtonProceedToCC()
           SLOT(OnLastRegionEdited(int)), Qt::QueuedConnection);
 
   m_listInputFiles = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
-  QStringList cmd;
-  cmd << m_strPythonCmd << m_strPyScriptMaskToCC
-      << "--in_dir" << QString("\"%1\"").arg(m_strMaskFolder)
-      << "--out_dir" << QString("\"%1\"").arg(m_sTempDir);
-  m_proc->start(cmd.join(" "));
-  m_proc->setProperty("task", "mask_to_cc");
-  ui->pushButtonCreateMask->setEnabled(false);
 }
 
 void MainWindow::OnSliderSegOpacity(int n)
