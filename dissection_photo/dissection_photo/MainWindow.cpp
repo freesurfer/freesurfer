@@ -365,6 +365,7 @@ void MainWindow::UpdateIndex()
     QFileInfoList flist = QDir(m_strMaskFolder).entryInfoList(QDir::Files, QDir::Name);
     ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
     ui->pushButtonNextSeg->setEnabled(m_nIndex < flist.size()-1);
+    ui->pushButtonCC->setEnabled(m_listInputFiles.size() == flist.size());
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
@@ -387,6 +388,7 @@ void MainWindow::LoadImage(int n)
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
   {
+    m_listMaskFiles = QDir(m_strMaskFolder).entryInfoList(QDir::Files, QDir::Name);
     mask_fn = m_listMaskFiles[n].absoluteFilePath();
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
@@ -771,7 +773,10 @@ void MainWindow::OnFileChanged(const QString& path)
         ui->pageSegEdit->setEnabled(true);
         ui->widgetSegCtrls->setEnabled(true);
         if (ui->widgetImageView->GetMaskFilename().isEmpty())
+        {
           LoadImage(0);
+          QMessageBox::information(this, "Edit Mask", "You can start editing the current mask while waiting for the rest to be generated.");
+        }
         UpdateIndex();
       }
       else
