@@ -10,6 +10,7 @@
 #include <QTextStream>
 #include <QDebug>
 #include <QDateTime>
+#include "cnpy.h"
 
 #define SCRIPT_RETROSPECTIVE "func_retrospective_correction.py"
 #define SCRIPT_FIDUCIALS_CORRECTION "func_fiducials_correction.py"
@@ -171,19 +172,22 @@ void MainWindow::OnButtonLoadMask()
       }
       if (bRunNNUnet)
       {
+        ClearFolder(path);
         QStringList cmd;
         QDir dir(m_sTempDir);
         QString temp_in = QString("tmp_in_%1").arg(QDateTime::currentMSecsSinceEpoch());
         QString temp_out = QString("tmp_out_%1").arg(QDateTime::currentMSecsSinceEpoch());
         dir.mkdir(temp_in);
         dir.mkdir(temp_out);
+        QString temp_out_dir = m_sTempDir+"/"+temp_out;
+        QStringList watch_list;
         for (int i = 0; i < m_listInputFiles.size(); i++)
         {
           QFile::copy(m_listInputFiles[i].absoluteFilePath(),
                       QFileInfo(QString("%1/%2").arg(m_sTempDir).arg(temp_in), m_listInputFiles[i].fileName()).absoluteFilePath());
+          watch_list << QFileInfo(temp_out_dir, m_listInputFiles[i].completeBaseName()+".npz").absoluteFilePath();
         }
-        QString temp_out_dir = m_sTempDir+"/"+temp_out;
-        cmd << m_strPythonCmd << QString("\"%1/process_directory.py\"").arg(m_strNNUnetScriptFolder)
+        cmd << m_strPythonCmd << QString("\"%1/process_directory_no_upsample.py\"").arg(m_strNNUnetScriptFolder)
             << "--in_dir" << QString("\"%1\"").arg(m_sTempDir+"/"+temp_in)
             << "--out_dir" << QString("\"%1\"").arg(temp_out_dir)
             << "--model_path" << QString("\"%1\"").arg(m_strNNUnetModelFolder);
@@ -194,6 +198,7 @@ void MainWindow::OnButtonLoadMask()
         ui->pageSegEdit->setEnabled(false);
         m_elapsedTimer.start();
         m_fileWatcher.addPath(temp_out_dir);
+        m_listQueuedFiles = watch_list;
       }
       else
       {
@@ -357,8 +362,9 @@ void MainWindow::UpdateIndex()
   if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
   {
     label = ui->labelIndexSeg;
+    QFileInfoList flist = QDir(m_strMaskFolder).entryInfoList(QDir::Files, QDir::Name);
     ui->pushButtonPreviousSeg->setEnabled(m_nIndex > 0);
-    ui->pushButtonNextSeg->setEnabled(m_nIndex < m_listInputFiles.size()-1);
+    ui->pushButtonNextSeg->setEnabled(m_nIndex < flist.size()-1);
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
@@ -660,8 +666,6 @@ void MainWindow::OnProcessFinished()
     }
     m_listMaskFiles = QDir(out_folder).entryInfoList(QDir::Files, QDir::Name);
     ui->pageSegEdit->setEnabled(true);
-    LoadImage(0);
-    ui->widgetSegCtrls->setEnabled(true);
     UpdateIndex();
   }
 }
@@ -750,5 +754,87 @@ void MainWindow::OnToggleMask()
 
 void MainWindow::OnFileChanged(const QString& path)
 {
-//  qDebug() << path;
+  static QVariantMap last_size_info = QVariantMap();
+  QFileInfoList flist = QDir(path).entryInfoList(QStringList("*.npz"), QDir::Files, QDir::Name);
+  if (!flist.isEmpty() && !m_listQueuedFiles.isEmpty())
+  {
+    QString fn = flist[0].absoluteFilePath();
+    if (fn == m_listQueuedFiles.first())
+    {
+      if (last_size_info[fn].toInt() == flist[0].size() && flist[0].size() > 0)
+      {
+        QImage image = NpyToImage(fn);
+        QString fn_png = QFileInfo(m_strMaskFolder, QFileInfo(fn).completeBaseName()+".png").absoluteFilePath();
+        image.save(fn_png);
+        m_listQueuedFiles.removeFirst();
+        QFile::remove(fn);
+        ui->pageSegEdit->setEnabled(true);
+        ui->widgetSegCtrls->setEnabled(true);
+        if (ui->widgetImageView->GetMaskFilename().isEmpty())
+          LoadImage(0);
+        UpdateIndex();
+      }
+      else
+        last_size_info[fn] = flist[0].size();
+    }
+  }
+}
+
+QImage MainWindow::NpyToImage(const QString& npy_in)
+{
+  QImage image;
+  if (!QFile::exists(npy_in))
+  {
+    qDebug() << "File does not exist:" << npy_in;
+    return image;
+  }
+  cnpy::NpyArray ar = cnpy::npz_load(qPrintable(npy_in), "probabilities");
+  if (ar.shape.size() != 4)
+  {
+    qDebug() << "Could not load numpy file " << npy_in;
+    return image;
+  }
+
+  float* ptr = ar.data<float>();
+  int w = ar.shape[3];
+  int h = ar.shape[2];
+  image = QImage(QSize(w, h), QImage::Format_ARGB32);
+  image.fill(QColor(0,0,0,255));
+
+  for (int y = 0; y < h; y++)
+  {
+    QRgb* p = (QRgb*)image.scanLine(y);
+    for (int x = 0; x < w; x++)
+    {
+      if (ptr[w*h+y*w+x] >= 0.5)
+      {
+        p[x] = qRgba(255,255,255,255);
+      }
+    }
+  }
+
+  QImage origin_img = QImage(m_listInputFiles.first().absoluteFilePath());
+  image = image.scaled(origin_img.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+  w = image.width();
+  h = image.height();
+  for (int y = 0; y < h; y++)
+  {
+    QRgb* p = (QRgb*)image.scanLine(y);
+    for (int x = 0; x < w; x++)
+    {
+      if (qRed(p[x]) >= 128)
+        p[x] = qRgba(255,255,255,255);
+      else
+        p[x] = qRgba(0,0,0,255);
+    }
+  }
+
+  return image;
+}
+
+void MainWindow::ClearFolder(const QString& path)
+{
+  QFileInfoList flist = QDir(path).entryInfoList(QDir::Files, QDir::Name);
+  foreach (QFileInfo fi, flist)
+    QFile::remove(fi.absoluteFilePath());
 }

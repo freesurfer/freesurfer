@@ -55,6 +55,8 @@ private:
   void SetupScriptPath();
   void UpdateIndex();
   void LoadImage(int n);
+  void ClearFolder(const QString& path);
+  QImage NpyToImage(const QString& fn);
   QList<QPoint> GetCalibrationPointsList(const QVariantMap& info);
 
   Ui::MainWindow *ui;
@@ -92,5 +94,6 @@ private:
   MaskProcessor  m_maskProcessor;
   QElapsedTimer  m_elapsedTimer;
   QFileSystemWatcher  m_fileWatcher;
+  QStringList    m_listQueuedFiles;
 };
 #endif // MAINWINDOW_H
