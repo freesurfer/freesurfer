@@ -289,26 +289,11 @@ install_configured(
   DESTINATION bin
 )
 
-install_pyscript(
-  long_submit_jobs
-  long_qdec_table
-  long_submit_postproc
-  long_stats_tps
-  long_stats_slopes
-  long_mris_slopes
-  long_stats_combine
-  aparcstats2table
-  asegstats2table
-  tractstats2table
-  stattablediff
-  table2map
-  merge_stats_tables
-  fspalm
-  rca-config
-  rca-config2csh
-  slicedelay
-  fsrealpath
-)
+if (FSPYTHON_INSTALL_TREE)
+   install_pyscript_fspython_tree(long_submit_jobs long_qdec_table long_submit_postproc long_stats_tps long_stats_slopes long_mris_slopes long_stats_combine aparcstats2table asegstats2table tractstats2table stattablediff table2map merge_stats_tables fspalm rca-config rca-config2csh slicedelay fsrealpath)
+else()
+   install_pyscript(long_submit_jobs long_qdec_table long_submit_postproc long_stats_tps long_stats_slopes long_mris_slopes long_stats_combine aparcstats2table asegstats2table tractstats2table stattablediff table2map merge_stats_tables fspalm rca-config rca-config2csh slicedelay fsrealpath)
+endif()
 
 install(FILES mri_nu_correct.mni.help.xml DESTINATION docs/xml)
 install_append_help(bbregister bbregister.help.xml bin)

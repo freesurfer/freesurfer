@@ -6654,8 +6654,9 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     if(a == NULL || strcmp(a,"0")!=0) args["ignore_vg"] = 1;
   }
   if(args["ignore_vg"].toInt()) {
-    printf("INFO: ignoring vol geom for %s\n",filename.toStdString().c_str());
+    printf("INFO: ignoring vol geom for sphere %s\n",filename.toStdString().c_str());
     printf("  If you want the vol geom, then add --no-sphere-ignore-vg or setenv FV_SPHERE_IGNORE_VG 0\n");
+    printf("  Note that freeview identifies a sphere by checking if the filename contains 'sphere'.\n");
   }
 
   if (sup_options.contains("affinexform_filename"))

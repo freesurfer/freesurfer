@@ -36,6 +36,7 @@ set real2 = ();
 set imag2 = ();
 set unwarpdir = y
 set dphRangeType = 1
+set UseSynthStrip = 0
 
 set epi = ();
 
@@ -203,7 +204,11 @@ endif
 if($#epimat) cp $epimat `dirname $mag`/`basename $mag .$ext`.mat
 
 # Create brain mask from the mag
-set cmd = (bet $mag $brain)
+if(! $UseSynthStrip) then
+  set cmd = (bet $mag $brain)
+else
+  set cmd = (mri_synthstrip --i $mag -m $brain)
+endif
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
@@ -709,6 +714,14 @@ while( $#argv != 0 )
       set vsmfwhm = $argv[1]; shift;
       breaksw
 
+    case "--no-bet":
+    case "--synthstrip":
+      set UseSynthStrip = 1
+      breaksw
+    case "--no-synthstrip":
+      set UseSynthStrip = 0
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -874,6 +887,7 @@ usage_exit:
   echo "  "
   echo "  --sigma sigmamm : 2D spatial gaussing smoothing stddev (def 2mm)"
   echo "  --vsm-fwhm fwhm : allows vsm to be extended outside of the mask"
+  echo "  --synthstrip : use synthstrip instead of BET (same as --no-bet)"
   echo "  "
   echo "Outputs"
   echo "  --vsm volid   : voxel shift map (required)"

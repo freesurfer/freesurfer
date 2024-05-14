@@ -20,12 +20,16 @@ public:
 
   bool LoadImage(const QString& filename, const QStringList& preprocessed_masks);
 
+  void SetEditedPoints(const QList<QPoint>& pts);
+
   void paintEvent(QPaintEvent* e);
   void mousePressEvent(QMouseEvent* e);
   void mouseMoveEvent(QMouseEvent* e);
   void mouseReleaseEvent(QMouseEvent* e);
   void wheelEvent(QWheelEvent* e);
   void resizeEvent(QResizeEvent* e);
+  void keyPressEvent(QKeyEvent* e);
+  void keyReleaseEvent(QKeyEvent* e);
 
   bool eventFilter(QObject *watched, QEvent *event);
 
@@ -51,7 +55,17 @@ public:
 
   QImage ReadImageWithExifAwareness(const QString& filename);
 
-  enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION, EM_SELECT_MASK };
+  QList<QImage> GetSelectedMasks()
+  {
+    return m_listSelectedMasks;
+  }
+
+  double GetMaskOpacity()
+  {
+    return m_dMaskOpacity;
+  }
+
+  enum EditMode { EM_POINT = 0, EM_REGION, EM_CALIBRATION, EM_SELECT_MASK, EM_EDIT_MASK };
 
 signals:
   void LastRegionEdited(int n);
@@ -85,37 +99,44 @@ public slots:
 
   void ClearEdits();
 
-  QList<QImage> GetSelectedMasks()
-  {
-    return m_listSelectedMasks;
-  }
-
-  double GetMaskOpacity()
-  {
-    return m_dMaskOpacity;
-  }
-
   void SetMaskOpacity(double val);
+
+  void SetBrushSize(int n)
+  {
+    m_nBrushSize = n;
+  }
+
+  void SaveMaskIfEdited();
+
+  void UndoLastMaskEdit();
 
 private:
   void PrepareImage();
   void UpdateScaledImage(bool bSmooth = false);
   QPoint ScreenToImage(const QPoint& pt);
   void SetAlphaByMask(QImage& image);
+  void FreeHandOnMaskImage(const QPoint& scr_pt1, const QPoint& scr_pt2);
+  void UpdatePointOnMaskImage(const QPoint& pt_in);
+  void FloodFillMaskImage(const QPoint& scr_pt);
+  void UpdateAll();
 
   QString   m_sFilename;
   QString   m_sMaskFilename;
   QImage    m_image;
+  QImage    m_imageMask;
   QImage    m_imageScaled;
   QImage    m_imageOverlay;
+  QImage    m_imageOriginal;
   double    m_dScale;
   double    m_dOldScale;
   QPoint    m_ptOffset;
   QPoint    m_ptOldOffset;
   QPoint    m_ptPress;
+  QPoint    m_ptPrev;
   bool      m_bPanning;
   bool      m_bZooming;
   bool      m_bDrawing;
+  bool      m_bErasing;
 
   int       m_nNumberOfExpectedPoints;
   int       m_nEditMode;
@@ -129,6 +150,11 @@ private:
   double    m_dMaskOpacity;
   QList<QImage> m_listAllMasks;
   QList<QImage> m_listSelectedMasks;
+  int      m_nBrushSize;
+
+  bool    m_bMaskEdited;
+  bool    m_bModifierDown;
+  QList<QImage>  m_listMaskUndoBuffer;
 };
 
 #endif // WIDGETIMAGEVIEW_H

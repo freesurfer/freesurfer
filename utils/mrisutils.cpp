@@ -3260,6 +3260,9 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
     return(NULL);
   }
 
+  LTA *DestLTA = NULL;
+  if(asp->DestLTA) DestLTA = asp->DestLTA;
+
   average_surface_area = 0;
   for(nth=0; nth < asp->nsubjects; nth++){
     subject = asp->subjectlist[nth];
@@ -3275,6 +3278,12 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 
     if(asp->xform_name){
       char *ext = fio_extension(asp->xform_name);
+      int IsNiiGz = 0, nbuf = strlen(asp->xform_name);
+      if(nbuf>6){
+	// Have to do something special here because nii.gz will have two
+	// dots, and the last dot will just lead to dot="gz"
+	if(!strcmp(&asp->xform_name[nbuf-6],"nii.gz")) IsNiiGz = 1;
+      }
       sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
 
       if(!strcmp(asp->xform_name,"talairach.xfm")) {
@@ -3284,7 +3293,7 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 	MRISmatrixMultiply(surf, XFM);
 	MatrixFree(&XFM);
       } 
-      else if(!strcmp(ext,"m3z") || !strcmp(ext,"mgz") || !strcmp(ext,"mgh")){
+      else if(!strcmp(ext,"m3z") || !strcmp(ext,"mgz") || !strcmp(ext,"mgh") || !strcmp(ext,"nii") || IsNiiGz){
 	printf("  Applying GCA Morph %s\n",asp->xform_name);
 	gcam = GCAMread(tmpstr);
 	if(gcam == NULL) return(NULL);
@@ -3300,11 +3309,21 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 	LTAfree(&lta);
       }
       else {
-	printf("ERROR: don't know what to do with %s\n",tmpstr);
+	printf("ERROR: ext=%s %d don't know what to do with %s\n",ext,IsNiiGz,tmpstr);
 	return(NULL);
       }
     }
-    if(nth==0) copyVolGeom(&surf->vg,&targsurfreg->vg);
+    if(nth==0) {
+      copyVolGeom(&surf->vg,&targsurfreg->vg);
+      // Do this now so have it to apply to each subject below
+      if(asp->Conform && !mriConformed(&targsurfreg->vg)){
+	VOL_GEOM vgdest;
+	copyVolGeom(&targsurfreg->vg,&vgdest);
+	conformGeom(&vgdest,0,1,0);
+	DestLTA = TransformRegDat2LTA(&vgdest,&targsurfreg->vg,NULL);
+	LTAprint(stdout, DestLTA);
+      }
+    }
 
     // Could remove intersections here after applying xform
 
@@ -3326,6 +3345,19 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
     // keep track of the total area
     average_surface_area += surf->total_area ;
 
+    // Write the transformed surface to an output folder (for testing)
+    if(0){
+      MRIS *tmpsurf = MRISclone(targsurfreg);
+      MRIScopyMRI(tmpsurf, TargXYZ, 0, "x");
+      MRIScopyMRI(tmpsurf, TargXYZ, 1, "y");
+      MRIScopyMRI(tmpsurf, TargXYZ, 2, "z");
+      printf("Applying LTA\n");
+      if(DestLTA) MRISltaMultiply(tmpsurf, DestLTA);
+      sprintf(tmpstr,"%s/mas/%s.%s.%03d.%s",fsenv->SUBJECTS_DIR,asp->hemi,asp->surfname,nth,subject);
+      MRISwrite(tmpsurf,tmpstr);
+      MRISfree(&tmpsurf);
+    }
+
     MRIfree(&SrcXYZ);
     MRIfree(&TargXYZ);
     MRISfree(&surf);
@@ -3338,15 +3370,6 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
   MRIScopyMRI(targsurfreg,TargXYZSum,1,"y");
   MRIScopyMRI(targsurfreg,TargXYZSum,2,"z");
 
-  LTA *DestLTA = NULL;
-  if(asp->DestLTA) DestLTA = asp->DestLTA;
-  if(asp->Conform && !mriConformed(&targsurfreg->vg)){
-    VOL_GEOM vgdest;
-    copyVolGeom(&targsurfreg->vg,&vgdest);
-    conformGeom(&vgdest,0,1,0);
-    DestLTA = TransformRegDat2LTA(&vgdest,&targsurfreg->vg,NULL);
-    LTAprint(stdout, DestLTA);
-  }
   if(DestLTA){
     // This can be good when the xform does not take it all the way to the
     // target (eg, conformed) space.

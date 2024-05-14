@@ -47,7 +47,7 @@ public:
   SurfaceOverlayProperty ( SurfaceOverlay* overlay );
   ~SurfaceOverlayProperty ();
 
-  enum COLOR_SCALE  { CS_Heat = 0, CS_GreenRed, CS_BlueRed, CS_ColorWheel, CS_Custom };
+  enum COLOR_SCALE  { CS_Heat = 0, CS_GreenRed, CS_BlueRed, CS_ColorWheel, CS_Custom, CS_Embedded };
   enum COLOR_METHOD { CM_Linear = 0, CM_LinearOpaque, CM_Piecewise };
 
   void Copy(SurfaceOverlayProperty* p);
@@ -210,7 +210,7 @@ private:
   unsigned char* m_maskData;
   bool        m_bInverseMask;
 
-  vtkRGBAColorTransferFunction* m_lut;
+  vtkRGBAColorTransferFunction* m_lut;  
 
   SurfaceOverlay* m_overlay;
 };

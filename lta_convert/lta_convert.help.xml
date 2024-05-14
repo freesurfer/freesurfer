@@ -113,6 +113,8 @@ coordinates). For TKREG/register.dat type matrices, src=mov and trg=ref/targ.</i
       <explanation>upsample trg image geometry by factor of N</explanation>
       <argument>--trgdownsample N</argument>
       <explanation>downsample trg image geometry by factor of N</explanation>      
+      <argument>--regheader</argument>
+      <explanation>Same as --inlta identity.nofile (make lta from src and trg volumes) </explanation>      
     </optional-flagged>
   </arguments>
   <example>Convert FSL transform to LTA (FreeSurfer):
@@ -139,6 +141,7 @@ lta_convert --inlta in.lta --outlta out-conform.lta --trgconform
 Reads in.lta, conforms trg geometry and saves it as out-conform.lta </example>
   <example>Create transform from header geometries only:
   
+lta_convert --regheader --src src.nii --trg trg.nii --outlta out.lta
 lta_convert --inlta identity.nofile --src src.nii --trg trg.nii --outlta out.lta
   
 Creates LTA from SRC and TRG header geometies, e.g. to convert SPM results to LTA (SPM stores its transforms in the header). Similarly you can create a lta for conform reslicing when specifying --trgconform instead of --trg trg.nii. </example>

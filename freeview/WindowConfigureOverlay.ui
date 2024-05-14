@@ -333,24 +333,7 @@ color: gray;</string>
         <string>Color Scale</string>
        </property>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0">
-         <widget class="QRadioButton" name="radioButtonHeat">
-          <property name="text">
-           <string>Heat</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QCheckBox" name="checkBoxInverse">
-          <property name="text">
-           <string>Inverse</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="6">
+        <item row="0" column="7">
          <widget class="QPushButton" name="pushButtonLoadCustom">
           <property name="minimumSize">
            <size>
@@ -369,7 +352,14 @@ color: gray;</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="5">
+        <item row="0" column="1">
+         <widget class="QRadioButton" name="radioButtonColorWheel">
+          <property name="text">
+           <string>Color Wheel</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="6">
          <widget class="QPushButton" name="pushButtonSaveCustom">
           <property name="minimumSize">
            <size>
@@ -388,6 +378,13 @@ color: gray;</string>
           </property>
          </widget>
         </item>
+        <item row="2" column="1">
+         <widget class="QCheckBox" name="checkBoxInverse">
+          <property name="text">
+           <string>Inverse</string>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="3">
          <widget class="QRadioButton" name="radioButtonCustom">
           <property name="text">
@@ -402,7 +399,17 @@ color: gray;</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="4">
+        <item row="0" column="0">
+         <widget class="QRadioButton" name="radioButtonHeat">
+          <property name="text">
+           <string>Heat</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
          <widget class="QPushButton" name="pushButtonFlip">
           <property name="maximumSize">
            <size>
@@ -415,24 +422,24 @@ color: gray;</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
-         <widget class="QRadioButton" name="radioButtonColorWheel">
+        <item row="2" column="5">
+         <widget class="QCheckBox" name="checkBoxClearLower">
           <property name="text">
-           <string>Color Wheel</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="4" colspan="3">
-         <widget class="QCheckBox" name="checkBoxClearHigher">
-          <property name="text">
-           <string>Clear Higher</string>
+           <string>Clear Lower</string>
           </property>
          </widget>
         </item>
         <item row="2" column="3">
-         <widget class="QCheckBox" name="checkBoxClearLower">
+         <widget class="QRadioButton" name="radioButtonEmbedded">
           <property name="text">
-           <string>Clear Lower</string>
+           <string>Embedded</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="6" colspan="2">
+         <widget class="QCheckBox" name="checkBoxClearHigher">
+          <property name="text">
+           <string>Clear Higher</string>
           </property>
          </widget>
         </item>
@@ -473,7 +480,7 @@ color: gray;</string>
     </layout>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_3">
+    <widget class="QGroupBox" name="groupBoxThreshold">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -1085,7 +1092,6 @@ color: gray;</string>
   <tabstop>radioButtonCustom</tabstop>
   <tabstop>checkBoxTruncate</tabstop>
   <tabstop>checkBoxInverse</tabstop>
-  <tabstop>checkBoxClearLower</tabstop>
   <tabstop>checkBoxClearHigher</tabstop>
   <tabstop>pushButtonFlip</tabstop>
   <tabstop>pushButtonSaveCustom</tabstop>
@@ -1138,8 +1144,8 @@ color: gray;</string>
    <slot>OnSpinBoxOpacity(double)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>279</x>
-     <y>244</y>
+     <x>323</x>
+     <y>268</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1154,8 +1160,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>371</y>
+     <x>103</x>
+     <y>380</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1170,8 +1176,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>371</y>
+     <x>196</x>
+     <y>380</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1186,8 +1192,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>341</y>
+     <x>94</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1202,8 +1208,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>341</y>
+     <x>187</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1218,8 +1224,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1234,12 +1240,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>341</y>
+     <x>187</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>106</x>
-     <y>371</y>
+     <x>103</x>
+     <y>380</y>
     </hint>
    </hints>
   </connection>
@@ -1250,12 +1256,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>106</x>
-     <y>371</y>
+     <x>103</x>
+     <y>380</y>
     </hint>
    </hints>
   </connection>
@@ -1266,8 +1272,8 @@ color: gray;</string>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>341</y>
+     <x>187</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1282,8 +1288,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>100</x>
-     <y>795</y>
+     <x>101</x>
+     <y>778</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -1330,8 +1336,8 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>341</y>
+     <x>187</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>114</x>
@@ -1346,8 +1352,8 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>485</x>
@@ -1362,8 +1368,8 @@ color: gray;</string>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1378,8 +1384,8 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>596</x>
@@ -1394,8 +1400,8 @@ color: gray;</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>476</x>
@@ -1426,12 +1432,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>221</x>
-     <y>371</y>
+     <x>196</x>
+     <y>380</y>
     </hint>
    </hints>
   </connection>
@@ -1442,12 +1448,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>333</x>
-     <y>371</y>
+     <x>289</x>
+     <y>380</y>
     </hint>
    </hints>
   </connection>
@@ -1458,12 +1464,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>531</x>
-     <y>371</y>
+     <x>429</x>
+     <y>380</y>
     </hint>
    </hints>
   </connection>
@@ -1474,8 +1480,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>371</y>
+     <x>289</x>
+     <y>380</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1490,8 +1496,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>531</x>
-     <y>371</y>
+     <x>429</x>
+     <y>380</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1506,12 +1512,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>399</x>
-     <y>342</y>
+     <x>346</x>
+     <y>357</y>
     </hint>
    </hints>
   </connection>
@@ -1522,8 +1528,8 @@ color: gray;</string>
    <slot>FlipMarkers()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>399</x>
-     <y>342</y>
+     <x>346</x>
+     <y>357</y>
     </hint>
     <hint type="destinationlabel">
      <x>376</x>
@@ -1602,8 +1608,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>632</y>
+     <x>252</x>
+     <y>607</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1618,8 +1624,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>410</x>
-     <y>632</y>
+     <x>408</x>
+     <y>607</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1634,8 +1640,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>547</x>
-     <y>632</y>
+     <x>553</x>
+     <y>607</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1654,8 +1660,8 @@ color: gray;</string>
      <y>778</y>
     </hint>
     <hint type="destinationlabel">
-     <x>410</x>
-     <y>632</y>
+     <x>408</x>
+     <y>607</y>
     </hint>
    </hints>
   </connection>
@@ -1698,8 +1704,8 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>152</x>
-     <y>173</y>
+     <x>178</x>
+     <y>193</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1718,8 +1724,8 @@ color: gray;</string>
      <y>179</y>
     </hint>
     <hint type="destinationlabel">
-     <x>511</x>
-     <y>189</y>
+     <x>486</x>
+     <y>200</y>
     </hint>
    </hints>
   </connection>
@@ -1730,8 +1736,8 @@ color: gray;</string>
    <slot>OnCheckComputeCorrelation(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>126</x>
-     <y>173</y>
+     <x>152</x>
+     <y>193</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1746,8 +1752,8 @@ color: gray;</string>
    <slot>OnComboCorrelationVolume(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>511</x>
-     <y>189</y>
+     <x>486</x>
+     <y>200</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1762,8 +1768,8 @@ color: gray;</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>215</x>
-     <y>733</y>
+     <x>237</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1778,8 +1784,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>410</x>
-     <y>663</y>
+     <x>408</x>
+     <y>638</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -1794,8 +1800,8 @@ color: gray;</string>
    <slot>OnCustomColorScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -1810,8 +1816,8 @@ color: gray;</string>
    <slot>OnComboMask(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>671</x>
-     <y>342</y>
+     <x>668</x>
+     <y>359</y>
     </hint>
     <hint type="destinationlabel">
      <x>590</x>
@@ -1842,8 +1848,8 @@ color: gray;</string>
    <slot>OnCheckUseNonZeroVertices(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>381</x>
-     <y>733</y>
+     <x>382</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>595</x>
@@ -1874,12 +1880,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>333</x>
-     <y>341</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>465</x>
-     <y>342</y>
+     <x>420</x>
+     <y>357</y>
     </hint>
    </hints>
   </connection>
@@ -1890,11 +1896,11 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>276</x>
-     <y>325</y>
+     <x>280</x>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
-     <x>507</x>
+     <x>486</x>
      <y>330</y>
     </hint>
    </hints>
@@ -1906,12 +1912,44 @@ color: gray;</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>795</y>
+     <x>319</x>
+     <y>778</y>
     </hint>
     <hint type="destinationlabel">
-     <x>491</x>
-     <y>795</y>
+     <x>476</x>
+     <y>777</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonEmbedded</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>UpdateGraphAndApply()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>494</x>
+     <y>373</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>745</x>
+     <y>403</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonEmbedded</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBoxThreshold</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>475</x>
+     <y>377</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>467</x>
+     <y>416</y>
     </hint>
    </hints>
   </connection>

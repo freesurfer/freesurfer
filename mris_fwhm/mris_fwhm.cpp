@@ -687,7 +687,25 @@ static int parse_commandline(int argc, char **argv) {
       outpath = pargv[0];
       DoDetrend = 0;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--group-area-test")) {
+    } 
+    else if (!strcasecmp(option, "--taubin")) {
+      // --taubin niters lambda fcutoff insurf outsurf
+      if(nargc < 5) CMDargNErr(option,5);
+      int niters; double lambda,fcutoff;
+      sscanf(pargv[0],"%d",&niters);
+      sscanf(pargv[1],"%lf",&lambda);
+      sscanf(pargv[2],"%lf",&fcutoff);
+      MRIS *insurf = MRISread(pargv[3]);
+      if(!insurf) exit(1);
+      double mu = (1.0)/((fcutoff)-1.0/lambda);
+      printf("taubin smoothing: niters=%d lambda=%g fcutoff=%g mu=%g\n",niters,lambda,fcutoff,mu);
+      int err = MRIStaubinSmooth(insurf, niters, lambda, mu, TAUBIN_UNIFORM_WEIGHTS);
+      if(err) exit(1);
+      err = MRISwrite(insurf,pargv[4]);
+      exit(err);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--group-area-test")) {
       if (nargc < 1) CMDargNErr(option,1);
       GroupAreaTestFile = pargv[0];
       synth = 1;
@@ -758,6 +776,7 @@ static void print_usage(void) {
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
   printf("   --threads nthreads\n");
+  printf("   --taubin niters lambda fcutoff insurf outsurf : stand-alone taubin smoothing (eg, n=20,l=0.3,fc=0.5)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");

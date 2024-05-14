@@ -79,6 +79,9 @@ double bgnoisescale = 0;
 int bgnoisesign=0;
 int InvertMask = 0;
 COLOR_TABLE *ctab=NULL;
+double CropToFoV[3];
+int DoCropToFoV = 0;
+int DoCropToFoVmm = 0;
 
 int main(int argc, char *argv[])
 {
@@ -312,15 +315,25 @@ int main(int argc, char *argv[])
     }
   }
 
-  if(DoBB || DoBBEq){
+  if(DoBB || DoBBEq || DoCropToFoV|| DoCropToFoVmm){
+    region = NULL;
     if(DoBB){
       printf("Computing bounding box, npad = %d, %d, %d, %d, %d, %d\n",
 	     nPadBB[0],nPadBB[1],nPadBB[2],nPadBB[3],nPadBB[4],nPadBB[5]);
       region = REGIONgetBoundingBoxM(mri_mask,nPadBB);
     }
-    else {
+    if(DoBBEq) {
       printf("Computing bounding box with ncols=nrows, npad = %d\n",nPadBB[0]);
       region = REGIONgetBoundingBoxEqOdd(mri_mask,nPadBB[0]);
+    }
+    if(DoCropToFoV){
+      region = MRIcropToFoV(mri_mask, CropToFoV[0], CropToFoV[1], CropToFoV[2], threshold);
+    }
+    if(DoCropToFoVmm){
+      int cfov = ceil(CropToFoV[0]/mri_mask->xsize);
+      int rfov = ceil(CropToFoV[1]/mri_mask->ysize);
+      int sfov = ceil(CropToFoV[2]/mri_mask->zsize);
+      region = MRIcropToFoV(mri_mask, cfov, rfov, sfov, threshold);
     }
     REGIONprint(stdout, region);
     mri_tmp = MRIextractRegion(mri_mask, NULL, region);
@@ -475,6 +488,23 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
     ThresholdSet = 1;
   }
+  else if (!stricmp(option, "crop-to-fov"))
+  {
+    CropToFoV[0] = (int)atoi(argv[2]);
+    CropToFoV[1] = (int)atoi(argv[3]);
+    CropToFoV[2] = (int)atoi(argv[4]);
+    DoCropToFoV = 1;
+    nargs = 3;
+  }
+  else if (!stricmp(option, "crop-to-fov-mm"))
+  {
+    CropToFoV[0] = (int)atoi(argv[2]);
+    CropToFoV[1] = (int)atoi(argv[3]);
+    CropToFoV[2] = (int)atoi(argv[4]);
+    DoCropToFoVmm = 1;
+    printf("CropToFoVmm %g %g %g\n",CropToFoV[0],CropToFoV[1],CropToFoV[2]);
+    nargs = 3;
+  }
   else if (!stricmp(option, "BB") || !stricmp(option, "crop") || !stricmp(option, "boundingbox"))
   {
     nPadBB[0] = (int)atoi(argv[2]);
@@ -486,6 +516,17 @@ get_option(int argc, char *argv[])
     DoBB = 1;
     nargs = 1;
     printf("cropping npad = %d\n",nPadBB[0]);
+  }
+  else if (!stricmp(option, "crop-crs")) {
+    nPadBB[0] = (int)atoi(argv[2]);
+    nPadBB[1] = (int)atoi(argv[2]);
+    nPadBB[2] = (int)atoi(argv[3]);
+    nPadBB[3] = (int)atoi(argv[3]);
+    nPadBB[4] = (int)atoi(argv[4]);
+    nPadBB[5] = (int)atoi(argv[4]);
+    DoBB = 1;
+    nargs = 3;
+    printf("cropping npad  %d %d %d\n",nPadBB[0],nPadBB[1],nPadBB[2]);
   }
   else if (!stricmp(option, "BBM")|| !stricmp(option, "boundingboxm"))
   {

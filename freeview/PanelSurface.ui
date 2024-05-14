@@ -1524,7 +1524,10 @@
     <string>Show Overlay</string>
    </property>
    <property name="toolTip">
-    <string>Show Overlay</string>
+    <string>Show Overlay (Shift+Ctrl+O)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
    </property>
   </action>
   <action name="actionShowAnnotation">

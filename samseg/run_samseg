@@ -68,6 +68,10 @@ args = parser.parse_args()
 
 # ------ Initial Setup ------
 
+if os.environ.get('FREESURFER_FSPYTHON') and os.environ.get('FREESURFER_HOME_FALLBACK'):
+   # at this point samseg needs to fallback to original setting
+   os.environ["FREESURFER_HOME"] = os.environ.get('FREESURFER_HOME_FALLBACK')
+
 # Make sure freesurfer has been sourced
 if not os.environ.get('FREESURFER_HOME'):
     sf.system.fatal('FREESURFER_HOME must be set')

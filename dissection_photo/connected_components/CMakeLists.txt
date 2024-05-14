@@ -8,6 +8,7 @@ if(BUILD_GUIS)
     ../WidgetImageView.cpp
     ../cnpy.cpp
     ../exif.cpp
+    ../MyUtils.cpp
     DialogSelectFolder.cpp
     DialogWelcome.cpp
     MainWindow.cpp

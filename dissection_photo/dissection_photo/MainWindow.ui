@@ -46,12 +46,24 @@
         </size>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="leftMargin">
+         <number>18</number>
+        </property>
+        <property name="topMargin">
+         <number>18</number>
+        </property>
+        <property name="rightMargin">
+         <number>18</number>
+        </property>
+        <property name="bottomMargin">
+         <number>18</number>
+        </property>
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
-          <widget class="QWidget" name="page3">
+          <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <property name="leftMargin">
              <number>0</number>
@@ -67,9 +79,6 @@
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_2">
-              <property name="styleSheet">
-               <string notr="true">padding-bottom: 2px;</string>
-              </property>
               <property name="text">
                <string>Segmentation</string>
               </property>
@@ -79,14 +88,105 @@
              </widget>
             </item>
             <item>
-             <widget class="QWidget" name="widget" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="0,1,0,0">
+              <property name="topMargin">
+               <number>10</number>
+              </property>
+              <property name="bottomMargin">
+               <number>10</number>
+              </property>
+              <item>
+               <spacer name="horizontalSpacer_31">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="labelMaskFolder">
+                <property name="text">
+                 <string>Select folder to store the mask images</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonLoadMasks">
+                <property name="minimumSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Select Folder</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_32">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;p&gt;Ctrl + Z to toggle mask visibility.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_14">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>5</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QWidget" name="widgetSegCtrls" native="true">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
                 <height>0</height>
                </size>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <layout class="QVBoxLayout" name="verticalLayout_6">
                <property name="leftMargin">
                 <number>0</number>
                </property>
@@ -100,227 +200,353 @@
                 <number>0</number>
                </property>
                <item>
-                <spacer name="horizontalSpacer_29">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                <layout class="QHBoxLayout" name="horizontalLayout_17">
+                 <property name="leftMargin">
+                  <number>0</number>
                  </property>
-                 <property name="sizeHint" stdset="0">
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <spacer name="horizontalSpacer_20">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="widget" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <layout class="QHBoxLayout" name="horizontalLayout_10">
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="label_3">
+                      <property name="text">
+                       <string>Brush size</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinBoxBrushSize">
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_29">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_21">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeType">
+                       <enum>QSizePolicy::Fixed</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>1</width>
+                        <height>5</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="label_5">
+                      <property name="text">
+                       <string>Opacity</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSlider" name="horizontalSliderSegOpacity">
+                      <property name="maximum">
+                       <number>100</number>
+                      </property>
+                      <property name="value">
+                       <number>70</number>
+                      </property>
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_37">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QWidget" name="widget_2" native="true">
+                 <property name="minimumSize">
                   <size>
-                   <width>111</width>
-                   <height>17</height>
+                   <width>0</width>
+                   <height>0</height>
                   </size>
                  </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="label_3">
-                 <property name="text">
-                  <string>Brush size</string>
-                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_16">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <spacer name="horizontalSpacer_36">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>13</width>
+                      <height>17</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="pushButtonMaskEditUndo">
+                    <property name="text">
+                     <string>Undo</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_34">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>1</width>
+                      <height>5</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_35">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>13</width>
+                      <height>17</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
                 </widget>
                </item>
                <item>
-                <widget class="QSpinBox" name="spinBoxBrushSize">
-                 <property name="minimum">
-                  <number>1</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="horizontalSpacer_21">
+                <spacer name="verticalSpacer_10">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Vertical</enum>
                  </property>
                  <property name="sizeType">
                   <enum>QSizePolicy::Fixed</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>1</width>
-                   <height>5</height>
+                   <width>20</width>
+                   <height>10</height>
                   </size>
                  </property>
                 </spacer>
                </item>
                <item>
-                <widget class="QToolButton" name="toolButtonFreeHand">
-                 <property name="text">
-                  <string>Free Hand</string>
-                 </property>
-                 <property name="checkable">
-                  <bool>true</bool>
-                 </property>
-                 <property name="checked">
-                  <bool>true</bool>
-                 </property>
-                </widget>
+                <layout class="QGridLayout" name="gridLayout_3">
+                 <item row="0" column="4">
+                  <spacer name="horizontalSpacer_18">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="0" column="3">
+                  <widget class="QPushButton" name="pushButtonNextSeg">
+                   <property name="minimumSize">
+                    <size>
+                     <width>80</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Next</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <spacer name="horizontalSpacer_19">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="labelIndexSeg">
+                   <property name="minimumSize">
+                    <size>
+                     <width>60</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QPushButton" name="pushButtonPreviousSeg">
+                   <property name="minimumSize">
+                    <size>
+                     <width>80</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Previous</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
                <item>
-                <widget class="QToolButton" name="toolButtonFill">
-                 <property name="text">
-                  <string>Fill</string>
-                 </property>
-                 <property name="checkable">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="horizontalSpacer_20">
+                <spacer name="verticalSpacer_8">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>13</width>
-                   <height>17</height>
+                   <width>20</width>
+                   <height>20</height>
                   </size>
                  </property>
                 </spacer>
                </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <spacer name="horizontalSpacer_16">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButtonCC">
+                   <property name="minimumSize">
+                    <size>
+                     <width>120</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Proceed to CC</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_17">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
               </layout>
              </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_10">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>10</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QGridLayout" name="gridLayout_3">
-              <item row="0" column="4">
-               <spacer name="horizontalSpacer_18">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="3">
-               <widget class="QPushButton" name="pushButtonSegNext">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Next</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <spacer name="horizontalSpacer_19">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="labelIndexSeg">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>1 / 6</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QPushButton" name="pushButtonSegPrevious">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Previous</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_8">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_3">
-              <item>
-               <spacer name="horizontalSpacer_16">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButtonCC">
-                <property name="text">
-                 <string>Proceed to CC</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_17">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
             </item>
             <item>
              <spacer name="verticalSpacer_9">
@@ -337,8 +563,11 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="page4">
+          <widget class="QWidget" name="pageCC">
            <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="spacing">
+             <number>10</number>
+            </property>
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -353,14 +582,51 @@
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_3">
-              <property name="styleSheet">
-               <string notr="true">padding-bottom: 2px;</string>
+              <property name="autoFillBackground">
+               <bool>false</bool>
               </property>
               <property name="text">
                <string>Connected Components</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_15" stretch="1,0">
+              <property name="bottomMargin">
+               <number>20</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="labelPathCC">
+                <property name="text">
+                 <string>Select directory to store computed connected components files</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonOpenCC">
+                <property name="text">
+                 <string>Select Folder</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>Left mouse button to pan, Right button to zoom, Ctrl+Left to draw. Please select slices in order. Click &quot;Create Mask&quot; after you select all the slices in the image.</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -437,6 +703,9 @@
               </item>
               <item row="0" column="3">
                <widget class="QPushButton" name="pushButtonNextCC">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -470,7 +739,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>1 / 6</string>
+                 <string/>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -479,6 +748,9 @@
               </item>
               <item row="0" column="1">
                <widget class="QPushButton" name="pushButtonPreviousCC">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -524,7 +796,10 @@
                </spacer>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButtonSegmentation_2">
+               <widget class="QPushButton" name="pushButtonAllDone">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>120</width>
@@ -566,10 +841,10 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="page2">
+          <widget class="QWidget" name="pageCorrection">
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <property name="spacing">
-             <number>12</number>
+             <number>10</number>
             </property>
             <property name="leftMargin">
              <number>0</number>
@@ -651,19 +926,26 @@
                 </spacer>
                </item>
                <item>
+                <widget class="QRadioButton" name="radioButton2Points">
+                 <property name="text">
+                  <string>2 Points</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton3Points">
+                 <property name="text">
+                  <string>3 Points</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QRadioButton" name="radioButton4Points">
                  <property name="text">
                   <string>4 Points</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radioButton2Points">
-                 <property name="text">
-                  <string>2 Points</string>
                  </property>
                 </widget>
                </item>
@@ -852,6 +1134,9 @@
               </item>
               <item row="0" column="3">
                <widget class="QPushButton" name="pushButtonNext">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -885,7 +1170,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>1 / 6</string>
+                 <string/>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -894,6 +1179,9 @@
               </item>
               <item row="0" column="1">
                <widget class="QPushButton" name="pushButtonPrevious">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>80</width>
@@ -917,8 +1205,8 @@
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>20</width>
-                <height>20</height>
+                <width>396</width>
+                <height>17</height>
                </size>
               </property>
              </spacer>
@@ -940,6 +1228,15 @@
               </item>
               <item>
                <widget class="QPushButton" name="pushButtonSegmentation">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>210</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Proceed to Segmentation</string>
                 </property>
@@ -975,7 +1272,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="page1">
+          <widget class="QWidget" name="pageStartUp">
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <property name="spacing">
              <number>5</number>
@@ -1046,7 +1343,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>12</height>
+                <height>20</height>
                </size>
               </property>
              </spacer>
@@ -1105,7 +1402,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>12</height>
+                <height>20</height>
                </size>
               </property>
              </spacer>
@@ -1249,10 +1546,18 @@
      <x>0</x>
      <y>0</y>
      <width>1251</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
+  <action name="actionToggleMask">
+   <property name="text">
+    <string>Toggle Mask</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1260,6 +1565,10 @@
    <extends>QWidget</extends>
    <header location="global">WidgetImageView.h</header>
    <container>1</container>
+   <slots>
+    <slot>SetBrushSize(int)</slot>
+    <slot>UndoLastMaskEdit()</slot>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources/>
@@ -1271,8 +1580,8 @@
    <slot>OnButtonInputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>308</x>
-     <y>51</y>
+     <x>485</x>
+     <y>65</y>
     </hint>
     <hint type="destinationlabel">
      <x>509</x>
@@ -1287,8 +1596,8 @@
    <slot>OnButtonCalibrationFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>335</x>
-     <y>151</y>
+     <x>485</x>
+     <y>157</y>
     </hint>
     <hint type="destinationlabel">
      <x>397</x>
@@ -1303,7 +1612,7 @@
    <slot>OnButtonOutputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>296</x>
+     <x>406</x>
      <y>242</y>
     </hint>
     <hint type="destinationlabel">
@@ -1319,8 +1628,8 @@
    <slot>OnButtonContinue()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>202</x>
-     <y>350</y>
+     <x>302</x>
+     <y>346</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -1335,7 +1644,7 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>225</x>
+     <x>397</x>
      <y>78</y>
     </hint>
     <hint type="destinationlabel">
@@ -1351,8 +1660,8 @@
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>275</x>
-     <y>73</y>
+     <x>293</x>
+     <y>92</y>
     </hint>
     <hint type="destinationlabel">
      <x>224</x>
@@ -1367,8 +1676,8 @@
    <slot>OnButtonPrevious()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>108</x>
-     <y>315</y>
+     <x>189</x>
+     <y>322</y>
     </hint>
     <hint type="destinationlabel">
      <x>100</x>
@@ -1383,8 +1692,8 @@
    <slot>OnButtonNext()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>269</x>
-     <y>314</y>
+     <x>368</x>
+     <y>322</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
@@ -1399,8 +1708,8 @@
    <slot>OnButtonProcess()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>145</x>
-     <y>229</y>
+     <x>249</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
      <x>261</x>
@@ -1415,12 +1724,268 @@
    <slot>OnButtonClear()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>227</y>
+     <x>335</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
      <x>247</x>
      <y>-92</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSegmentation</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonProceedToSeg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>378</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>310</x>
+     <y>1068</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonProceedToCC()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>312</x>
+     <y>362</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>365</x>
+     <y>1206</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLoadMasks</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonLoadMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>479</x>
+     <y>97</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>698</x>
+     <y>1015</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSliderSegOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSliderSegOpacity(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>413</x>
+     <y>217</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>576</x>
+     <y>1103</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxBrushSize</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>widgetImageView</receiver>
+   <slot>SetBrushSize(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>210</x>
+     <y>223</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>583</x>
+     <y>475</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonPreviousSeg</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonPrevious()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>216</x>
+     <y>303</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>176</x>
+     <y>1167</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonNextSeg</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonNext()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>368</x>
+     <y>303</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>304</x>
+     <y>1018</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonPreviousCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonPrevious()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>216</x>
+     <y>234</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>137</x>
+     <y>968</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonNextCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonNext()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>368</x>
+     <y>234</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>251</x>
+     <y>1199</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonClearCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonClear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>355</x>
+     <y>197</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>332</x>
+     <y>1037</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonCreateMask</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonCreateMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>249</x>
+     <y>197</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>190</x>
+     <y>1010</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonMaskEditUndo</sender>
+   <signal>clicked()</signal>
+   <receiver>widgetImageView</receiver>
+   <slot>UndoLastMaskEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>288</x>
+     <y>255</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>883</x>
+     <y>399</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton3Points</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTogglePointMode(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>379</x>
+     <y>92</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>342</x>
+     <y>-130</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAllDone</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>312</x>
+     <y>301</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>542</x>
+     <y>1024</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleMask</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>625</x>
+     <y>453</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonOpenCC</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonOutputFolderCC()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>423</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>412</x>
+     <y>-101</y>
     </hint>
    </hints>
   </connection>
@@ -1437,5 +2002,14 @@
   <slot>OnButtonNextCC()</slot>
   <slot>OnButtonProcess()</slot>
   <slot>OnButtonClear()</slot>
+  <slot>OnButtonProceedToSeg()</slot>
+  <slot>OnButtonProceedToCC()</slot>
+  <slot>OnButtonFinalOutputFolder()</slot>
+  <slot>OnButtonLoadMask()</slot>
+  <slot>OnSliderSegOpacity(int)</slot>
+  <slot>OnButtonCreateMask()</slot>
+  <slot>OnButtonUndoMaskEdit()</slot>
+  <slot>OnToggleMask()</slot>
+  <slot>OnButtonOutputFolderCC()</slot>
  </slots>
 </ui>

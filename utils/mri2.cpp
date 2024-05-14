@@ -7354,6 +7354,82 @@ MRI *MRIcropSegHemi(MRI *seg0, int hemi, int cFoV, int rFoV, int sFoV)
 }
 
 /*!
+\fn MRI *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh)
+\brief Crops the input volume to be the given FoV voxels around the centroid.
+The centroid is computed from the voxels in mask that are >= thresh. If unspecified,
+thresh will be 0.5
+ */
+MRI_REGION *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh)
+{
+  double csum=0, rsum=0, ssum=0;
+  int cmin=10e5, cmax=0, rmin=10e5, rmax=0, smin=10e5, smax=0;
+  int nhits=0;
+
+  // Make a copy so that the contra lateral can be zeroed
+  //MRI *crop = MRIcopy(mask,NULL);
+  //if(mask->ct) crop->ct = CTABdeepCopy(mask->ct);
+
+  // Compute the centroid of the mask
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : csum, rsum, ssum, nhits) reduction(min: cmin,rmin,smin) reduction(max: cmax,rmax,smax)
+#endif
+  for(int c=0; c < mask->width; c++){
+    for(int r=0; r < mask->height; r++){
+      for(int s=0; s < mask->depth; s++){
+	double v = MRIgetVoxVal(mask,c,r,s,0);
+	if(v < thresh) continue;
+	//MRIsetVoxVal(crop,c,r,s,0,0);
+	csum += c;
+	rsum += r;
+	ssum += s;
+	nhits++;
+	if(cmin > c) cmin = c;
+	if(rmin > r) rmin = r;
+	if(smin > s) smin = s;
+	if(cmax < c) cmax = c;
+	if(rmax < r) rmax = r;
+	if(smax < s) smax = s;
+      }
+    }
+  }
+  // Actual centroid
+  csum /= nhits;
+  rsum /= nhits;
+  ssum /= nhits;
+
+  printf("MRIcropToFoV(): thresh=%g FoV = (%d,%d,%d) \nnhits=%d  centroid = (%g,%g,%g) min = (%d,%d,%d) max = (%d,%d,%d) delta = (%d,%d,%d) \n",
+	 thresh,cFoV,rFoV,sFoV,nhits,csum,rsum,ssum,cmin,rmin,smin,cmax,rmax,smax,cmax-cmin+1,rmax-rmin+1,smax-smin+1);
+
+  // Create the region to extract
+  MRI_REGION *region = (MRI_REGION *)calloc(sizeof(MRI_REGION),1);
+  region->x = MAX(round(csum-cFoV/2),0);
+  region->y = MAX(round(rsum-rFoV/2),0);
+  region->z = MAX(round(ssum-sFoV/2),0);
+  region->dx = MIN(cFoV,mask->width);
+  region->dy = MIN(rFoV,mask->height);
+  region->dz = MIN(sFoV,mask->depth);
+
+  printf("Region ");
+  REGIONprint(stdout,region);
+
+  // Check for warnings
+  if(region->dx != cFoV) printf("WARNING: cFoV is %d, could not achieve %d\n",region->dx,cFoV);
+  if(region->dy != rFoV) printf("WARNING: rFoV is %d, could not achieve %d\n",region->dy,rFoV);
+  if(region->dz != sFoV) printf("WARNING: sFoV is %d, could not achieve %d\n",region->dz,sFoV);
+  if(region->x  > cmin)         printf("WARNING: clip cmin \n");
+  if(region->dx < (cmax-cmin) ) printf("WARNING: clip cmax \n");
+  if(region->y  > rmin)         printf("WARNING: clip rmin \n");
+  if(region->dy < (rmax-rmin) ) printf("WARNING: clip rmax \n");
+  if(region->z  > smin)         printf("WARNING: clip smin \n");
+  if(region->dz < (smax-smin) ) printf("WARNING: clip smax \n");
+
+  // And finally extract the FoV around the centroid
+  //MRI *cropped = MRIextractRegion(mask, NULL, &region);
+
+  return(region);
+}
+
+/*!
   \fn MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpfn)
   \brief Routine to create a segmentation of 1=true positives (tp),
   2=false positives, (fp), and 3 = true negatives (tn, ie, misses). It
@@ -7398,7 +7474,7 @@ MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpf
   cte->rf = 1;cte->gf = 0;cte->bf = 0;
 
   cte = tpfpfn->ct->entries[3];
-  sprintf(cte->name, "TrueNeg-Miss"); cte->bi = 255; cte->bf = 1;
+  sprintf(cte->name, "FalseNeg-Miss"); cte->bi = 255; cte->bf = 1;
   cte->ri = 255; cte->gi = 255; cte->bi = 0;
   cte->rf = 1;cte->gf = 1;cte->bf = 0;
 

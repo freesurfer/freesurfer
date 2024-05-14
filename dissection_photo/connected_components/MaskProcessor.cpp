@@ -122,6 +122,9 @@ QImage MaskProcessor::GetMaskImage(const QList<QColor>& colors)
 
 void MaskProcessor::ClearBuffer()
 {
+  if (!m_data || !m_dataOutBuffer)
+    return;
+
   memcpy(m_data, m_dataInBuffer, m_nWidth*m_nHeight*sizeof(PY_DATA_TYPE));
   memset(m_dataOutBuffer, 0, m_nWidth*m_nHeight);
 }

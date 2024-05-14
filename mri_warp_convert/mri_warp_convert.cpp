@@ -625,6 +625,7 @@ int main(int argc, char *argv[])
 	printf("ERROR: --inspm needs source/atlas geometry, use --insrcgeom or -g to specify\n");
 	exit(1);
       }
+      printf("inwarpformat set to %s\n",P.in_warpformat.c_str());
       gcam = readSPM(P.in_warp.c_str(),P.in_src_geom);
       break;
     case filetypes::ITK:
@@ -777,6 +778,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 
     P.in_warp = string(argv[1]);
     P.in_type = filetypes::SPM;
+    P.in_warpformat = string("abs-ras");
     nargs = 1;
     cout << "--inspm: " << P.in_warp << " input SPM warp." << endl;
   }
