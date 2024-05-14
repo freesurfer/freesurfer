@@ -1438,7 +1438,7 @@ size_t MRIsizeof(int mritype)
   switch (mritype) {
     case MRI_UCHAR:  return sizeof(char);
     case MRI_INT:    return sizeof(int);
-    case MRI_RGB:    return sizeof(char);
+    case MRI_RGB:    return sizeof(int);  // freeview expects MRI_RGB to be an integer
     case MRI_LONG:   return sizeof(long);
     case MRI_FLOAT:  return sizeof(float);
     case MRI_TENSOR: return sizeof(float);
