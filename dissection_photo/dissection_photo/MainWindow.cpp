@@ -199,6 +199,7 @@ void MainWindow::OnButtonLoadMask()
         m_elapsedTimer.start();
         m_fileWatcher.addPath(temp_out_dir);
         m_listQueuedFiles = watch_list;
+        m_nIndex = 0;
       }
       else
       {
@@ -663,6 +664,7 @@ void MainWindow::OnProcessFinished()
     qDebug() << "nnUNet elapsed time in secs: " << m_elapsedTimer.elapsed()/1000;
     ui->pageSegEdit->setEnabled(true);
     UpdateIndex();
+    OnFileChanged(m_proc->property("temp_output_folder").toString());
   }
 }
 
@@ -752,30 +754,41 @@ void MainWindow::OnFileChanged(const QString& path)
 {
   static QVariantMap last_size_info = QVariantMap();
   QFileInfoList flist = QDir(path).entryInfoList(QStringList("*.npz"), QDir::Files, QDir::Name);
-  if (!flist.isEmpty() && !m_listQueuedFiles.isEmpty())
+  while (!flist.isEmpty())
   {
-    QString fn = flist[0].absoluteFilePath();
-    if (fn == m_listQueuedFiles.first())
+    if (!flist.isEmpty() && !m_listQueuedFiles.isEmpty())
     {
-      if (last_size_info[fn].toInt() == flist[0].size() && flist[0].size() > 0)
+      QString fn = flist[0].absoluteFilePath();
+      if (fn == m_listQueuedFiles.first())
       {
-        QImage image = NpyToImage(fn);
-        QString fn_png = QFileInfo(m_strMaskFolder, QFileInfo(fn).completeBaseName()+".png").absoluteFilePath();
-        image.save(fn_png);
-        m_listQueuedFiles.removeFirst();
-        QFile::remove(fn);
-        ui->pageSegEdit->setEnabled(true);
-        ui->widgetSegCtrls->setEnabled(true);
-        if (ui->widgetImageView->GetMaskFilename().isEmpty())
+        if (last_size_info[fn].toInt() == flist[0].size() && flist[0].size() > 0)
         {
-          LoadImage(0);
-          QMessageBox::information(this, "Edit Mask", "You can start editing the current mask while waiting for the rest to be generated.");
+          QImage image = NpyToImage(fn);
+          QString fn_png = QFileInfo(m_strMaskFolder, QFileInfo(fn).completeBaseName()+".png").absoluteFilePath();
+          image.save(fn_png);
+          m_listQueuedFiles.removeFirst();
+          QFile::remove(fn);
+          ui->pageSegEdit->setEnabled(true);
+          ui->widgetSegCtrls->setEnabled(true);
+          if (ui->widgetImageView->GetMaskFilename().isEmpty())
+          {
+            LoadImage(0);
+            QMessageBox::information(this, "Edit Mask", "You can start editing the current mask while waiting for the rest to be generated.");
+          }
+          UpdateIndex();
+          flist = QDir(path).entryInfoList(QStringList("*.npz"), QDir::Files, QDir::Name);
         }
-        UpdateIndex();
+        else
+        {
+          last_size_info[fn] = flist[0].size();
+          break;
+        }
       }
       else
-        last_size_info[fn] = flist[0].size();
+        break;
     }
+    else
+      break;
   }
 }
 
