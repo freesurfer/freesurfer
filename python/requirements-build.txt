@@ -3,6 +3,7 @@ Markdown==3.6
 MarkupSafe==2.1.5
 PyWavelets==1.4.1
 PyYAML==6.0.1
+SimpleITK==2.3.1
 Werkzeug==3.0.3
 absl-py==2.1.0
 astunparse==1.6.3
@@ -15,7 +16,7 @@ deepsurfer==0.1.1a4
 filelock==3.14.0
 flatbuffers==24.3.25
 fonttools==4.51.0
-fsspec==2024.3.1
+fsspec==2024.5.0
 gast==0.4.0
 google-auth-oauthlib==1.0.0
 google-auth==2.29.0
@@ -90,7 +91,7 @@ trimesh==4.3.2
 typing_extensions==4.5.0
 tzdata==2024.1
 urllib3==1.26.15
-uv==0.1.32
+uv==0.1.42
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
 wrapt==1.16.0
 xxhash==3.4.1
