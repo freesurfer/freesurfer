@@ -95,4 +95,4 @@ uv==0.1.42
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
 wrapt==1.16.0
 xxhash==3.4.1
-zipp==3.18.1
+zipp==3.18.2
