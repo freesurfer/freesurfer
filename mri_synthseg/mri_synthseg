@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--keepgeom", action="store_true", help="Force output geometry to be the same as input")
     parser.add_argument("--addctab", action="store_true", help="Embed colortable into seg output")
     parser.add_argument("--photo", help="(optional) Photo-SynthSeg: segment 3D reconstructed stack of coronal dissection photos of the cerebrum; must be left, right, or both")
+    parser.add_argument("--model", help="(optional) Provide an alternative model file")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -110,6 +111,11 @@ def main():
             sf.system.fatal('The flag --v1 cannot be used with --robust since SynthSeg-robust only came out with 2.0.')
         version = 'SynthSeg-robust 2.0'
         path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_robust_2.0.h5')
+
+    elif args.model:
+        path_model_segmentation = args.model
+        version = args.model
+
     else:
         if args.v1:
             path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_1.0.h5')
