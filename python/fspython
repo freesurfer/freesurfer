@@ -8,8 +8,12 @@
 # Then update environment - set PATH to contain FREESURFER_FSPYTHON/bin and force
 # FREESURFER_HOME to FREESURFER_FPSYHTON in order to find model files, etc.
 
+# set a variable to python dist in either the single or split install tree setup
+export FREESURFER_HOME_FSPYTHON="${FREESURFER_HOME}"
+
 func_setup_fspython_env()
 {
+   export FREESURFER_HOME_FSPYTHON="${FREESURFER_FSPYTHON}"
    export FREESURFER_HOME_FALLBACK="${FREESURFER_HOME}"
    export FREESURFER_HOME="${FREESURFER_FSPYTHON}"
    echo ${PATH} | grep "${FREESURFER_FSPYTHON}" > /dev/null
@@ -22,7 +26,9 @@ if [ ! -z "$FREESURFER_FSPYTHON" ]; then
       func_setup_fspython_env
    fi
 elif [ -e "$FREESURFER_HOME/../fspython" ]; then
-   export FREESURFER_FSPYTHON="${FREESURFER_HOME}/../fspython"
+   ## no realpath on MacOS
+   # export FREESURFER_FSPYTHON=`realpath "${FREESURFER_HOME}/../fspython"`
+   export FREESURFER_FSPYTHON=`(cd "${FREESURFER_HOME}/../fspython" && pwd -P)`
    func_setup_fspython_env
 fi
 
