@@ -4019,6 +4019,7 @@ MRI *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0, int dx, 
   mri_dst->c_s = c_s;
   // initialize cached transform
   MRIreInitCache(mri_dst);
+  if(mri_src->ct) mri_dst->ct = CTABdeepCopy(mri_src->ct);
 
   return (mri_dst);
 }
