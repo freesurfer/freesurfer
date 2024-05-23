@@ -29,3 +29,5 @@ matplotlib
 transforms3d
 scikit-image
 
+# extra packages required for dissection_photo nnUNet util
+SimpleITK

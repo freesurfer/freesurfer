@@ -1199,14 +1199,15 @@ static void do_file(char *fname)
   printf("   voxel sizes: %6.6f, %6.6f, %6.6f\n",
          mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
-         mri->type == MRI_UCHAR   ? "UCHAR" :
-         mri->type == MRI_SHORT   ? "SHORT" :
-	 mri->type == MRI_USHRT   ? "USHRT" :
-         mri->type == MRI_INT     ? "INT" :
-         mri->type == MRI_LONG    ? "LONG" :
+         mri->type == MRI_UCHAR   ? "UCHAR"  :
+         mri->type == MRI_SHORT   ? "SHORT"  :
+	 mri->type == MRI_USHRT   ? "USHRT"  :
+         mri->type == MRI_INT     ? "INT"    :
+         mri->type == MRI_LONG    ? "LONG"   :
          mri->type == MRI_BITMAP  ? "BITMAP" :
          mri->type == MRI_TENSOR  ? "TENSOR" :
-         mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
+         mri->type == MRI_FLOAT   ? "FLOAT"  :
+         mri->type == MRI_RGB     ? "RGB"    : "UNKNOWN", mri->type) ;
   printf("           fov: %2.3f\n", mri->fov) ;
   printf("           dof: %d\n", mri->dof) ;
 #if 0

@@ -14,16 +14,22 @@ if [ -z $FREESURFER_HOME ]; then
     return
 fi
 
+# set a variable to python dist in either the single or split install tree setup
+export FREESURFER_HOME_FSPYTHON="${FREESURFER_HOME}"
+
 func_setup_fspython_path()
 {
    export PATH="${FREESURFER_FSPYTHON}/bin:${PATH}"
+   export FREESURFER_HOME_FSPYTHON="${FREESURFER_FSPYTHON}"
 }
 if [ ! -z "$FREESURFER_FSPYTHON" ]; then
    if [ -e "$FREESURFER_FSPYTHON" ]; then
       func_setup_fspython_path
    fi
 elif [ -e "$FREESURFER_HOME/../fspython" ]; then
-   export FREESURFER_FSPYTHON="${FREESURFER_HOME}/../fspython"
+   ## no realpath on MacOS
+   # export FREESURFER_FSPYTHON=`realpath "${FREESURFER_HOME}/../fspython"`
+   export FREESURFER_FSPYTHON=`(cd "${FREESURFER_HOME}/../fspython" && pwd -P)`
    func_setup_fspython_path
 fi
 

@@ -14,13 +14,18 @@ if (! $?FREESURFER_HOME) then
     exit
 endif    
 
+# set a variable to python dist in either the single or split install tree setup
+setenv FREESURFER_HOME_FSPYTHON $FREESURFER_HOME
+
 if ($?FREESURFER_FSPYTHON) then 
    if ( -d $FREESURFER_FSPYTHON ) then
       set path = ( $FREESURFER_FSPYTHON/bin $path )
+      setenv FREESURFER_HOME_FSPYTHON $FREESURFER_FSPYTHON
    endif
-else if ( -d $FREESURFER_HOME/../fspython/bin ) then
-   setenv FREESURFER_FSPYTHON $FREESURFER_HOME/../fspython
+else if ( -d $FREESURFER_HOME/../fspython ) then
+   setenv FREESURFER_FSPYTHON `(cd "$FREESURFER_HOME/../fspython" && pwd -P)`
    set path = ( $FREESURFER_FSPYTHON/bin $path )
+   setenv FREESURFER_HOME_FSPYTHON $FREESURFER_FSPYTHON
 endif
 
 # Set this to your subjects/ dir, usually freesurfer/subjects/
