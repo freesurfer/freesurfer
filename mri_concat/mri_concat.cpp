@@ -129,7 +129,7 @@ int DoCumSum = 0;
 int DoFNorm = 0;
 char *rusage_file=NULL;
 //MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
-
+COLOR_TABLE *ctab=NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -141,7 +141,6 @@ int main(int argc, char **argv)
   MATRIX *Upca=NULL,*Spca=NULL;
   MRI *Vpca=NULL;
   char *stem;
-  COLOR_TABLE *ctab=NULL;
 
   nargs = handleVersionOption(argc, argv, "mri_concat");
   if (nargs && argc - nargs == 1)
@@ -324,7 +323,7 @@ int main(int argc, char **argv)
     if(nthin == 0)
     {
       MRIcopyHeader(mritmp, mriout);
-      if(mritmp->ct) ctab = CTABdeepCopy(mritmp->ct);
+      if(ctab == NULL && mritmp->ct) ctab = CTABdeepCopy(mritmp->ct);
     }
     if(DoAbs)
     {
@@ -1092,6 +1091,12 @@ static int parse_commandline(int argc, char **argv)
       DoAdd = 1;
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--ctab")){
+      if(nargc < 1) argnerr(option,1);
+      ctab = CTABreadASCII(pargv[0]);
+      if(!ctab) exit(1);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--tar1"))
     {
       if(nargc < 1)
@@ -1200,6 +1205,7 @@ static void print_usage(void)
   printf("   --fnorm : normalize time series at each voxel (remove mean, divide by SSS)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
+  printf("   --ctab ctab : embed color table in the output\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("   --tar1 dofadjust : compute temporal ar1\n");
   printf("   --prune : set vox to 0 unless all frames are non-zero\n");
