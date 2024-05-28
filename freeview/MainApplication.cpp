@@ -21,8 +21,18 @@
 
 #include "MainApplication.h"
 #include <QKeyEvent>
+#include <QDebug>
 
 MainApplication::MainApplication( int & argc, char ** argv ) :
   QApplication(argc, argv)
 {
+}
+
+
+void MainApplication::SetLargeFont(bool b)
+{
+  QString strg;
+  if (b)
+    strg = "QWidget {font-size: 12pt;}";
+  setStyleSheet(strg);
 }

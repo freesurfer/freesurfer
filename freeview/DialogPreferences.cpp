@@ -75,6 +75,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
           mainwnd, SLOT(SyncZoom(bool)));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
           mainwnd->GetCommandConsole(), SLOT(SetDarkTheme(bool)));
+  connect(ui->checkBoxLargeFont, SIGNAL(toggled(bool)), qApp, SLOT(SetLargeFont(bool)));
 
   connect(ui->comboBox3DScaleStyle, SIGNAL(currentIndexChanged(int)), ((RenderView3D*)mainwnd->GetRenderView(3)), SLOT(SetAxesFlyMode(int)));
 
@@ -163,6 +164,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->checkBoxClickToLock->setChecked(map["ClickToLock"].toBool());
   ui->comboBox3DScaleStyle->setCurrentIndex(map["3DAxesFlyMode"].toInt());
   ui->checkBoxAllowDeleteKey->setChecked(map["AllowDeleteKey"].toBool());
+  ui->checkBoxLargeFont->setChecked(map["LargeFont"].toBool());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -218,6 +220,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["ClickToLock"] = ui->checkBoxClickToLock->isChecked();
   map["3DAxesFlyMode"] = ui->comboBox3DScaleStyle->currentIndex();
   map["AllowDeleteKey"] = ui->checkBoxAllowDeleteKey->isChecked();
+  map["LargeFont"] = ui->checkBoxLargeFont->isChecked();
   return map;
 }
 

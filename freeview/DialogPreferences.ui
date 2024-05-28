@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>503</width>
-    <height>589</height>
+    <width>536</width>
+    <height>605</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -924,6 +924,22 @@
            <widget class="QCheckBox" name="checkBoxAllowDeleteKey">
             <property name="text">
              <string>Allow Delete key to delete current selected volume/surface/etc.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxAccessibility">
+         <property name="title">
+          <string>Accessibility</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_12">
+          <item>
+           <widget class="QCheckBox" name="checkBoxLargeFont">
+            <property name="text">
+             <string>Use larger font size</string>
             </property>
            </widget>
           </item>

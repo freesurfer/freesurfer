@@ -714,6 +714,10 @@ void MainWindow::LoadSettings()
 
   //  OnPreferences();
   //  m_dlgPreferences->hide();
+  if (m_settings.value("LargeFont").toBool())
+  {
+    ((MainApplication*)qApp)->SetLargeFont(true);
+  }
 
   for (int i = 0; i < 4; i++)
   {
