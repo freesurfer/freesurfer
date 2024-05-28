@@ -33,6 +33,12 @@ void MainApplication::SetLargeFont(bool b)
 {
   QString strg;
   if (b)
+  {
+#ifdef Q_OS_MAC
+    strg = "QWidget {font-size: 14pt;}";
+#else
     strg = "QWidget {font-size: 12pt;}";
+#endif
+  }
   setStyleSheet(strg);
 }
