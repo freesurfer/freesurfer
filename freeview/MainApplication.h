@@ -39,7 +39,7 @@ public slots:
     emit GlobalProgress(n);
   }
 
-  void SetLargeFont(bool b);
+  void SetFontSize(int pt);
 
 public:
   bool m_bFreshStart;

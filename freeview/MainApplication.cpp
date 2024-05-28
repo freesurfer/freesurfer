@@ -29,16 +29,8 @@ MainApplication::MainApplication( int & argc, char ** argv ) :
 }
 
 
-void MainApplication::SetLargeFont(bool b)
+void MainApplication::SetFontSize(int pt)
 {
-  QString strg;
-  if (b)
-  {
-#ifdef Q_OS_MAC
-    strg = "QWidget {font-size: 14pt;}";
-#else
-    strg = "QWidget {font-size: 12pt;}";
-#endif
-  }
+  QString strg = QString("QWidget {font-size: %1pt;}").arg(pt);
   setStyleSheet(strg);
 }

@@ -714,9 +714,13 @@ void MainWindow::LoadSettings()
 
   //  OnPreferences();
   //  m_dlgPreferences->hide();
-  if (m_settings.value("LargeFont").toBool())
+  if (m_settings.value("UIFontSize").toInt() > 7)
   {
-    ((MainApplication*)qApp)->SetLargeFont(true);
+    ((MainApplication*)qApp)->SetFontSize(m_settings["UIFontSize"].toInt());
+  }
+  else
+  {
+    m_settings["UIFontSize"] = font().pointSize();
   }
 
   for (int i = 0; i < 4; i++)
