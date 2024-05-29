@@ -24,8 +24,20 @@ else()
    set(pip_target_option "--target")
 endif()
 
+function(requirements_file_install)
+  if(FSPYTHON_BUILD_REQ)
+      if(NOT APPLE_ARM64)
+         if(FSPYTHON_INSTALL_TREE)
+            install(PROGRAMS requirements-build.txt DESTINATION ../fspython/python)
+         else()
+            install(PROGRAMS requirements-build.txt DESTINATION python)
+         endif()
+      endif()
+   endif()
+endfunction()
+
 function(fspython_script_install)
-   # install the fspython script 
+   # install the fspython script - FOR NOW install in both trees if split tree install 
    if(APPLE_ARM64)
       # Allow script to use local packages with the system or Apple recommended Anaconda python
       install(PROGRAMS fspython.local DESTINATION bin RENAME fspython)
@@ -33,7 +45,6 @@ function(fspython_script_install)
          install(PROGRAMS fspython.local DESTINATION ../fspython/bin RENAME fspython)
       endif() 
    else()
-      # FIX ME: for now install in both main FS tree and separate fspython tree
       install(PROGRAMS fspython DESTINATION bin)
       if(FSPYTHON_INSTALL_TREE)
          install(PROGRAMS fspython DESTINATION ../fspython/bin)
@@ -191,10 +202,12 @@ if(DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    # install base python distribution
    # install C bindings, etc. under python/packages
    # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
+   # install a copy of the requirements-build.txt file if the build was set to use it for the revs of pkgs to install
    python_3_8_base_install()
    packages_install()
    sitepackages_install()
    fspython_script_install()
+   requirements_file_install()
    if(PATCH_FSPYTHON)
       fspython_patch()
    endif()
@@ -218,11 +231,13 @@ if(NOT DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    # Use an existing 3rd party python instead of base python distribution
    # install C bindings, etc. under python/packages
    # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
+   # install a copy of the requirements-build.txt file if the build was set to use it for the revs of pkgs to install
    set(PKG_TARGET "${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages")
    message(STATUS For "HOST_OS=${HOST_OS} PKG_TARGET=${PKG_TARGET}")
    packages_install()
    sitepackages_install()
    fspython_script_install()
+   requirements_file_install()
    if(PATCH_FSPYTHON)
       fspython_patch()
    endif()
