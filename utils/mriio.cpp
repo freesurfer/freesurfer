@@ -718,7 +718,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
         if (mri != NULL && mri->ti < 0)
 	  mri->ti = 0;
 
-        (*mriVector).push_back(mri);
+	if (mriVector != NULL)
+          (*mriVector).push_back(mri);
         free((*mrifsStruct_vector)[n].imgM);
         free((*mrifsStruct_vector)[n].tdti);
       }
@@ -755,7 +756,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       for (int n = 0; n < nitems; n++)
       {
         mri = niiReadFromMriFsStruct(&(*mrifsStruct_vector)[n]);
-        (*mriVector).push_back(mri);
+	if (mriVector != NULL)
+          (*mriVector).push_back(mri);
         free((*mrifsStruct_vector)[n].imgM);
         free((*mrifsStruct_vector)[n].tdti);
       }
