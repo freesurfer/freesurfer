@@ -980,6 +980,10 @@ MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
       }
     }
   }
+  if(out->ct && seg->ct) {
+    CTABfree(&out->ct);
+    out->ct = CTABdeepCopy(seg->ct);
+  }
   return (out);
 }
 /*!
