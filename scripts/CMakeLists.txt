@@ -31,6 +31,7 @@ install_configured(
   conf2hires
   cor_to_minc
   cp-dicom
+  create_nnUNet_v1.7_env.sh
   csvprint
   dcmdir-info-mgh
   dcmsplit
@@ -297,6 +298,7 @@ endif()
 
 install(FILES mri_nu_correct.mni.help.xml DESTINATION docs/xml)
 install_append_help(bbregister bbregister.help.xml bin)
+install(FILES install_nnUNet_v1.7_instructions.md DESTINATION docs)
 
 install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)
 
