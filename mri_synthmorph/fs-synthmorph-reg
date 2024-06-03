@@ -28,7 +28,11 @@ set UseQuick = 0
 set CropInput = 1
 set CropTarget = 1
 set MNITarget = 1
-set MNITargetRes = 1.5mm
+# Synthmorph uses 1mm internally, so useing target res=1mm does not
+# slow things down or take more mem and it is probably gives a little
+# bit better registration.  ANTs speed and performance will be
+# affected.
+set MNITargetRes = 1.0mm 
 set MNIOutputRes = 1.0mm
 set DoCBIG = 0
 set DoTest = 0
@@ -287,7 +291,8 @@ set ud = `UpdateNeeded $m3z $warp $targvolcrop $regcroptargtocropinvol $regcropt
 if($ud || $ForceUpdate) then
   date | tee -a $LF
   set cmd = (mri_warp_convert --initk $warp --insrcgeom $targvolcrop \
-    --lta1-inv $regcroptargtocropinvol --outm3z $m3z --vg-thresh $vgthresh)
+    --outm3z $m3z --vg-thresh $vgthresh)
+  if($CropInput) set cmd = ($cmd --lta1-inv $regcroptargtocropinvol )
   if($#regcroptotarg) set cmd = ($cmd --lta2 $regcroptotarg)
   echo "\n\n"| tee -a $LF 
   echo $cmd | tee -a $LF 
@@ -371,7 +376,8 @@ if($ud || $ForceUpdate) then
   # then the lta1 indicates how to go from the cropped CRS to the
   # uncropped CRS.
   set cmd = (mri_warp_convert --inras $deform --insrcgeom $involcrop\
-     --outm3z $m3z --lta1-inv $regcroptoinvol --vg-thresh $vgthresh)
+     --outm3z $m3z --vg-thresh $vgthresh)
+  if($CropInput) set cmd = ($cmd --lta1-inv $regcroptoinvol)
   if($#regcroptotarg) set cmd = ($cmd --lta2 $regcroptotarg)
   echo "\n\n$cmd" | tee -a $LF
   fs_time $cmd |& tee -a $LF
@@ -816,7 +822,7 @@ usage_exit:
   echo "  --o outdir"
   echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.5mm.1.0mm.nii.gz  targ=MNI152.1mm)"
   echo "  --threads threads"
-  echo "  --mni-targ-res 1.0mm, 1.5mm, 2.0mm (default is 1.5mm)"
+  echo "  --mni-targ-res 1.0mm, 1.5mm, 2.0mm (default is 1.0mm)"
   echo "  --mni-out-res 1.0mm, 1.5mm, 2.0mm, conformed (default is 1.0mm)"
   echo "  --no-inv : do not compute warp inverse (computed by default)"
   echo "  --affine-only : only perform the affine registration part"
@@ -848,9 +854,9 @@ Simple usage:
 fs-synthmorph-reg --i inputvol.nii.gz --o synthmorphdir
 
 This will register to the mni152 saving output files in synthmorphdir. The nonlinear 
-warp will be outdir/warp.to.mni152.1.5mm.1.0mm.nii.gz which can be applied like:
+warp will be outdir/warp.to.mni152.1.0mm.1.0mm.nii.gz which can be applied like:
 
-mri_convert inputvol.nii.gz -at warp.to.mni152.1.5mm.1.0mm.nii.gz inputvol.mni152.nii.gz
+mri_convert inputvol.nii.gz -at warp.to.mni152.1.0mm.1.0mm.nii.gz inputvol.mni152.nii.gz
 
 which can be checked with
 
@@ -859,46 +865,47 @@ freeview inputvol.mni152.nii.gz $FREESURFER/average/mni_icbm152_nlin_asym_09c/re
 If you have created the warp from a FreeSurfer subject space (either with --s or passing a 
 conformed volume), then you can apply the warp to the surfaces, eg,
 
-mris_apply_reg --warp lh.white warp.to.mni152.1.5mm.1.0mm.inv.nii.gz lh.warp.mni152
+mris_apply_reg --warp lh.white warp.to.mni152.1.0mm.1.0mm.inv.nii.gz lh.warp.mni152
 
 which you can check with
 
 freeview inputvol.mni152.nii.gz $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/mni152.1.0mm.nii.gz -f lh.warp.mni152
 
-Skull stripping: it is best to apply mri_synthmorph to skull stripped
-data. fs-synthmorph-reg assumes that the input is skull stripped (and
-registers to a skull stripped mni152 volume). If you want
-fs-synthmorph-reg to skull strip for you, then add --strip (uses
-mri_synthstrip). Note that if you pass a FS subject (--s), it will use
-the norm.mgz volume, which is already skull stripped. Skull stripping
-can also speed things up when combined with cropping (see below).
+Skull stripping: mri_synthmorph is quite robust to the presence or
+absence of skull stripping, but there will be some differences, so, to
+be on the safe side, we recommend that images be skull stripped prior
+to registration. When registering to the mni152, it will automatically
+use a skull stripped volume. If you want fs-synthmorph-reg to skull
+strip for you, then add --strip (uses mri_synthstrip). Note that if
+you pass a FS subject (--s), it will use the norm.mgz volume, which is
+already skull stripped. Note that ANTs performance and speed will be
+very sensitive to stripping.
 
 Cropping: internally, fs-synthmorph-reg will crop the input to a
-minimal window around non-zero voxels in the image. This can speed up
-the program dramatically and reduce its memory
-footprint. fs-synthmorph-reg will manage all of the transforms so that
-they all reference the uncropped space, ie, the user is completely
-insulated from the cropping process and its implications. To turn off
-cropping, use --no-crop.
+minimal window around non-zero voxels in the image. In the end, this
+probably does not have much of an effect for synthmorph as it will
+sample to 256^3 internally. For ANTs, this can speed up the program
+dramatically and reduce its memory footprint. fs-synthmorph-reg will
+manage all of the transforms so that they all reference the uncropped
+space, ie, the user is completely insulated from the cropping process
+and its implications. To turn off cropping, use --no-crop. If you are
+not stripping, it probably does not make sense to crop. 
 
-Target and Output MNI Resolution: the 1.5mm in the warp file name means
-that the registration is done to a version of the mni152 with an
-isotropic resolution of 1.5mm (this will be how finely the warp field
-is sampled). The 1.0mm means that the warp file will actually warp to
-the the mni152 with an isotropic resolution of 1.0mm. The reason for
-this difference is that the warp field itself is pretty smooth and
-does not need very fine resolution; making the resolution finer just
-slows things down. When applying the warp field to a data set, one
-often wants to have the output be at 1mm.  You can change the
-resolution of the warp field with the --mni-targ-res flag (options are
-1.0mm, 1.5mm, 2.0mm). You can change the resolution of the output in
-several ways. From this program, you can specify the output resolution
-with --mni-out-res (options are 1.0mm, 1.5mm, 2.0mm). You can also
-create an LTA file to the desired output resolution and then use
-mri_warp_convert to change the warp.  Or you can create an LTA file to
-the desired resolution, and then use mri_vol2vol --gcam to apply the
-warp and the LTA (instead of mri_convert, which will only the the
-warp).
+Target and Output MNI Resolution: the first 1.0mm in the warp file
+name means that the registration is done to a version of the mni152
+with an isotropic resolution of 1.0mm (this will be how finely the
+warp field is sampled). The second 1.0mm means that the warp file will
+actually warp to the the mni152 with an isotropic resolution of 1.0mm.
+You can change the resolution of the warp field with the
+--mni-targ-res flag (options are 1.0mm, 1.5mm, 2.0mm), but,
+internally, synthmorph uses 1mm, so this makes sense. You can change
+the resolution of the output in several ways. From this program, you
+can specify the output resolution with --mni-out-res (options are
+1.0mm, 1.5mm, 2.0mm). You can also create an LTA file to the desired
+output resolution and then use mri_warp_convert to change the warp.
+Or you can create an LTA file to the desired resolution, and then use
+mri_vol2vol --gcam to apply the warp and the LTA (instead of
+mri_convert, which will only the the warp).
 
 Affine and affine-only: by default, this script will perform a
 non-linear registration to the target space. The first step of this
