@@ -21,8 +21,9 @@ show_help(){
     echo "./create_nnUNet_v1.7_env.sh \ "
     echo "  -e <path to conda.sh> \ "
     echo "  -n <conda_env_name> \ "
-    echo "  -m <path to Task002_StrokesLong>"
-    echo "  -d <path to save nnUNet files>"
+    echo "  -m <path to Task002_StrokesLong> \ "
+    echo "  -d <path to save nnUNet files> \ "
+    echo "  -c # boolean flag, pass to install cuda, Linux only" 
     echo ""
     echo "More detailed instructions can be found here under FREESURFER_HOME/docs/install_nnUNet_v1.7_instructions.md or on github: https://github.com/freesurfer/freesurfer/blob/dev/install_nnUNet_v1.7_instructions.md"
     exit $1
@@ -88,19 +89,19 @@ fi
 # test that the conda.sh script exists
 if [ ! -f $SOURCE_CONDA ]; then
     echo "Cannot access the 'conda.sh' script at $SOURCE_CONDA, exiting..."
-    show_help
+    show_help 1
 fi
 
 # test that the model file exists
 if [ ! -d $MODEL_FILE_PATH ]; then
     echo "The directory containing the model files does not exist: $MODEL_FILE_PATH"
-    show_help
+    show_help 1
 fi
 
 # test that the path to store the nnUNet file tree is set
 if [ -z $NNUNET_ENV_DIR ]; then
     echo "The directory to save the nnUNet model files is not set. exiting..."
-    show_help
+    show_help 1
 fi
 
 ### build paths for the nnUNet directory structure
@@ -155,7 +156,6 @@ if [[ $INSTALL_CUDA -eq 1 ]]; then
 fi
 
 echo "Creating conda env: $CONDA_CREATE_CMD"
-exit 0
 $CONDA_CREATE_CMD
 if [[ $? -ne 0 ]]; then 
     echo "An error occurred while trying to create the conda env."
