@@ -11,7 +11,7 @@
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
     m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7),
-    m_nBrushSize(1), m_bMaskEdited(false), m_bModifierDown(false)
+    m_nBrushSize(10), m_bMaskEdited(false), m_bModifierDown(false)
 {
   setMouseTracking(true);
   m_colorPen = QColor(50,255,50);

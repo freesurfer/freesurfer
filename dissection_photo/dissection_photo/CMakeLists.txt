@@ -11,6 +11,7 @@ if(BUILD_GUIS)
     ../connected_components/MaskProcessor.cpp
     ../MyUtils.cpp
     MainWindow.cpp
+    ProgressWindow.cpp
     main.cpp
     dissection_photo.qrc
   )

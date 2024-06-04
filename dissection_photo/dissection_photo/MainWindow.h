@@ -15,6 +15,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class QLabel;
+class ProgressWindow;
 
 class MainWindow : public QMainWindow
 {
@@ -23,6 +24,8 @@ class MainWindow : public QMainWindow
 public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
+
+  void resizeEvent(QResizeEvent* e);
 
 public slots:
   void OnButtonInputFolder();
@@ -50,6 +53,7 @@ private slots:
   void OnLastRegionEdited(int n);
   void OnToggleMask();
   void OnFileChanged(const QString& path);
+  void ShowProgressWindow(bool bShow = true);
 
 private:
   void SetupScriptPath();
@@ -58,6 +62,7 @@ private:
   void ClearFolder(const QString& path);
   QImage NpyToImage(const QString& fn);
   QList<QPoint> GetCalibrationPointsList(const QVariantMap& info);
+  void RepositionProgressWindow();
 
   Ui::MainWindow *ui;
   QString  m_strInputFolder;
@@ -95,5 +100,6 @@ private:
   QElapsedTimer  m_elapsedTimer;
   QFileSystemWatcher  m_fileWatcher;
   QStringList    m_listQueuedFiles;
+  ProgressWindow* m_wndProgress;
 };
 #endif // MAINWINDOW_H
