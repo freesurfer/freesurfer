@@ -26,6 +26,7 @@ public:
   ~MainWindow();
 
   void resizeEvent(QResizeEvent* e);
+  void moveEvent(QMoveEvent* e);
 
 public slots:
   void OnButtonInputFolder();

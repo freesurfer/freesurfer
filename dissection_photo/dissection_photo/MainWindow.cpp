@@ -91,6 +91,13 @@ void MainWindow::resizeEvent(QResizeEvent* e)
   QMainWindow::resizeEvent(e);
 }
 
+void MainWindow::moveEvent(QMoveEvent* e)
+{
+  RepositionProgressWindow();
+  QMainWindow::moveEvent(e);
+}
+
+
 void MainWindow::RepositionProgressWindow()
 {
   QRect rc = m_wndProgress->rect();
