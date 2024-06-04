@@ -1,4 +1,13 @@
-# docker build for distributing a base fs 7.2.0 container
+# Docker file for creating a container with freesurfer 7.2.0 release (07/2021). Note that installs which do
+# not use the linux packaging tools (to install via an .rpm or .deb file) are not officially supported.
+#
+# Users are expected to fill out the registration form at https://surfer.nmr.mgh.harvard.edu/registration.html
+# in order to download a license.txt file received thru the email address provided in the form.  Subsequently
+# you can copy the license.txt file to live under $FREESURFER_HOME as .license (see commented out COPY command below).
+#
+# Alternately, you can place license.txt anywhere inside the container, e.g., under $HOME, and set
+# the FS_LICENSE environment variable to point to it (see commented out COPY and ENV commands below).
+# Then your license file will always be found even if you install/remove other freesurfer distributions.
 
 FROM centos:7
 
@@ -21,6 +30,10 @@ RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer
 ENV OS Linux
 ENV PATH /usr/local/freesurfer/bin:/usr/local/freesurfer/fsfast/bin:/usr/local/freesurfer/tktools:/usr/local/freesurfer/mni/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV FREESURFER_HOME /usr/local/freesurfer
+# COPY license.txt $FREESURFER_HOME/.license
+## alternately
+# COPY license.txt $HOME/license.txt
+# ENV FS_LICENSE=$HOME/license.txt
 ENV FREESURFER /usr/local/freesurfer
 ENV SUBJECTS_DIR /usr/local/freesurfer/subjects
 ENV LOCAL_DIR /usr/local/freesurfer/local
