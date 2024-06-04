@@ -44,7 +44,8 @@ required dependencies and download the model files required for inference.
 
 Once the prerequisites have been met, you can run 'create_nnUNet_v1.7_env.sh' to
 setup the nnUNet environment. The script will create a conda env with the tested
-version of python and pytorch, clone and install the version of nnUNet used to train the model, create the directory structure to hold the data and model files
+version of python and pytorch, clone and install the version of nnUNet used to
+train the model, create the directory structure to hold the data and model files
 for nnUNet, generate a file to source with the env vars required by nnUNet to
 find the data.
 
@@ -59,7 +60,7 @@ script to correctly configure the nnUNet environment:
 Example command:
 
 ```bash
-create_nnUNet_v1.7_env.sh \
+./create_nnUNet_v1.7_env.sh \
     -e linux/etc/profile.d/conda.sh \   # path to conda.sh script
     -m Downloads/Task002_StrokesLong \  # path to unpacked model 
     -n nnUNet_v1.7 \                    # name to give the conda env
