@@ -768,7 +768,7 @@ bool lineIntersects( const ImageGrayU &mask, float x1, float y1, float x2, float
 /// (assumes points are inside image bounds)
 bool rectIntersects( const ImageGrayU &mask, int x1, int y1, int x2, int y2 ) {
     assertAlways( y2 >= y1 );
-    assertAlways( x2 >= x2 );
+    assertAlways( x2 >= x1 );
     for (int y = y1; y <= y2; y++) {
         for (int x = x1; x <= x2; x++) {
             if (mask.data( x, y ))
