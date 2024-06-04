@@ -59,12 +59,15 @@ script to correctly configure the nnUNet environment:
 Example command:
 
 ```bash
-./create_env.sh \
+create_nnUNet_v1.7_env.sh \
     -e linux/etc/profile.d/conda.sh \   # path to conda.sh script
     -m Downloads/Task002_StrokesLong \  # path to unpacked model 
     -n nnUNet_v1.7 \                    # name to give the conda env
     -d nnUNet_paths                     # root of the nnUNet data/model tree
+    -c                                  # if passed, install cuda
 ```
+
+NOTE: Do not pass the -c flag on a Mac, cuda is not available for MacOS
 
 When the script finishes running (which could take a bit of time), you will have
 a new conda environment with the name passed to the -n flag. A file will also be

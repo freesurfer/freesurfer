@@ -29,6 +29,7 @@ show_help(){
 }
 
 HELP=0
+INSTALL_CUDA=0
 CWD=$PWD
 
 UNRECOGNIZED=()
@@ -38,6 +39,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help)
             HELP=1
+            shift
+            ;;
+        -c|--cuda)
+            INSTALL_CUDA=1
             shift
             ;;
         -e|--conda-env)
@@ -142,9 +147,15 @@ trap cleanup EXIT
 source $SOURCE_CONDA
 
 # cretate the conda env
-CONDA_CREATE_CMD="conda create -n $CREATE_ENV_NAME python=3.8.13 pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 pytorch-cuda=11.8 -c pytorch -c nvidia -y"
+CONDA_CREATE_CMD="conda create -n $CREATE_ENV_NAME python=3.8.13 pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 -c pytorch -y"
+
+# append the cuda dependencies if --cuda passed
+if [[ $INSTALL_CUDA -eq 1 ]]; then
+    CONDA_CREATE_CMD="$CONDA_CREATE_CMD pytorch-cuda=11.8 -c nvidia"
+fi
 
 echo "Creating conda env: $CONDA_CREATE_CMD"
+exit 0
 $CONDA_CREATE_CMD
 if [[ $? -ne 0 ]]; then 
     echo "An error occurred while trying to create the conda env."
