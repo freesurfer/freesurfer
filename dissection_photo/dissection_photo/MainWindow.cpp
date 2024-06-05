@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include "cnpy.h"
+#include "ProgressWindow.h"
 
 #define SCRIPT_RETROSPECTIVE "func_retrospective_correction.py"
 #define SCRIPT_FIDUCIALS_CORRECTION "func_fiducials_correction.py"
@@ -57,6 +58,9 @@ MainWindow::MainWindow(QWidget *parent)
 
   ui->widgetImageView->SetNumberOfExpectedPoints(4);
 
+  m_wndProgress = new ProgressWindow(this);
+  m_wndProgress->hide();
+
   qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");
   m_proc = new QProcess(this);
   connect(m_proc, SIGNAL(readyReadStandardOutput()), SLOT(OnProcessOutputMessage()));
@@ -79,6 +83,27 @@ MainWindow::~MainWindow()
   s.setValue("MainWindow/SplitterState",  ui->splitter->saveState());
 
   delete ui;
+}
+
+void MainWindow::resizeEvent(QResizeEvent* e)
+{
+  RepositionProgressWindow();
+  QMainWindow::resizeEvent(e);
+}
+
+void MainWindow::moveEvent(QMoveEvent* e)
+{
+  RepositionProgressWindow();
+  QMainWindow::moveEvent(e);
+}
+
+
+void MainWindow::RepositionProgressWindow()
+{
+  QRect rc = m_wndProgress->rect();
+  rc.moveCenter(rect().center());
+  rc.moveTopLeft(rc.topLeft()+this->pos());
+  m_wndProgress->setGeometry(rc);
 }
 
 void MainWindow::OnButtonInputFolder()
@@ -132,8 +157,16 @@ void MainWindow::OnButtonOutputFolderCC()
       m_proc->start(cmd.join(" "));
       m_proc->setProperty("task", "mask_to_cc");
       ui->pushButtonCreateMask->setEnabled(false);
+      ShowProgressWindow(true);
     }
   }
+}
+
+void MainWindow::ShowProgressWindow(bool bShow)
+{
+  m_wndProgress->setVisible(bShow);
+  if (bShow)
+    RepositionProgressWindow();
 }
 
 void MainWindow::OnButtonCalibrationFile()
@@ -200,6 +233,7 @@ void MainWindow::OnButtonLoadMask()
         m_fileWatcher.addPath(temp_out_dir);
         m_listQueuedFiles = watch_list;
         m_nIndex = 0;
+        ShowProgressWindow(true);
       }
       else
       {
@@ -574,6 +608,8 @@ void MainWindow::OnProcessError(QProcess::ProcessError er)
   default:
     break;
   }
+
+  ShowProgressWindow(false);
   qDebug() << str;
 }
 
@@ -591,6 +627,8 @@ void MainWindow::OnProcessFinished()
   ui->pushButtonProcess->setEnabled(true);
   if (m_nIndex >= m_listInputFiles.size()-1)
     ui->pushButtonSegmentation->setEnabled(true);
+
+  ShowProgressWindow(false);
 
   QString task;
   if (sender())
@@ -772,6 +810,7 @@ void MainWindow::OnFileChanged(const QString& path)
           ui->widgetSegCtrls->setEnabled(true);
           if (ui->widgetImageView->GetMaskFilename().isEmpty())
           {
+            ShowProgressWindow(false);
             LoadImage(0);
             QMessageBox::information(this, "Edit Mask", "You can start editing the current mask while waiting for the rest to be generated.");
           }
