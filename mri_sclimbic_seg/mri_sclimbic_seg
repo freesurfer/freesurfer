@@ -84,6 +84,7 @@ def main():
     parser.add_argument('--output-base', default='sclimbic',help='String to use in output file name; default is sclimbic')
     parser.add_argument('--no-cite-sclimbic', dest='citeLimbic', action='store_false', help='Do not cite sclimbic paper at the end.')
     parser.add_argument('--logfile', help='Set logfile (default is mri_sclimbic.log)')
+    parser.add_argument('--fov', type=int, default=160, help='Set FoV')
     # Ideally, we would get this from the model
     parser.add_argument('--nchannels', type=int, default=1,help='Number of channels')
 
@@ -174,6 +175,7 @@ def main():
                                 volumes_from_vox_count=args.vox_count_volumes,
                                 percentile=percentile,
                                 exclude=args.exclude,
+                                inshape=(args.fov,args.fov,args.fov),
                                 nchannels=args.nchannels);
     print('Loaded model weights', model_file) 
 
@@ -367,12 +369,13 @@ class LimbicSegmenter:
                  volumes_from_vox_count=False,
                  percentile=None,
                  exclude=[],
+                 inshape=(160,160,160),
                  nchannels=1):
 
         self.labels = labels
         self.population_stats = population_stats
         self.conform = conform
-        self.inshape = (160, 160, 160)
+        self.inshape = inshape
         self.case_volumes = {}
         self.case_etivs = {}
         self.case_prob_means = {}
@@ -391,6 +394,7 @@ class LimbicSegmenter:
         self.label_names = [label.name for i, label in zip(self.exclude_mask, self.labels.values()) if i]
         print(f'nb_labels {len(self.labels)}');
         # build and load model
+        print(f'inshape {self.inshape}')
         self.model = unet(nb_features=24,
                           input_shape=(*self.inshape, self.nchannels),
                           nb_levels=3,
@@ -410,7 +414,10 @@ class LimbicSegmenter:
                           conv_dropout=0,
                           batch_norm=-1,
                           input_model=None)
+        print(f'  {self.model.layers[0].input_shape[0]}');
+        print("Loading weights -----------------------");
         self.model.load_weights(model_file, by_name=True)
+        print("Done loading weights -----------------------");
 
     def reset_timer(self):
         """
