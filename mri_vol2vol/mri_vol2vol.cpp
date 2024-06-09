@@ -1097,7 +1097,10 @@ int main(int argc, char **argv) {
       exit(1);
     }
   }
-  if(mov->ct) out->ct = CTABdeepCopy(mov->ct);
+  else {
+    if(mov->ct  && !invert) out->ct = CTABdeepCopy(mov->ct);
+    if(targ->ct &&  invert) out->ct = CTABdeepCopy(targ->ct);
+  }
 
   err = MRIwrite(out,outvolfile);
   if(err){
