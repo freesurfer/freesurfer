@@ -343,6 +343,16 @@ if($CropInput || $CropTarget) then
       if($status) goto error_exit
       echo "\n\n"| tee -a $LF 
     endif
+    # Compute the inverse
+    set reginvoltotarg = $outdir/reg.invol_to_targ.lta
+    set ud = `UpdateNeeded $reginvoltotarg $regtargtoinvol`
+    if($ud || $ForceUpdate) then
+      set cmd = (lta_convert --invert --inlta $regtargtoinvol --outlta $reginvoltotarg)
+      echo $cmd | tee -a $LF 
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      echo "\n\n"| tee -a $LF 
+    endif
   endif
 else
   set reginvoltocroptarg = $affinelta
