@@ -22,80 +22,11 @@ For ANTs license information, see distribution/docs/license.ants.txt
 
 #include "argparse.h"
 #include "mri.h"
+#include "mri2.h"
 #include "AntsN4BiasFieldCorrectionFs.help.xml.h"
 #ifdef _OPENMP
 #include "romp_support.h"
 #endif
-
-MRI *MRIrescaleBySeg(MRI *in, MRI *seg, std::vector<int> ids, double targval, MRI *mask, MRI *out)
-{
-  int nhits=0;
-  double *sum = (double *) calloc(sizeof(double),in->nframes);
-
-  for(int c=0; c < in->width; c++){
-    for(int r=0; r < in->height; r++){
-      for(int s=0; s < in->depth; s++){
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	int id = MRIgetVoxVal(seg,c,r,s,0);
-	for(int n=0; n < ids.size(); n++){
-	  if(id == ids[n]){
-	    nhits++;
-	    for(int f=0; f < in->nframes; f++){
-	      double val = MRIgetVoxVal(in,c,r,s,f);
-	      sum[f] += val;
-	    }
-	    break;
-	  }
-	} // search over ids
-      } // s
-    } // r
-  } //c
-
-  if(nhits == 0){
-    printf("ERROR: MRIrescaleBySeg() no voxels found\n");
-    free(sum);
-    return(NULL);
-  }
-
-  printf("MRIrescaleBySeg() nhits=%d\n",nhits);
-  for(int f=0; f < in->nframes; f++){
-    if(fabs(sum[f]) < 10e-10){
-      printf("ERROR: MRIrescaleBySeg(): frame %d has 0 mean\n",f);
-      free(sum);
-      return(NULL);
-    }
-    double mn = (sum[f]/(double)nhits);
-    sum[f] = targval/mn; // This is now a scale to multiply by
-  }
-
-  if(out == NULL) {
-    out = MRIallocSequence(in->width, in->height, in->depth, in->type, in->nframes);
-    MRIcopyHeader(in, out);
-    MRIcopyPulseParameters(in, out);
-  }
-
-  for(int c=0; c < in->width; c++){
-    for(int r=0; r < in->height; r++){
-      for(int s=0; s < in->depth; s++){
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
-	  for(int f=0; f < in->nframes; f++){
-	    MRIsetVoxVal(out,c,r,s,f,0);
-	    continue;
-	  }
-	}
-	for(int f=0; f < in->nframes; f++){
-	  double val = MRIgetVoxVal(in,c,r,s,f)*sum[f];
-	  MRIsetVoxVal(out,c,r,s,f,val);
-	}
-      } // s
-    } // r
-  } //c
-
-  free(sum);
-  return(out);
-}
-
-
 
 
 int main(int argc, char **argv)
