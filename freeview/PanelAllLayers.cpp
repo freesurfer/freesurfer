@@ -37,6 +37,7 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
   connect(ui->treeWidgetLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SIGNAL(ToReorderLayers(QList<Layer*>)));
   connect(wnd, SIGNAL(LinkVolumeRequested(LayerMRI*)), ui->treeWidgetLayers, SLOT(LinkVolume(LayerMRI*)));
   connect(wnd->ui->actionLockOthers, SIGNAL(triggered()), ui->treeWidgetLayers, SLOT(OnLockOthers()));
+  connect(ui->treeWidgetLayers, SIGNAL(itemSelectionChanged()), SIGNAL(LayerSelectionChanged()));
 
   for (int i = 0; i < ui->stackedWidget->count(); i++)
   {
