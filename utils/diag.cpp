@@ -82,6 +82,7 @@ static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) = vfprintf;
 void assertFailed(const char* file, int line, const char* tst) {
     fprintf(stdout, "ASSERTION FAILED: %s:%d %s\n", file, line, tst);
     fprintf(stderr, "ASSERTION FAILED: %s:%d %s\n", file, line, tst);
+    printf(" break %s:%d\n", __FILE__, __LINE__);
     fflush(stdout);
     fflush(stderr);
     
