@@ -13452,6 +13452,7 @@ int MRISprintSurfQualityStats(FILE *fp, MRIS *surf)
 int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
 {
   double *estats, *hstats, *astats, *cstats;
+  MRISfaceMetric(surf,0);
   astats = MRIStriangleAreaStats(surf, NULL, NULL); // trangle area
   cstats = MRIScornerStats(surf, 1, NULL, NULL); // corner angle (deg)
   estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
