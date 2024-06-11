@@ -24,6 +24,8 @@
       <explanation>Rescale so that voxels in the seg have a mean of targetval.</explanation>
       <argument>--rescale-only</argument>
       <explanation>Rescale so that voxels in the seg have a mean of targetval but do not perform bias correction (only rescale)</explanation>
+      <argument>--threads-nondetermistic</argument>
+      <explanation>Use multiple threads. WARNING: might not be deterministic </explanation>
     </optional-flagged>
   </arguments>
 </help>
