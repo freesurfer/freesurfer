@@ -464,6 +464,11 @@ int MRISedgeMetricEdge(MRIS *surf, int edgeno, int DoGrad)
   }
   if(e->dot > 1.0)  e->dot = +1.0; // might be a slight overflow
   if(e->dot < -1.0) e->dot = -1.0; // might be a slight overflow
+  // angle goes from 0-180.
+  // if hinge is flat, then dot=1, normals are parallel and angle=0
+  // if hinge is folded together, then dot = -1 and angle=180
+  //   note that this folding happens when it is folded in either direction
+  //   so 0 is always the flatest and 180 is always the worst
   e->angle = acos(e->dot)*180/M_PI;
   return(0);
 }
