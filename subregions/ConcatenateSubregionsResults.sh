@@ -63,11 +63,11 @@ done
 # check if help flag passed, print usage and exit
 if [[ $HELP -eq 1 ]]; then
     echo ""
-    echo "USAGE: $0 -f <data_file.txt> [-f <data_file_2.txt>] [-o out_dir] [-s SUBJECTS_DIR]"
+    echo "USAGE: $0 -f <data_file.stats> [-f <data_file_2.stats>] [-o out_dir] [-s SUBJECTS_DIR]"
     echo ""
     echo "Will concatenate stats for all subjects found in SUBJECTS_DIR and output them"
     echo "to out_dir, a file will be generated for each data file specified with the -f"
-    echo "flag. Each output file will have the naming convention <data_file>_concat.txt"
+    echo "flag. Each output file will have the naming convention <data_file>_concat.stats"
     echo "SUBJECTS_DIR env var will be respected or can be overwritten by specifying -s"
     echo "If out_dir is not specified, results files will output to the SUBJECTS_DIR"
     exit
@@ -103,7 +103,7 @@ NUM_SUBS=${#SUB_NAMES[@]}
 # concatenate stats for all files specified
 for stat_file in ${FILES[@]}; do
     # set outfile name for related stat_file
-    results_file="$OUTPATH${stat_file%'.txt'}_concat.txt"
+    results_file="$OUTPATH${stat_file%'.stats'}_concat.stats"
     echo ""
     echo "Concatenating stats for file: $stat_file"
     echo "Will write results to: $results_file"
@@ -116,7 +116,7 @@ for stat_file in ${FILES[@]}; do
         echo "Working on subject: $subjectName"
 
         # volume files tp concat
-        VolFile="$subjectName/mri/$stat_file"
+        VolFile="$subjectName/stats/$stat_file"
 
         # check that the VolFiles exist
         if [ -f $VolFile ]; then
@@ -127,8 +127,11 @@ for stat_file in ${FILES[@]}; do
                 header_string="Subject"
                 # add left labels to header
                 while read line; do
+                    if [[ $line == "#"* ]]; then
+                        continue
+                    fi
                     arr=(`echo ${line}`)
-                    header_string="$header_string left_${arr[0]}"
+                    header_string="$header_string ${arr[-1]}"
                 done < $VolFile
 
                 #write header to file
@@ -139,8 +142,11 @@ for stat_file in ${FILES[@]}; do
             data_string="$subjectName"
             # add left hemi data
             while read line; do
+                if [[ $line == "#"* ]]; then
+                    continue
+                fi
                 arr=(`echo ${line}`)
-                data_string="$data_string ${arr[1]}"
+                data_string="$data_string ${arr[-2]}"
             done < $VolFile
         
             # write data to file
