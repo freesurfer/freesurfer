@@ -996,7 +996,8 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--crop-around-ras")) {
-      // 0=cropout 1=invol 2=lta/nolta/0 3=rcent 4=acent 5=scent 6=rFoV 7=aFoV 8=sFoV  9+=iKeep
+      // 0=cropout 1=invol 2=lta/nolta/0 3=rCent 4=aCent 5=sCent 6=rFoV 7=aFoV 8=sFoV  9+=iKeep
+      // 0=cropout 1=invol 2=lta/nolta/0 3=cras 4=vol 5=ignore 6=rFoV 7=aFoV 8=sFoV  9+=iKeep
       if(nargc < 9) CMDargNErr(option,9);
       MRI *invol = MRIread(pargv[1]);
       if(!invol) exit(1);
@@ -1007,7 +1008,19 @@ static int parse_commandline(int argc, char **argv) {
       }
       double rasCenter[3];
       int voxFoVRAS[3];
-      for(int k=0; k<3; k++)  sscanf(pargv[3+k],"%lf",&rasCenter[k]);
+      if(strcmp(pargv[3],"cras")==0){
+	// if 3=cras, then the next argument is a volume. Load
+	// the volume and set rasCenter to the cras. 
+	printf("Getting cras from %s\n",pargv[4]);
+	MRI *mritmp = MRIread(pargv[4]);
+	if(!mritmp) exit(1);
+	// Note: pargv[5] is ignored but has to be there
+	rasCenter[0] = mritmp->c_r;
+	rasCenter[1] = mritmp->c_a;
+	rasCenter[2] = mritmp->c_s;
+	MRIfree(&mritmp);
+      }
+      else for(int k=0; k<3; k++)  sscanf(pargv[3+k],"%lf",&rasCenter[k]);
       for(int k=0; k<3; k++)  sscanf(pargv[6+k],"%d",&voxFoVRAS[k]);
       std::vector<int> iKeep;
       nth = 9;
@@ -1310,7 +1323,9 @@ static void print_usage(void) {
   printf("   --fix-vol-topo : fix topology in the volume by filling (surf derived will be topo correct)\n");
   printf("   --crop npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary (--bb)\n");
   printf("   --crop-around-ras cropout invol lta/nolta rCent aCent sCent voxFoVR voxFoVA voxFoVS <ikeep...> : \n");
-  printf("     Stand-alone option to crop the volumne to voxFoV{RAS} centered around {RAS}Center with option to keep only certain values");
+  printf("     Stand-alone option to crop the volumne to voxFoV{RAS} centered around {RAS}Center with option\n");
+  printf("     to keep only certain values. Alt: set rCent to cras and aCent to a volume to get the rasCent from\n");
+  printf("     the cras of the volume (sCent is ignored but has to be there)\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
   printf("   --threads nthreads (won't apply to replace)\n");
