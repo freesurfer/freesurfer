@@ -115,6 +115,8 @@
       <explanation>compute vertex-wise volume, no other args needed (uses th3)</explanation>
       <argument>--area surface area.mgz</argument>
       <explanation>compute vertex-wise area (no other args needed); rescales group if needed</explanation>
+      <argument>--max-edge-stat surface metricid mes.mgz</argument>
+      <explanation>compute vertex-wise MES. 0=len, 1=dot, 2=hingeangle (no other args needed)</explanation>
       <argument>--angle surface angles.mgz</argument>
       <explanation>compute cortical orientation angles (no other args needed)</explanation>
       <argument>--label2mask surface label mask.mgz</argument>

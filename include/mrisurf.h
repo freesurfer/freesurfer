@@ -1290,6 +1290,7 @@ int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertice
 int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno);
 int MRISprintSurfQualityStats(FILE *fp, MRIS *surf);
 int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
+MRI *MRISmaxEdgeStatToOverlay(MRIS *surf, int metricid, MRI *mask);
 
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 //int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;

@@ -13424,6 +13424,61 @@ int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
   return(0);
 }
 
+/*!
+\fn MRI *MRISmaxEdgeStatToOverlay(MRIS *surf, int metricid, MRI *mask)
+\brief Map edge stat to vertices. A given vertex will have multiple
+(~6) edges associated with it. This will assigned the maximum stat
+across those edges. The max is computed on unsigned stats, but the
+return will be the signed value.
+ */
+MRI *MRISmaxEdgeStatToOverlay(MRIS *surf, int metricid, MRI *mask)
+{
+  MRISfaceMetric(surf,0);
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+
+  MRI *overlay = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
+
+  double sum = 0;
+  int nhits = 0;
+  for(int edgeno = 0; edgeno < surf->nedges; edgeno++){
+    MRI_EDGE *e = &(surf->edges[edgeno]);
+    // Skip this edge if any vertex is ripped or masked out
+    int skip = 0;
+    int nvmax = 4;
+    if(metricid == 0) nvmax = 2; // length does not need full hinge
+    for(int nthv=0; nthv < nvmax; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    double val;
+    switch(metricid){
+    case 0: val = e->len; break;
+    case 1: val = e->dot; break;
+    case 2: val = e->angle; break;
+    default:
+      printf("ERROR: MRISmaxEdgeStatToOverlay() metricid %d unrecognized\n",metricid);
+      return(NULL);
+    }
+    // Only 2 here because setting the max and we want it to be specific.
+    for(int nthv=0; nthv < 2; nthv++){ 
+      int vno = e->vtxno[nthv];
+      double ov = MRIgetVoxVal(overlay,vno,0,0,0);
+      if(fabs(ov) < fabs(val)) MRIsetVoxVal(overlay,vno,0,0,0,val);
+    }
+    sum += val;
+    nhits++;
+  }
+  double avg = sum/nhits;
+  printf("MRISmaxEdgeStatToOverlay(): metric %d   avg %g\n",metricid,avg);
+  return(overlay);
+}
 
 int MRISprintSurfQualityStats(FILE *fp, MRIS *surf)
 {

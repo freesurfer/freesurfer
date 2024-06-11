@@ -833,6 +833,22 @@ get_option(int argc, char *argv[])
     MRIfree(&SrcVals); MRISfree(&surf);
     exit(err);
   }
+  else if (!stricmp(option, "-max-edge-stat")) {
+    // This little bit of code is self-contained, run like
+    // mris_convert -max-edge-stat surface statid maxstat.mgz
+    // statid=0 edge length
+    // statid=1 hinge dot product
+    // statid=2 hinge angle
+    MRIS *surf = MRISread(argv[2]);
+    if(surf==NULL) exit(1);
+    int metricid;
+    sscanf(argv[3],"%d",&metricid);
+    MRI *mes = MRISmaxEdgeStatToOverlay(surf, metricid, NULL);
+    printf("Writing vertex max edge stat to %s\n",argv[4]);
+    int err = MRIwrite(mes,argv[4]);
+    MRIfree(&mes); MRISfree(&surf);
+    exit(err);
+  }
   else if (!stricmp(option, "-angle")) {
     // This little bit of code is self-contained. Run like:
     // mris_convert --angle <surface> <angles.mgz>
