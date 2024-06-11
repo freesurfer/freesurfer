@@ -44,7 +44,8 @@ InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   m_bShowSurfaceCurvature(false),
   m_bShowSurfaceNormal(false),
   m_bShowTkRegRAS(true),
-  m_bForCursor(false)
+  m_bForCursor(false),
+  m_bShowSelectedLayersOnly(false)
 {
   this->setAlternatingRowColors(true);
   this->setTextElideMode(Qt::ElideMiddle);
@@ -89,12 +90,27 @@ void InfoTreeWidget::ClearHeaderText()
   headerItem()->setText(1, "");
 }
 
+void InfoTreeWidget::SetShowSelectedLayersOnly(bool b)
+{
+  m_bShowSelectedLayersOnly = b;
+  UpdateAll();
+}
+
+void InfoTreeWidget::OnLayerSelectionChanged()
+{
+  if (m_bShowSelectedLayersOnly)
+    UpdateAll();
+}
+
 void InfoTreeWidget::UpdateAll()
 {
   this->clear();
   m_editor->hide();
-  LayerCollection* lc_mri = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
-  LayerCollection* lc_surf = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
+  MainWindow* mainWnd =  MainWindow::GetMainWindow();
+  LayerCollection* lc_mri = mainWnd->GetLayerCollection( "MRI" );
+  LayerCollection* lc_surf = mainWnd->GetLayerCollection( "Surface" );
+
+  QList<Layer*> sel_mris = mainWnd->GetSelectedLayers("MRI");
 
   int nPrecision = MainWindow::GetMainWindow()->GetSetting("Precision").toInt();
   bool bComma = MainWindow::GetMainWindow()->GetSetting("UseComma").toBool();
@@ -159,6 +175,8 @@ void InfoTreeWidget::UpdateAll()
   for (int i = 0; i < lc_mri->GetNumberOfLayers(); i++)
   {
     LayerMRI* layer = (LayerMRI*)lc_mri->GetLayer(i);
+    if (m_bShowSelectedLayersOnly && !sel_mris.contains(layer))
+      continue;
     double fIndex[3];
     if ( layer->GetProperty()->GetShowInfo() )
     {
@@ -519,8 +537,9 @@ void InfoTreeWidget::UpdateTrackVolumeAnnotation(Layer *layer, const QVariantMap
 
 void InfoTreeWidget::contextMenuEvent(QContextMenuEvent * e)
 {
-  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetLayers();
-  QList<Layer*> surfs = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" )->GetLayers();
+  MainWindow* mainWnd = MainWindow::GetMainWindow();
+  QList<Layer*> layers = mainWnd->GetLayerCollection( "MRI" )->GetLayers();
+  QList<Layer*> surfs = mainWnd->GetLayerCollection( "Surface" )->GetLayers();
   layers += surfs;
 
   if ( layers.isEmpty())
@@ -559,6 +578,13 @@ void InfoTreeWidget::contextMenuEvent(QContextMenuEvent * e)
     connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleSurfaceNormal(bool)));
     menu->addAction(act);
   }
+
+  QAction* act = new QAction("Show Highlighted Volumes Only", this);
+  act->setCheckable(true);
+  act->setChecked(m_bShowSelectedLayersOnly);
+  connect(act, SIGNAL(toggled(bool)), SLOT(SetShowSelectedLayersOnly(bool)));
+  menu->addSeparator();
+  menu->addAction(act);
   menu->exec(e->globalPos());
 }
 

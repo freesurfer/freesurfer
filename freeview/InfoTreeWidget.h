@@ -43,6 +43,8 @@ public slots:
   void UpdateAll();
   void ShowHeaderText();
   void ClearHeaderText();
+  void SetShowSelectedLayersOnly(bool b);
+  void OnLayerSelectionChanged();
 
 protected slots:
   void OnMousePositionChanged();
@@ -67,6 +69,7 @@ private:
   QLineEdit*  m_editor;
   QTreeWidgetItem* m_itemEdited;
   bool  m_bForCursor;
+  bool  m_bShowSelectedLayersOnly;
 };
 
 #endif // INFOTREEWIDGET_H

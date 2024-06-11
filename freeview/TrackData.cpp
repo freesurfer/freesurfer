@@ -16,6 +16,7 @@
 #include "track_io/TrackIO.h"
 #include <iostream>
 #include <stdlib.h>
+#include <QDebug>
 
 TrackData::TrackData(QObject *parent) :
   QObject(parent), m_bHasEmbeddedColor(false)
