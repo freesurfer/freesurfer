@@ -995,6 +995,34 @@ static int parse_commandline(int argc, char **argv) {
       DoBB = 1;
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--crop-around-ras")) {
+      // 0=cropout 1=invol 2=lta/nolta/0 3=rcent 4=acent 5=scent 6=rFoV 7=aFoV 8=sFoV  9+=iKeep
+      if(nargc < 9) CMDargNErr(option,9);
+      MRI *invol = MRIread(pargv[1]);
+      if(!invol) exit(1);
+      LTA *lta=NULL;
+      if(strcmp(pargv[2],"nolta") != 0){
+	lta = LTAread(pargv[2]);
+	if(!lta) exit(1);
+      }
+      double rasCenter[3];
+      int voxFoVRAS[3];
+      for(int k=0; k<3; k++)  sscanf(pargv[3+k],"%lf",&rasCenter[k]);
+      for(int k=0; k<3; k++)  sscanf(pargv[6+k],"%d",&voxFoVRAS[k]);
+      std::vector<int> iKeep;
+      nth = 9;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	int id;
+	sscanf(pargv[nth],"%d",&id);
+	iKeep.push_back(id);
+	nth++;
+      }
+      MRI *crop = MRIcropAroundRAS(invol,rasCenter,voxFoVRAS,lta,iKeep);
+      if(!crop) exit(1);
+      int err = MRIwrite(crop,pargv[0]);
+      exit(err);
+      nargsused = nth;
+    } 
     else if (!strcasecmp(option, "--no-transitive-replace"))
       transitive_replace = 0;
     else if (!strcasecmp(option, "--replace")) {
@@ -1281,6 +1309,8 @@ static void print_usage(void) {
   printf("   --fill-holes, --no-fill-holes : remove pure holes in the mask (after removing islands if specified)\n");
   printf("   --fix-vol-topo : fix topology in the volume by filling (surf derived will be topo correct)\n");
   printf("   --crop npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary (--bb)\n");
+  printf("   --crop-around-ras cropout invol lta/nolta rCent aCent sCent voxFoVR voxFoVA voxFoVS <ikeep...> : \n");
+  printf("     Stand-alone option to crop the volumne to voxFoV{RAS} centered around {RAS}Center with option to keep only certain values");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
   printf("   --threads nthreads (won't apply to replace)\n");

@@ -53,8 +53,8 @@ MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
 MRI *mri_load_bvolume_frame(char *bfstem, int frameno);
 int  mri_framepower(MRI *vol, float *framepower);
-MRI *mri_binarize(MRI *vol, float thresh, const char *tail, int invert,
-                  MRI *volbin, int *nover);
+MRI *mri_binarize(MRI *vol, float thresh, const char *tail, int invert, MRI *volbin, int *nover);
+MRI *MRIrescaleBySeg(MRI *in, MRI *seg, std::vector<int> ids, double targval, MRI *mask, MRI *out);
 MRI *mri_rescale(MRI *invol, float min, float max, MRI *outvol);
 int  mri_save_as_cor(MRI *vol,  char *cordir, int frame, int rescale);
 int mri_minmax(MRI *vol, float *min, float *max);
@@ -182,6 +182,12 @@ MRI *MRIshiftDim(MRI *src, int dim, int nshift, int wrap);
 MRI *MRIcropSegHemi(MRI *seg0, int hemi, int cFoV, int rFoV, int sFoV);
 MRI_REGION *MRIcropToFoV(MRI *mask, int cFoV, int rFoV, int sFoV, double thresh=0.5);
 MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpfn);
+
+MRI *MRIcropAroundCRS(MRI *vol, double crsCenter[3], int crsFoV[3], std::vector<int>iKeep={});
+MRI *MRIcropAroundRAS(MRI *vol, double rasCenter[3], int voxFoVRAS[3], LTA *lta0, std::vector<int>iKeep={});
+
+
+
 
 /*!
   \fn class FixSubCortMassHA

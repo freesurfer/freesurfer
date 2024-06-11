@@ -240,6 +240,95 @@ int mri_save_as_cor(MRI *vol, char *cordir, int frame, int rescale)
   free_cor(&COR);
   return (0);
 }
+
+/*!
+\fn MRI *MRIrescaleBySeg(MRI *in, MRI *seg, std::vector<int> ids, double targval, MRI *mask, MRI *out)
+\brief Rescale entire MRI so that voxels in the seg that match ids have a mean of targval. Each frame
+is scaled separately. If mask is non-NULL, then voxels outside of the mask are set to 0 and do not
+participate in the computation of the mean.
+ */
+MRI *MRIrescaleBySeg(MRI *in, MRI *seg, std::vector<int> ids, double targval, MRI *mask, MRI *out)
+{
+  int err=0;
+
+  if(out){
+    err = MRIdimMismatch(in, out, 1);
+    if(err){
+      printf("ERROR: MRIrescaleBySeg() input/output dimension mismatch\n");
+      return(NULL);
+    }
+  }
+  err = MRIdimMismatch(in, seg, 0);
+  if(err){
+    printf("ERROR: MRIrescaleBySeg() input/seg dimension mismatch\n");
+    return(NULL);
+  }
+
+  // First comute the sum  in each frame
+  int nhits=0;
+  double *sum = (double *) calloc(sizeof(double),in->nframes);
+  for(int c=0; c < in->width; c++){
+    for(int r=0; r < in->height; r++){
+      for(int s=0; s < in->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	int id = MRIgetVoxVal(seg,c,r,s,0);
+	for(int n=0; n < ids.size(); n++){
+	  if(id == ids[n]){
+	    nhits++;
+	    for(int f=0; f < in->nframes; f++){
+	      double val = MRIgetVoxVal(in,c,r,s,f);
+	      sum[f] += val;
+	    }
+	    break;
+	  }
+	} // search over ids
+      } // s
+    } // r
+  } //c
+  if(nhits == 0){
+    printf("ERROR: MRIrescaleBySeg() no voxels found\n");
+    free(sum);
+    return(NULL);
+  }
+  printf("MRIrescaleBySeg() nhits=%d\n",nhits);
+  // Now compute the mean
+  for(int f=0; f < in->nframes; f++){
+    if(fabs(sum[f]) < 10e-10){
+      printf("ERROR: MRIrescaleBySeg(): frame %d has 0 mean\n",f);
+      free(sum);
+      return(NULL);
+    }
+    double mn = (sum[f]/(double)nhits);
+    sum[f] = targval/mn; // This is now a scale to multiply by
+  }
+
+  if(out == NULL) {
+    out = MRIallocSequence(in->width, in->height, in->depth, in->type, in->nframes);
+    MRIcopyHeader(in, out);
+    MRIcopyPulseParameters(in, out);
+  }
+
+  // Now rescale
+  for(int c=0; c < in->width; c++){
+    for(int r=0; r < in->height; r++){
+      for(int s=0; s < in->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
+	  for(int f=0; f < in->nframes; f++){
+	    MRIsetVoxVal(out,c,r,s,f,0);
+	    continue;
+	  }
+	}
+	for(int f=0; f < in->nframes; f++){
+	  double val = MRIgetVoxVal(in,c,r,s,f)*sum[f];
+	  MRIsetVoxVal(out,c,r,s,f,val);
+	}
+      } // s
+    } // r
+  } //c
+
+  free(sum);
+  return(out);
+}
 /*------------------------------------------------------------
   mri_rescale() -- rescales array to be min <= val <= max. Uses
   outvol if non-null, otherwise allocates an output volume. Can
@@ -7508,4 +7597,210 @@ MRI *MRItpfpfnSeg(MRI *manseg, MRI *autoseg, std::vector<int> segids, MRI *tpfpf
   double fdr  = (double)nfp/((double)nfp+ntp);
   printf("nman = %d nauto = %d  dice = %6.4f tpr = %6.4f fdr = %6.4f\n",nman,nauto,dice,tpr,fdr);
   return(tpfpfn);
+}
+
+/*
+\fn MRI *MRIcropAroundCRS(MRI *vol, double crsCenter[3], int crsFoV[3], std::vector<int>iKeep={})
+\brief Extracts a volume around a voxel (crsCenter). The cropped
+volume will have a size of crsFoV[3].  The FoV of the crop volume may
+be outside of the FoV of the input volume (voxels will be 0).  If
+iKeep is present, then it zeros out anything that is not in the iKeep
+list. The idea here is that a segmentation can be cropped around a
+given seg, then the other segs can be removed. See also
+MRIcropAroundRAS() and MRIextractRegion().
+*/
+MRI *MRIcropAroundCRS(MRI *vol, double crsCenter[3], int crsFoV[3], std::vector<int>iKeep)
+{
+  int debug = 1; //Gdiag_no;
+  MRI *crop=NULL;
+
+  // These limits may be outside of the vol FoV
+  int c0 = round(crsCenter[0] - floor((crsFoV[0]-1)/2.0));
+  int c1 = c0 + crsFoV[0] - 1;
+  int r0 = round(crsCenter[1] - floor((crsFoV[1]-1)/2.0));
+  int r1 = r0 + crsFoV[1] - 1;
+  int s0 = round(crsCenter[2] - floor((crsFoV[2]-1)/2.0));
+  int s1 = s0 + crsFoV[2] - 1;
+
+  if(debug){
+    printf("MRIcropAroundCRS()\n");
+    printf("vol size %d %d %d\n",vol->width,vol->height,vol->depth);
+    printf("center %g %g %g\n",crsCenter[0],crsCenter[1],crsCenter[2]);
+    printf("fov %d %d %d\n",crsFoV[0],crsFoV[1],crsFoV[2]);
+    printf("limits %d %d   %d %d   %d %d\n",c0,c1,r0,r1,s0,s1);
+    if(iKeep.size()>0){
+      printf("iKeep ");
+      for(int n=0; n < iKeep.size(); n++) printf("%d ",iKeep[n]);
+      printf("\n");
+    }
+  }
+
+  if(c0 >= 0 && c1 < vol->width && r0 >= 0 && r1 < vol->height && s0 >= 0 && s1 < vol->depth){
+    // None of the limits are outside the FoV, so just use MRIextractRegion()
+    if(debug) printf("  using MRIextractRegion()\n");
+    MRI_REGION box;
+    box.x = c0;  box.y = r0;  box.z = s0;  
+    box.dx = crsFoV[0];  box.dy = crsFoV[1];  box.dz = crsFoV[2];
+    crop = MRIextractRegion(vol, NULL, &box);
+  }
+  else {
+    // If it gets here, it means that one or more of the the limits are
+    // outside of the input volume FoV. Below creates a volume that will
+    // extend beyond the original FoV to force the new FoV to be the 
+    // desired size.
+    crop = MRIallocSequence(crsFoV[0],crsFoV[1],crsFoV[2],vol->type,vol->nframes);
+    MRIcopyHeader(vol,crop);
+    MRIcopyPulseParameters(vol,crop);
+    if(vol->ct) crop->ct = CTABdeepCopy(vol->ct);
+    
+    // CRS of the first voxel of the cropped volume in the CRS space of the original vol
+    MATRIX *crs0 = MatrixAlloc(4,1,MATRIX_REAL);
+    crs0->rptr[1][1] = c0;
+    crs0->rptr[2][1] = r0;
+    crs0->rptr[3][1] = s0;
+    crs0->rptr[4][1] = 1;
+    MATRIX *vox2ras = vol->get_Vox2RAS(0);
+    // Compute the RAS at the first voxel (RAS is same across both)
+    MATRIX *P0 = MatrixMultiply(vox2ras,crs0,NULL);
+    // Set the c_ras for this volume 
+    MRIp0ToCRAS(crop, P0->rptr[1][1],P0->rptr[2][1],P0->rptr[3][1]);
+    if(debug){
+      printf("P0 %g %g %g\n",P0->rptr[1][1],P0->rptr[2][1],P0->rptr[3][1]);
+      printf("c_ras of new volume %g %g %g\n",crop->c_r,crop->c_a,crop->c_s);
+    }
+    // Now extract the values
+    int ccrop=-1;
+    for(int c=c0; c<=c1; c++){
+      ccrop++;
+      if(c < 0 || c >= vol->width) continue; // outside of uncropped volume
+      int rcrop=-1;
+      for(int r=r0; r<=r1; r++){
+	rcrop++;
+	if(r < 0 || r >= vol->height) continue; // outside of uncropped volume
+	int scrop=-1;
+	for(int s=s0; s<=s1; s++){
+	  scrop++;
+	  if(s < 0 || s >= vol->depth) continue; // outside of uncropped volume
+	  for(int f=0; f < vol->nframes; f++) {
+	    double val = MRIgetVoxVal(vol,c,r,s,f);
+	    MRIsetVoxVal(crop,ccrop,rcrop,scrop,f,val);
+	  }
+	}
+      }
+    }
+    MatrixFree(&crs0);
+    MatrixFree(&vox2ras);
+    MatrixFree(&P0);
+  }
+
+  // Remove anything that is not in the iKeep list. This really only
+  // makes sense for segmentations.
+  if(iKeep.size()>0){
+    for(int c=0; c < crop->width; c++){
+      for(int r=0; r < crop->height; r++){
+	for(int s=0; s < crop->depth; s++){
+	  for(int f=0; f < crop->nframes; f++) {
+	    double val = MRIgetVoxVal(crop,c,r,s,f);
+	    int hit = 0;
+	    for(int n=0; n < iKeep.size(); n++) if(val == iKeep[n]) hit = 1;
+	    if(!hit) MRIsetVoxVal(crop,c,r,s,f,0);
+	  }
+	}
+      }
+    }
+  }
+
+
+  return(crop);
+}
+
+/*
+\fn MRI *MRIcropAroundRAS(MRI *vol, double rasCenter[3], int voxFoVRAS[3], LTA *lta0, std::vector<int>iKeep={})
+\brief Extracts a volume around an RAS point (rasCenter). If
+lta0=NULL, then the RAS will be in the RAS of the input vol. If lta0
+is present, then the RAS will be in the space of the source geometry
+(after any inversion needed to get the direction correct).  The
+cropped volume will have a size of voxFoVRAS[3], where voxFoVRAS[0]
+corresponds to whatever dimension is most on the left-right axis, and
+[1] is AP axis, and [2] is on SI axis. The idea here is that a point
+and desifed FoV can be selected in, eg, MNI152 RAS space and then
+appropriately applied in the target/output/crop space. The FoV of the
+crop volume may be outside of the FoV of the input volume (voxels will
+be 0).  If iKeep is present, then it zeros out anything that is not in
+the iKeep list. The idea here is that a segmentation can be cropped
+around a given seg, then the other segs can be removed. See also
+MRIcropAroundCRS() and MRIextractRegion().
+*/
+MRI *MRIcropAroundRAS(MRI *vol, double rasCenter[3], int voxFoVRAS[3], LTA *lta0, std::vector<int> iKeep)
+{
+  int debug = 1; //Gdiag_no;
+  MATRIX *ras2vox = vol->get_RAS2Vox(0);
+  LTA *lta=NULL;
+  if(lta0){
+    lta = LTAcopy(lta0,NULL); // don't modify the passed lta
+    // Make sure LTA is in the right direction
+    int ret1 = vg_isEqual(&lta->xforms[0].dst,vol);
+    if(ret1 != 0){
+      int ret2 = vg_isEqual(&lta->xforms[0].src,vol);
+      if(ret2 != 0){
+	printf("ERROR: MRIcropAroundRAS(): vol is not src or dst of LTA (%d, %d)\n",ret1,ret2);
+	LTAprint(stdout, lta);
+	printf("vg_isEqual_Threshold = %g\n",vg_isEqual_Threshold);
+	return(NULL);
+      }
+      printf("Inverting LTA\n");
+      LTAinvert(lta,lta);
+    }
+    // Make sure LTA is RAS2RAS
+    if(lta->type != LINEAR_RAS_TO_RAS){
+      printf("Chaning Source LTA type to ras2ras\n");
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+    }
+    if(debug){
+      printf("Input RAS2VOX\n");
+      MatrixPrint(stdout,ras2vox);
+      printf("LTA RAS2RAS\n");
+      MatrixPrint(stdout,lta->xforms[0].m_L);
+    }
+    // Apply the LTA to the ras2vox matrix so that it maps from
+    // source RAS space to target vox space
+    MatrixMultiply(ras2vox,lta->xforms[0].m_L,ras2vox);
+    LTAfree(&lta);
+  }
+  if(debug){
+    printf("final ras2vox matrix\n");
+    MatrixPrint(stdout,ras2vox);
+    printf("--------------------------\n");
+  }
+
+  // Convert the RAS center to CRS in the uncropped space
+  MATRIX *ras = MatrixAlloc(4,1,MATRIX_REAL);
+  for(int k=0; k<3; k++) ras->rptr[k+1][1] = rasCenter[k];
+  ras->rptr[4][1] = 1;
+  MATRIX *crs = MatrixMultiply(ras2vox,ras,NULL);
+  double crsCenter[3];
+  for(int k=0; k<3; k++) crsCenter[k] = crs->rptr[k+1][1];
+
+  // Determine which voxFoV goes with which dimension in the output space
+  int crsFoV[3];
+  char ostr[5];
+  ostr[4] = '\0';
+  MRIdircosToOrientationString(vol,ostr);
+  for(int k=0; k < 3; k++){
+    if(ostr[k]=='R' || ostr[k]=='L') crsFoV[0] = voxFoVRAS[k]; 
+    if(ostr[k]=='A' || ostr[k]=='P') crsFoV[1] = voxFoVRAS[k]; 
+    if(ostr[k]=='S' || ostr[k]=='I') crsFoV[2] = voxFoVRAS[k]; 
+  }
+  if(debug){
+    printf("ostr %s (%d %d %d) (%d %d %d)\n",ostr,voxFoVRAS[0],voxFoVRAS[1],voxFoVRAS[2],crsFoV[0],crsFoV[1],crsFoV[2]);
+    printf("rasCenter %g %g %g\n",rasCenter[0],rasCenter[1],rasCenter[2]);
+    printf("crsCenter %g %g %g\n",crsCenter[0],crsCenter[1],crsCenter[2]);
+  }
+
+  // Finally crop it
+  MRI *crop = MRIcropAroundCRS(vol, crsCenter, crsFoV, iKeep);
+
+  MatrixFree(&ras);
+  MatrixFree(&crs);
+  return(crop);
 }
