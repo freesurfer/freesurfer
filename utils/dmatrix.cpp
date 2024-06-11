@@ -707,7 +707,7 @@ double DVectorDot(const DVECTOR *v1, const DVECTOR *v2)
   int err, i;
   long double dot;
   err = DMatrixCheckDims(v1, v2, 3, stdout, "DDVectorDot(): ");
-  if(err) return(-1);
+  if(err) return(-10e10); // not clear what to return here, so something ridiculous
   dot = 0.0;
   for (i = 1; i <= v1->rows; i++) dot += ((long double)v1->rptr[i][1] * v2->rptr[i][1]);
   return (dot);
