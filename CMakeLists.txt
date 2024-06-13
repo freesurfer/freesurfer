@@ -888,6 +888,7 @@ if(NOT MINIMAL)
     optseq2
     qdecproject
     qdec_glmfit
+    recon_any
     resurf
     spline3
     subregions
