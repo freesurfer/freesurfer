@@ -12054,8 +12054,9 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
     MatrixPrint(stdout, m);
   }
 
+  int nframes_target = 1; // the target volume will have only one frame
   dest = MRIallocSequence(
-        template_vol->width, template_vol->height, template_vol->depth, src->type, template_vol->nframes);
+			  template_vol->width, template_vol->height, template_vol->depth, src->type, nframes_target);
   if (dest == NULL) return (NULL);
   MRIreplaceValues(dest, dest, 0.0f, fill_val);
 
@@ -12140,7 +12141,7 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
     MRIfree(&mri_votes);
   }
   else
-    for (nframe = 0; nframe < template_vol->nframes; nframe++) {
+    for (nframe = 0; nframe < nframes_target; nframe++) {
       for (di = 0; di < template_vol->width; di++) {
         for (dj = 0; dj < template_vol->height; dj++) {
           for (dk = 0; dk < template_vol->depth; dk++) {
