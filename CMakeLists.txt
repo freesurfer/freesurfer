@@ -328,7 +328,8 @@ endif()
 
 if(NOT VTK_DIR)
    if(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS9")
-      set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/8.2/lib64/cmake/vtk-8.2 CACHE PATH "VTK install directory")
+      set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/8.2_centos9/lib64/cmake/vtk-8.2 CACHE PATH "VTK install directory")
+      set(VTK_LIB64_DIR ${FS_PACKAGES_DIR}/vtk/8.2_centos9/lib64 CACHE PATH "VTK library directory")
    elseif(HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11")
       set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/8.2_ubuntu22/lib64/cmake/vtk-8.2 CACHE PATH "VTK install directory")
       set(VTK_LIB64_DIR ${FS_PACKAGES_DIR}/vtk/8.2_ubuntu22/lib64 CACHE PATH "VTK library directory")
@@ -353,7 +354,7 @@ if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
     # special libvtkNetCDF
     file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkNetCDF*.so*")
     list(APPEND _vtk_library_list ${_found_library})
-    # special case for above on Ubuntu 22
+    # for Ubuntu22 and CentOS9
     if(VTK_LIB64_DIR)
         file(GLOB _found_library "${VTK_LIB64_DIR}/libvtkproj*.so*")
         list(APPEND _vtk_library_list ${_found_library})
