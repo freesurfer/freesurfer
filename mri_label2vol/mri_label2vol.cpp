@@ -275,6 +275,7 @@ int main(int argc, char **argv) {
       OutVol = MRIaseg2volMU(ASeg, aseg2vol, FillThresh, &HitVol, UpsampleFactor, ctTissueType);
       //OutVol = MRIaseg2vol(ASeg, R,TempVol, FillThresh, &HitVol, ctTissueType);
       MRIaddCommandLine(OutVol, cmdline) ;
+      if(ASeg->ct) OutVol->ct = CTABdeepCopy(ASeg->ct);
       err=MRIwrite(OutVol,OutVolId);
       if(err) exit(1);
       if (HitVolId != NULL) {
@@ -298,6 +299,7 @@ int main(int argc, char **argv) {
       if(resmm == 0) resmm = ASeg->xsize/UpsampleFactor;
       OutVol = MRIseg2SegPVF(ASeg, aseg2vol, resmm, segidlist, nsegs, NULL, 0, ctTissueType,NULL);
       MRIaddCommandLine(OutVol, cmdline) ;
+      if(ASeg->ct) OutVol->ct = CTABdeepCopy(ASeg->ct);
       err=MRIwrite(OutVol,OutVolId);
       if(err) exit(1);
       printf("mri_label2vol done\n");
@@ -344,6 +346,7 @@ int main(int argc, char **argv) {
     OutVol = MRIsurfaceLabel2VolOpt(ribbon, Surf, labels, nlabels, lta,
 				    DoStatThresh, StatThresh, 0, NULL);
     MRIaddCommandLine(OutVol, cmdline) ;
+    if(ribbon->ct) OutVol->ct = CTABdeepCopy(ribbon->ct);
     err=MRIwrite(OutVol,OutVolId);
     if(err) exit(err);
     
