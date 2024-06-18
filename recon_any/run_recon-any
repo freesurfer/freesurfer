@@ -11,7 +11,7 @@ endif
 
 # TODO: eventually change to freesurfer directories
 set PYTHON_SCRIPT_DIR=$FREESURFER_HOME_FSPYTHON/python/packages/recon-any
-set MODEL_DIR=$FREESURFER_HOME/models/recon-any
+set MODEL_DIR=$FREESURFER_HOME_FSPYTHON/models/recon-any
 # set PYTHON_SCRIPT_DIR=$FREESURFER_HOME/python/scripts
 # set MODEL=$FREESURFER_HOME/models/synthsurf_v10_230420.h5
 
@@ -90,7 +90,7 @@ if( ! -d "$MODEL_DIR" ) then
   echo ""
   echo "1. Download the tar ball containing the model files"
   echo "  Linux: wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/recon-any_models/recon-any.tar.gz"
-  echo "  MacOS: curl https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/recon-any_models/recon-any.tar.gz --output recon-any"
+  echo "  MacOS: curl https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/recon-any_models/recon-any.tar.gz --output recon-any.tar.gz"
   echo "2. Unpack the archive"
   echo "  tar -xzf recon-any.tar.gz"
   echo "3. Install the unpacked tar ball under FREESURFER_HOME/models"

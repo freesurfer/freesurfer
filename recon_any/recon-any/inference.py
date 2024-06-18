@@ -1,6 +1,5 @@
 import sys
 sys.path.append(__file__)
-#sys.path.append('/usr/pubsw/packages/CUDA/9.0/lib64')
 import torch
 import os
 from unet3d.model import UNet3D
@@ -275,6 +274,7 @@ def main():
         MRIwrite(pred_seg, aff, os.path.join(args['output_dir'], 'aseg.auto_noCCseg.mgz'))
         MRIwrite(norm, aff, os.path.join(args['output_dir'], 'norm.mgz'))
         MRIwrite(norm, aff, os.path.join(args['output_dir'], 'brain.mgz'))
+        MRIwrite(norm, aff, os.path.join(args['output_dir'], 'brainmask.mgz'))
         MRIwrite(ssr, aff, os.path.join(args['output_dir'], 'SynthSR.mgz'))
         MRIwrite(WM, aff, os.path.join(args['output_dir'], 'wm.seg.mgz'))
         MRIwrite(FILLED, aff, os.path.join(args['output_dir'], 'filled.mgz'))

@@ -1,0 +1,8 @@
+The 'run_recon-any' utility is an ML based approach to the standard recon-all
+pipeline, and depends on pytorch. There are differences in the implementation of
+pytorch on x86 and ARM system architectures.
+
+This utility has been tested on Linux and MacOS, running on an Intel chipset.
+
+On ARM based MacOS systems this utility may fail due to memory issues.
+It is not recommended to run this utility on Silicon Macs.
