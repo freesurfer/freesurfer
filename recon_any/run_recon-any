@@ -94,7 +94,7 @@ if( ! -d "$MODEL_DIR" ) then
   echo "2. Unpack the archive"
   echo "  tar -xzf recon-any.tar.gz"
   echo "3. Install the unpacked tar ball under FREESURFER_HOME/models"
-  echo "  cp -r recon-any $FREESURFER_HOME/models"
+  echo "  cp -r recon-any $FREESURFER_HOME_FSPYTHON/models"
   echo ""
   exit 1
 endif
