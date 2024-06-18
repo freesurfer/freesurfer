@@ -1,6 +1,6 @@
 import sys
 sys.path.append(__file__)
-sys.path.append('/usr/pubsw/packages/CUDA/9.0/lib64')
+#sys.path.append('/usr/pubsw/packages/CUDA/9.0/lib64')
 import torch
 import os
 from unet3d.model import UNet3D
