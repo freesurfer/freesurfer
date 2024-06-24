@@ -22,6 +22,10 @@ neurite@git+https://github.com/adalca/neurite.git@dev
 # voxelmorph @ git+https://github.com/voxelmorph/voxelmorph.git@dev
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@dev
 
+# git+https://github.com/freesurfer/surfa.git@56381dd52b5466749bd036d7a52d99c8469ae484
+# surfa @ git+https://github.com/freesurfer/surfa.git
+surfa@git+https://github.com/freesurfer/surfa.git
+
 
 # extra packages required for QA tools
 pandas
