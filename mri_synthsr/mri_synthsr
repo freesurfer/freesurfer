@@ -169,7 +169,7 @@ def predict(path_images,
 
         # write results to disk
         try:
-            save_volume(pred, aff, h, path_prediction)
+            save_volume_byte(pred, aff, h, path_prediction)
         except Exception as e:
             print('\nthe following problem occured when saving the result for image %s :' % path_image)
             print(e)
@@ -751,7 +751,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
         return volume, aff, header
 
 
-def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+def save_volume_byte(volume, aff, header, path, res=None, dtype=None, n_dims=3):
     """
     Save a volume.
     :param volume: volume to save
@@ -759,10 +759,6 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
     aff can also be set to 'FS', in which case the volume is saved with the affine matrix of FreeSurfer outputs.
     :param header: header of the volume to save. If None, the volume is saved with a blank header.
     :param path: path where to save the volume.
-    :param res: (optional) update the resolution in the header before saving the volume.
-    :param dtype: (optional) numpy dtype for the saved volume.
-    :param n_dims: (optional) number of dimensions, to avoid confusion in multi-channel case. Default is None, where
-    n_dims is automatically inferred.
     """
 
     mkdir(os.path.dirname(path))
@@ -776,17 +772,10 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
                 aff = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
         elif aff is None:
             aff = np.eye(4)
+        volume *=2
+        volume = np.clip(volume, 0, 255).astype(np.uint8)
         nifty = nib.Nifti1Image(volume, aff, header)
-        if dtype is not None:
-            if 'int' in dtype:
-                volume = np.round(volume)
-            volume = volume.astype(dtype=dtype)
-            nifty.set_data_dtype(dtype)
-        if res is not None:
-            if n_dims is None:
-                n_dims, _ = get_dims(volume.shape)
-            res = reformat_to_list(res, length=n_dims, dtype=None)
-            nifty.header.set_zooms(res)
+        nifty.set_data_dtype(np.uint8)
         nib.save(nifty, path)
 
 
