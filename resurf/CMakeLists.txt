@@ -23,6 +23,8 @@ if(ITK_FOUND AND VTK_FOUND)
   set(ITK_LIBRARIES "ITKCommon;ITKIOImageBase;ITKIOBMP;ITKIOBioRad;ITKIOBruker;ITKIOGDCM;ITKIOGE;ITKIONRRD;ITKIOTIFF;ITKIOVTK;ITKIOStimulate;ITKIOMINC;ITKIOGIPL;ITKIOHDF5;ITKIOJPEG;ITKIOLSM;ITKIOMRC;ITKIOMeta;ITKIOPNG;ITKIONIFTI")
   if((HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "Ubuntu22") AND HOST_OS_GCC_VERSION MATCHES "11")
     set(ITK_LIBRARIES "${ITK_LIBRARIES};ITKIOJPEG2000;ITKIOMeshVTK")
+  elseif(HOST_OS MATCHES "Rocky8" AND HOST_OS_GCC_VERSION MATCHES "10")
+    set(ITK_LIBRARIES "${ITK_LIBRARIES};ITKIOJPEG2000;ITKIOMeshVTK")
   endif()
 
   add_executable(mris_multimodal mris_multimodal.cxx)
@@ -40,7 +42,9 @@ if(ITK_FOUND AND VTK_FOUND)
  
   add_executable(mris_image2vtk mris_image2vtk.cxx) # Code/vtkNIFTIImageReader.cxx)
   if((HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "Ubuntu22") AND HOST_OS_GCC_VERSION MATCHES "11")
-     # also needs ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU for ITK5.4
+    # also needs ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU for ITK5.4
+    target_link_libraries(mris_image2vtk utils nifti "${ITK_LIBRARIES};ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU" ${VTK_LIBRARIES} )
+  elseif(HOST_OS MATCHES "Rocky8" AND HOST_OS_GCC_VERSION MATCHES "10")
     target_link_libraries(mris_image2vtk utils nifti "${ITK_LIBRARIES};ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU" ${VTK_LIBRARIES} )
   else()
     target_link_libraries(mris_image2vtk utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
