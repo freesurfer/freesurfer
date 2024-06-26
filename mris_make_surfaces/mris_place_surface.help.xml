@@ -80,6 +80,9 @@
       <argument>--rip-bg (--no-rip-bg)</argument>
       <explanation>Do not move vertices near basal ganglia (as defined by seg)</explanation>
 
+      <argument>--rip-bg-lof (--no-rip-bg-lof)</argument>
+      <explanation>Do not move vertices near basal ganglia if they are in the lateral orbital frontal</explanation>
+
       <argument>--rip-bg-no-annot</argument>
       <explanation>Do not require surface have an annotation when ripping BG</explanation>
 
@@ -156,6 +159,18 @@
 
       <argument>--fill-lat-vents DillMM Topo Nnbrs</argument>
       <explanation>Fill lateral ventricles with 110</explanation>
+
+      <argument>--n_averages navgs</argument>
+      <explanation>Starting value; divides by 2 each iter</explanation>
+
+      <argument>--supiters nsupiters</argument>
+      <explanation>Number of times to run the enitre loop (like running the command multple times) </explanation>
+
+      <argument>--subiters nsubiters</argument>
+      <explanation>Number of times to run the positioning (without recomputing the target)</explanation>
+
+      <argument>--max_reductions N</argument>
+      <explanation>Max number of reductions to allow during optimization</explanation>
 
     </optional>
     <cost-function>

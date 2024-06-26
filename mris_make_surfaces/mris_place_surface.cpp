@@ -148,6 +148,7 @@ public:
   int nRipSegs= 0;
   int RipSegNo[100];
   int RipBG = 0;
+  int RipBGLOF = 0;
   int RipBGRequireAnnot = 1;
   int RipMidline = 1;
   char *riplabelfile = NULL;
@@ -964,8 +965,10 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--rip-freeze"))    ripmngr.RipFreeze = 1;
     else if(!strcmp(option, "--no-rip-freeze")) ripmngr.RipFreeze = 0;
     else if(!strcmp(option, "--rip-lesion"))    ripmngr.RipLesion = 1;
-    else if(!strcmp(option, "--no-rip-lesion"))    ripmngr.RipLesion = 0;
+    else if(!strcmp(option, "--no-rip-lesion"))   ripmngr.RipLesion = 0;
     else if(!strcmp(option, "--rip-bg"))          ripmngr.RipBG = 1;
+    else if(!strcmp(option, "--rip-bg-lof"))      ripmngr.RipBGLOF = 1;
+    else if(!strcmp(option, "--no-rip-bg-lof"))      ripmngr.RipBGLOF = 0;
     else if(!strcmp(option, "--rip-bg-no-annot")) ripmngr.RipBGRequireAnnot = 0;
     else if(!strcmp(option, "--no-rip-bg"))       ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
@@ -1802,20 +1805,25 @@ int MRISripSegs(MRIS *surf, MRI *seg, const int *SegNo, const int nSegNos,
 }
 
 
-int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const double dmin, const double dmax, const double dstep)
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const double dmin, const double dmax, const double dstep, int RipBGLOF)
 {
   int vno, nripped=0;
   int indices[100], nindices=0, n;
+  printf("MRISripBasalGanglia(): %d %g %g %g\n",RequireAnnot,dmin,dmax,dstep);
 
   if(RequireAnnot){
     if(! surf->ct){
-      printf("ERROR: MRISripPutamenNucAcc(): surface must have annotation\n");
+      printf("ERROR: MRISripBasalGanglia(): surface must have annotation\n");
       return(-1);
     }
     nindices=0;
     CTABfindName(surf->ct, "medialorbitofrontal", &indices[nindices++]);
     CTABfindName(surf->ct, "rostralanteriorcingulate", &indices[nindices++]);
     CTABfindName(surf->ct, "insula", &indices[nindices++]);
+    if(RipBGLOF){
+      printf("Ripping lateralorbitofrontal\n");
+      CTABfindName(surf->ct, "lateralorbitofrontal", &indices[nindices++]);
+    }
   }
 
   for(vno=0; vno < surf->nvertices; vno++){
@@ -1848,6 +1856,11 @@ int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const doub
       MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       segid = nint(val) ;
 
+      if(vno == Gdiag_no) {
+	printf(" vno=%d d=%g segid=%d\n",vno,d,segid);
+	fflush(stdout);
+      }
+
       // Add external and extreme capsules?
       if(segid != Left_Putamen && segid != Right_Putamen &&
 	 segid != Left_Caudate && segid != Right_Caudate &&
@@ -1861,6 +1874,7 @@ int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const doub
   }
 
   printf("MRISripBasalGanglia(): %d %g %g %g ripped %d\n",RequireAnnot,dmin,dmax,dstep,nripped);
+
   return(nripped);
 }
 
@@ -1955,7 +1969,7 @@ int RIP_MNGR::RipVertices(void)
   if(RipBG){
     // probably want to use white for this
     printf("Ripping BG\n");
-    int err = MRISripBasalGanglia(ripsurf, seg, RipBGRequireAnnot, dmin,dmax,dstep);
+    int err = MRISripBasalGanglia(ripsurf, seg, RipBGRequireAnnot, dmin,dmax,dstep,RipBGLOF);
     if(err < 0) return(1);
   }
   if(nRipSegs){
@@ -1966,14 +1980,12 @@ int RIP_MNGR::RipVertices(void)
 
   if(ripsurffile){
     // Copy ripflags back into the input surface
-    int vno;
-    for(vno=0; vno < surf->nvertices; vno++){
+    for(int vno=0; vno < surf->nvertices; vno++){
       if(ripsurf->vertices[vno].ripflag)  
 	surf->vertices[vno].ripflag = 1;
     }
     MRISfree(&ripsurf);
   }
-
   return(0);
 }
 
