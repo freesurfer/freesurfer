@@ -54,7 +54,8 @@ def main():
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
     parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
     parser.add_argument("--keepgeom", action="store_true", help="Force output geometry to be the same as input")
-    parser.add_argument("--addctab", action="store_true", help="Embed colortable into seg output")
+    parser.add_argument("--addctab", action="store_true", default=True, help="Embed colortable into seg output")
+    parser.add_argument("--noaddctab", action="store_true", help="Do not embed colortable into seg output")
     parser.add_argument("--photo", help="(optional) Photo-SynthSeg: segment 3D reconstructed stack of coronal dissection photos of the cerebrum; must be left, right, or both")
     parser.add_argument("--model", help="(optional) Provide an alternative model file")
 
@@ -166,7 +167,9 @@ def main():
 
     lut_file = os.path.join(os.environ.get('FREESURFER_HOME'),'FreeSurferColorLUT.txt')
     labels = None
+    if(args.noaddctab): args.addctab = False;
     if(args.addctab): labels = sf.load_label_lookup(lut_file)
+    print("addctab ",args.addctab)
 
     if args.crop is not None and args.autocrop:
         sf.system.fatal('Argument --autocrop cannot be used with --crop.')
