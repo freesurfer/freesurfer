@@ -1093,6 +1093,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--gdiag_no")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
+      printf("Gdiag_no %d\n",Gdiag_no );
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--min-dist")) {
@@ -1135,6 +1136,7 @@ static int parse_commandline(int argc, char **argv) {
       MRIS *surf2tmp = MRISread(pargv[1]);
       if(surf2tmp==NULL) exit(1);
       printf("Checking for differences between %s and %s\n",pargv[0],pargv[1]);
+      printf("Gdiag_no %d\n",Gdiag_no );
       int res = MRISdiffSimple(surf1tmp, surf2tmp, 0, .00000001, 0);
       if(nargc > 2){
 	printf("Writing RMS diff to %s\n",pargv[2]);
@@ -1422,6 +1424,7 @@ int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, in
     dz = v1->z - v2->z;
     rms = sqrt(dx*dx + dy*dy + dz*dz);
     v1->val = rms;
+    if(Gdiag_no == n) printf("vtxno %d  [%g,%g,%g] [%g,%g,%g] %g\n",n,v1->x,v1->y,v1->z,v2->x,v2->y,v2->z,rms);
     if(rmsmax < rms) rmsmax = rms;
     if(rms > rmsthresh){
       if(verbosity > 0){
