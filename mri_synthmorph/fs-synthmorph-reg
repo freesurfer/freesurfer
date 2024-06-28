@@ -20,6 +20,7 @@ set lta2 = ()
 set vgthresh = 1e-5
 set StripInput = 0
 set StripTarget = 0
+set ReRun = 0
 
 set threads = 1
 set ForceUpdate = 0
@@ -113,7 +114,8 @@ setenv OMP_NUM_THREADS $threads
 setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $threads
 
 if($StripInput) then
-  set involstripped = $tmpdir/invol.stripped.nii.gz
+  #set involstripped = $tmpdir/invol.stripped.nii.gz # breaks header
+  set involstripped = $tmpdir/invol.stripped.mgz
   set ud = `UpdateNeeded $involstripped $invol`
   if($ud || $ForceUpdate) then
     set cmd = (mri_synthstrip -i $invol -o $involstripped  -t $threads)
@@ -124,7 +126,8 @@ if($StripInput) then
   set invol = $involstripped
 endif
 if($StripTarget) then
-  set targvolstripped = $tmpdir/targ.stripped.nii.gz
+  #set targvolstripped = $tmpdir/targ.stripped.nii.gz  # breaks header
+  set targvolstripped = $tmpdir/targ.stripped.mgz
   set ud = `UpdateNeeded $targvolstripped $targvol`
   if($ud || $ForceUpdate) then
     set cmd = (mri_synthstrip -i $targvol -o $targvolstripped -t $threads)
@@ -317,6 +320,8 @@ if($ud || $ForceUpdate) then
 endif
 
 # Create one lta that maps from the uncropped input vol space to the (cropped) target space
+set regtargtoinvol = $outdir/reg.targ_to_invol.lta
+set reginvoltotarg = $outdir/reg.invol_to_targ.lta
 if($CropInput || $CropTarget) then
   set reginvoltocroptarg = $tmpdir/reg.invol_to_croptarg.lta 
   set ud = `UpdateNeeded $reginvoltocroptarg $affinelta $regcroptoinvol`
@@ -333,7 +338,6 @@ if($CropInput || $CropTarget) then
     # Create one lta that maps from the uncropped input vol space to the uncropped target space
     # This produces a linear tranform that can be used to map from target to input volume just
     # like the nonlinear transform
-    set regtargtoinvol = $outdir/reg.targ_to_invol.lta
     set ud = `UpdateNeeded $regtargtoinvol $reginvoltocroptarg`
     if($ud || $ForceUpdate) then
       set regtargtocropped = $FSMNI152DIR/reg-targets/reg.$MNIOutputRes.to.$MNITargetRes.cropped.lta
@@ -343,20 +347,34 @@ if($CropInput || $CropTarget) then
       if($status) goto error_exit
       echo "\n\n"| tee -a $LF 
     endif
-    # Compute the inverse
-    set reginvoltotarg = $outdir/reg.invol_to_targ.lta
-    set ud = `UpdateNeeded $reginvoltotarg $regtargtoinvol`
-    if($ud || $ForceUpdate) then
-      set cmd = (lta_convert --invert --inlta $regtargtoinvol --outlta $reginvoltotarg)
-      echo $cmd | tee -a $LF 
-      fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit
-      echo "\n\n"| tee -a $LF 
-    endif
+  endif
+  # Compute the inverse: invol-to-targ
+  set ud = `UpdateNeeded $reginvoltotarg $regtargtoinvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (lta_convert --invert --inlta $regtargtoinvol --outlta $reginvoltotarg)
+    echo $cmd | tee -a $LF 
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "\n\n"| tee -a $LF 
   endif
 else
+  pushd $tmpdir
+  ln -fs aff.lta reg.invol_to_targ.lta
+  popd
   set reginvoltocroptarg = $affinelta
+  set reginvoltotarg = $affinelta
+  # Compute target to invol
+  set ud = `UpdateNeeded $regtargtoinvol $reginvoltotarg`
+  if($ud || $ForceUpdate) then
+    set cmd = (lta_convert --invert --inlta $reginvoltotarg --outlta $regtargtoinvol)
+    echo $cmd | tee -a $LF 
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "\n\n"| tee -a $LF 
+  endif
+
 endif
+
 
 if($AffineOnly) then
   echo "AffineOnly specified, so exiting now" | tee -a $LF
@@ -669,6 +687,12 @@ while( $#argv != 0 )
     case "--force":
      set ForceUpdate = 1
      breaksw
+    case "--rerun":
+     # Prevents it from bailing out on the first check. This can be
+     # handy when debugging and you want it to get into the interior
+     # of the code.
+     set ReRun = 1
+     breaksw
 
     case "--log":
       if($#argv < 1) goto arg1err;
@@ -803,7 +827,7 @@ if($DoTest) set testvol = $outdir/test.nii.gz
 set ud1 = `UpdateNeeded $m3z $targvol $invol $testvol`
 set ud2 = 0
 if($ComputeInverse) set ud2 = `UpdateNeeded $m3zinv $targvol $invol`
-if($ud1 == 0 && $ud2 == 0 && $ForceUpdate == 0) then
+if($ReRun == 0 && $ud1 == 0 && $ud2 == 0 && $ForceUpdate == 0) then
   echo "fs-synthmorph-reg: update not needed"
   exit 0
 endif
@@ -839,10 +863,13 @@ usage_exit:
   echo "  --strip : skull strip input and target"
   echo "  --strip-input : skull strip input"
   echo "  --strip-target : skull strip target"
+  echo "  --crop/--no-crop (default is $CropInput)"
   echo "  --pituitary : select the MNI target volume that does not mask out the pituitary"
   echo "  --test : resample the input volume to the output space and store as test.nii.gz"
   echo "  --vg-thresh vgthresh : threshold for testing diffs in volume geom"
   echo "  --ants : use ANTs registration intstead of synthmorph"
+  echo "  --force : regenerate all output "
+  echo "  --rerun : for debugging only, when you want it to get into the inteiror of the code"
   echo "  --tmp tmpdir"
   echo "  "
 
@@ -856,8 +883,8 @@ exit 1;
 BEGINHELP
 
 This is a frontend for running mri_synthmorph, especially for
-registering to mni152 space.  For typical usage, it will consume about
-24GB of memory.
+registering to mni152 space.  For typical usage, it will consume less
+than 15GB of memory. For affine only it requires less than 7GB.
 
 Simple usage:
 
