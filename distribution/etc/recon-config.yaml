@@ -102,6 +102,24 @@ UseSynthSeg:
     action: enable
     descr: Run synthseg instead of ca_reg and ca_label (won't create m3z)
     
+CblumFromSynthSeg:
+    value: False
+    flags: -cblum-from-synthseg
+    action: enable
+    descr: Run mri_synthseg and insert the cerebellum wm and gm into the aseg
+
+SynthSegForSurf:
+    value: False
+    flags: -synthseg-for-surf
+    action: enable
+    descr: Use synthseg instead of aseg.presurf.mgz for surface operations
+    
+DoSynthSR:
+    value: False
+    flags: -synthsr
+    action: enable
+    descr: Use run mri_synthsr on input (rawavg) to convert to T1w contrast
+    
 TopoFitLevel:
     value: 0
     flags: -topofit
@@ -155,12 +173,6 @@ FixACJ:
     action: enable
     descr: Fix the WM in the area between amygdala and cortex
     
-CblumFromSynthSeg:
-    value: False
-    flags: -cblum-from-synthseg
-    action: enable
-    descr: Run mri_synthseg and insert the cerebellum wm and gm into the aseg
-
 SkipDone:
     value: False
     flags: -skip-done

@@ -1477,6 +1477,23 @@ if($DoMotionCor) then
     if($status) goto error_exit;
   endif
 
+  set synthsr = $subjdir/mri/rawavg.synthsr.mgz
+  if($DoSynthSR) then
+    set ud = `UpdateNeeded $synthsr $rawavg`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_synthsr --threads $OMP_NUM_THREADS --i $rawavg --o $synthsr)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    endif
+  endif
+  if(-e $sythsr) then
+    echo "Found synthsr, so using that" | tee -a $LF
+    set rawavg = $synthsr
+  endif
+
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format. Also add tal.xfm to header
   # eventhough it does not exist yet. 
@@ -1570,7 +1587,7 @@ if($SynthStrip) then
 endif
 
 set synthseg = $subjdir/mri/synthseg.rca.mgz
-if($UseSynthSeg || $CblumFromSynthSeg) then
+if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf) then
   # Note: no m3z will be produced
   set origvol  = $subjdir/mri/orig.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
@@ -1582,7 +1599,7 @@ if($UseSynthSeg || $CblumFromSynthSeg) then
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-      if(! $CblumFromSynthSeg) then
+      if(! $CblumFromSynthSeg && ! $SynthSegForSurf) then
         pushd $subjdir/mri 
         rm -f aseg.auto_noCCseg.mgz
         ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
@@ -1590,7 +1607,7 @@ if($UseSynthSeg || $CblumFromSynthSeg) then
       endif
     endif
   endif
-  if(! $CblumFromSynthSeg) then
+  if(! $CblumFromSynthSeg  && ! $SynthSegForSurf) then
     set xopts = `fsr-getxopts seg2recon $XOptsFile`;
     set cmd = (seg2recon --s $subjid --seg $synthseg --i $origvol --threads $OMP_NUM_THREADS)
     if(-e $synthstrip) set cmd = ($cmd --m $synthstrip)
@@ -3161,8 +3178,8 @@ if($DoSegmentation) then
     set cmd = (mri_edit_wm_with_aseg)
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
     if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 255 255)
-    if($FixACJ)    set cmd = ($cmd -fix-acj aseg.presurf.mgz 255 255)
-    set cmd = ($cmd $xopts wm.seg.mgz brain.mgz aseg.presurf.mgz wm.asegedit.mgz)
+    if($FixACJ)    set cmd = ($cmd -fix-acj $AsegForSurf 255 255)
+    set cmd = ($cmd $xopts wm.seg.mgz brain.mgz $AsegForSurf wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3195,7 +3212,7 @@ if($DoSegmentation) then
   endif
   if($FixACJ) then
     echo "Fixing ACJ in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
-    set cmd = (mri_edit_wm_with_aseg -sa-fix-acj aseg.presurf.mgz 255 255 wm.mgz wm.mgz)
+    set cmd = (mri_edit_wm_with_aseg -sa-fix-acj $AsegForSurf 255 255 wm.mgz wm.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3249,7 +3266,7 @@ if($DoFill && ! $longitudinal) then
   endif
   if ($LHonly) set cmd = ($cmd -lhonly )
   if ($RHonly) set cmd = ($cmd -rhonly )
-  if($UseAseg) set cmd = ($cmd -segmentation aseg.presurf.mgz);
+  if($UseAseg) set cmd = ($cmd -segmentation $AsegForSurf);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
   set filledman = filled.mgz
   set filledauto = filled.auto.mgz
@@ -3669,7 +3686,7 @@ if($DoAutoDetGWStats) then
   cd $mdir
   set bfs  = brain.finalsurfs.mgz 
   set wm   = wm.mgz
-  set aseg = aseg.presurf.mgz
+  set aseg = $AsegForSurf
   foreach hemi ($hemilist)
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
     echo "#@# AutoDetGWStats $hemi `date`" |& tee -a $LF |& tee -a $CF
@@ -3708,7 +3725,7 @@ if($UseStopMaskSCM && ($DoWhitePreAparc || $DoWhiteSurfs) ) then
   set filled = $mdir/filled.mgz
   set wmpath = $mdir/wm.mgz
   set bfspath = $mdir/brain.finalsurfs.mgz
-  set asegpspath = $mdir/aseg.presurf.mgz
+  set asegpspath = $mdir/$AsegForSurf
   set ud = (`UpdateNeeded $stopmaskscm $filledauto $filled $wmpath $bfspath $asegpspath`)
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts StopMaskSCM $XOptsFile $GlobXOptsFile`;
@@ -3729,7 +3746,7 @@ if($DoWhitePreAparc) then
   cd $mdir
   set bfs  = brain.finalsurfs.mgz 
   set wm   = wm.mgz
-  set aseg = aseg.presurf.mgz
+  set aseg = $AsegForSurf
   if(! $UseAseg) set aseg = ()
   foreach hemi ($hemilist)
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -3767,7 +3784,7 @@ endif
 
 if($DoCortexLabel) then
   cd $mdir
-  set aseg = aseg.presurf.mgz
+  set aseg = $AsegForSurf
   foreach hemi ($hemilist)
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
     echo "#@# CortexLabel $hemi `date`" |& tee -a $LF |& tee -a $CF
@@ -4191,7 +4208,7 @@ if($DoCortParc) then
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/$AsegForSurf)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -4264,7 +4281,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
   cd $mdir
   set bfs  = brain.finalsurfs.mgz 
   set wm   = wm.mgz
-  set aseg = aseg.presurf.mgz
+  set aseg = $AsegForSurf
   foreach hemi ($hemilist)
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
     echo "#@# WhiteSurfs $hemi `date`" |& tee -a $LF |& tee -a $CF
@@ -4336,7 +4353,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
   cd $mdir
   set bfs  = brain.finalsurfs.mgz 
   set wm   = wm.mgz
-  set aseg = aseg.presurf.mgz
+  set aseg = $AsegForSurf
   foreach hemi ($hemilist)
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
     echo "#@# T1PialSurf $hemi `date`" |& tee -a $LF |& tee -a $CF
@@ -4534,7 +4551,7 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
     cd $mdir
     set bfs  = brain.finalsurfs.mgz 
     set wm   = wm.mgz
-    set aseg = aseg.presurf.mgz
+    set aseg = $AsegForSurf
     echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
     echo "#@# MMPialSurf $hemi `date`" |& tee -a $LF |& tee -a $CF
     set ads  = ../surf/autodet.gw.stats.$hemi.dat
@@ -4731,7 +4748,7 @@ if($DoCortParc2) then
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/$AsegForSurf)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -4775,7 +4792,7 @@ if($DoCortParc3) then
     set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/$AsegForSurf)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -8098,6 +8115,14 @@ check_params:
       exit 1;
     endif
 
+    set AsegForSurf = aseg.presurf.mgz
+    if($SynthSegForSurf) set AsegForSurf = synthseg.rca.mgz
+
+    if(-e $subjdir/mri/rawavg.synthsr.mgz && ! $DoSynthSR) then
+      echo "ERROR: $subjdir/mri/rawavg.synthsr.mgz exists but -synthsr not specified"
+      exit 1
+    endif
+
     if($TopoFitLevel >= 1 || $UseSynthSeg || $SynthStrip || $JosaReg) then
       if($?FS_ALLOW_DEEP == 0) setenv FS_ALLOW_DEEP 0
       if(! $FS_ALLOW_DEEP) then
@@ -8567,6 +8592,10 @@ check_params:
 
   if($UseSynthSeg && $CblumFromSynthSeg) then
     echo "ERROR: cannot -synthseg and -cblum-from-synthseg"
+    exit 1
+  endif
+  if($UseSynthSeg && $SynthSegForSurf) then
+    echo "ERROR: cannot -synthseg and -synthseg-for-surf"
     exit 1
   endif
 
