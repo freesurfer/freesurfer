@@ -15,6 +15,13 @@ set thresh = 0.01;
 set FixGA = 0;
 set tmpdir = ()
 set LF = ()
+set LFpassed = 0
+set udmade = 0
+if($?FS_GII == 0) setenv FS_GII ""
+set XOptsFile = ()
+set GlobXOptsFile = ()
+set RunIt = 1
+set DoHipAmyg = 0
 
 set asegname = aseg.presurf
 set surfname = white.preaparc
@@ -65,9 +72,22 @@ endif
 #========================================================
 foreach hemi ($hemilist)
 
-  set ctxlabel = $outdir/$hemi.cortex.label
   set whitepreaparc = $sdir/$hemi.$surfname
-  set ud = `UpdateNeeded $ctxlabel $whitepreaparc $aseg`
+
+  set ctxlabelha = $outdir/$hemi.cortex+hipamyg.label # Must have a "/" or LabelRead() fails below
+  set ud = `UpdateNeeded $ctxlabelha $whitepreaparc $aseg`
+  if($DoHipAmyg && ($ud || $ForceUpdate)) then
+    set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 1 $ctxlabelha)
+    set xopts = `fsr-getxopts CortexLabelHA $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd $xopts)
+    echo $cmd |& tee -a $LF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
+  endif
+
+  set ctxlabel = $outdir/$hemi.cortex.label
+  set ud = `UpdateNeeded $ctxlabel $whitepreaparc $aseg $entowm`
   if(! $ud && ! $ForceUpdate) continue
 
   # Label cortex using default method (no GA awareness)
@@ -80,8 +100,9 @@ foreach hemi ($hemilist)
   if($ud || $ForceUpdate) then
     set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 0 $ctxnoga)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
   if(! $FixGA) continue
 
@@ -95,27 +116,31 @@ foreach hemi ($hemilist)
   # of the medial portion will point down and to the right (for left
   # hemi) and down and to the left (for right hemi).
 
+  # There is another fix in this area called amyg-ctx junction (-fix-acj)
+  # and sometimes this label fix does not extend into this area
+
   # Binarize gyrus ambiens segmentation from entowm.mgz (mri_entowm_seg)
   if($hemi == lh) set m = 3201
   if($hemi == rh) set m = 4201
   set gavol  = $tmpdir/gyrus-ambiens.$hemi.mgz
   set ud = `UpdateNeeded $gavol $entowm`
-  if($ud) then
+  if($ud || $ForceUpdate) then
     set cmd = (mri_binarize --match $m --i $entowm --o $gavol)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
   # Sample GA seg to the surface searching inwards 1mm
   set gasurf = $tmpdir/$hemi.gyrus-ambiens.mgz
   set ud = `UpdateNeeded $gasurf $entowm`
-  if($ud) then
+  if($ud  || $ForceUpdate) then
     set cmd = (mri_vol2surf --regheader $subject --hemi $hemi --surf $surfname\
         --mov $gavol --projdist-max -1 0 .1 --o $gasurf)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
   endif
 
   # Extract the normal vectors in RAS space
@@ -124,8 +149,9 @@ foreach hemi ($hemilist)
   if($ud || $ForceUpdate) then
     set cmd = (mris_convert --to-scanner -n $whitepreaparc $nxyz)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
   # Create a mask of the normal-x. Sign changes depending upon hemi. For the left
@@ -133,53 +159,58 @@ foreach hemi ($hemilist)
   # to be in the GA binary mask.
   set nxmask = $tmpdir/$hemi.nx.mask.mgz
   set ud = `UpdateNeeded $nxmask $nxyz`
-  if($ud) then
+  if($ud  || $ForceUpdate) then
     set cmd = (mri_binarize --frame 0 --i $nxyz --mask $gasurf --o $nxmask)
     if($hemi == lh) set cmd = ($cmd --min +$thresh)
     if($hemi == rh) set cmd = ($cmd --max -$thresh)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
   # Create a mask of the normal-z. We expect this to point down for both hemis.
   # Limit the mask to be in the GA binary mask.
   set nzmask = $tmpdir/$hemi.nz.mask.mgz
   set ud = `UpdateNeeded $nzmask $nxyz`
-  if($ud) then
+  if($ud  || $ForceUpdate) then
     set cmd = (mri_binarize --frame 2 --i $nxyz --mask $gasurf --o $nzmask  --max -$thresh)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
   # Take the intersection of the two masks (nx and nz); this should be on the medial side
   set gamask = $tmpdir/$hemi.gyrus-ambiens.lat.mask.mgz
   set ud = `UpdateNeeded $gamask $nxmask $nzmask`
-  if($ud) then
+  if($ud  || $ForceUpdate) then
     set cmd = (fscalc $nxmask and $nzmask -o $gamask)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
   # Create a label of the medial side of the GA
   set galabel = $tmpdir/$hemi.gyrus-ambiens.med.label
   set ud = `UpdateNeeded $galabel $gamask`
-  if($ud) then
+  if($ud  || $ForceUpdate) then
     set cmd = (mri_cor2label --i $gamask  --l $galabel --surf-path $whitepreaparc --id 1 --thresh 0.5)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
   # Merge the medial GA label with the default cortical label
   set ud = `UpdateNeeded $ctxlabel $ctxnoga $galabel`
-  if($ud) then
+  if($ud  || $ForceUpdate) then
     set cmd = (mri_mergelabels -i $ctxnoga -i $galabel -o $ctxlabel)
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set udmade = 1
   endif
 
 end
@@ -208,6 +239,13 @@ echo "Label-Cortex-Run-Time-Min $tRunMin" |& tee -a $LF
 echo "Label-Cortex-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "label-cortex Done" |& tee -a $LF
+
+if($udmade == 0) then
+  echo "INFO: label-cortex: no changes made" | tee -a $LF
+  # Delete the log file to prevent build up of meaningless logs
+  if(! $LFpassed) rm -f $LF; 
+endif
+
 exit 0
 
 ###############################################
@@ -255,6 +293,13 @@ while( $#argv != 0 )
       set FixGA = 0
       breaksw
 
+    case "--hip-amyg":
+      set DoHipAmyg = 1
+      breaksw
+    case "--no-hip-amyg":
+      set DoHipAmyg = 0
+      breaksw
+
     case "--gii":
       setenv FS_GII .gii
       breaksw
@@ -275,14 +320,23 @@ while( $#argv != 0 )
      set ForceUpdate = 0
      breaksw
 
+    case "-dontrun":
+    case "--dontrun":
+    case "-no-run":
+    case "--no-run":
+      set RunIt = 0;
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
+      set LFpassed = 1
       breaksw
 
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
+      set LFpassed = 1
       breaksw
 
     case "--tmp":
@@ -429,6 +483,8 @@ usage_exit:
   echo "  --fix-ga : fix gyrus ambiens (--no-fix-ga)"
   echo "  --thresh thresh : threshold for binarizing x and z normals ($thresh)"
   echo "  --force-update"
+  echo "  --dontrun, -dontrun, --no-run, -no-run"
+  echo "  --hip-amyg : Create ?h.cortex+hipamyg.label needed by RCA"
   echo "  --sd SUBJECTS_DIR"
   echo "  --help "
   echo ""
