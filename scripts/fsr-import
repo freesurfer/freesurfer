@@ -152,14 +152,26 @@ while( $#argv != 0 )
       if($#argv < 2) goto arg2err;
       set modename = $argv[1]; shift;
       set input = $argv[1]; shift;
-      if($modename == t1w || $modename == t2w || $modename == flair) then
-        echo "ERROR: use --t1w or --t2w or --flair instead of --mode $modename"
+      if($modename == t1w || $modename == t2w || $modename == flair  || $modename == mode-unknown) then
+        echo "ERROR: use --t1w or --t2w or --flair or --i instead of --mode $modename"
         exit 1
       endif
       if(! -e $input) then
         echo "ERROR: cannot find $input"
         exit 1;
       endif
+      set modenames = ($modenames $modename);
+      set inputlist = ($inputlist $input);
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg2err;
+      set input = $argv[1]; shift;
+      if(! -e $input) then
+        echo "ERROR: cannot find $input"
+        exit 1;
+      endif
+      set modename = mode-unknown
       set modenames = ($modenames $modename);
       set inputlist = ($inputlist $input);
       breaksw
@@ -333,7 +345,8 @@ usage_exit:
   echo "  --t1w inputfile : modename = t1w "
   echo "  --t2w inputfile : modename = t2w "
   echo "  --flair inputfile : modename = flair "
-  echo "  --mode modename inputfile : modename cannot be t1w, t2w, for flair"
+  echo "  --mode modename inputfile : modename cannot be t1w, t2w, flair, or mode-unknown"
+  echo "  --i inputfile : modename = mode-unknown"
   echo "  --force-update : update files regardless of time stamp"
   echo "  --no-conform : do not conform the input to 1mm, 256"
   echo "  --hires : same as --no-conform"
