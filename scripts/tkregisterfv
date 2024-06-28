@@ -33,6 +33,8 @@ set ColorMap = grayscale
 set params = (0 0 0 0 0 0 1 1 1 0 0 0); # 12dof
 set regheader = 0;
 set interp = () # default is nearest
+if($?FV_PATIENT_ORIENTATION == 0) setenv FV_PATIENT_ORIENTATION 1
+if($?FV_ROTATE_AROUND_CURSOR == 0) setenv FV_ROTATE_AROUND_CURSOR 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -463,6 +465,15 @@ while( $#argv != 0 )
 
     case "--fstal"
       set DoTal = 1;
+      breaksw
+
+    case "-radiological":
+    case "-radio":
+      setenv FV_PATIENT_ORIENTATION 1
+      breaksw
+    case "-neurological":
+    case "-neuro":
+      setenv FV_PATIENT_ORIENTATION 2
       breaksw
 
     case "-vgl":
