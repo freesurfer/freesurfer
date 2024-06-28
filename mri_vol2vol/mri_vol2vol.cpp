@@ -1525,7 +1525,13 @@ static int parse_commandline(int argc, char **argv) {
       Mshear->rptr[1][3] = shear[1]; // xz/col-row - in-plane
       Mshear->rptr[2][3] = shear[2]; // yz/row-slice
       nargsused = 3;
-    } else if ( !strcmp(option, "--gdiagno") ) {
+    } 
+    else if ( !strcmp(option, "--vg-thresh") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--gdiagno") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&gdiagno);
       nargsused = 1;
@@ -1719,6 +1725,7 @@ printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
 printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header\n");
+printf("   --vg-thresh thresh : set threshold for comparing vol geom\n");
 printf("\n");
 printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 printf("     srclta, gcam, or vsm can be set to 0 to indicate identity (not regheader)\n");
