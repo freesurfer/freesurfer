@@ -1263,7 +1263,11 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
   printf("  #CBVS2 BrainSegVolNotVent  %10.1f\n", BrainSegVolNotVent);
   printf("  #CBVS2 SupraTentVol        %10.1f\n", SupraTentVol);
   printf("  #CBVS2 SupraTentVolNotVent %10.1f\n", SupraTentVolNotVent);
+  printf("  #CBVS2 lhWhiteVol          %10.1f\n",lhwhitevolTot);
+  printf("  #CBVS2 lhPialVol           %10.1f\n",lhpialvolTot);
   printf("  #CBVS2 lhCtxGM             %10.1f\n",lhCtxGM);
+  printf("  #CBVS2 rhWhiteVol          %10.1f\n",rhwhitevolTot);
+  printf("  #CBVS2 rhPialVol           %10.1f\n",rhpialvolTot);
   printf("  #CBVS2 rhCtxGM             %10.1f\n",rhCtxGM);
   printf("  #CBVS2 lhCerebralWM        %10.1f\n",lhCerebralWM);
   printf("  #CBVS2 rhCerebralWM        %10.1f\n",rhCerebralWM);
