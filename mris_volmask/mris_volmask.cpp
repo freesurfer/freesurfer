@@ -606,7 +606,13 @@ LoadInputFiles(const IoParams& params,
     surfLeftWhite = MRISread( const_cast<char*>( pathSurfLeftWhite.c_str() ));
     if ( !surfLeftWhite )
       throw IoError( std::string("failed to read left white surface ") + pathSurfLeftWhite );
-    
+    // Must verify that determinant is < 0
+    MATRIX *m = MRIgetVoxelToRasXform(&surfLeftWhite->vg) ;
+    if(MatrixDeterminant(m) > 0) {
+      printf("ERROR: surf vg vox2ras determinant is > 0\n");
+      exit(10101);
+    }
+    MatrixFree(&m);
     surfLeftPial  = MRISread( const_cast<char*>( pathSurfLeftPial.c_str() ));
     if ( !surfLeftPial )
       throw IoError( std::string("failed to read left pial surface ")+ pathSurfLeftPial );
@@ -617,7 +623,13 @@ LoadInputFiles(const IoParams& params,
     if ( !surfRightWhite )
       throw IoError( std::string("failed to read right white surface ")
 		     + pathSurfRightWhite );
-    
+    // Must verify that determinant is < 0
+    MATRIX *m = MRIgetVoxelToRasXform(&surfRightWhite->vg) ;
+    if(MatrixDeterminant(m) > 0) {
+      printf("ERROR: surf vg vox2ras determinant is > 0\n");
+      exit(10101);
+    }
+    MatrixFree(&m);
     surfRightPial = MRISread( const_cast<char*>( pathSurfRightPial.c_str() ));
     if ( !surfRightPial )
       throw IoError( std::string("failed to read right pial surface ")
