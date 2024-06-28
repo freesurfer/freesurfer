@@ -41,6 +41,7 @@ set Interp = trilinear
 set OutBase = w-g.pct;
 set ConSign = 100;
 set surf = ()
+set ext = mgh;
 
 set debug = 0;
 set tmpdir = ();
@@ -66,8 +67,6 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
-
-set ext = mgh;
 
 set outdir = $SUBJECTS_DIR/$subject/surf
 if($#tmpdir == 0) set tmpdir = $outdir/tmp.pctsurfcon.$$
@@ -125,7 +124,7 @@ foreach hemi ($hemilist)
   if($status) exit 1;
 
   # Compute percent difference pct = 100*(w-g)/((w+g)/2)
-  set out = $outdir/$hemi.$OutBase.mgh
+  set out = $outdir/$hemi.$OutBase.$ext
   set cmd = (mri_concat $wm $gm --paired-diff-norm \
     --mul $ConSign --o $out)
   echo $cmd 
@@ -223,6 +222,16 @@ while( $#argv != 0 )
     case "--wm-proj-abs":
       if($#argv < 1) goto arg1err;
       set WMProjAbs = $argv[1]; shift;
+      breaksw
+
+    case "--mgh":
+      set ext = mgh;
+      breaksw
+    case "--mgz":
+      set ext = mgz;
+      breaksw
+    case "--nii.gz":
+      set ext = nii.gz;
       breaksw
 
     case "--nearest":
@@ -341,6 +350,9 @@ usage_exit:
   echo "  --pial : use pial surface as base (instead of white) to compute gray/CSF contrast"
   echo ""
   echo "Even more arguments"
+  echo ""
+  echo " --mgz : extension, default ext is $ext"
+  echo " --nii.gz : extension, default ext is $ext"
   echo ""
   echo "  --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "  --nocleanup  : do not delete temporary files"
