@@ -1388,6 +1388,13 @@ double MRISvolumeInSurf(MRIS *mris)
   MatrixFree(&v_n);
 
   total_volume /= 3.0;
+
+  // For a conformed volume, the determinant is always < 0. However, more
+  // generally, have to reverse the sign if det>0
+  MATRIX *m = MRIgetVoxelToRasXform(&mris->vg) ;
+  if(MatrixDeterminant(m) > 0) total_volume *= -1.0; 
+  MatrixFree(&m);
+
   return (total_volume);
 }
 /*!
