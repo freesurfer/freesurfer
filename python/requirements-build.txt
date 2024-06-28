@@ -16,7 +16,7 @@ deepsurfer==0.1.1a4
 filelock==3.15.4
 flatbuffers==24.3.25
 fonttools==4.53.0
-fsspec==2024.6.0
+fsspec==2024.6.1
 gast==0.4.0
 google-auth-oauthlib==1.0.0
 google-auth==2.30.0
