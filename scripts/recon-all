@@ -1489,7 +1489,7 @@ if($DoMotionCor) then
       endif
     endif
   endif
-  if(-e $sythsr) then
+  if(-e $synthsr) then
     echo "Found synthsr, so using that" | tee -a $LF
     set rawavg = $synthsr
   endif
