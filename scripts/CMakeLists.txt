@@ -174,6 +174,7 @@ install_configured(
   mri_create_t2combined
   mri_entowm_seg
   mri_glmfit-sim
+  mri_mcadura_seg
   mri_mergelabels
   mri_motion_correct
   mri_motion_correct.fsl
