@@ -173,6 +173,12 @@ FixACJ:
     action: enable
     descr: Fix the WM in the area between amygdala and cortex
     
+FixMCADura:
+    value: False
+    flags: -fix-mca-dura
+    action: enable
+    descr: Segment the MCA/dura area between front and temp and remove from brain mask
+    
 SkipDone:
     value: False
     flags: -skip-done

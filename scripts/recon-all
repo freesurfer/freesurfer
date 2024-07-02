@@ -2162,6 +2162,24 @@ if($SynthStrip) then
   endif
 endif
 
+# Segment MCA/dura to here be able to pass it to mri_watershed
+set mcadura = $mdir/mca-dura.mgz
+if($FixMCADura) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "\n#@# MCADura Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  set nu = $mdir/nu.mgz
+  set ud = `UpdateNeeded $mcadura $nu`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_mcadura_seg $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_mcadura_seg --i $nu --o $mcadura --threads $OMP_NUM_THREADS $xopts)
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "MCADura Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
 if($DoSkullStrip) then
 skullstrip:
   echo "#--------------------------------------------" \
@@ -2244,6 +2262,7 @@ skullstrip:
     set DoMultiStrip = 0
     echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
   endif
+  if($FixMCADura) set opts = ($opts -xmask $mcadura)
 
   set cmd = (mri_watershed)
   set BM  = brainmask.mgz
