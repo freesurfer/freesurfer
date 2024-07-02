@@ -111,6 +111,8 @@ You can use one of the first five flags to change these default parms.
       <explanation>Remove voxels whose intensity exceeds xthresh</explanation> 
       <argument>-mask</argument>
       <explanation>mask a volume with the brain mask</explanation> 
+      <argument>-xmask xmask</argument>
+      <explanation>Exclusion mask. Set output to 0 where xmask is non-zero. Can have multiple -xmask options</explanation> 
       <argument>--help</argument>
       <explanation>show usage message</explanation> 
       <argument>--version</argument>
