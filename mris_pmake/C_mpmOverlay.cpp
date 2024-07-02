@@ -78,7 +78,8 @@ C_mpmOverlay::error(
     int         code            /* = 1  Error ID  */)
 {
 
-    extern int errno;
+    // comment this line out - it is causing compiler errors for rocky8 gcc10 
+    //extern int errno;
 
     cerr << "\nFatal error encountered.\n";
     cerr << "\tC_mpmOverlay `" << mstr_name << "' (id: " << mid << ")\n";
