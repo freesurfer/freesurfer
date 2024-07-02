@@ -32,6 +32,8 @@ install_symlinks(
   mni305.cor.subfov1.mgz
   mni305.cor.subfov2.mgz
   mni305.mask.cor.mgz
+  mca-dura.prior.warp.mni152.1.0mm.lh.nii.gz
+  mca-dura.prior.warp.mni152.1.0mm.rh.nii.gz
 )
 
 # fsaverage
