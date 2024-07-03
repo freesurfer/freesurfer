@@ -104,6 +104,7 @@ static float dgamma = 0.0f ;
 #define MAX_OVERLAYS 1000
 static int noverlays = 0 ;
 static char *overlays[MAX_OVERLAYS]  ;
+static char *moverroverlays ; // LZ 05/06/24
 const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static const char *orig_name = "smoothwm" ;
@@ -163,6 +164,7 @@ main(int argc, char *argv[])
   parms.flags |= IP_USE_CURVATURE ;
   parms.trinarize_thresh = 0.0 ;  // disabled by default
   parms.tol = 0.5 ;    // was 1e-0*2.5
+  parms.errth = 0.0 ;    // LZ 05/06/24
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
   parms.l_parea = 0.1f ;  // used to be 0.2
@@ -1084,6 +1086,15 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using tol = %2.2e\n", (float)parms.tol) ;
   }
+  else if (!stricmp(option, "errth")) // LZ 05/06/24: error_threshold
+  {
+    if (sscanf(argv[2], "%e", &f) < 1)
+      ErrorExit(ERROR_BADPARM, "%s: could not scan errth from %s",
+                Progname, argv[2]) ;
+    parms.errth = (double)f ;
+    nargs = 1 ;
+    fprintf(stderr, "using errth = %2.2e\n", (float)parms.errth) ;
+  }
   else if (!stricmp(option, "error_ratio"))
   {
     parms.error_ratio = atof(argv[2]) ;
@@ -1155,6 +1166,34 @@ get_option(int argc, char *argv[])
                   which_norm);
     SetFieldName(&parms.fields[n], argv[2]) ;
     atlas_size++ ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "moverroverlays")) // LZ 05/06/24: moving error overlay
+  {
+    int navgs ;
+    /*if (noverlays == 0)
+    {
+      atlas_size = 0 ;
+    }
+    if (multiframes == 0)
+    {
+      initParms() ;
+      multiframes = 1 ;
+      }*/
+    moverroverlays = argv[2] ;
+    navgs = atof(argv[3]) ;
+    printf("reading moverroverlay from %s and smoothing it %d times\n",
+           argv[2], navgs) ;
+    n=parms.nfields++; //???
+    SetFieldLabel(&parms.fields[n],
+                  OVERLAY_FRAME,
+                  atlas_size,
+                  l_ocorr,
+                  0.0,
+                  navgs,
+                  which_norm);
+    SetFieldName(&parms.fields[n], argv[2]) ;
+    //atlas_size++ ;
     nargs = 2 ;
   }
   else if (!stricmp(option, "distance"))

@@ -386,11 +386,12 @@ endif
 # * newtopology option should not be used
 ###
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
-  #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
-  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+  #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
                        -topology_old -compress -pc_type jacobi -ksp_type preonly \
                        -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
  if ($BothHemis) then
+  set regmoving = $mmri/$voltype.mgz
   set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
                       -fixed_surf $tsurf/lh.white     -moving_surf $outdir/lh.resample.white \
                       -fixed_surf_2 $tsurf/rh.white   -moving_surf_2 $outdir/rh.resample.white \
@@ -443,11 +444,6 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
 endif
 
 endif
-
-if !(-e $outdir/${elasticmorph:r}.m3z) then 
-
-endif
-
 
 set Step2EndTime = `date +%s`;
 
