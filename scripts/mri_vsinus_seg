@@ -1,0 +1,562 @@
+#!/bin/tcsh -f
+# mri_vsinus_seg - segmentation of venous sinuses
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
+
+set model = $FREESURFER_HOME_FSPYTHON/models/vsinus.no-sp.m.all.nstd10-070.h5
+set priormni = $FREESURFER/average/vsinus.no-sp.prior.mni152.1.0mm.mgz
+# Creates its own ctab below
+#set ctab = $FREESURFER/models/vsinus.no-sp.ctab
+
+#set deepdir = /autofs/space/iddhi_005/users/vsinus/vsinus-samseg/
+#set model = $deepdir/split1/m.all.nstd10/dice_070.h5
+#set ctab = $deepdir/
+#set priormni = $deepdir/priors/mni152.avg12567.prior.mgz
+set ctab = ()
+
+set fov = 144 # shape of the unet
+
+set invol = ();
+set outdir = ();
+set subject = ();
+set synthmorphdir = ()
+set threads = 1
+set diceseg = ()
+set features = 24
+set seg = ()
+set ReRun = 0
+set base = vsinus
+
+set ForceUpdate = 0
+
+set tmpdir = ();
+set cleanup = -1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/log
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.mri_vsinus_seg.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.mri_vsinus_seg.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($cleanup) set LF = `fname2stem $seg`.log
+if($#LF == 0) set LF = $outdir/log/mri_vsinus_seg.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for mri_vsinus_seg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+if($#ctab == 0) then
+set ctab = $outdir/vsinus.no-sp.ctab
+if(! -e $ctab) then
+  echo "     0  Unknown                           0   0   0  255" >> $ctab
+  echo "  6111  Left-Transverse-Sinus           229  11 152    0" >> $ctab
+  echo "  6112  Right-Transverse-Sinus          40 251  16    0" >> $ctab
+  echo "  6115  Straight-Sinus                 185 210  35    0" >> $ctab
+  echo "  6116  Superior-Sinus-P                26 129 125    0" >> $ctab
+  echo "  6117  Superior-Sinus-D               144  51 173    0"  >> $ctab
+endif
+endif
+
+if(! $#synthmorphdir) then
+  # Use synthmorph to generate the affine transform to MNI152 space
+  set synthmorphdir = $outdir/synthmorph
+  set cmd = (fs-synthmorph-reg --i $invol --o $synthmorphdir --affine-only --threads $threads)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+set lta = $synthmorphdir/reg.targ_to_invol.lta
+
+# Map the prior from mni152 to native space (have to use LTA, not warp)
+set prior = $outdir/native.avg12567.prior.mgz
+set ud = `UpdateNeeded $prior $lta $invol`
+if($ud) then
+  set cmd = (mri_vol2vol --mov $priormni --lta $lta --targ $invol --o $prior)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+# This create the minimum crop around the prior (vox values unimportant)
+set priormincrop = $outdir/native.avg12567.prior.mincrop.mgz
+set ud = `UpdateNeeded $priormincrop $prior`
+if($ud) then
+  set cmd = (mri_mask -T .001 -crop 0 $prior $prior $priormincrop)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+# Map the intensity image to the mincrop, padded to $fov
+set involcrop = $outdir/invol.crop-to-prior.norev.mgz
+set ud = `UpdateNeeded $involcrop $priormincrop $invol`
+if($ud) then
+  set cmd = (mri_binarize --crop-around-ras $involcrop $invol \
+    nolta cras $priormincrop 0 $fov $fov $fov)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Now do the segmentation in this cropped space
+set segcrop = $outdir/vsinus.crop-to-prior.norev.mgz
+set ud = `UpdateNeeded $segcrop $involcrop`
+if($ud) then
+  set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac \
+    --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
+    --fov $fov --threads $threads --no-cite-sclimbic --i $involcrop --o $segcrop)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Map back to the native input space 
+set ud = `UpdateNeeded $seg $segcrop`
+if($ud) then
+  set cmd = (mri_vol2vol --mov $segcrop --targ $invol --interp nearest --o $seg --regheader)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Run segstats if needed
+if($#subject) then
+  set stats = $SUBJECTS_DIR/$subject/stats/vsinus.stats
+  set ud = `UpdateNeeded $stats $seg`
+  if($ud) then
+    set cmd = (mri_segstats --i $invol --seg $seg --sum $stats --subject $subject --etiv)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+# If a dice seg volume was passed, compute dice against it (debugging)
+if($#diceseg) then
+  set tbl = $outdir/dice.table
+  set dat = $outdir/dice.dat
+  set ud = `UpdateNeeded $tbl $seg`
+  if($ud) then
+    set cmd = (mri_compute_seg_overlap -dice $diceseg $seg embedded 1 0 $dat $tbl)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+# Create a freeview command
+set cmd = (fsvglrun freeview --hide-3d-slices --view coronal  -neuro-view $invol ${seg}:isosurface=1:outline=1)
+if($#diceseg) set cmd = ($cmd ${diceseg}:isosurface=1)
+echo "" |tee -a $LF
+echo $cmd |tee -a $LF
+echo "" |tee -a $LF
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $outdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Mri_Vsinus_Seg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Mri_Vsinus_Seg-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Mri_Vsinus_Seg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "mri_vsinus_seg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--outdir":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      set cleanup = 0
+      breaksw
+
+    case "--o":
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set seg = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--dice":
+      if($#argv < 1) goto arg1err;
+      set diceseg = $argv[1]; shift;
+      if(! -e $diceseg) then
+        echo "ERROR: cannot find $diceseg"
+        exit 1
+      endif
+      set cleanup = 0
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--features":
+      if($#argv < 1) goto arg1err;
+      set features = $argv[1]; shift;
+      breaksw
+
+    case "--synthmorphdir":
+      if($#argv < 1) goto arg1err;
+      set synthmorphdir = $argv[1]; shift;
+      breaksw
+
+    case "--model":
+    case "--m":
+      if($#argv < 1) goto arg1err;
+      set model = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--direct":
+      if($#argv < 2) goto arg2err;
+      set input  = $argv[1]; shift;
+      set output = $argv[1]; shift;
+      set rmctab = 0
+      if($#ctab == 0) then
+        set ctab = /tmp/vsinus.no-sp.ctab.$$
+        rm -f $ctab
+        echo "     0  Unknown                           0   0   0  255" >> $ctab
+        echo "  6111  Left-Transverse-Sinus           229  11 152    0" >> $ctab
+        echo "  6112  Right-Transverse-Sinus          40 251  16    0" >> $ctab
+        echo "  6115  Straight-Sinus                 185 210  35    0" >> $ctab
+        echo "  6116  Superior-Sinus-P                26 129 125    0" >> $ctab
+        echo "  6117  Superior-Sinus-D               144  51 173    0"  >> $ctab
+        set rmctab = 1
+      endif
+      set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac --features $features\
+        --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
+        --fov $fov --threads $threads --no-cite-sclimbic --i $input --o $output)
+      echo $cmd 
+      $cmd
+      set st = $status
+      if($rmctab) rm -f $ctab
+      exit $st
+      breaksw
+
+    case "--rerun":
+     set ReRun = 1
+     breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--no-cleanup":
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject) then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  if($#invol == 0)  set invol  = $SUBJECTS_DIR/$subject/mri/nu.mgz
+  if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/mri/tmp.vsinus
+  if($#seg == 0)    set seg    = $SUBJECTS_DIR/$subject/mri/vsinus.mgz
+endif
+
+if($#invol == 0) then
+  echo "ERROR: must spec invol or --s"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+
+if($#seg && ! $#outdir) then
+  # seg path specified but outdir not, so create a tmp folder
+  # for outdir; turn on cleanup if it has not been turned off
+  set segdir = `dirname $seg`
+  set outdir = $segdir/tmp.mri_vsinus_seg.$$
+  if($cleanup != 0) set cleanup = 1
+endif
+
+if(! $#seg && $#outdir) then
+  # seg path not spec, so put it in outdir; turn off cleanup
+  set seg = $outdir/vsinus.mgz
+  set cleanup = 0
+endif
+
+if($#outdir == 0) then
+  echo "ERROR: must spec --outdir or --s or --o"
+  exit 1;
+endif
+
+# Cleanup not set on cmd line or above, so turn it on
+if($cleanup == -1) set cleanup = 1
+
+if($#synthmorphdir) then
+  set lta = $synthmorphdir/reg.targ_to_invol.lta
+  if(! -e $lta) then
+    echo "ERROR: cannot find $lta"
+    exit 1
+  endif
+endif
+
+foreach f ($model ) # $ctab
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1
+  endif
+end
+
+if($#seg == 0) set seg = $outdir/vsinus.mgz
+set ud = `UpdateNeeded $seg $invol`
+if(! $ud && ! $ReRun&& ! $ForceUpdate) then
+  ls -tl $invol $seg
+  set cmd = (fsvglrun freeview --hide-3d-slices --view coronal  -neuro-view $invol ${seg}:isosurface=1:outline=1)
+  if($#diceseg) set cmd = ($cmd ${diceseg}:isosurface=1)
+  echo "" 
+  echo $cmd
+  echo ""
+  echo "INFO: seg is up-to-date. If you want to rerun, add --rerun" 
+  exit 0
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mri_vsinus_seg - segmentation of venous sinuses for correcting surfaces"
+  echo " --i inputvol"
+  echo " --o outsegvol"
+  echo " --outdir outdir"
+  echo " --s subject (sets invol=mri/nu.mgz and outseg = mri/vsinus.mgz unless otherwise)"
+  echo " --threads threads"
+  echo " --nocleanup : do not delete intermediate results"
+  echo " --force : force rerunning everything from scratch"
+  echo " --synthmorphdir synthmorphdir : get linear reg from mni to input from here, otherwise computes"
+  echo " --model model"
+  echo " --ctab ctab"
+  echo " --direct input output : run seg directly without cropping, uncropping, or any preprocessing"
+  echo " --rerun : rerun, but only if some intermediate stage is out of date (debugging)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Segmenents several venous sinuses in a T1w input image. The segmented
+sinuses are the transverse (left and right), straight, and superior
+sagittal. The superior sag is segmented into posterior and dorsal
+regions; the anterior region is not segmented. The PURPOSE of this
+segmentation is ONLY to improve the FreeSurfer skull stripping in
+recon-all to prevent the pial surface from extending into the
+sinuses. This segmentation HAS NOT BEEN VALIDATED for accurate
+segmentation of these sinuses.
+
+Memory reqs: about 15GB, but your milage may vary. Exec time less than
+120 sec single threaded and about 40 sec with many threads.
+
+This method uses a deep learning segmenter based on the network and
+software from https://pubmed.ncbi.nlm.nih.gov/32853816.  
+
+The gold standard segmentations can be traced back to
+https://www.sciencedirect.com/science/article/pii/S1053811920305309
+These manual labels were incorporated into a SAMSEG atlas.  The SAMSEG
+atlas generates a single label for all the vinuses above.  This
+labeling was performed on the MNI152 brain. This label was then
+manually divided into the above segments (plus anterior superior and
+sigmoidal sinuses which are not included here). To generate a
+segmentation for an individual, SAMSEG was run to get the single-seg
+sinus. The multiseg sinus was mapped from MNI space and used to assign
+the branches. The seg and the intensity image was cropped down to
+148^3 around the seg. The intensity image was scaled so that
+WM=100. Images/segs were generated both without left-right reverseal
+and with. See vsinus-samseg. SAMSEG could have been used directly for
+this, but I found that the DL segmentation tended to avoid mislabeling
+cortex relative to the SAMSEG segmentation (eventhough that is what it
+is base on).
+
+It was impractical to do a one-shot whole head segmentation like
+sclimbic or hypothalamus.  Those models require that the targets be
+comfortably inside of a 160^3 volume when the input is cropped around
+the center voxel. This is not the case for the sinuses because they
+are around the edge of the brain. The crop volume needed to encompass
+the sinuses would be huge and would take a long time to train. The
+work-around employed here is to register the input the MNI, then map
+the priors to the input space, then crop the images to 144, then apply
+the network. This was done on the training data and by this script
+when applying the model.
+
+Segmentations were generated in this way from 700 cases from adni3,
+FHS, fBIRN3, FC1K, IXI, and HCPA. The network was trained with
+
+deeplimbictrain  --fov 144 --noisestd 10 (otherwise default parameters)
+
+The model at 70 epochs (70k steps) seemed to perform well.
+
+Overall on training set (not independent set, but independent was about the same)
+dice 0.78 0.77 0.68 0.75 0.80 
+fdr  0.22 0.18 0.28 0.18 0.08 
+tpr  0.79 0.75 0.69 0.72 0.73 
+CC   0.56 0.56 0.44 0.38 0.66 
+
+Dice scores for each cohort
+adni  n=30 0.75 0.77 0.71 0.72 0.66 
+fhs   n=64 0.79 0.78 0.65 0.75 0.85 
+hcp   n=3  0.78 0.78 0.61 0.76 0.76 
+ixi   n=22 0.77 0.75 0.71 0.79 0.84 
+fc1k  n=14 0.79 0.78 0.67 0.74 0.79 

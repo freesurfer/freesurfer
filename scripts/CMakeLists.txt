@@ -181,6 +181,7 @@ install_configured(
   mri_motion_correct2
   mri_nu_correct.mni
   mri_reorient_LR.csh
+  mri_vsinus_seg
   mris_preproc
   mris_volsmooth
   ms_refine_subject
