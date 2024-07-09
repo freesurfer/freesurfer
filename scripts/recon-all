@@ -2162,7 +2162,7 @@ if($SynthStrip) then
   endif
 endif
 
-# Segment MCA/dura to here be able to pass it to mri_watershed
+# Segment MCA/dura here to be able to pass it to mri_watershed
 set mcadura = $mdir/mca-dura.mgz
 if($FixMCADura) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2177,6 +2177,25 @@ if($FixMCADura) then
     if($status) goto error_exit;
   else
     echo "MCADura Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
+# Segment venous sinuses here to be able to pass it to mri_watershed
+# Could get synthmorph dir from above (just affine so not big deal)
+set vsinus = $mdir/vsinus.mgz
+if($FixVSinus) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "\n#@# VSinus Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  set nu = $mdir/nu.mgz
+  set ud = `UpdateNeeded $vsinus $nu`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_vsinus_seg $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_vsinus_seg --s $subjid --threads $OMP_NUM_THREADS $xopts)
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "VSinus Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   endif
 endif
 
@@ -2263,6 +2282,7 @@ skullstrip:
     echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
   endif
   if($FixMCADura) set opts = ($opts -xmask $mcadura)
+  if($FixVSinus)  set opts = ($opts -xmask $vsinus)
 
   set cmd = (mri_watershed)
   set BM  = brainmask.mgz

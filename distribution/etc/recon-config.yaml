@@ -178,6 +178,12 @@ FixMCADura:
     flags: -fix-mca-dura
     action: enable
     descr: Segment the MCA/dura area between front and temp and remove from brain mask
+
+FixVSinus:
+    value: False
+    flags: -fix-vsinus
+    action: enable
+    descr: Segment the venous sinuses and remove from brain mask
     
 SkipDone:
     value: False
