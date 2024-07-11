@@ -1339,15 +1339,19 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
   if ($usethalnuc) then
     set thalseg = ()
 
-    foreach thalver (v13 v12)
-      if (-e $fsdir/mri/ThalamicNuclei.$thalver.T1.FSvoxelSpace.mgz) then
-        set thalseg = ThalamicNuclei.$thalver.T1.FSvoxelSpace
+    foreach thalver (v13.T1. v12.T1. '' long.)
+      if (-e $fsdir/mri/ThalamicNuclei."$thalver"FSvoxelSpace.mgz) then
+        set thalseg = ThalamicNuclei."$thalver"FSvoxelSpace
         break
       endif
     end
 
     if ($#thalseg == 0) then
       echo "ERROR: Could not find thalamic nuclei segmentation in $fsdir/mri/" |& tee -a $LF
+      echo "ERROR: using any of the following patterns --->" |& tee -a $LF
+      echo "ERROR: ThalamicNuclei.v1[23].T1.FSvoxelSpace.mgz" |& tee -a $LF
+      echo "ERROR: ThalamicNuclei.FSvoxelSpace.mgz" |& tee -a $LF
+      echo "ERROR: ThalamicNuclei.long.FSvoxelSpace.mgz" |& tee -a $LF
       echo "ERROR: Thalamic nuclei segmentation is strongly recommended to use" |& tee -a $LF
       echo "ERROR: for tracts that terminate in or travel near the thalamus" |& tee -a $LF
       echo "ERROR: If there is good reason not to use it, set usethalnuc = 0" |& tee -a $LF
