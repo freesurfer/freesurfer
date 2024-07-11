@@ -172,9 +172,9 @@ while( $#argv != 0 )
 
     case "--mov":
       if ( $#argv < 1) goto arg1err;
-      set movvol = $argv[1]; shift;
-      if(! -e $movvol) then
-        echo "ERROR: cannot find $movvol"
+      set mov = $argv[1]; shift;
+      if(! -e $mov) then
+        echo "ERROR: cannot find $mov"
         exit 1;
       endif
       breaksw
