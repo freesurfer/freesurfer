@@ -44,6 +44,13 @@ compare_vol out.mgz joint.mgz --thresh 0.02
 t moving.mgz fixed.mgz -mdeform -j16 -e256 -n7 -r0.5
 t moving.mgz fixed.mgz -m joint -j 16 -e 192 -n 5 -r 0.7
 
+# NIfTI warps
+FSTEST_NO_DATA_RESET=1
+mri_convert=$(find_path $FSTEST_CWD mri_convert/mri_convert)
+t -t out.nii.gz moving.mgz fixed.mgz
+test_command $mri_convert -odt float -at out.nii.gz moving.mgz out.mgz
+compare_vol out.mgz joint.mgz --thresh 1
+
 # illegal arguments
 EXPECT_FAILURE=1
 t moving.mgz fixed.mgz -m banana
