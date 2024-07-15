@@ -52,7 +52,7 @@ option(FSPYTHON_BUILD_REQ "Pip will use requirmenets files with a snapshot of pk
 option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
 option(TEST_WITH_CUDA "Allow tests to run that use cuda libs and require install of cuda drivers" OFF)
 option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
-option(FIPS_SUPPORT "allow FS license to be read on FIPS system" ON)
+option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
 option(FSPYTHON_INSTALL_TREE "install fspython distro and scripts to a separate install tree" OFF)
 option(APPLE_ARM64 "Mac arm64 build" OFF)
 
