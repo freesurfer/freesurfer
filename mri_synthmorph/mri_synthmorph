@@ -389,6 +389,7 @@ p.add_argument('-H', dest='header_only', action='store_true')
 p.add_argument('-t', dest='trans', metavar='trans')
 p.add_argument('-T', dest='inverse', metavar='trans')
 p.add_argument('-i', dest='init', metavar='trans')
+p.add_argument('-M', dest='mid_space', action='store_true')
 p.add_argument('-j', dest='threads', metavar='threads', type=int)
 p.add_argument('-g', dest='gpu', action='store_true')
 p.add_argument('-r', dest='hyper', metavar='lambda', type=float, default=default['hyper'])
@@ -417,6 +418,10 @@ is_mat = arg.model in ('affine', 'rigid')
 
 if arg.header_only and not is_mat:
     print('Error: -H is not compatible with deformable registration')
+    exit(1)
+
+if arg.mid_space and not arg.init:
+    print('Error: -M requires matrix initialization')
     exit(1)
 
 if not 0 < arg.hyper < 1:
@@ -471,18 +476,25 @@ ras_to_mov = mov.geom.world2vox.matrix
 ras_to_fix = fix.geom.world2vox.matrix
 
 
-# Incorporate an initial matrix transform. It maps from fixed to moving world
-# coordinates, so we start with fixed network space on the right. FreeSurfer
-# LTAs store the inverse of the transform.
+# Incorporate an initial matrix transform, mapping moving to fixed coordinates,
+# as FreeSurfer LTAs store the inverse of what you might think.
 if arg.init:
-    init = sf.load_affine(arg.init).convert(space='world')
+    init = sf.load_affine(arg.init).convert(space='voxel')
     if init.ndim != 3 \
         or not sf.transform.image_geometry_equal(mov.geom, init.source, tol=1e-3) \
         or not sf.transform.image_geometry_equal(fix.geom, init.target, tol=1e-3):
         sf.system.fatal('initial transform geometry does not match images')
 
-    net_to_mov = ras_to_mov @ init.inv() @ fix_to_ras @ net_to_fix
-    mov_to_net = fix_to_net @ ras_to_fix @ init @ mov_to_ras
+    init = fix_to_net @ init @ net_to_mov
+    if arg.mid_space:
+        init = tf.linalg.sqrtm(init)
+        if np.any(np.isnan(init)):
+            sf.system.fatal(f'cannot compute matrix square root of {arg.init}')
+        net_to_fix = net_to_fix @ init
+        fix_to_net = np.linalg.inv(net_to_fix)
+
+    net_to_mov = net_to_mov @ tf.linalg.inv(init)
+    mov_to_net = np.linalg.inv(net_to_mov)
 
 
 # Take the input images to network space. When saving the moving image with the
