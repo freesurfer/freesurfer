@@ -53,7 +53,8 @@ const char *Progname;
 static int  get_option(int argc, char *argv[]) ;
 
 static int   InterpMethod = SAMPLE_NEAREST;
-static int dilate = 0 ;
+int dilate = 0 ;
+int erode = 0 ;
 
 /* The following specifies the src and dst volumes
    of the input FSL/LTA transform */
@@ -352,9 +353,17 @@ int main(int argc, char *argv[])
     out_val = transfer_val;
   }
   if (dilate > 0)  {
-    int i ;
-    for (i = 0 ; i < dilate ; i++)
-      MRIdilate(mri_mask, mri_mask);
+    printf("Dilating %d\n",dilate);
+    for(int i = 0 ; i < dilate ; i++)  MRIdilate(mri_mask, mri_mask);
+  }
+  if(erode > 0){
+    printf("Eroding %d\n",erode);
+    MRI *mritmp = NULL;
+    for(int i=0; i<erode; i++) {
+      mritmp = MRIerodeNN(mri_mask,mritmp,NEAREST_NEIGHBOR_CORNER);
+      MRIcopy(mritmp,mri_mask);
+    }
+    MRIfree(&mritmp);
   }
 
   printf("maskval=%d, outval=%g\n",mask,out_val);
@@ -472,6 +481,11 @@ get_option(int argc, char *argv[])
     dilate = atoi(argv[2]) ;
     nargs = 1 ;
     printf("dilating mask %d times before applying\n", dilate);
+  }
+  else if (!stricmp(option, "erode"))
+  {
+    erode = atoi(argv[2]) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "xform"))
   {
