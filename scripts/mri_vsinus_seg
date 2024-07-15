@@ -32,6 +32,10 @@ set features = 24
 set seg = ()
 set ReRun = 0
 set base = vsinus
+set DoPost = 0
+set postvol = ()
+set ctxseg = ()
+set rcasynthseg = 0
 
 set ForceUpdate = 0
 
@@ -158,18 +162,48 @@ if($ud) then
   set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac \
     --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
     --fov $fov --threads $threads --no-cite-sclimbic --i $involcrop --o $segcrop)
+  if($DoPost) set cmd = ($cmd --write_posteriors)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit
 endif
 
+# Create a mask of everything outside of cortex
+set ctxsegmask = ()
+if($#ctxseg) then
+  set ctxsegmask = $outdir/ctxsegmask.mgz
+  set ud = `UpdateNeeded $ctxsegmask $ctxseg`
+  if($ud) then
+    set cmd = (mri_binarize --i $ctxseg --match 3 42 --inv --o $ctxsegmask)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
 # Map back to the native input space 
-set ud = `UpdateNeeded $seg $segcrop`
+set ud = `UpdateNeeded $seg $segcrop $ctxsegmask`
 if($ud) then
   set cmd = (mri_vol2vol --mov $segcrop --targ $invol --interp nearest --o $seg --regheader)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit
+  if($#ctxsegmask) then
+    # If cortical mask supplied, then mask out anything in cortex.
+    # This is a bit of a hack as the purpose of this script is
+    # (mainly) to fix the cortical surface. The problem is that the
+    # vsinus seg sometimes includes too much cortex. So the hack is to
+    # use synthseg to define cortex to the extent that it overlaps
+    # with vsinus. The synthseg cortex might not be accurate enought
+    # to use it generally to remove stuff outside of its cortical
+    # seg. In this case, we are just using it in these small areas of
+    # overlap. Synthseg generally does pretty well segmenting cortex
+    # around the vsinuses. Still, this is a bit of a hack.
+    set cmd = (mri_mask $seg $ctxsegmask $seg)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
 endif
 
 # Run segstats if needed
@@ -197,9 +231,33 @@ if($#diceseg) then
   endif
 endif
 
+# Posterior
+if($DoPost) then
+  set postcrop = $outdir/vsinus.crop-to-prior.norev.posteriors.mgz
+  set ud = `UpdateNeeded $postvol $postcrop`
+  if($ud) then
+    set postcrop_no0 = $outdir/post.no0.mgz
+    set cmd = (mri_convert --nskip 1 $postcrop $postcrop_no0)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set postcrop_no0_sum = $outdir/post.no0.sum.mgz
+    set cmd = (mri_concat $postcrop_no0 --sum --o $postcrop_no0_sum)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (mri_vol2vol --mov $postcrop_no0_sum --targ $invol --regheader --o $postvol)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+
 # Create a freeview command
-set cmd = (fsvglrun freeview --hide-3d-slices --view coronal  -neuro-view $invol ${seg}:isosurface=1:outline=1)
-if($#diceseg) set cmd = ($cmd ${diceseg}:isosurface=1)
+set cmd = (fsvglrun freeview --hide-3d-slices --view coronal  -neuro-view ${invol}:lock=1 ${seg}:isosurface=1:outline=1)
+if($#diceseg) set cmd = ($cmd -v ${diceseg}:isosurface=1)
+if($#postvol) set cmd = ($cmd -v ${postvol}:colormap=heat:heatscale=0.01,1)
 echo "" |tee -a $LF
 echo $cmd |tee -a $LF
 echo "" |tee -a $LF
@@ -256,6 +314,19 @@ while( $#argv != 0 )
       set seg = $argv[1]; shift;
       breaksw
 
+    case "--out-post":
+      if($#argv < 1) goto arg1err;
+      set postvol = $argv[1]; shift;
+      set DoPost = 1
+      breaksw
+
+    case "--post":
+      set DoPost = 1
+      breaksw
+    case "--no0post":
+      set DoPost = 0
+      breaksw
+
     case "--i":
       if($#argv < 1) goto arg1err;
       set invol = $argv[1]; shift;
@@ -264,6 +335,15 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--ctxseg":
+      if($#argv < 1) goto arg1err;
+      set ctxseg = $argv[1]; shift;
+      breaksw
+
+    case "--rca-synthseg":
+      set rcasynthseg = 1
       breaksw
 
     case "--dice":
@@ -390,6 +470,16 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#ctxseg && $rcasynthseg) then
+  echo "ERROR: cannot spec --ctxseg and --rca-synthseg"
+  exit 1
+endif
+
+if($#subject == 0 && $rcasynthseg) then
+  echo "ERROR: need --s with --rca-synthseg"
+  exit 1;
+endif
+
 if($#subject) then
   if(! -e $SUBJECTS_DIR/$subject) then
     echo "ERROR: cannot find $subject"
@@ -398,16 +488,20 @@ if($#subject) then
   if($#invol == 0)  set invol  = $SUBJECTS_DIR/$subject/mri/nu.mgz
   if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/mri/tmp.vsinus
   if($#seg == 0)    set seg    = $SUBJECTS_DIR/$subject/mri/vsinus.mgz
+  if($rcasynthseg) set ctxseg = $SUBJECTS_DIR/$subject/mri/synthseg.rca.mgz
+  if($DoPost && $#postvol == 0)  set postvol = $SUBJECTS_DIR/$subject/mri/vsinus.posterior.mgz
 endif
 
 if($#invol == 0) then
   echo "ERROR: must spec invol or --s"
   exit 1;
 endif
-if(! -e $invol) then
-  echo "ERROR: cannot find $invol"
-  exit 1;
-endif
+foreach f ($invol $ctxseg)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
 
 if($#seg && ! $#outdir) then
   # seg path specified but outdir not, so create a tmp folder
@@ -450,8 +544,8 @@ if($#seg == 0) set seg = $outdir/vsinus.mgz
 set ud = `UpdateNeeded $seg $invol`
 if(! $ud && ! $ReRun&& ! $ForceUpdate) then
   ls -tl $invol $seg
-  set cmd = (fsvglrun freeview --hide-3d-slices --view coronal  -neuro-view $invol ${seg}:isosurface=1:outline=1)
-  if($#diceseg) set cmd = ($cmd ${diceseg}:isosurface=1)
+  set cmd = (fsvglrun freeview --hide-3d-slices --view coronal  -neuro-view ${invol}:lock=1 ${seg}:isosurface=1:outline=1)
+  if($#diceseg) set cmd = ($cmd -v ${diceseg}:isosurface=1)
   echo "" 
   echo $cmd
   echo ""
@@ -481,9 +575,13 @@ usage_exit:
   echo " --outdir outdir"
   echo " --s subject (sets invol=mri/nu.mgz and outseg = mri/vsinus.mgz unless otherwise)"
   echo " --threads threads"
+  echo " --out-post output.posterior.mgz : this is the sum of the posteriors for the labels"
+  echo " --post : output posteriors as above with --s saved to vsinus.post.mgz"
   echo " --nocleanup : do not delete intermediate results"
   echo " --force : force rerunning everything from scratch"
   echo " --synthmorphdir synthmorphdir : get linear reg from mni to input from here, otherwise computes"
+  echo " --ctxseg ctxseg : remove any vsinus voxels that overlap with cortex (3,42) in given ctxseg"
+  echo " --rca-synthseg : set ctxseg to mri/sythseg.rca.mgz (as created by recon-all; requires --s)"
   echo " --model model"
   echo " --ctab ctab"
   echo " --direct input output : run seg directly without cropping, uncropping, or any preprocessing"
@@ -506,6 +604,16 @@ segmentation is ONLY to improve the FreeSurfer skull stripping in
 recon-all to prevent the pial surface from extending into the
 sinuses. This segmentation HAS NOT BEEN VALIDATED for accurate
 segmentation of these sinuses.
+
+If cortical mask supplied (--ctxseg, --rca-synthseg), then mask out
+anything in cortex.  This is a bit of a hack as the purpose of this
+script is (mainly) to fix the cortical surface. The problem is that
+the vsinus seg sometimes includes too much cortex. So the hack is to
+use synthseg to define cortex to the extent that it overlaps with
+vsinus. The synthseg cortex might not be accurate enought to use it
+generally to remove stuff outside of its cortical seg. In this case,
+we are just using it in these small areas of overlap. Synthseg
+generally does pretty well segmenting cortex around the vsinuses.
 
 Memory reqs: about 15GB, but your milage may vary. Exec time less than
 120 sec single threaded and about 40 sec with many threads.
