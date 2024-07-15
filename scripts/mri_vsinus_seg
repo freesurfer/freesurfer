@@ -345,6 +345,9 @@ while( $#argv != 0 )
     case "--rca-synthseg":
       set rcasynthseg = 1
       breaksw
+    case "--no-rca-synthseg":
+      set rcasynthseg = 0
+      breaksw
 
     case "--dice":
       if($#argv < 1) goto arg1err;
