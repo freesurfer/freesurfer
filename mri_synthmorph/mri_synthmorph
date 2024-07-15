@@ -23,8 +23,8 @@ limits = {
     'steps': 5,
 }
 weights = {
-    'joint': ('synthmorph.affine.2.h5', 'synthmorph.deform.2.h5',),
-    'deform': ('synthmorph.deform.2.h5',),
+    'joint': ('synthmorph.affine.2.h5', 'synthmorph.deform.3.h5',),
+    'deform': ('synthmorph.deform.3.h5',),
     'affine': ('synthmorph.affine.2.h5',),
     'rigid': ('synthmorph.rigid.1.h5',),
 }
