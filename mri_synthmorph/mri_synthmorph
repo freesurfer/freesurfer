@@ -254,6 +254,12 @@ doc = f'''{prog}
                 Apply an initial matrix transform to the moving image before
                 the registration.
 
+        {b}-M{n}
+                Apply half the initial matrix transform to the moving and (the
+                inverse of) the other half to the fixed image, for symmetry.
+                This will make running the deformable after an affine step
+                equivalent to joint registration. Requires -i.
+
         {b}-j{n} {u}threads{n}
                 Number of TensorFlow threads. System default if unspecified.
 
@@ -285,39 +291,33 @@ doc = f'''{prog}
         {b}-h{n}
                 Print this help text and exit.
 
+{b}APPLYING TRANSFORMS{n}
+        Apply a deformation field to another image using FreeSurfer tools:
+                # mri_convert -at def.nii.gz in.nii.gz out.nii.gz
+
+        Apply an affine transform (.lta) to another image:
+                # mri_convert -at aff.lta in.nii.gz out.nii.gz
+
 {b}IMAGE FORMAT{n}
         The registration supports 3-dimensional single-frame images with any
         resolution and orientation. The accepted file formats include: MGH
         (.mgz) and NIfTI (.nii.gz, .nii).
 
-        Internally, it converts image buffers to the format expected by the
+        Internally, we convert image buffers to the format expected by the
         network: isotropic 1-mm voxels, intensities min-max normalized into the
         interval [0, 1], and left-inferior-anterior (LIA) axis orientation.
         This conversion requires intact image-to-world matrices in the image
         headers. The head must have the correct anatomical orientation in a
         viewer like FreeView.
 
-{b}TRANSFORMS{n}
-        Transforms operate in physical RAS space. We save matrix transforms in
-        LTA text format (.lta) and displacement fields as images with three
-        frames indicating shifts in RAS direction.
+{b}TRANSFORM FORMAT{n}
+        SynthMorph transforms operate in physical RAS space. We save matrix
+        transforms as text in LTA format (.lta) and displacement fields as
+        images with three frames indicating shifts in RAS direction.
 
         For converting, composing, and applying transforms, consider the
         FreeSurfer tools lta_convert, mri_warp_convert, mri_concatenate_lta,
-        mri_concatenate_gcam, mri_convert, mri_info.
-
-        Convert FreeSurfer's LTA format to NiftyReg's matrix format:
-                # lta_convert --src mov.mgz --trg fix.nii.gz --inlta aff.lta
-                --outras aff.txt
-
-        Apply an LTA to another image:
-                # mri_convert -at aff.lta in.mgz out.mgz
-
-        Convert a deformable transform to FreeSurfer's GCAM format (.m3z):
-                # mri_warp_convert -g mov.mgz --inras def.mgz --outm3z def.m3z
-
-        Apply a GCAM (.m3z) to another image:
-                # mri_convert -at def.m3z in.nii.gz out.nii.gz
+        mri_concatenate_gcam, and mri_convert.
 
 {b}ENVIRONMENT{n}
         The following environment variables affect {b}{prog}{n}:
@@ -477,7 +477,9 @@ ras_to_fix = fix.geom.world2vox.matrix
 
 
 # Incorporate an initial matrix transform, mapping moving to fixed coordinates,
-# as FreeSurfer LTAs store the inverse of what you might think.
+# as FreeSurfer LTAs store the inverse of what you might expect. For mid-space
+# initialization, compute the matrix square root of the transform between fixed
+# and moving network space.
 if arg.init:
     init = sf.load_affine(arg.init).convert(space='voxel')
     if init.ndim != 3 \
