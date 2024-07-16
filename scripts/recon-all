@@ -1587,7 +1587,7 @@ if($SynthStrip) then
 endif
 
 set synthseg = $subjdir/mri/synthseg.rca.mgz
-if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf) then
+if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
   # Note: no m3z will be produced
   set origvol  = $subjdir/mri/orig.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
@@ -2190,7 +2190,7 @@ if($FixVSinus) then
   set ud = `UpdateNeeded $vsinus $nu`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts mri_vsinus_seg $XOptsFile $GlobXOptsFile`;
-    set cmd = (mri_vsinus_seg --s $subjid --threads $OMP_NUM_THREADS $xopts)
+    set cmd = (mri_vsinus_seg --s $subjid --rca-synthseg --threads $OMP_NUM_THREADS $xopts)
     echo $cmd | tee -a $LF
     if($RunIt) $cmd | tee -a $LF
     if($status) goto error_exit;
