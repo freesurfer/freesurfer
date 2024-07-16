@@ -10840,28 +10840,10 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
   /* so stuff can be added to the header in the future */
   znzread(unused_buf, sizeof(char), unused_space_size, fp);
 
-  switch (type) {
-    default:
-    case MRI_FLOAT:
-      bpv = sizeof(float);
-      break;
-    case MRI_UCHAR:
-      bpv = sizeof(char);
-      break;
-    case MRI_SHORT:
-      bpv = sizeof(short);
-      break;
-    case MRI_USHRT:
-      bpv = sizeof(unsigned short);
-      break;
-    case MRI_INT:
-      bpv = sizeof(int);
-      break;
-    case MRI_TENSOR:
-      bpv = sizeof(float);
-      nframes = 9;
-      break;
-  }
+  bpv = MRIsizeof(type);
+  if (type == MRI_TENSOR)
+    nframes = 9;
+
   bytes = width * height * bpv; /* bytes per slice */
   if (!read_volume) {
     mri = MRIallocHeader(width, height, depth, type, nframes);
@@ -10982,6 +10964,7 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
     {
       for (frame = start_frame; frame <= end_frame; frame++) {
         for (z = 0; z < depth; z++) {
+	  // read one slice data: bytes=width x height x byte_per_voxel
           if ((int)znzread(buf, sizeof(char), bytes, fp) != bytes) {
             // fclose(fp) ;
             znzclose(fp);
@@ -11022,6 +11005,24 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
                 }
               }
               break;
+	    case MRI_FLOAT_COMPLEX:
+	      {
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+		byteswapbuffloat(buf, bytes);
+#endif
+		BUFTYPE *nthrowdata = (BUFTYPE *)buf;
+		for (y = 0; y < height; y++) {
+		  for (x = 0; x < width; x++) {
+		    float *complex = (float *)nthrowdata + (2*x);  // complex real/imag are saved as float pairs
+		    fval = *complex;
+		    MRIsetVoxVal(mri, x, y, z, frame - start_frame, fval, MRI_COMPLEX_REAL);
+		    fval = *(complex+1);
+		    MRIsetVoxVal(mri, x, y, z, frame - start_frame, fval, MRI_COMPLEX_IMAG);
+		  }
+		  nthrowdata += bpv * width;  // go to next row 
+		}
+	      }
+	      break;
             case MRI_UCHAR:
               local_buffer_to_image(buf, mri, z, frame - start_frame);
               break;
@@ -11321,6 +11322,16 @@ int mghWrite(MRI *mri, const char *fname, int frame)
                 znzwriteFloat(fval, fp);
               }
               break;
+	    case MRI_FLOAT_COMPLEX:  // write float complex real/imag pair
+	      for (x = 0; x < width; x++) {
+		float real = MRIgetVoxVal(mri, x, y, z, frame, MRI_COMPLEX_REAL);
+		znzwriteFloat(real, fp);
+		float imag = MRIgetVoxVal(mri, x, y, z, frame, MRI_COMPLEX_IMAG);
+		znzwriteFloat(imag, fp);
+		if (Gdiag & DIAG_INFO)
+		  printf("[DEBUG] [%d %d %d %d] real = %f, imag = %f\n", x, y, z, frame, real, imag);
+	      }
+	      break;
             case MRI_UCHAR:
               if ((int)znzwrite(&MRIseq_vox(mri, 0, y, z, frame), sizeof(BUFTYPE), width, fp) != width) {
                 errno = 0;

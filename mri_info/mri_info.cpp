@@ -803,6 +803,9 @@ static void do_file(char *fname)
     case MRI_TENSOR:
       fprintf(fpout,"tensor\n") ;
       break ;
+    case MRI_FLOAT_COMPLEX:
+      fprintf(fpout, "float complex\n");
+      break;
     default:
       break ;
     }
@@ -1159,7 +1162,14 @@ static void do_file(char *fname)
     s = VoxelCRS[2];
     for (f=0; f<mri->nframes; f++)
     {
-      fprintf(fpout,"%f\n",MRIgetVoxVal(mri,c,r,s,f));
+      if (mri->type == MRI_FLOAT_COMPLEX)
+      {
+	float real = MRIgetVoxVal(mri, c, r, s, f, MRI_COMPLEX_REAL);
+	float imag = MRIgetVoxVal(mri, c, r, s, f, MRI_COMPLEX_IMAG);
+	fprintf(fpout, "[%d %d %d %d] real = %f, imag = %f\n", c, r, s, f, real, imag);
+      }
+      else
+        fprintf(fpout,"%f\n",MRIgetVoxVal(mri,c,r,s,f));
     }
     return;
   }
@@ -1199,15 +1209,16 @@ static void do_file(char *fname)
   printf("   voxel sizes: %6.6f, %6.6f, %6.6f\n",
          mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
-         mri->type == MRI_UCHAR   ? "UCHAR"  :
-         mri->type == MRI_SHORT   ? "SHORT"  :
-	 mri->type == MRI_USHRT   ? "USHRT"  :
-         mri->type == MRI_INT     ? "INT"    :
-         mri->type == MRI_LONG    ? "LONG"   :
-         mri->type == MRI_BITMAP  ? "BITMAP" :
-         mri->type == MRI_TENSOR  ? "TENSOR" :
-         mri->type == MRI_FLOAT   ? "FLOAT"  :
-         mri->type == MRI_RGB     ? "RGB"    : "UNKNOWN", mri->type) ;
+         mri->type == MRI_UCHAR         ? "UCHAR"  :
+         mri->type == MRI_SHORT         ? "SHORT"  :
+	 mri->type == MRI_USHRT         ? "USHRT"  :
+         mri->type == MRI_INT           ? "INT"    :
+         mri->type == MRI_LONG          ? "LONG"   :
+         mri->type == MRI_BITMAP        ? "BITMAP" :
+         mri->type == MRI_TENSOR        ? "TENSOR" :
+         mri->type == MRI_FLOAT         ? "FLOAT"  :
+	 mri->type == MRI_FLOAT_COMPLEX ? "FLOAT COMPLEX" :
+         mri->type == MRI_RGB           ? "RGB"    : "UNKNOWN", mri->type) ;
   printf("           fov: %2.3f\n", mri->fov) ;
   printf("           dof: %d\n", mri->dof) ;
 #if 0

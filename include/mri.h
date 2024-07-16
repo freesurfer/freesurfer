@@ -658,9 +658,11 @@ float  MRIgetVoxDx(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDz(MRI *mri, int c, int r, int s, int f);
 
-float  MRIgetVoxVal( const MRI *mri, int c, int r, int s, int f);
+#define MRI_COMPLEX_REAL 0
+#define MRI_COMPLEX_IMAG 1
+float  MRIgetVoxVal( const MRI *mri, int c, int r, int s, int f, int mode=MRI_COMPLEX_REAL);
 float  MRIgetVoxVal2( const MRI *mri, int c, int r, int s, int f);
-int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
+int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval, int mode=MRI_COMPLEX_REAL);
 int    MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval);
 void   MRIdbl2ptr(double v, void *pmric, int mritype);
 double MRIptr2dbl(void *pmric, int mritype);
