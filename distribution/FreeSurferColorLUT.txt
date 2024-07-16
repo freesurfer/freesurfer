@@ -1230,6 +1230,20 @@
 6070   Left-SLF2                                        236 14  230 0
 6080   Right-SLF2                                       237 14  230 0
 
+6101  Left-Dura-MCA    34 197 246    0
+6102  Right-Dura-MCA    0 250   0    0
+6103  Left-Ento-Dura                                   160 32  240 0
+6104  Right-Ento-Dura                                  120 32  240 0
+6111  Left-Transverse-Sinus           229  11 152    0
+6112  Right-Transverse-Sinus          40 251  16    0
+6113  Left-Sigmoid-Sinus              202   3  26    0
+6114  Right-Sigmoid-Sinus             101  76 219    0
+6115  Straight-Sinus                 185 210  35    0
+6116  Superior-Sinus-P                26 129 125    0
+6117  Superior-Sinus-D               144  51 173    0
+6118  Superior-Sinus-A                93 151 253    0
+
+
 #No.  Label Name:                                       R   G   B   A
 
 7001  Lateral-nucleus                                   72  132 181 0

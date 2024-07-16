@@ -511,6 +511,8 @@ const char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
 
+int setfilter = 0;
+
 static int soap_bubble_iters = 0 ;
 static MRI *mri_soap_ctrl = NULL ;
 
@@ -1044,6 +1046,15 @@ int main(int argc, char **argv) {
       out = GCAMmorphFromAtlas(in, gcam, NULL, interpcode);
     }
     if(out == NULL) exit(1);
+
+    if(setfilter)
+      {
+	MRI *mri_tmp ;
+	printf("filtering labeled volume...\n") ;
+	mri_tmp = MRImodeFilter(out, NULL, 1) ;
+	MRIfree(&out) ;
+	out = mri_tmp ;
+      }
     
     if(0){
     printf("Extracting region\n");
@@ -1530,6 +1541,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
       nargsused = 1;
+    }
+    else if ( !strcmp(option, "--filter") ) {
+      setfilter = 1;
     }
     else if ( !strcmp(option, "--gdiagno") ) {
       if (nargc < 1) argnerr(option,1);

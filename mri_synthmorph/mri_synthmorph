@@ -23,8 +23,8 @@ limits = {
     'steps': 5,
 }
 weights = {
-    'joint': ('synthmorph.affine.2.h5', 'synthmorph.deform.2.h5',),
-    'deform': ('synthmorph.deform.2.h5',),
+    'joint': ('synthmorph.affine.2.h5', 'synthmorph.deform.3.h5',),
+    'deform': ('synthmorph.deform.3.h5',),
     'affine': ('synthmorph.affine.2.h5',),
     'rigid': ('synthmorph.rigid.1.h5',),
 }
@@ -125,7 +125,7 @@ def network_space(im, shape, center=None):
 
     net_to_vox = old.world2vox @ new.vox2world
     vox_to_net = new.world2vox @ old.vox2world
-    return np.float32(net_to_vox.matrix), np.float32(vox_to_net.matrix)
+    return net_to_vox.matrix, vox_to_net.matrix
 
 
 def transform(im, trans, shape=None, normalize=False, batch=False):
@@ -198,62 +198,6 @@ def load_weights(model, weights):
                 raise e
 
 
-def convert_to_ras(trans, source, target):
-    """Convert a voxel-to-voxel transform to a world-to-world (RAS) transform.
-
-    For input displacement fields, we want to output shifts that we can add to
-    the RAS coordinates corresponding to indices (0, 1, ...) along each axis in
-    the target voxel space - instead of adding the shifts to discrete RAS
-    indices (0, 1, ...) along each axis. Therefore, we start with target voxel
-    coordinates and subtract the corresponding RAS coordinates at the end.
-    Naming transforms after their effect on coordinates,
-
-        out = mov_to_ras @ fix_to_mov + x_fix - x_ras
-        out = mov_to_ras @ fix_to_mov + x_fix - fix_to_ras @ x_fix
-        out = mov_to_ras @ fix_to_mov + (identity - fix_to_ras) @ x_fix
-
-    Parameters
-    ----------
-    trans : (3, 4) or (4, 4) or (*space, 3) array-like
-        Matrix transform or displacement field.
-    source : castable surfa.ImageGeometry
-        Transform source (or moving) image geometry.
-    target : castable surfa.ImageGeometry
-        Transform target (or fixed) image geometry.
-
-    Returns
-    -------
-    out: float TensorFlow tensor
-        Converted world-space transform of shape (3, 4) if `trans` is a matrix
-        or (*space, 3) if it is a displacement field.
-
-    """
-    mov = sf.transform.geometry.cast_image_geometry(source)
-    fix = sf.transform.geometry.cast_image_geometry(target)
-    mov_to_ras = np.float32(mov.vox2world.matrix)
-    fix_to_ras = np.float32(fix.vox2world.matrix)
-    ras_to_fix = np.float32(fix.world2vox.matrix)
-    prop = dict(shift_center=False, shape=fix.shape)
-
-    # Simple matrix multiplication.
-    if vxm.utils.is_affine_shape(trans.shape):
-        return vxm.utils.compose((mov_to_ras, trans, ras_to_fix), **prop)
-
-    # Target voxel coordinate grid.
-    x_fix = (tf.range(x, dtype=tf.float32) for x in fix.shape)
-    x_fix = tf.meshgrid(*x_fix, indexing='ij')
-    x_fix = tf.stack(x_fix)
-    x_fix = tf.reshape(x_fix, shape=(3, -1))
-
-    # We go from target voxels to source voxels to RAS, then subtract the RAS
-    # coordinates corresponding to the target voxels we started at.
-    mat = tf.eye(4) - fix_to_ras
-    x = mat[:-1, -1:] + mat[:-1, :-1] @ x_fix
-    x = tf.transpose(x)
-    x = tf.reshape(x, shape=(*fix.shape, -1))
-    return vxm.utils.compose((mov_to_ras, trans), **prop) + x
-
-
 # Documentation.
 n = '\033[0m' if sys.stdout.isatty() else ''
 b = '\033[1m' if sys.stdout.isatty() else ''
@@ -310,6 +254,12 @@ doc = f'''{prog}
                 Apply an initial matrix transform to the moving image before
                 the registration.
 
+        {b}-M{n}
+                Apply half the initial matrix transform to the moving and (the
+                inverse of) the other half to the fixed image, for symmetry.
+                This will make running the deformable after an affine step
+                equivalent to joint registration. Requires -i.
+
         {b}-j{n} {u}threads{n}
                 Number of TensorFlow threads. System default if unspecified.
 
@@ -341,39 +291,33 @@ doc = f'''{prog}
         {b}-h{n}
                 Print this help text and exit.
 
+{b}APPLYING TRANSFORMS{n}
+        Apply a deformation field to another image using FreeSurfer tools:
+                # mri_convert -at def.nii.gz in.nii.gz out.nii.gz
+
+        Apply an affine transform (.lta) to another image:
+                # mri_convert -at aff.lta in.nii.gz out.nii.gz
+
 {b}IMAGE FORMAT{n}
         The registration supports 3-dimensional single-frame images with any
         resolution and orientation. The accepted file formats include: MGH
         (.mgz) and NIfTI (.nii.gz, .nii).
 
-        Internally, it converts image buffers to the format expected by the
+        Internally, we convert image buffers to the format expected by the
         network: isotropic 1-mm voxels, intensities min-max normalized into the
         interval [0, 1], and left-inferior-anterior (LIA) axis orientation.
         This conversion requires intact image-to-world matrices in the image
         headers. The head must have the correct anatomical orientation in a
         viewer like FreeView.
 
-{b}TRANSFORMS{n}
-        Transforms operate in physical RAS space. We save matrix transforms in
-        LTA text format (.lta) and displacement fields as images with three
-        frames indicating shifts in RAS direction.
+{b}TRANSFORM FORMAT{n}
+        SynthMorph transforms operate in physical RAS space. We save matrix
+        transforms as text in LTA format (.lta) and displacement fields as
+        images with three frames indicating shifts in RAS direction.
 
         For converting, composing, and applying transforms, consider the
         FreeSurfer tools lta_convert, mri_warp_convert, mri_concatenate_lta,
-        mri_concatenate_gcam, mri_convert, mri_info.
-
-        Convert FreeSurfer's LTA format to NiftyReg's matrix format:
-                # lta_convert --src mov.mgz --trg fix.nii.gz --inlta aff.lta
-                --outras aff.txt
-
-        Apply an LTA to another image:
-                # mri_convert -at aff.lta in.mgz out.mgz
-
-        Convert a deformable transform to FreeSurfer's GCAM format (.m3z):
-                # mri_warp_convert -g mov.mgz --inras def.mgz --outm3z def.m3z
-
-        Apply a GCAM (.m3z) to another image:
-                # mri_convert -at def.m3z in.nii.gz out.nii.gz
+        mri_concatenate_gcam, and mri_convert.
 
 {b}ENVIRONMENT{n}
         The following environment variables affect {b}{prog}{n}:
@@ -422,7 +366,7 @@ Anatomy-specific acquisition-agnostic affine registration learned from fictitiou
 Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
 SPIE Medical Imaging: Image Processing, 12464, p 1246402, 2023\t
 https://doi.org/10.1117/12.2653251\t
-https://malte.cz/#papers (PDF)
+https://w3id.org/synthmorph/#papers (PDF)
 
 SynthMorph: learning contrast-invariant registration without acquired images\t
 Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
@@ -445,6 +389,7 @@ p.add_argument('-H', dest='header_only', action='store_true')
 p.add_argument('-t', dest='trans', metavar='trans')
 p.add_argument('-T', dest='inverse', metavar='trans')
 p.add_argument('-i', dest='init', metavar='trans')
+p.add_argument('-M', dest='mid_space', action='store_true')
 p.add_argument('-j', dest='threads', metavar='threads', type=int)
 p.add_argument('-g', dest='gpu', action='store_true')
 p.add_argument('-r', dest='hyper', metavar='lambda', type=float, default=default['hyper'])
@@ -475,6 +420,10 @@ if arg.header_only and not is_mat:
     print('Error: -H is not compatible with deformable registration')
     exit(1)
 
+if arg.mid_space and not arg.init:
+    print('Error: -M requires matrix initialization')
+    exit(1)
+
 if not 0 < arg.hyper < 1:
     print('Error: regularization strength not in open interval (0, 1)')
     exit(1)
@@ -494,7 +443,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if arg.verbose else '3'
 import numpy as np
 import surfa as sf
 import tensorflow as tf
-import neurite as ne
 import voxelmorph as vxm
 
 
@@ -522,24 +470,33 @@ net_to_mov, mov_to_net = network_space(mov, shape=in_shape, center=center)
 net_to_fix, fix_to_net = network_space(fix, shape=in_shape)
 
 # Coordinate transforms from and to world space. There is only one world.
-mov_to_ras = np.float32(mov.geom.vox2world.matrix)
-fix_to_ras = np.float32(fix.geom.vox2world.matrix)
-ras_to_mov = np.float32(mov.geom.world2vox.matrix)
-ras_to_fix = np.float32(fix.geom.world2vox.matrix)
+mov_to_ras = mov.geom.vox2world.matrix
+fix_to_ras = fix.geom.vox2world.matrix
+ras_to_mov = mov.geom.world2vox.matrix
+ras_to_fix = fix.geom.world2vox.matrix
 
 
-# Incorporate an initial matrix transform. It maps from fixed to moving world
-# coordinates, so we start with fixed network space on the right. FreeSurfer
-# LTAs store the inverse of the transform.
+# Incorporate an initial matrix transform, mapping moving to fixed coordinates,
+# as FreeSurfer LTAs store the inverse of what you might expect. For mid-space
+# initialization, compute the matrix square root of the transform between fixed
+# and moving network space.
 if arg.init:
-    init = sf.load_affine(arg.init).convert(space='world')
+    init = sf.load_affine(arg.init).convert(space='voxel')
     if init.ndim != 3 \
         or not sf.transform.image_geometry_equal(mov.geom, init.source, tol=1e-3) \
         or not sf.transform.image_geometry_equal(fix.geom, init.target, tol=1e-3):
         sf.system.fatal('initial transform geometry does not match images')
 
-    net_to_mov = np.float32(ras_to_mov @ init.inv() @ fix_to_ras @ net_to_fix)
-    mov_to_net = np.float32(fix_to_net @ ras_to_fix @ init @ mov_to_ras)
+    init = fix_to_net @ init @ net_to_mov
+    if arg.mid_space:
+        init = tf.linalg.sqrtm(init)
+        if np.any(np.isnan(init)):
+            sf.system.fatal(f'cannot compute matrix square root of {arg.init}')
+        net_to_fix = net_to_fix @ init
+        fix_to_net = np.linalg.inv(net_to_fix)
+
+    net_to_mov = net_to_mov @ tf.linalg.inv(init)
+    mov_to_net = np.linalg.inv(net_to_mov)
 
 
 # Take the input images to network space. When saving the moving image with the
@@ -585,58 +542,40 @@ for f in arg.weights:
 
 # Inference. The first transform maps from the moving to the fixed image, or
 # equivalently, from fixed to moving coordinates. The second is the inverse.
-vox_1, vox_2 = map(tf.squeeze, model(inputs))
-
-
 # Convert transforms between moving and fixed network spaces to transforms
-# between the original voxel spaces. Also compute transforms operating in RAS.
-prop = dict(shift_center=False, shape=fix.shape)
-vox_1 = vxm.utils.compose((net_to_mov, vox_1, fix_to_net), **prop)
-ras_1 = convert_to_ras(vox_1, source=mov, target=fix)
-
-prop = dict(shift_center=False, shape=mov.shape)
-vox_2 = vxm.utils.compose((net_to_fix, vox_2, mov_to_net), **prop)
-ras_2 = convert_to_ras(vox_2, source=fix, target=mov)
+# between the original voxel spaces.
+fw, bw = map(tf.squeeze, model(inputs))
+fw = vxm.utils.compose((net_to_mov, fw, fix_to_net), shift_center=False, shape=fix.shape)
+bw = vxm.utils.compose((net_to_fix, bw, mov_to_net), shift_center=False, shape=mov.shape)
 
 
-# Save transform from moving to fixed image. FreeSurfer LTAs store the inverse.
+# Associate image geometries with the transforms. LTAs store the inverse.
+if is_mat:
+    fw, bw = bw, fw
+    fw = sf.Affine(fw, source=mov, target=fix, space='voxel')
+    bw = sf.Affine(bw, source=fix, target=mov, space='voxel')
+
+else:
+    fw = sf.Warp(fw, source=mov, target=fix, format=sf.Warp.Format.disp_crs)
+    bw = sf.Warp(bw, source=fix, target=mov, format=sf.Warp.Format.disp_crs)
+
+
+# Output transforms.
+f = dict(space='world') if is_mat else dict(format=sf.Warp.Format.disp_ras)
 if arg.trans:
-    if is_mat:
-        out = sf.Affine(ras_2, source=mov, target=fix, space='world')
-    else:
-        out = fix.new(ras_1)
-    out.save(arg.trans)
+    fw.convert(**f).save(arg.trans)
 
-
-# Save transform from fixed to moving image. FreeSurfer LTAs store the inverse.
 if arg.inverse:
-    if is_mat:
-        out = sf.Affine(ras_1, source=fix, target=mov, space='world')
-    else:
-        out = mov.new(ras_2)
-    out.save(arg.inverse)
+    bw.convert(**f).save(arg.inverse)
 
 
-# Save moving image registered to fixed image.
+# Moved images.
 if arg.out_moving:
-    if arg.header_only:
-        out = mov.copy()
-        out.geom.update(vox2world=ras_2 @ mov.geom.vox2world)
-    else:
-        out = transform(mov, trans=vox_1, shape=fix.shape)
-        out = fix.new(out)
-    out.save(arg.out_moving)
+    mov.transform(fw, resample=not arg.header_only).save(arg.out_moving)
 
-
-# Save fixed image registered to moving image.
 if arg.out_fixed:
-    if arg.header_only:
-        out = fix.copy()
-        out.geom.update(vox2world=ras_1 @ fix.geom.vox2world)
-    else:
-        out = transform(fix, trans=vox_2, shape=mov.shape)
-        out = mov.new(out)
-    out.save(arg.out_fixed)
+    fix.transform(bw, resample=not arg.header_only).save(arg.out_fixed)
+
 
 vmpeak = sf.system.vmpeak()
 if(vmpeak is not None):
@@ -644,7 +583,3 @@ if(vmpeak is not None):
 
 print('Thank you for choosing SynthMorph. Please cite us!')
 print(rewrap(ref))
-
-sys.exit(0)
-
-

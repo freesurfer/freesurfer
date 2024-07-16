@@ -75,6 +75,9 @@ if(NOT MINIMAL)
   install_symlinks(
     TYPE files
     DESTINATION average
+    mca-dura.prior.warp.mni152.1.0mm.lh.nii.gz
+    mca-dura.prior.warp.mni152.1.0mm.rh.nii.gz
+    vsinus.no-sp.prior.mni152.1.0mm.mgz
     # ca
     face.gca
     talairach_mixed_with_skull.gca

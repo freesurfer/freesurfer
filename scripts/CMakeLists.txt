@@ -174,12 +174,14 @@ install_configured(
   mri_create_t2combined
   mri_entowm_seg
   mri_glmfit-sim
+  mri_mcadura_seg
   mri_mergelabels
   mri_motion_correct
   mri_motion_correct.fsl
   mri_motion_correct2
   mri_nu_correct.mni
   mri_reorient_LR.csh
+  mri_vsinus_seg
   mris_preproc
   mris_volsmooth
   ms_refine_subject

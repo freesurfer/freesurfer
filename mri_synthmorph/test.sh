@@ -32,6 +32,10 @@ t -m deform -i affine.lta -o out_1.mgz -O out_2.mgz moving.mgz fixed.mgz
 compare_vol out_1.mgz deform_1.mgz --thresh 0.02
 compare_vol out_2.mgz deform_2.mgz --thresh 0.02
 
+# deformable registration with mid-space initialization
+t -m deform -Mi affine.lta -o out.nii.gz moving.mgz fixed.mgz
+compare_vol out.nii.gz deform_mid.nii.gz --thresh 0.02
+
 # joint registration
 t -m joint -o out.mgz moving.mgz fixed.mgz
 compare_vol out.mgz joint.mgz --thresh 0.02
@@ -43,6 +47,13 @@ compare_vol out.mgz joint.mgz --thresh 0.02
 # deformable flags
 t moving.mgz fixed.mgz -mdeform -j16 -e256 -n7 -r0.5
 t moving.mgz fixed.mgz -m joint -j 16 -e 192 -n 5 -r 0.7
+
+# NIfTI warps
+FSTEST_NO_DATA_RESET=1
+mri_convert=$(find_path $FSTEST_CWD mri_convert/mri_convert)
+t -t out.nii.gz moving.mgz fixed.mgz
+test_command $mri_convert -odt float -at out.nii.gz moving.mgz out.mgz
+compare_vol out.mgz joint.mgz --thresh 1
 
 # illegal arguments
 EXPECT_FAILURE=1

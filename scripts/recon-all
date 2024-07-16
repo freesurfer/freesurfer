@@ -1489,7 +1489,7 @@ if($DoMotionCor) then
       endif
     endif
   endif
-  if(-e $sythsr) then
+  if(-e $synthsr) then
     echo "Found synthsr, so using that" | tee -a $LF
     set rawavg = $synthsr
   endif
@@ -1587,7 +1587,7 @@ if($SynthStrip) then
 endif
 
 set synthseg = $subjdir/mri/synthseg.rca.mgz
-if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf) then
+if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
   # Note: no m3z will be produced
   set origvol  = $subjdir/mri/orig.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
@@ -2162,6 +2162,43 @@ if($SynthStrip) then
   endif
 endif
 
+# Segment MCA/dura here to be able to pass it to mri_watershed
+set mcadura = $mdir/mca-dura.mgz
+if($FixMCADura) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "\n#@# MCADura Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  set nu = $mdir/nu.mgz
+  set ud = `UpdateNeeded $mcadura $nu`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_mcadura_seg $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_mcadura_seg --i $nu --o $mcadura --threads $OMP_NUM_THREADS $xopts)
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "MCADura Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
+# Segment venous sinuses here to be able to pass it to mri_watershed
+# Could get synthmorph dir from above (just affine so not big deal)
+set vsinus = $mdir/vsinus.mgz
+if($FixVSinus) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "\n#@# VSinus Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  set nu = $mdir/nu.mgz
+  set ud = `UpdateNeeded $vsinus $nu`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_vsinus_seg $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_vsinus_seg --s $subjid --rca-synthseg --threads $OMP_NUM_THREADS $xopts)
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "VSinus Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
 if($DoSkullStrip) then
 skullstrip:
   echo "#--------------------------------------------" \
@@ -2244,6 +2281,8 @@ skullstrip:
     set DoMultiStrip = 0
     echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
   endif
+  if($FixMCADura) set opts = ($opts -xmask $mcadura)
+  if($FixVSinus)  set opts = ($opts -xmask $vsinus)
 
   set cmd = (mri_watershed)
   set BM  = brainmask.mgz

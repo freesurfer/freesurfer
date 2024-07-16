@@ -1,0 +1,507 @@
+#!/bin/tcsh -f
+# mri_mcadura_seg - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
+
+set model = $FREESURFER_HOME_FSPYTHON/models/mca-dura.both-lh.nstd21.fhs.h5
+set ctab = $FREESURFER/models/mca-dura.ctab
+set mni152prior_lh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.lh.nii.gz
+set mni152prior_rh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.rh.nii.gz
+#set deepdir = /autofs/vast/fhs/subjects.fs720/deep-seg/dumca
+#set model = $deepdir/split1.both.lh/m.all.nstd21.crop72/dice_200.h5
+#set ctab = $deepdir/dumca.ctab
+#set mni152prior_lh = $deepdir/mni152/mca.warp.mni152.1.0mm.prior.lh.nii.gz
+#set mni152prior_rh = $deepdir/mni152/mca.warp.mni152.1.0mm.prior.rh.nii.gz
+set DoTest = 0
+
+set fsctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
+
+set outseg = ()
+set outdir = ();
+set invol = ();
+set subject = ()
+set threads = 1
+set DoStrip = 1
+set hemilist = (lh rh)
+set ForceUpdate = 0
+set smorphdir = ()
+set manseg = ()
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/log
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/log/mri_mcadura_seg.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for mri_mcadura_seg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+set ctablh = $outdir/dumca.lh.ctab
+set ctabrh = $outdir/dumca.rh.ctab
+set lhindex = $outdir/dumca.lh.index
+set rhindex = $outdir/dumca.rh.index
+cat $ctab | grep -v Right > $ctablh
+cat $ctab | grep -v Left > $ctabrh
+grep Left  $ctab | awk '{print $1}' > $lhindex
+grep Right $ctab | awk '{print $1}' > $rhindex
+
+if($#smorphdir == 0) then
+  set smorphdir = $outdir/synthmorph
+  set cmd = (fs-synthmorph-reg --i $invol --threads $threads --o $smorphdir --affine-only)
+  if($DoStrip) set cmd = ($cmd --strip-input)
+  echo fs_time $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+else
+  pushd $outdir
+  ln -s $smorphdir
+  popd
+endif
+
+set mnilinreg = $smorphdir/reg.targ_to_invol.lta
+
+foreach hemi ($hemilist)
+  if($hemi == lh ) then
+    set mniprior = $mni152prior_lh
+  endif
+  if($hemi == rh ) then
+    set mniprior = $mni152prior_rh
+  endif
+
+  # First, map the prior to the volume with linear reg
+  set prior = $outdir/mcadura.prior.$hemi.nii.gz
+  set ud = `UpdateNeeded $prior $mnilinreg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_vol2vol --reg $mnilinreg --mov $mniprior --o $prior)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+  # Create a FoV by cropping to 72mm3. It can stay at native
+  # resolution because the segmenter will upsample it to 1mm
+  set cropvol = $outdir/$hemi.crop.nii.gz
+  set ud = `UpdateNeeded $cropvol $prior`
+  if($ud || $ForceUpdate) then
+    set fov = 80
+    set cmd = (mri_mask -T .001 -crop-to-fov-mm $fov $fov $fov $invol $prior $cropvol)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+
+  # Map the input to this FoV
+  set involcrop = $outdir/invol.$hemi.crop.nii.gz
+  set ud = `UpdateNeeded $involcrop $cropvol $invol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_vol2vol --regheader --mov $invol --targ $cropvol --o $involcrop)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+
+  # Set the output seg name
+  set seg  = $outdir/seg.$hemi.mgz
+  # If this is the rh, have to lrrev
+  if($hemi == rh) then
+    set involcroplrrev = $outdir/invol.$hemi.crop.lrrev.nii.gz
+    set ud = `UpdateNeeded $involcroplrrev $involcrop`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_convert $involcrop --left-right-reverse-pix $involcroplrrev)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) goto error_exit
+    endif
+    set involcrop = $involcroplrrev
+    set seg = $outdir/seg.$hemi.lrrev.mgz
+  endif
+  # Now segment
+  set ud = `UpdateNeeded $seg $involcrop`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_sclimbic_seg --model $model --ctab $ctablh --keep_ac \
+      --percentile 99.9 --vmp --output-base mcadura --conform \
+      --logfile mri_mcadura_seg.log --no-cite-sclimbic --threads $threads \
+      --fov 72 --i $involcrop --o $seg)
+    set cmd = ($cmd --write_posteriors)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+  # Left-right reverse things back if this is lh
+  if($hemi == rh) then
+    set seglrrev = $outdir/seg.$hemi.lrrev.mgz
+    set seg  = $outdir/seg.$hemi.mgz
+    set ud = `UpdateNeeded $seg $seglrrev`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_convert $seglrrev $seg \
+        --left-right-swap-label-table $lhindex $rhindex  --left-right-reverse-pix )
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) goto error_exit
+    endif
+  endif
+
+  # Map back to native FoV
+  set segfull  = $outdir/seg.$hemi.uncropped.mgz
+  set ud = `UpdateNeeded $segfull $seg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_vol2vol --regheader --interp nearest --mov $seg --targ $invol --o $segfull)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+
+end # hemi
+
+# Merge lh and rh into a single file
+set segfulllh = $outdir/seg.lh.uncropped.mgz
+set segfullrh = $outdir/seg.rh.uncropped.mgz
+
+set ud = `UpdateNeeded $outseg $segfulllh $segfullrh`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_concat $segfulllh $segfullrh --sum --ctab $ctab --o $outseg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+if($DoTest && $#aseg) then
+  set ctx = $outdir/ctx.min.mgz
+  set ud = `UpdateNeeded $ctx $aseg`
+  if($ud) then
+    set cmd = (mri_binarize --match 3 42 --i $aseg --o $ctx)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+  set b = `fname2stem $outseg`
+  set statsfile = $b.ctx.stats
+  set ud = `UpdateNeeded $statsfile $ctx $outseg`
+  if($ud) then
+    set cmd = (mri_segstats --seg $outseg --i $ctx --accumulate --sum $statsfile)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+echo ""| tee -a $LF
+echo $viewcmd
+echo ""| tee -a $LF
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "mri_mcadura_seg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "mri_mcadura_seg Done" |& tee -a $LF
+
+# Cleanup
+if($cleanup) rm -rf $outdir
+
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outseg = $argv[1]; shift;
+      breaksw
+
+    case "--odir":
+    case "--outdir":
+    case "--out-dir":
+    case "--tmpdir":
+    case "--tmp":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      set cleanup = 0
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--synthmorphdir":
+    case "--synthmorph-dir":
+    case "--smorphdir":
+      if($#argv < 1) goto arg1err;
+      set smorphdir = $argv[1]; shift;
+      if(! -e $smorphdir) then
+        echo "ERROR: cannot find $smorphdir"
+        exit 1
+      endif
+      breaksw
+
+    case "--manseg":
+      if($#argv < 1) goto arg1err;
+      set manseg = $argv[1]; shift
+      if(! -e $manseg) then
+        echo "ERROR: cannot find $manseg"
+        exit 1
+      endif
+      set manseg = `getfullpath $manseg`
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--test":
+     set DoTest = 1
+     breaksw
+    case "--no-test":
+     set DoTest = 0
+     breaksw
+
+    case "--strip":
+     set DoStrip = 1
+     breaksw
+    case "--no-strip":
+     set DoStrip = 0
+     breaksw
+
+    case "--lh":
+     set hemilist = (lh)
+     breaksw
+    case "--rh":
+     set hemilist = (rh)
+     breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+set aseg = ()
+if($#subject) then
+  set invol = $SUBJECTS_DIR/$subject/mri/nu.mgz # should be unmasked
+  if($#outseg == 0) then
+    if($#outdir) then
+      set outseg = $outdir/mca-dura.mgz
+    else 
+      set outseg = $SUBJECTS_DIR/$subject/mri/mca-dura.mgz
+    endif
+  endif
+  set aseg = $SUBJECTS_DIR/$subject/mri/aseg.mgz
+endif
+
+if($#invol == 0) then
+  echo "ERROR: must spec invol"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+if($#outseg == 0) then
+  echo "ERROR: must spec outseg"
+  exit 1;
+endif
+if($#outdir == 0) then
+  set od = `dirname $outseg`
+  if($#subject) then
+    set outdir = $od/tmp.mri_mcadura_seg.$subject.$$
+  else
+    set outdir = $od/tmp.mri_mcadura_seg.$$
+  endif
+endif
+
+if($#smorphdir) then
+  set mnilinreg = $smorphdir/reg.targ_to_invol.lta
+  set mninonlinreg = $smorphdir/warp.to.mni152.1.5mm.1.0mm.nii.gz
+  set mninonlininvreg = $smorphdir/warp.to.mni152.1.5mm.1.0mm.inv.nii.gz
+  set flist = ($mnilinreg)
+  if($DoTest) set flist = ($flist $mninonlinreg $mninonlininvreg) 
+  foreach f ($flist)
+    if(-e $f) continue
+    echo "ERROR: cannot find $f"
+    exit 1
+  end
+  if(-d $outdir/synthmorph) then
+    echo "ERROR: synthmorph dir specified, but output already has a synthmorph folder"
+    exit 1
+  endif
+endif
+
+set viewcmd = (fsvglrun freeview -neuro-view --hide-3d-slices --view coronal $invol)
+if($#aseg) set viewcmd = ($viewcmd ${aseg}:visible=0)
+set viewcmd = ($viewcmd ${outseg}:isosurface=1:outline=1)
+
+set ud = `UpdateNeeded $outseg $invol`
+if(! ($ud || $ForceUpdate) )then
+  echo ""
+  echo "Output seg exists and is newer than input volume so not reprocessing"
+  echo "You can force reprocessing with -force or by deleting the output"
+  echo ""
+  echo "To view results, run"
+  echo $viewcmd 
+  echo ""
+  exit  0
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mri_mcadura_seg "
+  echo " --i invol"
+  echo " --o outseg"
+  echo " --outdir outdir"
+  echo " --s subject (sets invol=mri/rawavg.mgz, outseg=mri/dura-mca.mgz but overriden with --o)"
+  echo " --threads threads"
+  echo " --test/--no-test : count ctx voxels from asg (with --s, default $DoTest)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+# Mask out the dura/mca (setting the value to 1 instead of 0)
+mri_mask -oval 1 -invert brain.finalsurfs.manedit.mgz dura-mca.mgz brain.finalsurfs.manedit.mgz
+
+

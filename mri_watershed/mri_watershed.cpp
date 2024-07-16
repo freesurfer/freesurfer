@@ -79,6 +79,53 @@
 #include "timer.h"
 
 
+int nxmasks = 0;
+char *XMaskFiles[20];
+MRI *xmasks[20];
+/*!
+  MRI *ApplyXMasks(MRI *invol, int nxmasks, MRI **xmasks, MRI *outvol)
+  Apply exclusion masks. Sets output voxel to 0 if any of the xmasks
+  are non-zero at that voxel.
+*/
+MRI *ApplyXMasks(MRI *invol, int nxmasks, MRI **xmasks, MRI *outvol)
+{
+  if(outvol != invol){
+    outvol = MRIcopy(invol, outvol);
+    if(!outvol) return(NULL);
+  }
+  // Check dim mismatchs
+  int err;
+  err = MRIdimMismatch(invol, outvol, 1);
+  if(err){
+    printf("ERROR: ApplyXMasks(): input/output dimension mismatch\n");
+    return(NULL);
+  }
+  for(int n=0; n < nxmasks; n++){
+    err = MRIdimMismatch(invol, xmasks[n], 1);
+    if(err){
+      printf("ERROR: ApplyXMasks(): dimension mismatch bet input and xmask %d\n",n+1);
+      return(NULL);
+    }
+  }
+
+  int nhits = 0;
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	for(int n=0; n < nxmasks; n++){
+	  double v = MRIgetVoxVal(xmasks[n],c,r,s,0);
+	  if(v < 0.5) continue;
+	  MRIsetVoxVal(outvol,c,r,s,0,0);
+	  nhits++;
+	  break;
+	}
+      }
+    }
+  }
+  printf("ApplyXMasks(): nhits = %d\n",nhits);
+  return(outvol);
+}
+
 #define WM_CONST 110 /* not used anymore */
 #define MAX_INT 100 /*100% is a good value for the watershed algo */
 
@@ -639,6 +686,36 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
            "and writing it to %s...\n", argv[2], argv[3]) ;
     nargs = 2 ;
   }
+  else if (!strcmp(option, "xmask")){
+    // -xmask xmask (can have multiple -xmask flags for multiple xmasks)
+    // xmask is an exclusion mask. The output will be set to 0 in places
+    // where the xmasks are non-zero (after all other processing)
+    printf("Reading %s\n",argv[2]);
+    xmasks[nxmasks] = MRIread(argv[2]);
+    if(!xmasks[nxmasks]) exit(1);
+    nxmasks++;
+    nargs = 1;
+  }
+  else if (!strcmp(option, "sa-xmask")){
+    // Stand-alone, mostly for testing
+    // -sa-xmask 2=invol 3=outvol 4=xmask1 5=xmask2 ...
+    MRI *invol = MRIread(argv[2]);
+    if(!invol) exit(1);
+    nxmasks=0;
+    printf("argc %d\n",argc);
+    for(int k=4; k < argc; k++){
+      printf("Reading %d %s\n",k,argv[k]);
+      xmasks[nxmasks] = MRIread(argv[k]);
+      if(!xmasks[nxmasks]) exit(1);
+      nxmasks++;
+    }
+    MRI *outvol = ApplyXMasks(invol,nxmasks,xmasks,NULL);
+    if(!outvol) exit(1);
+    printf("writing to %s\n",argv[3]);
+    int err = MRIwrite(outvol,argv[3]);
+    printf("done\n");
+    exit(err);
+  }
   else if (!strcmp(option, "rusage"))
   {
     // resource usage
@@ -913,6 +990,7 @@ void writeSurface(char *fname, MRI_variables *var, STRIP_PARMS *parms)
   getVolGeom(var->mri_src, &var->mris->vg);
   MRISwrite(var->mris, fname);
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 // main
@@ -1237,6 +1315,11 @@ int main(int argc, char *argv[])
       }
     }
     printf("Removed %d voxels\n",nremoved);
+  }
+
+  if(nxmasks > 0){
+    printf("Applying XMasks\n");
+    ApplyXMasks(mri_without_skull,nxmasks,xmasks,mri_without_skull);
   }
 
   fprintf(stdout,"\n\n******************************\nSaving %s\n", out_fname);

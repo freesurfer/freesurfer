@@ -362,6 +362,11 @@ if ($maskmovinghemi) then
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
+  set cmd = (mri_binarize --i $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz --o $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz --replace 2 0 --replace 3 0 --replace 4 0 --replace 10 0 --replace 14 0 --replace 16 0 --replace 28 0 --replace 47 0 ) # 05/10/24 to delete some remaining hyperfile labels....(LZ)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 endif
 
 ## Run the elastic registration
@@ -381,11 +386,12 @@ endif
 # * newtopology option should not be used
 ###
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
-  #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
-  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+  #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
                        -topology_old -compress -pc_type jacobi -ksp_type preonly \
                        -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
  if ($BothHemis) then
+  set regmoving = $mmri/$voltype.mgz
   set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
                       -fixed_surf $tsurf/lh.white     -moving_surf $outdir/lh.resample.white \
                       -fixed_surf_2 $tsurf/rh.white   -moving_surf_2 $outdir/rh.resample.white \
@@ -401,6 +407,13 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
+
+  set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz --morph $outdir/${elasticmorph} --out_gcam $outdir/${elasticmorph:r}.m3z)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
  else
 
   if ($maskmovinghemi) then
@@ -421,13 +434,14 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
- endif
 
- set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $regmoving --morph $outdir/${elasticmorph} --out_gcam $outdir/${elasticmorph:r}.m3z)
- echo $cmd >> $LF
- echo $cmd >> $sLF
- $cmd |& tee -a $LF
- if($status) exit 1;
+  set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $regmoving --morph $outdir/${elasticmorph} --out_gcam $outdir/${elasticmorph:r}.m3z)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+endif
 
 endif
 
@@ -660,7 +674,7 @@ if ($UseAseg) then # otherwise already assigned
   set prefix = afteraseg-
 else
   set input = ${elasticmorph:r}.mgz # input from CVS_step2
-  set basemorph = $elasticmorph
+  set basemorph = ${elasticmorph:r}.m3z # 05/07/24
 endif 
 
 echo INT BASED REG 1
