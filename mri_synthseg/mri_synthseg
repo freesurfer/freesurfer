@@ -97,9 +97,9 @@ def main():
         if args.qc is not None:
             sf.system.fatal('The flag --qc is not compatible with Photo-SynthSeg (--photo).')
         version = 'Photo-SynthSeg 1.0'
-        if args.photo=='both':
+        if args.photo == 'both':
             path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_both_1.0.h5')
-        elif (args.photo=='left' or args.photo=='right'):
+        elif (args.photo == 'left') or (args.photo == 'right'):
             path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_photo_single_1.0.h5')
             if args.parc:
                 print('Warning: the flag --parc is not well tested with single hemispheres.')
@@ -127,7 +127,6 @@ def main():
         if args.fast:
             version += ' (fast)'
 
-
     print(version)
 
     # use v1 labels if needed
@@ -146,7 +145,7 @@ def main():
         topology_classes = topology_classes.replace('_2.0.npy', '_photo_both_1.0.npy')
         n_neutral_labels = 5
 
-    elif (args.photo=='left' or args.photo=='right'):
+    elif (args.photo == 'left') or (args.photo == 'right'):
         labels_segmentation = labels_segmentation.replace('_2.0.npy', '_photo_single_1.0.npy')
         names_segmentation_labels = names_segmentation_labels.replace('_2.0.npy', '_photo_single_1.0.npy')
         topology_classes = topology_classes.replace('_2.0.npy', '_photo_single_1.0.npy')
@@ -258,7 +257,7 @@ def predict(path_images,
 
     # get label lists
     labels_segmentation, _ = get_list_labels(label_list=labels_segmentation)
-    if (n_neutral_labels is not None) & (not fast) & (not robust) & (photo!='left') & (photo!='right'):
+    if (n_neutral_labels is not None) & (not fast) & (not robust) & (photo != 'left') & (photo != 'right'):
         labels_segmentation, flip_indices, unique_idx = get_flip_indices(labels_segmentation, n_neutral_labels)
     else:
         labels_segmentation, unique_idx = np.unique(labels_segmentation, return_index=True)
@@ -347,7 +346,6 @@ def predict(path_images,
                 post_patch_parcellation = qc_score = None
 
             if photo=='right':
-                image = np.flip(image, axis=0)
                 post_patch_segmentation = np.flip(post_patch_segmentation, axis=1)
                 if post_patch_parcellation is not None:
                     post_patch_parcellation = np.flip(post_patch_parcellation, axis=1)
@@ -369,7 +367,7 @@ def predict(path_images,
             # write predictions to disc
             sfimage = None;
             if(keepgeom): sfimage = sf.load_volume(path_images[i]);
-            save_volume(seg, aff, h, path_segmentations[i], dtype='int32',resample_like_image=sfimage,labels=labels)
+            save_volume(seg, aff, h, path_segmentations[i], dtype='int32', resample_like_image=sfimage, labels=labels)
             if path_posteriors[i] is not None:
                 save_volume(posteriors, aff, h, path_posteriors[i], dtype='float32')
 
@@ -386,7 +384,7 @@ def predict(path_images,
 
         except Exception as e:
             list_errors.append(path_images[i])
-            print('\nthe following problem occured with image %s :' % path_images[i])
+            print('\nthe following problem occurred with image %s :' % path_images[i])
             print(traceback.format_exc())
             print('resuming program execution\n')
             continue
@@ -414,7 +412,6 @@ def predict(path_images,
                 print('volumes saved in:          ' + path_volumes[0])
             if path_qc_scores[0] is not None:
                 print('QC scores saved in:        ' + path_qc_scores[0])
-       
 
     if len(list_errors) > 0:
         print('\nERROR: some problems occured for the following inputs (see corresponding errors above):')
@@ -426,11 +423,11 @@ def predict(path_images,
         print('\nIf you use this tool in a publication, please cite:')
         print('SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining')
         print('B. Billot, D.N. Greve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
-        print('Medical Image Analysis, accepted for publication.')
+        print('Medical Image Analysis, 2023.')
         if robust:
             print('\nRobust machine learning segmentation for large-scale analysis of heterogeneous clinical brain MRI datasets')
             print('B. Billot, C. Magdamo, Y. Cheng, S.E. Arnold, S. Das, J.E. Iglesias')
-            print('PNAS, accepted for publication.')
+            print('PNAS, 2023.')
         if photo is not None:
             print('\n3D analysis of dissection photographs with surface scanning and machine learning for quantitative neuropathology')
             print('H. Gazula, H. Tregidgo, B. Billot, Y. Balbastre, ..., & J.E. Iglesias')
@@ -591,7 +588,7 @@ def preprocess(path_image, ct, n_levels=5, crop=None, min_pad=None, path_resampl
 
     # resample image if necessary
     if np.any((im_res > 1.05) | (im_res < 0.95)):
-        im_res = np.array([1.]*3)
+        im_res = np.array([1.] * 3)
         im, aff = resample_volume(im, aff, im_res)
         if path_resample is not None:
             save_volume(im, aff, h, path_resample)
@@ -746,14 +743,14 @@ def build_model(model_file_segmentation,
 
             # segment flipped image
             seg = net.output
-            image_flipped = RandomFlip(flip_axis=0, prob=1)(input_image)
+            image_flipped = RandomFlip(axis=0, prob=1)(input_image)
             last_tensor = net(image_flipped)
 
             # flip back and re-order channels
-            last_tensor = RandomFlip(flip_axis=0, prob=1)(last_tensor)
+            last_tensor = RandomFlip(axis=0, prob=1)(last_tensor)
             last_tensor = KL.Lambda(lambda x: tf.split(x, [1] * n_labels_seg, axis=-1), name='split')(last_tensor)
             reordered_channels = [last_tensor[flip_indices[i]] for i in range(n_labels_seg)]
-            # we need the [0, ...] below because in this vresion of TF, tf.split adds a dim at the beginning...
+            # we need the [0, ...] below because in this version of TF, tf.split adds a dim at the beginning...
             last_tensor = KL.Lambda(lambda x: tf.concat(x, -1)[0, ...], name='concat')(reordered_channels)
 
             # average two segmentations and build model
@@ -854,7 +851,7 @@ def postprocess(post_patch_seg, post_patch_parc, shape, pad_idx, crop_idx,
     tmp_post_patch_seg = post_patch_seg[..., 1:]
     post_patch_seg_mask = np.sum(tmp_post_patch_seg, axis=-1) > 0.25
     post_patch_seg_mask = get_largest_connected_component(post_patch_seg_mask)
-    post_patch_seg_mask = np.stack([post_patch_seg_mask]*tmp_post_patch_seg.shape[-1], axis=-1)
+    post_patch_seg_mask = np.stack([post_patch_seg_mask] * tmp_post_patch_seg.shape[-1], axis=-1)
     tmp_post_patch_seg = mask_volume(tmp_post_patch_seg, mask=post_patch_seg_mask, return_copy=False)
     post_patch_seg[..., 1:] = tmp_post_patch_seg
 
@@ -1409,7 +1406,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
     Load volume file.
     :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
     If npz format, 1) the variable name is assumed to be 'vol_data',
-    2) the volume is associated with a identity affine matrix and blank header.
+    2) the volume is associated with an identity affine matrix and blank header.
     :param im_only: (optional) if False, the function also returns the affine matrix and header of the volume.
     :param squeeze: (optional) whether to squeeze the volume when loading.
     :param dtype: (optional) if not None, convert the loaded volume to this numpy dtype.
@@ -1474,19 +1471,21 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3, resam
                 aff = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
         elif aff is None:
             aff = np.eye(4)
-        nifty = nib.Nifti1Image(volume, aff, header)
         if dtype is not None:
             if 'int' in dtype:
                 volume = np.round(volume)
             volume = volume.astype(dtype=dtype)
+            nifty = nib.Nifti1Image(volume, aff, header)
             nifty.set_data_dtype(dtype)
+        else:
+            nifty = nib.Nifti1Image(volume, aff, header)
         if res is not None:
             if n_dims is None:
                 n_dims, _ = get_dims(volume.shape)
             res = reformat_to_list(res, length=n_dims, dtype=None)
             nifty.header.set_zooms(res)
         nib.save(nifty, path)
-        if(resample_like_image is not None or labels is not None):
+        if (resample_like_image is not None) or (labels is not None):
             # This is a total hack to make the output take the same
             # geom as the input and/or add a colortable to the
             # output. Surfa-reads in the file writen by nibabel above,
@@ -1495,7 +1494,7 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3, resam
             # by surf), then uses surfa to write out the volume. Should
             # write the nibabel to some temp volume.
             src = sf.load_volume(path); # re-read the nibabel volume with surfa
-            if(resample_like_image is not None):
+            if resample_like_image is not None:
                 res = resample_like_image._geometry.voxsize
                 # Could only do this if not iso1mm, but not sure if dim is right
                 print(f'Reslicing to have same geom as the input {res}')
@@ -1511,6 +1510,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels
     :param return_volume: (optional) whether to return the volume along with the information.
     :param aff_ref: (optional) If not None, the loaded volume is aligned to this affine matrix.
     All info relative to the volume is then given in this new space. Must be a numpy array of dimension 4x4.
+    :param max_channels: maximum possible number of channels for the input volume.
     :return: volume (if return_volume is true), and corresponding info. If aff_ref is not None, the returned aff is
     the original one, i.e. the affine of the image before being aligned to aff_ref.
     """
@@ -1642,12 +1642,12 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     """This function takes a variable and reformat it into a list of desired
     length and type (int, float, bool, str).
     If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
-    If variable is None, this funtion returns None.
+    If variable is None, this function returns None.
     :param var: a str, int, float, list, tuple, or numpy array
     :param length: (optional) if var is a single item, it will be replicated to a list of this length
     :param load_as_numpy: (optional) whether var is the path to a numpy array
     :param dtype: (optional) convert all item to this type. Can be 'int', 'float', 'bool', or 'str'
-    :return: reformated list
+    :return: reformatted list
     """
 
     # convert to list
@@ -1696,7 +1696,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
 
 
 def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
-    """List all files with extension nii, nii.gz, mgz, or npz whithin a folder."""
+    """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
             (('.nii.gz' in basename) | ('.nii' in basename) | ('.mgz' in basename) | ('.npz' in basename)):
@@ -1714,9 +1714,10 @@ def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=Tr
             assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
     return list_images
 
-def mkdir(path_dir):
 
-    if len(path_dir)>0:
+def mkdir(path_dir):
+    """Recursively creates the current dir as well as its parent folders if they do not already exist."""
+    if len(path_dir) > 0:
         if path_dir[-1] == '/':
             path_dir = path_dir[:-1]
         if not os.path.isdir(path_dir):
@@ -1751,6 +1752,7 @@ def get_dims(shape, max_channels=10):
 
 def add_axis(x, axis=0):
     """Add axis to a numpy array.
+    :param x: input array
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
     for ax in axis:
@@ -1762,7 +1764,7 @@ def add_axis(x, axis=0):
 
 
 def infer(x):
-    ''' Try to parse input to float. If it fails, tries boolean, and otherwise keep it as string '''
+    """ Try to parse input to float. If it fails, tries boolean, and otherwise keep it as string """
     try:
         x = float(x)
     except ValueError:
@@ -1842,7 +1844,7 @@ def get_mapping_lut(source, dest=None):
     source = np.array(reformat_to_list(source), dtype='int32')
     n_labels = source.shape[0]
 
-    # build new label list if neccessary
+    # build new label list if necessary
     if dest is None:
         dest = np.arange(n_labels, dtype='int32')
     else:
@@ -1859,7 +1861,7 @@ def get_mapping_lut(source, dest=None):
 
 def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
     """Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
-    values lower than n), or 'higher (only returns values higher than m)."""
+    values lower than n), or 'higher' (only returns values higher than m)."""
     if n % m == 0:
         return n
     else:
@@ -1906,6 +1908,7 @@ def mask_volume(volume, mask=None, threshold=0.1, dilate=0, erode=0, fill_holes=
     :param fill_holes: (optional) whether to fill the holes in the provided or computed mask.
     :param masking_value: (optional) masking value
     :param return_mask: (optional) whether to return the applied mask
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: the masked volume, and the applied mask if return_mask is True.
     """
 
@@ -2040,12 +2043,13 @@ def crop_volume(volume, cropping_margin=None, cropping_shape=None, aff=None, ret
 def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None, return_copy=True):
     """Crop a volume with given indices.
     :param volume: a 2d or 3d numpy array
-    :param crop_idx: croppping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
+    :param crop_idx: cropping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
     Can be a list or a 1d numpy array.
     :param aff: (optional) if aff is specified, this function returns an updated affine matrix of the volume after
     cropping.
     :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
     inferred from the input volume.
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: the cropped volume, and the updated affine matrix if aff is not None.
     """
 
@@ -2074,6 +2078,8 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     :param padding_shape: shape to pad volume to. Can be a number, a sequence or a 1d numpy array.
     :param padding_value: (optional) value used for padding
     :param aff: (optional) affine matrix of the volume
+    :param return_pad_idx: (optional) the pad_idx corresponds to the indices where we should crop the resulting
+    padded image (ie the output of this function) to go back to the original volume (ie the input of this function).
     :return: padded volume, and updated affine matrix if aff is not None.
     """
 
@@ -2122,6 +2128,7 @@ def flip_volume(volume, axis=None, direction=None, aff=None, return_copy=True):
     :param direction: (optional) if axis is None, the volume can be flipped along an anatomical direction:
     'rl' (right/left), 'ap' anterior/posterior), 'si' (superior/inferior).
     :param aff: (optional) please provide an affine matrix if direction is not None
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: flipped volume
     """
 
@@ -2145,11 +2152,14 @@ def flip_volume(volume, axis=None, direction=None, aff=None, return_copy=True):
     return np.flip(new_volume, axis=axis)
 
 
-def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear', blur=True):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
     :param new_vox_size: new voxel size (3 - element numpy vector) in mm
+    :param interpolation: (optional) type of interpolation. Can be 'linear' or 'nearest'. Default is 'linear'.
+    :param blur: (optional) whether to blur before resampling to avoid aliasing effects.
+    Only used if the input volume is downsampled. Default is True.
     :return: new volume and affine matrix
     """
 
@@ -2159,7 +2169,7 @@ def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     sigmas = 0.25 / factor
     sigmas[factor > 1] = 0  # don't blur if upsampling
 
-    volume_filt = gaussian_filter(volume, sigmas)
+    volume_filt = gaussian_filter(volume, sigmas) if blur else volume
 
     # volume2 = zoom(volume_filt, factor, order=1, mode='reflect', prefilter=False)
     x = np.arange(0, volume_filt.shape[0])
@@ -2197,7 +2207,7 @@ def get_ras_axes(aff, n_dims=3):
     """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
     :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
     :param n_dims: number of dimensions (excluding channels) of the volume corresponding to the provided affine matrix.
-    :return: two numpy 1d arrays of lengtn n_dims, one with the axes corresponding to RAS orientations,
+    :return: two numpy 1d arrays of length n_dims, one with the axes corresponding to RAS orientations,
     and one with their corresponding direction.
     """
     aff_inverted = np.linalg.inv(aff)
@@ -2219,6 +2229,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
     :param return_aff: (optional) whether to return the affine matrix of the aligned volume
     :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
     inferred from the input volume.
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: aligned volume, with corresponding affine matrix if return_aff is True.
     """
 
@@ -2273,19 +2284,23 @@ def get_largest_connected_component(mask, structure=None):
 # ---------------------------------------------------- keras layers- ---------------------------------------------------
 
 class RandomFlip(keras.layers.Layer):
-
-    """This function flips the input tensors along the specified axes with a probability of 0.5.
-    The input tensors are expected to have shape [batchsize, shape_dim1, ..., shape_dimn, channel].
-    If specified, this layer can also swap corresponding values, such that the flip tensors stay consistent with the
-    native spatial orientation (especially when flipping in the righ/left dimension).
-    :param flip_axis: integer, or list of integers specifying the dimensions along which to flip. The values exclude the
-    batch dimension (e.g. 0 will flip the tensor along the first axis after the batch dimension). Default is None, where
-    the tensors can be flipped along any of the axes (except batch and channel axes).
-    :param swap_labels: list of booleans to specify wether to swap the values of each input. All the inputs for which
-    the values need to be swapped must have a int32 ot int64 dtype.
+    """This layer randomly flips the input tensor along the specified axes with a specified probability.
+    It can also take multiple tensors as inputs (if they have the same shape). The same flips will be applied to all
+    input tensors. These are expected to have shape [batchsize, shape_dim1, ..., shape_dimn, channel].
+    If specified, this layer can also swap corresponding values. This is especially useful when flipping label maps
+    with different labels for right/left structures, such that the flipped label maps keep a consistent labelling.
+    :param axis: integer, or list of integers specifying the dimensions along which to flip.
+    If a list, the input tensors can be flipped simultaneously in several directions. The values in flip_axis exclude
+    the batch dimension (e.g. 0 will flip the tensor along the first axis after the batch dimension).
+    Default is None, where the tensors can be flipped along all axes (except batch and channel axes).
+    :param swap_labels: boolean to specify whether to swap the values of each input. Values are only swapped if an odd
+    number of flips is applied.
+    Can also be a list if several tensors are given as input.
+    All the inputs for which the values need to be swapped must be int32 or int64.
     :param label_list: if swap_labels is True, list of all labels contained in labels. Must be ordered as follows, first
      the neutral labels (i.e. non-sided), then left labels and right labels.
     :param n_neutral_labels: if swap_labels is True, number of non-sided labels
+    :param prob: probability to flip along each specified axis
 
     example 1:
     if input is a tensor of shape (batchsize, 10, 100, 200, 3)
@@ -2323,7 +2338,7 @@ class RandomFlip(keras.layers.Layer):
     This doesn't concern the image input, as its values are not swapped.
     """
 
-    def __init__(self, flip_axis=None, swap_labels=False, label_list=None, n_neutral_labels=None, prob=0.5, **kwargs):
+    def __init__(self, axis=None, swap_labels=False, label_list=None, n_neutral_labels=None, prob=0.5, **kwargs):
 
         # shape attributes
         self.several_inputs = True
@@ -2331,9 +2346,10 @@ class RandomFlip(keras.layers.Layer):
         self.list_n_channels = None
 
         # axis along which to flip
-        self.flip_axis = reformat_to_list(flip_axis)
+        self.axis = reformat_to_list(axis)
+        self.flip_axes = None
 
-        # wether to swap labels, and corresponding label list
+        # whether to swap labels, and corresponding label list
         self.swap_labels = reformat_to_list(swap_labels)
         self.label_list = label_list
         self.n_neutral_labels = n_neutral_labels
@@ -2345,7 +2361,7 @@ class RandomFlip(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config["flip_axis"] = self.flip_axis
+        config["axis"] = self.axis
         config["swap_labels"] = self.swap_labels
         config["label_list"] = self.label_list
         config["n_neutral_labels"] = self.n_neutral_labels
@@ -2362,6 +2378,7 @@ class RandomFlip(keras.layers.Layer):
         self.n_dims = len(inputshape[0][1:-1])
         self.list_n_channels = [i[-1] for i in inputshape]
         self.swap_labels = reformat_to_list(self.swap_labels, length=len(inputshape))
+        self.flip_axes = np.arange(self.n_dims).tolist() if self.axis is None else self.axis
 
         # create label list with swapped labels
         if any(self.swap_labels):
@@ -2383,20 +2400,20 @@ class RandomFlip(keras.layers.Layer):
     def call(self, inputs, **kwargs):
 
         # convert inputs to list, and get each input type
-        if not self.several_inputs:
-            inputs = [inputs]
+        inputs = [inputs] if not self.several_inputs else inputs
         types = [v.dtype for v in inputs]
 
-        # sample boolean for each element of the batch
+        # store whether to flip along each specified dimension
         batchsize = tf.split(tf.shape(inputs[0]), [1, self.n_dims + 1])[0]
-        rand_flip = K.less(tf.random.uniform(tf.concat([batchsize, tf.ones(1, dtype='int32')], axis=0), 0, 1),
-                           self.prob)
+        size = tf.concat([batchsize, len(self.flip_axes) * tf.ones(1, dtype='int32')], axis=0)
+        rand_flip = K.less(tf.random.uniform(size, 0, 1), self.prob)
 
-        # swap r/l labels if necessary
+        # swap right/left labels if we apply an odd number of flips
+        odd = tf.math.floormod(tf.reduce_sum(tf.cast(rand_flip, 'int32'), -1, keepdims=True), 2) != 0
         swapped_inputs = list()
         for i in range(len(inputs)):
             if self.swap_labels[i]:
-                swapped_inputs.append(tf.map_fn(self._single_swap, [inputs[i], rand_flip], dtype=types[i]))
+                swapped_inputs.append(tf.map_fn(self._single_swap, [inputs[i], odd], dtype=types[i]))
             else:
                 swapped_inputs.append(inputs[i])
 
@@ -2405,18 +2422,18 @@ class RandomFlip(keras.layers.Layer):
         inputs = tf.map_fn(self._single_flip, [inputs, rand_flip], dtype=tf.float32)
         inputs = tf.split(inputs, self.list_n_channels, axis=-1)
 
-        return [tf.cast(v, t) for (t, v) in zip(types, inputs)]
+        if self.several_inputs:
+            return [tf.cast(v, t) for (t, v) in zip(types, inputs)]
+        else:
+            return tf.cast(inputs[0], types[0])
 
     def _single_swap(self, inputs):
         return K.switch(inputs[1], tf.gather(self.swap_lut, inputs[0]), inputs[0])
 
-    def _single_flip(self, inputs):
-        if self.flip_axis is None:
-            flip_axis = tf.random.uniform([1], 0, self.n_dims, dtype='int32')
-        else:
-            idx = tf.squeeze(tf.random.uniform([1], 0, len(self.flip_axis), dtype='int32'))
-            flip_axis = tf.expand_dims(tf.convert_to_tensor(self.flip_axis, dtype='int32')[idx], axis=0)
-        return K.switch(inputs[1], K.reverse(inputs[0], axes=flip_axis), inputs[0])
+    @staticmethod
+    def _single_flip(inputs):
+        flip_axis = tf.where(inputs[1])
+        return K.switch(tf.equal(tf.size(flip_axis), 0), inputs[0], tf.reverse(inputs[0], axis=flip_axis[..., 0]))
 
 
 class GaussianBlur(keras.layers.Layer):
@@ -2455,7 +2472,7 @@ class GaussianBlur(keras.layers.Layer):
             self.n_channels = input_shape[-1]
 
         # prepare blurring kernel
-        self.stride = [1]*(self.n_dims+2)
+        self.stride = [1] * (self.n_dims + 2)
         self.sigma = reformat_to_list(self.sigma, length=self.n_dims)
         self.separable = np.linalg.norm(np.array(self.sigma)) > 5
         if self.blur_range is None:  # fixed kernels
@@ -2491,7 +2508,7 @@ class GaussianBlur(keras.layers.Layer):
                         maskb = tf.cast(mask, 'float32')
                         maskb = tf.concat([self.convnd(tf.expand_dims(maskb[..., n], -1), k, self.stride, 'SAME')
                                            for n in range(self.n_channels)], -1)
-                        image = image / (maskb + keras.backend.epsilon())
+                        image = image / (maskb + K.epsilon())
                         image = tf.where(mask, image, tf.zeros_like(image))
         else:
             if any(self.sigma):
@@ -2501,7 +2518,7 @@ class GaussianBlur(keras.layers.Layer):
                     maskb = tf.cast(mask, 'float32')
                     maskb = tf.concat([self.convnd(tf.expand_dims(maskb[..., n], -1), self.kernels, self.stride, 'SAME')
                                        for n in range(self.n_channels)], -1)
-                    image = image / (maskb + keras.backend.epsilon())
+                    image = image / (maskb + K.epsilon())
                     image = tf.where(mask, image, tf.zeros_like(image))
 
         return image
@@ -2631,7 +2648,7 @@ def gaussian_kernel(sigma, max_sigma=None, blur_range=None, separable=True):
 
         # compute gaussians
         sigma_is_0 = tf.equal(sigma_tens, 0)
-        exp_term = -K.square(diff) / (2 * tf.where(sigma_is_0, tf.ones_like(sigma_tens), sigma_tens)**2)
+        exp_term = -K.square(diff) / (2 * tf.where(sigma_is_0, tf.ones_like(sigma_tens), sigma_tens) ** 2)
         norms = exp_term - tf.math.log(tf.where(sigma_is_0, tf.ones_like(sigma_tens), np.sqrt(2 * np.pi) * sigma_tens))
         kernels = K.sum(norms, -1)
         kernels = tf.exp(kernels)
