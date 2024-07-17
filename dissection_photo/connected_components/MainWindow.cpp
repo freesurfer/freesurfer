@@ -191,6 +191,7 @@ void MainWindow::LoadImage(int n)
     ui->pushButtonNext->setEnabled(true);
   }
 }
+
 void MainWindow::OnProcessError(QProcess::ProcessError er)
 {
   QString str = "Unknown error occurred during process.";
