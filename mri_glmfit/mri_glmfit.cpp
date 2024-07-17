@@ -1155,7 +1155,7 @@ int main(int argc, char **argv) {
     mriglm->glm->Cname[3] = "k2-k2a";
     mriglm->glm->C[3] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[3]->rptr[1][2] = +1;
-    mriglm->glm->C[3]->rptr[1][3] = +1;
+    mriglm->glm->C[3]->rptr[1][3] = -1;
     //------------------------------------------
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
