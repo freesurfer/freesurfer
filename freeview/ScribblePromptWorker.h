@@ -2,9 +2,11 @@
 #define SCRIBBLEPROMPTWORKER_H
 
 #include <QObject>
+#include "vtkSmartPointer.h"
 
 class TorchScriptModule;
 class LayerMRI;
+class vtkImageData;
 
 class ScribblePromptWorker : public QObject
 {
@@ -35,6 +37,10 @@ private slots:
   void DoApply();
 
 private:
+  vtkImageData* GetResizedMriImage(float* ptr, int* dim, int* x_range, int* y_range, int nMag);
+  vtkImageData* GetResizedSeedImage(unsigned char* ptr, int* dim, int* x_range, int* y_range, int nMag);
+  void ResizeImageData(float* ptr_in, int nx, int ny, float* ptr_out, int nx_out, int ny_out);
+
   LayerMRI* m_seeds;
   LayerMRI* m_mri;
   LayerMRI* m_seg;
