@@ -862,11 +862,19 @@ int main(int argc, char **argv) {
     }
     sprintf(tmpstr,"%s/mri_glmfit.log",GLMDir);
     fp = fopen(tmpstr,"w");
+    if (fp == NULL) {
+      printf("ERROR: failed to create %s\n", tmpstr);
+      exit(1);
+    }
     dump_options(fp);
     fclose(fp);
     if(subject){
       sprintf(tmpstr,"%s/surface",GLMDir);
       fp = fopen(tmpstr,"w");
+      if (fp == NULL) {
+      printf("ERROR: failed to create %s\n", tmpstr);
+      exit(1);
+      }
       fprintf(fp,"%s %s\n",subject,hemi);
       fclose(fp);
     }

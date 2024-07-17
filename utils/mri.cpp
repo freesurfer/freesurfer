@@ -267,6 +267,13 @@ void MRI::initSlices()
     if (ischunked) {
       // point the rows to the appropriate locations in the chunked buffer
       for (int row = 0; row < height; row++) {
+	if (type == MRI_FLOAT_COMPLEX) {
+	  // float pairs (2x32bits)
+	  slices[slice][row] = (unsigned char *)ptr;
+	  ptr = (unsigned char *)ptr + bytes_per_vox * vox_per_row;
+	  continue;
+	}
+
         slices[slice][row] = (unsigned char *)ptr;
         switch (type) {
         case MRI_UCHAR:
@@ -1444,6 +1451,7 @@ size_t MRIsizeof(int mritype)
     case MRI_TENSOR: return sizeof(float);
     case MRI_SHORT:  return sizeof(short);
     case MRI_USHRT:  return sizeof(unsigned short);
+    case MRI_FLOAT_COMPLEX: return 2*sizeof(float);
   }
   return (-1);  // should never get here
 }
@@ -1588,13 +1596,27 @@ float MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
   \return float value at the given col, row, slice, frame
   This function is general but slow. See also MRIptr2dbl().
 */
-float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
+float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f, int mode)
 {
   // bounds checks:
   if (c < 0) return mri->outside_val;
   if (r < 0) return mri->outside_val;
   if (s < 0) return mri->outside_val;
 
+  if (mri->type == MRI_FLOAT_COMPLEX) {
+    BUFTYPE *nthrowdata = (BUFTYPE *)mri->slices[s+(f)*mri->depth][r];
+    float *complex = (float*)nthrowdata + (2 * c);  // complex real/imag are saved as float pairs
+    float voxval = 0;
+    if (mode == MRI_COMPLEX_REAL)
+      voxval = *complex;
+    else if (mode == MRI_COMPLEX_IMAG)
+      voxval = *(complex+1);
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "MRIgetVoxVal(): unsupported operation %d", mode);
+
+    return voxval;
+  }
+  
   if (mri->ischunked) {
     switch (mri->type) {
     case MRI_UCHAR:
@@ -1685,8 +1707,21 @@ float MRIgetVoxVal2(const MRI *mri, int c, int r, int s, int f)
   \return int - 0 if ok, 1 if mri->type is unrecognized.
   This function is general but slow. See also MRIdbl2ptr().
 */
-int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
+int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval, int mode)
 {
+  if (mri->type == MRI_FLOAT_COMPLEX) {
+    BUFTYPE *nthrowdata = (BUFTYPE *)mri->slices[s+(f)*mri->depth][r];
+    float *complex = (float*)nthrowdata + (2 * c);  // complex real/imag are saved as float pairs
+    if (mode == MRI_COMPLEX_REAL)
+      *complex = voxval;
+    else if (mode == MRI_COMPLEX_IMAG)
+      *(complex+1) = voxval;
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "MRIsetVoxVal(): unsupported operation %d", mode);
+    
+    return 0;
+  }
+  
   // clipping
   switch (mri->type) {
   case MRI_UCHAR:
