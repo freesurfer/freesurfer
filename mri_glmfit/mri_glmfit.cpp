@@ -1212,12 +1212,10 @@ int main(int argc, char **argv) {
     printf("done.\n"); fflush(stdout);
     printf("Loganizing\n"); fflush(stdout);
     MRIloganize(&(mriglm->Xg), &(mriglm->y), &(mriglm->pvr[0]),RTM_TimeMin,Logan_Tstar/60);
-    //MRIwrite(mriglm->y,"tmp.y.mgh");
-    //MRIwrite(mriglm->pvr[0],"tmp.pvr.mgh");
     nContrasts = 1;
     mriglm->glm->ncontrasts = nContrasts;
     //------------------------------------------
-    mriglm->glm->Cname[0] = "dvr";
+    mriglm->glm->Cname[0] = "vt";
     mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
     mriglm->glm->C[0]->rptr[1][1] = 1;
     //------------------------------------------
@@ -2399,31 +2397,34 @@ int main(int argc, char **argv) {
     MRIfree(&mritmp);
   }
   if(DoLogan){
-    printf("Computing binding potentials\n");
-    mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
-    if(BPClipNeg){
-      printf("Clipping negative BPs to 0\n");
-      mritmp = MRIclip(mritmp, 0, 2, mriglm->mask, mritmp);
-      if(mritmp==NULL) exit(1);
+    if(0){
+      // No BPnd for invasive logan
+      printf("Computing binding potentials\n");
+      mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+      if(BPClipNeg){
+	printf("Clipping negative BPs to 0\n");
+	mritmp = MRIclip(mritmp, 0, 2, mriglm->mask, mritmp);
+	if(mritmp==NULL) exit(1);
+      }
+      if(BPClipMax > 0){
+	printf("Clipping BPs above %g\n",BPClipMax);
+	mritmp = MRIclip(mritmp, BPClipMax, 1, mriglm->mask, mritmp);
+	if(mritmp==NULL) exit(1);
+      }
+      for(c=0; c < mriglm->y->width; c++) {
+	for(r=0; r < mriglm->y->height; r++) {
+	  for(s=0; s < mriglm->y->depth; s++) {
+	    if(mriglm->mask && MRIgetVoxVal(mriglm->mask,c,r,s,0)<0.5) continue;
+	    double v = MRIgetVoxVal(mriglm->beta,c,r,s,0);
+	    MRIsetVoxVal(mritmp,c,r,s,0,v-1);
+	  }//s
+	}//r
+      }//s
+      sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
+      err = MRIwrite(mritmp,tmpstr);
+      if(err) exit(1);
+      MRIfree(&mritmp);
     }
-    if(BPClipMax > 0){
-      printf("Clipping BPs above %g\n",BPClipMax);
-      mritmp = MRIclip(mritmp, BPClipMax, 1, mriglm->mask, mritmp);
-      if(mritmp==NULL) exit(1);
-    }
-    for(c=0; c < mriglm->y->width; c++) {
-      for(r=0; r < mriglm->y->height; r++) {
-	for(s=0; s < mriglm->y->depth; s++) {
-	  if(mriglm->mask && MRIgetVoxVal(mriglm->mask,c,r,s,0)<0.5) continue;
-          double v = MRIgetVoxVal(mriglm->beta,c,r,s,0);
-	  MRIsetVoxVal(mritmp,c,r,s,0,v-1);
-	}//s
-      }//r
-    }//s
-    sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
-    err = MRIwrite(mritmp,tmpstr);
-    if(err) exit(1);
-    MRIfree(&mritmp);
   }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
@@ -3230,7 +3231,7 @@ printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
 printf("          Note: if the k2prime argument is a file, it will read the value from\n");
 printf("          that file; otherwise it inteprets the argument as a numeric value\n");
-printf("   --logan RefTac TimeSec tstar   : perform Logan kinetic modeling\n");
+printf("   --logan AIF TimeSec tstar   : perform invasive Logan kinetic modeling\n");
 printf("   --bp-clip-neg : set negative BP voxels to 0\n");
 printf("   --bp-clip-max maxval : set BP voxels above max to max\n");
 printf("\n");
