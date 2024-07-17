@@ -905,13 +905,17 @@ def postprocess(post_patch_seg, post_patch_parc, shape, pad_idx, crop_idx,
 
     # compute volumes
     volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
+    total_volume_cortex_left = np.sum(volumes[np.where(labels_segmentation == 3)[0] - 1])
+    total_volume_cortex_right = np.sum(volumes[np.where(labels_segmentation == 42)[0] - 1])
     if not v1:
         volumes = np.concatenate([np.array([np.sum(volumes)]), volumes])
     if post_patch_parc is not None:
         volumes_parc = np.sum(post_patch_parc[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
-        total_volume_cortex = np.sum(volumes[np.where((labels_segmentation == 3) | (labels_segmentation == 42))[0] - 1])
-        volumes_parc = volumes_parc / np.sum(volumes_parc) * total_volume_cortex
-        volumes = np.concatenate([volumes, volumes_parc])
+        volumes_parc_left = volumes_parc[:int(len(volumes_parc) / 2)]
+        volumes_parc_right = volumes_parc[int(len(volumes_parc) / 2):]
+        volumes_parc_left = volumes_parc_left / np.sum(volumes_parc_left) * total_volume_cortex_left
+        volumes_parc_right = volumes_parc_right / np.sum(volumes_parc_right) * total_volume_cortex_right
+        volumes = np.concatenate([volumes, volumes_parc_left, volumes_parc_right])
     volumes = np.around(volumes * np.prod(im_res), 3)
 
     return seg, posteriors, volumes
