@@ -743,6 +743,7 @@ MATRIX *RTM_Cr, *RTM_intCr, *RTM_TimeSec, *RTM_TimeMin;
 int DoMRTM1=0;
 int DoMRTM2=0;
 int DoLogan=0;
+int DoLoganMA1=0;
 double MRTM2_k2p=0, Logan_Tstar=0;
 MATRIX *MRTM2_x1;
 int BPClipNeg=0;
@@ -1199,12 +1200,11 @@ int main(int argc, char **argv) {
   }
   // Invasive Logan ------------------------------------
   if(DoLogan) {
-    // This is not the most beautiful code:). 
-    // Model integralYi = [integralRef Yi]*beta
+    // Model integralYi = [integralCp Yi]*beta
     //  Vt = beta[1]
     //  The equation is solved only for time points > tstar
-    // This equation does not match the original logan or the Ichise MA11
-    // but should yield the same result (at least theoretically)
+    // This equation does not match the original logan or the Ichise MA1
+    // but it generally tracks the original logan very well
     printf("Performing Logan\n"); fflush(stdout);
     mriglm->Xg = RTM_intCr;
     mriglm->npvr = 1;
@@ -1217,11 +1217,24 @@ int main(int argc, char **argv) {
     NoContrastsOK = 1;
     nContrasts = 0;
     mriglm->glm->ncontrasts = nContrasts;
-    //------------------------------------------
-    //mriglm->glm->Cname[0] = "vt";
-    //mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
-    //mriglm->glm->C[0]->rptr[1][1] = 1;
-    //------------------------------------------
+    sprintf(tmpstr,"%s/time.min.dat",GLMDir);
+    MatrixWriteTxt(tmpstr, RTM_TimeMin);
+  }
+  if(DoLoganMA1) {
+    // Model Yi = [integralRef integralYi]*beta
+    //  Vt = beta[0]/beta[1]
+    //  The equation is solved only for time points > tstar
+    printf("Performing Logan MA1\n"); fflush(stdout);
+    mriglm->Xg = RTM_intCr;
+    mriglm->npvr = 1;
+    printf("Computing integral of input ..."); fflush(stdout);
+    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
+    printf("done.\n"); fflush(stdout);
+    printf("Loganizing\n"); fflush(stdout);
+    MRIloganize(&(mriglm->Xg), &(mriglm->y), &(mriglm->pvr[0]),RTM_TimeMin,Logan_Tstar/60);
+    NoContrastsOK = 1;
+    nContrasts = 0;
+    mriglm->glm->ncontrasts = nContrasts;
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
@@ -1279,7 +1292,7 @@ int main(int argc, char **argv) {
   fflush(stdout);
 
   // Load Per-Voxel Regressors -----------------------------------
-  if(mriglm->npvr > 0 && !DoMRTM1 && !DoMRTM2 && !DoLogan) {
+  if(mriglm->npvr > 0 && !DoMRTM1 && !DoMRTM2 && !DoLogan && !DoLoganMA1) {
     for (n=0; n < mriglm->npvr; n++) {
       mriglm->pvr[n] = MRIread(pvrFiles[n]);
       if (mriglm->pvr[n] == NULL) exit(1);
@@ -1453,7 +1466,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
   }
-  else if(!DoMRTM1 && !DoMRTM2 && !DoLogan) {
+  else if(!DoMRTM1 && !DoMRTM2 && !DoLogan && !DoLoganMA1) {
     mriglm->w = NULL;
     mriglm->wg = NULL;
   }
@@ -1544,7 +1557,7 @@ int main(int argc, char **argv) {
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0) {
     for(n=0; n < nContrasts; n++) {
-      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoMRTM1 && !DoMRTM2 && !DoLogan) {
+      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoMRTM1 && !DoMRTM2 && !DoLogan && !DoLoganMA1) {
         // Get its name
         mriglm->glm->Cname[n] =
           fio_basename(CFile[n],".mat"); //strip .mat
@@ -2415,6 +2428,23 @@ int main(int argc, char **argv) {
     if(err) exit(1);
     MRIfree(&mritmp);
   }
+  if(DoLoganMA1){
+    mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+    for(c=0; c < mriglm->y->width; c++) {
+      for(r=0; r < mriglm->y->height; r++) {
+	for(s=0; s < mriglm->y->depth; s++) {
+	  if(mriglm->mask && MRIgetVoxVal(mriglm->mask,c,r,s,0)<0.5) continue;
+	  double beta0 = MRIgetVoxVal(mriglm->beta,c,r,s,0);
+	  double beta1 = MRIgetVoxVal(mriglm->beta,c,r,s,1);
+	  MRIsetVoxVal(mritmp,c,r,s,0,-beta0/(beta1+FLT_EPSILON));
+	}//s
+      }//r
+    }//s
+    sprintf(tmpstr,"%s/vt.%s",GLMDir,format);
+    err = MRIwrite(mritmp,tmpstr);
+    if(err) exit(1);
+    MRIfree(&mritmp);
+  }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
   MatlabWrite(mriglm->Xg,tmpstr,"X");
@@ -3019,11 +3049,10 @@ static int parse_commandline(int argc, char **argv) {
       DoPCC = 0;
       nargsused = 3;
     } 
-    else if (!strcmp(option, "--logan")) {
+    else if (!strcmp(option, "--logan") || !strcmp(option, "--logan-ma1")) {
       // --logan cr.dat time.sec.dat tstar
       // Logan non-invasive
       if(nargc < 3) CMDargNErr(option,1);
-      DoLogan=1;
       RTM_Cr = MatrixReadTxt(pargv[0], NULL);
       if(RTM_Cr == NULL) exit(1);
       RTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
@@ -3037,6 +3066,8 @@ static int parse_commandline(int argc, char **argv) {
       prunemask = 0;
       NoContrastsOK = 1;
       DoPCC = 0;
+      if(!strcmp(option, "--logan")) DoLogan=1;
+      else                           DoLoganMA1=1;
       nargsused = 3;
     } 
     else if (!strcmp(option, "--pvr")) {
@@ -3221,6 +3252,7 @@ printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
 printf("          Note: if the k2prime argument is a file, it will read the value from\n");
 printf("          that file; otherwise it inteprets the argument as a numeric value\n");
 printf("   --logan AIF TimeSec tstar   : perform invasive Logan kinetic modeling\n");
+printf("   --logan-ma1 AIF TimeSec tstar   : perform invasive Logan using Ichise 2002 MA1\n");
 printf("   --bp-clip-neg : set negative BP voxels to 0\n");
 printf("   --bp-clip-max maxval : set BP voxels above max to max\n");
 printf("\n");
@@ -3643,7 +3675,7 @@ static void print_version(void) {
 /* --------------------------------------------- */
 static void check_options(void) {
   if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL &&
-     ! OneSampleGroupMean && ! useasl && !useqa && !DoMRTM1 && !DoMRTM2 && !DoLogan) {
+     ! OneSampleGroupMean && ! useasl && !useqa && !DoMRTM1 && !DoMRTM2 && !DoLogan&& !DoLoganMA1) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
