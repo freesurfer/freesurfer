@@ -33,7 +33,7 @@ unix {
 INCLUDEPATH += /usr/pubsw/packages/mni/current/include
 
 LIBS += -L/usr/X11R6/lib \
-    -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
+    -lX11 -lXext -lXt -lSM -lICE -lGLU -ldl \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
     $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
     $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a \
@@ -92,7 +92,7 @@ FREESURFER_DEV_DIR = /Users/rpwang/freesurfer/dev
 
 INCLUDEPATH += "/usr/pubsw/packages/mni/current/include"
 
-LIBS += -framework OpenGL -lm -ldl -lz -framework ApplicationServices \
+LIBS += -framework OpenGL -ldl -lz -framework ApplicationServices \
     -framework CoreServices -framework cocoa -framework IOKit \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
     $$FREESURFER_DEV_DIR/lib/libutils.a $$FREESURFER_DEV_DIR/lib/libfsgdf.a \
