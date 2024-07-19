@@ -1197,12 +1197,14 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
-  // Logan ------------------------------------
+  // Invasive Logan ------------------------------------
   if(DoLogan) {
     // This is not the most beautiful code:). 
     // Model integralYi = [integralRef Yi]*beta
-    //  BPnd = beta[1]-1
+    //  Vt = beta[1]
     //  The equation is solved only for time points > tstar
+    // This equation does not match the original logan or the Ichise MA11
+    // but should yield the same result (at least theoretically)
     printf("Performing Logan\n"); fflush(stdout);
     mriglm->Xg = RTM_intCr;
     mriglm->npvr = 1;
@@ -1212,12 +1214,13 @@ int main(int argc, char **argv) {
     printf("done.\n"); fflush(stdout);
     printf("Loganizing\n"); fflush(stdout);
     MRIloganize(&(mriglm->Xg), &(mriglm->y), &(mriglm->pvr[0]),RTM_TimeMin,Logan_Tstar/60);
-    nContrasts = 1;
+    NoContrastsOK = 1;
+    nContrasts = 0;
     mriglm->glm->ncontrasts = nContrasts;
     //------------------------------------------
-    mriglm->glm->Cname[0] = "vt";
-    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
-    mriglm->glm->C[0]->rptr[1][1] = 1;
+    //mriglm->glm->Cname[0] = "vt";
+    //mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
+    //mriglm->glm->C[0]->rptr[1][1] = 1;
     //------------------------------------------
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
@@ -2397,34 +2400,20 @@ int main(int argc, char **argv) {
     MRIfree(&mritmp);
   }
   if(DoLogan){
-    if(0){
-      // No BPnd for invasive logan
-      printf("Computing binding potentials\n");
-      mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
-      if(BPClipNeg){
-	printf("Clipping negative BPs to 0\n");
-	mritmp = MRIclip(mritmp, 0, 2, mriglm->mask, mritmp);
-	if(mritmp==NULL) exit(1);
-      }
-      if(BPClipMax > 0){
-	printf("Clipping BPs above %g\n",BPClipMax);
-	mritmp = MRIclip(mritmp, BPClipMax, 1, mriglm->mask, mritmp);
-	if(mritmp==NULL) exit(1);
-      }
-      for(c=0; c < mriglm->y->width; c++) {
-	for(r=0; r < mriglm->y->height; r++) {
-	  for(s=0; s < mriglm->y->depth; s++) {
-	    if(mriglm->mask && MRIgetVoxVal(mriglm->mask,c,r,s,0)<0.5) continue;
-	    double v = MRIgetVoxVal(mriglm->beta,c,r,s,0);
-	    MRIsetVoxVal(mritmp,c,r,s,0,v-1);
-	  }//s
-	}//r
-      }//s
-      sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
-      err = MRIwrite(mritmp,tmpstr);
-      if(err) exit(1);
-      MRIfree(&mritmp);
-    }
+    mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+    for(c=0; c < mriglm->y->width; c++) {
+      for(r=0; r < mriglm->y->height; r++) {
+	for(s=0; s < mriglm->y->depth; s++) {
+	  if(mriglm->mask && MRIgetVoxVal(mriglm->mask,c,r,s,0)<0.5) continue;
+	  double v = MRIgetVoxVal(mriglm->beta,c,r,s,0);
+	  MRIsetVoxVal(mritmp,c,r,s,0,v);
+	}//s
+      }//r
+    }//s
+    sprintf(tmpstr,"%s/vt.%s",GLMDir,format);
+    err = MRIwrite(mritmp,tmpstr);
+    if(err) exit(1);
+    MRIfree(&mritmp);
   }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
