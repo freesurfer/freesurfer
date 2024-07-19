@@ -137,6 +137,8 @@ if(! $UseTkRegister) then
     set reg = $headerreg1
   endif
   set cmd = (freeview --hide-3d-slices )
+  if($FV_PATIENT_ORIENTATION == 2) set cmd = ($cmd -neuro-view)
+  if($FV_ROTATE_AROUND_CURSOR) set cmd = ($cmd -rotate-around-cursor)
   if($#interp) set cmd = ($cmd --$interp)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
   set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
