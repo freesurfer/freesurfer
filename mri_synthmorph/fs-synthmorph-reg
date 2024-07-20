@@ -864,7 +864,7 @@ usage_exit:
   echo "  --t targetvol"
   echo "  --warp warp.{m3z,mgz,nii.gz} : output warp file (or save in outdir)"
   echo "  --o outdir"
-  echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.5mm.1.0mm.nii.gz  targ=MNI152.1mm)"
+  echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.0mm.1.0mm.nii.gz  targ=MNI152.1mm)"
   echo "  --threads threads"
   echo "  --mni-targ-res 1.0mm, 1.5mm, 2.0mm (default is 1.0mm)"
   echo "  --mni-out-res 1.0mm, 1.5mm, 2.0mm, conformed (default is 1.0mm)"
