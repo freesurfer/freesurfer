@@ -513,7 +513,7 @@ get_option(int argc, char *argv[])
     sscanf(argv[3],"%d",&nbrhdsize);
     printf("nbrhdsize %d\n",nbrhdsize);
     MRISsetNeighborhoodSizeAndDist(surf, nbrhdsize) ;
-    MRIScomputeSecondFundamentalForm(surf);
+    MRIScomputeSecondFundamentalFormDiscrete(surf,0); // consistent with mris_curvature_stats
     char tmpstr[2000];
     MRI *mri=NULL;
     if(!stricmp(option,"curvs")||!stricmp(option,"H")){
