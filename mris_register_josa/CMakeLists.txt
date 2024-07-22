@@ -6,8 +6,8 @@ else()
    set(mri_synthsr_dest "models")
 endif()
 
-install(FILES mris_register_josa_rh_20231025.h5 DESTINATION ${mri_synthsr_dest})
-install(FILES mris_register_josa_lh_20231025.h5 DESTINATION ${mri_synthsr_dest})
+install(FILES mris_register_josa_20240401_rh.h5 DESTINATION ${mri_synthsr_dest})
+install(FILES mris_register_josa_20240401_lh.h5 DESTINATION ${mri_synthsr_dest})
 
 if (FSPYTHON_INSTALL_TREE)
    install_pyscript_fspython_tree(mris_register_josa)

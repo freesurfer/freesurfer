@@ -1,204 +1,174 @@
 import os
-import site
-import sys
+import pathlib
 from argparse import ArgumentParser
-from pathlib import Path
-import platform
+from os.path import exists
+from os.path import join as pj
 
-import nibabel as nib
-
-site.addsitedir('/autofs/cluster/freesurfer/python/fsmodule')
-
-import freesurfer as fs # TO-Do: convert to Surfa
-
-freesurfer_env = os.environ.get('FREESURFER')
-if freesurfer_env is not None:
-    freesurfer_path = Path(freesurfer_env)
-    spheremorph_path = freesurfer_path / 'python' / 'packages' / 'spheremorph'
-    sys.path.append(str(spheremorph_path)) 
-
-import spheremorph as spm
+import surfa as sfa
 from spheremorph.py.utils import norm_curvature
+from spheremorph.tf.networks import JOSA
 from spheremorph.tf.utils import *
 
-def print_usage():
-    print("Usage: python mris_register_josa.py [options]")
-    print("Options:")
-    print("--h, --help, show this help message and exit")
-    print("--hmsp", "['lh', 'rh'], which hemisphere, lh or rh")
-    print("--subject_dir", "full path to subject directory")
-    print("--sulc_file", "path to ?h.sulc file, overrides surf_dir/?h.sulc")
-    print("--curv_file", "path to ?h.curv file, overrides surf_dir/?h.curv")
-    print("--inflated_curv_file", "path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
-    print("--sphere_rot", "path to ?h.sphere.rot file")
-    print("--model", "path to the model file. Default models directory is at $FREESURFER/models/mris_register_josa_?h_20231025.h5")
-    print("--output", "custom output directory, default is to save to the subject surf directory")
 
-
-def parse_arguments():
-    if len(sys.argv) == 1 or '--help' in sys.argv or '--h' in sys.argv:
-        print_usage()
-        sys.exit()
-    
+def main():
     parser = ArgumentParser(prog="JOSA", description="Learning-based surface registration and parcellation")
-    parser.add_argument("--hmsp", type=str, choices=["lh", "rh"], help="which hemisphere, lh or rh")
-    parser.add_argument("--subject_dir", type=Path, help="subject directory")
-    parser.add_argument("--sulc_file", type=Path, help="path to ?h.sulc file, overrides surf_dir/?h.sulc")
-    parser.add_argument("--curv_file", type=Path, help="path to ?h.curv file, overrides surf_dir/?h.curv")
-    parser.add_argument("--inflated_curv_file", type=Path, help="path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
-    parser.add_argument("--sphere_rot", type=Path, help="path to ?h.sphere.rot file")
-    parser.add_argument("--model", type=Path, help="path to the model file")
-    parser.add_argument("--output", type=Path, help="output path, default is to save to the subject surf directory as ?h.josa.sphere.reg")
-    return parser.parse_args()
+    parser.add_argument("--hmsp", type=str,
+                        help="which hemisphere, lh or rh")
+    parser.add_argument("--sub_dir", type=str,
+                        help="subject directory")
+    parser.add_argument("--sulc_file", type=str,
+                        help="path to ?h.sulc file, overrides surf_dir/?h.sulc")
+    parser.add_argument("--curv_file", type=str,
+                        help="path to ?h.curv file, overrides surf_dir/?h.curv")
+    parser.add_argument("--inflated_curv_file", type=str,
+                        help="path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
+    parser.add_argument("--sphere_rot", type=str,
+                        help="path to ?h.sphere.rot file")
+    parser.add_argument("--model", type=str,
+                        help="path to the model file")
+    parser.add_argument("--output_dir", type=str,
+                        help="custom output directory, default is to save to the subject surf directory")
+    args = vars(parser.parse_args())
 
-def print_vm_peak():
-    """
-    Print the VM peak of the running process. This is only available
-    on linux platforms.
-    """
-    if platform.system() != 'Linux':
-        return
-    procstat = os.path.join('/proc', str(os.getpid()), 'status')
-    fp = open(procstat, 'r')
-    lines = fp.readlines()
-    for line in lines:
-        strs = line.split()
-        if(len(strs) < 3):
-            continue
-        if(strs[0] != 'VmPeak:'):
-            continue
-        print('mris_register_josa  VmPeak ', int(strs[1]))
+    # first argument for hemisphere must be provided
+    if args['hmsp'] and args['hmsp'] in ['lh', 'rh']:
+        hmsp = args['hmsp']
+    else:
+        raise ValueError('hmsp must be lh or rh')
 
-def main() -> None:
-    try:
-        args = parse_arguments()
+    sub_dir = args['sub_dir']
+    if sub_dir is None:
+        raise ValueError('subject directory must be provided')
 
-        print('\n\n');
+    surf_dir = pj(sub_dir, 'surf')
+    if not exists(surf_dir):
+        raise ValueError('surf directory should be found in subject directory')
 
-        # Validate the hemisphere argument
-        if args.hmsp not in ['lh', 'rh']:
-            raise ValueError("Invalid hemisphere value. Please choose 'lh' or 'rh'.")
-            
-        # Validate the subject directory
-        if(args.subject_dir is not None):
-            subject_dir = Path(args.subject_dir)
-            if not subject_dir.exists():
-                raise FileNotFoundError(f"Subject directory {subject_dir} does not exist.")
-            surf_dir = Path(subject_dir / 'surf')
-            if not surf_dir.exists():
-                raise ValueError('surf directory should be found in subject directory')
-            if Path(surf_dir / f'{args.hmsp}.sulc').exists():
-                sulc_file = Path(surf_dir / f'{args.hmsp}.sulc')
-            else:
-                raise ValueError(f'{args.hmsp}.sulc not found in surf directory')
-            if Path(surf_dir / f'{args.hmsp}.curv').exists():
-                curv_file = Path(surf_dir / f'{args.hmsp}.curv')
-            else:
-                raise ValueError(f'{args.hmsp}.curv not found in surf directory')
-            if Path(surf_dir / f'{args.hmsp}.inflated.H').exists():
-                inf_h_file = Path(surf_dir / f'{args.hmsp}.inflated.H')
-            else:
-                raise ValueError(f'{args.hmsp}.inflated.H not found in surf directory')
-            if args.output is None:
-                output = Path(surf_dir / f'{args.hmsp}.josa.sphere.reg');
-            if(args.sphere_rot is None):
-                if Path(surf_dir / f'{args.hmsp}.sphere.rot').exists():
-                    sphere_rot_file = Path(surf_dir / f'{args.hmsp}.sphere.rot')
-        else:
-            if(args.sphere_rot is None):
-                raise ValueError('Must spec sphere rot file or subject dir')
-            if(args.output is None):
-                raise ValueError('Must spec an output file or specify the subject dir')
-            if(args.sulc_file is None):
-                raise ValueError('Must spec a sulc file or the subject dir')
-            if(args.curv_file is None):
-                raise ValueError('Must spec a curv file or the subject dir')
-            if(args.inflated_curv_file is None):
-                raise ValueError('Must spec an inflated.H file or the subject dir')
+    if exists(pj(surf_dir, f'{hmsp}.sulc')):
+        sulc_file = pj(surf_dir, f'{hmsp}.sulc')
+    else:
+        raise ValueError(f'{hmsp}.sulc not found in surf directory')
 
-        # if surface feature files are provided specifically, overwrite defaults
-        if args.sulc_file: sulc_file = args.sulc_file
-        if args.curv_file: curv_file = args.curv_file
-        if args.inflated_curv_file: inf_h_file = args.inflated_curv_file
-        if args.sphere_rot: sphere_rot_file = args.sphere_rot
-        if args.output: output = args.output
+    if exists(pj(surf_dir, f'{hmsp}.curv')):
+        curv_file = pj(surf_dir, f'{hmsp}.curv')
+    else:
+        raise ValueError(f'{hmsp}.curv not found in surf directory')
 
-        surf_feature_file = [sulc_file, curv_file, inf_h_file]
+    if exists(pj(surf_dir, f'{hmsp}.inflated.H')):
+        inf_h_file = pj(surf_dir, f'{hmsp}.inflated.H')
+    else:
+        raise ValueError(f'{hmsp}.inflated.H not found in surf directory')
 
-        if args.model is None:
-            model_file = freesurfer_env + "/models/mris_register_josa_"+args.hmsp+"_20231025.h5"
-        else:
-            model_file = args.model
-        print(f'model file is {model_file}');
+    # if surface feature files are provided specifically, overwrite defaults
+    if args['sulc_file']:
+        sulc_file = args['sulc_file']
+    if args['curv_file']:
+        curv_file = args['curv_file']
+    if args['inflated_curv_file']:
+        inf_h_file = args['inflated_curv_file']
 
-        output_dir = os.path.dirname(output);
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
+    surf_feature_file = [sulc_file, curv_file, inf_h_file]
 
-        # processing starts from here
-        # ==================== hyperparameters ====================
-        pad_size = 16
-        # ==================== hyperparameters ====================
+    # if ?h.sphere.rot exists in surf directory, use it
+    sphere_rot_file = None
+    if exists(pj(surf_dir, f'{hmsp}.sphere.rot')):
+        sphere_rot_file = pj(surf_dir, f'{hmsp}.sphere.rot')
 
-        print('parameterizing cortical features ... ', end='')
-        sphere = fs.Surface.read(sphere_rot_file)
-        geoms = list()
-        for file_name in surf_feature_file:
-            geom = norm_curvature(nib.freesurfer.io.read_morph_data(file_name), which_norm='Median')
-            geoms.append(geom)
-        mrisp_geom = sphere.parameterize(np.transpose(np.array(geoms)))
-        mrisp_geom = (mrisp_geom - mrisp_geom.mean()) / mrisp_geom.std()
-        mrisp_geom_padded = pad_2d_image_spherically(mrisp_geom, pad_size=pad_size, input_no_batch_dim=True)
-        print('done')
+    # if ?h.sphere.rot is provided specifically, overwrite the default
+    if args['sphere_rot']:
+        sphere_rot_file = args['sphere_rot']
 
-        print('constructing the network ... ')
-        
-        # ==================== hyperparameters ====================
+    if sphere_rot_file is None:
+        raise ValueError(f'{hmsp}.sphere.rot must be provided')
+
+    model_file = args['model']
+    if model_file is None:
+        raise ValueError('model file must be provided')
+
+    output_dir = args['output_dir']
+    if output_dir is None:
+        output_dir = surf_dir
+    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # ==================== changes from here ====================
+    pad_size = 16
+    print('parameterizing cortical features ... ', end='')
+    geoms = list()
+    for file_name in surf_feature_file:
+        geom = sfa.load_overlay(file_name)
+        geom2 = norm_curvature(geom, which_norm='Median')
+        geoms.append(geom2)
+    geoms = np.stack(geoms, axis=1)
+
+    sphere = sfa.load_mesh(sphere_rot_file)
+    mrisp_geom = sfa.sphere.SphericalMapBarycentric(sphere).parameterize(geoms)
+    mrisp_geom = mrisp_geom.framed_data
+    mrisp_geom = (mrisp_geom - mrisp_geom.mean()) / mrisp_geom.std()
+    mrisp_geom_padded = pad_2d_image_spherically(mrisp_geom, pad_size=pad_size, input_no_batch_dim=True)
+    print('done')
+
+    print('constructing the network ... ', end='')
+    net_factor = 7
+    is_bidir = True
+    is_atlas_trainable = False
+    is_semi = True
+    is_isw = True
+    is_njf = True
+    pos_enc = 4
+    num_outputs = 8
+    losses = [dummy_loss] * num_outputs
+    metrics = [None] * num_outputs
+    metric_name = [None] * num_outputs
+    img_shape = mrisp_geom_padded.shape[0:2]
+    num_geom_ft = 3
+    num_parc_ft = 32
+    img_shape_ft = [(*img_shape, num_geom_ft), (*img_shape, num_parc_ft)]
+
+    if net_factor == 0:
         unet_struct = [
             [128, 256, 384, 512, 640],  # encoder
             [640, 512, 384, 256, 128, 64, 32]  # decoder
         ]
-        is_bidir = True
-        is_atlas_trainable = False
-        is_semi = True
-        is_isw = True
-        pos_enc = 4
-        num_outputs = 8
-        losses = [dummy_loss] * num_outputs
-        metrics = [None] * num_outputs
-        metric_name = [None] * num_outputs
-        img_shape = mrisp_geom_padded.shape[0:2]
-        num_geom_ft = 3
-        num_parc_ft = 32
-        img_shape_ft = [(*img_shape, num_geom_ft), (*img_shape, num_parc_ft)]
-        # ==================== hyperparameters ====================
+    else:
+        nf = 2 ** net_factor
+        unet_struct = [[nf, ] * 5, [nf, ] * 7]
 
-        model = spm.networks.JOSA(input_shape_ft=img_shape_ft, nb_unet_features=unet_struct,
-                                loss_fn=losses, metric_fn=metrics, metric_name=metric_name,
-                                is_bidir=is_bidir, pad_size=pad_size, pos_enc=pos_enc,
-                                is_semi=is_semi, is_atlas_trainable=is_atlas_trainable,
-                                input_type=['float', 'prob'], is_isw=is_isw,
-                                is_softmax=True, is_jacobian=True)
-        print('done')
+    model = JOSA(input_shape_ft=img_shape_ft, nb_unet_features=unet_struct,
+                 loss_fn=losses, metric_fn=metrics, metric_name=metric_name,
+                 is_bidir=is_bidir, int_steps=5, int_method='ss',
+                 pad_size=pad_size, pos_enc=pos_enc,
+                 is_semi=is_semi, is_atlas_trainable=is_atlas_trainable,
+                 input_type=['float', 'prob'], is_isw=is_isw,
+                 is_softmax=True, is_jacobian=True, is_neg_jacobian_filter=is_njf)
+    print('done')
 
-        print('loading the model ... ', end='')
-        model.load_weights(model_file)
-        print('done')
+    print('loading the model ... ', end='')
+    model.load_weights(model_file)
+    print('done')
 
-        print('registering to the atlas ... ')
-        param_coord = sphere.parameterize(np.array(sphere.vertices))
-        param_coord_padded = pad_2d_image_spherically(param_coord[np.newaxis, ...], pad_size)
-        warped_param_coord = model.warp(mrisp_geom_padded[np.newaxis, ...], param_coord_padded, 'to_subject', 0)
-        warped_param_coord_unpad = unpad_2d_image(warped_param_coord[0, :, :, :], pad_size, input_no_batch_dim=True)
-        print('done')
+    print('registering to the atlas ... ')
+    param_coord = sfa.sphere.SphericalMapBarycentric(sphere).parameterize(sphere.vertices)
+    param_coord_padded = pad_2d_image_spherically(param_coord[np.newaxis, ...], pad_size)
+    warped_param_coord = model.warp(mrisp_geom_padded[np.newaxis, ...], param_coord_padded, 'to_subject', 0)
+    warped_param_coord_unpad = unpad_2d_image(warped_param_coord[0, :, :, :], pad_size, input_no_batch_dim=True)
+    print('done')
 
-        print('saving sphere.reg to disk ... ', end='')
-        sphere_reg = sphere.copy()
-        sphere_reg.vertices = sphere.sample_parameterization(warped_param_coord_unpad)
-        sphere_reg.write(Path(output));
-        print('done')
+    print('saving sphere.reg to disk ... ', end='')
+    v = sfa.sphere.SphericalMapBarycentric(sphere).sample(warped_param_coord_unpad)
+    v = v / np.linalg.norm(v, axis=-1, keepdims=True) * 100.0
+    sphere_reg = sphere.copy()
+    sphere_reg.vertices = v
+    out_file = pj(output_dir, f'{hmsp}.sphere.reg.prefix')
+    sfa.io.mesh.save_mesh(sphere_reg, out_file)
+    print('done')
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    print('removing intersecting vertices ... ')
+    out_file_fixed = pj(output_dir, f'{hmsp}.sphere.reg')
+    # cmd = f'source /autofs/homes/003/jl1013/.fs_env && mris_remove_intersection {out_file} {out_file_fixed}'
+    cmd = f'mris_remove_intersection {out_file} {out_file_fixed}'
+    os.system(cmd)
+    os.remove(out_file)
+    print('done')
 
 
 # the following dummy functions are created specifically for this release
@@ -214,8 +184,3 @@ def dummy_loss(*args):
 
 if __name__ == "__main__":
     main()
-    print_vm_peak()
-#    vmpeak = sf.system.vmpeak();
-#    if(vmpeak is not None):
-#        print('mris_register_josa VmPeak %s' % vmpeak);
-    print('mris_register_josa done');
