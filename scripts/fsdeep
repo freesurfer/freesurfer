@@ -1,0 +1,13 @@
+import sys
+from deepsurfer.system.commandline import execute
+import surfa
+
+print('starting deepsurfer')
+
+rt = execute()
+
+vmpeak = surfa.system.vmpeak()
+if vmpeak is not None:
+    print('deepsurfer VmPeak %s' % vmpeak)
+
+sys.exit(rt)

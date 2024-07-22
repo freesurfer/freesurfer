@@ -1,8 +1,6 @@
 project(mri_synthmorph)
 
-if(NOT FSPYTHON_BUILD_REQ)
-   file(GLOB WEIGHTS "synthmorph.*.h5")
-endif()
+file(GLOB WEIGHTS "synthmorph.*.h5")
 
 if (FSPYTHON_INSTALL_TREE)
    install_pyscript_fspython_tree(mri_synthmorph)
@@ -18,8 +16,7 @@ install_configured(fs-synthmorph-reg DESTINATION bin)
 ## 03/2024 - re-enable on MacOS
 ## 04/2024 - disable again
 
-# if(NOT APPLE)
-if(NOT FSPYTHON_BUILD_REQ)
+if(NOT APPLE)
    add_test_script(NAME mri_synthmorph_test SCRIPT test.sh)
 endif()
 

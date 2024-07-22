@@ -375,6 +375,10 @@ else
 
 endif
 
+echo ""   | tee -a $LF
+echo "To check affine registration"  | tee -a $LF
+echo "tkregisterfv --mov $invol --targ $targvol --reg $reginvoltotarg"  | tee -a $LF
+echo ""   | tee -a $LF
 
 if($AffineOnly) then
   echo "AffineOnly specified, so exiting now" | tee -a $LF
@@ -773,6 +777,12 @@ endif
 # the cropped; have to set the reg-crop-to-target too
 #if($MNITarget) set CropTarget = 0; 
 
+if(! $MNITarget) then
+  # Could get this to work, but not really needed
+  set CropTarget = 0; 
+  set CropInput = 0; 
+endif
+
 if($#outdir == 0) then
   echo "ERROR: must spec output dir"
   exit 1
@@ -854,7 +864,7 @@ usage_exit:
   echo "  --t targetvol"
   echo "  --warp warp.{m3z,mgz,nii.gz} : output warp file (or save in outdir)"
   echo "  --o outdir"
-  echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.5mm.1.0mm.nii.gz  targ=MNI152.1mm)"
+  echo "  --s subject (invol=norm.mgz, warp=mri/transforms/synthmorph.1.0mm.1.0mm.nii.gz  targ=MNI152.1mm)"
   echo "  --threads threads"
   echo "  --mni-targ-res 1.0mm, 1.5mm, 2.0mm (default is 1.0mm)"
   echo "  --mni-out-res 1.0mm, 1.5mm, 2.0mm, conformed (default is 1.0mm)"
@@ -863,7 +873,7 @@ usage_exit:
   echo "  --strip : skull strip input and target"
   echo "  --strip-input : skull strip input"
   echo "  --strip-target : skull strip target"
-  echo "  --crop/--no-crop (default is $CropInput)"
+  echo "  --crop/--no-crop (default is $CropInput, but no-crop if not registering to mni)"
   echo "  --pituitary : select the MNI target volume that does not mask out the pituitary"
   echo "  --test : resample the input volume to the output space and store as test.nii.gz"
   echo "  --vg-thresh vgthresh : threshold for testing diffs in volume geom"

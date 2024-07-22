@@ -145,6 +145,7 @@ int DoOptThresh=0;
 double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta);
 int label_erode = 0 ; // requires surface
 int label_dilate = 0 ;// requires surface
+int label_ring = 0 ;// requires surface
 int RemoveHolesAndIslands = 0;// requires surface
 int DoThresh = 0;
 double thresh=0;
@@ -312,9 +313,16 @@ int main(int argc, char **argv) {
     printf("Dilating label %d times\n",label_dilate);
     LabelDilate(lb, surf, label_dilate, CURRENT_VERTICES) ;
   }
-  if(label_erode){
+  if(label_erode && surf){
     printf("Eroding label %d times\n",label_erode);
     LabelErode(lb, surf, label_erode) ;
+  }
+  if(label_ring > 0 && surf) {
+    LABEL *label_interior;
+    label_interior = LabelCopy(lb, NULL) ;
+    LabelDilate(lb, surf, label_ring, CURRENT_VERTICES) ;
+    LabelRemoveOverlap(lb, label_interior) ;
+    LabelFree(&label_interior);
   }
 
   printf("Writing label file %s\n",labelfile);
@@ -429,6 +437,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%d",&label_erode);
       nargs = 2;
     }
+    else if (!strcmp(option, "--ring")) {
+      if(nargc < 2) argnerr(option,1);
+      sscanf(pargv[1],"%d",&label_ring);
+      nargs = 2;
+    }
     else if (!strcmp(option, "--remove-holes-islands")) {
       RemoveHolesAndIslands = 1;// requires surface
       nargs = 1;
@@ -472,6 +485,7 @@ printf("   --opt target delta valmap\n");
 printf("   --remove-holes-islands  : remove holes in label and islands (with --surf only)\n");
 printf("   --dilate ndilations : dilate label (with --surf only)\n");
 printf("   --erode  nerosions  : erode label (with --surf only)\n");
+printf("   --ring   nring  : ring around the label (with --surf only)\n");
 printf("     Note: dilation is done first, then erode\n");
 printf("   --help         :print out help information\n");
 printf("\n");
