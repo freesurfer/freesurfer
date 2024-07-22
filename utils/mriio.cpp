@@ -8511,6 +8511,10 @@ static MRI *niiRead(const char *fname, int read_volume)
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 4;
     }
+    else if (hdr.datatype == DT_COMPLEX) {
+      fs_type = MRI_FLOAT_COMPLEX;
+      bytes_per_voxel = 8;
+    }
     else if (hdr.datatype == DT_DOUBLE) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 8;
@@ -9431,9 +9435,9 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
   -----------------------------------------------------------------*/
 static int niiWrite(MRI *mri0, const char *fname)
 {
-  znzFile fp;
-  int j, k, t;
-  BUFTYPE *buf;
+  //znzFile fp;
+  //int j, k, t;
+  //BUFTYPE *buf;
   struct nifti_1_header hdr;
   int error, shortmax, use_compression, fnamelen;
   MRI *mri = NULL;
@@ -9482,7 +9486,7 @@ static int niiWrite(MRI *mri0, const char *fname)
   hdr.sizeof_hdr = 348;
   hdr.dim_info = 0;
 
-  for (t = 0; t < 8; t++) {
+  for (int t = 0; t < 8; t++) {
     hdr.dim[t] = 1;
     hdr.pixdim[t] = 1;
   }  // for afni
@@ -9523,6 +9527,10 @@ static int niiWrite(MRI *mri0, const char *fname)
   else if (mri->type == MRI_FLOAT) {
     hdr.datatype = DT_FLOAT;
     hdr.bitpix = 32;
+  }
+  else if (mri->type == MRI_FLOAT_COMPLEX) {
+    hdr.datatype = DT_COMPLEX;
+    hdr.bitpix = 64;
   }
   else if (mri->type == MRI_SHORT) {
     hdr.datatype = DT_SIGNED_SHORT;
@@ -9565,7 +9573,7 @@ static int niiWrite(MRI *mri0, const char *fname)
 
   memmove(hdr.magic, NII_MAGIC, 4);
 
-  fp = znzopen(fname, "w", use_compression);
+  znzFile fp = znzopen(fname, "w", use_compression);
   if (fp == NULL) {
     errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "niiWrite(): error opening file %s", fname));
@@ -9653,11 +9661,11 @@ static int niiWrite(MRI *mri0, const char *fname)
   // printf("In niiWrite():before dumping: %d, %d, %d, %d\n", mri->nframes,mri->depth,mri->width,mri->height );
   // output image data
   // Now dump the pixel data
-  for (t = 0; t < mri->nframes; t++)
-    for (k = 0; k < mri->depth; k++) {
-      for (j = 0; j < mri->height; j++) {
+  for (int t = 0; t < mri->nframes; t++)
+    for (int k = 0; k < mri->depth; k++) {
+      for (int j = 0; j < mri->height; j++) {
         // printf("%d,%d,%d\n",t, k, j);
-        buf = &MRIseq_vox(mri, 0, j, k, t);
+        BUFTYPE *buf = &MRIseq_vox(mri, 0, j, k, t);
         if ((int)znzwrite(buf, hdr.bitpix / 8, mri->width, fp) != mri->width) {
           znzclose(fp);
           errno = 0;
