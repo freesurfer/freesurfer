@@ -25,7 +25,7 @@
 <help>
 	<name>mris_curvature</name>
 	<synopsis>mris_curvature [&lt;options&gt;] insurf</synopsis>
-	<description>This program will compute the second fundamental form of a cortical surface. It will create two new files &lt;hemi&gt;.&lt;surface&gt;.H and &lt;hemi&gt;.&lt;surface&gt;.K with the mean and Gaussian curvature respectively.</description>
+	<description>This program will compute the second fundamental form of a cortical surface. It will create two new files &lt;hemi&gt;.&lt;surface&gt;.H and &lt;hemi&gt;.&lt;surface&gt;.K with the mean and Gaussian curvature respectively. When neighrhood size is asked for below, typical value is 2.</description>
   <arguments>
     <positional>
       <argument>&lt;insurf&gt;</argument>
@@ -56,9 +56,9 @@
       <argument>-K surf nbrhdsize stem</argument>
       <explanation>Stand-alone option to save K gaussian curvature to stem.K.mgz</explanation>
       <argument>-k1 surf nbrhdsize stem</argument>
-      <explanation>Stand-alone option to save k1 (primary principle) curvature to stem.k1.mgz </explanation>
+      <explanation>Stand-alone option to save k1 (primary principle) curvature to stem.k1.mgz. nbrhdsize typically is 2.</explanation>
       <argument>-k2 surf nbrhdsize stem</argument>
-      <explanation>Stand-alone option to save k2 (secondary principle) curvature to stem.k2.mgz </explanation>
+      <explanation>Stand-alone option to save k2 (secondary principle) curvature to stem.k2.mgz. nbrhdsize typically is 2. </explanation>
       <argument>-k1k2 surf nbrhdsize stem</argument>
       <explanation>Stand-alone option to save k1 and k2 curvature to stem.{k1,k2}.mgz </explanation>
     </optional-flagged>
