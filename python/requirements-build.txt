@@ -92,7 +92,7 @@ typing_extensions==4.5.0
 tzdata==2024.1
 urllib3==1.26.15
 uv==0.1.42
-voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8
+voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4
 wrapt==1.16.0
 xxhash==3.4.1
 zipp==3.19.2
