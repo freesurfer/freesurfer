@@ -198,6 +198,7 @@ char *DiffVolFile=NULL;
 char *DiffLabelVolFile=NULL;
 
 int CheckColortable = 0;
+int CheckImag = 0;
 int CheckResolution=1;
 int CheckAcqParams=1;
 int CheckPixVals=1;
@@ -219,10 +220,7 @@ int PrintRMS = 0; // Print root mean squared differences over all voxel
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
-  int rmax, cmax, smax, fmax,navg,notzero,ndiff;
-  double diff,maxdiff;
-  double val1, val2, SumSqErr;
-  double AvgDiff=0.0,SumDiff=0.0,SumSqDiff=0.0;
+  double val1, val2;
   FILE *fp=NULL;
 
   nargs = handleVersionOption(argc, argv, "mri_diff");
@@ -379,7 +377,7 @@ int main(int argc, char *argv[]) {
       for (c=1; c<=4; c++) {
         val1 = vox2ras1->rptr[r][c];
         val2 = vox2ras2->rptr[r][c];
-        diff = fabs(val1-val2);
+        double diff = fabs(val1-val2);
         if (diff > geothresh) {
           printf("Volumes differ in geometry row=%d col=%d diff=%lf (%g)\n",
                  r,c,diff,diff);
@@ -443,24 +441,31 @@ int main(int argc, char *argv[]) {
                                       InVol1->depth,MRI_FLOAT,InVol1->nframes);
       MRIcopyHeader(InVol1,DiffLabelVol);
     }
-    SumDiff=0.0;
+
+    int mode = MRI_COMPLEX_REAL;
+    if (InVol1->type == MRI_FLOAT_COMPLEX && CheckImag) {
+      mode = MRI_COMPLEX_IMAG;
+      printf("Compare imaginary units ...\n");
+    }
+    
+    double SumDiff=0.0;
     c=r=s=f=0;
-    notzero=0;
-    val1 = MRIgetVoxVal(InVol1,c,r,s,f);
-    val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-    maxdiff = fabs(val1-val2);
-    cmax=rmax=smax=fmax=0;
-    SumSqDiff=0.0; // over all voxel
-    ndiff=0;
+    int notzero=0;
+    val1 = MRIgetVoxVal(InVol1,c,r,s,f, mode);
+    val2 = MRIgetVoxVal(InVol2,c,r,s,f, mode);
+    double maxdiff = fabs(val1-val2);
+    int cmax=0, rmax=0, smax=0, fmax=0;
+    double SumSqDiff=0.0; // over all voxel
+    int ndiff=0;
     for (c=0; c < InVol1->width; c++) {
       for (r=0; r < InVol1->height; r++) {
         for (s=0; s < InVol1->depth; s++) {
-          SumSqErr = 0.0; //over all frames
+          double SumSqErr = 0.0; //over all frames
           for (f=0; f < InVol1->nframes; f++) {
-            val1 = MRIgetVoxVal(InVol1,c,r,s,f);
-            val2 = MRIgetVoxVal(InVol2,c,r,s,f);
+            val1 = MRIgetVoxVal(InVol1,c,r,s,f, mode);
+            val2 = MRIgetVoxVal(InVol2,c,r,s,f, mode);
 	    if (val1 != 0 && val2 != 0) notzero++;
-            diff = val1-val2;
+            double diff = val1-val2;
 	    if(fabs(diff) > pixthresh) ndiff++;
             if(fabs(diff) > pixthresh && verbose) {
               printf("diff %6d %12.8f at %d %d %d %d  %g %g\n",ndiff,diff,c,r,s,f,val1,val2);
@@ -470,12 +475,12 @@ int main(int argc, char *argv[]) {
             if(AbsDiff)   diff = fabs(diff);
             if(DiffAbs)   diff = fabs(fabs(val1)-fabs(val2));
             if(DiffPct)   diff = 100*(val1-val2)/((val1+val2)/2.0);
-            if(DiffVolFile && !DoRSS)  MRIsetVoxVal(DiffVol,c,r,s,f,diff);
+            if(DiffVolFile && !DoRSS)  MRIsetVoxVal(DiffVol,c,r,s,f,diff, mode);
             if(AvgDiffFile && !DoRSS)  SumDiff += diff;
             if(DiffLabelVolFile) {
-              if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1);
+              if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1, mode);
               else {
-                MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
+                MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS, mode);
               }
             }
             if (maxdiff < diff) {
@@ -486,7 +491,7 @@ int main(int argc, char *argv[]) {
               fmax = f;
             }
           }
-          if(DiffVolFile && DoRSS) MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
+          if(DiffVolFile && DoRSS) MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr), mode);
           if(AvgDiffFile && DoRSS) SumDiff += sqrt(SumSqErr);
         }
       }
@@ -501,9 +506,9 @@ int main(int argc, char *argv[]) {
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
     if(DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
     if(AvgDiffFile){
-      navg = InVol1->width * InVol1->height * InVol1->depth;
+      int navg = InVol1->width * InVol1->height * InVol1->depth;
       if(! DoRSS) navg *= InVol1->nframes;
-      AvgDiff = SumDiff/navg;
+      double AvgDiff = SumDiff/navg;
       if(debug) printf("AvgStats %d %lf %lf\n",navg,SumDiff,AvgDiff);
       fp = fopen(AvgDiffFile,"w");
       fprintf(fp,"%lf\n",AvgDiff);
@@ -534,7 +539,7 @@ int main(int argc, char *argv[]) {
 	printf("But diff count does not exceed diff count thresh %d\n",diffcountthresh);
       }
     }
-  }
+  } // end of Compare pixel values
 
   //----------------------------------------------------------
   // Do a diff on a specific label in aseg.mgz
@@ -710,6 +715,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--rms"))  {PrintRMS = 1;CheckPixVals=1;}
     else if (!strcasecmp(option, "--count"))  {CheckPixVals=1;}
     else if (!strcasecmp(option, "--diff-ctab")) CheckColortable = 1;
+    else if (!strcasecmp(option, "--diff-imag")) CheckImag = 1;
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
