@@ -1728,6 +1728,7 @@ int MRISopenMarked(MRI_SURFACE *mris, int order) ;
 int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
 int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
+int MRISfillHoles(MRIS *surf, char* fieldname, MRI *mri, double thresh);
 MRI *MRISdilateVertexToSum(int vno, MRIS *surf, MRI *measure, double targetSum);
 int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;

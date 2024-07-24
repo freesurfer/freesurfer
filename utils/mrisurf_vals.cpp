@@ -19,6 +19,7 @@
 #include "mrisurf_vals.h"
 
 #include "mrisurf_base.h"
+#include "surfcluster.h"
 
 
 // Vals are scalar properties of vertexs or faces
@@ -294,6 +295,72 @@ int MRISopenMarked(MRIS *mris, int order)
   return (NO_ERROR);
 }
 
+/*!
+\fn int MRISfillHoles(MRIS *surf, char* fieldname, MRI *mri, double thresh)
+\brief Fill in holes in a surface-based map. The map may be one of the
+surface fields, eg, val, marked, undefval, anything handled by
+MRIcopyMRIS(). The map may be a surface overlay sorted in mri
+structure. In either case, the map is binarized to voxels over
+thresh. The binarized map is then inverted, then clusters are found
+(each cluster being an island in the non-inverted map), the clusters
+are then filled in. The final output will be a binary map. If a field
+name was passed, then the values in that field will be changed; if an
+MRI was passed, then the values in the MRI will be changed. Cannot
+spec a field name and an MRI. If an error occurs, then -1 is returned,
+otherwise it returns the number of voxels changed. Note: when calling
+with field name, one may need to spec eg (char*)"marked" to make it compile.
+*/
+int MRISfillHoles(MRIS *surf, char* fieldname, MRI *mri, double thresh)
+{
+  if(fieldname != NULL && mri != NULL){
+    printf("ERROR: MRISfillHoles(): fieldname=%s and mri is non-null\n",fieldname);
+    return(-1);
+  }
+  if(fieldname == NULL && mri == NULL){
+    printf("ERROR: MRISfillHoles(): both fieldname and mri are null\n");
+    return(-1);
+  }
+
+  int freemri = 0;
+  if(mri == NULL){
+    // Copy the field into the mri
+    mri = MRIcopyMRIS(NULL,surf,0,fieldname);
+    if(!mri) return(-1);
+    freemri = 1;
+  }
+
+  // Copy the mri into .val (inverting). Make sure that mri is binarized
+  for(int vno=0; vno < surf->nvertices; vno++){
+    double val = MRIgetVoxVal(mri,vno,0,0,0);
+    MRIsetVoxVal(mri,vno,0,0,0, val>thresh); // binarize
+    surf->vertices[vno].val = (val<thresh); // invert
+  }
+
+  // Find the holes by finding the islands in the inverted
+  SURFCLUSTERSUM *SurfClustList;
+  int nClusters;
+  //thmin=0.5, thmax=-1, thsign=1, minarea=0
+  SurfClustList = sclustMapSurfClusters(surf,0.5,-1,1,0,&nClusters,NULL,NULL);
+  printf("MRISfillHoes(): found %d holes\n",nClusters-1);
+  int nhits = 0;
+  if(nClusters > 1){
+    for(int vno=0; vno < surf->nvertices; vno++){
+      if(surf->vertices[vno].undefval > 1) { // must be >1 because cluster1 is background
+	MRIsetVoxVal(mri,vno,0,0,0, 1); // fill the hole
+	nhits ++;
+      }
+    }
+    free(SurfClustList);
+  }
+  if(freemri){
+    // Copy the mri back into the surf field
+    MRIScopyMRI(surf,mri,0,fieldname);
+    MRIfree(&mri);
+    printf("  MRISfillHoles() field %s, found %d holes, filled %d vertices\n",fieldname,nClusters-1,nhits);
+  }
+  else  printf("  MRISfillHoles() found %d holes, filled %d vertices\n",nClusters-1,nhits);
+  return(nhits);
+}
 
 
 // marks2
