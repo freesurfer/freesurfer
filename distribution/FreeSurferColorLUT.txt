@@ -29,13 +29,13 @@
 25  Left-Lesion                             255 165 0   0
 26  Left-Accumbens-area                     255 165 0   0
 27  Left-Substancia-Nigra                   0   255 127 0
-28  Left-VentralDC                          165 42  42  0
+28  Left-VentralDC                          145 42  42  0
 29  Left-undetermined                       135 206 235 0
 30  Left-vessel                             160 32  240 0
 31  Left-choroid-plexus                     0   200 200 0
 32  Left-F3orb                              100 50  100 0
 33  Left-aOg                                122 135 50  0
-34  Left-WMCrowns                           123 135 50  0
+34  Left-WMCrowns                           225 225 255  0
 35  Left-mOg                                51  50  135 0
 36  Left-pOg                                74  155 60  0
 37  Left-Stellate                           120 62  43  0
@@ -67,7 +67,7 @@
 63  Right-choroid-plexus                    0   200 221 0
 64  Right-F3orb                             100 50  100 0
 65  Right-lOg                               135 50  74  0
-66  Right-WMCrowns                          122 135 50  0
+66  Right-WMCrowns                          215 215 255  0
 67  Right-mOg                               51  50  135 0
 68  Right-pOg                               74  155 60  0
 69  Right-Stellate                          120 62  43  0
@@ -88,8 +88,8 @@
 82  Right-non-WM-hypointensities            164 108 226 0
 83  Left-F1                                 255 218 185 0
 84  Right-F1                                255 218 185 0
-85  Optic-Chiasm                            234 169 30  0
-192 Corpus_Callosum                         0   0   160 0
+85  Optic-Chiasm                            234 169  30 0
+192 Corpus_Callosum                         170 255 255 0
 
 86  Left_future_WMSA                        200 120  255 0
 87  Right_future_WMSA                       200 121  255 0
@@ -176,7 +176,7 @@
 169 Left-Basal-Ganglia                      236 13  127 0
 176 Right-Basal-Ganglia                     236 13  126 0
 
-# Label names and colors for Brainstem consituents
+# Label names and colors for Brainstem constituents
 # No.  Label Name:                          R   G   B   A
 170 brainstem                               119 159 176 0
 171 DCG                                     119 0   176 0
@@ -193,8 +193,11 @@
 180 Left-Cortical-Dysplasia                 73  61  139 0
 181 Right-Cortical-Dysplasia                73  62  139 0
 182 CblumNodulus                            10 100  176 0
-183 Left-Vermis                            119 100  176 0
-184 Right-Vermis                           100 119  176 0
+
+# Changed name to "Area" to indicate that this is not 
+# currently a fully vetted segmentation
+183 Left-Vermis-Area                            119 100  176 0
+184 Right-Vermis-Area                           100 119  176 0
 
 #192 Corpus_Callosum  listed after #85 above
 193 Left-hippocampal_fissure                0   196 255 0
@@ -271,11 +274,12 @@
 259 Eye-Fluid                              60  60  60  0
 260 BoneOrAir                             119 159 176 0
 261 PossibleFluid                         120  18 134 0
-262 Sinus                                 196 160 128 0
+262 Sinus                                  85  85 127 0
 263 Left-Eustachian                       119 159 176 0
 264 Right-Eustachian                      119 159 176 0
 265 Left-Eyeball                          60  60  60  0
 266 Right-Eyeball                         60  60  60  0
+267 Pons-Belly-Area                      206 195 58  0
 
 270 ctx-lh-infragranular                  205 70  78  0
 271 ctx-lh-layer1                         210 80  78  0
@@ -285,6 +289,10 @@
 275 ctx-lh-layer5                         230 120  78  0
 276 ctx-lh-layer6                         235 135  78  0
 277 ctx-lh-supragranular                  240 140  78  0
+278 SubiculumU                            20 119 165 0
+279 CA1U                                  255 108 108 0
+280 CA2U                                  167 130 199 0
+281 CA3U                                  0 202 0 0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
@@ -392,39 +400,49 @@
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
+559 Subcortical-Gray-Matter                123 187 221 0
+
 600 Tumor                                   254 254 254 0
 
 
-# Cerebellar parcellation labels from SUIT (matches labels in cma.h)
+# Cerebellar parcellation labels from SUIT (matches labels in cma.h),
+# FastSurfer-CerebNet builds on top of these SUITS labels and expands them two aggregated labels (see below)
+# See https://doi.org/10.1016/j.neuroimage.2022.119703
 #No. Label Name:                            R   G   B   A
-601  Cbm_Left_I_IV                          70  130 180 0
-602  Cbm_Right_I_IV                         245 245 245 0
+601  Cbm_Left_I_IV                          0   69  190 0
+602  Cbm_Right_I_IV                         70  170 180 0
 603  Cbm_Left_V                             205 62  78  0
-604  Cbm_Right_V                            120 18  134 0
+604  Cbm_Right_V                            205 102 78  0
 605  Cbm_Left_VI                            196 58  250 0
 606  Cbm_Vermis_VI                          0   148 0   0
-607  Cbm_Right_VI                           220 248 164 0
+607  Cbm_Right_VI                           196 98  250 0
 608  Cbm_Left_CrusI                         230 148 34  0
 609  Cbm_Vermis_CrusI                       0   118 14  0
-610  Cbm_Right_CrusI                        0   118 14  0
-611  Cbm_Left_CrusII                        122 186 220 0
+610  Cbm_Right_CrusI                        230 188 34  0
+611  Cbm_Left_CrusII                        122 200 120 0
 612  Cbm_Vermis_CrusII                      236 13  176 0
-613  Cbm_Right_CrusII 12                    48  255 0
-614  Cbm_Left_VIIb                          204 182 142 0
+613  Cbm_Right_CrusII                       122 240 120 0
+614  Cbm_Left_VIIb                          0   149 208 0
 615  Cbm_Vermis_VIIb                        42  204 164 0
-616  Cbm_Right_VIIb                         119 159 176 0
-617  Cbm_Left_VIIIa                         220 216 20  0
+616  Cbm_Right_VIIb                         0   189 208 0
+617  Cbm_Left_VIIIa                         220 205 20  0
 618  Cbm_Vermis_VIIIa                       103 255 255 0
-619  Cbm_Right_VIIIa                        80  196 98  0
+619  Cbm_Right_VIIIa                        220 245 20  0
 620  Cbm_Left_VIIIb                         60  58  210 0
 621  Cbm_Vermis_VIIIb                       60  58  210 0
-622  Cbm_Right_VIIIb                        60  58  210 0
-623  Cbm_Left_IX                            60  58  210 0
-624  Cbm_Vermis_IX                          60  60  60  0
-625  Cbm_Right_IX                           255 165 0   0
-626  Cbm_Left_X                             255 165 0   0
+622  Cbm_Right_VIIIb                        60  98  210 0
+623  Cbm_Left_IX                            90  135 35  0
+624  Cbm_Vermis_IX                          225 60  160 0
+625  Cbm_Right_IX                           158 233 19  0
+626  Cbm_Left_X                             165 42  42  0
 627  Cbm_Vermis_X                           0   255 127 0
-628  Cbm_Right_X                            165 42  42  0
+628  Cbm_Right_X                            165 82  42  0
+
+# Cerebellar aggregated labels extended for FastSurfer-CerebNet
+# See https://doi.org/10.1016/j.neuroimage.2022.119703
+630  Cbm_Vermis_VII                         230 73  25  0
+631  Cbm_Vermis_VIII                        103 255 255 0
+632  Cbm_Vermis                             230 73  25  0
 
 # Cerebellar lobule parcellations
 640  Cbm_Right_I_V_med                      204  0  0   0
@@ -497,11 +515,44 @@
 912       Charm-Spinal-Cord                  0 187 169 255 
 914       Vein                             0 84 255 255 
 915       Bone-Cortical                    0 85 0 0
-916       Bone-Cancellous                  190 156 120 255
+916       Bone-Cancellous                  170 170 0 255
 917       Charm-Background                 0 168 255 255 
 920       Cortical-CSF                     120 133 217 255 
 930       Optic-Nerve                      0 191 122 255 
 
+# Below is the color table for olfactory bulb structures generated by FastSurfer OB pipeline.
+# See : https://doi.org/10.1016/j.neuroimage.2021.118464
+
+951  L-olfactory-bulb                       0   0   255 0
+952  R-olfactory-bulb                       255 0   0   0
+
+# Below is the color table for the hypothalamic subregions generated by FastSurfer HypVINN pipeline
+#See : https://doi.org/10.1162/imag_a_00034
+
+961  R-N.opticus                            70  130 180 0
+962  L-N.opticus                            130 180 70  0
+963  R-C.mammilare                          205 62  78  0
+964  R-Optic-tract                          80  120 134 0
+965  L-Optic-tract                          196 58  250 0
+966  L-C.mammilare                          0   148 0   0
+967  R-Chiasma-Opticum                      220 248 164 0
+968  L-Chiasma-Opticum                      230 148 34  0
+969  Ant-Commisure                          10  180 225 0
+970  Third-Ventricle                        118 0   100 0
+971  R-Fornix                               122 200 120 0
+972  L-Fornix                               236 13  176 0
+973  Epiphysis                              204 182 142 0
+974  Hypophysis                             119 159 176 0
+975  Infundibulum                           220 216 20  0
+976  Tuberal-Region                         120 60  110 0
+977  L-Med-Hypothalamus                     165 255 0   0
+978  L-Lat-Hypothalamus                     0   255 127 0
+979  L-Ant-Hypothalamus                     165 42  42  0
+980  L-Post-Hypothalamus                    255 215 0   0
+981  R-Med-Hypothalamus                     115 255 0   0
+982  R-Lat-Hypothalamus                     60  255 127 0
+983  R-Ant-Hypothalamus                     165 142 42  0
+984  R-Post-Hypothalamus                    255 170 20  0
 
 999 SUSPICIOUS                              255 100 100 0
 
@@ -509,14 +560,14 @@
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
 # by the labels in the aparc. It also supports wm labels that will
 # eventually be created by mri_aparc2aseg. Otherwise, the aseg labels
-# do not change from above. The cortical lables are the same as in
+# do not change from above. The cortical labels are the same as in
 # colortable_desikan_killiany.txt, except that left hemisphere has
 # 1000 added to the index and the right has 2000 added.  The label
 # names are also prepended with ctx-lh or ctx-rh. The white matter
 # labels are the same as in colortable_desikan_killiany.txt, except
 # that left hemisphere has 3000 added to the index and the right has
 # 4000 added. The label names are also prepended with wm-lh or wm-rh.
-# Centrum semiovale is also labled with 5001 (left) and 5002 (right).
+# Centrum semiovale is also labeled with 5001 (left) and 5002 (right).
 # Even further below are the color tables for aparc.a2005s and aparc.a2009s.
 
 #No.    Label Name:                         R   G   B   A
@@ -710,6 +761,12 @@
 4205    wm-rh-temporal-lobe                 115 35  35  0
 4206    wm-rh-parietal-lobe                 35  195 35  0
 4207    wm-rh-insula-lobe                   20  220 160 0
+
+# From Jean A
+5024 Low_TDP-43_Pathology_Density           170 238 44 0
+5025 Moderate_TDP-43_Pathology_Density      240 168 105 0
+5026 High_TDP-43_Pathology_Density          182 79 89 0
+5027 Severe_TDP-43_Pathology_Density        156 15 35 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005s flag) in which the aseg
@@ -1173,6 +1230,20 @@
 6070   Left-SLF2                                        236 14  230 0
 6080   Right-SLF2                                       237 14  230 0
 
+6101  Left-Dura-MCA    34 197 246    0
+6102  Right-Dura-MCA    0 250   0    0
+6103  Left-Ento-Dura                                   160 32  240 0
+6104  Right-Ento-Dura                                  120 32  240 0
+6111  Left-Transverse-Sinus           229  11 152    0
+6112  Right-Transverse-Sinus          40 251  16    0
+6113  Left-Sigmoid-Sinus              202   3  26    0
+6114  Right-Sigmoid-Sinus             101  76 219    0
+6115  Straight-Sinus                 185 210  35    0
+6116  Superior-Sinus-P                26 129 125    0
+6117  Superior-Sinus-D               144  51 173    0
+6118  Superior-Sinus-A                93 151 253    0
+
+
 #No.  Label Name:                                       R   G   B   A
 
 7001  Lateral-nucleus                                   72  132 181 0
@@ -1195,6 +1266,9 @@
 7018  Periamygdaloid-cortex                             20  60  120 0
 7019  Envelope-Amygdala                                 141 21  100 0
 7020  Extranuclear-Amydala                              225 140 141 0
+
+7030 Left-Amygdala-Cortical-Junction               255 85 255   0
+7031 Right-Amygdala-Cortical-Junction              254 84 254   0
 
 7100  Brainstem-inferior-colliculus                     42  201 168 0
 7101  Brainstem-cochlear-nucleus                        168 104 162 0
@@ -1326,12 +1400,10 @@
 9505    ctx-rh-prim-sec-somatosensory       225 70  105 0
 9506    ctx-rh-occipital                    225 70  15  0
 
-
 # Below is the the color table for the brainstem segmentation based on the Paxinos Atlas
 # It is divided into cranial nerves, tracts, and nuclei which are subdivided by regions, medulla, pons and midbrain
 
 10000	undefined													136	24	212	0
-
 
 # Cranial nerves						
 10003	oculomotor_nerve_3n											36	124	212	0
@@ -1376,7 +1448,6 @@
 10048	corticobulbar_tract_cbu										195	209	118	0
 10049	mesencephalic_trigeminal_tract_me5							220	107	63	0
 10050	medial_longitudinal_fasciculus_mlf							40	51	218	0			
-						
 						
 # Nuclei						
 						
@@ -1555,7 +1626,7 @@
 10427	Mesencephalic_reticular_nuclei(formation)_MRN(mRt)			240	100	156	0
 10434	Ventral_tegmental_area_VTA									143	22	141	0																			
 10435	Ventral_tegmental_area_rostral_part_VTAR					194	110	192	0																			
-10436	Anterior_pretectal_nucleus_APT								3	10	123	0																			
+10436	Anterior_pretectal_nucleus_APT								3	10	123	0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2009s flag) in which the aseg
@@ -1643,7 +1714,7 @@
 11173  ctx_lh_S_temporal_inf                   21 180 180   0
 11174  ctx_lh_S_temporal_sup                  223 220  60   0
 11175  ctx_lh_S_temporal_transverse           221  60  60   0
-11300  ctx_lh_high_myelin                      60 162  60   0
+11300  ctx_lh_high_myelin                     235  62  78   0
 
 12100  ctx_rh_Unknown                           0   0   0   0
 12101  ctx_rh_G_and_S_frontomargin             23 220  60   0
@@ -1721,7 +1792,7 @@
 12173  ctx_rh_S_temporal_inf                   21 180 180   0
 12174  ctx_rh_S_temporal_sup                  223 220  60   0
 12175  ctx_rh_S_temporal_transverse           221  60  60   0
-12300  ctx_rh_high_myelin                     60  200  60   0
+12300  ctx_rh_high_myelin                     235  82  78   0
 
 #No.   Label Name:                              R   G   B   A
 13100  wm_lh_Unknown                            0   0   0   0
@@ -1878,3 +1949,58 @@
 14174  wm_rh_S_temporal_sup                   223 220  60   0
 14175  wm_rh_S_temporal_transverse            221  60  60   0
 
+# Below are labels for the Yeo atlas (both 7 and 17)
+# https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation_Yeo2011
+15000  yeo7_lh_Unknown                     0   0   0   0
+15001  yeo7_lh_Net_1                     120  18 134    0
+15002  yeo7_lh_Net_2                      70 130 180    0
+15003  yeo7_lh_Net_3                       0 118  14    0
+15004  yeo7_lh_Net_4                     196  58 250    0
+15005  yeo7_lh_Net_5                     220 248 164    0
+15006  yeo7_lh_Net_6                     230 148  34    0
+15007  yeo7_lh_Net_7                     205  62  78    0
+15010  yeo7_rh_Net_Unknown                 0   0   0   0
+15011  yeo7_rh_Net_1                     120  18 134    0
+15012  yeo7_rh_Net_2                      70 130 180    0
+15013  yeo7_rh_Net_3                       0 118  14    0
+15014  yeo7_rh_Net_4                     196  58 250    0
+15015  yeo7_rh_Net_5                     220 248 164    0
+15016  yeo7_rh_Net_6                     230 148  34    0
+15017  yeo7_rh_Net_7                     205  62  78    0
+
+15100  yeo17_lh_Net_Unknown                0   0   0    0
+15101  yeo17_lh_Net_1                    120  18 134    0
+15102  yeo17_lh_Net_2                    255   0   0    0
+15103  yeo17_lh_Net_3                     70 130 180    0
+15104  yeo17_lh_Net_4                     42 204 164    0
+15105  yeo17_lh_Net_5                     74 155  60    0
+15106  yeo17_lh_Net_6                      0 118  14    0
+15107  yeo17_lh_Net_7                    196  58 250    0
+15108  yeo17_lh_Net_8                    255 152 213    0
+15109  yeo17_lh_Net_9                    220 248 164    0
+15110  yeo17_lh_Net_10                   122 135  50    0
+15111  yeo17_lh_Net_11                   119 140 176    0
+15112  yeo17_lh_Net_12                   230 148  34    0
+15113  yeo17_lh_Net_13                   135  50  74    0
+15114  yeo17_lh_Net_14                    12  48 255    0
+15115  yeo17_lh_Net_15                     0   0 130    0
+15116  yeo17_lh_Net_16                   255 255   0    0
+15117  yeo17_lh_Net_17                   205  62  78    0
+15120  yeo17_rh_Net_Unknown                0   0   0    0
+15121  yeo17_rh_Net_1                    120  18 134    0
+15122  yeo17_rh_Net_2                    255   0   0    0
+15123  yeo17_rh_Net_3                     70 130 180    0
+15124  yeo17_rh_Net_4                     42 204 164    0
+15125  yeo17_rh_Net_5                     74 155  60    0
+15126  yeo17_rh_Net_6                      0 118  14    0
+15127  yeo17_rh_Net_7                    196  58 250    0
+15128  yeo17_rh_Net_8                    255 152 213    0
+15129  yeo17_rh_Net_9                    220 248 164    0
+15130  yeo17_rh_Net_10                   122 135  50    0
+15131  yeo17_rh_Net_11                   119 140 176    0
+15132  yeo17_rh_Net_12                   230 148  34    0
+15133  yeo17_rh_Net_13                   135  50  74    0
+15134  yeo17_rh_Net_14                    12  48 255    0
+15135  yeo17_rh_Net_15                     0   0 130    0
+15136  yeo17_rh_Net_16                   255 255   0    0
+15137  yeo17_rh_Net_17                   205  62  78    0
