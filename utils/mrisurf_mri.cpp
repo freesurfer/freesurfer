@@ -4966,6 +4966,15 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, const char *Field)
         else if (!strcmp(Field, "undefval")) {
           Surf->vertices[vtx].undefval = val;
         }
+        else if (!strcmp(Field, "marked")) {
+          Surf->vertices[vtx].marked = val;
+        }
+        else if (!strcmp(Field, "marked2")) {
+          Surf->vertices[vtx].marked2 = val;
+        }
+        else if (!strcmp(Field, "marked3")) {
+          Surf->vertices[vtx].marked3 = val;
+        }
         else if (!strcmp(Field, "x")) {
           Surf->vertices[vtx].x = val;
         }
@@ -5153,6 +5162,15 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         }
         else if (!strcmp(Field, "undefval")) {
           val = surf->vertices[vtx].undefval;
+        }
+        else if (!strcmp(Field, "marked")) {
+          val = surf->vertices[vtx].marked;
+        }
+        else if (!strcmp(Field, "marked2")) {
+          val = surf->vertices[vtx].marked2;
+        }
+        else if (!strcmp(Field, "marked3")) {
+          val = surf->vertices[vtx].marked3;
         }
         else if (!strcmp(Field, "x")) {
           val = surf->vertices[vtx].x;
