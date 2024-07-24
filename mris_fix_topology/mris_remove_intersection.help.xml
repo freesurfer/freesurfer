@@ -39,6 +39,10 @@
       <argument>-map surface mapfile.mgz (projdistmm) </argument>
       <explanation>Stand-alone flag to create a binary map of intersections. If projdistmm is specified, then the surface is projected along the normal </explanation>
     </optional-flagged>
+    <optional-flagged>
+      <argument>-notches insurf projdist(1) k1thresh(.05) label(cortex) nmin(3) stdthresh(.2) pointset ocn pial </argument>
+      <explanation>Stand-alone option to map surface notches. pial optional </explanation>
+    </optional-flagged>
 </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
