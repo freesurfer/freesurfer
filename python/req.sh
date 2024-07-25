@@ -136,7 +136,7 @@ if [ $generate -eq 1 ]; then
    ## comment out entries for which pip reports no version (pyfs, qatools)
    ## comment out entries not available on MacOS (nvidia, triton)
 
-   voxelmorph_url_when_version_invalid="voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8"
+   voxelmorph_url_when_version_invalid="voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4"
    neurite_url_when_version_invalid="git+https://github.com/adalca/neurite.git@95b2b568b124cbc654467177ddcdb2cb3526788c"
    pystrum_url_when_version_invalid="git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21"
    ## surfa now returns hash
