@@ -20,7 +20,7 @@ if [ $# == 0 ]; then
    echo "$s:              requirements.txt --> requirements-build.txt"
    echo "$s:              requirements-extra.txt --> requirements-build-extra.txt"
    echo "$s: --rm-links   Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git"
-   echo "$s: --uninstall  Remove soft python packages that should not be re-distributes and/or are not needed"
+   echo "$s: --uninstall  Remove python packages that should not be re-distributed and/or are not needed"
    echo "$s: --reinstall  Re-install any python modules that were previously uninstalled (using generated postinstall.sh)"
    exit 0
 fi
@@ -249,12 +249,15 @@ if [ $uninstall -eq 1 ]; then
    ls $nvidia_subdir
 
    func_setup_fspython
-   # remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
-   # remove triton
-   fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
+   ## remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
+   ## remove triton
+   ## allow torch despite presence of libtorch_cuda.so
+   # fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
+   fspython -m pip freeze | grep "^nvidia\|^triton" > /dev/null
    if [ $? -eq 0 ]; then
       rm -f postinstall.list
-      fspython -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
+      # fspython -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
+      fspython -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > postinstall.list
       echo -n "$s: Uninstalling: "
       cat postinstall.list | tr -s '\n' ' ' && echo
       yes | fspython -m pip uninstall -q -r postinstall.list > /dev/null 2>&1
