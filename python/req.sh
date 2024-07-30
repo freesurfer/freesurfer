@@ -20,7 +20,7 @@ if [ $# == 0 ]; then
    echo "$s:              requirements.txt --> requirements-build.txt"
    echo "$s:              requirements-extra.txt --> requirements-build-extra.txt"
    echo "$s: --rm-links   Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git"
-   echo "$s: --uninstall  Remove soft python packages that should not be re-distributes and/or are not needed"
+   echo "$s: --uninstall  Remove python packages that should not be re-distributed and/or are not needed"
    echo "$s: --reinstall  Re-install any python modules that were previously uninstalled (using generated postinstall.sh)"
    exit 0
 fi
@@ -136,13 +136,17 @@ if [ $generate -eq 1 ]; then
    ## comment out entries for which pip reports no version (pyfs, qatools)
    ## comment out entries not available on MacOS (nvidia, triton)
 
-   voxelmorph_url_when_version_invalid="voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@ca3d47a2c254aae9a0c0e1b30c24c324c211ebc8"
+   voxelmorph_url_when_version_invalid="voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4"
    neurite_url_when_version_invalid="git+https://github.com/adalca/neurite.git@95b2b568b124cbc654467177ddcdb2cb3526788c"
    pystrum_url_when_version_invalid="git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21"
-   surfa_url_when_version_invalid="surfa@git+https://github.com/freesurfer/surfa.git@026cabec14bb03d9dfbc6b5bdf14baec7bd51c7f"
+   ## surfa now returns hash
+   # surfa_url_when_version_invalid="surfa@git+https://github.com/freesurfer/surfa.git@026cabec14bb03d9dfbc6b5bdf14baec7bd51c7f"
 
    # $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' > $build_req_new
-   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' | sed 's;surfa==.*;'${surfa_url_when_version_invalid}';' > $build_req_new
+
+   # $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' | sed 's;surfa==.*;'${surfa_url_when_version_invalid}';' > $build_req_new
+
+   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' > $build_req_new
 
    if [ $(wc -l < $build_req_new) -eq 0 ]; then
       echo "$s: $build_req_new has no entries so cannot use it to update requirements-build.txt"
@@ -245,12 +249,15 @@ if [ $uninstall -eq 1 ]; then
    ls $nvidia_subdir
 
    func_setup_fspython
-   # remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
-   # remove triton
-   fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
+   ## remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
+   ## remove triton
+   ## allow torch despite presence of libtorch_cuda.so
+   # fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
+   fspython -m pip freeze | grep "^nvidia\|^triton" > /dev/null
    if [ $? -eq 0 ]; then
       rm -f postinstall.list
-      fspython -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
+      # fspython -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
+      fspython -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > postinstall.list
       echo -n "$s: Uninstalling: "
       cat postinstall.list | tr -s '\n' ' ' && echo
       yes | fspython -m pip uninstall -q -r postinstall.list > /dev/null 2>&1

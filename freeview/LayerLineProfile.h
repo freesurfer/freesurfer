@@ -4,7 +4,7 @@
 #include "Layer.h"
 #include "vtkSmartPointer.h"
 
-#if !defined(ARM64)
+#if !defined(ARM64) && !defined(DISABLE_LINEPROF)
 #include "LineProf.h"
 #endif 
 
