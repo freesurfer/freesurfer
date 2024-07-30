@@ -2,12 +2,14 @@ import sys
 from deepsurfer.system.commandline import execute
 import surfa
 
-print('starting deepsurfer')
+print('starting ds frontend')
 
 rt = execute()
 
 vmpeak = surfa.system.vmpeak()
 if vmpeak is not None:
     print('deepsurfer VmPeak %s' % vmpeak)
+
+print('ds frontend finished')
 
 sys.exit(rt)
