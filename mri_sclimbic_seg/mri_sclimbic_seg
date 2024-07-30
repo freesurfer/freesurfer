@@ -78,6 +78,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
     parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
+    parser.add_argument('--features', type=int, default=24, help='Number of features (default is 24)')
     parser.add_argument('--7T', dest='sevenT', action='store_true', help='Preprocess 7T images (just sets percentile to 99.9).')
     parser.add_argument('--percentile', type=float, help='Use intensity percentile threshold for normalization.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
@@ -176,6 +177,7 @@ def main():
                                 percentile=percentile,
                                 exclude=args.exclude,
                                 inshape=(args.fov,args.fov,args.fov),
+                                nfeatures=args.features,
                                 nchannels=args.nchannels);
     print('Loaded model weights', model_file) 
 
@@ -370,6 +372,7 @@ class LimbicSegmenter:
                  percentile=None,
                  exclude=[],
                  inshape=(160,160,160),
+                 nfeatures=24,
                  nchannels=1):
 
         self.labels = labels
@@ -386,6 +389,7 @@ class LimbicSegmenter:
         self.volumes_from_vox_count = volumes_from_vox_count
         self.percentile = percentile
         self.nchannels = nchannels;
+        self.nfeatures = nfeatures;
 
         # build mask of labels to exclude in stats output files
         # always ignore unknown label
@@ -394,8 +398,8 @@ class LimbicSegmenter:
         self.label_names = [label.name for i, label in zip(self.exclude_mask, self.labels.values()) if i]
         print(f'nb_labels {len(self.labels)}');
         # build and load model
-        print(f'inshape {self.inshape}')
-        self.model = unet(nb_features=24,
+        print(f'inshape {self.inshape} features {nfeatures}')
+        self.model = unet(nb_features=nfeatures,
                           input_shape=(*self.inshape, self.nchannels),
                           nb_levels=3,
                           conv_size=3,
@@ -415,7 +419,7 @@ class LimbicSegmenter:
                           batch_norm=-1,
                           input_model=None)
         print(f'  {self.model.layers[0].input_shape[0]}');
-        print("Loading weights -----------------------");
+        print(f"Loading weights from {model_file} -----------------------");
         self.model.load_weights(model_file, by_name=True)
         print("Done loading weights -----------------------");
 
