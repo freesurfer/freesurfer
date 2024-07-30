@@ -3387,7 +3387,7 @@ endif
 
 if($TopoFitLevel > 0) then
   # Uses brain.finalsurfs.manedit as input
-  set cmd = (topofit --s $subjid --threads $OMP_NUM_THREADS)
+  set cmd = (topofit --s $subjid --threads $OMP_NUM_THREADS --ico7)
   if($#hemilist == 1)    set cmd = ($cmd --$hemilist)
   if($TopoFitLevel == 2) set cmd = ($cmd --sphere)
   if($UseGPU)            set cmd = ($cmd --gpu)
