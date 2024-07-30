@@ -197,6 +197,31 @@ get_option(int argc, char *argv[])
     printf("\n");
     exit(0);
   }
+  else if (!stricmp(option, "remove-hah"))
+  {
+    // 2=insurf 3=anglethresh(140) 4=ndil(2) 5=nsmooth(100) 6=outsurf 7=outmask
+    MRIS *surf = MRISread(argv[2]);
+    if(surf==NULL) exit(1);
+    double AngleThresh;
+    int ndil, nsmooth,err;
+    sscanf(argv[3],"%lf",&AngleThresh);
+    sscanf(argv[4],"%d",&ndil);
+    sscanf(argv[5],"%d",&nsmooth);
+    err = MRISmarkEdge(surf, NULL, 2, AngleThresh, 1);
+    if(err<0) exit(1);
+    MRI *marked = MRIcopyMRIS(NULL, surf, 0, "marked");
+    MRIwrite(marked,argv[7]);
+    err = MRISremoveHighAngleHinges(surf, AngleThresh, 1, ndil, nsmooth,NULL);
+    if(err) exit(err);
+    err = MRISwrite(surf,argv[6]);
+    if(err) exit(err);
+    printf("\n");
+    printf("fsvglrun freeview --hide-3d-slices -neuro-view -rotate-around-cursor ");
+    printf("-f %s:overlay=%s ",argv[2],argv[7]);
+    printf("-f %s:overlay=%s ",argv[6],argv[7]);
+    printf("\n");
+    exit(0);
+  }
   else switch (toupper(*option))
     {
     case 'V':
