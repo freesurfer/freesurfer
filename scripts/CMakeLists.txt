@@ -260,6 +260,7 @@ install_configured(
   tkmeditfv
   tkregisterfv
   tksurferfv
+  topofit
   trac-all
   trac-paths
   trac-preproc
