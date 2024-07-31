@@ -22,6 +22,7 @@ if [ $# == 0 ]; then
    echo "$s: --rm-links   Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git"
    echo "$s: --uninstall  Remove python packages that should not be re-distributed and/or are not needed"
    echo "$s: --reinstall  Re-install any python modules that were previously uninstalled (using generated postinstall.sh)"
+   echo "$s: --torchcpu   Replace the existing torch package version with the cpu only version)"
    exit 0
 fi
 
@@ -34,6 +35,7 @@ rm_links=0
 generate=0
 uninstall=0
 reinstall=0
+torchcpu=0
 
 while [[ $# -gt 0 ]] && [[ "$1" == "--"* ]] ;
 do
@@ -44,35 +46,42 @@ do
         "--generate" )
            echo "$s: (Re)generate the requirements-build.txt and requirements-build-extra.txt files using the fspython found under your current INSTALL_PREFIX."
            generate=1
-           if [[ $add_links -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 ]]; then
+           if [[ $add_links -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 || $torchcpu -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--add-links" )
            echo "$s: Remove original requirements.txt and requirements-extra.txt and create soft links to them from requirements-build.txt and requirements-build-extra.txt."
            add_links=1
-           if [[ $generate -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 ]]; then
+           if [[ $generate -eq 1 || $rm_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 || $torchcpu -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--rm-links" )
            echo "$s: Remove soft links for requirements.txt and requirements-extra.txt and check out the current versions from git."
            rm_links=1
-           if [[ $generate -eq 1 ||$add_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 ]]; then
+           if [[ $generate -eq 1 ||$add_links -eq 1 || $uninstall -eq 1 || $reinstall -eq 1 || $torchcpu -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--uninstall" )
            echo "$s: Remove packages that include libs/code we cannot re-distribute and/or are not cross-platform compatible."
            uninstall=1
-           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 || $reinstall -eq 1 ]]; then
+           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 || $reinstall -eq 1 || $torchcpu -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
         "--reinstall" )
            echo "$s: Reinstall any python modules we may have uninstalled."
            reinstall=1
-           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1|| $uninstall -eq 1 ]]; then
+           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1|| $uninstall -eq 1 || $torchcpu -eq 1 ]]; then
+              echo "$s: Only 1 argument allowed" && exit 1
+           fi
+           ;;
+        "--torchcpu" )
+           echo "$s: Replace torch module with cpu only version."
+           torchcpu=1
+           if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1|| $uninstall -eq 1|| $reinstall -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
@@ -86,7 +95,7 @@ top_dir=$PWD
 cd $this_dir
 
 cmake_cache=""
-if [ "${BUILD_GENERATED_CMAKECACHE}" == "" ]; then 
+if [ "${BUILD_GENERATED_CMAKECACHE}" == "" ]; then
    echo "$s: Cannot proceed w/o path to CMakeCache.txt defined in env var BUILD_GENERATED_CMAKECACHE - exiting."
    exit 1
 else
@@ -101,8 +110,10 @@ fi
 
 install_path=""
 # try env setting
-if [[ ! -z "${FS_INSTALL_DIR}" ]]; then
-   install_path=${FS_INSTALL_DIR}
+if [ ! -z ${FS_INSTALL_DIR} ]; then
+   if [ -e ${FS_INSTALL_DIR} ]; then
+      install_path=${FS_INSTALL_DIR}
+   fi
 else
    install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
 fi
@@ -243,6 +254,29 @@ if [ $rm_links -eq 1 ]; then
    fi
 fi
 
+if [ $torchcpu -eq 1 ]; then
+   # Does not look like there is a way to specify the latest version of the torch cpu package
+   # in requirements-extra.txt, e.g., torch==*.cpu
+   func_setup_fspython
+   torch_rev=`fspython -m pip freeze | grep torch | sed 's;^.*==;;'`
+   torch_rev_cpu="${torch_rev}+cpu"
+   echo "Replacing torch ${torch_rev} with torch ${torch_rev_cpu}"
+   yes | fspython -m pip uninstall torch
+   if [ $? -ne 0 ]; then
+      echo "$s: pip UNINSTALL failed - exiting."
+      exit 1
+   else
+      echo "fspython UNINSTALL returned status 0"
+   fi
+   yes | fspython -m pip install torch==${torch_rev_cpu} -f https://download.pytorch.org/whl/torch_stable.html
+   if [ $? -ne 0 ]; then
+      echo "$s: pip INSTALL failed - exiting."
+      exit 1
+   else
+      echo "fspython INSTALL returned status 0"
+   fi
+fi
+
 if [ $uninstall -eq 1 ]; then
    # check contents of nvidia directory
    echo "Contents of nvidia subdir BEFORE UNINSTALL"
@@ -251,7 +285,7 @@ if [ $uninstall -eq 1 ]; then
    func_setup_fspython
    ## remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
    ## remove triton
-   ## allow torch despite presence of libtorch_cuda.so
+   ## replace torch with torch+cpu version (no cuda libs) via --libtorch arg above
    # fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
    fspython -m pip freeze | grep "^nvidia\|^triton" > /dev/null
    if [ $? -eq 0 ]; then

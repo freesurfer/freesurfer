@@ -19,7 +19,7 @@ scipy
 segment-anything
 six
 ### 11/2023 - a spheremorph package version cannot be solved for that is compatible with other package versions installed on MacOS
-# spheremorph
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
 surfa@git+https://github.com/freesurfer/surfa.git@master
 tensorboard
 Werkzeug
