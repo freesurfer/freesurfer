@@ -70,18 +70,18 @@ def main():
     elif args.model is None:
         if args.v1:
             print('Using version 1 model from July 2021')
-            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v10_210712.h5') 
+            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v10_210712.h5')
         elif args.lowfield:
             print('Using model for low-field scans from January 2023 (version 2)')
-            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_lowfield_v20_230130.h5') 
+            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_lowfield_v20_230130.h5')
         else:
             print('Using general model from January 2023 (version 2)')
-            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v20_230130.h5') 
-   
+            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v20_230130.h5')
+
     else:
         print('Using user-specified model: ' + args.model)
         path_model = args.model
-    
+
     print(path_model)
 
     # run prediction
@@ -206,7 +206,6 @@ def predict(path_images,
     print('\n')
 
 
-
 def prepare_output_files(path_images, path_predictions):
     '''
     Prepare output files.
@@ -301,7 +300,7 @@ def preprocess(path_image, ct_mode, n_levels=5):
     im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=3)
 
     # pad image to shape divisible by 32
-    padding_shape = (np.ceil(np.array(im.shape[:n_dims]) / 2**n_levels) * 2**n_levels).astype('int')
+    padding_shape = (np.ceil(np.array(im.shape[:n_dims]) / 2 ** n_levels) * 2 ** n_levels).astype('int')
     im, pad_idx = pad_volume(im, padding_shape, return_pad_idx=True)
 
     # normalise image
@@ -345,9 +344,9 @@ def postprocess(pred, pad_idx, aff, disable_sharpening):
     # unsharp masking
     amount_usm = 1.0
     sigma_usm = 1.5
-    if (sigma_usm>0) and (amount_usm>0) and (disable_sharpening==False):
+    if (sigma_usm > 0) and (amount_usm > 0) and (disable_sharpening == False):
         pred = pred + (pred - gaussian_filter(pred, sigma_usm * np.ones(3))) * amount_usm
-        
+
     # align prediction back to first orientation
     pred = align_volume_to_ref(pred, aff=np.eye(4), aff_ref=aff, n_dims=3)
 
@@ -711,7 +710,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
     Load volume file.
     :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
     If npz format, 1) the variable name is assumed to be 'vol_data',
-    2) the volume is associated with a identity affine matrix and blank header.
+    2) the volume is associated with an identity affine matrix and blank header.
     :param im_only: (optional) if False, the function also returns the affine matrix and header of the volume.
     :param squeeze: (optional) whether to squeeze the volume when loading.
     :param dtype: (optional) if not None, convert the loaded volume to this numpy dtype.
@@ -751,7 +750,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
         return volume, aff, header
 
 
-def save_volume_byte(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+def save_volume_byte(volume, aff, header, path):
     """
     Save a volume.
     :param volume: volume to save
@@ -786,6 +785,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels
     :param return_volume: (optional) whether to return the volume along with the information.
     :param aff_ref: (optional) If not None, the loaded volume is aligned to this affine matrix.
     All info relative to the volume is then given in this new space. Must be a numpy array of dimension 4x4.
+    :param max_channels: maximum possible number of channels for the input volume.
     :return: volume (if return_volume is true), and corresponding info. If aff_ref is not None, the returned aff is
     the original one, i.e. the affine of the image before being aligned to aff_ref.
     """
@@ -839,12 +839,12 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     """This function takes a variable and reformat it into a list of desired
     length and type (int, float, bool, str).
     If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
-    If variable is None, this funtion returns None.
+    If variable is None, this function returns None.
     :param var: a str, int, float, list, tuple, or numpy array
     :param length: (optional) if var is a single item, it will be replicated to a list of this length
     :param load_as_numpy: (optional) whether var is the path to a numpy array
     :param dtype: (optional) convert all item to this type. Can be 'int', 'float', 'bool', or 'str'
-    :return: reformated list
+    :return: reformatted list
     """
 
     # convert to list
@@ -894,7 +894,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
 
 
 def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
-    """List all files with extension nii, nii.gz, mgz, or npz whithin a folder."""
+    """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
             (('.nii.gz' in basename) | ('.nii' in basename) | ('.mgz' in basename) | ('.npz' in basename)):
@@ -914,8 +914,8 @@ def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=Tr
 
 
 def mkdir(path_dir):
-
-    if len(path_dir)>0:
+    """Recursively creates the current dir as well as its parent folders if they do not already exist."""
+    if len(path_dir) > 0:
         if path_dir[-1] == '/':
             path_dir = path_dir[:-1]
         if not os.path.isdir(path_dir):
@@ -950,6 +950,7 @@ def get_dims(shape, max_channels=10):
 
 def add_axis(x, axis=0):
     """Add axis to a numpy array.
+    :param x: input array
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
     for ax in axis:
@@ -1025,12 +1026,13 @@ class LoopInfo:
 def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None, return_copy=True):
     """Crop a volume with given indices.
     :param volume: a 2d or 3d numpy array
-    :param crop_idx: croppping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
+    :param crop_idx: cropping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
     Can be a list or a 1d numpy array.
     :param aff: (optional) if aff is specified, this function returns an updated affine matrix of the volume after
     cropping.
     :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
     inferred from the input volume.
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: the cropped volume, and the updated affine matrix if aff is not None.
     """
 
@@ -1059,6 +1061,8 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     :param padding_shape: shape to pad volume to. Can be a number, a sequence or a 1d numpy array.
     :param padding_value: (optional) value used for padding
     :param aff: (optional) affine matrix of the volume
+    :param return_pad_idx: (optional) the pad_idx corresponds to the indices where we should crop the resulting
+    padded image (ie the output of this function) to go back to the original volume (ie the input of this function).
     :return: padded volume, and updated affine matrix if aff is not None.
     """
 
@@ -1099,11 +1103,14 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     return output[0] if len(output) == 1 else tuple(output)
 
 
-def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear', blur=True):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
     :param new_vox_size: new voxel size (3 - element numpy vector) in mm
+    :param interpolation: (optional) type of interpolation. Can be 'linear' or 'nearest'. Default is 'linear'.
+    :param blur: (optional) whether to blur before resampling to avoid aliasing effects.
+    Only used if the input volume is downsampled. Default is True.
     :return: new volume and affine matrix
     """
 
@@ -1113,7 +1120,7 @@ def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     sigmas = 0.25 / factor
     sigmas[factor > 1] = 0  # don't blur if upsampling
 
-    volume_filt = gaussian_filter(volume, sigmas)
+    volume_filt = gaussian_filter(volume, sigmas) if blur else volume
 
     # volume2 = zoom(volume_filt, factor, order=1, mode='reflect', prefilter=False)
     x = np.arange(0, volume_filt.shape[0])
@@ -1151,7 +1158,7 @@ def get_ras_axes(aff, n_dims=3):
     """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
     :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
     :param n_dims: number of dimensions (excluding channels) of the volume corresponding to the provided affine matrix.
-    :return: two numpy 1d arrays of lengtn n_dims, one with the axes corresponding to RAS orientations,
+    :return: two numpy 1d arrays of length n_dims, one with the axes corresponding to RAS orientations,
     and one with their corresponding direction.
     """
     aff_inverted = np.linalg.inv(aff)
@@ -1173,6 +1180,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
     :param return_aff: (optional) whether to return the affine matrix of the aligned volume
     :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
     inferred from the input volume.
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: aligned volume, with corresponding affine matrix if return_aff is True.
     """
 
