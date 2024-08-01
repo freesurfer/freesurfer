@@ -153,6 +153,8 @@ int BrainVolFromSeg = 0;
 int   DoETIV = 0;
 int   DoETIVonly = 0;
 int   DoOldETIVonly = 0;
+int   DoTIV = 0;
+double tiv = 0;
 char *talxfmfile = NULL;
 int SegFromInput=0;
 
@@ -194,6 +196,7 @@ int UsePrintSegStat = 1; // use new way to print
 int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
 int GetCachedBrainVolStats = 1;
 MRI *MRIrescaleBySeg(MRI *invol, MRI *seg, std::vector<int> segids, double targetmean, MRI *outvol);
+double atlas_icv=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -205,7 +208,6 @@ int main(int argc, char **argv)
   FILE *fp;
   double  **favg, *favgmn;
   char tmpstr[1000];
-  double atlas_icv=0;
   int ntotalsegid=0;
   int valid;
   int usersegid=0;
@@ -1182,12 +1184,12 @@ int main(int argc, char **argv)
               "Total number of defect holes in surfaces prior to fixing, %d, unitless\n",
               (1-lheno/2) + (1-rheno/2) );
     }
-    if (DoETIV)
-    {
-      //fprintf(fp,"# Measure IntraCranialVol, ICV, "
-      //      "Intracranial Volume, %f, mm^3\n",atlas_icv);
+    if(DoETIV){
       fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, "
               "Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
+    }
+    if(DoTIV) {
+      fprintf(fp,"# Measure TotalIntraCranialVol, TIV, Total Intracranial Volume, %f, mm^3\n",tiv);
     }
     if (SegVolFile)
     {
@@ -1573,6 +1575,18 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--old-etiv-only") )
     {
       DoOldETIVonly = 1;
+    }
+    else if ( !strcmp(option, "--tiv") )
+    {
+      if(nargc < 1) argnerr(option,1);
+      if(fio_FileExistsReadable(pargv[0])){
+	FILE *fptmp = fopen(pargv[0],"r");
+	fscanf(fptmp,"%lf",&tiv);
+	fclose(fptmp);
+      }
+      else sscanf(pargv[0],"%lf",&atlas_icv);
+      DoTIV = 1;
+      nargsused = 1;
     }
     else if ( !strcmp(option, "--surf-ctx-vol") )
     {
