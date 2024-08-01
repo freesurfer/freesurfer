@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--sphere_rot", type=str,help="path to ?h.sphere.rot file")
     parser.add_argument("--model", type=str,help="path to the model file")
     parser.add_argument("--output", type=str,help="custom output file, default is to save to subject/surf/hemi.sphere.reg")
+    parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
     args = vars(parser.parse_args())
 
     # check for no arguments
@@ -88,6 +89,10 @@ def main():
     pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     surf_feature_file = [sulc_file, curv_file, inf_h_file]
+
+    # set number of threads
+    print('Using %d thread(s)' % args['threads'])
+    tf.config.threading.set_inter_op_parallelism_threads(args['threads']);
 
     # ==================== changes from here ====================
     pad_size = 16
