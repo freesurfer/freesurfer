@@ -375,6 +375,19 @@ else
 
 endif
 
+if($MNITarget) then
+  # Create an xfm file which can be used as the taliarch.xfm
+  set xfm = $outdir/reg.invol_to_targ.xfm
+  set ud = `UpdateNeeded $xfm $reginvoltotarg`
+  if($ud) then
+    set cmd = (lta_convert --inlta $reginvoltotarg --outmni $xfm)
+    echo $cmd | tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "\n\n"| tee -a $LF 
+  endif
+endif
+
 echo ""   | tee -a $LF
 echo "To check affine registration"  | tee -a $LF
 echo "tkregisterfv --mov $invol --targ $targvol --reg $reginvoltotarg"  | tee -a $LF
