@@ -153,8 +153,8 @@ int BrainVolFromSeg = 0;
 int   DoETIV = 0;
 int   DoETIVonly = 0;
 int   DoOldETIVonly = 0;
-int   DoTIV = 0;
-double tiv = 0;
+int   DoSTIV = 0;
+double stiv = 0;
 char *talxfmfile = NULL;
 int SegFromInput=0;
 
@@ -1188,8 +1188,8 @@ int main(int argc, char **argv)
       fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, "
               "Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
     }
-    if(DoTIV) {
-      fprintf(fp,"# Measure TotalIntraCranialVol, TIV, Total Intracranial Volume, %f, mm^3\n",tiv);
+    if(DoSTIV) {
+      fprintf(fp,"# Measure SegmentedTotalIntraCranialVol, sTIV, Segmented Total Intracranial Volume, %f, mm^3\n",stiv);
     }
     if (SegVolFile)
     {
@@ -1576,16 +1576,16 @@ static int parse_commandline(int argc, char **argv)
     {
       DoOldETIVonly = 1;
     }
-    else if ( !strcmp(option, "--tiv") )
+    else if ( !strcmp(option, "--stiv") )
     {
       if(nargc < 1) argnerr(option,1);
       if(fio_FileExistsReadable(pargv[0])){
 	FILE *fptmp = fopen(pargv[0],"r");
-	fscanf(fptmp,"%lf",&tiv);
+	fscanf(fptmp,"%lf",&stiv);
 	fclose(fptmp);
       }
-      else sscanf(pargv[0],"%lf",&atlas_icv);
-      DoTIV = 1;
+      else sscanf(pargv[0],"%lf",&stiv);
+      DoSTIV = 1;
       nargsused = 1;
     }
     else if ( !strcmp(option, "--surf-ctx-vol") )

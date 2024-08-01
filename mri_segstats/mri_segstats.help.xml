@@ -157,8 +157,8 @@ white surface. This is more accurate than from the aseg. The aseg values for the
       <explanation>specify path to talairach.xfm file for etiv</explanation>
       <argument>--xfm2etiv xfm outfile</argument>
       <explanation>Stand-alone option to convert xfm to eTIV and write to outfile (unless nofile)</explanation>
-      <argument>--tiv value/file</argument>
-      <explanation>Use value (or value in file) as eTIV</explanation>
+      <argument>--stiv value/file</argument>
+      <explanation>Use value (or value in file) as segmented TIV</explanation>
       <argument>--euler</argument>
       <explanation>Write out number of defect holes in orig.nofix based on the euler number. This is the orig file prior to topology fixing. </explanation>
       <intro>Average waveform options</intro>
