@@ -453,7 +453,7 @@ if(-e $parfile) then
   set xo = $outdir/log/fsr-coreg.expert.txt
   if(-e $xo) set XOptsFile = $xo # wont be there if not using it
 else
-  if($#umodenames == 1 && $#refmode == 0) set refmode = $modenames
+  if($#umodenames == 1 && $#refmode == 0) set refmode = $umodenames
   if($#refmode == 0) then
     echo "ERROR: must spec a reference mode with --ref"
     echo " Choices for this input are $umodenames"
