@@ -134,6 +134,7 @@ def options_parse():
     h_subdir = 'use `subdir` instead of "stats/"'
     h_tr = 'transpose the table ( default is subjects in rows and segmentations in cols)'
     h_etiv = 'report volume as percent estimated total intracranial volume'
+    h_stiv = 'report volume as percent segmented total intracranial volume'
     h_t = '(REQUIRED) the output tablefile'
     h_append = 'append new stats table to the output tablefile if it already exists'
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )'
@@ -187,6 +188,8 @@ def options_parse():
                       default=False, help=h_tr)
     parser.add_option('', '--etiv', action='store_true', dest='etivflag',
                       default=False, help=h_etiv)
+    parser.add_option('', '--stiv', action='store_true', dest='stivflag',
+                      default=False, help=h_stiv)
     parser.add_option('--skip', action='store_true', dest='skipflag',
                       default=False, help=h_skip)
     parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
@@ -220,6 +223,10 @@ def options_parse():
     if options.subjects is None and options.inputs is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None and options.fsgd is None: 
         print('ERROR: Specify one of --subjects, --inputs, --subjectsfile --qdec or --qdec-long')
         print('       or run with --help for help.')
+        sys.exit(1)
+
+    if options.etivflag and options.stivflag:
+        print('ERROR: Cannot pass --etiv and --stiv flags simultaneously')
         sys.exit(1)
 
     count = 0
@@ -627,6 +634,24 @@ if __name__ == "__main__":
             print("ERROR: --etiv, cannot find EstimatedTotalIntraCranialVol in list")
             sys.exit(1)
     # end etiv scaling
+    
+    # stiv scaling
+    if options.stivflag:
+        try:
+            for row in rows:
+                stiv = table[row]['SegmentedTotalIntracranialVol']
+                for col in columns:
+                    if col == 'lhSurfaceHoles': continue
+                    if col == 'rhSurfaceHoles': continue
+                    if col == 'SurfaceHoles': continue
+                    if col == 'BrainSegVol-to-eTIV': continue
+                    if col == 'MaskVol-to-eTIV': continue
+                    v = table[row][col]
+                    table[row][col] = (100*v/stiv)
+        
+        except:
+            print('ERROR: --stiv, cannot find SegmentedTotalIntracranialVol in list')
+            sys.exit(1)
 
     # Scale table values
     if options.scale:
