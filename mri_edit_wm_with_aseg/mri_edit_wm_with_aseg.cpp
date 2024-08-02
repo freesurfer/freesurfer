@@ -87,6 +87,7 @@ static void usage_exit(int code) ;
 static int fcd = 0 ;
 int FixSCMHA = 0;
 int FixSCMHANdil = 0;
+char *wmsafile = NULL;
 
 double FixEntoWMLhVal,FixEntoWMRhVal;
 int FixEntoWMLevel;
@@ -225,6 +226,22 @@ int main(int argc, char *argv[])
   if(KeepH || KeepA || KeepILV || KeepCP)
     KeepHAILVCP(mri_wm, mri_aseg, KeepH, KeepA, KeepILV, KeepCP, HILVCPlhVal, HILVCPrhVal, mri_wm);
 
+  if(wmsafile){
+    printf("Applying WMSA edits from %s\n",wmsafile);
+    MRI *wmsa = MRIread(wmsafile);
+    if(!wmsa) exit(1);
+    for(int c = 0; c < mri_wm->width; c++){
+      for(int r = 0; r < mri_wm->height; r++){
+	for(int s = 0; s < mri_wm->depth; s++){
+	  int m = MRIgetVoxVal(wmsa,c,r,s,0);
+	  if(m != 77 && m != 78 && m != 79 && m != 99) continue;
+	  MRIsetVoxVal(mri_wm,c,r,s,0,250);
+	}
+      }
+    }
+    MRIfree(&wmsa);
+  }
+
   printf("writing edited volume to %s....\n", output_file_name) ;
   MRIwrite(mri_wm, output_file_name) ;
 
@@ -332,6 +349,10 @@ get_option(int argc, char *argv[])
       exit(err);
     }
     nargs = 4;
+  }
+  else if( !stricmp(option, "wmsa") ){
+    wmsafile = argv[2];
+    nargs = 1;
   }
   else if( !stricmp(option, "label-acj") ){
     // Stand-alone option to label the ACJ from the aseg.presurf

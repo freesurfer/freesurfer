@@ -46,6 +46,8 @@
       <argument>-lh</argument>
       <explanation>erase rh labels from output</explanation>
       <argument>-rh</argument>
+      <argument>-wmsa wmsavol</argument>
+      <explanation>Include WM lessions (77,78,79,99) in WM (good when passing synthseg (which does not have wmsa) as the aseg </explanation>
       <explanation>erase lh labels from output</explanation>
       <argument>-fix-ento-wm entowm level lhval rhval</argument>
       <explanation>Insert lhval rhval where {3,4}006 and {3,4}201 in entowm volume. For wm.seg use 255. For brain.finalsurfs use 255. For filled use 255 and 127. </explanation>
