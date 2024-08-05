@@ -29,7 +29,7 @@
 #include "CursorFactory.h"
 #include "vtkObject.h"
 
-#if !defined(ARM64)
+#if !defined(ARM64) && !defined(DISABLE_LINEPROF)
 #include "LineProf.h"
 #endif
 

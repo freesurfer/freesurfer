@@ -21,7 +21,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
-#if !defined(ARM64)
+#if !defined(ARM64) && !defined(DISABLE_LINEPROF)
 #include "LayerLineProfile.h"
 #endif
 
@@ -877,7 +877,7 @@ bool RenderView2D::PickLineProfile(int x, int y)
   {
     if (layer->IsTypeOf("LineProfile"))
     {
-#if !defined(ARM64)
+#if !defined(ARM64) && !defined(DISABLE_LINEPROF)
       LayerLineProfile* l = qobject_cast<LayerLineProfile*>(layer);
       if (l->GetPlane() == this->m_nViewPlane)
         lineprofs << l;
@@ -889,7 +889,7 @@ bool RenderView2D::PickLineProfile(int x, int y)
 
   foreach (LayerLineProfile* lp, lineprofs)
   {
-#if !defined(ARM64)
+#if !defined(ARM64) && !defined(DISABLE_LINEPROF)
     int nId = this->PickCell(lp->GetLineProfileActor(), x, y);
     if (nId >= 0)
     {

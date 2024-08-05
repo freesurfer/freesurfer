@@ -159,7 +159,7 @@ endif
 set segcrop = $outdir/vsinus.crop-to-prior.norev.mgz
 set ud = `UpdateNeeded $segcrop $involcrop`
 if($ud) then
-  set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac \
+  set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac --conform\
     --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
     --fov $fov --threads $threads --no-cite-sclimbic --i $involcrop --o $segcrop)
   if($DoPost) set cmd = ($cmd --write_posteriors)

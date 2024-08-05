@@ -279,8 +279,8 @@ int main(int argc, char *argv[]) {
     if(!coreg->refmask) exit(1);
     int c,r,s,m;
     for(c=0; c < coreg->ref->width; c++){
-      for(r=0; r < coreg->ref->width; r++){
-	for(s=0; s < coreg->ref->width; s++){
+      for(r=0; r < coreg->ref->height; r++){
+	for(s=0; s < coreg->ref->depth; s++){
 	  m = MRIgetVoxVal(coreg->refmask,c,r,s,0);
 	  if(m < 0.5) MRIsetVoxVal(coreg->ref,c,r,s,0,0.0);
 	}
@@ -304,8 +304,8 @@ int main(int argc, char *argv[]) {
     if(!coreg->movmask) exit(1);
     int c,r,s,m;
     for(c=0; c < coreg->mov->width; c++){
-      for(r=0; r < coreg->mov->width; r++){
-	for(s=0; s < coreg->mov->width; s++){
+      for(r=0; r < coreg->mov->height; r++){
+	for(s=0; s < coreg->mov->depth; s++){
 	  m = MRIgetVoxVal(coreg->movmask,c,r,s,0);
 	  if(m < 0.5) MRIsetVoxVal(coreg->mov,c,r,s,0,0.0);
 	}

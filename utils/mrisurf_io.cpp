@@ -283,8 +283,8 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_na
   char curv_to_write[1024] = {'\0'};
   int mritype = MRISwriteCurvature_getfilename(mris, sname, curv_to_write);
   if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "writing curvature file %s\n", curv_to_write);
-    
+    fprintf(stdout, "writing curvature file %s type %d\n", curv_to_write,mritype);
+
   int error = NO_ERROR;
   if (mritype == MRI_MGH_FILE || mritype == NII_FILE)
   {
@@ -302,7 +302,7 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname, const char *curv_na
     }
 
     TempMRI->version = ((MGZ_INTENT_SHAPE & 0xff ) << 8) | MGH_VERSION;
-    MRIwrite(TempMRI, curv_to_write);
+    error = MRIwrite(TempMRI, curv_to_write);
     MRIfree(&TempMRI);
   }
   else if (mritype == VTK_FILE)

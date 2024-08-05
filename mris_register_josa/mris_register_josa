@@ -1,4 +1,5 @@
 import os
+import sys
 import pathlib
 from argparse import ArgumentParser
 from os.path import exists
@@ -12,23 +13,25 @@ from spheremorph.tf.utils import *
 
 def main():
     parser = ArgumentParser(prog="JOSA", description="Learning-based surface registration and parcellation")
-    parser.add_argument("--hmsp", type=str,
-                        help="which hemisphere, lh or rh")
-    parser.add_argument("--sub_dir", type=str,
-                        help="subject directory")
-    parser.add_argument("--sulc_file", type=str,
-                        help="path to ?h.sulc file, overrides surf_dir/?h.sulc")
-    parser.add_argument("--curv_file", type=str,
-                        help="path to ?h.curv file, overrides surf_dir/?h.curv")
-    parser.add_argument("--inflated_curv_file", type=str,
-                        help="path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
-    parser.add_argument("--sphere_rot", type=str,
-                        help="path to ?h.sphere.rot file")
-    parser.add_argument("--model", type=str,
-                        help="path to the model file")
-    parser.add_argument("--output_dir", type=str,
-                        help="custom output directory, default is to save to the subject surf directory")
+    parser.add_argument("--hmsp", type=str, help="which hemisphere, lh or rh")
+    parser.add_argument("--sub_dir", type=str, help="path to subject directory (does not use $SUBJECTS_DIR)")
+    parser.add_argument("--sulc_file", type=str, help="path to ?h.sulc file, overrides surf_dir/?h.sulc")
+    parser.add_argument("--curv_file", type=str, help="path to ?h.curv file, overrides surf_dir/?h.curv")
+    parser.add_argument("--inflated_curv_file", type=str,help="path to ?h.inflated.H file, overrides surf_dir/?h.inflated.H")
+    parser.add_argument("--sphere_rot", type=str,help="path to ?h.sphere.rot file")
+    parser.add_argument("--model", type=str,help="path to the model file")
+    parser.add_argument("--output", type=str,help="custom output file, default is to save to subject/surf/hemi.sphere.reg")
+    parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
     args = vars(parser.parse_args())
+
+    # check for no arguments
+    if len(sys.argv) < 2:
+        parser.print_help()
+        sys.exit(1)
+
+    model_file = args['model']
+    if model_file is None:
+        raise ValueError('model file must be provided')
 
     # first argument for hemisphere must be provided
     if args['hmsp'] and args['hmsp'] in ['lh', 'rh']:
@@ -36,59 +39,60 @@ def main():
     else:
         raise ValueError('hmsp must be lh or rh')
 
+    # Check whether subject is needed 
+    NeedSubject=0
+    if(args['sulc_file'] is None or args['curv_file'] is None or args['inflated_curv_file'] is None or args['sphere_rot'] is None or args['output'] is None): NeedSubject=1
+
     sub_dir = args['sub_dir']
-    if sub_dir is None:
-        raise ValueError('subject directory must be provided')
+    if(NeedSubject):
+        if(sub_dir is None):
+            raise ValueError('subject dir needed unless all curv, inflated, sulc, sphere.rot, and outdir are specified')        
+        surf_dir = pj(sub_dir, 'surf')
+        if not exists(surf_dir):
+            raise ValueError('surf directory could be found in subject directory')
 
-    surf_dir = pj(sub_dir, 'surf')
-    if not exists(surf_dir):
-        raise ValueError('surf directory should be found in subject directory')
-
-    if exists(pj(surf_dir, f'{hmsp}.sulc')):
-        sulc_file = pj(surf_dir, f'{hmsp}.sulc')
-    else:
-        raise ValueError(f'{hmsp}.sulc not found in surf directory')
-
-    if exists(pj(surf_dir, f'{hmsp}.curv')):
-        curv_file = pj(surf_dir, f'{hmsp}.curv')
-    else:
-        raise ValueError(f'{hmsp}.curv not found in surf directory')
-
-    if exists(pj(surf_dir, f'{hmsp}.inflated.H')):
-        inf_h_file = pj(surf_dir, f'{hmsp}.inflated.H')
-    else:
-        raise ValueError(f'{hmsp}.inflated.H not found in surf directory')
-
-    # if surface feature files are provided specifically, overwrite defaults
-    if args['sulc_file']:
+    if(args['sulc_file']):
         sulc_file = args['sulc_file']
-    if args['curv_file']:
+    else:
+        sulc_file = pj(surf_dir, f'{hmsp}.sulc')
+
+    if(args['curv_file']):
         curv_file = args['curv_file']
-    if args['inflated_curv_file']:
+    else:
+        curv_file = pj(surf_dir, f'{hmsp}.curv')
+
+    if(args['inflated_curv_file']):
         inf_h_file = args['inflated_curv_file']
+    else:
+        inf_h_file = pj(surf_dir, f'{hmsp}.inflated.H')
+
+    if(args['sphere_rot']):
+        sphere_rot_file = args['sphere_rot']
+    else:
+        sphere_rot_file = pj(surf_dir, f'{hmsp}.sphere.rot')
+
+    # Make sure all inputs exist
+    for f in [sulc_file, curv_file, inf_h_file, sphere_rot_file]:
+        print(f'{f}');
+        if not exists(f):
+            raise ValueError(f'ERROR: cannot find {f}')
+
+    out_file_fixed = args['output']
+    if out_file_fixed is None:
+        out_file_fixed = pj(surf_dir, f'{hmsp}.sphere.reg')
+    output_dir = os.path.dirname(out_file_fixed);
+    out_file_prefix = out_file_fixed+".prefixed";
+    print(f'prefix file {out_file_prefix}');
+    print(f'output file {out_file_fixed}');
+    print(f'model file {model_file}');
+
+    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     surf_feature_file = [sulc_file, curv_file, inf_h_file]
 
-    # if ?h.sphere.rot exists in surf directory, use it
-    sphere_rot_file = None
-    if exists(pj(surf_dir, f'{hmsp}.sphere.rot')):
-        sphere_rot_file = pj(surf_dir, f'{hmsp}.sphere.rot')
-
-    # if ?h.sphere.rot is provided specifically, overwrite the default
-    if args['sphere_rot']:
-        sphere_rot_file = args['sphere_rot']
-
-    if sphere_rot_file is None:
-        raise ValueError(f'{hmsp}.sphere.rot must be provided')
-
-    model_file = args['model']
-    if model_file is None:
-        raise ValueError('model file must be provided')
-
-    output_dir = args['output_dir']
-    if output_dir is None:
-        output_dir = surf_dir
-    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
+    # set number of threads
+    print('Using %d thread(s)' % args['threads'])
+    tf.config.threading.set_inter_op_parallelism_threads(args['threads']);
 
     # ==================== changes from here ====================
     pad_size = 16
@@ -158,16 +162,14 @@ def main():
     v = v / np.linalg.norm(v, axis=-1, keepdims=True) * 100.0
     sphere_reg = sphere.copy()
     sphere_reg.vertices = v
-    out_file = pj(output_dir, f'{hmsp}.sphere.reg.prefix')
-    sfa.io.mesh.save_mesh(sphere_reg, out_file)
+    sfa.io.mesh.save_mesh(sphere_reg, out_file_prefix)
     print('done')
 
     print('removing intersecting vertices ... ')
-    out_file_fixed = pj(output_dir, f'{hmsp}.sphere.reg')
     # cmd = f'source /autofs/homes/003/jl1013/.fs_env && mris_remove_intersection {out_file} {out_file_fixed}'
-    cmd = f'mris_remove_intersection {out_file} {out_file_fixed}'
+    cmd = f'mris_remove_intersection {out_file_prefix} {out_file_fixed}'
     os.system(cmd)
-    os.remove(out_file)
+    os.remove(out_file_prefix)
     print('done')
 
 

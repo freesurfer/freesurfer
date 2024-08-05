@@ -231,6 +231,7 @@ main(int ac, char* av[])
     }
     printf("writing output to %s\n",
            (const_cast<char*>( pathMriOutput.c_str() )));
+    mriTemplate->ct = CTABreadDefault();
     MRIwrite(mriTemplate,  (const_cast<char*>( pathMriOutput.c_str() ))) ;
     msec = then.milliseconds() ;
     fprintf(stderr, "mris_volmask took %2.2f minutes\n", (float)msec/(1000.0f*60.0f));
@@ -368,6 +369,7 @@ main(int ac, char* av[])
   else if(params.DoLH) finalMask = maskLeftHemi;
   else if(params.DoRH) finalMask = maskRightHemi;
   MRIcopyHeader( mriTemplate, finalMask);
+  finalMask->ct = CTABreadDefault();
   // write final mask
   std::cout << "writing volume " << const_cast<char*>( (outputPath / (params.outRoot +".mgz")).c_str() ) << endl;
   MRIwrite( finalMask,const_cast<char*>( (outputPath / (params.outRoot +".mgz")).c_str() ));
@@ -387,6 +389,7 @@ main(int ac, char* av[])
     if(params.DoLH){
       ribbon = FilterLabel(maskLeftHemi,params.labelLeftRibbon);
       MRIcopyHeader( mriTemplate, ribbon);
+      ribbon->ct = CTABreadDefault();
       MRIwrite( ribbon,const_cast<char*>( (outputPath / "lh." + params.outRoot + ".mgz").c_str()  ));
       // sanity-check: make sure location 0,0,0 is background (not brain)
       if( MRIgetVoxVal(ribbon,0,0,0,0) != 0 )    {
@@ -398,6 +401,7 @@ main(int ac, char* av[])
     if(params.DoRH){
       ribbon = FilterLabel(maskRightHemi,params.labelRightRibbon);
       MRIcopyHeader( mriTemplate, ribbon);
+      ribbon->ct = CTABreadDefault();
       MRIwrite( ribbon, const_cast<char*>( (outputPath / "rh." + params.outRoot + ".mgz").c_str() ));
       // sanity-check: make sure location 0,0,0 is background (not brain)
       if( MRIgetVoxVal(ribbon,0,0,0,0) != 0 ){
@@ -603,39 +607,47 @@ LoadInputFiles(const IoParams& params,
   // load actual files now
   if(params.DoLH){
 
+    printf("Loading %s\n",pathSurfLeftWhite.c_str());
     surfLeftWhite = MRISread( const_cast<char*>( pathSurfLeftWhite.c_str() ));
     if ( !surfLeftWhite )
       throw IoError( std::string("failed to read left white surface ") + pathSurfLeftWhite );
-    // Must verify that determinant is < 0
-    MATRIX *m = MRIgetVoxelToRasXform(&surfLeftWhite->vg) ;
-    if(MatrixDeterminant(m) > 0) {
-      printf("ERROR: surf vg vox2ras determinant is > 0\n");
-      exit(10101);
-    }
-    MatrixFree(&m);
+    printf("Loading %s\n",pathSurfLeftPial.c_str());
     surfLeftPial  = MRISread( const_cast<char*>( pathSurfLeftPial.c_str() ));
     if ( !surfLeftPial )
       throw IoError( std::string("failed to read left pial surface ")+ pathSurfLeftPial );
+
+    // Must verify that determinant is < 0
+    MATRIX *m = MRIgetVoxelToRasXform(&surfLeftWhite->vg) ;
+    if(MatrixDeterminant(m) > 0) {
+      printf("INFO: lh surf vg vox2ras determinant is > 0 so reversing face order\n");
+      MRISreverseFaceOrder(surfLeftWhite);
+      MRISreverseFaceOrder(surfLeftPial);
+    }
+    MatrixFree(&m);
   }
 
   if(params.DoRH){
+    printf("Loading %s\n",pathSurfRightWhite.c_str());
     surfRightWhite = MRISread( const_cast<char*>( pathSurfRightWhite.c_str() ));
     if ( !surfRightWhite )
       throw IoError( std::string("failed to read right white surface ")
 		     + pathSurfRightWhite );
-    // Must verify that determinant is < 0
-    MATRIX *m = MRIgetVoxelToRasXform(&surfRightWhite->vg) ;
-    if(MatrixDeterminant(m) > 0) {
-      printf("ERROR: surf vg vox2ras determinant is > 0\n");
-      exit(10101);
-    }
-    MatrixFree(&m);
+    printf("Loading %s\n",pathSurfRightPial.c_str());
     surfRightPial = MRISread( const_cast<char*>( pathSurfRightPial.c_str() ));
     if ( !surfRightPial )
       throw IoError( std::string("failed to read right pial surface ")
 		     + pathSurfRightPial );
+    // Must verify that determinant is < 0
+    MATRIX *m = MRIgetVoxelToRasXform(&surfRightWhite->vg) ;
+    if(MatrixDeterminant(m) > 0) {
+      printf("INFO: rh surf vg vox2ras determinant is > 0 so reversing face order\n");
+      MRISreverseFaceOrder(surfRightWhite);
+      MRISreverseFaceOrder(surfRightPial);
+    }
+    MatrixFree(&m);
   }
     
+  printf("Loading %s\n",pathMriInput.c_str());
   mriTemplate = MRIread( const_cast<char*>( pathMriInput.c_str() ));
   if ( !mriTemplate )
     throw IoError( std::string("failed to read template mri ")

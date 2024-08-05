@@ -12,6 +12,7 @@
 
 set VERSION = 'vertexvol @FS_VERSION@';
 
+if($?FS_GII == 0) setenv FS_GII ""
 set outfile = ();
 set subject = ();
 set hemi = ();
@@ -48,14 +49,17 @@ pwd
 
 # Compute mid.area. Not necessary when using TH3, but other programs may 
 # need it
-set cmd=(mris_calc -o ${hemi}.area.mid$FS_GII ${hemi}.area$FS_GII add ${hemi}.area.pial$FS_GII)
-echo "$cmd"
-$cmd
-if($status) goto error_exit;
-set cmd=(mris_calc -o ${hemi}.area.mid$FS_GII ${hemi}.area.mid$FS_GII div 2)
-echo "$cmd"
-$cmd
-if($status) goto error_exit;
+set ud = `UpdateNeeded ${hemi}.area.mid$FS_GII ${hemi}.area$FS_GII  ${hemi}.area.pial$FS_GII`
+if($ud) then
+  set cmd=(mris_calc -o ${hemi}.area.mid$FS_GII ${hemi}.area$FS_GII add ${hemi}.area.pial$FS_GII)
+  echo "$cmd"
+  $cmd
+  if($status) goto error_exit;
+  set cmd=(mris_calc -o ${hemi}.area.mid$FS_GII ${hemi}.area.mid$FS_GII div 2)
+  echo "$cmd"
+  $cmd
+  if($status) goto error_exit;
+endif
 
 if($TH3Flag == 0) then
   # Compute volume = mid.area * thickness -- not accurate
@@ -69,10 +73,16 @@ if($TH3Flag == 0) then
 else
   # Compute volume as sum of 3 tetrahedra (TH3)
   # Algorithm supplied by Anderson Winkler
-  set cmd = (mris_convert --volume $subject $hemi $subjdir/surf/$outfile)
-  echo "$cmd"
-  $cmd
-  if($status) goto error_exit;
+  set white = $subjdir/surf/$hemi.white
+  set pial = $subjdir/surf/$hemi.pial
+  set label = $subjdir/label/$hemi.cortex.label
+  set ud = `UpdateNeeded $outfile $white $pial $label`
+  if($ud) then
+    set cmd = (mris_convert --volume $subject $hemi $subjdir/surf/$outfile)
+    echo "$cmd"
+    $cmd
+    if($status) goto error_exit;
+  endif
 endif
 
 echo " "

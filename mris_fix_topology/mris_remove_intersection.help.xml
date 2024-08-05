@@ -40,8 +40,12 @@
       <explanation>Stand-alone flag to create a binary map of intersections. If projdistmm is specified, then the surface is projected along the normal </explanation>
     </optional-flagged>
     <optional-flagged>
-      <argument>-notches insurf projdist(1) k1thresh(.05) label(cortex) nmin(3) stdthresh(.2) pointset ocn pial </argument>
+      <argument>-notches insurf projdist(1) k1thresh(.05) label(cortex) nmin(3) nmax(-1) stdthresh(.2) pointset ocn pial </argument>
       <explanation>Stand-alone option to map surface notches. pial optional </explanation>
+    </optional-flagged>
+    <optional-flagged>
+      <argument>-remove-hah insurf anglethresh(100deg) ndil(3) nsmooth(75) outsurf outmask </argument>
+      <explanation>Stand-alone option to remove high-angle hinges. Suggested params have not been optimized </explanation>
     </optional-flagged>
 </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

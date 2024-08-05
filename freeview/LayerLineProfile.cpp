@@ -260,6 +260,7 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
 
   m_dSliceLocation = ctrl_pts0[m_nPlane];
 
+#if !defined(ARM64) && !defined(DISABLE_LINEPROF)
   LineProf LP(points2d, segment0, segment1, segmentL, segmentR);
   // Next we solve the Laplace on the domain
   int paddingL       = 10;
@@ -269,6 +270,7 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
 
   // And finally compute line profiles
   m_ptsProfile = LP.ComputeProfiles(offset*referenceSize, spacing);
+#endif
 
   m_nActiveLineId = -1;
   m_activeLine->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());

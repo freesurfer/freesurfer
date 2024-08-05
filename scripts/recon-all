@@ -1572,6 +1572,7 @@ if($ud || $ForceUpdate) then
   endif
 endif
 
+# Should vsinus and mca be masked out here?
 set synthstrip = $mdir/synthstrip.mgz
 if($SynthStrip) then
   set ud = `UpdateNeeded $synthstrip $origvol`
@@ -1588,7 +1589,7 @@ endif
 
 set synthseg = $subjdir/mri/synthseg.rca.mgz
 if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
-  # Note: no m3z will be produced
+  # Note: no m3z will be produced.
   set origvol  = $subjdir/mri/orig.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
@@ -2147,21 +2148,6 @@ endif
 #----------- Skull Stripping -----------#
 ##----------   -skullstrip   -----------#
 #-----------                 -----------#
-if($SynthStrip) then
-  # This will be redundant with seg2recon above (but identical)
-  set T1 = $mdir/T1.mgz
-  set BM = $mdir/brainmask.mgz
-  set ud = `UpdateNeeded $BM $T1 $synthstrip`
-  if($ud || $ForceUpdate) then
-    set cmd = (mri_mask $T1 $synthstrip $BM)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  endif
-endif
-
 # Segment MCA/dura here to be able to pass it to mri_watershed
 set mcadura = $mdir/mca-dura.mgz
 if($FixMCADura) then
@@ -2196,6 +2182,37 @@ if($FixVSinus) then
     if($status) goto error_exit;
   else
     echo "VSinus Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
+if($SynthStrip) then
+  # This will be redundant with seg2recon above (but identical)
+  set T1 = $mdir/T1.mgz
+  set BM = $mdir/brainmask.mgz
+  set ud = `UpdateNeeded $BM $T1 $synthstrip`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_mask $T1 $synthstrip $BM)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    if($FixMCADura) then
+      set cmd = (mri_mask -invert $BM $mdir/mca-dura.mgz $BM)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    endif
+    if($FixVSinus) then
+      set cmd = (mri_mask -invert $BM $mdir/vsinus.mgz $BM)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    endif
   endif
 endif
 
@@ -2281,8 +2298,14 @@ skullstrip:
     set DoMultiStrip = 0
     echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
   endif
-  if($FixMCADura) set opts = ($opts -xmask $mcadura)
-  if($FixVSinus)  set opts = ($opts -xmask $vsinus)
+
+  # Originally, I had set this up to mask the mcadura and vsinus from
+  # mask from the get-go. But the inorm is so sensitive that this
+  # masking ends up having downsteram repurcusions. So masking has
+  # been moved to the creation of the brain.finalsurfs where it will
+  # only affect the surfaces.
+  #if($FixMCADura) set opts = ($opts -xmask $mcadura)
+  #if($FixVSinus)  set opts = ($opts -xmask $vsinus)
 
   set cmd = (mri_watershed)
   set BM  = brainmask.mgz
@@ -3047,8 +3070,23 @@ if($DoMaskBFS) then
   set cmd = (mri_mask -T 5 $xopts brain.mgz brainmask.mgz brain.finalsurfs.mgz)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  if($RunIt) then
+    # Remove MCA/Dura/Vsinus here instead of at skull strip. See note above.
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if($FixMCADura) then
+      set cmd = (mri_mask -oval 1 -invert brain.finalsurfs.mgz $mcadura brain.finalsurfs.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    if($FixVSinus) then
+      set cmd = (mri_mask -oval 1 -invert brain.finalsurfs.mgz $vsinus brain.finalsurfs.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
   # If edits exist in local folder, transfer finalsurfs edits (voxels=255 and voxels=1).
   # Note that if cross or base edits exist, they should be transferred on the first 
   # round. If a manedit in long is created later, that will be incorporated on top
@@ -3218,6 +3256,7 @@ if($DoSegmentation) then
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
     if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 255 255)
     if($FixACJ)    set cmd = ($cmd -fix-acj $AsegForSurf 255 255)
+    if($SynthSegForSurf) set cmd = ($cmd -wmsa aseg.presurf.mgz)
     set cmd = ($cmd $xopts wm.seg.mgz brain.mgz $AsegForSurf wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3387,7 +3426,7 @@ endif
 
 if($TopoFitLevel > 0) then
   # Uses brain.finalsurfs.manedit as input
-  set cmd = (topofit --s $subjid --threads $OMP_NUM_THREADS)
+  set cmd = (topofit --s $subjid --threads $OMP_NUM_THREADS --ico7)
   if($#hemilist == 1)    set cmd = ($cmd --$hemilist)
   if($TopoFitLevel == 2) set cmd = ($cmd --sphere)
   if($UseGPU)            set cmd = ($cmd --gpu)

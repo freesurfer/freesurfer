@@ -571,6 +571,7 @@ class AsegStatsParser(StatsParser):
                         ('# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox,','SupraTentorialVolNotVentVox'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
                         ('# Measure EstimatedTotalIntraCranialVol, eTIV,','EstimatedTotalIntraCranialVol'),
+                        ('# Measure SegmentedTotalIntraCranialVol, sTIV,','SegmentedTotalIntracranialVol'),
                         ('# Measure Mask, MaskVol,','MaskVol'),
                         ('# Measure BrainVol-to-eTIV, BrainVol-to-eTIV,','BrainVol-to-eTIV'),
                         ('# Measure BrainSegVol-to-eTIV, BrainSegVol-to-eTIV,','BrainSegVol-to-eTIV'),

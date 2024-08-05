@@ -405,7 +405,7 @@ if($#seg1name) then
   endif
 endif
 
-if($#seg1name == 0) then
+if($UseSamseg == 0 && $#seg1name == 0) then
   set xformpath = $SUBJECTS_DIR/$subject/mri/transforms/$xform
   if(! -e $xformpath) then
     echo "ERROR: cannot find $xformpath"

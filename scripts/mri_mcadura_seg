@@ -174,7 +174,7 @@ foreach hemi ($hemilist)
       --percentile 99.9 --vmp --output-base mcadura --conform \
       --logfile mri_mcadura_seg.log --no-cite-sclimbic --threads $threads \
       --fov 72 --i $involcrop --o $seg)
-    set cmd = ($cmd --write_posteriors)
+    if(! $cleanup) set cmd = ($cmd --write_posteriors)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit
@@ -502,6 +502,6 @@ exit 1;
 BEGINHELP
 
 # Mask out the dura/mca (setting the value to 1 instead of 0)
-mri_mask -oval 1 -invert brain.finalsurfs.manedit.mgz dura-mca.mgz brain.finalsurfs.manedit.mgz
+mri_mask -oval 1 -invert brain.finalsurfs.manedit.mgz mca-dura.mgz brain.finalsurfs.manedit.mgz
 
 

@@ -565,29 +565,26 @@ def postprocess(prediction, im_shape, crop_idx, labels, aff):
 
 
 def write_csv_file(volumes, filename, subject, write_header, open_type):
-    '''
-    Writes volumetric stats to csv file.
+    """Writes volumetric stats to csv file.
     :param volumes: numpy array with volumes for all structures specified in below header
     :param filename: path of csv file where volumes will be saved
     :param subject: subject name
     :param write_header: whether to write the header or not
-    :param open_type: can be 'w' (write new file), or 'a' (add volume to an already existing file)
-    '''
-    header = [
-        'subject',
-        'left anterior-inferior',
-        'left anterior-superior',
-        'left posterior',
-        'left tubular inferior',
-        'left tubular superior',
-        'right anterior-inferior',
-        'right anterior-superior',
-        'right posterior',
-        'right tubular inferior',
-        'right tubular superior',
-        'whole left',
-        'whole right'
-    ]
+    :param open_type: can be 'w' (write new file), or 'a' (add volume to an already existing file)"""
+
+    header = ['subject',
+              'left anterior-inferior',
+              'left anterior-superior',
+              'left posterior',
+              'left tubular inferior',
+              'left tubular superior',
+              'right anterior-inferior',
+              'right anterior-superior',
+              'right posterior',
+              'right tubular inferior',
+              'right tubular superior',
+              'whole left',
+              'whole right']
     with open(filename, open_type) as csv_file:
         writer = csv.writer(csv_file)
         if write_header:
@@ -599,23 +596,20 @@ def write_csv_file(volumes, filename, subject, write_header, open_type):
 
 
 def write_fs_stats_file(volumes, filename):
-    '''
-    Write volumetric stats to FS stats file.
-    '''
-    segnames = [
-        'Left-Anterior-Inferior',
-        'Left-Anterior-Superior',
-        'Left-Posterior',
-        'Left-Tubular-Inferior',
-        'Left-Tubular-Superior',
-        'Right-Anterior-Inferior',
-        'Right-Anterior-Ssuperior',
-        'Right-Posterior',
-        'Right-Tubular-Inferior',
-        'Right-Tubular-Superior',
-        'Whole-Left',
-        'Whole-Right'
-    ]
+    """Write volumetric stats to FS stats file."""
+
+    segnames = ['Left-Anterior-Inferior',
+                'Left-Anterior-Superior',
+                'Left-Posterior',
+                'Left-Tubular-Inferior',
+                'Left-Tubular-Superior',
+                'Right-Anterior-Inferior',
+                'Right-Anterior-Ssuperior',
+                'Right-Posterior',
+                'Right-Tubular-Inferior',
+                'Right-Tubular-Superior',
+                'Whole-Left',
+                'Whole-Right']
     volumes = ['%.3f' % vol for vol in volumes]
     volwidth = len(max(volumes, key=len))
     with open(filename, 'w') as f:
@@ -986,7 +980,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
     Load volume file.
     :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
     If npz format, 1) the variable name is assumed to be 'vol_data',
-    2) the volume is associated with a identity affine matrix and blank header.
+    2) the volume is associated with an identity affine matrix and blank header.
     :param im_only: (optional) if False, the function also returns the affine matrix and header of the volume.
     :param squeeze: (optional) whether to squeeze the volume when loading.
     :param dtype: (optional) if not None, convert the loaded volume to this numpy dtype.
@@ -1051,12 +1045,14 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
                 aff = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
         elif aff is None:
             aff = np.eye(4)
-        nifty = nib.Nifti1Image(volume, aff, header)
         if dtype is not None:
             if 'int' in dtype:
                 volume = np.round(volume)
             volume = volume.astype(dtype=dtype)
+            nifty = nib.Nifti1Image(volume, aff, header)
             nifty.set_data_dtype(dtype)
+        else:
+            nifty = nib.Nifti1Image(volume, aff, header)
         if res is not None:
             if n_dims is None:
                 n_dims, _ = get_dims(volume.shape)
@@ -1072,6 +1068,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels
     :param return_volume: (optional) whether to return the volume along with the information.
     :param aff_ref: (optional) If not None, the loaded volume is aligned to this affine matrix.
     All info relative to the volume is then given in this new space. Must be a numpy array of dimension 4x4.
+    :param max_channels: maximum possible number of channels for the input volume.
     :return: volume (if return_volume is true), and corresponding info. If aff_ref is not None, the returned aff is
     the original one, i.e. the affine of the image before being aligned to aff_ref.
     """
@@ -1125,12 +1122,12 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     """This function takes a variable and reformat it into a list of desired
     length and type (int, float, bool, str).
     If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
-    If variable is None, this funtion returns None.
+    If variable is None, this function returns None.
     :param var: a str, int, float, list, tuple, or numpy array
     :param length: (optional) if var is a single item, it will be replicated to a list of this length
     :param load_as_numpy: (optional) whether var is the path to a numpy array
     :param dtype: (optional) convert all item to this type. Can be 'int', 'float', 'bool', or 'str'
-    :return: reformated list
+    :return: reformatted list
     """
 
     # convert to list
@@ -1179,7 +1176,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
 
 
 def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
-    """List all files with extension nii, nii.gz, mgz, or npz whithin a folder."""
+    """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
             (('.nii.gz' in basename) | ('.nii' in basename) | ('.mgz' in basename) | ('.npz' in basename)):
@@ -1234,14 +1231,15 @@ def list_subfolders(path_dir, whole_path=True, expr=None, cond_type='or'):
 
 def mkdir(path_dir):
     """Recursively creates the current dir as well as its parent folders if they do not already exist."""
-    if path_dir[-1] == '/':
-        path_dir = path_dir[:-1]
-    if not os.path.isdir(path_dir):
-        list_dir_to_create = [path_dir]
-        while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
-            list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
-        for dir_to_create in reversed(list_dir_to_create):
-            os.mkdir(dir_to_create)
+    if len(path_dir) > 0:
+        if path_dir[-1] == '/':
+            path_dir = path_dir[:-1]
+        if not os.path.isdir(path_dir):
+            list_dir_to_create = [path_dir]
+            while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
+                list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
+            for dir_to_create in reversed(list_dir_to_create):
+                os.mkdir(dir_to_create)
 
 
 # ---------------------------------------------- shape-related functions -----------------------------------------------
@@ -1268,6 +1266,7 @@ def get_dims(shape, max_channels=10):
 
 def add_axis(x, axis=0):
     """Add axis to a numpy array.
+    :param x: input array
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
     for ax in axis:
@@ -1339,7 +1338,7 @@ class LoopInfo:
 
 def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
     """Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
-    values lower than n), or 'higher (only returns values higher than m)."""
+    values lower than n), or 'higher' (only returns values higher than m)."""
     if n % m == 0:
         return n
     else:
@@ -1472,16 +1471,26 @@ def crop_volume_around_region(volume,
                               margin=0,
                               cropping_shape=None,
                               cropping_shape_div_by=None,
-                              aff=None):
+                              aff=None,
+                              overflow='strict'):
     """Crop a volume around a specific region.
     This region is defined by a mask obtained by either:
-    1) directly specifying it as input
-    2) keeping a set of label values (defined by masking_labels) if the volume is a label map.
-    3) thresholding the input volume
-    The cropped region is defined by either:
-    1) cropping around the non-zero values in the above-defined mask (possibly with a margin)
-    2) cropping to a specified shape, centered around the middle of the above-defined mask
-    3) cropping to a shape divisible by the given number, centered around the middle of the above-defined mask
+    1) directly specifying it as input (see mask)
+    2) keeping a set of label values if the volume is a label map (see masking_labels).
+    3) thresholding the input volume (see threshold)
+    The cropping region is defined by the bounding box of the mask, which we can further modify by either:
+    1) extending it by a margin (see margin)
+    2) providing a specific cropping shape, in this case the cropping region will be centered around the bounding box
+    (see cropping_shape).
+    3) extending it to a shape that is divisible by a given number. Again, the cropping region will be centered around
+    the bounding box (see cropping_shape_div_by).
+    Finally, if the size of the cropping region has been modified, and that this modified size overflows out of the
+    image (e.g. because the center of the mask is close to the edge), we can either:
+    1) stick to the valid image space (the size of the modified cropping region won't be respected)
+    2) shift the cropping region so that it lies on the valid image space, and if it still overflows, then we restrict
+    to the valid image space.
+    3) pad the image with zeros, such that the cropping region is not ill-defined anymore.
+    3) shift the cropping region to the valida image space, and if it still overflows, then we pad with zeros.
     :param volume: a 2d or 3d numpy array
     :param mask: (optional) mask of region to crop around. Must be same size as volume. Can either be boolean or 0/1.
     If no mask is given, it will be computed by either thresholding the input volume or using masking_labels.
@@ -1493,9 +1502,11 @@ def crop_volume_around_region(volume,
     centre of the above-defined mask is they are too small for the given shape. Can be an integer or sequence.
     Cannot be given at the same time as margin or cropping_shape_div_by.
     :param cropping_shape_div_by: (optional) makes sure the shape of the cropped region is divisible by the provided
-    number. If it is not, then we enlarge the cropping area. If the enlarged area is too big fort he input volume, we
-    pad it with 0. Must be a integer. Cannot be given at the same time as margin or cropping_shape.
+    number. If it is not, then we enlarge the cropping area. If the enlarged area is too big for the input volume, we
+    pad it with 0. Must be an integer. Cannot be given at the same time as margin or cropping_shape.
     :param aff: (optional) if specified, this function returns an updated affine matrix of the volume after cropping.
+    :param overflow: (optional) how to proceed when the cropping region overflows outside the initial image space.
+    Can either be 'strict' (default), 'shift-strict', 'padding', 'shift-padding.
     :return: the cropped volume, the cropping indices (in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...]),
     and the updated affine matrix if aff is not None.
     """
@@ -1519,58 +1530,86 @@ def crop_volume_around_region(volume,
 
     # find cropping indices
     if np.any(mask):
+
         indices = np.nonzero(mask)
-        min_idx = np.maximum(np.array([np.min(idx) for idx in indices]) - margin, 0)
-        max_idx = np.minimum(np.array([np.max(idx) for idx in indices]) + 1 + margin, vol_shape)
+        min_idx = np.array([np.min(idx) for idx in indices])
+        max_idx = np.array([np.max(idx) for idx in indices])
+        intermediate_vol_shape = max_idx - min_idx
+
+        if (margin == 0) & (cropping_shape is None) & (cropping_shape_div_by is None):
+            cropping_shape = intermediate_vol_shape
+        if margin:
+            cropping_shape = intermediate_vol_shape + 2 * margin
+        elif cropping_shape is not None:
+            cropping_shape = np.array(reformat_to_list(cropping_shape, length=n_dims))
+        elif cropping_shape_div_by is not None:
+            cropping_shape = [find_closest_number_divisible_by_m(s, cropping_shape_div_by, answer_type='higher')
+                              for s in intermediate_vol_shape]
+
+        min_idx = min_idx - np.int32(np.ceil((cropping_shape - intermediate_vol_shape) / 2))
+        max_idx = max_idx + np.int32(np.floor((cropping_shape - intermediate_vol_shape) / 2))
+        min_overflow = np.abs(np.minimum(min_idx, 0))
+        max_overflow = np.maximum(max_idx - vol_shape, 0)
+
+        if 'strict' in overflow:
+            min_overflow = np.zeros_like(min_overflow)
+            max_overflow = np.zeros_like(min_overflow)
+
+        if overflow == 'shift-strict':
+            min_idx -= max_overflow
+            max_idx += min_overflow
+
+        if overflow == 'shift-padding':
+            for ii in range(n_dims):
+                # no need to do anything if both min/max_overflow are 0 (no padding/shifting required at all)
+                # or if both are positive, because in this case we don't shift at all and we pad directly
+                if (min_overflow[ii] > 0) & (max_overflow[ii] == 0):
+                    max_idx_new = max_idx[ii] + min_overflow[ii]
+                    if max_idx_new <= vol_shape[ii]:
+                        max_idx[ii] = max_idx_new
+                        min_overflow[ii] = 0
+                    else:
+                        min_overflow[ii] = min_overflow[ii] - (vol_shape[ii] - max_idx[ii])
+                        max_idx[ii] = vol_shape[ii]
+                elif (min_overflow[ii] == 0) & (max_overflow[ii] > 0):
+                    min_idx_new = min_idx[ii] - max_overflow[ii]
+                    if min_idx_new >= 0:
+                        min_idx[ii] = min_idx_new
+                        max_overflow[ii] = 0
+                    else:
+                        max_overflow[ii] = max_overflow[ii] - min_idx[ii]
+                        min_idx[ii] = 0
+
+        # crop volume if necessary
+        min_idx = np.maximum(min_idx, 0)
+        max_idx = np.minimum(max_idx, vol_shape)
         cropping = np.concatenate([min_idx, max_idx])
-
-        # modify the cropping indices if we want the output to have a given shape
-        if (cropping_shape is not None) | (cropping_shape_div_by is not None):
-
-            # expand/retract (depending on the desired shape) the cropping region around the centre
-            intermediate_vol_shape = max_idx - min_idx
-            if cropping_shape is not None:
-                cropping_shape = np.array(reformat_to_list(cropping_shape, length=n_dims))
+        if np.any(cropping[:3] > 0) or np.any(cropping[3:] != vol_shape):
+            if n_dims == 3:
+                new_vol = new_vol[cropping[0]:cropping[3], cropping[1]:cropping[4], cropping[2]:cropping[5], ...]
+            elif n_dims == 2:
+                new_vol = new_vol[cropping[0]:cropping[2], cropping[1]:cropping[3], ...]
             else:
-                cropping_shape = [find_closest_number_divisible_by_m(s, cropping_shape_div_by, answer_type='higher')
-                                  for s in intermediate_vol_shape]
-            min_idx = min_idx - np.int32(np.ceil((cropping_shape - intermediate_vol_shape)/2))
-            max_idx = max_idx + np.int32(np.floor((cropping_shape - intermediate_vol_shape)/2))
-
-            # check if we need to pad the output to the desired shape
-            min_padding = np.abs(np.minimum(min_idx, 0))
-            max_padding = np.maximum(max_idx - vol_shape, 0)
-            if np.any(min_padding > 0) | np.any(max_padding > 0):
-                pad_margins = tuple([(min_padding[i], max_padding[i]) for i in range(n_dims)])
-            else:
-                pad_margins = None
-            cropping = np.concatenate([np.maximum(min_idx, 0), np.minimum(max_idx, vol_shape)])
-
-        else:
-            pad_margins = None
-
-        # crop volume
-        if n_dims == 3:
-            new_vol = new_vol[cropping[0]:cropping[3], cropping[1]:cropping[4], cropping[2]:cropping[5], ...]
-        elif n_dims == 2:
-            new_vol = new_vol[cropping[0]:cropping[2], cropping[1]:cropping[3], ...]
-        else:
-            raise ValueError('cannot crop volumes with more than 3 dimensions')
+                raise ValueError('cannot crop volumes with more than 3 dimensions')
 
         # pad volume if necessary
-        if pad_margins is not None:
+        if np.any(min_overflow > 0) | np.any(max_overflow > 0):
+            pad_margins = tuple([(min_overflow[i], max_overflow[i]) for i in range(n_dims)])
             pad_margins = tuple(list(pad_margins) + [(0, 0)]) if n_channels > 1 else pad_margins
             new_vol = np.pad(new_vol, pad_margins, mode='constant', constant_values=0)
 
     # if there's nothing to crop around, we return the input as is
     else:
-        min_idx = np.zeros((3, 1))
+        min_idx = min_overflow = np.zeros(3)
         cropping = None
 
+    # return results
     if aff is not None:
         if n_dims == 2:
             min_idx = np.append(min_idx, 0)
+            min_overflow = np.append(min_overflow, 0)
         aff[0:3, -1] = aff[0:3, -1] + aff[:3, :3] @ min_idx
+        aff[:-1, -1] = aff[:-1, -1] - aff[:-1, :-1] @ min_overflow
         return new_vol, cropping, aff
     else:
         return new_vol, cropping
@@ -1579,12 +1618,13 @@ def crop_volume_around_region(volume,
 def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None, return_copy=True):
     """Crop a volume with given indices.
     :param volume: a 2d or 3d numpy array
-    :param crop_idx: croppping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
+    :param crop_idx: cropping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
     Can be a list or a 1d numpy array.
     :param aff: (optional) if aff is specified, this function returns an updated affine matrix of the volume after
     cropping.
     :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
     inferred from the input volume.
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: the cropped volume, and the updated affine matrix if aff is not None.
     """
 
@@ -1607,11 +1647,14 @@ def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None, return_copy=Tr
         return new_volume
 
 
-def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear', blur=True):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
     :param new_vox_size: new voxel size (3 - element numpy vector) in mm
+    :param interpolation: (optional) type of interpolation. Can be 'linear' or 'nearest'. Default is 'linear'.
+    :param blur: (optional) whether to blur before resampling to avoid aliasing effects.
+    Only used if the input volume is downsampled. Default is True.
     :return: new volume and affine matrix
     """
 
@@ -1621,7 +1664,7 @@ def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     sigmas = 0.25 / factor
     sigmas[factor > 1] = 0  # don't blur if upsampling
 
-    volume_filt = gaussian_filter(volume, sigmas)
+    volume_filt = gaussian_filter(volume, sigmas) if blur else volume
 
     # volume2 = zoom(volume_filt, factor, order=1, mode='reflect', prefilter=False)
     x = np.arange(0, volume_filt.shape[0])
@@ -1659,7 +1702,7 @@ def get_ras_axes(aff, n_dims=3):
     """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
     :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
     :param n_dims: number of dimensions (excluding channels) of the volume corresponding to the provided affine matrix.
-    :return: two numpy 1d arrays of lengtn n_dims, one with the axes corresponding to RAS orientations,
+    :return: two numpy 1d arrays of length n_dims, one with the axes corresponding to RAS orientations,
     and one with their corresponding direction.
     """
     aff_inverted = np.linalg.inv(aff)
@@ -1681,6 +1724,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
     :param return_aff: (optional) whether to return the affine matrix of the aligned volume
     :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
     inferred from the input volume.
+    :param return_copy: (optional) whether to return the original volume or a copy. Default is copy.
     :return: aligned volume, with corresponding affine matrix if return_aff is True.
     """
 

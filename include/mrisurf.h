@@ -1716,6 +1716,7 @@ void MRISsetVolumeForSurface(MRI_SURFACE *mris, MRI *srcMri);
 
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
 int MRISremoveIntersections(MRI_SURFACE *mris, int FillHoles) ;
+int MRISremoveHighAngleHinges(MRI_SURFACE *mris, double AngleThresh, int FillHoles, int ndil, int nsmoothiters, MRI *mask);
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked3(MRI_SURFACE *mris) ;
@@ -1728,6 +1729,7 @@ int MRISopenMarked(MRI_SURFACE *mris, int order) ;
 int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
 int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
+int MRISfillHoles(MRIS *surf, char* fieldname, MRI *mri, double thresh);
 MRI *MRISdilateVertexToSum(int vno, MRIS *surf, MRI *measure, double targetSum);
 int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;

@@ -13013,6 +13013,66 @@ int mrisMarkIntersections(MRIS *mris, int FillHoles)
   return (num);
 }
 
+/*
+ \fn int MRISmarkEdge(MRIS *surf, MRI *mask, int metricid, double thresh, int FillHoles)
+ \brief sets the "marked" field in the surface vertex if the metric of
+  any edge connected to the vertex exceeds the threshold. The metrics
+  are: (1) length, (2) hinge dot product, or (3) hinge angle (deg). If
+  hinge dot product, then the absolute is taken before the test. For
+  length, it tests whether the length is LESS than the thresh, not
+  greater than. If FillHoles is set, then it will fill any holes in
+  the resulting binary marked mask.  If mask is set, then it excludes
+  any vertex not in the mask (does not apply to filling holes).
+ */
+int MRISmarkEdge(MRIS *surf, MRI *mask, int metricid, double thresh, int FillHoles)
+{
+  MRISfaceMetric(surf,0);
+  if(surf->edges == NULL) MRISedges(surf);
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+
+  MRISclearMarks(surf);
+  int nhits = 0;
+  for(int edgeno = 0; edgeno < surf->nedges; edgeno++){
+    MRI_EDGE *e = &(surf->edges[edgeno]);
+    // Skip this edge if any vertex is ripped or masked out
+    int skip = 0;
+    int nvmax = 4;
+    if(metricid == 0) nvmax = 2; // length does not need full hinge
+    for(int nthv=0; nthv < nvmax; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    int mark = 0, nmark=4;
+    switch(metricid){
+    case 0: if(e->len       < thresh) {mark=1; nmark=2;} break;
+    case 1: if(fabs(e->dot) > thresh) mark=1; break;
+    case 2: if(e->angle     > thresh) mark=1; break;
+    default:
+      printf("ERROR: MRISmaxEdgeStatToOverlay() metricid %d unrecognized\n",metricid);
+      return(-1);
+    }
+    if(!mark) continue;
+    for(int nthv=0; nthv < nmark; nthv++){ 
+      int vno = e->vtxno[nthv];
+      surf->vertices[vno].marked = 1;
+    }
+    nhits++;
+  }
+
+  if(FillHoles){
+    // Note: this will not respect the mask
+    int nfill = MRISfillHoles(surf, (char*) "marked", NULL, 0.5);
+    nhits += nfill;
+  }
+
+  return(nhits);
+}
+
+
 
 #define WM_VAL 1
 #define GM_VAL 2

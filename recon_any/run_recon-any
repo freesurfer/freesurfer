@@ -71,11 +71,11 @@ if( $#argv < 4 || $#argv > 5) then
   echo " "
   echo "Usage: "
   echo " "
-  echo "   recon-any.sh INPUT_SCAN SUBJECT_ID THREADS SIDE [SUBJECT_DIR]"
+  echo "   run_recon-any INPUT_SCAN SUBJECT_ID THREADS SIDE [SUBJECT_DIR]"
   echo " "
   echo "Or, for help"
   echo " "
-  echo "   recon-any.sh --help"
+  echo "   run_recon-any --help"
   echo " "
   exit 1
 endif
@@ -159,9 +159,9 @@ endif
 set IsRunningFile = ${SUBJECTS_DIR}/${SNAME}/scripts/IsRunning.file
 if(-e $IsRunningFile) then
   echo ""
-  echo "It appears that recon-any.sh is already running for this subject,"
+  echo "It appears that run_recon-any is already running for this subject,"
   echo "based on the presence of IsRunning.file"
-  echo "It could also be recon-any.sh was running at one point but died"
+  echo "It could also be run_recon-any was running at one point but died"
   echo "in an unexpected way. If it is the case that there is a process running,"
   echo "you can kill it and start over or just let it run. If the process has"
   echo "died, you should type:"

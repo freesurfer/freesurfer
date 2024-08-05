@@ -4082,6 +4082,70 @@ int MRISremoveIntersections(MRI_SURFACE *mris, int FillHoles)
   return (NO_ERROR);
 }
 
+/*!
+ \fn int MRISremoveHighAngleHinges(MRI_SURFACE *mris, double AngleThresh, int FillHoles, int ndil, int nsmoothiters, MRI *mask)
+ \brief Attempts to remove high-angle hinges by smoothing the vertices
+  around them. It "segments" the HAHs by finding vertices that have an
+  edge whose hinge angle exceeds AngleThresh. Holes in the seg can be
+  filled, and the seg can be dilated. The removal is implemented by
+  soap-bubble smoothing, which just runs nsmoothiters iterations of a
+  nearest neighbor smoother fixing the edges of the seg. This whole
+  process is itself run iteratively until no HAHs are detected or time
+  out. There may still be HAHs left over because the SBS can get
+  caught in local minima. There's probably a better way to do this,
+  but SBS was an easy solution. If a mask is passed, then edges
+  outside the mask are not included (but may be when dilated). Uses
+  the "marked" vertex field. The parameters have not been tested
+  extensively but as a first pass try thresh=100deg, FillHoles=1,
+  ndil=3, nsmooth=75 or higher. There is not much cost to increasing
+  nsmooth as it will just reach equilibrium and speed is not much
+  of an issue.
+*/
+int MRISremoveHighAngleHinges(MRI_SURFACE *mris, double AngleThresh, int FillHoles, int ndil, int nsmoothiters, MRI *mask)
+{
+  // time out parameters
+  int no_progress_max = 5;
+  int kmax = 100;
+
+  printf("MRISremoveHighAngleHinges(): %g %d %d %d %d %d\n",AngleThresh,FillHoles,ndil,nsmoothiters,no_progress_max,kmax);
+
+  // Mark the vertices connected to high-angle hinges
+  MRISclearMarks(mris);
+  int num = MRISmarkEdge(mris, mask, 2, AngleThresh, FillHoles);//2=edge angle metric id
+  printf(" Found %d vertices with high angle hinges\n",num);
+  if(num == 0) return (NO_ERROR);
+
+  // Dilate the marks
+  if(ndil > 0) MRISdilateMarked(mris, ndil);
+
+  // Iterate by soapbubble smoothing the high angle vertices to reduce their angle
+  int k = 0, n=0, no_progress = 0, old_num = mris->nvertices;
+  while (num > 0) {
+    printf("k=%d num=%d =================================\n",k,num);fflush(stdout);
+    if(num >= old_num){  // couldn't remove any
+      no_progress++;
+      printf("step %d with no progress (num=%d, old_num=%d)\n", no_progress, num, old_num); fflush(stdout);
+      if(no_progress > no_progress_max) break;
+    }
+    else no_progress = 0;
+    if(k > kmax) break; // don't let it go forever
+
+    printf("  %03d: %d high angle hinges \n", n, num); fflush(stdout);
+    MRISnotMarked(mris);  // turn off->on and on->off so soap bubble is correct (marked are fixed)
+    MRISsoapBubbleVertexPositions(mris, nsmoothiters);
+
+    MRISclearMarks(mris);
+    old_num = num;
+    num = MRISmarkEdge(mris, mask, 2, AngleThresh, FillHoles);//2=edge angle metric id
+    if(ndil > 0) MRISdilateMarked(mris, ndil);
+    k++;
+  }
+
+  printf("  terminating search with %d high angle hing vertices remaining\n", num);
+  return(NO_ERROR);
+}
+
+
 
 int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs)
 {

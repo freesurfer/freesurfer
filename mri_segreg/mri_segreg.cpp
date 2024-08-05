@@ -38,6 +38,7 @@
 
   --vsm vsmvol <pedir> : Apply a voxel shift map. pedir: 1=x, 2=y, 3=z (default 2)
   --vsm-pedir pedir : phase encode direction for vsm
+  --vsm-scale scale : multiply vsm by this value
 
   --brute_trans min max delta : brute force translation in all directions
   --brute min max delta : brute force in all directions
@@ -336,6 +337,8 @@ int nCostEvaluations=0;
 MRI *vsm=NULL;
 int pedir = 2;
 char *vsmfile = NULL;
+double vsmscale = 0;
+int ApplyVSMScale = 0;
 double angles[3],xyztrans[3],scale[3],shear[3];
 const char *surfname = "white";
 int dof = 6; 
@@ -397,6 +400,10 @@ int main(int argc, char **argv) {
     printf("Loading vsm\n");
     vsm = MRIread(vsmfile);
     if(vsm == NULL) exit(1);
+    if(ApplyVSMScale) {
+      printf("Multiplying VSM by scale %g\n",vsmscale);
+      MRImultiplyConst(vsm,vsmscale,vsm);
+    }
   }
 
   printf("Loading mov\n");
@@ -1171,6 +1178,12 @@ static int parse_commandline(int argc, char **argv) {
 	sscanf(pargv[1],"%d",&pedir);
 	nargsused++;
       }
+    } 
+    else if (istringnmatch(option, "--vsm-scale",0)) {
+      if(nargc < 1) argnerr(option,1);
+      ApplyVSMScale = 1;
+      sscanf(pargv[0],"%lf",&vsmscale);
+      nargsused = 1;
     } 
     else if (!strcmp(option, "--vsm-pedir")) {
       if(nargc < 1) argnerr(option,1);

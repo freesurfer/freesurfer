@@ -433,6 +433,7 @@ if($DoMagExfReg) then
     -searchry -10 10 \
     -searchrz -10 10 \
     -dof 6  -interp trilinear)
+  #set cmd = (mri_coreg --mov $magfw -ref $exf -reg magfw-in-exf.fsl.mat)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;

@@ -453,7 +453,7 @@ endif  # dcm2niix_dicom_dump=0
 # start printing series summary for pre-processed dicoms (mri_probedicom)
 echo "" | tee -a $LF
 echo "DICOM Pre-process Summary:" | tee -a $LF
-set ScanOnlySummary = "ScanOnly-Summary.txt"
+set ScanOnlySummary = "$TargetDir/log/ScanOnly-Summary.txt"
 foreach series ($SeriesNos)
   set protocol = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $2}' | head -n 1`
   set dicomfpath = `cat $SeriesInfo | awk -v s=$series '{if($1 == s) print $9}' | head -n 1`

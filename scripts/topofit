@@ -1,0 +1,574 @@
+#!/bin/tcsh -f
+# topofit - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  #source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set model = ()
+set outdir = ();
+set subject = ();
+set threads = 1
+set hemilist = (lh rh)
+set invol = ()
+set MakeSphere = 0
+set DoPost = 0
+set DoJosa = 0
+set MakeLinks = 1
+set ForceUpdate = 0
+set UseGPU = 0
+set ico7 = 0
+set inflateiters = 10
+set involname = brain.finalsurfs.manedit
+#set ds = /autofs/space/iddhi_001/users/greve/deepsurfer/ds
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set LFpassed = 0
+set udmade = 0
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/log
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.topofit.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.topofit.$$
+endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/log/topofit.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for topofit" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+#========================================================
+
+set ud = 0
+foreach hemi ($hemilist)
+  foreach surf (int ext)
+    set f = $outdir/cortex-$surf-$hemi.srf
+    set udA = `UpdateNeeded $f $invol`
+    if($udA) set ud = 1
+  end
+end
+if($ud || $ForceUpdate) then
+  #set cmd = (fspython $ds fit-cortex --image $invol --threads $threads --outdir $outdir --io si)
+  set cmd = (dsurffe fit-cortex --image $invol --threads $threads --outdir $outdir --io si)
+  if(! $UseGPU) set cmd = ($cmd --cpu)
+  if($#hemilist == 1) set cmd = ($cmd --hemi $hemilist)
+  if($#model) set cmd = ($cmd --model $model)
+  echo \n\n ==============================================| tee -a $LF
+  echo $cmd | tee -a $LF
+  echo \n\n ==============================================| tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+  set udmade = 1
+endif
+
+if($ico7) then
+  # Have to left-right reverse. Should put this in the deepsurfer dist
+  set tfspherelrrev = $outdir/topofit.sphere-reg.lrrev.srf
+  if(! -e $tfspherelrrev) then
+    set cmd = (mris_convert --left-right-rev $tfsphere $tfspherelrrev)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit
+    set udmade = 1
+  endif
+  foreach hemi ($hemilist)
+    set ico7targ = $FREESURFER/subjects/fsaverage/surf/$hemi.sphere.reg
+    set sphere = $outdir/sphere-topofit-$hemi.srf
+    foreach surf (int ext)
+      set tfsurf = $outdir/cortex-$surf-$hemi.srf
+      set tfsurfico7 = $outdir/cortex-$surf-$hemi.ico7.srf
+      set tfsphere0 = $tfsphere
+      if($hemi == rh) set tfsphere0 = $tfspherelrrev
+      set ud = `UpdateNeeded $tfsurfico7 $tfsurf`
+      if($ud || $ForceUpdate) then  
+        set cmd = (mris_apply_reg --bci-xyz $tfsurf $tfsphere0 $ico7targ $tfsurfico7)
+        echo $cmd | tee -a $LF
+        fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit
+        set udmade = 1
+        # Need to remove intersections?
+      endif
+    end # surf
+  end # hemi
+  set ico7str = ".ico7"
+else
+  set ico7str = ""
+endif
+
+if($MakeSphere) then
+  foreach hemi ($hemilist)
+    # Create the sphere starting with the TF sphere
+    set white = $outdir/cortex-int-$hemi$ico7str.srf
+    set pial  = $outdir/cortex-ext-$hemi$ico7str.srf
+    set sphere = $outdir/sphere-topofit-$hemi$ico7str.srf
+    set ud = `UpdateNeeded $sphere $white`
+    if($ud || $ForceUpdate) then  
+      set lrrevarg = ()
+      if(! $ico7) then
+        if($hemi == rh) set lrrevarg = (-left-right-reverse)
+        set targsphere = $tfsphere
+      else
+        set lrrevarg = ()
+        set targsphere = $FREESURFER/subjects/fsaverage/surf/$hemi.sphere.reg
+      endif
+      # -o means "orig" surf
+      set cmd = (mris_sphere -threads $threads -o $white -seed 1234 $lrrevarg $targsphere $sphere)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
+  end
+endif
+
+if($MakeLinks) then
+  foreach hemi ($hemilist)
+    pushd $outdir
+    foreach surf (orig.nofix smoothwm.nofix orig smoothwm white white.preaparc orig.premesh)
+      ln -sf cortex-int-$hemi$ico7str.srf $hemi.$surf
+    end
+    foreach surf (pial.T1 pial)
+      ln -sf cortex-ext-$hemi$ico7str.srf $hemi.$surf
+    end
+    if($MakeSphere) then
+      foreach surf (qsphere.nofix sphere)
+        ln -sf sphere-topofit-$hemi$ico7str.srf $hemi.$surf
+      end
+    endif
+    popd
+  end # hemi
+endif
+
+if($DoPost) then
+  foreach hemi ($hemilist)
+    set white = $outdir/cortex-int-$hemi$ico7str.srf
+    set pial  = $outdir/cortex-ext-$hemi$ico7str.srf
+    
+    # Compute the thickness (output as curv?)
+    set thickness = $outdir/$hemi.thickness
+    set ud = `UpdateNeeded $thickness $white $pial`
+    if($ud || $ForceUpdate) then
+      set cmd = (mris_place_surface --thickness $white $pial 20 5 $thickness)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
+
+    # Inflate. May need more iters for TF because many more vertices
+    set inflated = $outdir/$hemi.inflated
+    set sulc = $outdir/$hemi.sulc
+    set ud = `UpdateNeeded $inflated $white`
+    if($ud || $ForceUpdate) then
+      # Sulc will go into same dir as $white (the output dir). 
+      # If not using ico7, then may need more iters
+      set cmd = (mris_inflate -threads $threads -$hemi -n $inflateiters -sulc sulc $white $inflated)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
+
+    foreach meas (curv) # could do area for both white and pial here as well
+      set map = $outdir/$hemi.$meas
+      set ud = `UpdateNeeded $map $white`
+      if($ud || $ForceUpdate) then
+        set cmd = (mris_place_surface --$meas-map $white 2 10 $map)
+        echo $cmd | tee -a $LF
+        fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit
+        set udmade = 1
+      endif
+    end
+
+    set inflatedH = $outdir/$hemi.inflated.H
+    set ud = `UpdateNeeded $inflatedH $inflated`
+    if($ud || $ForceUpdate) then
+      # ?h.inflated.H will go into same dir as $inflated (the output dir)
+      set cmd = (mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 $inflated)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
+  end
+
+  if($DoJosa) then
+    set cmd = (josareg --surfdir $outdir --threads $threads --post --no-link)
+    if($#hemilist == 1) set cmd = ($cmd --$hemilist)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+
+endif
+
+echo "" | tee -a $LF
+echo "To view the results, run:" | tee -a $LF
+echo $viewcmd | tee -a $LF
+echo "" | tee -a $LF
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Topofit-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Topofit-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Topofit-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "topofit Done" |& tee -a $LF
+if($udmade == 0) then
+  echo "INFO: topofit: no changes made" | tee -a $LF
+  # Delete the log file to prevent build up of meaningless logs
+  if(! $LFpassed) rm -f $LF; 
+endif
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--involname":
+      if($#argv < 1) goto arg1err;
+      set involname = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--hemi":
+      if($#argv < 1) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      breaksw
+    case "--lh":
+      set hemilist = lh
+      breaksw
+    case "--rh":
+      set hemilist = rh
+      breaksw
+
+    case "--links":
+      set MakeLinks = 1
+      breaksw
+    case "--no-links":
+      set MakeLinks = 0
+      breaksw
+
+    case "--sphere":
+      set MakeSphere = 1
+      breaksw
+    case "--no-sphere":
+      set MakeSphere = 0
+      breaksw
+
+    case "--post":
+     set DoPost = 1
+     set MakeSphere = 1
+     breaksw
+    case "--no-post":
+     set DoPost = 0
+     set DoJosa = 0
+     breaksw
+
+    case "--josa":
+     set MakeSphere = 1
+     set DoPost = 1
+     set DoJosa = 1
+     breaksw
+    case "--no-josa":
+     set DoJosa = 0
+     breaksw
+
+    case "--model":
+      if($#argv < 1) goto arg1err;
+      set model = $argv[1]; shift;
+      breaksw
+
+    case "--gpu":
+      set UseGPU = 1
+      breaksw
+    case "--no-gpu":
+      set UseGPU = 0
+      breaksw
+
+    case "--ico7":
+      set ico7 = 1
+      breaksw
+    case "--no-ico7":
+      set ico7 = 0
+      breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      set LFpassed = 1
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      set LFpassed = 1
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject) then
+  if($#invol  == 0) set invol = $SUBJECTS_DIR/$subject/mri/$involname.mgz
+  if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/surf
+endif
+
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1
+endif
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+
+set invol = `getfullpath $invol`
+
+# Set up the view command now
+set viewcmd = (fsvglrun freeview --hide-3d-slices -neuro-view -rotate-around-cursor -v $invol )
+foreach hemi ($hemilist)
+  foreach surf (int ext)
+    set f = $outdir/cortex-$surf-$hemi.srf
+    if($surf == int) set c = yellow
+    if($surf == ext) set c = red
+    set viewcmd = ($viewcmd -f ${f}:edgecolor=$c)
+  end
+end
+
+# May need to redo this to look at other outputs
+set ud = 0
+foreach hemi ($hemilist)
+  foreach surf (int ext)
+    set f = $outdir/cortex-$surf-$hemi.srf
+    set udA = `UpdateNeeded $f $invol`
+    if($udA) set ud = 1
+  end
+end
+if(0 && ! $ud && ! $ForceUpdate) then
+  echo "topofit update not needed. Run with --force-update for force rerun"
+  echo "To view the results, run:"
+  echo ""
+  echo $viewcmd
+  echo ""
+  #exit 0
+endif
+
+if($MakeLinks) then
+  # If lh.white, etc, exist as real files and links are to be made, then bail
+  set warn = 0
+  foreach hemi ($hemilist)
+    set surflist = (white pial pial.T1 pial.T2)
+    if($MakeSphere) set surflist = ($surflist sphere) 
+    foreach surf ($surflist)
+      set f = $outdir/$hemi.$surf
+      if(-e $f && ! -l $f) then
+        if(! $ForceUpdate) then
+          echo "ERROR: $f exists and is a real file (not symlink)"
+          echo "  This probably means that you have run recon-all before "
+          echo "  Delete these files or run with --force to overwrite them" 
+          exit 1
+        else
+          echo "WARNING: $f exists and is a real file (not symlink)"
+          echo " However, --force was specified, so it will be overwritten"
+          set warm = 1
+        endif
+      endif
+    end
+  end
+  if($warn) sleep 2 # give em a change to ctrl-c
+endif
+
+set dsdir = `fspython -m pip show deepsurfer | grep Location | awk '{print $2}'`
+set tfsphere = $dsdir/deepsurfer/resource/template/sphere-reg.srf
+
+if(! -e $tfsphere && $MakeSphere) then
+  echo "ERROR: command line ok but cannot find $tfsphere"
+  exit 1
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "topofit "
+  echo " --s subject"
+  echo " --i invol (subject/mri/brainmask.finalsurfs.mgz)"
+  echo " --o outdir (subject/surf)"
+  echo " --no-links : do not make links in output dir"
+  echo " --sphere : make spherical surf"
+  echo " --lh/--rh"
+  echo " --post : create curv, thickness, inflated, inflated.H (enough for josa)"
+  echo " --josa : to josa reg (implies --post)"
+  echo " --ico7 : downsample from native topofit mesh to ico7 (does not work yet)"
+  echo " --sd SUBJECTS_DIR"
+  echo " --threads nthreads"
+  echo " --gpu : use GPU (may not work; does not apply to sphere)"
+  echo " --model model"
+  echo " --involname involname : volume to use as input when spec subject (default is $involname)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+https://surfer.nmr.mgh.harvard.edu/fstest/dstmp/development/modules/topofit.html
+
