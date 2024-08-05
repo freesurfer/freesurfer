@@ -236,7 +236,7 @@ int mri_identify(const char *fname_passed)
       ///////////////////////////////////////////////
       // if type is found then verify
       // IMAGE file uses only extension
-      if (type == IMAGE_FILE || type == NPY_FILE) return type;
+      if (type == IMAGE_FILE || type == NPY_FILE || type == MRI_MGH_FILE) return type;
 
       if (type != MRI_VOLUME_TYPE_UNKNOWN) {
         switch (type) {
@@ -275,9 +275,6 @@ int mri_identify(const char *fname_passed)
             break;
           case SDT_FILE:
             if (is_sdt(fname)) return type;
-            break;
-          case MRI_MGH_FILE:
-            if (is_mgh(fname)) return type;
             break;
           case MRI_MINC_FILE:
             if (is_mnc(fname)) return type;
@@ -362,8 +359,6 @@ int mri_identify(const char *fname_passed)
     return (GE_LX_FILE);
   else if (is_sdt(fname))     // append .spr
     return (SDT_FILE);
-  else if (is_mgh(fname))
-    return (MRI_MGH_FILE);
   else if (is_mnc(fname))     // .mnc, .mnc.gz, or first 3 bytes is "CDF"
     return (MRI_MINC_FILE);
   else if (is_nifti1(fname))  // must appear before ANALYZE, byte 344-348 is NIFTI1_MAGIC
@@ -803,39 +798,20 @@ int is_mnc(const char *fname)
 
 } /*  end is_mnc()  */
 
+// fname is identified as MRI_MGH_FILE if it is ended with extension .mgh, .mgz, or .mgh.gz
 int is_mgh(const char *fname)
 {
-  FILE *fp;
-  int width, height, depth, nframes;
-  // int version, type, dof;
+  const char *ext = strrchr(fname, '.');
+  if (ext == NULL)
+    return 0;
 
-  if (strstr(fname, ".mgh") || strstr(fname, ".mgz") || strstr(fname, ".mgh.gz")) return 1;
+   ext++;    // now points to extension
+   if (strcmp(fname, ".mgh") == 0 ||
+       strcmp(fname, ".mgz") == 0 ||
+       strcmp(fname, ".mgh.gz") == 0)
+     return 1;
 
-  if ((fp = fopen(fname, "r")) == NULL) {
-    errno = 0;
-    return (0);
-  }
-
-  // version =
-  freadInt(fp);
-  width = freadInt(fp);
-  height = freadInt(fp);
-  depth = freadInt(fp);
-  nframes = freadInt(fp);
-  // type =
-  freadInt(fp);
-  // dof =
-  freadInt(fp);
-
-  fclose(fp);
-
-  /* my estimates (ch) */
-  if (width < 64 || height < 64 || width > 1024 || height > 1024) return (0);
-  if (depth > 2000) return (0);
-  if (nframes > 2000) return (0);
-
-  return (1);
-
+   return 0;
 } /*  end is_mgh()  */
 /*--------------------------------------*/
 int is_bshort(const char *fname)
