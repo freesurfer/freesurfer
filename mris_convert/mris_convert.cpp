@@ -869,6 +869,27 @@ get_option(int argc, char *argv[])
     err = ComputeMRISvolumeTH3(argv[2],argv[3],1,argv[4]);
     exit(err);
   }
+  else if (!stricmp(option, "-volume2")){
+    MRIS *w = MRISread(argv[2]);
+    if(!w) exit(1);
+    MRIS *p = MRISread(argv[3]);
+    if(!p) exit(1);
+    MRI *mask = NULL;
+    if(strcmp(argv[4],"nolabel")!=0){
+      printf("Loading label %s",argv[4]);
+      LABEL *label = LabelRead(NULL, argv[4]);
+      if(label == NULL) exit(1);
+      mask = MRISlabel2Mask(w, label, NULL);
+      if(mask == NULL) exit(1);
+      LabelFree(&label);
+    }
+    double totvol;
+    MRI *mrisvol = MRISvolumeTH3(w, p, NULL, mask, &totvol);
+    printf("#@# mris_convert totalvol %g\n", totvol);
+    MRIScopyMRI(w, mrisvol, 0, "curv");
+    int err = MRISwriteCurvature(w, argv[5]);
+    exit(err);
+  }
   else if (!stricmp(option, "-da_num"))
   {
     sscanf(argv[2],"%d",&gifti_da_num);
