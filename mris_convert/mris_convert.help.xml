@@ -111,8 +111,10 @@
       <explanation>same as --to-tkr</explanation>
       <argument>--upsample N SortType</argument>
       <explanation>upsample N times by spliting edges/faces, SortType=1 starts with longest edges, SortType=3 starts with biggest triangles</explanation>
-      <argument>--volume ?h.white ?h.pial ?h.volume</argument>
+      <argument>--volume subject hemi out</argument>
       <explanation>compute vertex-wise volume, no other args needed (uses th3)</explanation>
+      <argument>--volume2 ?h.white ?h.pial label ?h.volume</argument>
+      <explanation>compute vertex-wise volume (uses th3). label could be ?h.cortex.label. If label=nolabel then no mask is used</explanation>
       <argument>--area surface area.mgz</argument>
       <explanation>compute vertex-wise area (no other args needed); rescales group if needed</explanation>
       <argument>--max-edge-stat surface metricid mes.mgz</argument>
