@@ -566,6 +566,8 @@ foreach run ($RunNos)
         set ImageType = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $10}'`
         if($#ImageType == 1) then
           if($ImageType == "ORIGINAL_PRIMARY_P_ND") set PhaseStr = "_phase"
+          if($ImageType == "ORIGINAL_PRIMARY_P_NONE") set PhaseStr = "_phase"
+          if($ImageType == "ORIGINAL_PRIMARY_P_DIS2D") set PhaseStr = "_phase"
         endif
       else
         set PhaseStr = `cat $infofile | awk -v r=$run '{if($2 == r) print $12}' | head -n 1`
