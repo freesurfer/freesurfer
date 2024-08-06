@@ -196,17 +196,6 @@ if($DoPost) then
     set white = $outdir/cortex-int-$hemi$ico7str.srf
     set pial  = $outdir/cortex-ext-$hemi$ico7str.srf
     
-    # Compute the thickness (output as curv?)
-    set thickness = $outdir/$hemi.thickness
-    set ud = `UpdateNeeded $thickness $white $pial`
-    if($ud || $ForceUpdate) then
-      set cmd = (mris_place_surface --thickness $white $pial 20 5 $thickness)
-      echo $cmd | tee -a $LF
-      fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit
-      set udmade = 1
-    endif
-
     # Inflate. May need more iters for TF because many more vertices
     set inflated = $outdir/$hemi.inflated
     set sulc = $outdir/$hemi.sulc
@@ -221,23 +210,63 @@ if($DoPost) then
       set udmade = 1
     endif
 
-    foreach meas (curv) # could do area for both white and pial here as well
-      set map = $outdir/$hemi.$meas
-      set ud = `UpdateNeeded $map $white`
-      if($ud || $ForceUpdate) then
-        set cmd = (mris_place_surface --$meas-map $white 2 10 $map)
-        echo $cmd | tee -a $LF
-        fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit
-        set udmade = 1
-      endif
-    end
+    set map = $outdir/$hemi.curv
+    set ud = `UpdateNeeded $map $white`
+    if($ud || $ForceUpdate) then
+      set cmd = (mris_place_surface --curv-map $white 2 10 $map)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
 
     set inflatedH = $outdir/$hemi.inflated.H
     set ud = `UpdateNeeded $inflatedH $inflated`
     if($ud || $ForceUpdate) then
       # ?h.inflated.H will go into same dir as $inflated (the output dir)
       set cmd = (mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 $inflated)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
+
+    # Might want to do these later to mask out medial wall
+    # Compute the thickness
+    set thickness = $outdir/$hemi.thickness
+    set ud = `UpdateNeeded $thickness $white $pial`
+    if($ud || $ForceUpdate) then
+      set cmd = (mris_place_surface --thickness $white $pial 20 5 $thickness)
+      echo $cmd | tee -a $LF
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+      set udmade = 1
+    endif
+    # Compute area
+    foreach surftype (white pial)
+      if($surftype == white) then
+        set surf = $white
+        set map = $outdir/$hemi.area
+      endif
+      if($surftype == pial) then
+        set surf = $pial
+        set map = $outdir/$hemi.area.pial
+      endif
+      set ud = `UpdateNeeded $map $surf`
+      if($ud || $ForceUpdate) then
+        set cmd = (mris_place_surface --area-map $surf  $map)
+        echo $cmd | tee -a $LF
+        fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit
+        set udmade = 1
+      endif
+    end
+    # Mid area? 
+    # Volume
+    set map = $outdir/$hemi.volume
+    set ud = `UpdateNeeded $map $white $pial`
+    if($ud || $ForceUpdate) then
+      set cmd = (mris_convert --volume2 $white $pial nolabel $map)
       echo $cmd | tee -a $LF
       fs_time $cmd |& tee -a $LF
       if($status) goto error_exit
