@@ -216,7 +216,8 @@ if($#mask == 0) then # for brain masking
   endif
 endif
 
-# Create the norm simply by masking the bias field corrected nu
+# Create the norm simply by masking the bias field corrected nu. 
+# This works for samseg, but maybe not so great for synthseg.
 set norm = $mdir/norm.mgz
 set ud = `UpdateNeeded $norm $nu $mask`
 if($ud || $ForceUpdate) then
