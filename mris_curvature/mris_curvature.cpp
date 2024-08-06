@@ -78,7 +78,7 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN],
                name[STRLEN],*cp ;
-  int          ac, nargs, nhandles ;
+  int          ac, nargs, nhandles,err ;
   MRI_SURFACE  *mris ;
   double       ici, fi, var ;
 
@@ -402,7 +402,9 @@ main(int argc, char *argv[])
       }
       fprintf(stderr, "done.\nwriting mean curvature to %s...\n", fname) ;
       snprintf(curv_name, len_curv_name+1, "%s%s.H%s", name, suffix,output_type) ;
-      MRISwriteCurvature(mris, fname,curv_name) ;
+      printf("%s\n",curv_name);
+      err = MRISwriteCurvature(mris, fname,curv_name) ;
+      if(err) exit(1);
 
       // write k1 and k2
       //MRI *mritmp = MRIcopyMRIS(NULL, mris, 0, "k1");
