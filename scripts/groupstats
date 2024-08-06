@@ -106,6 +106,12 @@ echo $slist       > $outdir/subjectslist.txt
 
 #========================================================
 
+pushd $SUBJECTS_DIR
+if(! -e fsaverage) then
+  ln -s $FREESURFER/subjects/fsaverage
+endif
+popd
+
 # BA label files changed name with version 6 to add "_exvivo"
 # Detect it with this. Below, make output files use original name
 set BAex = ""
