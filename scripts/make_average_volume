@@ -97,7 +97,10 @@ set tmpdir = $outdir/tmp/make_average_vol-tmp-$$
 mkdir -p $tmpdir
 
 #----------------------------------------------------------
-foreach volid (nu norm wm) #orig nu T1 brain wm # wm needed for surfaces?
+# orig nu T1 brain wm 
+# wm needed for surfaces?
+# it would be nice to rescale the nu 
+foreach volid (nu norm) 
   set invollist = ();
 
   foreach subject ($SUBJECTS)
@@ -180,7 +183,7 @@ echo "0.0 0.0 1.0 0.0;" >> $outtalxfm
 #----------------------------------------------------------
 if($DoASeg) then
   foreach seg (aseg)
-    # aparc+aseg and wmparc dont work so well
+    # aparc+aseg and wmparc dont work so well, so do them using recon-all
     set invollist = ()
     @ nth = 0;
     foreach subject ($SUBJECTS)
@@ -251,7 +254,7 @@ if($DoASeg) then
     set cmd = (mri_concat $invollist --o $tmpdir/vote.mgz --vote \
       --mask $outdir/mri/brainmask.mgz --debug)
     echo $cmd | tee -a $LF
-    $cmd  | tee -a $LF
+    fs_time $cmd  | tee -a $LF
     if($status) then
       echo "WARNING: could not create average segmentation for $seg ..." | tee -a $LF
       echo "  ... but continuing" | tee -a $LF
@@ -271,7 +274,7 @@ if($DoASeg) then
     $cmd  | tee -a $LF
     if($status) exit 1;
 
-    # persurf is needed for the creation of ribbon and aparc+aseg
+    # presurf is needed for the creation of ribbon and aparc+aseg
     # these steps are done with a call to recon-all in make_average_volume
     if($seg == aseg) then
       pushd $outdir/mri
