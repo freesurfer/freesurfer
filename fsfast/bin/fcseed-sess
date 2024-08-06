@@ -407,7 +407,9 @@ check_params:
 
   set UseExtract = 0;
   set tmp = `cat $fcconfig | awk '{if($1 == "UseExtract") print $0}'`
-  if($#tmp) set UseExtract = $tmp[2];
+  if($#tmp) then
+    set UseExtract = $tmp[2];
+  endif
 
   set tmp = `cat $fcconfig | awk '{if($1 == "RescaleType") print $0}'`
   if($#tmp == 0) then
