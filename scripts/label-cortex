@@ -114,7 +114,9 @@ foreach hemi ($hemilist)
   # just the medial portion of gyrus ambiens and then merge it with
   # the default label above. The basic idea is that the surface normal
   # of the medial portion will point down and to the right (for left
-  # hemi) and down and to the left (for right hemi).
+  # hemi) and down and to the left (for right hemi). This requires
+  # that mri_entowm_seg has been run and that the segmentation is 
+  # reaonsable (some AD subjects have no seg).
 
   # There is another fix in this area called amyg-ctx junction (-fix-acj)
   # and sometimes this label fix does not extend into this area
