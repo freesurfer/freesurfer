@@ -231,7 +231,11 @@ endif
 if($DoMaps) then
   foreach meas ($mapmeaslist)
     set fmt = ()
-    if($meas == w-g.pct) set fmt = .mgh
+    if($meas == w-g.pct) then
+      set fmt = .mgh
+      if(-e $SUBJECTS_DIR/$slist[1]/surf/$hemilist[1].w-g.pct.mgz)    set fmt = .mgz
+      if(-e $SUBJECTS_DIR/$slist[1]/surf/$hemilist[1].w-g.pct.nii.gz) set fmt = .nii.gz
+    endif
     foreach hemi ($hemilist)
       # concat data ---------------------
       set outfile =  $outdir/maps/$meas.$hemi.sm00.mgh
