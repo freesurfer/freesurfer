@@ -1578,7 +1578,7 @@ if($SynthStrip) then
   set ud = `UpdateNeeded $synthstrip $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthstrip $XOptsFile`;
-    set cmd = (mri_synthstrip -i $origvol -o $synthstrip $xopts)
+    set cmd = (mri_synthstrip --threads $OMP_NUM_THREADS -i $origvol -o $synthstrip $xopts)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -1588,13 +1588,14 @@ if($SynthStrip) then
 endif
 
 set synthseg = $subjdir/mri/synthseg.rca.mgz
+set synthsegcsv = $subjdir/stats/synthseg.vol.csv
 if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
   # Note: no m3z will be produced.
   set origvol  = $subjdir/mri/orig.mgz
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthseg $XOptsFile`;
-    set cmd = (mri_synthseg --i $origvol --o $synthseg --threads $OMP_NUM_THREADS $xopts)
+    set cmd = (mri_synthseg --i $origvol --o $synthseg --threads $OMP_NUM_THREADS --vol $synthsegcsv $xopts)
     if(! $UseGPU)  set cmd = ($cmd --cpu)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -1622,6 +1623,13 @@ if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
     # seg2recon will create a brainmask.mgz. Below, synthstrip will re-create it,
     # but it should be identical.
   endif
+endif
+
+
+set synthsegtiv = $subjdir/stats/synthseg.tiv.dat
+if(-e $synthsegcsv) then
+  set ud = `UpdateNeeded $synthsegtiv $synthsegcsv`
+  csvprint --csv $synthsegcsv --f "total intracranial" > $synthsegtiv
 endif
 
 if($UseSamseg) then
@@ -2197,7 +2205,8 @@ if($SynthStrip) then
       $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-    if($FixMCADura) then
+    # Moved mcadura and vsinus masking to brain.finalsurfs
+    if(0 && $FixMCADura) then
       set cmd = (mri_mask -invert $BM $mdir/mca-dura.mgz $BM)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) then
@@ -2205,7 +2214,7 @@ if($SynthStrip) then
         if($status) goto error_exit;
       endif
     endif
-    if($FixVSinus) then
+    if(0 && $FixVSinus) then
       set cmd = (mri_mask -invert $BM $mdir/vsinus.mgz $BM)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) then
@@ -2721,6 +2730,10 @@ if($DoCAReg && ! $UseSynthSeg) then
   set cmd = ($cmd $UseCAAlignAfter)
   set cmd = ($cmd -mask brainmask.mgz)
   set cmd = ($cmd $xopts $norm ${GCADIR}/$GCA $m3z)
+  set deps = ($norm)
+  if(! $longitudinal) set deps = ($deps $lta)
+  if(  $longitudinal) set deps = ($deps $longbasedir/mri/transforms/talairach.m3z)
+  set ud = `UpdateNeeded $m3z $deps`
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   set st = $status
@@ -2784,15 +2797,41 @@ if($FixEntoWM) then
   echo "\n#@# EntoWM Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   set nu = $mdir/nu.mgz
   set entowm = $mdir/entowm.mgz  
+  set entowmstats = $SUBJECTS_DIR/$subjid/stats/entowm.stats
   set ud = `UpdateNeeded $entowm $nu`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts mri_entowm_seg $XOptsFile $GlobXOptsFile`;
-    set cmd = (mri_entowm_seg --i $nu --o $entowm --conform --threads $OMP_NUM_THREADS $xopts)
+    # --s uses nu and also outputs a .stats file
+    set cmd = (mri_entowm_seg --s $subjid --conform --threads $OMP_NUM_THREADS $xopts)
     echo $cmd | tee -a $LF
     if($RunIt) $cmd | tee -a $LF
     if($status) goto error_exit;
   else
     echo "EntoWM Segmentation does not need to be updated" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+  # Check for seg failure by checking whether the entowm volume is
+  # less than 200 or the gyrus ambiens volume is less than 50. In the
+  # manual data set the min entowm was 751 and the min GA was 217. A
+  # "failure" could cause fix-ga in label-cortex to fail outright, but
+  # also raises the question about whether this should be manually
+  # edited if FixEntoWM or FixGA are to be used for any subject in the
+  # study. Eg, if it is going to fail, it is likely to fail in cases
+  # where there is a lot of atrophy. For studies with good data with
+  # subjects without a ton of atrophy, the failure rates are low. In
+  # FHS (N=6000) was less than 1%. FC1K (N=499) was less than 1%. In
+  # IXI (N=526), none failed.  Buckner40 (N=40) was about 5%. But in
+  # ADNI3 (N=2142), failure rate was about 4%, with CN at about 1%,
+  # MCI at about 5-8%, and AD at about 30%. For ADNI1 (N=100), CN was
+  # less than 1% and AD was 25%.
+  grep -v \# $entowmstats | tee -a $LF
+  set gaok = 1;
+  foreach hemi ($hemilist)
+    set vols = (`grep wm-$hemi $entowmstats | awk '{print $3}'`)
+    if($vols[1] < 200 || $vols[2] < 50) set gaok = 0;
+  end
+  if(! $gaok) then
+    echo "WARNING: entowm has very low volumes so not using it to edit GA of cortex label" | tee -a $LF
+    set FixGA = 0
   endif
 endif
 
@@ -5097,6 +5136,7 @@ if($DoWMParc) then
     echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
+  if(-e $synthsegtiv) set cmd = ($cmd --stiv $synthsegtiv)
   if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   set cmd = ($cmd $xopts);
@@ -5257,6 +5297,7 @@ if($DoSegStats) then
     echo "\nINFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
+  if(-e $synthsegtiv) set cmd = ($cmd --stiv $synthsegtiv)
   if ( ( -e surf/lh.white$FS_GII ) && ( -e surf/rh.white$FS_GII ) ) then
     set cmd = ($cmd --surf-wm-vol)
     if ( ( -e surf/lh.pial$FS_GII ) && ( -e surf/rh.pial$FS_GII ) ) then
@@ -5308,6 +5349,7 @@ if($DoAParcASegStats) then
     echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
+  if(-e $synthsegtiv) set cmd = ($cmd --stiv $synthsegtiv)
   set cmd = ($cmd $xopts);
   if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   $PWD |& tee -a $LF
@@ -8201,7 +8243,7 @@ check_params:
       exit 1
     endif
 
-    if($TopoFitLevel >= 1 || $UseSynthSeg || $SynthStrip || $JosaReg) then
+    if($TopoFitLevel >= 1 || $UseSynthSeg || $JosaReg) then
       if($?FS_ALLOW_DEEP == 0) setenv FS_ALLOW_DEEP 0
       if(! $FS_ALLOW_DEEP) then
         echo "ERROR: cannot use ML routines"
@@ -8268,6 +8310,7 @@ check_params:
     endif
 
     #------------ Longitudinal ---------------#
+    set longbasedir = ()
     if($longitudinal || $LongSamseg) then
       set longbasedir = $SUBJECTS_DIR/$longbaseid
     endif
