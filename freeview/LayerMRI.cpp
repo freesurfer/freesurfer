@@ -96,7 +96,7 @@
 #include "geos.h"
 
 
-#define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
+#define IMAGE_RESAMPLE_FACTOR     2.0     // must be multiples of 2
 
 LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent ),
   m_volumeSource( NULL),
