@@ -54,6 +54,7 @@ option(TEST_WITH_CUDA "Allow tests to run that use cuda libs and require install
 option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
 option(FSPYTHON_INSTALL_TREE "install fspython distro and scripts to a separate install tree" OFF)
+option(FSPYTHON_TORCH_CUDA "install torch instead of torch+cpu pkg into fspython for cuda support plus dependent cuda pkgs" OFF)
 option(APPLE_ARM64 "Mac arm64 build" OFF)
 
 message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")

@@ -29,7 +29,7 @@ fi
 # echo "--------------------------------- start of req.sh ------------------------------"
 
 s=`echo $0 | sed 's;^\.\/;;'`
-echo "$s: start"
+# echo "$s: start"
 add_links=0
 rm_links=0
 generate=0
@@ -65,7 +65,7 @@ do
            fi
            ;;
         "--uninstall" )
-           echo "$s: Remove packages that include libs/code we cannot re-distribute and/or are not cross-platform compatible."
+           # echo "$s: Remove packages that include libs/code we cannot re-distribute and/or are not cross-platform compatible."
            uninstall=1
            if [[ $generate -eq 1 || $add_links -eq 1 || $rm_links -eq 1 || $reinstall -eq 1 || $torchcpu -eq 1 ]]; then
               echo "$s: Only 1 argument allowed" && exit 1
@@ -85,7 +85,7 @@ do
               echo "$s: Only 1 argument allowed" && exit 1
            fi
            ;;
-        *) echo >&2 "Invalid option: $opt"; exit 1;;
+        *) echo >&2 "$s: Invalid option: $opt"; exit 1;;
    esac
 done
 
@@ -95,35 +95,47 @@ top_dir=$PWD
 cd $this_dir
 
 cmake_cache=""
-if [ "${BUILD_GENERATED_CMAKECACHE}" == "" ]; then
-   echo "$s: Cannot proceed w/o path to CMakeCache.txt defined in env var BUILD_GENERATED_CMAKECACHE - exiting."
-   exit 1
-else
-   if [ ! -e ${BUILD_GENERATED_CMAKECACHE} ]; then
-      echo "$s: Could not find expected build generated file ${BUILD_GENERATED_CMAKECACHE} - exitting."
-      exit 1
-   else
+install_path=""
+
+if [ ! -z ${BUILD_GENERATED_CMAKECACHE} ]; then
+   if [ -e ${BUILD_GENERATED_CMAKECACHE} ]; then
       echo "$s: Using cmake cache file ${BUILD_GENERATED_CMAKECACHE}"
       cmake_cache=${BUILD_GENERATED_CMAKECACHE}
+      grep "^CMAKE_INSTALL_PREFIX" $cmake_cache > /dev/null 2>&1
+      if [ $? != 0 ]; then
+         echo "$s: Cannot get install path from existing cmake cache"
+         # exit 1
+      else
+         install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
+      fi
    fi
 fi
 
-install_path=""
-# try env setting
+date_ymd=`date +%Y%m%d`
+temp_install_path=""
 if [ ! -z ${FS_INSTALL_DIR} ]; then
-   if [ -e ${FS_INSTALL_DIR} ]; then
+   if [ ! -e ${FS_INSTALL_DIR} ]; then
+      # The nightly build install prefix has the date format above already appended, e.g., dev_20240802,
+      # which will be renamed to ./dev if the build succeeds. This is a fallback in case running in
+      # the nightly build tree where the build failed.
+      temp_install_path="${FS_INSTALL_DIR}_${date_ymd}"
+      if [ -e ${temp_install_path} ]; then
+         install_path=${temp_install_path}
+      fi
+   else
       install_path=${FS_INSTALL_DIR}
    fi
-else
-   install_path=`grep "^CMAKE_INSTALL_PREFIX" $cmake_cache | sed 's;^.*=;;'`
 fi
-if [ "$install_path" == "" ]; then
-   echo "$s: *** Error: Could not determine install path from FS_INSTALL_DIR or find a CMakeCache.txt file."
+
+if [ "${install_path}" == "" ]; then
+   echo "$s: Did not find ${FS_INSTALL_DIR}"
+   echo "$s: Did not find ${temp_install_dir}"
+   echo "$s: Could not determine install path for sandbox/build - exiting."
    exit 1
-else
-   echo "$s: Using install path $install_path"
 fi 
 
+# Use python_binary directory as the fspython wrapper script may not yet be installed
+python_binary="${install_path}/python/bin/python3"
 nvidia_subdir="$install_path/python/lib/python3.8/site-packages/nvidia"
 
 if [ $generate -eq 1 ]; then
@@ -136,13 +148,13 @@ if [ $generate -eq 1 ]; then
       fi
    fi
 
-   func_setup_fspython
+   # func_setup_fspython
    build_req_new="requirements-build.txt.NEW"
    build_req_orig="requirements-build.txt.ORIG"
    build_req_git="requirements-build.txt"
    rm -f $build_req_new $build_req_orig
 
-   # $fspython -m pip freeze | sort | uniq > $build_req_new
+   # $python_binary -m pip freeze | sort | uniq > $build_req_new
    ## remove spaces around anpersand in version specs with URL's
    ## comment out entries for which pip reports no version (pyfs, qatools)
    ## comment out entries not available on MacOS (nvidia, triton)
@@ -150,14 +162,23 @@ if [ $generate -eq 1 ]; then
    voxelmorph_url_when_version_invalid="voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4"
    neurite_url_when_version_invalid="git+https://github.com/adalca/neurite.git@95b2b568b124cbc654467177ddcdb2cb3526788c"
    pystrum_url_when_version_invalid="git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21"
+   spheremorph_url_when_version_invalid="spheremorph@git+https://github.com/silencer1127/spheremorph.git@master"
+   ## torch cpu URL needs to be listed as arg to --find-links on line preceeding the torch cpu spec, e.g.,
+   ## --find-links https://download.pytorch.org/whl/torch_stable.html
+   ## torch==2.1.2+cpu
+   torch_cpu_url="https://download.pytorch.org/whl/torch_stable.html"
+
    ## surfa now returns hash
    # surfa_url_when_version_invalid="surfa@git+https://github.com/freesurfer/surfa.git@026cabec14bb03d9dfbc6b5bdf14baec7bd51c7f"
 
-   # $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' > $build_req_new
+   # $python_binary -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' > $build_req_new
 
-   # $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' | sed 's;surfa==.*;'${surfa_url_when_version_invalid}';' > $build_req_new
+   # $python_binary -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' | sed 's;surfa==.*;'${surfa_url_when_version_invalid}';' > $build_req_new
 
-   $fspython -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' > $build_req_new
+   # $python_binary -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' > $build_req_new
+
+   ## need URL for spheremorph and addition of fsutil breaks solving requirements
+   $python_binary -m pip freeze | sort | uniq | sed 's; @ ;@;g' | sed 's;^qatools.*;#&;' | sed 's;^pyfs.*;#&;' | sed 's;^nvidia.*;#&;' | sed 's;^triton.*;#&;' | sed 's;^fsutil.*;#&;' | sed 's;voxelmorph==.*;'${voxelmorph_url_when_version_invalid}';' | sed 's;neurite==.*;'${neurite_url_when_version_invalid}';' | sed 's;pystrum==.*;'${pystrum_url_when_version_invalid}';' | sed 's;spheremorph==.*;'${spheremorph_url_when_version_invalid}';' | sed 's;^torch==.*cpu;--find-links '${torch_cpu_url}'\n&;' > $build_req_new
 
    if [ $(wc -l < $build_req_new) -eq 0 ]; then
       echo "$s: $build_req_new has no entries so cannot use it to update requirements-build.txt"
@@ -255,71 +276,70 @@ if [ $rm_links -eq 1 ]; then
 fi
 
 if [ $torchcpu -eq 1 ]; then
-   # Does not look like there is a way to specify the latest version of the torch cpu package
-   # in requirements-extra.txt, e.g., torch==*.cpu
-   func_setup_fspython
-   torch_rev=`fspython -m pip freeze | grep torch | sed 's;^.*==;;'`
-   torch_rev_cpu="${torch_rev}+cpu"
-   echo "Replacing torch ${torch_rev} with torch ${torch_rev_cpu}"
-   yes | fspython -m pip uninstall torch
-   if [ $? -ne 0 ]; then
-      echo "$s: pip UNINSTALL failed - exiting."
-      exit 1
+   ## Does not look like there is a way to specify the latest version of the torch cpu package
+   ## in requirements-extra.txt, e.g., torch==*.cpu
+   # func_setup_fspython
+   torch_rev=`$python_binary -m pip freeze | grep torch | sed 's;^.*==;;'`
+   torch_rev_numeric=`echo $torch_rev| sed 's;\+.*;;'`
+   if [ "${torch_rev}" == "${torch_rev_numeric}+cpu" ]; then
+      echo "$s: ${torch_rev} already installed - nothing to do."
    else
-      echo "fspython UNINSTALL returned status 0"
-   fi
-   yes | fspython -m pip install torch==${torch_rev_cpu} -f https://download.pytorch.org/whl/torch_stable.html
-   if [ $? -ne 0 ]; then
-      echo "$s: pip INSTALL failed - exiting."
-      exit 1
-   else
-      echo "fspython INSTALL returned status 0"
+      torch_rev_cpu="${torch_rev}+cpu"
+      echo "$s: Replacing torch ${torch_rev} with torch ${torch_rev_cpu}"
+      $python_binary -m pip uninstall -y torch
+      if [ $? -ne 0 ]; then
+         echo "$s: pip UNINSTALL failed - exiting."
+         exit 1
+      fi
+      yes | $python_binary -m pip install torch==${torch_rev_cpu} -f https://download.pytorch.org/whl/torch_stable.html
+      if [ $? -ne 0 ]; then
+         echo "$s: pip INSTALL failed - exiting."
+         exit 1
+      fi
    fi
 fi
 
 if [ $uninstall -eq 1 ]; then
-   # check contents of nvidia directory
-   echo "Contents of nvidia subdir BEFORE UNINSTALL"
-   ls $nvidia_subdir
+   ## check contents of nvidia directory
+   # echo $s: "Contents of nvidia subdir BEFORE UNINSTALL"
+   # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
 
-   func_setup_fspython
+   # func_setup_fspython
    ## remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
    ## remove triton
    ## replace torch with torch+cpu version (no cuda libs) via --libtorch arg above
-   # fspython -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
-   fspython -m pip freeze | grep "^nvidia\|^triton" > /dev/null
+   # $python_binary -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
+   $python_binary -m pip freeze | grep "^nvidia\|^triton" > /dev/null
    if [ $? -eq 0 ]; then
       rm -f postinstall.list
-      # fspython -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
-      fspython -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > postinstall.list
+      # $python_binary -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
+      $python_binary -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > postinstall.list
       echo -n "$s: Uninstalling: "
       cat postinstall.list | tr -s '\n' ' ' && echo
-      yes | fspython -m pip uninstall -q -r postinstall.list > /dev/null 2>&1
+      yes | $python_binary -m pip uninstall -y -q -r postinstall.list > /dev/null 2>&1
       if [ $? -ne 0 ]; then
          echo "$s: pip UNINSTALL failed - exiting."
          exit 1
-      else
-         echo "fspython UNINSTALL returned status 0"
       fi
 
-      # check contents of nvidia directory
-      echo "Contents of nvidia subdir AFTER UNINSTALL"
-      ls $nvidia_subdir
+      ## check contents of nvidia directory
+      # echo "$s: Contents of nvidia subdir AFTER UNINSTALL"
+      # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
 
-      # create a postinstall script to reinstall what was deleted
+      ## create a postinstall script to reinstall what was deleted
       if [ -e ./postinstall.list ]; then
          rm -f postinstall.sh
-         echo -n "yes | fspython -m pip install " > postinstall.sh
+         echo -n "$s: $python_binary -m pip install -y " > postinstall.sh
          # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
          # 03/2024 - exclude nvidia-cudnn-cu12 which breaks installation on Ubuntu linux
          cat postinstall.list | grep -v "nvidia-cudnn-cu12" | tr -s '\n' ' ' >> postinstall.sh
          chmod 755 postinstall.sh
-         # also save these in the fspython distribution
+         ## save something the fspython distribution
          cp -p -f postinstall.list $install_path/python/.
-         cp -p -f postinstall.sh $install_path/python/.
-         cat $install_path/python/postinstall.sh
+         # cp -p -f postinstall.sh $install_path/python/.
+         # cat $install_path/python/postinstall.sh
       else
-         echo "Cannot find list of removed modules postinstall.list to create postinstall.sh"
+         echo "$s: Cannot find list of removed modules postinstall.list to create postinstall.sh"
       fi
 
    else
@@ -330,9 +350,9 @@ fi
 
 if [ $reinstall -eq 1 ]; then
    if [ -e $install_path/python/postinstall.sh ]; then
-      # check contents of nvidia directory
-      echo "Contents of nvidia subdir BEFORE REINSTALL"
-      ls $nvidia_subdir
+      ## check contents of nvidia directory
+      # echo "$s: Contents of nvidia subdir BEFORE REINSTALL"
+      # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
 
       func_setup_fspython
       # (cd $install_path/python && bash -x postinstall.sh)
@@ -340,19 +360,17 @@ if [ $reinstall -eq 1 ]; then
       if [ $? -ne 0 ]; then
          echo "$s: pip REINSTALL failed - exiting."
          exit 1
-      else
-         echo "fspython REINSTALL returned status 0"
       fi
 
-      # check contents of nvidia directory
-      echo "Contents of nvidia subdir AFTER REINSTALL"
-      ls $nvidia_subdir
+      ## check contents of nvidia directory
+      # echo "$s: Contents of nvidia subdir AFTER REINSTALL"
+      # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
    else
-      echo "Cannot find postinstall script postinstall.sh to re-install python modules"
+      echo "$s: Cannot find postinstall script postinstall.sh to re-install python modules"
    fi
 fi
 
 
 # echo "--------------------------------- end of req.sh ------------------------------"
-echo "$s: end"
+# echo "$s: end"
 
