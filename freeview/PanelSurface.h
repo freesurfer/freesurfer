@@ -111,6 +111,7 @@ protected slots:
   void OnCustomFillTriggered(const QVariantMap& options);
   void OnButtonClearMarks();
   void OnButtonSaveMarks();
+  void OnButtonSavePath();
   void OnLineEditLabelOpacity(const QString& text);
   void OnButtonLabelUp();
   void OnButtonLabelDown();

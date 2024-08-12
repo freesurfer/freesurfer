@@ -140,5 +140,7 @@
         <file>resource/icons/voxel_draw_scribble.png</file>
         <file>resource/icons/surface_save_marks.png</file>
         <file alias="FreeSurferColorLUT.txt">../distribution/FreeSurferColorLUT.txt</file>
+        <file>resource/icons/surface_path_save.png</file>
+        <file>resource/icons/surface_path_save_dm.png</file>
     </qresource>
 </RCC>

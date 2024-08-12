@@ -346,7 +346,7 @@ public:
 
   void SetActivePath(int n);
 
-  SurfacePath* GetActivePath();
+  SurfacePath* GetActivePath(bool bLast = false);
 
   SurfacePath* GetMadePath(int nPath);
 
@@ -371,6 +371,8 @@ public:
   void ClearMarks();
 
   void SaveMarks(const QString& filename);
+
+  void SavePath(const QString& filename);
 
   SurfaceLabel* CreateNewLabel(const QString& name = "");
 

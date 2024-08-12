@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>458</width>
+    <width>574</width>
     <height>1641</height>
    </rect>
   </property>
@@ -24,7 +24,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>458</width>
+     <width>574</width>
      <height>1641</height>
     </rect>
    </property>
@@ -108,6 +108,7 @@
         <addaction name="actionMakePath"/>
         <addaction name="actionMakeClosedPath"/>
         <addaction name="actionPathFill"/>
+        <addaction name="actionSavePath"/>
         <addaction name="actionDeletePath"/>
         <addaction name="actionClearMarks"/>
         <addaction name="actionSaveMarks"/>
@@ -1705,6 +1706,18 @@
    </property>
    <property name="text">
     <string>Save Marks</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionSavePath">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_path_save.png</normaloff>:/resource/icons/surface_path_save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Path</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>

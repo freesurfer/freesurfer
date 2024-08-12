@@ -67,6 +67,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
       ui->actionMakePath->setIcon(QIcon(":/resource/icons/surface_path_make_dm.png"));
       ui->actionMakeClosedPath->setIcon(QIcon(":/resource/icons/surface_path_make_closed_dm.png"));
       ui->actionDeletePath->setIcon(QIcon(":/resource/icons/surface_path_delete_dm.png"));
+      ui->actionSavePath->setIcon(QIcon(":/resource/icons/surface_path_save_dm.png"));
   }
 #endif
 
@@ -212,6 +213,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   connect(ui->actionClearMarks, SIGNAL(triggered(bool)), SLOT(OnButtonClearMarks()));
   connect(ui->actionSaveMarks, SIGNAL(triggered(bool)), SLOT(OnButtonSaveMarks()));
+  connect(ui->actionSavePath, SIGNAL(triggered(bool)), SLOT(OnButtonSavePath()));
 
   connect(ui->toolButtonLabelUp, SIGNAL(clicked(bool)), SLOT(OnButtonLabelUp()));
   connect(ui->toolButtonLabelDown, SIGNAL(clicked(bool)), SLOT(OnButtonLabelDown()));
@@ -236,6 +238,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ag->addAction(ui->actionMakePath);
   ag->addAction(ui->actionMakeClosedPath);
   ag->addAction(ui->actionDeletePath);
+  ag->addAction(ui->actionSavePath);
   ag->addAction(ui->actionPathFill);
   ag->setVisible(false);
   connect(ui->actionPath, SIGNAL(toggled(bool)), ag, SLOT(setVisible(bool)));
@@ -348,6 +351,9 @@ void PanelSurface::DoIdle()
                                     && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
                                       && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
+  ui->actionSaveMarks->setEnabled(layer && layer->GetMarks() && layer->GetMarks()->GetNumberOfPoints() > 0);
+  ui->actionSavePath->setEnabled(layer && layer->GetActivePath(true));
+  ui->actionDeletePath->setEnabled(layer && layer->GetActivePath(true));
 
   int nMode = MainWindow::GetMainWindow()->GetMode();
   ui->actionCut->setChecked(nMode == RenderView::IM_SurfaceCut);
@@ -1526,6 +1532,19 @@ void PanelSurface::OnButtonSaveMarks()
                                        dir.absolutePath(),
                                        "All files (*)");
   surf->SaveMarks(fn);
+}
+
+void PanelSurface::OnButtonSavePath()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if (!surf)
+    return;
+
+  QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+  QString fn = QFileDialog::getSaveFileName( this, "Select file",
+                                       dir.absolutePath(),
+                                       "All files (*)");
+  surf->SavePath(fn);
 }
 
 void PanelSurface::OnLineEditLabelOpacity(const QString &text)

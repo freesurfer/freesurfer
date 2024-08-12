@@ -2622,6 +2622,14 @@ void LayerSurface::SaveMarks(const QString &filename)
   }
 }
 
+void LayerSurface::SavePath(const QString &filename)
+{
+  if (GetActivePath(true))
+  {
+    GetActivePath(true)->SaveAsControlPoints(filename);
+  }
+}
+
 void LayerSurface::EditPathPoint(int vno, bool remove)
 {
   if (!m_marks)
@@ -2659,10 +2667,12 @@ void LayerSurface::SetActivePath(int n)
   emit ActorUpdated();
 }
 
-SurfacePath* LayerSurface::GetActivePath()
+SurfacePath* LayerSurface::GetActivePath(bool bLast)
 {
   if (m_nActivePath >= 0)
     return m_paths[m_nActivePath];
+  else if (m_paths.size() > 0 && bLast)
+    return m_paths.last();
   else
     return NULL;
 }
