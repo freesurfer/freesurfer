@@ -194,8 +194,6 @@ def load_weights(model, weights):
         If unsucessful at loading any weights.
 
     """
-    import h5py
-
     # Extract submodels.
     models = [model]
     i = 0
@@ -474,6 +472,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if arg.verbose else '3'
 
 
 # Third-party imports. Avoid waiting for TensorFlow just for documentation.
+import h5py
 import numpy as np
 import surfa as sf
 import tensorflow as tf
