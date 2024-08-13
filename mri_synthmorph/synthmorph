@@ -10,7 +10,7 @@
 # variable SUBJECT_DIR defaults to the current working directory.
 
 # Update the SynthMorph version to use a different image from Docker Hub.
-version = 2
+version = 3
 
 # Local image location for Apptainer/Singularity. Set an absolute path to avoid
 # pulling new images if you change the folder. Ignored for Docker and Podman.
