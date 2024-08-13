@@ -246,15 +246,14 @@ doc = f'''{prog}
         {b}{prog}{n} [options] {u}moving{n} {u}fixed{n}
 
 {b}DESCRIPTION{n}
-        SynthMorph is a deep-learning tool for symmetric, anatomy-aware, and
-        acquisition-agnostic registration of any brain image right off the MRI
-        scanner. In contrast to anatomy-agnostic methods, SynthMorph can
-        distinguish anatomy of interest from irrelevant structures, removing
-        the need for preprocessing that excludes content which would reduce the
-        accuracy of anatomy-specific registration.
+        SynthMorph is a deep-learning tool for symmetric, acquisition-agnostic
+        registration of brain MRI with any volume size, resolution, and
+        orientation. The registration is anatomy-aware, removing the need for
+        skull-stripping.
 
-        SynthMorph registers a {u}moving{n} (source) to a {u}fixed{n} (target)
-        image. The options are as follows:
+        SynthMorph registers a {u}moving{n} (source) image to a {u}fixed{n}
+        (target) image. Their geometries can differ. The options are as
+        follows:
 
         {b}-m{n} {u}model{n}
                 Transformation model ({', '.join(choices['model'])}). Defaults
@@ -319,8 +318,9 @@ doc = f'''{prog}
                 {default['extent']}.
 
         {b}-w{n} {u}weights{n}
-                Alternative weights for the selected registration model. Repeat
-                the option to set submodel weights.
+                Use alternative model weights, exclusively. Repeat the flag
+                to set affine and deformable weights for joint registration,
+                or the result will disappoint.
 
         {b}-h{n}
                 Print this help text and exit.
@@ -333,16 +333,16 @@ doc = f'''{prog}
                 # mri_convert -at aff.lta in.nii.gz out.nii.gz
 
 {b}IMAGE FORMAT{n}
-        The registration supports 3-dimensional single-frame images with any
-        resolution and orientation. The accepted file formats include: MGH
-        (.mgz) and NIfTI (.nii.gz, .nii).
+        SynthMorph registers single-frame image volumes of any size,
+        resolution, and orientation. The moving and the fixed image geometries
+        can differ. The accepted file formats are: MGH (.mgz) and NIfTI
+        (.nii.gz, .nii).
 
-        Internally, we convert image buffers to the format expected by the
-        network: isotropic 1-mm voxels, intensities min-max normalized into the
-        interval [0, 1], and left-inferior-anterior (LIA) axis orientation.
-        This conversion requires intact image-to-world matrices in the image
-        headers. The head must have the correct anatomical orientation in a
-        viewer like FreeView.
+        Internally, we convert image buffers to: isotropic 1-mm voxels,
+        intensities min-max normalized into the interval [0, 1], and
+        left-inferior-anterior (LIA) axis orientation. This conversion
+        requires intact image-to-world matrices. That is, the head must have
+        the correct anatomical orientation in a viewer like FreeView.
 
 {b}TRANSFORM FORMAT{n}
         SynthMorph transforms operate in physical RAS space. We save matrix
@@ -371,10 +371,10 @@ doc = f'''{prog}
 
 {b}EXAMPLES{n}
         Joint affine-deformable registration, saving the moved image:
-                # {prog} -o out.nii mov.nii.gz fix.mgz
+                # {prog} -o out.nii mov.nii fix.nii
 
         Affine registration saving the transform:
-                # {prog} -m affine -t aff.lta mov.mgz fix.mgz
+                # {prog} -m affine -t aff.lta mov.nii.gz fix.nii.gz
 
         Deformable registration only, assuming prior affine alignment:
                 # {prog} -m deform -t def.mgz mov.mgz fix.mgz
