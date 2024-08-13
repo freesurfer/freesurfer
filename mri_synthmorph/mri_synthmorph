@@ -177,25 +177,57 @@ def transform(im, trans, shape=None, normalize=False, batch=False):
 def load_weights(model, weights):
     """Load weights into model or submodel.
 
-    Attempts to load weights into a model or its direct submodels and return on
-    first success. Raises a `ValueError` if unsuccessful.
+    Attempts to load (all) weights into a model or one of its submodels. If
+    that fails, `model` may be a submodel of what we got weights for, and we
+    attempt to load the weights of a submodel (layer) into `model`.
 
     Parameters
     ----------
     model : TensorFlow model
         Model to initialize.
-    weights : str
+    weights : str or pathlib.Path
         Path to weights file.
 
+    Raises
+    ------
+    ValueError
+        If unsucessful at loading any weights.
+
     """
-    cand = (model, *(f for f in model.layers if isinstance(f, tf.keras.Model)))
-    for c in cand:
+    # Extract submodels.
+    models = [model]
+    i = 0
+    while i < len(models):
+        layers = [f for f in models[i].layers if isinstance(f, tf.keras.Model)]
+        models.extend(layers)
+        i += 1
+
+    # Add models wrapping a single model in case this was done in training.
+    # Requires list expansion or Python will get stuck.
+    models.extend([tf.keras.Model(m.inputs, m(m.inputs)) for m in models])
+
+    # Attempt to load all weights into one of the models.
+    for mod in models:
         try:
-            c.load_weights(weights)
+            mod.load_weights(weights)
             return
         except ValueError as e:
-            if c is cand[-1]:
-                raise e
+            pass
+
+    # Assume `model` is a submodel of what we got weights for.
+    with h5py.File(weights, mode='r') as h5:
+        layers = h5.attrs['layer_names']
+        weights = [list(h5[lay].attrs['weight_names']) for lay in layers]
+
+        # Layers with weights. Attempt loading.
+        layers, weights = zip(*filter(lambda f: f[1], zip(layers, weights)))
+        for lay, wei in zip(layers, weights):
+            try:
+                model.set_weights([h5[lay][w] for w in wei])
+                return
+            except ValueError as e:
+                if lay is layers[-1]:
+                    raise e
 
 
 # Documentation.
@@ -212,15 +244,14 @@ doc = f'''{prog}
         {b}{prog}{n} [options] {u}moving{n} {u}fixed{n}
 
 {b}DESCRIPTION{n}
-        SynthMorph is a deep-learning tool for symmetric, anatomy-aware, and
-        acquisition-agnostic registration of any brain image right off the MRI
-        scanner. In contrast to anatomy-agnostic methods, SynthMorph can
-        distinguish anatomy of interest from irrelevant structures, removing
-        the need for preprocessing that excludes content which would reduce the
-        accuracy of anatomy-specific registration.
+        SynthMorph is a deep-learning tool for symmetric, acquisition-agnostic
+        registration of brain MRI with any volume size, resolution, and
+        orientation. The registration is anatomy-aware, removing the need for
+        skull-stripping.
 
-        SynthMorph registers a {u}moving{n} (source) to a {u}fixed{n} (target)
-        image. The options are as follows:
+        SynthMorph registers a {u}moving{n} (source) image to a {u}fixed{n}
+        (target) image. Their geometries can differ. The options are as
+        follows:
 
         {b}-m{n} {u}model{n}
                 Transformation model ({', '.join(choices['model'])}). Defaults
@@ -285,8 +316,9 @@ doc = f'''{prog}
                 {default['extent']}.
 
         {b}-w{n} {u}weights{n}
-                Alternative weights for the selected registration model. Repeat
-                the option to set submodel weights.
+                Use alternative model weights, exclusively. Repeat the flag
+                to set affine and deformable weights for joint registration,
+                or the result will disappoint.
 
         {b}-h{n}
                 Print this help text and exit.
@@ -299,16 +331,16 @@ doc = f'''{prog}
                 # mri_convert -at aff.lta in.nii.gz out.nii.gz
 
 {b}IMAGE FORMAT{n}
-        The registration supports 3-dimensional single-frame images with any
-        resolution and orientation. The accepted file formats include: MGH
-        (.mgz) and NIfTI (.nii.gz, .nii).
+        SynthMorph registers single-frame image volumes of any size,
+        resolution, and orientation. The moving and the fixed image geometries
+        can differ. The accepted file formats are: MGH (.mgz) and NIfTI
+        (.nii.gz, .nii).
 
-        Internally, we convert image buffers to the format expected by the
-        network: isotropic 1-mm voxels, intensities min-max normalized into the
-        interval [0, 1], and left-inferior-anterior (LIA) axis orientation.
-        This conversion requires intact image-to-world matrices in the image
-        headers. The head must have the correct anatomical orientation in a
-        viewer like FreeView.
+        Internally, we convert image buffers to: isotropic 1-mm voxels,
+        intensities min-max normalized into the interval [0, 1], and
+        left-inferior-anterior (LIA) axis orientation. This conversion
+        requires intact image-to-world matrices. That is, the head must have
+        the correct anatomical orientation in a viewer like FreeView.
 
 {b}TRANSFORM FORMAT{n}
         SynthMorph transforms operate in physical RAS space. We save matrix
@@ -337,10 +369,10 @@ doc = f'''{prog}
 
 {b}EXAMPLES{n}
         Joint affine-deformable registration, saving the moved image:
-                # {prog} -o out.nii mov.nii.gz fix.mgz
+                # {prog} -o out.nii mov.nii fix.nii
 
         Affine registration saving the transform:
-                # {prog} -m affine -t aff.lta mov.mgz fix.mgz
+                # {prog} -m affine -t aff.lta mov.nii.gz fix.nii.gz
 
         Deformable registration only, assuming prior affine alignment:
                 # {prog} -m deform -t def.mgz mov.mgz fix.mgz
@@ -440,6 +472,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if arg.verbose else '3'
 
 
 # Third-party imports. Avoid waiting for TensorFlow just for documentation.
+import h5py
 import numpy as np
 import surfa as sf
 import tensorflow as tf
