@@ -170,14 +170,14 @@ Anatomy-specific acquisition-agnostic affine registration learned from fictitiou
 Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
 SPIE Medical Imaging: Image Processing, 12464, p 1246402, 2023\t
 https://doi.org/10.1117/12.2653251\t
-https://w3id.org/synthmorph/#papers (PDF)
+https://synthmorph.io/#papers (PDF)
 
 SynthMorph: learning contrast-invariant registration without acquired images\t
 Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
 IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022\t
 https://doi.org/10.1109/TMI.2021.3116879
 
-Website: https://w3id.org/synthmorph
+Website: https://synthmorph.io
 '''
 doc += textwrap.indent(ref, prefix=' ' * 8)
 

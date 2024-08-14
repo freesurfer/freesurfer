@@ -986,7 +986,7 @@ fictitious images
 Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)
 SPIE Medical Imaging: Image Processing, 12464, p 1246402, 2023
 https://doi.org/10.1117/12.2653251
-https://malte.cz/#papers (PDF)
+https://synthmorph.io/#papers (PDF)
 
 SynthMorph: learning contrast-invariant registration without acquired images
 Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV
@@ -998,5 +998,5 @@ SynthStrip: Skull-Stripping for Any Brain Image
 A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann
 NeuroImage 206 (2022), 119474
 https://doi.org/10.1016/j.neuroimage.2022.119474
-Website: https://w3id.org/synthstrip
+Website: https://synthstrip.io
 
