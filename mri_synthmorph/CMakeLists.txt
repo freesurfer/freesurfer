@@ -12,11 +12,11 @@ endif()
 
 install_configured(fs-synthmorph-reg DESTINATION bin)
 
-## 02/2024 - currently failing on MacOS intel and arm64 builds
-## 03/2024 - re-enable on MacOS
-## 04/2024 - disable again
+## 08/2024 - currently failing on Intel Mac
 
 if(NOT APPLE)
+   add_test_script(NAME mri_synthmorph_test SCRIPT test.sh)
+elseif(APPLE_ARM64)
    add_test_script(NAME mri_synthmorph_test SCRIPT test.sh)
 endif()
 
