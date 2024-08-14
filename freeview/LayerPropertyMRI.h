@@ -427,7 +427,7 @@ public:
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
-  void SetShowLabelOutline( bool bOutline );
+  void SetShowLabelOutline( bool bOutline, bool bForce = false );
   void SetContourSmoothIterations( int nIterations );
   void SetTextureSmoothing ( int iSmooth );
   void SetShowAsContour( bool bContour );

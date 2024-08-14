@@ -1829,14 +1829,14 @@ void LayerPropertyMRI::SetContourUseImageColorMap( bool bFlag )
   }
 }
 
-void LayerPropertyMRI::SetShowLabelOutline( bool bOutline )
+void LayerPropertyMRI::SetShowLabelOutline( bool bOutline, bool bForce )
 {
   if ( bOutline )
   {
     SetUpSampleMethod( 0 );
   }
 
-  if ( m_bShowLabelOutline != bOutline )
+  if ( m_bShowLabelOutline != bOutline || bForce)
   {
     m_bShowLabelOutline = bOutline;
 

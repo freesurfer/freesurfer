@@ -105,6 +105,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->checkBoxAutoScaleFont, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->spinBoxFontSize, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxAutoMidToMin, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxThickOutline, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxClickToLock, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
@@ -165,6 +166,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->comboBox3DScaleStyle->setCurrentIndex(map["3DAxesFlyMode"].toInt());
   ui->checkBoxAllowDeleteKey->setChecked(map["AllowDeleteKey"].toBool());
   ui->spinBoxUIFontSize->setValue(map["UIFontSize"].toInt());
+  ui->checkBoxThickOutline->setChecked(map["ThickLabelOutline"].toBool());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -221,6 +223,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["3DAxesFlyMode"] = ui->comboBox3DScaleStyle->currentIndex();
   map["AllowDeleteKey"] = ui->checkBoxAllowDeleteKey->isChecked();
   map["UIFontSize"] = ui->spinBoxUIFontSize->value();
+  map["ThickLabelOutline"] = ui->checkBoxThickOutline->isChecked();
   return map;
 }
 

@@ -375,6 +375,11 @@ public:
 
   void LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double signma = 0, double dist_in_vox = 3);
 
+  static void SetOutlineResampleFactor(int n)
+  {
+    OutlineResampleFactor = n;
+  }
+
 public slots:
   virtual void SetModified();
   void SetActiveFrame( int nFrame );
@@ -467,7 +472,7 @@ protected:
 
   virtual void OnSlicePositionChanged( int nPlane );
 
-
+protected:
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkImageReslice>      mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
@@ -541,6 +546,8 @@ private:
   nifti_1_header    m_niftiHeader;
 
   GeoSWorker* m_geos;
+
+  static int OutlineResampleFactor;
 };
 
 

@@ -726,6 +726,9 @@ void MainWindow::LoadSettings()
     m_settings["UIFontSize"] = font().pointSize();
   }
 
+  if (m_settings.value("ThickLabelOutline").toBool())
+    LayerMRI::SetOutlineResampleFactor(2);
+
   for (int i = 0; i < 4; i++)
   {
     m_views[i]->SetBackgroundColor(m_settings["BackgroundColor"].value<QColor>());
@@ -8920,23 +8923,37 @@ void MainWindow::UpdateSettings()
     foreach (QString key, keys)
       m_settings[key] = map[key];
 
-    //    if (old["AutoSetMidToMin"].toBool() != m_settings["AutoSetMidToMin"].toBool())
-    //    {
-    //      QList<Layer*> layers = GetLayers("MRI");
-    //      foreach (Layer* l, layers)
-    //      {
-    //        LayerMRI* mri = (LayerMRI*)l;
-    //        if (mri->GetProperty()->GetHeatScaleAutoMid())
-    //        {
-    //          double dMin = mri->GetProperty()->GetHeatScaleMinThreshold();
-    //          double dMax = mri->GetProperty()->GetHeatScaleMaxThreshold();
-    //          if (m_settings["AutoSetMidToMin"].toBool())
-    //            mri->GetProperty()->SetHeatScaleMidThreshold(dMin);
-    //          else
-    //            mri->GetProperty()->SetHeatScaleMidThreshold((dMin+dMax)/2);
-    //        }
-    //      }
-    //    }
+    // if (old["AutoSetMidToMin"].toBool() != m_settings["AutoSetMidToMin"].toBool())
+    // {
+    //   QList<Layer*> layers = GetLayers("MRI");
+    //   foreach (Layer* l, layers)
+    //   {
+    //     LayerMRI* mri = (LayerMRI*)l;
+    //     if (mri->GetProperty()->GetHeatScaleAutoMid())
+    //     {
+    //       double dMin = mri->GetProperty()->GetHeatScaleMinThreshold();
+    //       double dMax = mri->GetProperty()->GetHeatScaleMaxThreshold();
+    //       if (m_settings["AutoSetMidToMin"].toBool())
+    //         mri->GetProperty()->SetHeatScaleMidThreshold(dMin);
+    //       else
+    //         mri->GetProperty()->SetHeatScaleMidThreshold((dMin+dMax)/2);
+    //     }
+    //   }
+    // }
+
+    if (old["ThickLabelOutline"].toBool() != m_settings["ThickLabelOutline"].toBool())
+    {
+      LayerMRI::SetOutlineResampleFactor(m_settings["ThickLabelOutline"].toBool()?2:4);
+      QList<Layer*> layers = GetLayers("MRI");
+      foreach (Layer* l, layers)
+      {
+        LayerMRI* mri = (LayerMRI*)l;
+        if (mri->GetProperty()->GetShowLabelOutline())
+        {
+          mri->GetProperty()->SetShowLabelOutline(true, true);
+        }
+      }
+    }
 
     ui->actionDeleteLayer->setVisible(m_settings["AllowDeleteKey"].toBool());
   }

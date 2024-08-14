@@ -641,6 +641,28 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="groupBoxLabel">
+         <property name="title">
+          <string>Label</string>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_14">
+          <item>
+           <widget class="QCheckBox" name="checkBoxThickOutline">
+            <property name="text">
+             <string>Show thicker outline</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QGroupBox" name="groupBox_5">
          <property name="title">
           <string>Inflated Surface</string>
