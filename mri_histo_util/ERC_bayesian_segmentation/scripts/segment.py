@@ -30,6 +30,7 @@ parser.add_argument("--i", help="Image to segment.")
 parser.add_argument("--i_seg", help="SynthSeg of image to segment (must include parcels). Will be computed if it does not exist")
 parser.add_argument("--i_field", help="Registration to data/mni.nii.gz provided by mri_easyreg. Will be computed if if does not exist")
 parser.add_argument("--atlas_dir", help="Atlas directory")
+parser.add_argument("--atlas_mode", help="Atlas mode (must be full or simplified)")
 parser.add_argument("--hemi", help="hemisphere to segment (must be l or r)")
 parser.add_argument("--gmm_mode", help="hemisphere to segment (must be l or r)", default="1mm")
 parser.add_argument("--bf_mode", help="bias field basis function: dct, polynomial, or hybrid", default="dct")
@@ -53,6 +54,10 @@ if args.i_seg is None:
     raise Exception('SynthSeg file  of input image is required')
 if args.i_field is None:
     raise Exception('MNI registration file of input image is required')
+if args.atlas_mode is None:
+    raise Exception('Atlas mode must be provided (full or simplified)')
+if  ((args.atlas_mode != 'full') and (args.atlas_mode != 'simplified') ):
+    raise Exception('Atlas mode must be full or simplified')
 if args.atlas_dir is None:
     raise Exception('Atlas directory must be provided')
 if args.hemi is None:
@@ -84,7 +89,7 @@ input_volume = args.i
 input_seg = args.i_seg
 mni_field = args.i_field
 atlas_dir = args.atlas_dir
-LUT_file = os.path.join(BASE_PATH, 'data', 'AllenAtlasLUT')
+LUT_file = os.path.join(BASE_PATH, 'data_' + args.atlas_mode, 'AllenAtlasLUT')
 hemi = args.hemi
 output_seg = args.o
 output_seg_rgb = args.o_rgb
@@ -218,18 +223,21 @@ if os.path.isfile(mni_field):
     print('   Registration file found; no need to run EasyReg!')
 else:
     print('   Running EasyReg')
-    mni_image = os.path.join(BASE_PATH, 'data', 'mni.nii.gz')
-    mni_seg = os.path.join(BASE_PATH, 'data', 'mni.synthseg.nii.gz')
+    mni_image = os.path.join(BASE_PATH, 'data_mni', 'mni.nii.gz')
+    mni_seg = os.path.join(BASE_PATH, 'data_mni', 'mni.synthseg.nii.gz')
     a = os.system('mri_easyreg --flo ' + mni_image + ' --ref ' + input_volume +
                   ' --flo_seg ' + mni_seg + ' --ref_seg ' + input_seg + ' --threads ' + str(args.threads) + ' --fwd_field ' + mni_field + '  >/dev/null')
     if a>0:
         print('Error in mri_easyreg; exitting...')
         sys.exit(1)
 FIELD, _ = my.MRIread(mni_field)
+# Added in summer 2024: kill bottom of medulla (MNI z coord below -60)
+CSF = 24
+Sim[((Sim==BRAINSTEM) | (Sim==CSF)) & (FIELD[:,:,:,2]<(-60))] = 0
+# Subdivide
 LEFT = (FIELD[:,:,:,0]<0)
 Sim[(Sim==BRAINSTEM) & LEFT] = BRAINSTEM_L
 Sim[(Sim==BRAINSTEM) & (LEFT==0)] = BRAINSTEM_R
-
 
 ########################################################
 
@@ -263,10 +271,10 @@ print('Reading in atlas')
 # from the config files
 aseg_label_list = np.unique(Sim[Mim>0])
 tissue_index, grouping_labels, label_list, number_of_gmm_components = relab.get_tissue_settings(
-            os.path.join(BASE_PATH, 'data', 'atlas_names_and_labels.yaml'),
-            os.path.join(BASE_PATH, 'data', 'combined_atlas_labels_' + args.gmm_mode + '.yaml'),
-            os.path.join(BASE_PATH, 'data', 'combined_aseg_labels_' + args.gmm_mode + '.yaml'),
-            os.path.join(BASE_PATH, 'data', 'gmm_components_' + args.gmm_mode + '.yaml'),
+            os.path.join(BASE_PATH, 'data_' + args.atlas_mode, 'atlas_names_and_labels.yaml'),
+            os.path.join(BASE_PATH, 'data_' + args.atlas_mode, 'combined_atlas_labels_' + args.gmm_mode + '.yaml'),
+            os.path.join(BASE_PATH, 'data_' + args.atlas_mode, 'combined_aseg_labels_' + args.gmm_mode + '.yaml'),
+            os.path.join(BASE_PATH, 'data_' + args.atlas_mode, 'gmm_components_' + args.gmm_mode + '.yaml'),
             aseg_label_list
 )
 tidx = tissue_index[np.where(label_list == 0)[0][0]]
@@ -762,7 +770,7 @@ if output_vol_file is not None:
             row.append(names[int(l)])
         writer.writerow(row)
         row = []
-        for j in range(1, 334):
+        for j in range(1, len(vols)):
             row.append(str(vols[j]))
         writer.writerow(row)
 

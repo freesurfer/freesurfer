@@ -1,6 +1,7 @@
 This is an implementation of a Bayesian segmentation method that relies on the histological atlas presented in the article:
 "Next-Generation histological atlas and segmentation tool for echo "high-resolution in vivo human neuroimaging", by 
-Casamitjana et al. (in preparation)
+Casamitjana et al. 
+-- preprint available at https://www.biorxiv.org/content/10.1101/2024.02.05.579016v1 
 
 The code also relies on:
 
@@ -27,10 +28,11 @@ The first time you run the method, it will prompt you to download the atlas file
 
 To run the code, please use the script segment.sh as follows:
 
-segment.sh INPUT_SCAN OUTPUT_DIRECTORY GPU THREADS [BF_MODE] [GMM_MODE]
+segment.sh INPUT_SCAN OUTPUT_DIRECTORY ATLAS_MODE GPU THREADS [BF_MODE] [GMM_MODE]
 
 - INPUT SCAN: scan to process, in nii(.gz) or mgz format
 - OUTPUT_DIRECTORY: directory where segmentations, volume files, etc will be written (more on this below).
+- ATLAS_MODE: must be full (all 333 labels) or simplified (simpler brainstem protocol; recommended)
 - GPU: set to 1 to use the GPU (*highly* recommended but requires a 24GB GPU!)
 - THREADS: number of CPU threads to use (use -1 for all available threads)
 - BF_MODE (optional): bias field mode: dct (default), polynomial, or hybrid
@@ -49,9 +51,9 @@ polynomial mode uses a set of low-order 3D polynomials. The hybrid mode uses a c
 The GMM model is crucial as it determines how different brain regions are grouped into tissue types for the purpose of 
 image intensity modeling. This is specified though a set of files that should be found under data:
 
-- data/gmm_components_[GMM_MODE].yaml: defines tissue classes and specificies the number of components of the corresponding GMM
-- data/combined_aseg_labels_[GMM_MODE].yaml: defines the labels that belong to each tissue class
-- data/combined_atlas_labels_[GMM_MODE].yaml: defines FreeSurfer ("aseg") labels that are used to initialize the parameters of each class.
+- data_[full/simplified]/gmm_components_[GMM_MODE].yaml: defines tissue classes and specificies the number of components of the corresponding GMM
+- data_[full/simplified]/combined_aseg_labels_[GMM_MODE].yaml: defines the labels that belong to each tissue class
+- data_[full/simplified]/combined_atlas_labels_[GMM_MODE].yaml: defines FreeSurfer ("aseg") labels that are used to initialize the parameters of each class.
 
 We distribute a GMM_MODE named "1mm" that we have used in our experiments, and which is the default mode of the code. If you 
 want to use your own model, you will need to create another triplet of files of your own (use the 1mm version as template).
