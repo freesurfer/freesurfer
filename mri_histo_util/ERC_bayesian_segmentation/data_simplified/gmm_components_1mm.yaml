@@ -1,0 +1,15 @@
+Number of components in a class:
+  - Background: 1 #At the moment the background is handled separately so keep this at 1
+  - White Matter: 2
+  - Gray Matter: 1
+  - Cerebellum White Matter: 1
+  - Cerebellum Gray Matter: 1
+  - Caudate and Accumbens: 1
+  - Putamen: 1
+  - White Thalamus: 1
+  - Gray Thalamus: 1
+  - Pallidum: 1
+  - White Brainstem nuclei: 1
+  - Gray Brainstem nuclei: 1
+  - Gray hypothalamus: 1
+  - White hypothalamus: 1

@@ -16,10 +16,11 @@ then
   echo "Casamitjana et al. (in preparation)"
   echo " "
   echo "Usage:"
-  echo "   mri_histo_atlas_segment INPUT_SCAN OUTPUT_DIRECTORY GPU THREADS [BF_MODE] [GMM_MODE]"
+  echo "   mri_histo_atlas_segment INPUT_SCAN OUTPUT_DIRECTORY ATLAS_MODE GPU THREADS [BF_MODE] [GMM_MODE]"
   echo " "
   echo "INPUT SCAN: scan to process, in mgz or nii(.gz) format"
   echo "OUTPUT_DIRECTORY: directory with segmentations, volume files, etc"
+  echo "ATLAS_MODE: must be full (all 333 labels) or simplified (simpler brainstem protocol; recommended)"
   echo "GPU: set to 1 to use the GPU (*highly* recommended but requires a 24GB GPU!)"
   echo "THREADS: number of CPU threads to use (use -1 for all available threads)"
   echo "BF_MODE (optional): bias field model: dct (default), polynomial, or hybrid"
@@ -29,13 +30,13 @@ then
 fi
 
 # If number of arguments is incorrect
-if [ $# -lt 4 ] || [ $# -gt 6 ]
+if [ $# -lt 5 ] || [ $# -gt 7 ]
 then
   echo " "
   echo "Incorrect number of arguments."
   echo "Usage: "
   echo " "
-  echo "   mri_histo_atlas_segment INPUT_SCAN OUTPUT_DIRECTORY GPU THREADS BF_MODE GMM_MODE"
+  echo "   mri_histo_atlas_segment INPUT_SCAN OUTPUT_DIRECTORY ATLAS_MODE GPU THREADS BF_MODE GMM_MODE"
   echo " "
   echo "Or, for help"
   echo " "
@@ -44,53 +45,57 @@ then
   exit 1
 fi
 
+# Parse arguments
+INPUT=$1
+OUTPUT_DIR=$2
+ATLAS_MODE=$3
+if !( [ "$ATLAS_MODE" == "full" ]  || [ "$ATLAS_MODE" == "simplified" ] )
+then
+  echo "ATLAS_MODE must be full or simplified"
+  exit 1
+fi
+CPU_FLAG=' '
+if [ $4 -eq 0 ]
+then
+  CPU_FLAG='--cpu'
+fi
+THREADS=$5
+BF_MODE='dct'
+if [ $# -gt 5 ]
+then
+  BF_MODE=$6
+fi
+GMM_MODE='1mm'
+if [ $# -gt 6 ]
+then
+  GMM_MODE=$7
+fi
+
 # Find path to shell script
 BASEPATH="$FREESURFER_HOME/python/packages/ERC_bayesian_segmentation/"
 
 # Try to find atlas data
-ATLAS_DIR="$BASEPATH/atlas"
-# TODO remove the following line
-#ATLAS_DIR="/autofs/space/panamint_005/users/iglesias/data/ERC_segmentation_3D/HierarchicalSegmentation/sparse_npz_blurred_sigma_4_samseg_background_fixed_conn_comps"
+ATLAS_DIR="$BASEPATH/atlas_{$ATLAS_MODE}"
+
 if [ ! -f "$ATLAS_DIR/size.npy" ];
 then
   echo " "
-  echo "   Atlas files not found. Please download atlas from: "
-  echo "      https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip "
+  echo "   Atlas files not found for mode {$ATLAS_MODE}. Please download atlas from: "
+  echo "      https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_{$ATLAS_MODE}.zip "
   echo "   and uncompress it into:  "
   echo "      $BASEPATH/ "
-  echo "   You only need to do this once. You can use the following three commands (may require root access): "
+  echo "   You only need to do this once for mode {$ATLAS_MODE}. You can use the following three commands (may require root access): "
   echo "      1: cd $BASEPATH"
-  echo "      2a (in Linux): wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip "
-  echo "      2b (in MAC): curl -o atlas.zip https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas.zip "
-  echo "      3. unzip atlas.zip"
+  echo "      2a (in Linux): wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_{$ATLAS_MODE}.zip "
+  echo "      2b (in MAC): curl -o atlas.zip https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_{$ATLAS_MODE}.zip "
+  echo "      3. unzip atlas_{$ATLAS_MODE}.zip"
   echo " "
   echo "   After correct extraction, the directory: "
   echo "      $ATLAS_DIR "
-  echo "   should contain files: size.npy, label_001.npz, label_002.npz, ..., and label_334.npz"
+  echo "   should contain files: size.npy, label_001.npz, label_002.npz, ..."
   echo " "
   exit 1
 fi
-
-# Parse arguments
-INPUT=$1
-OUTPUT_DIR=$2
-CPU_FLAG=' '
-if [ $3 -eq 0 ]
-then
-  CPU_FLAG='--cpu'
-fi
-THREADS=$4
-BF_MODE='dct'
-if [ $# -gt 4 ]
-then
-  BF_MODE=$5
-fi
-GMM_MODE='1mm'
-if [ $# -gt 5 ]
-then
-  GMM_MODE=$6
-fi
-
 
 # Create command line arguments and run!
 SYNTHSEG="$OUTPUT_DIR/SynthSeg.mgz"
@@ -115,7 +120,7 @@ echo "******************************"
 echo "* Working on left hemisphere *"
 echo "******************************"
 echo "  "
-cmd="fspython $BASEPATH/scripts/segment.py --i $INPUT --gmm_mode $GMM_MODE --bf_mode $BF_MODE --i_seg $SYNTHSEG --o_synthseg_vols $SYNTHSEGCSV --i_field $FIELD --atlas_dir $ATLAS_DIR --hemi l --o_bf_corr $BFCORR --o $OUTPUT_SEG --o_vol $OUTPUT_VOL --threads $THREADS $CPU_FLAG "
+cmd="fspython $BASEPATH/scripts/segment.py --i $INPUT --atlas_mode $ATLAS_MODE --gmm_mode $GMM_MODE --bf_mode $BF_MODE --i_seg $SYNTHSEG --o_synthseg_vols $SYNTHSEGCSV --i_field $FIELD --atlas_dir $ATLAS_DIR --hemi l --o_bf_corr $BFCORR --o $OUTPUT_SEG --o_vol $OUTPUT_VOL --threads $THREADS $CPU_FLAG "
 echo "Running command:"
 echo $cmd
 echo "  "
@@ -128,7 +133,7 @@ echo "*******************************"
 echo "* Working on right hemisphere *"
 echo "*******************************"
 echo "  "
-cmd="fspython $BASEPATH/scripts/segment.py --i $INPUT --gmm_mode $GMM_MODE --bf_mode $BF_MODE --i_seg $SYNTHSEG --o_synthseg_vols $SYNTHSEGCSV --i_field $FIELD --atlas_dir $ATLAS_DIR --hemi r --o $OUTPUT_SEG --o_vol $OUTPUT_VOL --threads $THREADS $CPU_FLAG "
+cmd="fspython $BASEPATH/scripts/segment.py --i $INPUT --atlas_mode $ATLAS_MODE --gmm_mode $GMM_MODE --bf_mode $BF_MODE --i_seg $SYNTHSEG --o_synthseg_vols $SYNTHSEGCSV --i_field $FIELD --atlas_dir $ATLAS_DIR --hemi r --o $OUTPUT_SEG --o_vol $OUTPUT_VOL --threads $THREADS $CPU_FLAG "
 echo "Running command:"
 echo $cmd
 echo "  "
