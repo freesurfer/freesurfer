@@ -67,7 +67,7 @@ tensorboard-data-server==0.7.2
 tensorboard==2.13.0
 tensorflow-estimator==2.13.0
 tensorflow-io-gcs-filesystem==0.34.0
-tensorflow==2.13.1
+tensorflow-cpu==2.13.1
 termcolor==2.4.0
 threadpoolctl==3.5.0
 tifffile==2023.7.10
