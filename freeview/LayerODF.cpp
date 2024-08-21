@@ -24,6 +24,8 @@
 #include <QRegularExpression>
 #include "MigrationDefs.h"
 
+#define SUB_ACTOR_COUNT 8
+
 LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   m_mask(NULL)
 {
@@ -54,12 +56,31 @@ LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   file.close();
 
   m_actor3D = vtkSmartPointer<vtkActor>::New();
+  for (int i = 0; i < 3; i++)
+    m_glyphActor2D[i]->SetVisibility(0);
+
+#ifdef USE_ACTOR_LIST
+  for (int i = 0; i < SUB_ACTOR_COUNT; i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      vtkActor* actor = vtkActor::New();
+      actor->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+      m_listActor2D[j] << actor;
+      actor = vtkActor::New();
+      actor->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+      m_listActor3D[j] << actor;
+    }
+  }
+#endif
 
   SetOdfMask(ref, false);
 }
 
 LayerODF::~LayerODF()
 {
+  ClearSliceActors();
+
   QSettings s;
   QVariantMap root = s.value("OdfSettings").toMap();
   QVariantMap map = root[GetFileName()].toMap();
@@ -78,6 +99,26 @@ LayerODF::~LayerODF()
   root[GetFileName()] = map;
   s.setValue("OdfSettings",root);
   s.sync();
+}
+
+void LayerODF::ClearSliceActors(int nPlane)
+{
+#ifdef USE_ACTOR_LIST
+  int nStart = 0, nEnd = 2;
+  if (nPlane >= 0)
+    nStart = nEnd = nPlane;
+  for (int i = nStart; i <= nEnd; i++)
+  {
+    foreach (vtkActor* actor, m_listActor2D[i])
+    {
+      actor->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+    }
+    foreach (vtkActor* actor, m_listActor3D[i])
+    {
+      actor->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+    }
+  }
+#endif
 }
 
 void LayerODF::SetOdfMask(LayerMRI *mri, bool bRefresh)
@@ -110,9 +151,10 @@ void LayerODF::SetOdfMaskThreshold(double *th)
   emit UpdateActorRequested();
 }
 
-bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& face_fn, bool bPermute)
+bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& face_fn, bool bPermute, bool bHemisphere)
 {
   m_bDtkFormat = vertex_fn.isEmpty();
+  m_bHemisphere = (m_bDtkFormat || bHemisphere);
   if (!m_bDtkFormat)
   {
     QFile file(vertex_fn);
@@ -165,9 +207,15 @@ bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& 
       }
     }
     m_nMesh = n;
+    file.close();
   }
 
   MRI* mri = ::MRIread(qPrintable(fn));
+  if (!mri)
+  {
+    cerr << "Failed to read file " << qPrintable(fn) << endl;
+    return false;
+  }
   SetName(QFileInfo(fn).completeBaseName());
   SetFileName(fn);
 
@@ -185,25 +233,25 @@ bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& 
             switch ( mri->type )
             {
             case MRI_UCHAR:
-              MRIseq_vox( mri2, j, k, n, i) = MRIseq_vox( mri, i, j, k, n);
-              break;
+            MRIseq_vox( mri2, j, k, n, i) = MRIseq_vox( mri, i, j, k, n);
+            break;
             case MRI_INT:
-              MRIIseq_vox( mri2, j, k, n, i ) = MRIIseq_vox( mri, i, j, k, n );
-              break;
+            MRIIseq_vox( mri2, j, k, n, i ) = MRIIseq_vox( mri, i, j, k, n );
+            break;
             case MRI_LONG:
-              MRILseq_vox( mri2, j, k, n, i ) = MRILseq_vox( mri, i, j, k, n  );
-              break;
+            MRILseq_vox( mri2, j, k, n, i ) = MRILseq_vox( mri, i, j, k, n  );
+            break;
             case MRI_FLOAT:
-              MRIFseq_vox( mri2, j, k, n, i ) = MRIFseq_vox( mri, i, j, k, n  );
-              break;
+            MRIFseq_vox( mri2, j, k, n, i ) = MRIFseq_vox( mri, i, j, k, n  );
+            break;
             case MRI_SHORT:
-              MRISseq_vox( mri2, j, k, n, i ) = MRISseq_vox( mri, i, j, k, n );
-              break;
+            MRISseq_vox( mri2, j, k, n, i ) = MRISseq_vox( mri, i, j, k, n );
+            break;
             case MRI_USHRT:
-              MRIUSseq_vox( mri2, j, k, n, i ) = MRIUSseq_vox( mri, i, j, k, n );
-              break;
+            MRIUSseq_vox( mri2, j, k, n, i ) = MRIUSseq_vox( mri, i, j, k, n );
+            break;
             default:
-              break;
+            break;
             }
           }
     MRI* temp = mri;
@@ -274,10 +322,13 @@ void LayerODF::BuildSlice(int nPlane)
     slice_range[i][0] = 0;
     slice_range[i][1] = dim[i]-1;
   }
+  ClearSliceActors(nPlane);
   if (slice[nPlane] < 0 || slice[nPlane] >= dim[nPlane])
   {
+#ifndef USE_ACTOR_LIST
     m_glyphActor2D[nPlane]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
     m_glyphActor3D[nPlane]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+#endif
     return;
   }
   slice_range[nPlane][0] = slice_range[nPlane][1] = slice[nPlane];
@@ -290,14 +341,12 @@ void LayerODF::BuildSlice(int nPlane)
 
   int nskip = GetProperty()->GetOdfSkip()+1;
   int x, y, z;
-  int cnt = 0;
   double min_size = qMin(voxel_size[0], qMin(voxel_size[1], voxel_size[2]));
   double odf_range[2] = {m_dScalarRange[0], m_dScalarRange[1]};
   double fOffset = 0;
   double l_scale = GetProperty()->GetOdfScale()*2;
   double sharpness = 1;
   bool bNormalize = false;
-  double fdeci = 1;
   if (odf_range[0] < 0)
   {
     fOffset = -odf_range[0];
@@ -324,6 +373,31 @@ void LayerODF::BuildSlice(int nPlane)
   if (GetProperty()->GetOdfInversion() > 0)
     bInvert[GetProperty()->GetOdfInversion()-1] = true;
   unsigned char c[4] = {0,0,0,255};
+  int vox_cnt = 0, total_vox = 0, cnt = 0;
+#ifdef USE_ACTOR_LIST
+  for (x = slice_range[0][0]; x <= slice_range[0][1]; x+=nskip)
+  {
+    for (y = slice_range[1][0]; y <= slice_range[1][1]; y+=nskip)
+    {
+      for (z = slice_range[2][0]; z <= slice_range[2][1]; z+=nskip)
+      {
+        if (maskdata)
+        {
+          double val = MyVTKUtils::GetImageDataComponent(mask_ptr, dim, 1, x, y, z, 0, mask_scalar_type);
+          if (val < m_odfMaskThreshold[0] || val > m_odfMaskThreshold[1])
+            continue;
+        }
+        total_vox++;
+      }
+    }
+  }
+
+  int nSubMax = total_vox/SUB_ACTOR_COUNT+1;
+  if (nSubMax < 100)
+    nSubMax = total_vox+1;
+#endif
+
+  int nSubId = 0;
   for (x = slice_range[0][0]; x <= slice_range[0][1]; x+=nskip)
   {
     for (y = slice_range[1][0]; y <= slice_range[1][1]; y+=nskip)
@@ -380,8 +454,8 @@ void LayerODF::BuildSlice(int nPlane)
               scale = scale*(raws[k]+new_offset)/fMax;
           }
           pts->InsertNextPoint(orig[0] + voxel_size[0]*x + ov[0]*scale,
-              orig[1] + voxel_size[1]*y + ov[1]*scale,
-              orig[2] + voxel_size[2]*z + ov[2]*scale);
+                               orig[1] + voxel_size[1]*y + ov[1]*scale,
+                               orig[2] + voxel_size[2]*z + ov[2]*scale);
 
           c[0] = (int)(fabs( ov[0] *255 ) );
           c[1] = (int)(fabs( ov[1] *255 ) );
@@ -394,37 +468,40 @@ void LayerODF::BuildSlice(int nPlane)
           scalars_2->InsertNextValue(raws[k]);
         }
 
-        for (int k = 0; k < nFrames; k++)
+        if (m_bHemisphere)
         {
-          float scale = (raws[k]+new_offset)*over_all;
-          double ov[3];
-          for (int nv = 0; nv < 3; nv++)
-            ov[nv] = bInvert[nv]?(-m_odfVector[k][nv]):m_odfVector[k][nv];
-          if (sharpness == -1)
+          for (int k = 0; k < nFrames; k++)
           {
-            scale = over_all*fMax/qMax(qMax(qAbs(ov[0]), qAbs(ov[1])), qAbs(ov[2]));
-          }
-          else if (sharpness == 0)
-          {
-            scale = over_all*fMax;
-          }
-          else if (sharpness == 2)
-          {
-            scale = scale*(raws[k]+new_offset)/fMax;
-          }
-          pts->InsertNextPoint(orig[0] + voxel_size[0]*x - ov[0]*scale,
-              orig[1] + voxel_size[1]*y - ov[1]*scale,
-              orig[2] + voxel_size[2]*z - ov[2]*scale);
+            float scale = (raws[k]+new_offset)*over_all;
+            double ov[3];
+            for (int nv = 0; nv < 3; nv++)
+              ov[nv] = bInvert[nv]?(-m_odfVector[k][nv]):m_odfVector[k][nv];
+            if (sharpness == -1)
+            {
+              scale = over_all*fMax/qMax(qMax(qAbs(ov[0]), qAbs(ov[1])), qAbs(ov[2]));
+            }
+            else if (sharpness == 0)
+            {
+              scale = over_all*fMax;
+            }
+            else if (sharpness == 2)
+            {
+              scale = scale*(raws[k]+new_offset)/fMax;
+            }
+            pts->InsertNextPoint(orig[0] + voxel_size[0]*x - ov[0]*scale,
+                                 orig[1] + voxel_size[1]*y - ov[1]*scale,
+                                 orig[2] + voxel_size[2]*z - ov[2]*scale);
 
-          c[0] = (int)(fabs( ov[0] *255 ) );
-          c[1] = (int)(fabs( ov[1] *255 ) );
-          c[2] = (int)(fabs( ov[2] *255 ) );
+            c[0] = (int)(fabs( ov[0] *255 ) );
+            c[1] = (int)(fabs( ov[1] *255 ) );
+            c[2] = (int)(fabs( ov[2] *255 ) );
 #if VTK_MAJOR_VERSION > 5
-          scalars->InsertNextTypedTuple( c );
+            scalars->InsertNextTypedTuple( c );
 #else
-          scalars->InsertNextTupleValue( c );
+            scalars->InsertNextTupleValue( c );
 #endif
-          scalars_2->InsertNextValue(raws[k]);
+            scalars_2->InsertNextValue(raws[k]);
+          }
         }
 
         if (m_bDtkFormat)
@@ -453,19 +530,62 @@ void LayerODF::BuildSlice(int nPlane)
             }
           }
           cnt += nFrames;
-          for (int k = 0; k < m_nMesh; k++)
+          if (m_bHemisphere)
           {
-            polys->InsertNextCell(3);
-            for (int kk = 0; kk < 3; kk++)
-            {
-              polys->InsertCellPoint(cnt+m_odfMesh[k][kk]);
-            }
+            // for (int k = 0; k < m_nMesh; k++)
+            // {
+            //   polys->InsertNextCell(3);
+            //   for (int kk = 0; kk < 3; kk++)
+            //   {
+            //     polys->InsertCellPoint(cnt+m_odfMesh[k][kk]);
+            //   }
+            // }
+            cnt += nFrames;
           }
-          cnt += nFrames;
         }
+
+        vox_cnt++;
+#ifdef USE_ACTOR_LIST
+        if (vox_cnt >= nSubMax && nSubId < SUB_ACTOR_COUNT-1)
+        {
+          BuildActor(m_listActor2D[nPlane][nSubId], m_listActor3D[nPlane][nSubId], pts, polys, scalars, scalars_2);
+          cnt = 0;
+          vox_cnt = 0;
+          nSubId++;
+          pts = vtkSmartPointer<vtkPoints>::New();
+          polys = vtkSmartPointer<vtkCellArray>::New();
+          scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
+          scalars_2 = vtkSmartPointer<vtkFloatArray>::New();
+          scalars->SetNumberOfComponents( 4 );
+        }
+#endif
       }
     }
   }
+  if (vox_cnt > 0)
+  {
+#ifdef USE_ACTOR_LIST
+    BuildActor(m_listActor2D[nPlane][nSubId], m_listActor3D[nPlane][nSubId], pts, polys, scalars, scalars_2);
+#else
+    m_glyphActor2D[nPlane]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+    m_glyphActor3D[nPlane]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+    m_polydata[nPlane] = BuildActor(m_glyphActor2D[nPlane], m_glyphActor3D[nPlane], pts, polys, scalars, scalars_2);
+#endif
+  }
+
+  double actor_pos[3] = {0,0,0};
+  actor_pos[nPlane] = voxel_size[nPlane]*(nPlane==2?-dim[nPlane]:dim[nPlane])/2;
+  m_glyphActor2D[nPlane]->SetPosition(actor_pos);
+
+#ifdef USE_ACTOR_LIST
+  foreach (vtkActor* actor, m_listActor2D[nPlane])
+    actor->SetPosition(actor_pos);
+#endif
+}
+
+vtkPolyData* LayerODF::BuildActor(vtkActor* actor2D, vtkActor* actor3D, vtkPoints* pts, vtkCellArray* polys, vtkUnsignedCharArray* scalars, vtkFloatArray* scalars_2)
+{
+  double fdeci = 1;
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints(pts);
   polydata->SetPolys(polys);
@@ -500,36 +620,52 @@ void LayerODF::BuildSlice(int nPlane)
     smoother->SetFeatureAngle(90);
     smoother->SetNumberOfIterations(10);*/
 
-  m_polydata[nPlane] = polydata;
-  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() );
+  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkPolyDataMapper::SafeDownCast(actor2D->GetMapper());
   mapper->SetInputConnection(normals->GetOutputPort());
   mapper->SetScalarVisibility(1);
-  mapper = vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() );
+  mapper = vtkPolyDataMapper::SafeDownCast( actor3D->GetMapper() );
   mapper->SetInputConnection(normals->GetOutputPort());
   mapper->SetScalarVisibility(1);
 
-  double actor_pos[3] = {0,0,0};
-  actor_pos[nPlane] = voxel_size[nPlane]*(nPlane==2?-dim[nPlane]:dim[nPlane])/2;
-  m_glyphActor2D[nPlane]->SetPosition(actor_pos);
+  return polydata;
 }
 
 void LayerODF::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
+#ifdef USE_ACTOR_LIST
+  foreach (vtkActor* actor, m_listActor2D[nPlane])
+    renderer->AddViewProp(actor);
+#else
   renderer->AddViewProp( m_glyphActor2D[nPlane] );
+#endif
 }
 
 void LayerODF::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
   for (int i = 0; i < 3; i++)
+  {
+#ifdef USE_ACTOR_LIST
+    foreach (vtkActor* actor, m_listActor3D[i])
+      renderer->AddViewProp(actor);
+#else
     renderer->AddViewProp( m_glyphActor3D[i] );
+#endif
+  }
 }
 
 void LayerODF::SetVisible(bool bVisible)
 {
   for (int i = 0; i < 3; i++)
   {
-    m_glyphActor2D[i]->SetVisibility(bVisible?1:0);
+#ifdef USE_ACTOR_LIST
+    foreach (vtkActor* actor, m_listActor2D[i])
+      actor->SetVisibility((bVisible && GetProperty()->GetShowIn2DView())?1:0);
+    foreach (vtkActor* actor, m_listActor3D[i])
+      actor->SetVisibility(bVisible?1:0);
+#else
+    m_glyphActor2D[i]->SetVisibility((bVisible && GetProperty()->GetShowIn2DView())?1:0);
     m_glyphActor3D[i]->SetVisibility(bVisible?1:0);
+#endif
   }
   m_actor3D->SetVisibility(bVisible?1:0);
   emit ActorUpdated();
@@ -574,6 +710,5 @@ void LayerODF::OnColorCodeChanged()
       mapper->SetLookupTable(GetProperty()->GetOdfLut());
     }
   }
-
-  emit ActorUpdated();
+  SetVisible(IsVisible());
 }

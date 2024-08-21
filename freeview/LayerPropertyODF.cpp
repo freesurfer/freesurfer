@@ -17,6 +17,8 @@ LayerPropertyODF::LayerPropertyODF(QObject *parent) :
   m_spectrum[0.5] = Qt::green;
   m_spectrum[0.66] = Qt::yellow;
   m_spectrum[1] = Qt::red;
+
+  m_bShowIn2D = false;
 }
 
 void LayerPropertyODF::SetOdfInversion(int n)
@@ -80,4 +82,10 @@ void LayerPropertyODF::UpdateOdfLut()
         c.redF(), c.greenF(), c.blueF());
   }
   m_odfLut->Build();
+}
+
+void LayerPropertyODF::SetShowIn2DView(bool b)
+{
+  m_bShowIn2D = b;
+  emit ColorCodeChanged();
 }

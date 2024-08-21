@@ -127,6 +127,7 @@
 #include "MigrationDefs.h"
 #include <QDragEnterEvent>
 #include <QMimeData>
+#include "DialogLoadODF.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -9893,10 +9894,14 @@ void MainWindow::OnSyncFileChanged(const QString &fn)
 
 void MainWindow::OnLoadODF()
 {
-  QString fn = QFileDialog::getOpenFileName(this, "Load ODF", m_strLastDir);
-  if (!fn.isEmpty())
+  DialogLoadODF dlg(this);
+  if (dlg.exec() == QDialog::Accepted)
   {
-    AddScript(QStringList("loadodf") << fn);
+    QStringList list("loadodf");
+    list << dlg.GetOdfFile();
+    if (!dlg.GetVertexFile().isEmpty())
+      list << dlg.GetVertexFile() << dlg.GetMeshFile();
+    AddScript(list);
   }
 }
 
@@ -9920,10 +9925,17 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   QString fn = list.first();
   if (list.size() > 1)
   {
-    list = list[1].split("=");
-    if (list.size() > 1 && (list.first() == "permute" || list.first() == "permuted"))
+    for (int i = 1; i < list.size(); i++)
     {
-      map["permuted"] = (list[1] == "1" || list[1] == "true");
+      QStringList slist = list[i].split("=");
+      if (slist.size() > 1 && (slist.first().toLower() == "permute" || slist.first().toLower() == "permuted"))
+      {
+        map["permuted"] = (slist[1] == "1" || slist[1].toLower() == "true");
+      }
+      if (slist.size() > 1 && slist.first().toLower() == "hemisphere")
+      {
+        map["hemisphere"] = (slist[1] == "1" || slist[1].toLower() == "true");
+      }
     }
   }
   map["Filename"] = QFileInfo(fn).absoluteFilePath();
@@ -9931,7 +9943,7 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
     map["vertex_filename"] = QFileInfo(cmd[2]).absoluteFilePath();
   if (cmd.size() > 3)
     map["face_filename"] = QFileInfo(cmd[3]).absoluteFilePath();
-  m_threadIOWorker->LoadODF( layer, map );
+  m_threadIOWorker->LoadODF(layer, map);
 }
 
 void MainWindow::OnSaveLabelAsVolume()

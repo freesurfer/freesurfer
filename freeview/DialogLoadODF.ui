@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DialogLoadODF</class>
+ <widget class="QDialog" name="DialogLoadODF">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>525</width>
+    <height>332</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Load ODF</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>5</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Select ODF data file</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_8">
+     <item>
+      <widget class="QLineEdit" name="lineEditODF">
+       <property name="minimumSize">
+        <size>
+         <width>320</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="toolButtonOpenODF">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="freeview.qrc">
+         <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_9">
+     <property name="spacing">
+      <number>20</number>
+     </property>
+     <item>
+      <widget class="QCheckBox" name="checkBoxDTK">
+       <property name="text">
+        <string>DTK format (181 points)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxHemisphere">
+       <property name="text">
+        <string>Hemisphere</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxPermuted">
+       <property name="text">
+        <string>Permuted</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>1</width>
+         <height>1</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Policy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>12</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Select ODF vertex file</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_7">
+     <item>
+      <widget class="QLineEdit" name="lineEditVertexFile"/>
+     </item>
+     <item>
+      <widget class="QToolButton" name="toolButtonOpenVertex">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="freeview.qrc">
+         <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Policy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>12</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Select ODF mesh/face file</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QLineEdit" name="lineEditMesh"/>
+     </item>
+     <item>
+      <widget class="QToolButton" name="toolButtonOpenMesh">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="freeview.qrc">
+         <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_4">
+     <property name="font">
+      <font>
+       <pointsize>-1</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">font-size: 11px</string>
+     </property>
+     <property name="text">
+      <string>Note: Choose full sphere mesh file even if the ODF data is hemisphere</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonCancel">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonLoad">
+       <property name="text">
+        <string>Load</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="freeview.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>pushButtonCancel</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLoadODF</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>413</x>
+     <y>306</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>417</x>
+     <y>331</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLoad</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLoadODF</receiver>
+   <slot>OnOK()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>501</x>
+     <y>303</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>524</x>
+     <y>331</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDTK</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditVertexFile</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>92</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>95</x>
+     <y>139</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDTK</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>toolButtonOpenVertex</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>148</x>
+     <y>77</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>133</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDTK</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditMesh</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>132</x>
+     <y>76</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>140</x>
+     <y>212</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDTK</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>toolButtonOpenMesh</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>82</x>
+     <y>79</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>499</x>
+     <y>217</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toolButtonOpenODF</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLoadODF</receiver>
+   <slot>OnButtonODF()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>505</x>
+     <y>54</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>524</x>
+     <y>54</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toolButtonOpenVertex</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLoadODF</receiver>
+   <slot>OnButtonVertex()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>501</x>
+     <y>147</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>524</x>
+     <y>145</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toolButtonOpenMesh</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLoadODF</receiver>
+   <slot>OnButtonMesh()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>506</x>
+     <y>213</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>524</x>
+     <y>220</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDTK</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxHemisphere</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>139</x>
+     <y>79</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>227</x>
+     <y>79</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDTK</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogLoadODF</receiver>
+   <slot>OnCheckboxDTK(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>131</x>
+     <y>79</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>667</x>
+     <y>99</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnOK()</slot>
+  <slot>OnButtonODF()</slot>
+  <slot>OnButtonVertex()</slot>
+  <slot>OnButtonMesh()</slot>
+  <slot>OnCheckboxDTK(bool)</slot>
+ </slots>
+</ui>

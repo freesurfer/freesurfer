@@ -207,6 +207,7 @@ if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils)
     ToolWindowLesionPopup.cpp
 #    TorchScriptModule.cpp
 #    ScribblePromptWorker.cpp
+    DialogLoadODF.cpp
     freeview.qrc
   )
 
