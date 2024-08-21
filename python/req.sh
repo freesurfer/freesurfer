@@ -304,6 +304,7 @@ if [ $uninstall -eq 1 ]; then
    # echo $s: "Contents of nvidia subdir BEFORE UNINSTALL"
    # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
 
+   rm -f postinstall.list
    # func_setup_fspython
    ## remove nvidia packages with cuda libs (installed as dependency on linux but not MacOS)
    ## remove triton
@@ -311,9 +312,24 @@ if [ $uninstall -eq 1 ]; then
    # $python_binary -m pip freeze | grep "^nvidia\|^triton\|^torch" > /dev/null
    $python_binary -m pip freeze | grep "^nvidia\|^triton" > /dev/null
    if [ $? -eq 0 ]; then
-      rm -f postinstall.list
-      # $python_binary -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' > postinstall.list
-      $python_binary -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' > postinstall.list
+      if [ ! -e ./postinstall.list ]; then touch postinstall.list; fi
+      # $python_binary -m pip freeze | grep '^nvidia\|^triton\|^torch' | sed 's;==.*;;' >> postinstall.list
+      $python_binary -m pip freeze | grep '^nvidia\|^triton' | sed 's;==.*;;' >> postinstall.list
+   else
+      echo "$s: Found nothing to uninstall for nvidia and triton in output from pip freeze."
+   fi
+
+   # Unlike when specifying torch+cpu in requirements-build.txt, it is possible that tensorflow
+   # was still installed when and tensorflow+cpu is listed in requirements-build.txt
+   $python_binary -m pip freeze | grep "^tensorflow==" > /dev/null
+   if [ $? -eq 0 ]; then
+      if [ ! -e ./postinstall.list ]; then touch postinstall.list; fi
+      $python_binary -m pip freeze | grep '^tensorflow==' | sed 's;==.*;;' >> postinstall.list
+   else
+      echo "$s: Found nothing to uninstall for tensorflow in output from pip freeze."
+   fi
+
+   if [ -e ./postinstall.list ]; then
       echo -n "$s: Uninstalling: "
       cat postinstall.list | tr -s '\n' ' ' && echo
       yes | $python_binary -m pip uninstall -y -q -r postinstall.list > /dev/null 2>&1
@@ -321,29 +337,39 @@ if [ $uninstall -eq 1 ]; then
          echo "$s: pip UNINSTALL failed - exiting."
          exit 1
       fi
+   fi
 
-      ## check contents of nvidia directory
-      # echo "$s: Contents of nvidia subdir AFTER UNINSTALL"
-      # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
-
-      ## create a postinstall script to reinstall what was deleted
-      if [ -e ./postinstall.list ]; then
-         rm -f postinstall.sh
-         echo -n "$s: $python_binary -m pip install -y " > postinstall.sh
-         # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
-         # 03/2024 - exclude nvidia-cudnn-cu12 which breaks installation on Ubuntu linux
-         cat postinstall.list | grep -v "nvidia-cudnn-cu12" | tr -s '\n' ' ' >> postinstall.sh
-         chmod 755 postinstall.sh
-         ## save something the fspython distribution
-         cp -p -f postinstall.list $install_path/python/.
-         # cp -p -f postinstall.sh $install_path/python/.
-         # cat $install_path/python/postinstall.sh
-      else
-         echo "$s: Cannot find list of removed modules postinstall.list to create postinstall.sh"
-      fi
-
+   $python_binary -m pip freeze | grep "^tensorflow" > /dev/null
+   if [ $? -eq 0 ]; then
+      echo "$s tensorflow modulues currently installed:"
+      $python_binary -m pip freeze | grep "^tensorflow"
    else
-      echo "$s: Found nothing to uninstall in output from pip freeze."
+      echo "$s: Found no tensorflow modules installed - exiting."
+      exit 1
+   fi
+
+   ## check contents of nvidia directory
+   # echo "$s: Contents of nvidia subdir AFTER UNINSTALL"
+   # if [ -e $nvidia_subdir ]; then ls $nvidia_subdir; fi
+
+   ## create a postinstall script to reinstall what was uninstalled
+   if [ -e ./postinstall.list ]; then
+      rm -f postinstall.sh
+      # echo -n "$s: $python_binary -m pip install -y " >> postinstall.sh
+      echo -n '$FREESURFER_HOME/python/bin/python3 -m pip install -y ' >> postinstall.sh
+      # cat postinstall.list | tr -s '\n' ' ' >> postinstall.sh
+      ## 03/2024 - exclude nvidia-cudnn-cu12 which breaks installation on Ubuntu linux
+      cat postinstall.list | grep -v "nvidia-cudnn-cu12" | tr -s '\n' ' ' >> postinstall.sh
+      chmod 755 postinstall.sh
+      ## save something the fspython distribution
+      cp -p -f postinstall.list $install_path/python/.
+      # cp -p -f postinstall.sh $install_path/python/.
+      # cat $install_path/python/postinstall.sh
+      dir=`(cd . && pwd)`
+      echo "$s: Created postinstall script:"
+      echo "$dir/postinstall.sh"
+   else
+      echo "$s: Cannot find list of removed modules postinstall.list to create postinstall.sh"
    fi
 fi
 
