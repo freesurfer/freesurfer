@@ -140,7 +140,7 @@ echo "  "
 $cmd
 
 # Copy lookup table, for convenience
-cp $BASEPATH/data/AllenAtlasLUT $OUTPUT_DIR/lookup_table.txt
+cp $BASEPATH/data_${ATLAS_MODE}/AllenAtlasLUT $OUTPUT_DIR/lookup_table.txt
 
 touch $OUTPUT_DIR/done
 
