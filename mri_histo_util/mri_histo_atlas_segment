@@ -75,20 +75,20 @@ fi
 BASEPATH="$FREESURFER_HOME/python/packages/ERC_bayesian_segmentation/"
 
 # Try to find atlas data
-ATLAS_DIR="$BASEPATH/atlas_{$ATLAS_MODE}"
+ATLAS_DIR="$BASEPATH/atlas_${ATLAS_MODE}"
 
 if [ ! -f "$ATLAS_DIR/size.npy" ];
 then
   echo " "
-  echo "   Atlas files not found for mode {$ATLAS_MODE}. Please download atlas from: "
-  echo "      https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_{$ATLAS_MODE}.zip "
+  echo "   Atlas files not found for mode ${ATLAS_MODE}. Please download atlas from: "
+  echo "      https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_${ATLAS_MODE}.zip "
   echo "   and uncompress it into:  "
   echo "      $BASEPATH/ "
-  echo "   You only need to do this once for mode {$ATLAS_MODE}. You can use the following three commands (may require root access): "
+  echo "   You only need to do this once for mode ${ATLAS_MODE}. You can use the following three commands (may require root access): "
   echo "      1: cd $BASEPATH"
-  echo "      2a (in Linux): wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_{$ATLAS_MODE}.zip "
-  echo "      2b (in MAC): curl -o atlas.zip https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_{$ATLAS_MODE}.zip "
-  echo "      3. unzip atlas_{$ATLAS_MODE}.zip"
+  echo "      2a (in Linux): wget https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_${ATLAS_MODE}.zip "
+  echo "      2b (in MAC): curl -o atlas.zip https://ftp.nmr.mgh.harvard.edu/pub/dist/lcnpublic/dist/Histo_Atlas_Iglesias_2023/atlas_${ATLAS_MODE}.zip "
+  echo "      3. unzip atlas_${ATLAS_MODE}.zip"
   echo " "
   echo "   After correct extraction, the directory: "
   echo "      $ATLAS_DIR "
