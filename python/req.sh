@@ -323,16 +323,16 @@ if [ $uninstall -eq 1 ]; then
    # tflow_subdir="$install_path/python/lib/python3.8/site-packages"
    if [ -e $tflow_subdir ]; then
       rm -f header.list
-      (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+      (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
       if [ -e ./header.list ]; then
         if [ ! -z ./header.list ]; then
            file_cnt=`wc -l header.list | awk '{print $1}'`
            echo "$s: Removing $file_cnt NVIDIA copyrighted source files"
-           (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*"  -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+           (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
            rm -f delete_header.sh
            cat header.list | sed 's;^;rm -f '${tflow_subdir}'/;' > delete_header.sh
            bash delete_header.sh
-           rm -f header.list delete_header.sh
+           # rm -f header.list delete_header.sh
         else
            echo "%s: no source files found to check for copyrights under $tflow_subdir"
         fi
