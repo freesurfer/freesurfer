@@ -319,15 +319,36 @@ if [ $uninstall -eq 1 ]; then
       echo "$s: Found nothing to uninstall for nvidia and triton in output from pip freeze."
    fi
 
-   # Unlike when specifying torch+cpu in requirements-build.txt, it is possible that tensorflow
-   # was still installed when and tensorflow+cpu is listed in requirements-build.txt
-   $python_binary -m pip freeze | grep "^tensorflow==" > /dev/null
-   if [ $? -eq 0 ]; then
-      if [ ! -e ./postinstall.list ]; then touch postinstall.list; fi
-      $python_binary -m pip freeze | grep '^tensorflow==' | sed 's;==.*;;' >> postinstall.list
+   tflow_subdir="$install_path/python/lib/python3.8/site-packages/tensorflow"
+   # tflow_subdir="$install_path/python/lib/python3.8/site-packages"
+   if [ -e $tflow_subdir ]; then
+      rm -f header.list
+      (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+      if [ -e ./header.list ]; then
+        if [ ! -z ./header.list ]; then
+           file_cnt=`wc -l header.list | awk '{print $1}'`
+           echo "$s: Removing $file_cnt NVIDIA copyrighted source files"
+           (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*"  -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+           rm -f delete_header.sh
+           cat header.list | sed 's;^;rm -f '${tflow_subdir}'/;' > delete_header.sh
+           bash delete_header.sh
+           rm -f header.list delete_header.sh
+        else
+           echo "%s: no source files found to check for copyrights under $tflow_subdir"
+        fi
+      fi
    else
-      echo "$s: Found nothing to uninstall for tensorflow in output from pip freeze."
+      echo "%s: tensorflow does not appear to be installed to check for NVIDIA source files"
    fi
+
+   ## Did not work to substitute tensorflow-cpu for tensorflow, but both can be installed
+   # $python_binary -m pip freeze | grep "^tensorflow==" > /dev/null
+   # if [ $? -eq 0 ]; then
+   #   if [ ! -e ./postinstall.list ]; then touch postinstall.list; fi
+   #   $python_binary -m pip freeze | grep '^tensorflow==' | sed 's;==.*;;' >> postinstall.list
+   # else
+   #   echo "$s: Found nothing to uninstall for tensorflow in output from pip freeze."
+   # fi
 
    if [ -e ./postinstall.list ]; then
       echo -n "$s: Uninstalling: "
