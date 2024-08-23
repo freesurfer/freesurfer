@@ -772,6 +772,7 @@ MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples);
 MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out);
 int MRIloganize(MATRIX **X, MRI **Ct, MRI **intCt, const MATRIX *t, const double tstar);
 MRI *MRIclip(MRI *invol, double thresh, int ClipType, MRI *mask, MRI *outvol);
+int TSV2PET(TSV tsv, MATRIX *RTM_TimeSec,MATRIX **pRTM_Cr,MATRIX **pRTM_intCr);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -3053,16 +3054,31 @@ static int parse_commandline(int argc, char **argv) {
       // --logan cr.dat time.sec.dat tstar
       // Logan non-invasive
       if(nargc < 3) CMDargNErr(option,1);
-      RTM_Cr = MatrixReadTxt(pargv[0], NULL);
-      if(RTM_Cr == NULL) exit(1);
+      TSV tsv;
+      if(!tsv.IsTSVExt(pargv[0])){
+	RTM_Cr = MatrixReadTxt(pargv[0], NULL);
+	if(RTM_Cr == NULL) exit(1);
+      }
+      else {
+	int err = tsv.read(pargv[0]);
+	if(err) exit(1);
+      }
+
       RTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
       if(RTM_TimeSec == NULL) exit(1);
       RTM_TimeMin = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
       for(k=0; k < RTM_TimeSec->rows; k++)
 	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
+
       sscanf(pargv[2],"%lf",&Logan_Tstar);
       printf("Logan tstar %g\n",Logan_Tstar);
-      RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
+      if(!tsv.IsTSVExt(pargv[0]))
+	RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
+      else {
+	int err = TSV2PET(tsv,RTM_TimeMin,&RTM_Cr,&RTM_intCr);
+	if(err) exit(1);
+      }
+
       prunemask = 0;
       NoContrastsOK = 1;
       DoPCC = 0;
@@ -3253,6 +3269,8 @@ printf("          Note: if the k2prime argument is a file, it will read the valu
 printf("          that file; otherwise it inteprets the argument as a numeric value\n");
 printf("   --logan AIF TimeSec tstar   : perform invasive Logan kinetic modeling\n");
 printf("   --logan-ma1 AIF TimeSec tstar   : perform invasive Logan using Ichise 2002 MA1\n");
+printf("      The AIF can be a simple text file with a value for each PET time point\n");
+printf("      or it can be a highres tsv file with time (in sec) as the first column and a column labeled AIF\n");
 printf("   --bp-clip-neg : set negative BP voxels to 0\n");
 printf("   --bp-clip-max maxval : set BP voxels above max to max\n");
 printf("\n");
@@ -4420,6 +4438,71 @@ MRI *MRIclip(MRI *invol, double thresh, int ClipType, MRI *mask, MRI *outvol)
   }
 
   return(outvol);
+}
+
+int TSV2PET(TSV tsv, MATRIX *RTM_TimeSec,MATRIX **pRTM_Cr,MATRIX **pRTM_intCr)
+{
+
+  // First, go through the headers of the TSV to find the AIF
+  int FoundAIF=0;
+  int c,cAIF=0;
+  for(c=0; c < tsv.ncols(); c++){
+    printf("%d -%s-\n",c,tsv.headers[c].c_str());
+    if(strcmp(tsv.headers[c].c_str(),"AIF")==0) {
+      FoundAIF = 1;
+      cAIF = c;
+      break;
+    }
+  }
+  if(!FoundAIF){
+    printf("TSV: cannot find AIF in TSV file\n");
+    return(1);
+  }
+  int cTime = 0; // could find one that says "time"
+  printf("cTime %d cAIF %d\n",cTime,cAIF);
+
+  // Extract the AIF and time to matrices
+  MATRIX *Cr = MatrixAlloc(tsv.nrows(),1,MATRIX_REAL);
+  MATRIX *CrTimeMin = MatrixAlloc(tsv.nrows(),1,MATRIX_REAL);
+  for(int r=0; r < tsv.nrows(); r++){
+    CrTimeMin->rptr[r+1][1] = tsv.data[r][cTime]/60;
+    Cr->rptr[r+1][1] = tsv.data[r][cAIF];
+  }
+
+  // Compute the integral of the AIF from the high temp resolution
+  // waveform.  This is realy the point of going through all this.
+  MATRIX *intCr = MatrixCumTrapZ(Cr, CrTimeMin, NULL);
+
+  // Alloc the output
+  *pRTM_Cr = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
+  *pRTM_intCr = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
+  MATRIX *RTM_Cr = *pRTM_Cr;
+  MATRIX *RTM_intCr = *pRTM_intCr;
+
+  // Go through each time point in the PET time and find the time
+  // point in the AIF that is closest. Could do an interpolation, but
+  // the AIFs are usually extremely densely sampled in time.
+  for(int r=0; r < RTM_TimeSec->rows; r++){
+    double tpet = RTM_TimeSec->rptr[r+1][1];
+    double emin=10e10;
+    int rrmin=0;
+    for(int rr=0; rr < tsv.nrows(); rr++){
+      double taif = CrTimeMin->rptr[rr+1][1];
+      double e = fabs(tpet-taif);
+      if(e < emin){
+	emin = e;
+	rrmin = rr;
+      }
+    }
+    RTM_Cr->rptr[r+1][1] = Cr->rptr[rrmin+1][1];
+    RTM_intCr->rptr[r+1][1] = intCr->rptr[rrmin+1][1];
+  }
+
+  MatrixFree(&Cr);
+  MatrixFree(&intCr);
+  MatrixFree(&CrTimeMin);
+
+  return(0);
 }
 
 
