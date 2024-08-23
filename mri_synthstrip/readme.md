@@ -1,6 +1,6 @@
 # SynthStrip
 
-Source code for the SynthStrip skull-stripping utility. For command documentation, see https://w3id.org/synthstrip.
+Source code for the SynthStrip skull-stripping tool. For documentation, visit [synthstrip.io](https://synthstrip.io).
 
 
 ## Building containers
