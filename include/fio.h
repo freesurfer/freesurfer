@@ -92,6 +92,24 @@ int fio_mkdirp(const char *path, mode_t mode);
 int fio_FileHasCarriageReturn(const char *fname);
 int makelocallink(char *src, char *link, int del);
 
+// Code to read in a tab separated value (TSV) file. The format is
+// assumed to be that the first line has a list of strings (header)
+// that describes each column. After that each row has a number of
+// items equal to the number of header strings.
+#include<vector>
+class TSV {
+public:
+std::vector<std::string> headers;
+std::vector<std::vector<double>> data;
+int debug = 0;
+int ncols(void){return(headers.size());}
+int nrows(void){return(data.size());}
+int read(char* fname);
+int print(FILE *fp, std::string fmt);
+int write(std::string fname, std::string fmt);
+private:
+};
+
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
 #endif

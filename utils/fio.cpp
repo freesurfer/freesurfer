@@ -1030,3 +1030,84 @@ int makelocallink(char *src, char *link, int del)
   chdir(cwd);
   return(err);
 }
+
+#include "fsgdf.h" // needed by TSV
+int TSV::read(char* fname)
+{
+  headers.clear();
+  data.clear();
+
+    if(debug) printf("fname = %s\n",fname);
+    FILE *fp = fopen(fname,"r");
+    if(fp == NULL){
+      printf("ERROR: TSV.read(): cannot open %s for reading\n",fname);
+      return(1);
+    }
+    int ncols = gdfCountItemsOnLine(fp);
+    if(ncols == 0){
+      printf("ERROR: TSV.read(): no data found in %s\n",fname);
+      return(1);
+    }
+    if(debug) printf("ncols = %d\n",ncols);
+    char headitem[1000];
+    for(int m=0; m < ncols; m++){
+      fscanf(fp,"%s",headitem);
+      if(debug) printf("%d %s\n",m,headitem);
+      std::string headstr = headitem;
+      headers.push_back(headstr);
+    }
+    double val;
+    int nrows = 0;
+    int done = 0;
+    while(!feof(fp)){
+      std::vector<double> row;
+      if(debug) printf("%d ",nrows+1);
+      for(int m=0; m < ncols; m++){
+	int ret = fscanf(fp,"%lf",&val);
+	//if(debug) printf("ret = %d %d %d %g\n",ret,nrows+1,m,val);
+	if(ret == EOF){
+	  if(m == 0) {
+	    done = 1;
+	    break;
+	  }
+	  printf("ERROR: TSV.read(): %s truncated at row=%d, col=%d\n",fname,nrows+1,m);
+	  return(1);
+	}
+	if(debug) printf("%g ",val);
+	row.push_back(val);
+      }
+      if(debug) printf("\n");
+      if(done) break;
+      data.push_back(row);
+      nrows++;
+    }
+    if(debug) printf("rows = %d cols = %d\n",(int)data.size(),(int)headers.size());
+
+    fclose(fp);
+    return(0);
+  }
+  int TSV::print(FILE *fp, std::string fmt){
+    for(int c=0; c < this->ncols(); c++){
+      if(c != this->ncols()-1) fprintf(fp,"%s\t",headers[c].c_str());
+      else                    fprintf(fp,"%s\n",headers[c].c_str());
+    }
+    for(int r=0; r < this->nrows(); r++){
+      for(int c=0; c < this->ncols(); c++){
+	char fmt2[1000];
+	if(c != this->ncols()-1) sprintf(fmt2,"%s%s",fmt.c_str(),"\t");
+	else                     sprintf(fmt2,"%s%s",fmt.c_str(),"\n");
+	fprintf(fp,fmt2,data[r][c]);	
+      }
+    }
+    return(0);
+  }
+  int TSV::write(std::string fname, std::string fmt){
+    FILE *fp = fopen(fname.c_str(),"w");
+    if(fp == NULL){
+      printf("ERROR: TSV.read(): cannot open %s for writing\n",fname.c_str());
+      return(1);
+    }
+    this->print(fp,fmt);
+    fclose(fp);
+    return(0);
+  }
