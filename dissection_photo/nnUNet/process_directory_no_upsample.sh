@@ -7,15 +7,17 @@ if [ ! -e "$FREESURFER_HOME" ]; then
 fi
 
 if [ ! -e "$NNUNET_MODEL_DIR" ]; then
-    echo "error: NNUNET_MODEL_DIR has not been properly set"
+    echo "WARNING: NNUNET_MODEL_DIR is not set"
     echo "This should be the path to the directory containing the model"
     echo "dependency 'nnUNetTrainer__nnUNetPlans__2d'"
-    exit 1
+    echo "Setting NNUNET_MODEL_DIR to be: $FREESURFER_HOME_FSPYTHON/models/nnUNetTrainer__nnUNetPlans__2d"
+    NNUNET_MODEL_DIR=$FREESURFER_HOME_FSPYTHON/models/nnUNetTrainer__nnUNetPlans__2d
 fi
 
 if [ ! -e "$NNUNET_SCRIPT_DIR" ]; then
-    echo "error: NNUNET_SCRIPT_DIR has not been properly set"
-    exit 1
+    echo "WARNING: NNUNET_SCRIPT_DIR is not set"
+    echo "Setting NNUNET_SCRIPT_DIR to be: $FREESURFER_HOME_FSPYTHON/python/packages/nnUNet_v2"
+    NNUNET_SCRIPT_DIR=$FREESURFER_HOME_FSPYTHON/python/packages/nnUNet_v2
 fi
 
 # sanity check that the model files exist
