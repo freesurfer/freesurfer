@@ -37,6 +37,11 @@ public:
 
   void SetMagnitudeThreshold(double* th);
 
+  bool GetShowIn2DView()
+  {
+    return m_bShowIn2D;
+  }
+
   vtkColorTransferFunction* GetOdfLut();
 
   enum ODF_COLOR { Directional = 0, Magnitude };
@@ -50,6 +55,7 @@ public slots:
   void SetOdfScale(double val);
   void SetOdfInversion(int n);
   void SetOdfColorCode(int n);
+  void SetShowIn2DView(bool b);
 
 protected:
   void UpdateOdfLut();
@@ -61,6 +67,7 @@ protected:
   double  m_dMagnitudeThreshold[2];
   vtkSmartPointer<vtkColorTransferFunction> m_odfLut;
   QMap<double, QColor> m_spectrum;
+  bool    m_bShowIn2D;
 };
 
 #endif // LAYERPROPERTYODF_H

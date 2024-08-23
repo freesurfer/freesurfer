@@ -2,7 +2,7 @@
 
 This guide explains how to build SynthMorph container images.
 It assumes you execute commands in the `mri_synthmorph` directory.
-For general information about SynthMorph, visit https://w3id.org/synthmorph.
+For general information about SynthMorph, visit [synthmorph.io](https://synthmorph.io).
 
 
 ## Managing weight files with git-annex

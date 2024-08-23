@@ -3,10 +3,16 @@
 
 #include "LayerMRI.h"
 #include "vtkSmartPointer.h"
+#include <QList>
+
+//#define USE_ACTOR_LIST
 
 class LayerPropertyODF;
 class vtkActor;
 class vtkPolyData;
+class vtkPoints;
+class vtkCellArray;
+class vtkFloatArray;
 
 class LayerODF : public LayerMRI
 {
@@ -15,7 +21,7 @@ public:
   LayerODF(LayerMRI* layerMRI, QObject* parent = NULL );
   virtual ~LayerODF();
 
-  bool Load(const QString& fn, const QString& vertex_fn = "", const QString& face_fn = "", bool bPermute = false);
+  bool Load(const QString& fn, const QString& vertex_fn = "", const QString& face_fn = "", bool bPermute = false, bool bHemisphere = false);
 
   inline LayerPropertyODF* GetProperty()
   {
@@ -47,6 +53,8 @@ protected slots:
 
 protected:
   void BuildSlice(int nPlane = -1);
+  void ClearSliceActors(int nPlane = -1);
+  vtkPolyData* BuildActor(vtkActor* actor2D, vtkActor* actor3D, vtkPoints* pts, vtkCellArray* polys, vtkUnsignedCharArray* scalars, vtkFloatArray* scalars_2);
 
   vtkSmartPointer<vtkActor> m_actor3D;
   vtkSmartPointer<vtkPolyData> m_polydata[3];
@@ -59,8 +67,14 @@ protected:
   double  m_odfMaskThreshold[2];
 
   bool    m_bDtkFormat;
+  bool    m_bHemisphere;
   int     m_nVectors;
   int     m_nMesh;
+
+#ifdef USE_ACTOR_LIST
+  QList<vtkActor*> m_listActor2D[3];
+  QList<vtkActor*> m_listActor3D[3];
+#endif
 };
 
 #endif // LAYERODF_H

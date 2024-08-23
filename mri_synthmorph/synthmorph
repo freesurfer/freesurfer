@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 
-# This wrapper script aims to simplify the use of SynthMorph containers by
-# automatically pulling them from Docker Hub and mounting the host directory
-# SUBJECTS_DIR to /mnt inside the container. You can use the script just like
-# `mri_synthmorph` in FreeSurfer, except that all input and output files must
-# be in SUBJECTS_DIR. If you use Docker or Podman, any path passed as an
-# argument must begin with /mnt. For example, `export SUBJECTS_DIR=~/data` and
-# pass /mnt/bert/out.mgz for a file at ~/data/bert/out.mgz. The environment
-# variable SUBJECT_DIR defaults to the current working directory.
+# This wrapper script facilitates setup and use of SynthMorph containers by
+# pulling them from the Docker Hub and mounting the host directory defined by
+# environment variable SUBJECTS_DIR to /mnt in the container. Invoke the script
+# just like `mri_synthmorph` in FreeSurfer, with one exception: you can only
+# read and write data under SUBJECTS_DIR, which will be the working directory
+# in the container. If unset, SUBJECTS_DIR defaults to your current directory.
+# This means you can access relative paths under your working directory without
+# setting SUBJECTS_DIR. In other words, SUBJECTS_DIR sets the working directory
+# for SynthMorph, and you can specify paths relative to it.
 
-# Update the SynthMorph version to use a different image from Docker Hub.
+# Update the version to pull a different image, unless you already have it.
 version = 3
 
 # Local image location for Apptainer/Singularity. Set an absolute path to avoid
-# pulling new images if you change the folder. Ignored for Docker and Podman.
+# pulling new images when you change the folder. Ignored for Docker and Podman.
 sif_file = f'synthmorph_{version}.sif'
 
-# We will attempt to use the first container system from the below list found
-# in PATH. You may wish to update their order if you have several installed.
+# We will use the first of the below container systems found in your PATH, from
+# left to right. You may wish to reorder them, If you have several installed.
 tools = ('docker', 'apptainer', 'singularity', 'podman')
 
 
@@ -42,12 +43,12 @@ for tool in tools:
         break
 
 if not path:
-    print(f'Cannot find container tool in PATH {tools}', file=sys.stderr)
+    print(f'Cannot find container tools {tools} in PATH', file=sys.stderr)
     exit(1)
 
 
 # Prepare bind path and URL. Mount SUBJECTS_DIR as /mnt inside the container,
-# which we set as the working directory when building the image. While Docker
+# which we made the working directory when building the image. While Docker
 # and Podman will respect it, they require absolute paths for bind mounts.
 host = os.environ.get('SUBJECTS_DIR', os.getcwd())
 host = os.path.abspath(host)
