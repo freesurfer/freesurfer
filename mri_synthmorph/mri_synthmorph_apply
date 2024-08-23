@@ -166,16 +166,21 @@ doc = f'''{prog}
 
 # References.
 ref = '''
-Anatomy-specific acquisition-agnostic affine registration learned from fictitious images\t
-Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
-SPIE Medical Imaging: Image Processing, 12464, p 1246402, 2023\t
-https://doi.org/10.1117/12.2653251\t
-https://synthmorph.io/#papers (PDF)
-
 SynthMorph: learning contrast-invariant registration without acquired images\t
 Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
 IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022\t
 https://doi.org/10.1109/TMI.2021.3116879
+
+Anatomy-specific acquisition-agnostic affine registration learned from fictitious images\t
+Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
+SPIE Medical Imaging: Image Processing, 12464, 1246402, 2023\t
+https://doi.org/10.1117/12.2653251\t
+https://synthmorph.io/#papers (PDF)
+
+Anatomy-aware and acquisition-agnostic joint registration with SynthMorph\t
+Hoffmann M, Hoopes A, Greve DN, Fischl B*, Dalca AV* (*equal contribution)\t
+Imaging Neuroscience, 2, 1-33, 2024\t
+https://doi.org/10.1162/imag_a_00197
 
 Website: https://synthmorph.io
 '''
