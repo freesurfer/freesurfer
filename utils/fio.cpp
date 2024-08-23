@@ -1051,12 +1051,16 @@ int TSV::read(char* fname)
     printf("ERROR: TSV.read(): no data found in %s\n",fname);
     return(1);
   }
+  size_t ln = strlen(token) - 1;
+  if(token[ln] == '\n') token[ln] = '\0';
 
   headers.push_back(token);
   if(debug) printf("%d header %s\n",this->ncols(),token);
   while(saveptr != NULL){
     token = strtok_r(NULL, "\t", &saveptr);
     if(token==NULL) break;
+    size_t ln = strlen(token) - 1;
+    if(token[ln] == '\n') token[ln] = '\0';
     headers.push_back(token);
     if(debug) if(debug) printf("%d header %s\n",this->ncols(),token);
   }
