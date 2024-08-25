@@ -923,7 +923,7 @@ int main(int argc, char **argv) {
       printf("ERROR: loading y %s as a stat table\n",yFile.c_str());
       exit(1);
     }
-    if (scale_stats_by_etiv) ScaleStatTableByETIV(StatTable, 1e5);
+    if(scale_stats_by_etiv) ScaleStatTableByETIV(StatTable, 1e5);
     mriglm->y = StatTable->mri;
   }
   if (mriglm->y->type != MRI_FLOAT) {
@@ -2249,7 +2249,7 @@ int main(int argc, char **argv) {
     }
   } // contrasts
   
-  if(UseStatTable){
+  if(UseStatTable && !DoLogan && !DoLoganMA1){
     PrintStatTable(stdout, OutStatTable);
     sprintf(tmpstr,"%s/sig.table.dat",GLMDir);
     WriteStatTable(tmpstr, OutStatTable);
@@ -2363,6 +2363,13 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
     err = MRIwrite(mritmp,tmpstr);
     if(err) exit(1);
+    if(UseStatTable){
+      sprintf(tmpstr,"%s/bp.dat",GLMDir);
+      FILE *fp = fopen(tmpstr,"w");
+      for(int c=0; c < mritmp->width; c++)
+	fprintf(fp,"%-30s %10.5f\n",StatTable->colnames[c],MRIgetVoxVal(mritmp,c,0,0,0));
+      fclose(fp);
+    }
     MRIfree(&mritmp);
     printf("Computing conjunction of k2, k2a, and k2-k2a\n");
     sig1 = MRIlog10(mriglm->p[1],NULL,NULL,1); // k2
@@ -2411,6 +2418,13 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
     err = MRIwrite(mritmp,tmpstr);
     if(err) exit(1);
+    if(UseStatTable){
+      sprintf(tmpstr,"%s/bp.dat",GLMDir);
+      FILE *fp = fopen(tmpstr,"w");
+      for(int c=0; c < mritmp->width; c++)
+	fprintf(fp,"%-30s %10.5f\n",StatTable->colnames[c],MRIgetVoxVal(mritmp,c,0,0,0));
+      fclose(fp);
+    }
     MRIfree(&mritmp);
   }
   if(DoLogan){
@@ -2427,6 +2441,13 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/vt.%s",GLMDir,format);
     err = MRIwrite(mritmp,tmpstr);
     if(err) exit(1);
+    if(UseStatTable){
+      sprintf(tmpstr,"%s/vt.dat",GLMDir);
+      FILE *fp = fopen(tmpstr,"w");
+      for(int c=0; c < mritmp->width; c++)
+	fprintf(fp,"%-30s %10.5f\n",StatTable->colnames[c],MRIgetVoxVal(mritmp,c,0,0,0));
+      fclose(fp);
+    }
     MRIfree(&mritmp);
   }
   if(DoLoganMA1){
@@ -2444,6 +2465,13 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/vt.%s",GLMDir,format);
     err = MRIwrite(mritmp,tmpstr);
     if(err) exit(1);
+    if(UseStatTable){
+      sprintf(tmpstr,"%s/vt.dat",GLMDir);
+      FILE *fp = fopen(tmpstr,"w");
+      for(int c=0; c < mritmp->width; c++)
+	fprintf(fp,"%-30s %10.5f\n",StatTable->colnames[c],MRIgetVoxVal(mritmp,c,0,0,0));
+      fclose(fp);
+    }
     MRIfree(&mritmp);
   }
 

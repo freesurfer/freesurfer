@@ -206,13 +206,91 @@ static STAT_TABLE *LoadStatTableCSV(const char *statfile)
 }
 
 
+static STAT_TABLE *LoadStatTableTSV(const char *statfile)
+{
+  TSV tsv;
+  int err = tsv.read(statfile);
+  if(err) return(NULL);
+
+  // allocate table
+  STAT_TABLE *st = (STAT_TABLE *)calloc(sizeof(STAT_TABLE), 1);
+  st->filename = strcpyalloc(statfile);
+
+  // configure rows and columns
+  st->nrows = tsv.nrows();
+  st->ncols = tsv.ncols();
+  int c0 = 0;
+  char* ext = fio_extension(statfile);
+  if(!strcasecmp(ext, "tac")){
+    st->ncols -= 2; // first two are time columns
+    c0 = 2;
+  }
+  std::cout << "Found " << st->ncols << " data colums\n";
+  std::cout << "Found " << st->nrows << " data rows\n";
+  st->colnames = (char **)calloc(st->ncols, sizeof(char *));
+  st->rownames = (char **)calloc(st->nrows, sizeof(char *));
+
+  // set the measure
+  if(!strcasecmp(ext, "tac") && !strcmp(tsv.headers[1].c_str(),"end[kBq/cc]")) 
+    st->measure = (char*)"kBq/cc";
+  else
+    st->measure = (char*)"UnknownUnits";
+
+  // set the column headers
+  for(int c = 0; c < st->ncols; c++)
+    st->colnames[c] = strcpyalloc(tsv.headers[c+c0].c_str());
+
+  // alloc the data
+  st->data = (double **)calloc(st->nrows, sizeof(double *));
+  for (int r = 0; r < st->nrows; r++) st->data[r] = (double *)calloc(st->ncols, sizeof(double));
+
+  // set each row
+  for (int r = 0; r < st->nrows; r++) {
+    st->rownames[r] = (char*)"row";
+    for (int c = 0; c < st->ncols; c++) {
+      st->data[r][c] = tsv.data[r][c+c0];
+    }
+  }
+
+  st->mri = MRIallocSequence(st->ncols, 1, 1, MRI_FLOAT, st->nrows);
+  st->mri->xsize = 1;
+  st->mri->ysize = 1;
+  st->mri->zsize = 1;
+  st->mri->x_r = 1;
+  st->mri->x_a = 0;
+  st->mri->x_s = 0;
+  st->mri->y_r = 0;
+  st->mri->y_a = 1;
+  st->mri->y_s = 0;
+  st->mri->z_r = 0;
+  st->mri->z_a = 0;
+  st->mri->z_s = 1;
+
+  for (int r = 0; r < st->nrows; r++)
+    for (int c = 0; c < st->ncols; c++) MRIsetVoxVal(st->mri, c, 0, 0, r, st->data[r][c]);
+
+  MRIwrite(st->mri,"junk.mgz");
+
+  free(ext);
+  return(st);
+}
+
+
 STAT_TABLE *LoadStatTable(const char *statfile)
 {
   STAT_TABLE* table;
   char* ext = fio_extension(statfile);
+  printf("LoadStatTable(): ext %s\n",ext);
   if (!strcasecmp(ext, "csv")){
+    printf("Loading table as CSV\n");
     table = LoadStatTableCSV(statfile);
-  } else {
+  } 
+  if(!strcasecmp(ext, "tsv") || !strcasecmp(ext, "tac")){
+    printf("Loading table as TSV or TAC\n");
+    table = LoadStatTableTSV(statfile);
+  } 
+  else {
+    printf("Loading table as FS Table\n");
     table = LoadStatTableFS(statfile);
   }
   free(ext);

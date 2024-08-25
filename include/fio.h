@@ -104,7 +104,7 @@ std::vector<std::vector<double>> data;
 int debug = 0;
 int ncols(void){return(headers.size());}
 int nrows(void){return(data.size());}
-int read(char* fname);
+int read(const char* fname);
 int print(FILE *fp, std::string fmt);
 int write(std::string fname, std::string fmt);
 int IsTSVExt(const std::string fname);
