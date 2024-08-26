@@ -1031,7 +1031,7 @@ int makelocallink(char *src, char *link, int del)
   return(err);
 }
 
-int TSV::read(char* fname)
+int TSV::read(const char* fname)
 {
   headers.clear();
   data.clear();
@@ -1051,8 +1051,11 @@ int TSV::read(char* fname)
     printf("ERROR: TSV.read(): no data found in %s\n",fname);
     return(1);
   }
+  // remove newlines and carriage returns
   size_t ln = strlen(token) - 1;
   if(token[ln] == '\n') token[ln] = '\0';
+  ln = strlen(token) - 1;
+  if(token[ln] == '\r') token[ln] = '\0';
 
   headers.push_back(token);
   if(debug) printf("%d header %s\n",this->ncols(),token);
@@ -1061,6 +1064,8 @@ int TSV::read(char* fname)
     if(token==NULL) break;
     size_t ln = strlen(token) - 1;
     if(token[ln] == '\n') token[ln] = '\0';
+    ln = strlen(token) - 1;
+    if(token[ln] == '\r') token[ln] = '\0';
     headers.push_back(token);
     if(debug) if(debug) printf("%d header %s\n",this->ncols(),token);
   }
