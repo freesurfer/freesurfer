@@ -4918,7 +4918,7 @@ static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int 
   }
   else if (hdr->dime.datatype == DT_UINT16) {
     // Can happen if this is nifti
-    printf("INFO: This is an unsigned short.\n");
+    fprintf(stderr,"INFO: This is an unsigned short.\n");
     //    "Unsigned short not supported, but trying to read it \n"
     //    "in as a signed short. Will be ok if no vals >= 32k.\n");
     *mritype = MRI_USHRT;
@@ -7808,7 +7808,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     }
     else if (hdr.datatype == DT_UINT16) {
       // This will not always work ...
-      printf("INFO: This is an unsigned short.\n");    // I'll try to read it, but\n");
+      fprintf(stderr,"INFO: This is an unsigned short.\n");    // I'll try to read it, but\n");
       //printf("      it might not work if there are values over 32k\n");
       fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
@@ -7878,7 +7878,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (hdr.sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    // fprintf(stderr, "INFO: using NIfTI-1 sform \n");
+    fprintf(stderr, "INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -7887,7 +7887,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   }
   else if (hdr.qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stdout, "INFO: using NIfTI-1 qform \n");
+    fprintf(stderr, "INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -8498,7 +8498,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     }
     else if (hdr.datatype == DT_UINT16) {
       // This will not always work ...
-      printf("INFO: This is an unsigined short.\n");    // I'll try to read it, but\n");
+      fprintf(stderr,"INFO: This is an unsigined short.\n");    // I'll try to read it, but\n");
       //printf("      it might not work if there are values over 32k\n");
       fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
@@ -9055,7 +9055,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
       bytes_per_voxel = 2;
     }
     else if (hdr->datatype == DT_UINT16) {
-      printf("INFO: This is an unsigned short.\n");
+      fprintf(stderr,"INFO: This is an unsigned short.\n");
       fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
     }
@@ -9190,7 +9190,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
   if (hdr->sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stdout, "INFO: niiReadFromMriFsStruct() using NIfTI-1 sform (sform_code=%d)\n", hdr->sform_code);
+    fprintf(stderr, "INFO: niiReadFromMriFsStruct() using NIfTI-1 sform (sform_code=%d)\n", hdr->sform_code);
     if (niftiSformToMri(mri, hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -9199,7 +9199,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
   }
   else if (hdr->qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stdout, "INFO: niiReadFromMriFsStruct() using NIfTI-1 qform (qform_code=%d)\n", hdr->qform_code);
+    fprintf(stderr, "INFO: niiReadFromMriFsStruct() using NIfTI-1 qform (qform_code=%d)\n", hdr->qform_code);
     if (niftiQformToMri(mri, hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -12639,7 +12639,7 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr)
   if (niihdr->sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stdout, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
+    fprintf(stderr, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
     if (niftiSformToMri(mri, niihdr) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
@@ -12648,7 +12648,7 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr)
   }
   else if (niihdr->qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stdout, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
+    fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
     if (niftiQformToMri(mri, niihdr) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
