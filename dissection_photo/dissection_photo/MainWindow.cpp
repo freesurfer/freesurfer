@@ -214,11 +214,13 @@ void MainWindow::OnButtonLoadMask()
         dir.mkdir(temp_out);
         QString temp_out_dir = m_sTempDir+"/"+temp_out;
         QStringList watch_list;
+        m_mapInputImageSize.clear();
         for (int i = 0; i < m_listInputFiles.size(); i++)
         {
           QFile::copy(m_listInputFiles[i].absoluteFilePath(),
                       QFileInfo(QString("%1/%2").arg(m_sTempDir).arg(temp_in), m_listInputFiles[i].fileName()).absoluteFilePath());
           watch_list << QFileInfo(temp_out_dir, m_listInputFiles[i].completeBaseName()+".npz").absoluteFilePath();
+          m_mapInputImageSize[watch_list.last()] = QImage(m_listInputFiles[i].absoluteFilePath()).size();
         }
         cmd << m_strPythonCmd << QString("\"%1/process_directory_no_upsample.py\"").arg(m_strNNUnetScriptFolder)
             << "--in_dir" << QString("\"%1\"").arg(m_sTempDir+"/"+temp_in)
@@ -801,7 +803,7 @@ void MainWindow::OnFileChanged(const QString& path)
       {
         if (last_size_info[fn].toInt() == flist[0].size() && flist[0].size() > 0)
         {
-          QImage image = NpyToImage(fn);
+          QImage image = NpyToImage(fn, m_mapInputImageSize[fn].toSize());
           QString fn_png = QFileInfo(m_strMaskFolder, QFileInfo(fn).completeBaseName()+".png").absoluteFilePath();
           image.save(fn_png);
           m_listQueuedFiles.removeFirst();
@@ -831,7 +833,7 @@ void MainWindow::OnFileChanged(const QString& path)
   }
 }
 
-QImage MainWindow::NpyToImage(const QString& npy_in)
+QImage MainWindow::NpyToImage(const QString& npy_in, const QSize& sz_in)
 {
   QImage image;
   if (!QFile::exists(npy_in))
@@ -864,8 +866,10 @@ QImage MainWindow::NpyToImage(const QString& npy_in)
     }
   }
 
-  QImage origin_img = QImage(m_listInputFiles.first().absoluteFilePath());
-  image = image.scaled(origin_img.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+  QSize sz = sz_in;
+  if (!sz.isValid())
+    sz = QImage(m_listInputFiles.first().absoluteFilePath()).size();
+  image = image.scaled(sz, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
   w = image.width();
   h = image.height();
   for (int y = 0; y < h; y++)
