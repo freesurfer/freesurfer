@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 # post-recon-all 
-# stuff to run after running recon-all
+# stuff to run after running recon-all, good for testing
 # Do CVS separately because it requires so many resources
 # Need to add:
 #  - mri_synthmorph
@@ -30,6 +30,8 @@ set DoSegmentSubregions = 1
 set DoQCache = 1
 set DoSCLimbic = 1
 set DoHThSU = 1
+set DoMCADura = 1
+set DoVSinus = 1
 set DoSynthSeg = 1
 set DoSynthStrip = 1
 set DoXhemi = 1
@@ -37,6 +39,7 @@ set DoSamseg = 1
 set DoGTMSeg = 1
 set DoQAStats = 1
 set DoCVS = 0
+set DoSynthMorph = 1
 set threads = 1
 
 set inputargs = ($argv);
@@ -259,6 +262,36 @@ if($DoHThSU) then
   endif
 endif
 
+if($DoMCADura) then
+  set cmd = (mri_mcadura_seg --s $subject --threads $threads)
+  echo $cmd | tee -a $LF
+  fs_time $cos7run $cmd | tee -a $LF
+  if($status) then
+    if($ExitOnError) then
+      echo "$cmd failed" | tee -a $LF
+      exit 1
+    endif
+    echo "$cmd failed, but continuing" | tee -a $LF
+    echo $cmd > $sd/scripts/post-recon-all.mcadura.hardfailure.txt
+    @ ExitStatus = $ExitStatus + 1
+  endif
+endif
+
+if($DoVSinus) then
+  set cmd = (mri_vsinus_seg --s $subject --threads $threads)
+  echo $cmd | tee -a $LF
+  fs_time $cos7run $cmd | tee -a $LF
+  if($status) then
+    if($ExitOnError) then
+      echo "$cmd failed" | tee -a $LF
+      exit 1
+    endif
+    echo "$cmd failed, but continuing" | tee -a $LF
+    echo $cmd > $sd/scripts/post-recon-all.vsinus.hardfailure.txt
+    @ ExitStatus = $ExitStatus + 1
+  endif
+endif
+
 # Samseg
 if($DoSamseg) then
   set samsegvol = $sd/mri/samseg/seg.mgz
@@ -375,6 +408,24 @@ if($DoCVS) then
   endif
 endif
 
+if($DoSynthMorph) then
+  echo "\n\n" |& tee -a $LF
+  date |& tee -a $LF
+  pwd |& tee -a $LF
+  set cmd = (fs-synthmorph-reg --s $subject --threads $FS_OMP_NUM_THREADS)
+  echo $cmd |& tee -a $LF
+  fs_time $cos7run $cmd |& tee -a $LF
+  if($status) then
+    if($ExitOnError) then
+      echo "$cmd failed" | tee -a $LF
+      exit 1
+    endif
+    echo "fs-synthmorph-reg failed, but continuing" | tee -a $LF
+    echo $cmd > $sd/scripts/post-recon-all.fs-synthmorph-reg.hardfailure.txt
+    @ ExitStatus = $ExitStatus + 1
+  endif
+endif
+
 if($ExitStatus != 0) then
   echo "" | tee -a $LF
   echo "ERROR: there were $ExitStatus hard failures" | tee -a $LF
@@ -464,6 +515,20 @@ while( $#argv != 0 )
       set DoHThSU = 0
       breaksw
 
+    case "--mcadura":
+      set DoMCADura = 1
+      breaksw
+    case "--no-mcadura":
+      set DoMCADura = 0
+      breaksw
+
+    case "--vsinus":
+      set DoVSinus = 1
+      breaksw
+    case "--no-vsinus":
+      set DoVSinus = 0
+      breaksw
+
     case "--samseg":
       set DoSamseg = 1
       breaksw
@@ -490,6 +555,13 @@ while( $#argv != 0 )
       breaksw
     case "--no-cvs":
       set DoCVS = 0
+      breaksw
+
+    case "--synthmorph":
+      set DoSynthMorph = 1
+      breaksw
+    case "--no-synthmorph":
+      set DoSynthMorph = 0
       breaksw
 
     case "--qa-stats":
@@ -610,10 +682,13 @@ usage_exit:
   echo " --no-subfields, --subfields (default is to do them)"
   echo " --no-subregions, --subregions (default is to do them)"
   echo " --cvs, --no-cvs : run CVS. Default is NOT to run CVS"
+  echo " --no-synthmorph : do not run fs-synthmorph-reg"
   echo " --no-qcache, --qcache : run qcache (default is to run)"
   echo "   qcache will fail for longitudinal "
   echo " --no-sclimbic : do not run sclimbic"
   echo " --no-hthsu : do not run hypothalamic subunits"
+  echo " --no-mcadura : do not run seg of MCA/Dura"
+  echo " --no-vsinus : do not run seg of venous sinuses"
   echo " --no-synthstrip : do not run synthstrip"
   echo " --no-synthseg : do not run synthseg"
   echo " --no-qastats : do not run qastats"
