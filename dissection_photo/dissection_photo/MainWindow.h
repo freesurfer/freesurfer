@@ -61,7 +61,7 @@ private:
   void UpdateIndex();
   void LoadImage(int n);
   void ClearFolder(const QString& path);
-  QImage NpyToImage(const QString& fn);
+  QImage NpyToImage(const QString& fn, const QSize& sz);
   QList<QPoint> GetCalibrationPointsList(const QVariantMap& info);
   void RepositionProgressWindow();
 
@@ -101,6 +101,7 @@ private:
   QElapsedTimer  m_elapsedTimer;
   QFileSystemWatcher  m_fileWatcher;
   QStringList    m_listQueuedFiles;
+  QVariantMap    m_mapInputImageSize;
   ProgressWindow* m_wndProgress;
 };
 #endif // MAINWINDOW_H

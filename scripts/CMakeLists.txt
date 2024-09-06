@@ -67,6 +67,7 @@ install_configured(
   fsfirst.fsl
   fs-check-version
   fs_install_mcr
+  fs_install_cuda
   fs_lib_check
   fs_run_from_mcr
   fs_time
