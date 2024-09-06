@@ -1561,14 +1561,16 @@ if($DoMotionCor) then
 endif # Motion Correction
 
 # Explicitly create an LTA to go from rawavg/native space to orig
-set lta = $mdir/rawavg2orig.lta 
-set ud = `UpdateNeeded $lta $origvol $rawavg`
-if($ud || $ForceUpdate) then
-  set cmd = (lta_convert --inlta identity.nofile --src $rawavg --trg $origvol --outlta $lta)
-  echo $cmd | tee -a $LF
-  if($RunIt) then
-    fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit
+if(! $longitudinal && ! $DoCreateBaseSubj) then
+  set lta = $mdir/rawavg2orig.lta 
+  set ud = `UpdateNeeded $lta $origvol $rawavg`
+  if($ud || $ForceUpdate) then
+    set cmd = (lta_convert --inlta identity.nofile --src $rawavg --trg $origvol --outlta $lta)
+    echo $cmd | tee -a $LF
+    if($RunIt) then
+      fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
   endif
 endif
 
