@@ -1092,6 +1092,7 @@ if [ $do_Diffusion_Processing_Tutorial -eq 1 ]; then
   run_cmd "freeview -v $TUTORIAL_DIR/$subj/dtrecon/fa.nii \
   $TUTORIAL_DIR/$subj/dtrecon/adc.nii"
 
+  # This command will probably fail because it uses -reg reg.dat instead of lta
   run_cmd "mri_vol2vol --mov $TUTORIAL_DIR/$subj/dtrecon/lowb.nii \
   --targ $SUBJECTS_DIR/$subj/mri/wmparc.mgz \
   --inv --interp nearest --o $SUBJECTS_DIR/$subj/mri/wmparc2diff.mgz \
