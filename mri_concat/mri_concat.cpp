@@ -91,7 +91,7 @@ int DoPairedDiffNorm=0;
 int DoPairedDiffNorm1=0;
 int DoPairedDiffNorm2=0;
 int DoASL = 0;
-int DoVote=0;
+int DoVote=0,VoteExclude0=0;
 int DoSort=0;
 int DoCombine=0;
 int DoKeepDatatype=0;
@@ -623,7 +623,7 @@ int main(int argc, char **argv)
   if(DoVote)
   {
     printf("Voting \n");
-    mritmp = MRIvote(mriout,mask,NULL);
+    mritmp = MRIvote(mriout,mask,NULL,VoteExclude0);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -875,10 +875,8 @@ static int parse_commandline(int argc, char **argv)
     {
       DoConjunction = 1;
     }
-    else if (!strcasecmp(option, "--vote"))
-    {
-      DoVote = 1;
-    }
+    else if (!strcasecmp(option, "--vote")) DoVote = 1;
+    else if (!strcasecmp(option, "--vote-ex0")) {DoVote = 1;VoteExclude0=1;}
     else if (!strcasecmp(option, "--sort"))
     {
       DoSort = 1;
@@ -1205,6 +1203,7 @@ static void print_usage(void)
   printf("   --fnorm : normalize time series at each voxel (remove mean, divide by SSS)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
+  printf("   --vote-ex0 : most frequent value at each voxel excluding 0 and fraction of occurances\n");
   printf("   --ctab ctab : embed color table in the output\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("   --tar1 dofadjust : compute temporal ar1\n");

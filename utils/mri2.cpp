@@ -2060,7 +2060,7 @@ MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
      (2) Fraction of occurances (ie noccurances/nframes)
   Note: input will be sorted in asc order
  */
-MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
+MRI *MRIvote(MRI *in, MRI *mask, MRI *vote, int Exclude0)
 {
   int c, r, s, f, f0, ncols, nrows, nslices, nframes;
   float m;
@@ -2113,7 +2113,9 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
           if (v0 != v) {
             // new value is different than that of run start
             runlen = f - f0;  // runlength for v0
-            if (runlenmax < runlen) {
+	    int skip = 0;
+	    if(v0 == 0 && Exclude0) skip = 1;
+            if(runlenmax < runlen && !skip) {
               runlenmax = runlen;
               vmax = v0;
             }

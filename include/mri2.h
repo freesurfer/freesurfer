@@ -83,7 +83,7 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s);
 MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
 MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out);
-MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
+MRI *MRIvote(MRI *in, MRI *mask, MRI *vote, int Exclude0=0);
 int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta);
 
 #define VOX2VOXREGTYPE_FILE 0 /* Use specifed file */
