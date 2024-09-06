@@ -78,7 +78,7 @@ set pdanat = $mdir/PD.anat.mgz
 
 if($DoReg) then
   # Register T2 to anatomical
-  set t2reg = $mdir/T2.register.dat
+  set t2reg = $mdir/T2.register.lta
   set update = `UpdateNeeded $t2reg $t2`
   if($update) then
     set cmd = (bbregister --s $subject --mov $t2 --reg $t2reg $bbrinit --t2 --fsl-bet-mov)

@@ -96,7 +96,7 @@ foreach sess ($SessList)
 
   if($IsNative) then
     foreach Run ($RunList)
-      set reg = $sess/$fsd/$Run/register.dof6.dat
+      set reg = $sess/$fsd/$Run/register.dof6.lta
       foreach Con ($conlist)
        foreach map (ces cesvar)
         set ces = `stem2fname $sess/$fsd/$analysis/pr$Run/$Con/$map`;

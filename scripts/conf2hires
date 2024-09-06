@@ -583,7 +583,7 @@ if($#MMode) then
   endif
 
   # Map the ${MMode} back to conformed space for convenience
-  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg $regR2C  --o conf.${MMode}.mgz)
+  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg $regR2Clta  --o conf.${MMode}.mgz)
   echo $cmd | tee -a $LF
   set ud = `UpdateNeeded conf.${MMode}.mgz orig.mgz rawavg.${MMode}.mgz $regR2C`
   if($ud || $ForceUpdate) then

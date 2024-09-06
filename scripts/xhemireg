@@ -120,17 +120,24 @@ foreach srchemi ($srchemilist)
     echo orientation: $orientation $o1  $o2  $o3 | tee -a $LF
 
     # This is the same as --left-right-reverse-pix
-    set reg = $outdir/lrrev.register.dat
-    rm -f $reg
-    echo "subject-unknown" >> $reg
-    echo "1" >> $reg
-    echo "1" >> $reg
-    echo "1" >> $reg
-    echo "$xsign 0 0 1" >> $reg
-    echo " 0 $ysign 0 0" >> $reg
-    echo " 0 0 $zsign 0" >> $reg
-    echo " 0 0 0 1" >> $reg
-    echo "round" >> $reg
+    set regdat = $outdir/lrrev.register.dat
+    rm -f $regdat
+    echo "subject-unknown" >> $regdat
+    echo "1" >> $regdat
+    echo "1" >> $regdat
+    echo "1" >> $regdat
+    echo "$xsign 0 0 1" >> $regdat
+    echo " 0 $ysign 0 0" >> $regdat
+    echo " 0 0 $zsign 0" >> $regdat
+    echo " 0 0 0 1" >> $regdat
+    echo "round" >> $regdat
+    # Convert to lta
+    set reg = $outdir/lrrev.register.lta
+    set invol = mri/$vollist[1].mgz
+    set cmd = (lta_convert --src $invol --trg $invol --inreg $regdat --outlta $reg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
 
     set regpure = $outdir/lrrev.pure.register.dat
     rm -f $regpure
@@ -160,7 +167,7 @@ foreach srchemi ($srchemilist)
       endif
       set cmd = (mri_vol2vol --mov $invol --targ $invol \
         --reg $reg --o $outdir/mri/$vol.mgz --keep-precision \
-        --no-save-reg)
+        --no-save-reg --interp nearest) # nearest needed for segs
       echo $cmd  | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;

@@ -80,7 +80,7 @@ if($SaveVol) then
   else
     set mni152orig = $SUBJECTS_DIR/$subject/mri/mni152.sym.orig.mgz
   endif
-  set cmd = (mri_vol2vol --mov $mni152 --targ $orig --reg $outreg --inv \
+  set cmd = (mri_vol2vol --mov $mni152 --targ $orig --reg $outlta --inv \
      --o $mni152orig --no-save-reg)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF

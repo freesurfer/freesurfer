@@ -88,9 +88,9 @@ set roitab = $outdir/roi.table
 
 # Copy reg or register
 if($#reg != 0) then
-  cp $reg $outdir/register.dat
+  cp $reg $outdir/register.lta
 else
-  set reg = $outdir/register.dat
+  set reg = $outdir/register.lta
   set cmd = (bbregister --mov $template --bold --init-fsl \
     --s $subject --reg $reg)
   echo $cmd | tee -a $LF
@@ -295,7 +295,7 @@ usage_exit:
   echo " --s subject (or use --reg)"
   echo ""
   echo " --roitab ROITable (like FreeSurferColorLUT.txt)"
-  echo " --reg register.dat (instead of subject)"
+  echo " --reg register.lta (instead of subject)"
   echo " --t template (instead of using rcbf itself)"
   echo ""
 

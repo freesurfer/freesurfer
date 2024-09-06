@@ -277,7 +277,7 @@ usage_exit:
   echo "Required Arguments:";
   echo "   -i invol"
   echo "   -o outvol "
-  echo "   -reg reg.dat"
+  echo "   -reg reg.lta"
   echo ""
   echo "Optional Arguments:";
   echo "   -zero-edges : set volume edge voxels to 0"
