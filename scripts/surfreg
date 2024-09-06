@@ -104,7 +104,7 @@ foreach hemi ($hemilist)
     # of the spherical reg, but it can be helpful when loading two
     # spheres in freeview for the purposes of evaluating the
     # registration.
-    set fsaorig = $FREESURFER/subjets/fsaverage/mri/orig.mgz
+    set fsaorig = $FREESURFER/subjects/fsaverage/mri/orig.mgz
     set cmd = (mris_convert --center --vol-geom  $fsaorig $outreg $outreg)
     echo "#CMD# $cmd"|& tee -a $LF
     $cmd |& tee -a $LF
