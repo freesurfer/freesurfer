@@ -206,9 +206,10 @@ if(NOT APPLE)
     set(QUADMATH_LIBRARIES "")
   endif()
 elseif(APPLE_ARM64)
-  # use gfortran from gcc (otherwise use native clang)
-  find_library(GFORTRAN_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/12 /opt/homebrew/bin NAMES libgfortran.a gfortran)
-  find_library(QUADMATH_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/current NAMES libquadmath.a libquadmath.dylib libquadmath.0.dylib)
+  set(STATIC_QUADMATH ON)
+  ## use gfortran from gcc (otherwise use native clang)
+  find_library(GFORTRAN_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/current NAMES libgfortran.a)
+  find_library(QUADMATH_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/current NAMES libquadmath.a)
 endif()
 
 # commented out on 10/2022
