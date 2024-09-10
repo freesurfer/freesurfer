@@ -149,6 +149,8 @@ int label_ring = 0 ;// requires surface
 int RemoveHolesAndIslands = 0;// requires surface
 int DoThresh = 0;
 double thresh=0;
+char *maskfile=NULL;
+int maskbval = 1;
 
 /*----------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -331,6 +333,14 @@ int main(int argc, char **argv) {
   fprintf(stderr,"Centroid: %6.2f  %6.2f  %6.2f \n",
           xsum/nlabel,ysum/nlabel,zsum/nlabel);
 
+  if(maskfile && surf) {
+    printf("Creating binary mask %s\n",maskfile);
+    MRI *mri = MRIalloc(surf->nvertices,1,1,MRI_INT);
+    for(int n = 0; n < lb->n_points; n++) MRIsetVoxVal(mri,lb->lv[n].vno,0,0,0,maskbval);
+    MRIwrite(mri,maskfile);
+    MRIfree(&mri);
+  }
+
   fprintf(stderr,"mri_cor2label completed SUCCESSFULLY\n");
 
   return(0);
@@ -363,6 +373,15 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 2) argnerr(option,1);
       labelfile = pargv[1];
       nargs = 2;
+    }
+
+    /* ---- label file ---------- */
+    else if (!strcmp(option, "--m")) {
+      if(nargc < 3) argnerr(option,2);
+      maskfile = pargv[1];
+      sscanf(pargv[2],"%d",&maskbval);
+      printf("%s %d\n",maskfile,maskbval);
+      nargs = 3;
     }
 
     /* ---- count file ---------- */
@@ -478,6 +497,7 @@ printf("   --i  input     : vol or surface overlay\n");
 printf("   --id labelid   : value to match in the input\n");
 printf("   --thresh thresh   : threshold the input to make label (ie, input>thresh) instead of --id\n");
 printf("   --l  labelfile : name of output file\n");
+printf("   --m  binmask binval : save output as a binary volume with binval (surfs only)\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
 printf("   --surf-path surface : specify surface path rather than subject/hemi\n");
