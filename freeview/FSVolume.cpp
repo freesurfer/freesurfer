@@ -215,12 +215,8 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
     cerr << "Read registration failed\n";
     return false;
   }
-//  qDebug() << timer.elapsed()/1000;
-//  qDebug() << "begin MRIvalrange";
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
   m_fMaxValueFull = m_fMaxValue;
-//  qDebug() << timer.elapsed()/1000;
-//  qDebug() << "begin UpdateHistoCDF";
   UpdateHistoCDF();
   if (m_bValidHistogram)
   {
@@ -231,14 +227,12 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
       m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS/2;
       if (m_fMaxValue > 10*val)
       {
-//        qDebug() << timer.elapsed()/1000;
         UpdateHistoCDF(0, m_fMaxValue, true);
         val = GetHistoValueFromPercentile(0.99)*1.1;
         m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS;
       }
     }
   }
-//  qDebug() << timer.elapsed()/1000;
   return true;
 }
 

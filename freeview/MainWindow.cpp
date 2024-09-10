@@ -1024,6 +1024,12 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     }
   }
 
+  QString percentile_opt;
+  if ( parser->Found( "percentile_all", &sa ) )
+  {
+    percentile_opt = ":percentile=1:grayscale=" + sa.join(",");
+  }
+
   QList<QStringList> cmds;
   if ( floatingArgs.size() > 0 )
   {
@@ -1042,7 +1048,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
       }
       for (int j = 0; j < fn_list.size(); j++)
       {
-        QStringList script = QStringList("loadvolume") << fn_list[j];
+        QString fn = fn_list[j];
+        if (!fn.contains(":colormap="))
+          fn += percentile_opt;
+        QStringList script = QStringList("loadvolume") << fn;
         if ( parser->Found( "r" ) )
         {
           script << "r";
@@ -1059,7 +1068,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     parser->Found( "v", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
-      QStringList script = QStringList("loadvolume") << sa[i];
+      QString fn = sa[i];
+      if (!fn.contains(":colormap="))
+        fn += percentile_opt;
+      QStringList script = QStringList("loadvolume") << fn;
       if ( parser->Found( "r" ) )
       {
         script << "r";
