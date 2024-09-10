@@ -192,6 +192,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "no-sphere-ignore-vg", "no-sphere-ignore-vg", "", "Do not ignore vol geom when surface has 'sphere' in the name"),
     CmdLineEntry( CMD_LINE_SWITCH, "smoothed", "smoothed", "", "Use smoothed display as the default display method for volumes." ),
     CmdLineEntry( CMD_LINE_OPTION, "colormap", "colormap", "<TYPE>", "Use the give colormap type as the colormap for all the volumes to be loaded after.", 1, 1 ),
+    CmdLineEntry( CMD_LINE_OPTION, "percentile_all", "percentile_all", "<MIN> <MAX>", "Global option to set grayscale levels for all volumes in percentile.", 2, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "dti", "dti", "<VECTOR> <FA>...", "Load one or more dti volumes. Need two files for each dti volume. First one is vector file. Second one is FA (brightness) file.", 2, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tv", "tract-volume", "<FILE>...", "Load one or more tract volumes.Available sub-options are:\n\n"
     "':frame=frame_number' Show only a single tract by frame number.\n", 1, 1000 ),

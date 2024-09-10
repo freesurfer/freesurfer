@@ -24,7 +24,7 @@
 #include <QRegularExpression>
 #include "MigrationDefs.h"
 
-#define SUB_ACTOR_COUNT 8
+#define SUB_ACTOR_COUNT 4
 
 LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   m_mask(NULL)
