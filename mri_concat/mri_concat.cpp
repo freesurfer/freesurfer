@@ -55,6 +55,7 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 //static int  singledash(char *flag);
+MRI *MRIfirstNonZero(MRI *mri, MRI *mask, MRI *out);
 
 int main(int argc, char *argv[]) ;
 
@@ -92,6 +93,7 @@ int DoPairedDiffNorm1=0;
 int DoPairedDiffNorm2=0;
 int DoASL = 0;
 int DoVote=0,VoteExclude0=0;
+int DoFirstNonZero = 0;
 int DoSort=0;
 int DoCombine=0;
 int DoKeepDatatype=0;
@@ -620,10 +622,16 @@ int main(int argc, char **argv)
     mriout = mritmp;
   }
 
-  if(DoVote)
-  {
+  if(DoVote) {
     printf("Voting \n");
     mritmp = MRIvote(mriout,mask,NULL,VoteExclude0);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
+  if(DoFirstNonZero) {
+    printf("FirstNonZero \n");
+    mritmp = MRIfirstNonZero(mriout,mask,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -877,6 +885,7 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcasecmp(option, "--vote")) DoVote = 1;
     else if (!strcasecmp(option, "--vote-ex0")) {DoVote = 1;VoteExclude0=1;}
+    else if (!strcasecmp(option, "--first-non-zero")) DoFirstNonZero=1;
     else if (!strcasecmp(option, "--sort"))
     {
       DoSort = 1;
@@ -1203,6 +1212,8 @@ static void print_usage(void)
   printf("   --fnorm : normalize time series at each voxel (remove mean, divide by SSS)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
+  printf("   --first-non-zero : return the first non-zero value across frames\n");
+
   printf("   --vote-ex0 : most frequent value at each voxel excluding 0 and fraction of occurances\n");
   printf("   --ctab ctab : embed color table in the output\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
@@ -1433,4 +1444,32 @@ MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out)
 }
 #endif
 
+
+MRI *MRIfirstNonZero(MRI *mri, MRI *mask, MRI *out)
+{
+  if(out == NULL) {
+    out = MRIallocSequence(mri->width, mri->height, mri->depth, mri->type, 1);
+    MRIcopyHeader(mri, out);
+    if(mri->ct) out->ct = CTABdeepCopy(mri->ct);
+    MRIcopyPulseParameters(mri, out);
+  }
+
+  for(int c=0; c < mri->width; c++){
+    for(int r=0; r < mri->height; r++){
+      for(int s=0; s < mri->depth; s++){
+	MRIsetVoxVal(out,c,r,s,0,0);
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5)  continue;
+	for(int f=0; f < mri->nframes; f++){
+	  double v = MRIgetVoxVal(mri,c,r,s,f);
+	  if(v != 0){
+	    MRIsetVoxVal(out,c,r,s,0,v);
+	    break;
+	  }
+	}
+      }
+    }
+  }
+
+  return(out);
+}
 
