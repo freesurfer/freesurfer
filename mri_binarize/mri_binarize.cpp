@@ -266,6 +266,7 @@ int FDRSign = 0;
 int nErodeNN=0, NNType=0;
 
 static int replace_only = 0 ;
+int CopyCTab = 0;
 int transitive_replace = 1;
 int nReplace = 0, SrcReplace[1000], TrgReplace[1000], 
     nReplaceNN = 0, SrcReplaceNN[1000], ReplaceWindowNN[1000];
@@ -695,7 +696,7 @@ int main(int argc, char *argv[]) {
   }
 
   // if we didn't binarize, copy any embedded color table from the input
-  if(replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
+  if((replace_only || CopyCTab) && InVol->ct ) OutVol->ct = CTABdeepCopy(InVol->ct);
   // Or copy the ctab passed on the command line
   if(cmdlinectab) OutVol->ct = CTABdeepCopy(cmdlinectab);
 
@@ -1091,6 +1092,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = nth;
       DoMatch = 1;
     } 
+    else if (!strcasecmp(option, "--copy-ctab")) CopyCTab = 1;
     else if (!strcasecmp(option, "--ctab")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdlinectab = CTABreadASCII(pargv[0]);
@@ -1293,6 +1295,7 @@ static void print_usage(void) {
   printf("   --subcort-gm : subcortical gray matter\n");
   printf("   --scm-lh, --scm-rh : subcortical mass (includes filling holes and removing islands)\n");
   printf("   --ctab ctab : embed ctab into output\n");
+  printf("   --copy-ctab : copy ctab embedded in the input to the output\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
