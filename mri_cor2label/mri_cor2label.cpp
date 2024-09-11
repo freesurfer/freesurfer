@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
   }
 
   if(label_dilate && surf){
-    printf("Dilating label %d times\n",label_dilate);
+    printf("Dilating label %d times \n",label_dilate);
     LabelDilate(lb, surf, label_dilate, CURRENT_VERTICES) ;
   }
   if(label_erode && surf){
@@ -327,18 +327,23 @@ int main(int argc, char **argv) {
     LabelFree(&label_interior);
   }
 
+  // Note: lb->n_points will included deleted points
   printf("Writing label file %s\n",labelfile);
   LabelWrite(lb,labelfile);
 
-  fprintf(stderr,"Centroid: %6.2f  %6.2f  %6.2f \n",
-          xsum/nlabel,ysum/nlabel,zsum/nlabel);
+  printf("Centroid: %6.2f  %6.2f  %6.2f \n",xsum/nlabel,ysum/nlabel,zsum/nlabel);
 
   if(maskfile && surf) {
     printf("Creating binary mask %s\n",maskfile);
-    MRI *mri = MRIalloc(surf->nvertices,1,1,MRI_INT);
-    for(int n = 0; n < lb->n_points; n++) MRIsetVoxVal(mri,lb->lv[n].vno,0,0,0,maskbval);
-    MRIwrite(mri,maskfile);
-    MRIfree(&mri);
+    MRI *mrimask = MRIalloc(surf->nvertices,1,1,MRI_INT);
+    if(mri->ct) mrimask->ct = CTABdeepCopy(mri->ct);
+    MRIcopyPulseParameters(mri, mrimask);
+    for(int n = 0; n < lb->n_points; n++) {
+      if(lb->lv[n].deleted) continue;
+      MRIsetVoxVal(mrimask,lb->lv[n].vno,0,0,0,maskbval);
+    }
+    MRIwrite(mrimask,maskfile);
+    MRIfree(&mrimask);
   }
 
   fprintf(stderr,"mri_cor2label completed SUCCESSFULLY\n");
