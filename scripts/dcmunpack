@@ -6,6 +6,7 @@ set VERSION = 'dcmunpack @FS_VERSION@';
 
 set SeriesInfo = ();
 
+set ScanOnly = 0;
 set DoUnpack = 0;
 set TargetDir = ();
 set SrcInfo = ();
@@ -205,6 +206,8 @@ if($#SeriesInfo == 0) then
   else
     set SeriesInfo = `fs_temp_file --suffix .dat`
   endif
+else
+  set SeriesInfo = $TargetDir/log/$SeriesInfo
 endif
 rm -f $SeriesInfo
 
@@ -234,6 +237,9 @@ if($dcm2niix_dicom_dump) then
   setenv MGH_DCMUNPACK_IMAGELIST $infofile
   if(-e $infofile) rm -f $infofile
   foreach d ($SrcDirList)  # dcm2niix should exam all the subdirectories
+    # the mri_probedicom call generates $SeriesInfo, and the dicom list for each series (nnn-dicomflst.txt)
+    # nnn-dicomflst.txt is placed in the same directory as $SeriesInfo, which is $TargetDir/log
+    # nnn-dicomflst.txt is passed to mri_convert --dcm2niix-dicom-flist nnn-dicomflst.txt
     set cmd = (mri_probedicom --dcm2niix-dicom-dump $d $SeriesInfo)
     if($DoExtraInfo) set cmd = ($cmd --extra-info)
     echo $cmd | tee -a $LF
@@ -546,6 +552,8 @@ foreach run ($RunNos)
   set outdir = $TargetDir/$SubDir/$rundir
   mkdir -p $outdir/log
 
+  set dicomflstDir = $TargetDir/log
+
   if($DoConvert) then
     if ($dcm2niix_dicom_dump) then
       set f = `cat $SeriesInfo | awk -v r=$run '{if($1 == r) print $9}' | head -n 1`
@@ -598,7 +606,7 @@ foreach run ($RunNos)
         endif
 	
         if($dcm2niix_dicom_dump) then
-	  set dicomflst = $outdir/log/$run-dicomflst.txt
+	  set dicomflst = $dicomflstDir/$run-dicomflst.txt
           set dumpfile = $outdir/log/$FName-infodump.dat
           set cmd = ($cmd --dcm2niix-dicom-flist $dicomflst --dcm2niix-info-dump $dumpfile)
 
@@ -1088,6 +1096,7 @@ while( $#argv != 0 )
     case "-series":
       if($#argv < 1) goto arg1err;
       set SeriesInfo = "$argv[1]"; shift;
+      set ScanOnly = 1;
       breaksw
 
     case "-oneperdir":
@@ -1161,6 +1170,11 @@ endif
 if($OnePerDir && $#SrcPre == 0 && $#SrcPat == 0 && $#SrcExt == 0) then
   echo "ERROR: must spec -pre, -pat, and/or -ext with -one-per-dir"
   exit 1;
+endif
+
+if($ScanOnly) then
+  set DoUnpack = 0;
+  if($#TargetDir == 0) set TargetDir = ".";
 endif
 
 if($DoUnpack) then
@@ -1281,7 +1295,8 @@ usage_exit:
   echo "   -run run subdir format stemname <<nskip> ndrop>"
   echo "   -auto-runseq format : save all scans in the targetdir as runo.seqname.format"
   echo "     -keep-scouts : unpack series with 'scout' or 'setter' in the name"
-  echo "   -scanonly file : only scan the directory and put result in file"
+  echo "   -scanonly file : only scan the directory and put result in targetdir/log/file"
+  echo "                    targetdir is default to . (the current directory)"
   echo "   -one-per-dir : assume that there is only one dicom series in each subdir"
   echo "   -gedcm : same as -one-per-dir -ext dcm"
   echo "   -ext extension : input extension (eg, dcm)"
