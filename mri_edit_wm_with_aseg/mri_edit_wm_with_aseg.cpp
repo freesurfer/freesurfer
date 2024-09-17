@@ -99,6 +99,7 @@ MRI *ACJ = NULL;
 MRI *KeepHAILVCP(MRI *in, MRI *seg, int H, int A, int ILV, int CP, double lhval, double rhval, MRI *out);
 int KeepH=0, KeepA=0, KeepILV=0, KeepCP=0;
 double HILVCPlhVal,HILVCPrhVal;
+int FillSegWM = 0;
 
 int main(int argc, char *argv[])
 {
@@ -386,6 +387,11 @@ get_option(int argc, char *argv[])
     }
     nargs = 3;
   }
+  // Added -fill-seg-wm for use with synthseg, which does not seg
+  // WMHs. The WMHs are not handled well by mri_segment because they
+  // look like GM. synthseg segments the WMHs as WM, so filling with
+  // WM tends to work. WM voxels next to cortex are not filled.
+  else if(!stricmp(option, "fill-seg-wm")) FillSegWM = 1;
   else if( !stricmp(option, "keep-hailvcp") ){
     sscanf(argv[2],"%lf",&HILVCPlhVal);
     sscanf(argv[3],"%lf",&HILVCPrhVal);
@@ -515,12 +521,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           // only fill these if they are not adjacent to cortex
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) == 0) &&
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) == 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
-          {
-            if (x == Gx && y == Gy && z == Gz)
-            {
-              DiagBreak2() ;
-            }
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)){
             MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
             MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ;
@@ -867,18 +868,20 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Right_Cerebral_White_Matter:
           yi = mri_wm->yi[y-1] ;
           slabel = MRIgetVoxVal(mri_seg, x, yi, z, 0) ;
-          if (IS_INF_LAT_VENT(slabel) && MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
-          {
-            if (x == Gx && y == Gy && z == Gz)
-            {
-              DiagBreak2() ;
-              printf("changing voxel (%d, %d, %d) to WM, due to superior inf-lat-vent\n",
-                     x, y, z) ;
-            }
+          if(IS_INF_LAT_VENT(slabel) && MRIvox(mri_wm, x, y, z) < WM_MIN_VAL) {
             MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
             MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ;
           }
+	  if(FillSegWM){
+	    if( (neighborLabel(mri_seg, x, y, z,1, Left_Cerebral_Cortex) == 0) &&
+		(neighborLabel(mri_seg, x, y, z,1, Right_Cerebral_Cortex) == 0)){
+	      // only fill these if they are not adjacent to cortex
+	      MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+	      MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+	      non++ ;
+	    }
+	  }
           break ;
         default:
           break ;
