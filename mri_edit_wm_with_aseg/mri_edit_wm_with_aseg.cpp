@@ -392,6 +392,7 @@ get_option(int argc, char *argv[])
   // look like GM. synthseg segments the WMHs as WM, so filling with
   // WM tends to work. WM voxels next to cortex are not filled.
   else if(!stricmp(option, "fill-seg-wm")) FillSegWM = 1;
+  else if(!stricmp(option, "no-fill-seg-wm")) FillSegWM = 0;
   else if( !stricmp(option, "keep-hailvcp") ){
     sscanf(argv[2],"%lf",&HILVCPlhVal);
     sscanf(argv[3],"%lf",&HILVCPrhVal);

@@ -61,8 +61,8 @@
       <explanation>Stand-alone option to output the ACJ labels</explanation>
       <argument>-keep-hailvcp</argument>
       <explanation>Experimental option to keep hippo/amyg/inf lat vent/choroid plexus in the subcortical mass.</explanation>
-      <argument>-fill-seg-wm</argument>
-      <explanation>Fill WM from seg (excluding voxels adjacent to cortex).</explanation>
+      <argument>-fill-seg-wm (-no-fill-seg-wm)</argument>
+      <explanation>Fill WM from seg (excluding voxels adjacent to cortex); off by default</explanation>
       <argument>-debug_voxel Gx Gy Gz</argument>
     </optional-flagged>
   </arguments>
