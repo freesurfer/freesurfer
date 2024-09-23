@@ -38,7 +38,7 @@ void PanelODF::ConnectLayer(Layer *layer_in)
   connect(ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetOdfInversion(int)));
   connect(ui->spinBoxSkip, SIGNAL(valueChanged(int)), p, SLOT(SetOdfSkip(int)), Qt::QueuedConnection);
   connect(ui->comboBoxColorCode, SIGNAL(currentIndexChanged(int)), p, SLOT(SetOdfColorCode(int)));
-  connect(ui->checkBoxShowIn2D, SIGNAL(toggled(bool)), p, SLOT(SetShowIn2DView(bool)), Qt::QueuedConnection);
+  connect(ui->checkBoxShowInAll, SIGNAL(toggled(bool)), p, SLOT(SetShowInAllViews(bool)), Qt::QueuedConnection);
 }
 
 void PanelODF::DoUpdateWidgets()
@@ -86,7 +86,7 @@ void PanelODF::DoUpdateWidgets()
     ui->sliderColorMin->setValue( (int)( ( th[0] - range_min ) / ( range_max - range_min ) * 100 ) );
     ui->sliderColorMax->setValue( (int)( ( th[1] - range_min ) / ( range_max - range_min ) * 100 ) );
 
-    ui->checkBoxShowIn2D->setChecked(layer->GetProperty()->GetShowIn2DView());
+    ui->checkBoxShowInAll->setChecked(layer->GetProperty()->GetShowInAllViews());
   }
 
   BlockAllSignals( false );

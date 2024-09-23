@@ -37,9 +37,14 @@ public:
 
   void SetMagnitudeThreshold(double* th);
 
-  bool GetShowIn2DView()
+  // bool GetShowIn2DView()
+  // {
+  //   return m_bShowIn2D;
+  // }
+
+  bool GetShowInAllViews()
   {
-    return m_bShowIn2D;
+    return m_bShowInAllViews;
   }
 
   vtkColorTransferFunction* GetOdfLut();
@@ -49,13 +54,15 @@ public:
 signals:
   void OdfPropertyChanged();
   void ColorCodeChanged();
+  void ShowInAllChanged();
 
 public slots:
   void SetOdfSkip(int n);
   void SetOdfScale(double val);
   void SetOdfInversion(int n);
   void SetOdfColorCode(int n);
-  void SetShowIn2DView(bool b);
+//  void SetShowIn2DView(bool b);
+  void SetShowInAllViews(bool b);
 
 protected:
   void UpdateOdfLut();
@@ -67,7 +74,8 @@ protected:
   double  m_dMagnitudeThreshold[2];
   vtkSmartPointer<vtkColorTransferFunction> m_odfLut;
   QMap<double, QColor> m_spectrum;
-  bool    m_bShowIn2D;
+//  bool    m_bShowIn2D;
+  bool    m_bShowInAllViews;
 };
 
 #endif // LAYERPROPERTYODF_H

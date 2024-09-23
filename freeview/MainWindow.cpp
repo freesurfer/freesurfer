@@ -9937,7 +9937,7 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   if (cmd.size() < 2)
     return;
 
-  LayerODF* layer = new LayerODF(m_layerVolumeRef);
+  LayerODF* layer = new LayerODF(m_layerVolumeRef, NULL, GetMainViewId());
   QVariantMap map;
   QStringList list = cmd[1].split(":");
   QString fn = list.first();
@@ -9962,6 +9962,7 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   if (cmd.size() > 3)
     map["face_filename"] = QFileInfo(cmd[3]).absoluteFilePath();
   m_threadIOWorker->LoadODF(layer, map);
+  connect(this, SIGNAL(MainViewChanged(int)), layer, SLOT(OnMainViewChanged(int)), Qt::QueuedConnection);
 }
 
 void MainWindow::OnSaveLabelAsVolume()

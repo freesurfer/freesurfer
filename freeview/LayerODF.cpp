@@ -26,8 +26,8 @@
 
 #define SUB_ACTOR_COUNT 4
 
-LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
-  m_mask(NULL)
+LayerODF::LayerODF( LayerMRI* ref, QObject* parent, int nMainView ) : LayerMRI( ref, parent ),
+  m_mask(NULL), m_nMainView(nMainView)
 {
   m_strTypeNames.push_back( "ODF" );
   m_sPrimaryType = "ODF";
@@ -36,6 +36,7 @@ LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   connect(mProperty, SIGNAL(OdfPropertyChanged()), this, SIGNAL(UpdateActorRequested()));
   connect(this, SIGNAL(UpdateActorRequested(int)), SLOT(UpdateActors(int)), Qt::QueuedConnection);
   connect(mProperty, SIGNAL(ColorCodeChanged()), SLOT(OnColorCodeChanged()), Qt::QueuedConnection);
+  connect(mProperty, SIGNAL(ShowInAllChanged()), SLOT(OnShowInAllChanged()), Qt::QueuedConnection);
 
   // initialize mesh data
   QFile file(":/resource/DSI_vectors_181.dat");
@@ -57,7 +58,7 @@ LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
 
   m_actor3D = vtkSmartPointer<vtkActor>::New();
   for (int i = 0; i < 3; i++)
-    m_glyphActor2D[i]->SetVisibility(0);
+    m_glyphActor2D[i]->SetVisibility(i == m_nMainView);
 
 #ifdef USE_ACTOR_LIST
   for (int i = 0; i < SUB_ACTOR_COUNT; i++)
@@ -323,7 +324,8 @@ void LayerODF::BuildSlice(int nPlane)
     slice_range[i][1] = dim[i]-1;
   }
   ClearSliceActors(nPlane);
-  if (slice[nPlane] < 0 || slice[nPlane] >= dim[nPlane])
+  if (slice[nPlane] < 0 || slice[nPlane] >= dim[nPlane] ||
+      (!GetProperty()->GetShowInAllViews() && m_nMainView != nPlane && m_nMainView < 3))
   {
 #ifndef USE_ACTOR_LIST
     m_glyphActor2D[nPlane]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
@@ -532,14 +534,6 @@ void LayerODF::BuildSlice(int nPlane)
           cnt += nFrames;
           if (m_bHemisphere)
           {
-            // for (int k = 0; k < m_nMesh; k++)
-            // {
-            //   polys->InsertNextCell(3);
-            //   for (int kk = 0; kk < 3; kk++)
-            //   {
-            //     polys->InsertCellPoint(cnt+m_odfMesh[k][kk]);
-            //   }
-            // }
             cnt += nFrames;
           }
         }
@@ -622,10 +616,12 @@ vtkPolyData* LayerODF::BuildActor(vtkActor* actor2D, vtkActor* actor3D, vtkPoint
 
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkPolyDataMapper::SafeDownCast(actor2D->GetMapper());
   mapper->SetInputConnection(normals->GetOutputPort());
-  mapper->SetScalarVisibility(1);
+  mapper->SetScalarVisibility(1);  
+  mapper->SetLookupTable(GetProperty()->GetOdfLut());
   mapper = vtkPolyDataMapper::SafeDownCast( actor3D->GetMapper() );
   mapper->SetInputConnection(normals->GetOutputPort());
   mapper->SetScalarVisibility(1);
+  mapper->SetLookupTable(GetProperty()->GetOdfLut());
 
   return polydata;
 }
@@ -663,17 +659,20 @@ void LayerODF::SetVisible(bool bVisible)
     foreach (vtkActor* actor, m_listActor3D[i])
       actor->SetVisibility(bVisible?1:0);
 #else
-    m_glyphActor2D[i]->SetVisibility((bVisible && GetProperty()->GetShowIn2DView())?1:0);
-    m_glyphActor3D[i]->SetVisibility(bVisible?1:0);
+    m_glyphActor2D[i]->SetVisibility((bVisible && (GetProperty()->GetShowInAllViews() || m_nMainView == i))?1:0);
+    m_glyphActor3D[i]->SetVisibility((bVisible && (GetProperty()->GetShowInAllViews() || m_nMainView == 3))?1:0);
 #endif
   }
-  m_actor3D->SetVisibility(bVisible?1:0);
+  m_actor3D->SetVisibility((bVisible && (GetProperty()->GetShowInAllViews() || m_nMainView == 3))?1:0);
   emit ActorUpdated();
 }
 
 bool LayerODF::IsVisible()
 {
-  return m_actor3D->GetVisibility();
+  if (m_nMainView < 3)
+    return m_glyphActor2D[m_nMainView]->GetVisibility();
+  else
+    return m_actor3D->GetVisibility();
 }
 
 void LayerODF::UpdateActors(int nPlane)
@@ -709,6 +708,26 @@ void LayerODF::OnColorCodeChanged()
       mapper = vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[i]->GetMapper() );
       mapper->SetLookupTable(GetProperty()->GetOdfLut());
     }
+  }
+  SetVisible(IsVisible());
+}
+
+void LayerODF::OnMainViewChanged(int nView)
+{
+  bool bVisible = IsVisible();
+  m_nMainView = nView;
+  if (!GetProperty()->GetShowInAllViews())
+  {
+    UpdateActors(-1);
+    SetVisible(bVisible);
+  }
+}
+
+void LayerODF::OnShowInAllChanged()
+{
+  if (GetProperty()->GetShowInAllViews())
+  {
+    UpdateActors(-1);
   }
   SetVisible(IsVisible());
 }
