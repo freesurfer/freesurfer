@@ -2919,6 +2919,8 @@ void LayerMRI::UpdateLabelOutline()
       //      mResample[i]->SetAxisMagnificationFactor( 1, OutlineResampleFactor );
       //      mResample[i]->SetAxisMagnificationFactor( 2, OutlineResampleFactor );
       double pos[3] = { vsize[0]/OutlineResampleFactor/2, vsize[1]/OutlineResampleFactor/2, vsize[2]/OutlineResampleFactor/2 };
+      if (OutlineResampleFactor == 1)
+        pos[0] = pos[1] = pos[2] = 0;
       mResample[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
       mResample[i]->SetOutputSpacing(vsize[0]/OutlineResampleFactor, vsize[1]/OutlineResampleFactor, vsize[2]/OutlineResampleFactor);
       mResample[i]->SetInterpolationModeToNearestNeighbor();

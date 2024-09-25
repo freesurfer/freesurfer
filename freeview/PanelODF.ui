@@ -344,9 +344,9 @@
        </layout>
       </item>
       <item row="10" column="1">
-       <widget class="QCheckBox" name="checkBoxShowIn2D">
+       <widget class="QCheckBox" name="checkBoxShowInAll">
         <property name="text">
-         <string>Show ODF in 2D views</string>
+         <string>Show ODFs in all views</string>
         </property>
        </widget>
       </item>

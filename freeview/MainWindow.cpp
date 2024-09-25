@@ -727,8 +727,10 @@ void MainWindow::LoadSettings()
     m_settings["UIFontSize"] = font().pointSize();
   }
 
-  if (m_settings.value("ThickLabelOutline").toBool())
+  if (m_settings.value("OutlineThickness").toInt() == 1)
     LayerMRI::SetOutlineResampleFactor(2);
+  else if (m_settings.value("OutlineThickness").toInt() == 2)
+    LayerMRI::SetOutlineResampleFactor(1);
 
   for (int i = 0; i < 4; i++)
   {
@@ -8954,9 +8956,13 @@ void MainWindow::UpdateSettings()
     //   }
     // }
 
-    if (old["ThickLabelOutline"].toBool() != m_settings["ThickLabelOutline"].toBool())
+    if (old["OutlineThickness"].toInt() != m_settings["OutlineThickness"].toInt())
     {
-      LayerMRI::SetOutlineResampleFactor(m_settings["ThickLabelOutline"].toBool()?2:4);
+      int n = m_settings["OutlineThickness"].toInt();
+      if (n == 0)
+        LayerMRI::SetOutlineResampleFactor(4);
+      else
+        LayerMRI::SetOutlineResampleFactor(n==1?2:1);
       QList<Layer*> layers = GetLayers("MRI");
       foreach (Layer* l, layers)
       {
@@ -9931,7 +9937,7 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   if (cmd.size() < 2)
     return;
 
-  LayerODF* layer = new LayerODF(m_layerVolumeRef);
+  LayerODF* layer = new LayerODF(m_layerVolumeRef, NULL, GetMainViewId());
   QVariantMap map;
   QStringList list = cmd[1].split(":");
   QString fn = list.first();
@@ -9956,6 +9962,7 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   if (cmd.size() > 3)
     map["face_filename"] = QFileInfo(cmd[3]).absoluteFilePath();
   m_threadIOWorker->LoadODF(layer, map);
+  connect(this, SIGNAL(MainViewChanged(int)), layer, SLOT(OnMainViewChanged(int)), Qt::QueuedConnection);
 }
 
 void MainWindow::OnSaveLabelAsVolume()

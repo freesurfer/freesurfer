@@ -18,7 +18,7 @@ class LayerODF : public LayerMRI
 {
   Q_OBJECT
 public:
-  LayerODF(LayerMRI* layerMRI, QObject* parent = NULL );
+  LayerODF(LayerMRI* layerMRI, QObject* parent = NULL, int nMainview = 0 );
   virtual ~LayerODF();
 
   bool Load(const QString& fn, const QString& vertex_fn = "", const QString& face_fn = "", bool bPermute = false, bool bHemisphere = false);
@@ -47,9 +47,11 @@ public:
 signals:
   void UpdateActorRequested(int n = -1);
 
-protected slots:
+public slots:
   void UpdateActors(int n = -1);
   void OnColorCodeChanged();
+  void OnMainViewChanged(int nView);
+  void OnShowInAllChanged();
 
 protected:
   void BuildSlice(int nPlane = -1);
@@ -70,6 +72,8 @@ protected:
   bool    m_bHemisphere;
   int     m_nVectors;
   int     m_nMesh;
+
+  int     m_nMainView;
 
 #ifdef USE_ACTOR_LIST
   QList<vtkActor*> m_listActor2D[3];
