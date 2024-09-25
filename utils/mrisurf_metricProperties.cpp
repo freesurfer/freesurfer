@@ -10406,6 +10406,7 @@ int MRIScomputeSecondFundamentalForm(MRIS *mris)
 
 int MRIScomputeSecondFundamentalFormThresholded(MRIS *mris, double pct_thresh)
 {
+  // pct_thresh is -1 in mris_curvture
   double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh, orig_rsq_thresh;
   int bin, zbin1, zbin2, nthresh = 0;
   int vno, i, n, vmax, nbad = 0, niter;
@@ -10462,77 +10463,80 @@ int MRIScomputeSecondFundamentalFormThresholded(MRIS *mris, double pct_thresh)
     VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz);
     VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z);
     VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z);
+    // v_n is the normal vector
+    // e1 is the 1st principle direction
+    // e2 is the 2nd principle direction
+    // these three vectors form a coordinate system. 
+    // e1/e2 are the tangent plane
 
-    if (vertext->vtotal <= 0) {
-      continue;
-    }
-
+    if (vertext->vtotal <= 0) continue;
     m_U = MatrixAlloc(vertext->vtotal, 3, MATRIX_REAL);
     v_z = VectorAlloc(vertext->vtotal,    MATRIX_REAL);
 
-    if (vno == Gdiag_no) {
+    if (vno == Gdiag_no)
       DiagBreak();
-    }
 
     /* fit a quadratic form to the surface at this vertex */
+    // where v_z = A*ui^2 + B*2*ui*vi + C*vi^2
     rsq_thresh = orig_rsq_thresh;
     niter = 0;
-    do {
+    do { // this continues until the number of valid vertices exceeds 4
       kmin = 10000.0f;
       kmax = -kmin;
       
       int kmaxI = -1;
-      for (n = i = 0; i < vertext->vtotal; i++) {
+      n = 0; // keeps track of "valid" vertices 
+      for (i = 0; i < vertext->vtotal; i++) {
         VERTEX const * const vnb = &mris->vertices[vertext->v[i]];
 
-        if (vnb->ripflag) {
-          continue;
-        }
-        /*
-          calculate the projection of this vertex
-          onto the local tangent plane
-        */
+        if (vnb->ripflag) continue;
+        /* calculate the projection of this vertex   onto the local tangent plane  */
+	// v_yi = the difference from the center vertex to the neighbor
         VECTOR_LOAD(v_yi, vnb->x - vertex->x, vnb->y - vertex->y, vnb->z - vertex->z);
-        ui = V3_DOT(v_yi, v_e1);
-        vi = V3_DOT(v_yi, v_e2);
+        ui = V3_DOT(v_yi, v_e1); // distance along the e1 axis
+        vi = V3_DOT(v_yi, v_e2); // distance along the e2 axis
 
+	// Load the matrix z = u^2 + 2*u*v + v*v. Note that this differs from 
+	// the cross surface placement routine which also uses linear components
         *MATRIX_RELT(m_U, n + 1, 1) = ui * ui;
         *MATRIX_RELT(m_U, n + 1, 2) = 2 * ui * vi;
         *MATRIX_RELT(m_U, n + 1, 3) = vi * vi;
         VECTOR_ELT(v_z, n + 1) = V3_DOT(v_n, v_yi); /* height above TpS */
+	// distance^2 from center vertex to nbr vertex with in the tangent plane
         rsq = ui * ui + vi * vi;
-        if (!FZERO(rsq) && rsq > rsq_thresh) {
-
+        if(!FZERO(rsq) && rsq > rsq_thresh) {
+	  // with rsq_thresh=0, this just checkes whether ui=vi=0 in
+	  // general, this is not prohibited, but it would cause the
+	  // computation of k to have a div by 0.  If the point is
+	  // close to the center of the u-v plane and, the z component
+	  // is substantially greater than 0, then the data might not
+	  // fit a quadratic all that well.
           k = VECTOR_ELT(v_z, n + 1) / rsq;
           if (k > kmax) {
-            kmax = k;
+            kmax = k;// The max will be k1 when ill-cond
             kmaxI = i;
           }
           if (k < kmin) {
-            kmin = k;
+            kmin = k;// The min will be k2 when ill-cond
           }
-          n++;
+          n++; // incr number of valid vertex
         }
-      }
+      } // loop over vtotal
       
-      rsq_thresh *= 0.25;
-      if (n < 4) {
+      rsq_thresh *= 0.25; // reduce threshold on each step
+      if (n < 4) 
         DiagBreak();
-      }
-      if (niter++ > 100) {
-        break;
-      }
-    } while (n < 4);
+      if(niter++ > 100) break;
 
+    } while (n < 4); // keep going until number of valid vertex >= 4
+
+    // solve v_z = m_U*v_c, v_c = inv(m_U'*m_U)*m_U'*v_z
     MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
-    
     m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer);
     m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut cols x rows */
-    
     m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
     m_tmp2 = MatrixMultiply (m_Ut, m_U, m_tmp2);  /* Ut U  cols x rows * rows x cols = cols x cols */
     cond_no = MatrixConditionNumber(m_tmp2);
-
     MatrixBuffer m_inverse_buffer;
     m_inverse = MatrixAlloc2(m_tmp2->cols, m_tmp2->rows, MATRIX_REAL, &m_inverse_buffer);
     m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
@@ -10548,16 +10552,23 @@ int MRIScomputeSecondFundamentalFormThresholded(MRIS *mris, double pct_thresh)
       m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
-      /* now build Hessian matrix */
+      /* Build 2x2 sym Hessian matrix for the quadratic formula above. 
+	 The Hessian is the second derivative matrix, so
+	 m_Q(1,1) = d2z/du2 = 2*A (A = v_c(1))
+	 First princ curv k1 will be the first eigen val of Q
+	 Second princ curv k2 will be the second eigen val of Q
+	 ev1 = (v_c(1)+v_c(2) + d)/2
+	 ev2 = (v_c(1)+v_c(2) - d)/2
+	 d = sqrt(4*v_c(3)^2 + (vc_(1)-vc_(2).^2))
+	 Mean Curv = (ev1+ev2)/2 = (v_c(1)+v_c(2))/2 (v_c(3) not there!)
+      */
       *MATRIX_RELT(m_Q, 1, 1) = 2 * VECTOR_ELT(v_c, 1);
       *MATRIX_RELT(m_Q, 1, 2) = *MATRIX_RELT(m_Q, 2, 1) = 2 * VECTOR_ELT(v_c, 2);
       *MATRIX_RELT(m_Q, 2, 2) = 2 * VECTOR_ELT(v_c, 3);
 
       if (cond_no >= ILL_CONDITIONED) {
-
         vertex->k1 = k1 = kmax;
         vertex->k2 = k2 = kmin;
-
         vertex->K = k1 * k2;
         vertex->H = (k1 + k2) / 2;
         MatrixFree(&m_Ut);
@@ -10571,32 +10582,30 @@ int MRIScomputeSecondFundamentalFormThresholded(MRIS *mris, double pct_thresh)
 
       /* the columns of m_eigen will be the eigenvectors of m_Q */
       if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL) {
-
         nbad++;
         MatrixSVDEigenValues(m_Q, evalues);
         vertex->k1 = k1 = evalues[0];
         vertex->k2 = k2 = evalues[1];
-        vertex->K = k1 * k2;
-        vertex->H = (k1 + k2) / 2;
+        vertex->K = k1 * k2; // gaussian curv
+        vertex->H = (k1 + k2) / 2; // mean curv
         MatrixFree(&m_Ut);
         MatrixFree(&m_tmp2);
         MatrixFree(&m_U);
         VectorFree(&v_z);
         MatrixFree(&m_tmp1);
         MatrixFree(&m_inverse);
-
         continue;
       }
 
       MatrixFree(&m_tmp1);
       MatrixFree(&m_inverse);
-    }
+    } // else not singular
     k1 = evalues[0];
     k2 = evalues[1];
     vertex->k1 = k1;
     vertex->k2 = k2;
-    vertex->K = k1 * k2;
-    vertex->H = (k1 + k2) / 2;
+    vertex->K = k1 * k2; // gaussian curv
+    vertex->H = (k1 + k2) / 2; // mean curv
     if (fp) fprintf(fp, "%d %f %f %f %f\n", vno, k1, k2, vertex->K, vertex->H);
     if (vno == Gdiag_no && (Gdiag & DIAG_SHOW))
       fprintf(
@@ -10639,7 +10648,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRIS *mris, double pct_thresh)
     MatrixFree(&m_tmp2);
     MatrixFree(&m_U);
     VectorFree(&v_z);
-  }
+  } // loop over vertex
 
   if (fp) {
     fclose(fp);
@@ -10837,6 +10846,9 @@ int MRIScomputeSecondFundamentalFormThresholded(MRIS *mris, double pct_thresh)
 
 int MRIScomputeSecondFundamentalFormAtVertex(MRIS *mris, int vno, int *vertices, int vnum)
 {
+  // It does not look like this function is ever called. See 
+  // MRIScomputeSecondFundamentalFormThresholded()
+  // vnum should be vertex_topology->vtotal
   int i, n, nbad = 0;
   VERTEX *vertex, *vnb;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse;
@@ -10871,6 +10883,11 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRIS *mris, int vno, int *vertices,
   VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz);
   VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z);
   VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z);
+  // v_n is the normal vector
+  // e1 is the 1st principle direction
+  // e2 is the 2nd principle direction
+  // these three vectors form a coordinate system. 
+  // e1/e2 are the tangent plane
 
   if (vnum <= 0) {
     return (ERROR_BADPARM);
@@ -10884,6 +10901,7 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRIS *mris, int vno, int *vertices,
   }
 
   /* fit a quadratic form to the surface at this vertex */
+  // where v_z = A*ui^2 + B*2*ui*vi + C*vi^2
   kmin = 10000.0f;
   kmax = -kmin;
   for (n = i = 0; i < vnum; i++) {
@@ -10891,28 +10909,30 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRIS *mris, int vno, int *vertices,
     if (vnb->ripflag) {
       continue;
     }
-    /*
-      calculate the projection of this vertex onto the local tangent plane
-    */
+    /* Calculate the projection of this vertex onto the local tangent plane */
+    // v_yi = the difference from the center vertex to the neighbor
     VECTOR_LOAD(v_yi, vnb->x - vertex->x, vnb->y - vertex->y, vnb->z - vertex->z);
-    ui = V3_DOT(v_yi, v_e1);
-    vi = V3_DOT(v_yi, v_e2);
+    ui = V3_DOT(v_yi, v_e1); // distance along the e1 axis
+    vi = V3_DOT(v_yi, v_e2); // distance along the e2 axis
     *MATRIX_RELT(m_U, n + 1, 1) = ui * ui;
     *MATRIX_RELT(m_U, n + 1, 2) = 2 * ui * vi;
     *MATRIX_RELT(m_U, n + 1, 3) = vi * vi;
     VECTOR_ELT(v_z, n + 1) = V3_DOT(v_n, v_yi); /* height above TpS */
-    rsq = ui * ui + vi * vi;
+    // distance^2 from center vertex to nbr vertex with in the tangent plane
+    rsq = ui * ui + vi * vi; 
     if (!FZERO(rsq)) {
+      // This appears to be some curvature measure to use when ill-conditioned
       k = VECTOR_ELT(v_z, n + 1) / rsq;
       if (k > kmax) {
-        kmax = k;
+        kmax = k; // The max will be k1 when ill-cond
       }
       if (k < kmin) {
-        kmin = k;
+        kmin = k; // The min will be k2 when ill-cond
       }
     }
     n++;
   }
+  // v_z = m_U*v_c, v_c = inv(m_U'*m_U)*m_U'*v_z
 
   m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
   m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
@@ -10927,7 +10947,16 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRIS *mris, int vno, int *vertices,
     m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
     MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
-    /* now build Hessian matrix */
+    /* Build 2x2 sym Hessian matrix for the quadratic formula above. 
+       The Hessian is the second derivative matrix, so
+       m_Q(1,1) = d2z/du2 = 2*A (A = v_c(1))
+       First princ curv k1 will be the first eigen val of Q
+       Second princ curv k2 will be the second eigen val of Q
+       ev1 = (v_c(1)+v_c(2) + d)/2
+       ev2 = (v_c(1)+v_c(2) - d)/2
+       d = sqrt(4*v_c(3)^2 + (vc_(1)-vc_(2).^2))
+       Mean Curv = (ev1+ev2)/2 = (v_c(1)+v_c(2))/2 (v_c(3) not there!)
+     */
     *MATRIX_RELT(m_Q, 1, 1) = 2 * VECTOR_ELT(v_c, 1);
     *MATRIX_RELT(m_Q, 1, 2) = *MATRIX_RELT(m_Q, 2, 1) = 2 * VECTOR_ELT(v_c, 2);
     *MATRIX_RELT(m_Q, 2, 2) = 2 * VECTOR_ELT(v_c, 3);
@@ -13454,7 +13483,7 @@ int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
   fprintf(fp,"xyz  %7.4f %7.4f %7.4f\n",v->x,v->y,v->z);
   fprintf(fp,"nxyz %7.4f %7.4f %7.4f\n",v->nx,v->ny,v->nz);
   fprintf(fp,"vertex_area %lf\n",v->area);
-  fprintf(fp,"neighbors %d\n",vt->num);
+  fprintf(fp,"neighbors %d %d\n",vt->vnum,vt->num);
   for(n=0; n < vt->num; n++){
     vnno = vt->v[n];
     vn = &(surf->vertices[vnno]);
