@@ -1,0 +1,359 @@
+#!/bin/tcsh -f
+#
+# seg2cc - take a seg like synthseg and create a seg with corpus callosum
+# Also can create a "noCC" file. This is somewhat redundant with seg2recon
+# but that does a bunch of stuff that I don't want to do, so I'm just 
+# creating a new script rather than trying to hack it.
+# 
+
+set VERSION = 'seg2cc @FS_VERSION@';
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set subject = ();
+set ccname = aseg.auto # output name
+set normname = norm
+set noccname = aseg.auto_noCCseg
+set ctabdefault = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set tmpdir = ()
+set LF = ()
+set cleanup = 1
+set ForceUpdate = 0; 
+set LHonly = 0 ;
+set RHonly = 0 ;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $SUBJECTS_DIR/$subject/scripts 
+mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
+mkdir -p $SUBJECTS_DIR/$subject/mri/tmp
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.seg2cc.$$
+  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/mri/tmp/tmpdir.seg2cc.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/seg2cc.log
+
+if($LF != /dev/null) rm -f $LF
+echo "Log file for seg2cc" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+pushd $mdir
+
+# First check whether volume is conformed. Note that --conformed-to-min
+# will handle ordinary 1mm conforming
+set tmpfile = $tmpdir/isconformed
+mri_info --o $tmpfile --conformed-to-min $segvol > /dev/null
+#mri_info --o $tmpfile --conformed $segvol > /dev/null
+set isconf = `cat $tmpfile | head -n 1`
+echo IsConformed $isconf | tee -a $LF
+if($isconf == yes) then
+  set cmd = (mri_cc -aseg $noccname.mgz -o $ccname.mgz -lta transforms/cc_up.lta)
+  if($LHonly) set cmd = ($cmd -lh )
+  if($RHonly) set cmd = ($cmd -rh )
+  set cmd = ($cmd $subject)
+  date | tee -a $LF
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  date | tee -a $LF
+else
+  # If it is not conformed, have to go through some gymnastics because mri_cc
+  # needs things to be conformed
+  # Conform the norm and aseg
+  set normconf = $normname.conf.mgz
+  set ud = `UpdateNeeded $normconf $normvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $normvol $normconf --conform_min) # --conform) #
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+  set ud = `UpdateNeeded $noccname.conf.mgz $normconf $segvol`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_label2vol --seg $segvol --temp $normconf --regheader --o $noccname.conf.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+  # Now run mri_cc. Not sure if cc_up.lta will be valid (or needed)
+  set ud = `UpdateNeeded $ccname.conf.mgz $noccname.conf.mgz`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_cc -norm $normconf -aseg $noccname.conf.mgz \
+      -o $ccname.conf.mgz -lta transforms/cc_up.lta)
+    if($LHonly) set cmd = ($cmd -lh )
+    if($RHonly) set cmd = ($cmd -rh )
+    set cmd = ($cmd $subject)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+  # Now map it back to the non-conformed space
+  set cmd = (mri_label2vol --seg $ccname.conf.mgz --temp $normvol --regheader --o $ccname.noconf.mgz)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  # Merge the CC labels back into the original aseg. Do not use the non-conf volume above because
+  # moving into and out of 1mm space may create a problem
+  foreach segid (251 252 253 254 255)
+    set cmd = (mri_binarize --i $ccname.noconf.mgz --match $segid --o $tmpdir/ccbin.mgh)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    if($segid == 251) then
+      set src = $noccname.mgz # first segid
+    else
+      set src = $ccname.mgz
+    endif
+    set cmd = (mergeseg --src $src --merge $tmpdir/ccbin.mgh --o $ccname.mgz --segid $segid)
+    set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg --ctab $ctabdefault)
+    if($cleanup) set cmd = ($cmd --cleanup)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  end
+endif
+popd
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Seg2cc-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Seg2cc-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "seg2cc Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR: $cmd"
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--cc":
+      if($#argv < 1) goto arg1err;
+      set ccname = $argv[1]; shift;
+      breaksw
+
+    case "--nocc":
+      if($#argv < 1) goto arg1err;
+      set noccname = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--n":
+      if($#argv < 1) goto arg1err;
+      set normname = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--expert":
+      # Not used
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFiles = ($XOptsFiles `getfullpath $XOptsFile`)
+      breaksw
+
+    case "-lh":
+    case "-lh-only":
+    case "--lh-only":
+      set LHonly = 1 ;
+      breaksw
+    case "-rh":
+    case "-rh-only":
+    case "--rh-only":
+      set RHonly = 1 ;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--no-force-update":
+      set ForceUpdate = 0;
+      breaksw
+    case "--force-update":
+      set ForceUpdate = 1;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must supply a subject name"
+  exit 1
+endif
+set segvol   = $SUBJECTS_DIR/$subject/mri/$noccname.mgz
+set normvol  = $SUBJECTS_DIR/$subject/mri/$normname.mgz
+set segvolcc = $SUBJECTS_DIR/$subject/mri/$ccname.mgz
+
+foreach f ($segvol $normvol)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
+
+set segvol  = `getfullpath $segvol`
+set normvol = `getfullpath $normvol`
+
+if(! $ForceUpdate) then
+  set ud = `UpdateNeeded $segvolcc $segvol $normvol`
+  if(! $ud) then
+    echo "  seg2cc: update not needed. Run with --force-update to force an update"
+    exit 1
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "seg2cc"
+  echo "  --s subject : output"
+  echo "  --nocc noccsegvol : name of aseg-type volume with out CC (default is $noccname) "
+  echo "  --cc ccsegvol : output name of aseg-type volume with CC (default is $ccname) "
+  echo "  --normvol : name of norm volume (default is $normname)"
+  echo "  --lh-only, --rh-only"
+  echo "  --ctab ctab  : ctab for the seg (will use embedded if there or FreeSurferColorLUT.txt if not spec)"
+  echo "  --force-update : force regeneration of files whether needed or not (default is --no-force-update)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+
+
+
