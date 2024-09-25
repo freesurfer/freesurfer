@@ -1597,7 +1597,8 @@ if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthseg $XOptsFile`;
-    set cmd = (mri_synthseg --i $origvol --o $synthseg --threads $OMP_NUM_THREADS --vol $synthsegcsv $xopts)
+    set cmd = (mri_synthseg --i $origvol --o $synthseg --threads $OMP_NUM_THREADS \
+       --vol $synthsegcsv --keepgeom --addctab $xopts)
     if(! $UseGPU)  set cmd = ($cmd --cpu)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -1611,7 +1612,7 @@ if($UseSynthSeg || $CblumFromSynthSeg || $SynthSegForSurf || $FixVSinus) then
       endif
     endif
   endif
-  if(! $CblumFromSynthSeg  && ! $SynthSegForSurf) then
+  if(0 && ! $CblumFromSynthSeg  && ! $SynthSegForSurf) then
     set xopts = `fsr-getxopts seg2recon $XOptsFile`;
     set cmd = (seg2recon --s $subjid --seg $synthseg --i $origvol --threads $OMP_NUM_THREADS)
     if(-e $synthstrip) set cmd = ($cmd --m $synthstrip)
@@ -1982,76 +1983,102 @@ handle_tal_error:
   endif
 endif
 
-#-----------                         -----------#
-#----------- Nu Intensity Correction -----------#
-##----------     -nuintensitycor     -----------#
-#-----------                         -----------#
-if($DoNuIntensityCor) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Nu Intensity Correction `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
-  set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz)
-  # to fix a problem with mri_nu_correct.mni messing with the histogramming
-  # in some odd subjects (due to voxels outside the brain, which has the
-  # effect of altering white matter intensity interpretation downstream),
-  # the inclusion of talairach.xfm with mri_nu_correct.mni causes
-  # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
-  # that are mostly brain. The top of the intensity histogram in this ball
-  # will then be white matter, which allows us to center it at the desired
-  # value, approximately (110).
-  if ($DoNuMakeUchar) then
-    if ( ! -e transforms/talairach.xfm && $RunIt) then
-      echo "WARNING: transforms/talairach.xfm does not exist!" \
-        |& tee -a $LF
-      echo "It will not be used by mri_nu_correct.mni." \
-        |& tee -a $LF
-    else
-      set cmd = ($cmd --uchar transforms/talairach.xfm)
-    endif
-  endif
-  # --cm for hi-res support:
-  if ($ConformMin) set cmd = ($cmd --cm)
-  # -3T flag support:
-  if ($DoNuIntensityCor3T) then
-    # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
-    # "Improvement of brain segmentation accuracy by optimizing
-    # non-uniformity correction using N3"
-    # namely specifying iterations, proto-iters and distance: 
-    set NuIterations = 1;
-    set cmd = ($cmd --proto-iters 1000 --distance 50)
-  endif
-  # add user-specified option (from an 'experts file')
-  set cmd = ($cmd --n $NuIterations)
-  if($DoAntsN3) set cmd = ($cmd --ants-n3)  # ignores other options
-  if($DoAntsN4) set cmd = ($cmd --ants-n4)  # ignores other options
-  set cmd = ($cmd $xopts)
+set synthmorphdir = ()
+if($UseSynthMorph) then
+  set synthmorphdir = $mdir/transforms/synthmorph.1.0mm.1.0mm
+  # This will use nu by default
+  set xopts = `fsr-getxopts fs-synthmorph-reg $XOptsFile $GlobXOptsFile`;
+  set cmd = (fs-synthmorph-reg --s $subjid --threads $OMP_NUM_THREADS \
+    --i $subjdir/mri/orig.mgz --test)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  # Add xfm to nu
-  set cmd = (mri_add_xform_to_header -c \
-             $subjdir/mri/transforms/talairach.xfm \
-             nu.mgz nu.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
-  if($?CREATE_NU_DIFF_FILES) then
-    # for debug, create difference volumes between orig and nu files
-    set cmd1 = (mri_diff orig.mgz orig_nu.mgz --diff diff-orig-orig_nu.mgz)
-    set cmd2 = (mri_diff orig.mgz nu.mgz --diff diff-orig-nu.mgz)
-    set cmd3 = (mri_diff orig_nu.mgz nu.mgz --diff diff-orig_nu-nu.mgz)
-    echo "\n $cmd1 \n" |& tee -a $LF |& tee -a $CF
-    echo "\n $cmd2 \n" |& tee -a $LF |& tee -a $CF
-    echo "\n $cmd3 \n" |& tee -a $LF |& tee -a $CF
+  # Convert the nii.gz warp to m3z
+  set mnim3z = $mdir/transforms/mni152.1.0mm.1.0mm.m3z
+  set warp = $mdir/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz    
+  set ud = `UpdateNeeded $mnim3z $warp`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_warp_convert --inm3z $warp --outm3z $mnim3z)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF    
     if($RunIt) then
-      $fs_time $cmd1 |& tee -a $LF
-      $fs_time $cmd2 |& tee -a $LF
-      $fs_time $cmd3 |& tee -a $LF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set mnixfm = $mdir/transforms/mni152.xfm 
+      set smlta = $synthmorphdir/reg.invol_to_targ.lta
+      set cmd = (lta_convert --inlta $smlta --outmni $mnixfm)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF    
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      # Link m3z, xfm, and lta to talairach.{xfm,lta,m3z}. This will make the space
+      # be MNI152 (define by mni_icbm152_nlin_asym_09c 1mm) instead of MNI305!
+      pushd $mdir/transforms > /dev/null
+      ln -sf mni152.1.0mm.1.0mm.m3z talairach.m3z
+      ln -sf mni152.xfm talairach.xfm
+      ln -sf synthmorph.1.0mm.1.0mm/reg.invol_to_targ.lta talairach.xfm.lta
+      popd > /dev/null
+    endif
+  endif
+endif
+
+#-----------                         -----------#
+#----------- Nu Intensity Correction -----------#
+##----------     -nuintensitycor     -----------#
+#----------- Creates nu.mgz          -----------#
+if($DoNuIntensityCor) then
+  echo "#--------------------------------------------"  |& tee -a $LF |& tee -a $CF
+  echo "#@# Nu Intensity Correction `date`"  |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri 
+  set ud = `UpdateNeeded nu.mgz orig.mgz`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz)
+    # to fix a problem with mri_nu_correct.mni messing with the histogramming
+    # in some odd subjects (due to voxels outside the brain, which has the
+    # effect of altering white matter intensity interpretation downstream),
+    # the inclusion of talairach.xfm with mri_nu_correct.mni causes
+    # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
+    # that are mostly brain. The top of the intensity histogram in this ball
+    # will then be white matter, which allows us to center it at the desired
+    # value, approximately (110).
+    if ($DoNuMakeUchar) then
+      if ( ! -e transforms/talairach.xfm && $RunIt) then
+        echo "WARNING: transforms/talairach.xfm does not exist!" \
+          |& tee -a $LF
+        echo "It will not be used by mri_nu_correct.mni." \
+          |& tee -a $LF
+      else
+        set cmd = ($cmd --uchar transforms/talairach.xfm)
+      endif
+    endif
+    # --cm for hi-res support:
+    if ($ConformMin) set cmd = ($cmd --cm)
+    # -3T flag support:
+    if ($DoNuIntensityCor3T) then
+      # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+      # "Improvement of brain segmentation accuracy by optimizing
+      # non-uniformity correction using N3"
+      # namely specifying iterations, proto-iters and distance: 
+      set NuIterations = 1;
+      set cmd = ($cmd --proto-iters 1000 --distance 50)
+    endif
+    # add user-specified option (from an 'experts file')
+    set cmd = ($cmd --n $NuIterations)
+    if($DoAntsN3) set cmd = ($cmd --ants-n3)  # ignores other options
+    if($DoAntsN4) set cmd = ($cmd --ants-n4)  # ignores other options
+    set cmd = ($cmd $xopts)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # Add xfm to nu
+    set cmd = (mri_add_xform_to_header -c \
+               $subjdir/mri/transforms/talairach.xfm \
+               nu.mgz nu.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
   endif
   # done:
@@ -2061,7 +2088,7 @@ endif
 #-----------                          -----------#
 #----------- Intensity Normalization1 -----------#
 ##----------      -normalization      -----------#
-#-----------                          -----------#
+#-----------  Creates T1.mgz          -----------#
 if($DoNormalization) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -2154,10 +2181,6 @@ if($DoNormalization) then
   echo $cmd > $touchdir/inorm1.touch
 endif
 
-#-----------                 -----------#
-#----------- Skull Stripping -----------#
-##----------   -skullstrip   -----------#
-#-----------                 -----------#
 # Segment MCA/dura here to be able to pass it to mri_watershed
 set mcadura = $mdir/mca-dura.mgz
 if($FixMCADura) then
@@ -2166,8 +2189,10 @@ if($FixMCADura) then
   set nu = $mdir/nu.mgz
   set ud = `UpdateNeeded $mcadura $nu`
   if($ud || $ForceUpdate) then
+    set cmd = (mri_mcadura_seg --i $nu --o $mcadura --threads $OMP_NUM_THREADS)
+    if($#synthmorphdir) set cmd = ($cmd --synthmorphdir $synthmorphdir);
     set xopts = `fsr-getxopts mri_mcadura_seg $XOptsFile $GlobXOptsFile`;
-    set cmd = (mri_mcadura_seg --i $nu --o $mcadura --threads $OMP_NUM_THREADS $xopts)
+    set cmd = ($cmd  $xopts)
     echo $cmd | tee -a $LF
     if($RunIt) $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -2185,8 +2210,10 @@ if($FixVSinus) then
   set nu = $mdir/nu.mgz
   set ud = `UpdateNeeded $vsinus $nu`
   if($ud || $ForceUpdate) then
-    set xopts = `fsr-getxopts mri_vsinus_seg $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_vsinus_seg --s $subjid --rca-synthseg --threads $OMP_NUM_THREADS $xopts)
+    if($#synthmorphdir) set cmd = ($cmd --synthmorphdir $synthmorphdir);
+    set xopts = `fsr-getxopts mri_vsinus_seg $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd  $xopts)
     echo $cmd | tee -a $LF
     if($RunIt) $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -2195,7 +2222,7 @@ if($FixVSinus) then
   endif
 endif
 
-if($SynthStrip) then
+if($DoSkullStrip && $SynthStrip) then
   # This will be redundant with seg2recon above (but identical)
   set T1 = $mdir/T1.mgz
   set BM = $mdir/brainmask.mgz
@@ -2227,7 +2254,11 @@ if($SynthStrip) then
   endif
 endif
 
-if($DoSkullStrip) then
+#-----------                 -----------#
+#----------- Skull Stripping -----------#
+##----------   -skullstrip   -----------#
+#-----------                 -----------#
+if($DoSkullStrip && ! $SynthStrip) then
 skullstrip:
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -2592,7 +2623,7 @@ endif # Brainmask
 #--------------                   ---------------#
 #-------------- GCA Registration  ---------------#
 ##-------------      -gcareg      ---------------#
-#--------------                   ---------------#
+#-------------- Runs mri_em_register, creates talairach.lta ---------------#
 if($DoGCAReg) then
   echo "#-------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# EM Registration `date`" |& tee -a $SF |& tee -a $LF  |& tee -a $CF
@@ -2637,7 +2668,7 @@ endif
 #------------                         --------------#
 #----------- Canonical Intensity Normalization -----#
 ##-----------         -canorm         --------------#
-#------------                         --------------#
+#------------ Creates norm.mgz        --------------#
 if($DoCANormalize) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Normalize `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2692,8 +2723,9 @@ endif # DoCANormalize
 #------------                        --------------#
 #------------ Canonical Registration --------------#
 ##-----------        -careg          --------------#
-#------------                        --------------#
-if($DoCAReg && ! $UseSynthSeg) then
+#------------ mri_ca_register talairach.xfm --------------#
+# This is what takes a long time
+if($DoCAReg && ! ($UseSynthSeg && ! $UseSynthMorph)) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Reg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
@@ -3011,17 +3043,12 @@ if($DoCCSeg) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CC Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   set DoASegMerge = 1; # Force
-  set xopts = `fsr-getxopts mri_cc $XOptsFile $GlobXOptsFile`;
-  set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
-    -lta ${subjdir}/mri/transforms/cc_up.lta);
+  set cmd = (seg2cc --s $subjid)
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
-  set cmd = ($cmd  $xopts $subjid);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-
-  echo $cmd > $touchdir/ca_label.touch
 endif
 
 # --------- Incorporate Manual ASeg Changes ----------------------
@@ -3297,7 +3324,8 @@ if($DoSegmentation) then
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
     if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 255 255)
     if($FixACJ)    set cmd = ($cmd -fix-acj $AsegForSurf 255 255)
-    if($SynthSegForSurf) set cmd = ($cmd -wmsa aseg.presurf.mgz)
+    if($SynthSegForSurf) set cmd = ($cmd -wmsa aseg.presurf.mgz) # could use -fill-seg-wm
+    if($UseSynthSeg) set cmd = ($cmd -fill-seg-wm) # no aseg to fill wmsas
     set cmd = ($cmd $xopts wm.seg.mgz brain.mgz $AsegForSurf wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -6714,9 +6742,11 @@ while( $#argv != 0 )
       breaksw
 
     case "-segmentation":
+    case "-segment":
       set DoSegmentation = 1;
       breaksw
     case "-nosegmentation":
+    case "-nosegment":
       set DoSegmentation = 0;
       breaksw
 
@@ -8284,21 +8314,20 @@ check_params:
     if($UseSamseg || $UseSynthSeg) then
       if($longitudinal || $LongSamseg) then
         echo "ERROR: cannot use -samseg or -synthseg with long or longsamseg"
-        exit 1;
+        #exit 1;
       endif
+      set DoCALabel        = 0;
+      set DoASegMerge      = 1;
+      set UseSynthMorph    = 1
+      set DoCCSeg          = 1; 
+      set DoSamsegReg      = 0;
+    endif
+
+    if($UseSynthMorph) then
       set DoTalairach      = 0;
       set DoTalCheck       = 0;
-      set DoNormalization  = 0;
-      set DoSkullStrip     = 0;
-      set DoNuIntensityCor = 0;
-      set DoGCAReg         = 0;
-      set DoRemoveNeck     = 0; # Should be 0 anyway
-      set DoSkullLTA       = 0; # Should be 0 anyway
-      set DoCANormalize    = 0;
-      set DoCAReg          = 0;
-      set DoCALabel        = 0;
-      set DoCCSeg          = 0;
-      set DoASegMerge      = 1;
+      #set DoGCAReg         = 0; # keep em_reg
+      set DoCAReg          = 0; # turn off ca_reg
       set DoSamsegReg      = 0;
     endif
 
