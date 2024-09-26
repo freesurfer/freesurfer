@@ -16,10 +16,10 @@
 //#include "mrisurf_metricProperties.h"
 
 #define export
-//#define ENS_PRINT_INFO
-//#define ENS_PRINT_WARN
+#define ENS_PRINT_INFO
+#define ENS_PRINT_WARN
 #include <armadillo>
-//#include <ensmallen.hpp>
+#include <ensmallen.hpp>
 #include "romp_support.h"
 
 //using namespace ens;
@@ -607,7 +607,6 @@ public:
     }
     return(0);
   }
-  
   int CopyVXYZ(void){
     vxyz.clear();
     vxyz.set_size(surf->nvertices,3);
@@ -616,6 +615,15 @@ public:
       vxyz(vno,0) = vtx->x;
       vxyz(vno,1) = vtx->y;
       vxyz(vno,2) = vtx->z;
+    }
+    return(0);
+  }
+  int CopyVXYZtoSurf(const arma::mat &vxyz){
+    for(int vno=0; vno < surf->nvertices; vno++){
+      VERTEX *vtx = &surf->vertices[vno];
+      vtx->x=vxyz(vno,0);
+      vtx->y=vxyz(vno,1);
+      vtx->z=vxyz(vno,2);
     }
     return(0);
   }
@@ -690,6 +698,40 @@ public:
     }
     return(0);
   }
+  void SetH0(double H0){
+    for(int vno=0; vno < surf->nvertices; vno++) mcurvs[vno].H0 = H0;
+  }
+  void SetH0ToCurv(void){
+    for(int vno=0; vno < surf->nvertices; vno++) mcurvs[vno].H0 = surf->vertices[vno].curv;
+  }
+};
+
+class MyOpt
+{
+public:
+  int ncalls=0;
+  FSsurf fs;
+  double Evaluate(const arma::mat& vxyz){
+    fs.vxyz = vxyz;
+    fs.ComputeFaces(0);
+    fs.ComputeVertices(0);
+    fs.ComputeMeanCurvs(0);
+    //fs.SetH0(-0.01);
+    double hc = fs.HCost(0);
+    return(hc);
+  }
+  double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
+    fs.vxyz = vxyz;
+    fs.ComputeFaces(1);
+    fs.ComputeVertices(1);
+    fs.ComputeMeanCurvs(1);
+    //fs.SetH0(-0.01);
+    double hc = fs.HCost();
+    fs.HCostJ();
+    g = fs.J_cH_p;
+    ncalls ++;
+    return(hc);
+  }
 };
 
 double long FSsurf::HCost(int vno0)
@@ -699,7 +741,11 @@ double long FSsurf::HCost(int vno0)
   #ifdef HAVE_OPENMP
   #pragma omp parallel for reduction(+:cost) 
   #endif
-  for(int vno=0; vno < surf->nvertices; vno++) cost += mcurvs[vno].cost;
+  for(int vno=0; vno < surf->nvertices; vno++) {
+    mcurvs[vno].eps = mcurvs[vno].H-mcurvs[vno].H0;
+    mcurvs[vno].cost = pow(mcurvs[vno].eps,2.0);
+    cost += mcurvs[vno].cost;
+  }
   return(cost);
 }
 
@@ -931,6 +977,54 @@ int main(int argc, char **argv)
 #ifdef HAVE_OPENMP
   omp_set_num_threads(threads);
 #endif
+
+  MyOpt mo;
+  mo.fs.surf = surf;
+  mo.fs.SetVnoInNbrhdOf();
+  mo.fs.CopyVXYZ();
+  mo.fs.ComputeFaces(0);
+  mo.fs.ComputeVertices(0);
+  mo.fs.ComputeMeanCurvs(0);
+  mo.fs.SetH0ToCurv();
+  MRI *curv0 = MRIcopyMRIS(NULL, surf, 0, "curv");
+  MRIwrite(curv0,"curv0.mgz");
+
+  for(int vno=0; vno < surf->nvertices; vno++){
+    VERTEX *vtx = &(surf->vertices[vno]);
+    vtx->x += (2*vtx->nx)*(drand48()-0.5);
+    vtx->y += (2*vtx->ny)*(drand48()-0.5);
+    vtx->z += (2*vtx->nz)*(drand48()-0.5);
+  }
+  MRISwrite(surf,"noisy.srf");
+
+  mo.fs.CopyVXYZ();
+  mo.fs.ComputeFaces(0);
+  mo.fs.ComputeVertices(0);
+  mo.fs.ComputeMeanCurvs(0);
+
+  //arma::mat JJ;
+  //double c = mo.EvaluateWithGradient(mo.fs.vxyz,JJ);
+  //printf("c = %g\n",c);
+  //JJ.save("JJ.dat",arma::raw_ascii);
+
+  ens::L_BFGS optimizer(10, 100, 1e-4, 0.9, 1e-6, 1e-15, 50, 1e-20);
+  arma::mat vxyz = mo.fs.vxyz;
+  double t0 = mytimer.seconds();
+  for(int k=0; k < 5; k++){
+    double cost = optimizer.Optimize(mo, vxyz);
+    printf("k= %2d cost = %g   %g  %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls);
+    //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
+  }
+  mo.fs.CopyVXYZtoSurf(vxyz);
+  MRISwrite(mo.fs.surf,argv[4]);
+  mo.fs.CopyVXYZ();
+  mo.fs.ComputeFaces(0);
+  mo.fs.ComputeVertices(0);
+  mo.fs.ComputeMeanCurvs(0);
+  MRI *curv = MRIcopyMRIS(NULL, surf, 0, "curv");
+  MRIwrite(curv,argv[5]);
+
+  exit(0);
 
   // Profiling. Runs faster the 2nd time around. Weird
   FSsurf fs;
