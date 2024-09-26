@@ -78,6 +78,7 @@ arma::colvec FSdy = {0,1,0};
 arma::colvec FSdz = {0,0,1};
 arma::mat FS_J_v1_nA = {{0,-1,0},{1,0,0},{0,0,0}};
 arma::mat FS_J_v1_nB = {{0,0,-1},{0,0,0},{1,0,0}};
+arma::mat computeJ_v_cross_xyz(arma::colvec const &v);
 
 class FSface{ //----------------
 public:
@@ -93,7 +94,24 @@ public:
   int computeNormJ(void);
   int computeNormJslow(void);
 };
-arma::mat computeJ_v_cross_xyz(arma::colvec const &v);
+arma::colvec FSface::computeNorm(arma::mat &vxyz)
+{
+  // Load P. Note xyz is a column in P, not a row as it is in vxyz
+  f = &surf->faces[fno]; 
+  for(int r=0; r<3; r++){
+    int vno = f->v[r];
+    for(int k=0; k<3; k++){
+      P(k,r) = vxyz(vno,k);
+    }
+  }
+  v0 = P.col(2)-P.col(0);
+  v1 = P.col(1)-P.col(2);
+  m = arma::cross(v1,v0);
+  L = arma::norm(m);
+  norm = m/L;
+  RecomputeJ=1;
+  return(norm);
+}
 
 class FSvertexcell { 
 public:
@@ -112,7 +130,8 @@ public:
 
 class FSmeancurv  { //----------------
 public:
-  double H;
+  double H; // mean curvature
+  double H0=0,eps=0,cost=0;
   arma::mat J_H_p;
   FSvertexcell vc;
   arma::mat P,M,Q,Qt,D,F,beta;
@@ -187,9 +206,9 @@ int FSmeancurv::computeJ(void)
     J_H_p(n,0) = J_H_x;
     J_H_p(n,1) = J_H_y;
     J_H_p(n,2) = J_H_z;
-
   } // end loop over points
-  return(0);
+
+  return(0); //  fast
 }
 int FSmeancurv::computeJslow(void)
 {
@@ -263,9 +282,9 @@ int FSmeancurv::computeJslow(void)
     J_H_p(n,0) = J_H_x;
     J_H_p(n,1) = J_H_y;
     J_H_p(n,2) = J_H_z;
-
   } // end loop over points
-  return(0);
+
+  return(0); // slow
 }
 int FSmeancurv::compute(arma::mat &vxyz)
 {
@@ -304,6 +323,9 @@ int FSmeancurv::compute(arma::mat &vxyz)
   beta = F*Qt*w;
   H = (beta(0)+beta(2));
   vtx->curv = H;
+
+  eps = H-H0;
+  cost = eps*eps;
 
   return(0);
 }
@@ -353,120 +375,8 @@ int FSmeancurv::computeMaybeFaster(arma::mat &vxyz)
   beta = F*Qt*w;
   H = (beta(0)+beta(2));
   vtx->curv = H;
-  //printf("meancurv %d %g\n",vno,km);
 
   return(0);
-}
-
-
-class FSsurf //####################################################
-{
-public:
-  MRIS *surf;
-  std::vector<FSface> faces;
-  std::vector<FSvertexcell> vertices;
-  std::vector<FSmeancurv> mcurvs;
-  arma::mat vxyz;
-  int CopyVXYZ(void){
-    vxyz.clear();
-    vxyz.set_size(surf->nvertices,3);
-    for(int vno=0; vno < surf->nvertices; vno++){
-      VERTEX *vtx = &surf->vertices[vno];
-      vxyz(vno,0) = vtx->x;
-      vxyz(vno,1) = vtx->y;
-      vxyz(vno,2) = vtx->z;
-    }
-    return(0);
-  }
-  int ComputeFaces(int DoJ, int vno0=-1){
-    // If vno0 != -1, then only apply to faces around vno0, otherwise
-    // all faces
-    if(faces.size() != surf->nfaces){
-      faces.clear();
-      faces.resize(surf->nfaces);
-    }
-    if(vno0 > -1){
-      VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno0]);
-      for(int n=0; n < vtop->vnum; n++){
-	int fno = vtop->f[n];
-	faces[fno].surf = surf;
-	faces[fno].fno = fno;
-	faces[fno].computeNorm(vxyz);
-	if(DoJ) faces[fno].computeNormJ();
-      }
-      return(0);
-    }
-    #ifdef HAVE_OPENMP
-     #pragma omp parallel for 
-    #endif
-    for(int fno=0; fno < surf->nfaces; fno++){
-      faces[fno].surf = surf;
-      faces[fno].fno = fno;
-      faces[fno].computeNorm(vxyz);
-      if(DoJ) faces[fno].computeNormJ();
-    }
-    return(0);
-  }
-  int ComputeVertices(int DoJ, int vno0=-1){
-    // If vno0 != -1, then only apply to vno0, otherwise all
-    if(vertices.size() != surf->nvertices){
-      vertices.clear(); vertices.resize(surf->nvertices);
-    }
-    int vnostart=0;
-    int vnostop=surf->nvertices;
-    if(vno0 > -1){vnostart=vno0; vnostop=vno0+1;}
-    #ifdef HAVE_OPENMP
-     #pragma omp parallel for 
-    #endif
-    for(int vno=vnostart; vno < vnostop; vno++){
-      vertices[vno].surf = surf;
-      vertices[vno].vno = vno;
-      vertices[vno].computeNorm(faces);
-      if(DoJ) vertices[vno].computeNormJ(faces);
-    }
-    return(0);
-  }
-  int ComputeMeanCurvs(int DoJ, int vno0=-1){
-    // If vno0 != -1, then only apply to vno0, otherwise all
-    if(mcurvs.size() != surf->nvertices){
-      mcurvs.clear();
-      mcurvs.resize(surf->nvertices);
-    }
-    if(vno0 > -1){
-      mcurvs[vno0].vc = vertices[vno0]; // be good to have a pointer
-      mcurvs[vno0].compute(vxyz);
-      if(DoJ) mcurvs[vno0].computeJ();
-    }
-    else {
-      #ifdef HAVE_OPENMP
-       #pragma omp parallel for 
-      #endif
-      for(int vno=0; vno < surf->nvertices; vno++){
-        mcurvs[vno].vc = vertices[vno]; // be good to have a pointer
-	mcurvs[vno].compute(vxyz);
-	if(DoJ) mcurvs[vno].computeJ();
-      }
-    }
-    return(0);
-  }
-};
-arma::colvec FSface::computeNorm(arma::mat &vxyz)
-{
-  // Load P. Note xyz is a column in P, not a row as it is in vxyz
-  f = &surf->faces[fno]; 
-  for(int r=0; r<3; r++){
-    int vno = f->v[r];
-    for(int k=0; k<3; k++){
-      P(k,r) = vxyz(vno,k);
-    }
-  }
-  v0 = P.col(2)-P.col(0);
-  v1 = P.col(1)-P.col(2);
-  m = arma::cross(v1,v0);
-  L = arma::norm(m);
-  norm = m/L;
-  RecomputeJ=1;
-  return(norm);
 }
 arma::mat computeJ_v_cross_xyz(arma::colvec const &v)
 {
@@ -663,6 +573,157 @@ int FSvertexcell::computeNormJ(std::vector<FSface> const &faces)
   return(0);
 }
 
+
+class FSsurf //####################################################
+{
+public:
+  MRIS *surf;
+  std::vector<FSface> faces;
+  std::vector<FSvertexcell> vertices;
+  std::vector<FSmeancurv> mcurvs;
+  arma::mat vxyz;
+  arma::mat J_cH_p; // cost of H wrt p = nvertices x 3
+
+  double long HCost(int vno0=-1);
+  int HCostJ(int vno0=-1);
+
+  std::vector<std::vector<std::pair<int,int>>> VnoInNbrhdOf;
+  int SetVnoInNbrhdOf(void){
+    VnoInNbrhdOf.clear();
+    VnoInNbrhdOf.resize(surf->nvertices);
+    // First make vno in the nbr of itself
+    for(int i=0; i < surf->nvertices; i++) {
+      std::pair<int,int> p(i,0);
+      VnoInNbrhdOf[i].push_back(p);
+    }
+    for(int i=0; i < surf->nvertices; i++){
+      VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[i]);
+      for(int n=0; n < vtop->vtotal; n++){
+	int vno = vtop->v[n];
+	// Indicate that vno is in the nbrhd of i at the (n+1)th position
+	std::pair<int,int> p(i,n+1);
+	VnoInNbrhdOf[vno].push_back(p);
+      }
+    }
+    return(0);
+  }
+  
+  int CopyVXYZ(void){
+    vxyz.clear();
+    vxyz.set_size(surf->nvertices,3);
+    for(int vno=0; vno < surf->nvertices; vno++){
+      VERTEX *vtx = &surf->vertices[vno];
+      vxyz(vno,0) = vtx->x;
+      vxyz(vno,1) = vtx->y;
+      vxyz(vno,2) = vtx->z;
+    }
+    return(0);
+  }
+  int ComputeFaces(int DoJ, int vno0=-1){
+    if(faces.size() != surf->nfaces){
+      faces.clear();
+      faces.resize(surf->nfaces);
+    }
+    // If vno0 != -1, then only apply to faces around vno0, otherwise
+    // all faces
+    if(vno0 > -1){
+      VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno0]);
+      for(int n=0; n < vtop->vnum; n++){
+	int fno = vtop->f[n];
+	faces[fno].surf = surf;
+	faces[fno].fno = fno;
+	faces[fno].computeNorm(vxyz);
+	if(DoJ) faces[fno].computeNormJ();
+      }
+      return(0);
+    }
+    #ifdef HAVE_OPENMP
+     #pragma omp parallel for 
+    #endif
+    for(int fno=0; fno < surf->nfaces; fno++){
+      faces[fno].surf = surf;
+      faces[fno].fno = fno;
+      faces[fno].computeNorm(vxyz);
+      if(DoJ) faces[fno].computeNormJ();
+    }
+    return(0);
+  }
+  int ComputeVertices(int DoJ, int vno0=-1){
+    // If vno0 != -1, then only apply to vno0, otherwise all
+    if(vertices.size() != surf->nvertices){
+      vertices.clear(); vertices.resize(surf->nvertices);
+    }
+    int vnostart=0;
+    int vnostop=surf->nvertices;
+    if(vno0 > -1){vnostart=vno0; vnostop=vno0+1;}
+    #ifdef HAVE_OPENMP
+     #pragma omp parallel for 
+    #endif
+    for(int vno=vnostart; vno < vnostop; vno++){
+      vertices[vno].surf = surf;
+      vertices[vno].vno = vno;
+      vertices[vno].computeNorm(faces);
+      if(DoJ) vertices[vno].computeNormJ(faces);
+    }
+    return(0);
+  }
+  int ComputeMeanCurvs(int DoJ, int vno0=-1){
+    // If vno0 != -1, then only apply to vno0, otherwise all
+    if(mcurvs.size() != surf->nvertices){
+      mcurvs.clear();
+      mcurvs.resize(surf->nvertices);
+    }
+    if(vno0 > -1){
+      mcurvs[vno0].vc = vertices[vno0]; // be good to have a pointer
+      mcurvs[vno0].compute(vxyz);
+      if(DoJ) mcurvs[vno0].computeJ();
+    }
+    else {
+      #ifdef HAVE_OPENMP
+       #pragma omp parallel for 
+      #endif
+      for(int vno=0; vno < surf->nvertices; vno++){
+        mcurvs[vno].vc = vertices[vno]; // be good to have a pointer
+	mcurvs[vno].compute(vxyz);
+	if(DoJ) mcurvs[vno].computeJ();
+      }
+    }
+    return(0);
+  }
+};
+
+double long FSsurf::HCost(int vno0)
+{
+  // could go over xnbhrd of vno0, but this should be pretty fast
+  double long cost = 0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+:cost) 
+  #endif
+  for(int vno=0; vno < surf->nvertices; vno++) cost += mcurvs[vno].cost;
+  return(cost);
+}
+
+int FSsurf::HCostJ(int vno0)
+{
+  int vnostart=0;
+  int vnostop=surf->nvertices;
+  if(vno0 > -1){vnostart=vno0; vnostop=vno0+1;}
+
+  J_cH_p.zeros(surf->nvertices,3);
+  for(int vno=vnostart; vno < vnostop; vno++) {
+    for(int k=0; k < VnoInNbrhdOf[vno].size(); k++){
+      std::pair<int,int> p = VnoInNbrhdOf[vno][k];
+      int j = p.first;
+      int n = p.second;
+      //printf("vno=%d k=%d i=%d n=%d\n",vno,k,i,n);
+      // mcurvs[j].J_H_p.row(n) is grad of Hi wrt pvno
+      J_cH_p.row(vno) += (mcurvs[j].eps*mcurvs[j].J_H_p.row(n));
+    }
+  }
+  J_cH_p *= 2;
+  return(0);
+}
+
 double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0=-1);
 double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
 {
@@ -688,17 +749,21 @@ double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
   FSsurf fs;
   t0 = mytimer.seconds();
   fs.surf = surf;
+  fs.SetVnoInNbrhdOf();
   fs.CopyVXYZ();
   fs.ComputeFaces(1,vno0);
   fs.ComputeVertices(1,vno0);
   fs.ComputeMeanCurvs(1,vno0);
   dt  = mytimer.seconds()-t0;
   printf("  dt = %g sec\n",dt);fflush(stdout);
+  t0 = mytimer.seconds();
+  printf("H and J  dt = %g sec\n",dt);fflush(stdout);
 
   printf("Computing H  ..."); fflush(stdout);
   t0 = mytimer.seconds();
   FSsurf fs2;
   fs2.surf = surf;
+  fs2.SetVnoInNbrhdOf();
   fs2.CopyVXYZ();
   // Might not need to do these, but it is fast
   fs2.ComputeFaces(0,vno0);
@@ -708,10 +773,10 @@ double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
   printf("  dt = %g sec\n",dt);fflush(stdout);
 
   printf("Computing numerical gradient\n");fflush(stdout);
-  t0 = mytimer.seconds();
   double maxmax = 0;
   double JdiffRabsMax=0;
   int vnomax=0;
+  t0 = mytimer.seconds();
   for(int vno=vnostart; vno < vnostop; vno++){
     VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno]);
     arma::mat J(vtop->vtotal+1,3);
@@ -726,8 +791,8 @@ double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
 	fs2.ComputeFaces(0,vno);
 	fs2.ComputeVertices(0,vno);
 	fs2.ComputeMeanCurvs(0,vno);
-	fs2.vxyz(vnbrno,c) = psave;
 	J(n,c) = (fs2.mcurvs[vno].H-fs.mcurvs[vno].H)/Delta;
+	fs2.vxyz(vnbrno,c) = psave;
       }
     } // Loop over point set
     arma::mat Jdiff = J-fs.mcurvs[vno].J_H_p;
@@ -757,7 +822,96 @@ double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
   printf("maxmax= %6.4lf, rmax %g, vnomax = %d, dt=%g sec, nv=%d, dtp = %g sec\n",
 	 maxmax,JdiffRabsMax,vnomax,dt,nverts,dt/nverts);
   fflush(stdout);
+
   return(maxmax);
+}
+
+double FStestMeanCurvCostGrad(MRIS *surf, double Delta, int vno0=-1);
+double FStestMeanCurvCostGrad(MRIS *surf, double Delta, int vno0)
+{
+  int vnostart=0;
+  int vnostop=surf->nvertices;
+  if(vno0 > -1){vnostart=vno0; vnostop=vno0+1;}
+
+  int threads = 1;
+  #ifdef HAVE_OPENMP
+  threads = omp_get_max_threads();
+  #endif
+
+  Timer mytimer;
+  double t0,dt; 
+
+  printf("FStestMeanCurvGrad() %d %d threads=%d Delta=%g\n",vnostart,vnostop,threads,Delta); 
+  fflush(stdout);
+
+  // The profiling might not be accurate. It seems like the 2nd time
+  // it gets run, it runs much faster. Kind of weird.
+  printf("Computing H and gradient ..."); fflush(stdout);
+  FSsurf fs;
+  fs.surf = surf;
+  fs.SetVnoInNbrhdOf();
+  fs.CopyVXYZ();
+  fs.ComputeFaces(1);
+  fs.ComputeVertices(1);
+  fs.ComputeMeanCurvs(1);
+  double long hc = fs.HCost();
+  fs.HCostJ(vno0);
+
+  printf("H cost = %g\n",(double)hc);
+  fs.J_cH_p.save("J_cH_p.dat",arma::raw_ascii);
+
+  printf("Computing H  ..."); fflush(stdout);
+  FSsurf fs2;
+  fs2.surf = surf;
+  fs2.SetVnoInNbrhdOf();
+  fs2.CopyVXYZ();
+  // Might not need to do these, but it is fast
+  fs2.ComputeFaces(0);
+  fs2.ComputeVertices(0);
+  fs2.ComputeMeanCurvs(0);
+  fs2.HCost();
+
+  printf("Computing numerical gradient\n");fflush(stdout);
+  arma::mat Jc(surf->nvertices,3);
+  Jc.zeros();
+  t0 = mytimer.seconds();
+  for(int vno=vnostart; vno < vnostop; vno++){
+    //VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno]);
+    for(int c=0; c < 3; c++){
+      double psave = fs2.vxyz(vno,c);
+      fs2.vxyz(vno,c) += Delta;
+      // to use vno in compute, must be able to go over all nbrhds
+      fs2.ComputeFaces(0);
+      fs2.ComputeVertices(0);
+      fs2.ComputeMeanCurvs(0);
+      double long hc2 = fs2.HCost();
+      double long dd = (hc2-hc)/Delta;
+      Jc(vno,c) = dd;
+      if(0){
+      for(int k=0; k < fs.VnoInNbrhdOf[vno].size(); k++){
+	std::pair<int,int> p = fs.VnoInNbrhdOf[vno][k];
+	int j = p.first;
+	//int n = p.second;
+	double dd = (fs2.mcurvs[j].cost-fs.mcurvs[j].cost)/Delta;
+	// Use vno because this is the change in the total cost caused by
+	// vno regardless of what vertex j it shows up in
+	Jc(vno,c) += dd;
+      }
+      }
+      fs2.vxyz(vno,c) = psave;
+    } // Loop over coords
+  } // Loop over vertices
+
+  dt  = mytimer.seconds()-t0;
+  printf("dt = %g\n",dt);
+  fflush(stdout);
+  Jc.save("J_cH_p.num.txt",arma::raw_ascii);
+  arma::mat Jdiff = Jc-fs.J_cH_p;
+  arma::mat Jdiffabs = arma::abs(Jdiff);
+  double Jdiffabsmax = Jdiffabs.max();
+  printf("HCostJ diff %g\n",Jdiffabsmax);
+
+  return(0);
 }
 
 //MAIN ----------------------------------------------------
@@ -778,29 +932,40 @@ int main(int argc, char **argv)
   omp_set_num_threads(threads);
 #endif
 
-
   // Profiling. Runs faster the 2nd time around. Weird
   FSsurf fs;
   fs.surf = surf;
+  if(0){
   for(int n=0; n < 2; n++){
     double t = mytimer.seconds();
+    fs.SetVnoInNbrhdOf();
     fs.CopyVXYZ();
     fs.ComputeFaces(0);
     fs.ComputeVertices(0);
     fs.ComputeMeanCurvs(0);
     printf("H %d %6.4f\n",n,mytimer.seconds()-t);
   }
-  for(int n=0; n < 2; n++){
+  for(int n=0; n < 1; n++){
     double t = mytimer.seconds();
     fs.CopyVXYZ();
+    fs.SetVnoInNbrhdOf();
     fs.ComputeFaces(1);
     fs.ComputeVertices(1);
     fs.ComputeMeanCurvs(1);
+    double hc = fs.HCost(0);
+    fs.HCostJ(0);
+    fs.J_cH_p.save("J_cH_p.dat",arma::raw_ascii);
+    printf("hc %g\n",hc);
     printf("dH %d %6.4f\n",n,mytimer.seconds()-t);
+  }
+  exit(0);
   }
 
   double Delta = 1e-10;
+  FStestMeanCurvCostGrad(surf, Delta, vno);
+  printf("==============================================\n");
   FStestMeanCurvGrad(surf, Delta, vno);
+  printf("==============================================\n");
 
   FILE *fp=NULL;
   VERTEX_TOPOLOGY *vtop;
@@ -814,7 +979,8 @@ int main(int argc, char **argv)
     fprintf(fp,"%d\n",vtop->vnum);
     fclose(fp);
   }
-
+  MRI *mri = MRIcopyMRIS(NULL, surf, 0, "curv");
+  MRIwrite(mri,argv[4]);
   exit(0);
 
   //for(int n=0; n < 5; n++){ need #include to do this now
@@ -828,9 +994,6 @@ int main(int argc, char **argv)
   //printf("FS: k1 %g k2 %g H %g\n",vtx->k1,vtx->k2,vtx->H);
 
 
-  //mri = MRIcopyMRIS(NULL, surf, 0, "curv"); // start at z to autoalloc
-  //MRIwrite(mri,argv[2]);
-  //exit(0);
 
 
   printf("%g %g %g\n",vtx->nx,vtx->ny,vtx->nz);
