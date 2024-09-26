@@ -118,7 +118,13 @@ DoSynthSR:
     value: False
     flags: -synthsr
     action: enable
-    descr: Use run mri_synthsr on input (rawavg) to convert to T1w contrast
+    descr: Run mri_synthsr on input (rawavg) to convert to T1w contrast
+    
+UseSynthMorph:
+    value: False
+    flags: -synthmorph
+    action: enable
+    descr: Run fs-synthmorphe-reg instead of mri_ca_register
     
 TopoFitLevel:
     value: 0
