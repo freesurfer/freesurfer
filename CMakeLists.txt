@@ -716,6 +716,7 @@ endif()
 # they will be built by default, but not if a minimal build is configured
 if(NOT MINIMAL)
   add_subdirectories(
+    AANsegment
     anatomicuts
     attic
     BrainstemSS
