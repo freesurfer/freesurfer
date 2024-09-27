@@ -27,6 +27,17 @@
 
 int GetP(MRIS *surf, int vno)
 {
+  // This gets the xyz of vertices in the extended neighborhood (P)
+  // around the the center vertex where the nearest neighbor vertices
+  // are in a contiguous order. This allows for the contruction of the
+  // triangles as the first points plus any two other contiguous
+  // points. Eg, if there are 6 nearest neighbors then there are 6
+  // nearest triangles. The xyz of the 1st triangle is P0+P1+P2. The
+  // next one is P0+P2+P3, etc (P will be more than 6 because it
+  // contains all the vertices from the extended neighborhood). Doing
+  // it in this way allows for determining the xyz of the triangles
+  // without having to have a separate structure from the xyz in P.
+  // One of my matlab programs assumes this format.
   VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno]);
   VERTEX *vtx = &(surf->vertices[vno]);
 
@@ -79,8 +90,19 @@ arma::colvec FSdz = {0,0,1};
 arma::mat FS_J_v1_nA = {{0,-1,0},{1,0,0},{0,0,0}};
 arma::mat FS_J_v1_nB = {{0,0,-1},{0,0,0},{1,0,0}};
 arma::mat computeJ_v_cross_xyz(arma::colvec const &v);
+arma::mat computeJ_v_cross_xyz(arma::colvec const &v)
+{
+  // This is the Jacobian of the cross product of v with some other
+  // vector (ie, cross(v,v2)) wrt to the xyz of the other vector.  To
+  // get the Jacobian of cross of v2 with v (cross(v2,v)), just
+  // multiply by -1. This is the same as cross(v,d{xyz})
+  arma::mat J_m_v = {{0,-v(2),v(1)},{v(2),0,-v(0)},{-v(1),v(0),0}};
+  return(J_m_v);
+}
 
-class FSface{ //----------------
+// New face structure to accomodate Armadillo and the computatio of
+// the Jacobian of the normal wrt each point
+class FSface{
 public:
   MRIS *surf;
   int fno;
@@ -89,6 +111,8 @@ public:
   arma::colvec norm, v0, v1, m;
   double L;
   int RecomputeJ=1;
+  // J_n_p[3] is the jacobian, each J_n_p[i] is a 3x3 matrix for
+  // corner i. A row of J is the gradient wrt p.
   std::array<arma::mat,3> J_n_p;
   arma::colvec computeNorm(arma::mat &vxyz);
   int computeNormJ(void);
@@ -112,30 +136,239 @@ arma::colvec FSface::computeNorm(arma::mat &vxyz)
   RecomputeJ=1;
   return(norm);
 }
+int FSface::computeNormJslow(void)
+{
+  if(!RecomputeJ) return(0);
 
+  arma::mat J_m_v0x = arma::cross(v1,FSdx);
+  arma::mat J_m_v0y = arma::cross(v1,FSdy);
+  arma::mat J_m_v0z = arma::cross(v1,FSdz);
+  arma::mat J_m_v0 = arma::join_horiz(arma::join_horiz(J_m_v0x,J_m_v0y),J_m_v0z);
+
+  arma::mat J_m_v1x = arma::cross(FSdx,v0);
+  arma::mat J_m_v1y = arma::cross(FSdy,v0);
+  arma::mat J_m_v1z = arma::cross(FSdz,v0);
+  arma::mat J_m_v1 = arma::join_horiz(arma::join_horiz(J_m_v1x,J_m_v1y),J_m_v1z);
+
+  arma::mat J_m_p0 = -J_m_v0;
+  arma::mat J_m_p1 =  J_m_v1;
+  arma::mat J_m_p2 =  J_m_v0 - J_m_v1;
+
+  // J_v0_p0=-I; J_v1_p0=0; J_v0_p1=0; J_v1_p1=I; J_v0_p2=I; J_v1_p2=-I;
+  // J_L_pi = (m'*J_m_pi)/(L*L)
+  // J_n_pi = J_m_pi/L - (m*J_L_pi)/L
+
+  // Change in face normal wrt a change in corner position
+  arma::mat J_L_p0 = (arma::trans(m)*J_m_p0)/L;
+  J_n_p[0] = J_m_p0/L - (m*J_L_p0)/(L*L);
+  arma::mat J_L_p1 = (arma::trans(m)*J_m_p1)/L;
+  J_n_p[1] = J_m_p1/L - (m*J_L_p1)/(L*L);
+  arma::mat J_L_p2 = (arma::trans(m)*J_m_p2)/L;
+  J_n_p[2] = J_m_p2/L - (m*J_L_p2)/(L*L);
+
+  return(0);
+}
+
+int FSface::computeNormJ(void)
+{
+  // fast version
+  if(!RecomputeJ) return(0);
+
+  arma::mat J_m_v0 =  computeJ_v_cross_xyz(v1);
+  arma::mat J_m_v1 = -computeJ_v_cross_xyz(v0);
+
+  arma::mat J_m_p0 = -J_m_v0;
+  arma::mat J_m_p1 =  J_m_v1;
+  arma::mat J_m_p2 =  J_m_v0 - J_m_v1;
+
+  // J_v0_p0=-I; J_v1_p0=0; J_v0_p1=0; J_v1_p1=I; J_v0_p2=I; J_v1_p2=-I;
+  // J_L_pi = (m'*J_m_pi)/(L*L)
+  // J_n_pi = J_m_pi/L - (m*J_L_pi)/L
+
+  // Change in face normal wrt a change in corner position
+  arma::mat J_L_p0 = (arma::trans(m)*J_m_p0)/L;
+  J_n_p[0] = J_m_p0/L - (m*J_L_p0)/(L*L);
+  arma::mat J_L_p1 = (arma::trans(m)*J_m_p1)/L;
+  J_n_p[1] = J_m_p1/L - (m*J_L_p1)/(L*L);
+  arma::mat J_L_p2 = (arma::trans(m)*J_m_p2)/L;
+  J_n_p[2] = J_m_p2/L - (m*J_L_p2)/(L*L);
+
+  // J_n_p[i] is a 3x3 jacobian matrix. 
+
+  return(0);
+}
+
+// This is a new vertex class to accomodate Armodillo and to assist in
+// the computation of the Jacobian of the normal and tangent vectors
+// wrt each point in the cell.
 class FSvertexcell { 
 public:
   MRIS *surf;
-  std::vector<FSface> faces;
-  int vno;
-  VERTEX_TOPOLOGY *vtop=NULL;
-  int npoints=0, nnnbrs=0;
-  arma::colvec norm, t, v1, v2, e1, e2;
+  int vno; // center vertex of the cell
+  std::vector<FSface> faces; // faces in the cell
+  VERTEX_TOPOLOGY *vtop=NULL;//topology of the center
+  int nnnbrs=0; // number of nearest neighbors = vtop->vnum
+  int npoints=0; // number of extended neighbors, including self = vtop->vtotal+1
+  arma::colvec norm, e1, e2; // normal, 1st tangent vector, 2nd tangent vector
+  arma::colvec t, v1, v2;
   double L, L1, L2;
   int cuse=0;
+  // Jacobians. Each is a 3x3 matrix. Each row is the gradient of n or e1/2 wrt pxyz
   std::vector<arma::mat> J_n_p, J_e1_p, J_e2_p;
   int computeNorm(std::vector<FSface> const &faces);
   int computeNormJ(std::vector<FSface> const &faces);
 };
+int FSvertexcell::computeNorm(std::vector<FSface> const &faces)
+{
+  vtop = &(surf->vertices_topology[vno]);
+  npoints = vtop->vtotal+1;
+  nnnbrs = vtop->vnum;
+  // Loop over neighboring triangles of the center vertex
+  // and sum up, then average the normals to get t
+  t.zeros(3);
+  for(int k=0; k<vtop->vnum; k++){
+    int fno = vtop->f[k];
+    t += faces[fno].norm;
+  }
+  // Now normalize because the sum of normals is not unit 1
+  L = arma::norm(t);
+  norm = t/L;
 
-class FSmeancurv  { //----------------
+  // To get e1, need a vector that is normal to the vertex
+  // normal. This can be constructed directly from the normal.  Take
+  // the largest of y and z to reduce the likelihood of numerical
+  // problems if both (x,y) or (x,z) are both small. Note that
+  // rotations of e1/e2 about the normal do not matter.
+  v1.zeros(3);
+  if(fabs(norm(1))>fabs(norm(2))){
+    // v1 = [-y x 0]
+    v1(0) = -norm(1);
+    v1(1) =  norm(0);
+    v1(2) =  0;
+    cuse = 1;
+  }
+  else{
+    // v1 = [-z 0 x]
+    v1(0) = -norm(2);
+    v1(1) =  0;      
+    v1(2) =  norm(0);
+    cuse = 2;
+  }
+  // Now normalize
+  L1 = arma::norm(v1);
+  e1 = v1/L1;
+
+  // e2 is the normal to both norm and e1
+  v2 = arma::cross(norm,e1);
+  L2 = arma::norm(v2);
+  e2 = v2/L2;
+  return(0);
+}
+
+int FSvertexcell::computeNormJ(std::vector<FSface> const &faces)
+{
+  // This function computes the Jacobian of the vertex normal/e1/e2
+  // vectors with respect to changes in the xyz of the center point or
+  // nearest neighbors of the center point (points in the extended
+  // neighborhood out side of the nearest do not affect the normal
+  // calcuation). This is used in the computation of the mean curv
+  // Jacobian to adjust/correct for changes in the norm/e1/e2 in
+  // response to changes in these vertices above and beyond how such
+  // changes would affect mean curv directly.
+  if(J_n_p.size() != nnnbrs+1){
+    J_n_p.clear();
+    J_n_p.resize(nnnbrs+1);
+  }
+  if(J_e1_p.size() != nnnbrs+1){
+    J_e1_p.clear();
+    J_e1_p.resize(nnnbrs+1);
+  }
+  if(J_e2_p.size() != nnnbrs+1){
+    J_e2_p.clear();
+    J_e2_p.resize(nnnbrs+1);
+  }
+
+  // First, compute J_e?_n - grad of e? wrt the normal. Note: these do not
+  // depend on the point directly, just the normal (as indicated by
+  // the _n).
+
+  // Compute J_e1_n. This could be sped up a little because nA and nB
+  // are sparse, but probably won't make much of a diff because
+  // outside the point loop.
+  arma::mat J_e1_n;
+  arma::rowvec J_L1_n;
+  // cuse was set in FSvertexcell::computeNorm() and indicates whether e1
+  // was computed from xy or xz
+  if(cuse == 1){ // xy
+    J_L1_n = (arma::trans(v1)*FS_J_v1_nA)/L1;
+    J_e1_n = FS_J_v1_nA/L1 - (v1*J_L1_n)/(L1*L1);
+  } else { // xz
+    J_L1_n = (arma::trans(v1)*FS_J_v1_nB)/L1;
+    J_e1_n = FS_J_v1_nB/L1 - (v1*J_L1_n)/(L1*L1);
+  }
+
+  // Compute J_e2_n.  This could be sped up a little using
+  // computeJ_v_cross_xyz, but does not seem to make much of
+  // a diff.  Keeping the original since it is simpler/clearer.
+  arma::mat J_v2_nx = arma::cross(FSdx,e1) + arma::cross(norm,J_e1_n.col(0));
+  arma::mat J_v2_ny = arma::cross(FSdy,e1) + arma::cross(norm,J_e1_n.col(1));
+  arma::mat J_v2_nz = arma::cross(FSdz,e1) + arma::cross(norm,J_e1_n.col(2));
+  arma::mat J_v2_n = arma::join_horiz(arma::join_horiz(J_v2_nx,J_v2_ny),J_v2_nz);
+  //arma::colvec ax = arma::cross(norm,J_e1_n.col(0));
+  //arma::colvec ay = arma::cross(norm,J_e1_n.col(1));
+  //arma::colvec az = arma::cross(norm,J_e1_n.col(2));
+  //arma::mat J_v2_n = -computeJ_v_cross_xyz(e1) + arma::join_horiz(arma::join_horiz(ax,ay),az);
+  arma::rowvec J_L2_n = (arma::trans(v2)*J_v2_n)/L2;
+  arma::mat J_e2_n;
+  J_e2_n = J_v2_n/L2 - (v2*J_L2_n)/(L2*L2);
+
+  // Now compute the J of norm, e1, and e2 wrt a given point.
+
+  // Go through the first nnnbrs+1 points (and not all npoints)
+  // because only changes at the first nnnbrs+1 points will affect
+  // norm, e1, e2 at the center
+  for(int n=0; n < nnnbrs+1; n++){
+    int nvno;
+    if(n == 0) nvno=vno; // first is always center vertex
+    else       nvno = vtop->v[n-1]; // rest are nearest neighbors
+    arma::mat J_t_p; 
+    J_t_p.zeros(3,3);
+    // Go through the all the neighboring faces to see which ones
+    // contain both the center vertex and the current neighbor vertex
+    int nhits = 0;
+    for(int k=0; k<vtop->vnum; k++){
+      int fno = vtop->f[k];
+      FACE *vface = &surf->faces[fno];
+      int m;
+      for(m=0; m<3; m++) if(vface->v[m] == nvno) break;
+      if(m==3) continue; // this nbr vertex not in this face
+      nhits++;
+      // This face is shared by both center and neighbor so add its J to the total
+      J_t_p += faces[fno].J_n_p[m];
+    }
+    // Note: nhits should be 2 or vnum
+    arma::mat J_L_p = (arma::trans(t)*J_t_p)/L;
+    J_n_p[n]  = J_t_p/L - (t*J_L_p)/(L*L);
+    // Apply the chain rule to get J_e?_p
+    J_e1_p[n] = J_e1_n*J_n_p[n];
+    J_e2_p[n] = J_e2_n*J_n_p[n];
+  }
+
+  return(0);
+}
+
+
+// Mean curvature structure for a vertex
+class FSmeancurv{ 
 public:
-  double H; // mean curvature
-  double H0=0,eps=0,cost=0;
-  arma::mat J_H_p;
-  FSvertexcell vc;
+  FSvertexcell vc; // vertex info for this vertex
+  double H; // mean curvature for this vertex
+  // Jacobian wrt each point in the extended neighborhood
+  arma::mat J_H_p; // npointsx3
   arma::mat P,M,Q,Qt,D,F,beta;
   arma::colvec  u, v, w;
+  // For when optimizing: HO=target H, esp=H-H0, cost=eps^2
+  double H0=0,eps=0,cost=0; 
   int compute(arma::mat &vxyz);
   int computeMaybeFaster(arma::mat &vxyz);
   int computeJ(void);
@@ -144,6 +377,8 @@ public:
 
 int FSmeancurv::computeJ(void)
 {
+  // Compute Jacobian of H wrt each point in the extended neighborhood.
+  // See the "slow" version for more matrix detail
   J_H_p.zeros(vc.npoints,3);
   for(int n=0; n < vc.npoints; n++){
     arma::colvec dudx, dudy, dudz,  dvdx, dvdy, dvdz,  dwdx, dwdy, dwdz;
@@ -151,7 +386,7 @@ int FSmeancurv::computeJ(void)
       dudx.zeros(vc.npoints); dudx.fill(-vc.e1(0)); dudx(0) = 0;
       dudy.zeros(vc.npoints); dudy.fill(-vc.e1(1)); dudy(0) = 0;
       dudz.zeros(vc.npoints); dudz.fill(-vc.e1(2)); dudz(0) = 0;
-      // Note: either e1(1) or e1(2) will be 0 so dont' have to fill
+      // Note: either e1(1) or e1(2) will be 0 so don't need to fill
       dvdx.zeros(vc.npoints); dvdx.fill(-vc.e2(0)); dvdx(0) = 0;
       dvdy.zeros(vc.npoints); dvdy.fill(-vc.e2(1)); dvdy(0) = 0;
       dvdz.zeros(vc.npoints); dvdz.fill(-vc.e2(2)); dvdz(0) = 0;
@@ -171,7 +406,8 @@ int FSmeancurv::computeJ(void)
       dwdz.zeros(vc.npoints); dwdz(n) = vc.norm(2);
     }
     if(n < vc.nnnbrs+1){
-      // one of the rows of J_e1_p will be 0
+      // This is the adjustment for changes in e1/e2/norm when the
+      // center or nearest neighbor changes position.
       dudx += M*vc.J_e1_p[n].col(0);
       dvdx += M*vc.J_e2_p[n].col(0);
       dwdx += M*vc.J_n_p[n].col(0);
@@ -236,6 +472,8 @@ int FSmeancurv::computeJslow(void)
     dvdx = dMdx*vc.e2;
     dwdx = dMdx*vc.norm;
     if(n < vc.nnnbrs+1){
+      // This is the adjustment/correction for changes in e1/e2/norm
+      // when the center or nearest neighbor changes position
       dudx += M*vc.J_e1_p[n].col(0);
       dvdx += M*vc.J_e2_p[n].col(0);
       dwdx += M*vc.J_n_p[n].col(0);
@@ -294,7 +532,7 @@ int FSmeancurv::compute(arma::mat &vxyz)
   int npoints = vtop->vtotal+1;
 
   // xyz are row vectors in P
-  // First is always self/center vertex
+  // First (P(0,:)) is always self/center vertex
   // Next nnnbrs are the nearest neighbors
   P.zeros(npoints,3);
   P(0,0) = vxyz(vno,0);
@@ -324,15 +562,15 @@ int FSmeancurv::compute(arma::mat &vxyz)
   H = (beta(0)+beta(2));
   vtx->curv = H;
 
-  eps = H-H0;
-  cost = eps*eps;
+  eps = H-H0; // can be done outside of class
+  cost = eps*eps; // can be done outside of class
 
   return(0);
 }
 
 int FSmeancurv::computeMaybeFaster(arma::mat &vxyz)
 {
-  // This does not appear to run faster (maybe slower)
+  // This does not appear to run faster (maybe even slower)
   int vno = vc.vno;
   VERTEX_TOPOLOGY *vtop = vc.vtop;
   VERTEX *vtx = &(vc.surf->vertices[vno]);
@@ -378,215 +616,30 @@ int FSmeancurv::computeMaybeFaster(arma::mat &vxyz)
 
   return(0);
 }
-arma::mat computeJ_v_cross_xyz(arma::colvec const &v)
-{
-  // This is the Jacobian of the cross of v with dx,dy,dz
-  // To get the cross of dx,dy,dz with v, just the negative
-  arma::mat J_m_v = {{0,-v(2),v(1)},{v(2),0,-v(0)},{-v(1),v(0),0}};
-  return(J_m_v);
-}
-int FSface::computeNormJslow(void)
-{
-  if(!RecomputeJ) return(0);
 
-  arma::mat J_m_v0x = arma::cross(v1,FSdx);
-  arma::mat J_m_v0y = arma::cross(v1,FSdy);
-  arma::mat J_m_v0z = arma::cross(v1,FSdz);
-  arma::mat J_m_v0 = arma::join_horiz(arma::join_horiz(J_m_v0x,J_m_v0y),J_m_v0z);
-
-  arma::mat J_m_v1x = arma::cross(FSdx,v0);
-  arma::mat J_m_v1y = arma::cross(FSdy,v0);
-  arma::mat J_m_v1z = arma::cross(FSdz,v0);
-  arma::mat J_m_v1 = arma::join_horiz(arma::join_horiz(J_m_v1x,J_m_v1y),J_m_v1z);
-
-  arma::mat J_m_p0 = -J_m_v0;
-  arma::mat J_m_p1 =  J_m_v1;
-  arma::mat J_m_p2 =  J_m_v0 - J_m_v1;
-
-  // J_v0_p0=-I; J_v1_p0=0; J_v0_p1=0; J_v1_p1=I; J_v0_p2=I; J_v1_p2=-I;
-  // J_L_pi = (m'*J_m_pi)/(L*L)
-  // J_n_pi = J_m_pi/L - (m*J_L_pi)/L
-
-  // Change in face normal wrt a change in corner position
-  arma::mat J_L_p0 = (arma::trans(m)*J_m_p0)/L;
-  J_n_p[0] = J_m_p0/L - (m*J_L_p0)/(L*L);
-  arma::mat J_L_p1 = (arma::trans(m)*J_m_p1)/L;
-  J_n_p[1] = J_m_p1/L - (m*J_L_p1)/(L*L);
-  arma::mat J_L_p2 = (arma::trans(m)*J_m_p2)/L;
-  J_n_p[2] = J_m_p2/L - (m*J_L_p2)/(L*L);
-
-  return(0);
-}
-
-int FSface::computeNormJ(void)
-{
-  // fast version
-  if(!RecomputeJ) return(0);
-
-  arma::mat J_m_v0 =  computeJ_v_cross_xyz(v1);
-  arma::mat J_m_v1 = -computeJ_v_cross_xyz(v0);
-
-  arma::mat J_m_p0 = -J_m_v0;
-  arma::mat J_m_p1 =  J_m_v1;
-  arma::mat J_m_p2 =  J_m_v0 - J_m_v1;
-
-  // J_v0_p0=-I; J_v1_p0=0; J_v0_p1=0; J_v1_p1=I; J_v0_p2=I; J_v1_p2=-I;
-  // J_L_pi = (m'*J_m_pi)/(L*L)
-  // J_n_pi = J_m_pi/L - (m*J_L_pi)/L
-
-  // Change in face normal wrt a change in corner position
-  arma::mat J_L_p0 = (arma::trans(m)*J_m_p0)/L;
-  J_n_p[0] = J_m_p0/L - (m*J_L_p0)/(L*L);
-  arma::mat J_L_p1 = (arma::trans(m)*J_m_p1)/L;
-  J_n_p[1] = J_m_p1/L - (m*J_L_p1)/(L*L);
-  arma::mat J_L_p2 = (arma::trans(m)*J_m_p2)/L;
-  J_n_p[2] = J_m_p2/L - (m*J_L_p2)/(L*L);
-
-  return(0);
-}
-
-int FSvertexcell::computeNorm(std::vector<FSface> const &faces)
-{
-  vtop = &(surf->vertices_topology[vno]);
-  npoints = vtop->vtotal+1;
-  nnnbrs = vtop->vnum;
-  // Loop over neighboring triangles of the center vertex
-  // and sum up, then average the normals to get t
-  t.zeros(3);
-  for(int k=0; k<vtop->vnum; k++){
-    int fno = vtop->f[k];
-    t += faces[fno].norm;
-  }
-  // Now normalize because the sum of normals is not unit 1
-  L = arma::norm(t);
-  norm = t/L;
-
-  // To get e1, need a vector that is normal to the vertex
-  // normal. This can be constructed directly from the normal.  Take
-  // the largest of y and z to reduce the likelihood of numerical
-  // problems if both (x,y) or (x,z) are both small. Note that
-  // rotations of e1/e2 about the normal do not matter.
-  v1.zeros(3);
-  if(fabs(norm(1))>fabs(norm(2))){
-    // v1 = [-y x 0]
-    v1(0) = -norm(1);
-    v1(1) =  norm(0);
-    v1(2) =  0;
-    cuse = 1;
-  }
-  else{
-    // v1 = [-z 0 x]
-    v1(0) = -norm(2);
-    v1(1) =  0;      
-    v1(2) =  norm(0);
-    cuse = 2;
-  }
-  // Now normalize
-  L1 = arma::norm(v1);
-  e1 = v1/L1;
-
-  // e2 is the normal to both norm and e1
-  v2 = arma::cross(norm,e1);
-  L2 = arma::norm(v2);
-  e2 = v2/L2;
-  return(0);
-}
-
-int FSvertexcell::computeNormJ(std::vector<FSface> const &faces)
-{
-  if(J_n_p.size() != nnnbrs+1){
-    J_n_p.clear();
-    J_n_p.resize(nnnbrs+1);
-  }
-  if(J_e1_p.size() != nnnbrs+1){
-    J_e1_p.clear();
-    J_e1_p.resize(nnnbrs+1);
-  }
-  if(J_e2_p.size() != nnnbrs+1){
-    J_e2_p.clear();
-    J_e2_p.resize(nnnbrs+1);
-  }
-
-  // Compute J_e?_n - grad of e? wrt the normal. Note: these do not
-  // depend on the point, just the normal. 
-
-  // Compute J_e1_n. This could be sped up a little because nA and nB
-  // are sparse, but probably won't make much of a diff because
-  // outside the point loop.
-  arma::mat J_e1_n;
-  arma::rowvec J_L1_n;
-  if(cuse == 1){
-    J_L1_n = (arma::trans(v1)*FS_J_v1_nA)/L1;
-    J_e1_n = FS_J_v1_nA/L1 - (v1*J_L1_n)/(L1*L1);
-  } else {
-    J_L1_n = (arma::trans(v1)*FS_J_v1_nB)/L1;
-    J_e1_n = FS_J_v1_nB/L1 - (v1*J_L1_n)/(L1*L1);
-  }
-
-  // Compute J_e2_n.  This could be sped up a little using
-  // computeJ_v_cross_xyz, but probably does not seem to make much of
-  // a diff.  Keeping the original slice it is simpler/clearer.
-  arma::mat J_v2_nx = arma::cross(FSdx,e1) + arma::cross(norm,J_e1_n.col(0));
-  arma::mat J_v2_ny = arma::cross(FSdy,e1) + arma::cross(norm,J_e1_n.col(1));
-  arma::mat J_v2_nz = arma::cross(FSdz,e1) + arma::cross(norm,J_e1_n.col(2));
-  arma::mat J_v2_n = arma::join_horiz(arma::join_horiz(J_v2_nx,J_v2_ny),J_v2_nz);
-  //arma::colvec ax = arma::cross(norm,J_e1_n.col(0));
-  //arma::colvec ay = arma::cross(norm,J_e1_n.col(1));
-  //arma::colvec az = arma::cross(norm,J_e1_n.col(2));
-  //arma::mat J_v2_n = -computeJ_v_cross_xyz(e1) + arma::join_horiz(arma::join_horiz(ax,ay),az);
-  arma::rowvec J_L2_n = (arma::trans(v2)*J_v2_n)/L2;
-  arma::mat J_e2_n;
-  J_e2_n = J_v2_n/L2 - (v2*J_L2_n)/(L2*L2);
-
-  // Now compute the J of norm, e1, and e2 wrt a given point.
-
-  // Go through the first nnnbrs+1 points (and not all npoints)
-  // because only changes at the first nnnbrs+1 points will affect
-  // norm, e1, e2 at the center
-  for(int n=0; n < nnnbrs+1; n++){
-    int nvno;
-    if(n == 0) nvno=vno; // first is always center vertex
-    else       nvno = vtop->v[n-1]; // rest are nearest neighbors
-    arma::mat J_t_p; 
-    J_t_p.zeros(3,3);
-    // Go through the all the neighboring faces to see which ones
-    // contain both the center vertex and the current neighbor vertex
-    int nhits = 0;
-    for(int k=0; k<vtop->vnum; k++){
-      int fno = vtop->f[k];
-      FACE *vface = &surf->faces[fno];
-      int m;
-      for(m=0; m<3; m++) if(vface->v[m] == nvno) break;
-      if(m==3) continue; // this nbr vertex not in this face
-      nhits++;
-      // This face is shared by both center and neighbor so add its J to the total
-      J_t_p += faces[fno].J_n_p[m];
-    }
-    // Note: nhits should be 2 or vnum
-    arma::mat J_L_p = (arma::trans(t)*J_t_p)/L;
-    J_n_p[n]  = J_t_p/L - (t*J_L_p)/(L*L);
-    // Apply the chain rule to get J_e?_p
-    J_e1_p[n] = J_e1_n*J_n_p[n];
-    J_e2_p[n] = J_e2_n*J_n_p[n];
-  }
-
-  return(0);
-}
-
-
-class FSsurf //####################################################
+// --------------------------------------------------------------
+// Surface class to assist in the computing of mean curvature and
+// its gradient.
+class FSsurf
 {
 public:
-  MRIS *surf;
+  MRIS *surf; // Classic FS surface
   std::vector<FSface> faces;
   std::vector<FSvertexcell> vertices;
   std::vector<FSmeancurv> mcurvs;
-  arma::mat vxyz;
+  arma::mat vxyz; // xyz of vertices copied from surf
   arma::mat J_cH_p; // cost of H wrt p = nvertices x 3
 
   double long HCost(int vno0=-1);
   int HCostJ(int vno0=-1);
 
+  // Each element of VnoInNbrhdOf corresponds to a vertex. Each
+  // element has list of center vertices in which the element vertex
+  // is in the extended neighborhood of (includes self). The pair is
+  // the vertex number of the center vertex and the nth point within
+  // the extended neighborhood that the element vertex corresponds to.
+  // Note that VnoInNbrhdOf does NOT indicate the extended neighbors
+  // of the the element vertex; that info is already stored in vtop->v[]
   std::vector<std::vector<std::pair<int,int>>> VnoInNbrhdOf;
   int SetVnoInNbrhdOf(void){
     VnoInNbrhdOf.clear();
@@ -607,6 +660,7 @@ public:
     }
     return(0);
   }
+  // Copy the XYZ from the surface v->{x,y,z} into vxyz
   int CopyVXYZ(void){
     vxyz.clear();
     vxyz.set_size(surf->nvertices,3);
@@ -618,6 +672,7 @@ public:
     }
     return(0);
   }
+  // Copy XYZ from vxyz to the surface v->{x,y,z} 
   int CopyVXYZtoSurf(const arma::mat &vxyz){
     for(int vno=0; vno < surf->nvertices; vno++){
       VERTEX *vtx = &surf->vertices[vno];
@@ -628,12 +683,13 @@ public:
     return(0);
   }
   int ComputeFaces(int DoJ, int vno0=-1){
+    // DoJ=1 will cause the Jacobian to be computed
+    // If vno0 != -1, then only apply to faces around vno0, otherwise
+    // all faces
     if(faces.size() != surf->nfaces){
       faces.clear();
       faces.resize(surf->nfaces);
     }
-    // If vno0 != -1, then only apply to faces around vno0, otherwise
-    // all faces
     if(vno0 > -1){
       VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno0]);
       for(int n=0; n < vtop->vnum; n++){
@@ -656,7 +712,9 @@ public:
     }
     return(0);
   }
+
   int ComputeVertices(int DoJ, int vno0=-1){
+    // DoJ=1 will cause the Jacobian to be computed
     // If vno0 != -1, then only apply to vno0, otherwise all
     if(vertices.size() != surf->nvertices){
       vertices.clear(); vertices.resize(surf->nvertices);
@@ -675,7 +733,9 @@ public:
     }
     return(0);
   }
+
   int ComputeMeanCurvs(int DoJ, int vno0=-1){
+    // DoJ=1 will cause the Jacobian to be computed
     // If vno0 != -1, then only apply to vno0, otherwise all
     if(mcurvs.size() != surf->nvertices){
       mcurvs.clear();
@@ -698,14 +758,25 @@ public:
     }
     return(0);
   }
-  void SetH0(double H0){
+  void SetH0(double H0){// Set H0 (target H value) to a constant
     for(int vno=0; vno < surf->nvertices; vno++) mcurvs[vno].H0 = H0;
   }
-  void SetH0ToCurv(void){
+  void SetH0ToCurv(void){// Set H0 (target H value) to v->curv
     for(int vno=0; vno < surf->nvertices; vno++) mcurvs[vno].H0 = surf->vertices[vno].curv;
+  }
+  void SetH0ToMRI(MRI *mri){// Set H0 (target H value) to values in MRI struct
+    for(int vno=0; vno < surf->nvertices; vno++) mcurvs[vno].H0 = MRIgetVoxVal(mri,vno,0,0,0);
   }
 };
 
+// Class to interface with ensmallen to optimize a cost function
+// Before running the class, make sure to set
+//  myopt.fs.surf = surf;
+//  myopt.fs.SetVnoInNbrhdOf();
+//  myopt.fs.CopyVXYZ();
+// Do not pass fs.vxyz as the argument to the Optimizer, eg,
+//    double cost = optimizer.Optimize(moyopt, vxyz);
+//  NOT -->  double cost = optimizer.Optimize(moyopt, myopt.fs.vxyz); NOT!!
 class MyOpt
 {
 public:
@@ -721,6 +792,8 @@ public:
     return(hc);
   }
   double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
+    Timer mytimer;
+    double t0 = mytimer.seconds();
     fs.vxyz = vxyz;
     fs.ComputeFaces(1);
     fs.ComputeVertices(1);
@@ -730,6 +803,7 @@ public:
     fs.HCostJ();
     g = fs.J_cH_p;
     ncalls ++;
+    printf("  EWG %4d %10.5lf  %4.1lf\n",ncalls,hc,mytimer.seconds()-t0);fflush(stdout);
     return(hc);
   }
 };
@@ -742,8 +816,8 @@ double long FSsurf::HCost(int vno0)
   #pragma omp parallel for reduction(+:cost) 
   #endif
   for(int vno=0; vno < surf->nvertices; vno++) {
-    mcurvs[vno].eps = mcurvs[vno].H-mcurvs[vno].H0;
-    mcurvs[vno].cost = pow(mcurvs[vno].eps,2.0);
+    mcurvs[vno].eps = mcurvs[vno].H-mcurvs[vno].H0; // epsilon=H-H0
+    mcurvs[vno].cost = pow(mcurvs[vno].eps,2.0); // cost = epsilon^2
     cost += mcurvs[vno].cost;
   }
   return(cost);
@@ -751,6 +825,8 @@ double long FSsurf::HCost(int vno0)
 
 int FSsurf::HCostJ(int vno0)
 {
+  // Compute J_cH_p, the Jacobian of the cost of H wrt the xyz of the vertices
+  // J_cH_p is nvertices x 3
   int vnostart=0;
   int vnostop=surf->nvertices;
   if(vno0 > -1){vnostart=vno0; vnostop=vno0+1;}
@@ -761,8 +837,6 @@ int FSsurf::HCostJ(int vno0)
       std::pair<int,int> p = VnoInNbrhdOf[vno][k];
       int j = p.first;
       int n = p.second;
-      //printf("vno=%d k=%d i=%d n=%d\n",vno,k,i,n);
-      // mcurvs[j].J_H_p.row(n) is grad of Hi wrt pvno
       J_cH_p.row(vno) += (mcurvs[j].eps*mcurvs[j].J_H_p.row(n));
     }
   }
@@ -770,6 +844,7 @@ int FSsurf::HCostJ(int vno0)
   return(0);
 }
 
+// Numeric test of Jacobian of mean curv wrt P
 double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0=-1);
 double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
 {
@@ -872,6 +947,7 @@ double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
   return(maxmax);
 }
 
+// Numeric test of Jacobian of mean curv cost wrt vertex xyz
 double FStestMeanCurvCostGrad(MRIS *surf, double Delta, int vno0=-1);
 double FStestMeanCurvCostGrad(MRIS *surf, double Delta, int vno0)
 {
@@ -887,7 +963,7 @@ double FStestMeanCurvCostGrad(MRIS *surf, double Delta, int vno0)
   Timer mytimer;
   double t0,dt; 
 
-  printf("FStestMeanCurvGrad() %d %d threads=%d Delta=%g\n",vnostart,vnostop,threads,Delta); 
+  printf("FStestMeanCurvCostGrad() %d %d threads=%d Delta=%g\n",vnostart,vnostop,threads,Delta); 
   fflush(stdout);
 
   // The profiling might not be accurate. It seems like the 2nd time
@@ -966,18 +1042,20 @@ int main(int argc, char **argv)
   //Gdiag_no = 72533;
   MRIS *surf;
   //MRI *mri=NULL; // *mri2;
-  int vno, threads=1;
+  int threads=1;
   Timer mytimer;
 
   sscanf(argv[1],"%d\n",&threads);
-  sscanf(argv[2],"%d\n",&vno);
-  surf = MRISread(argv[3]);
+  MRI *curv0 = MRIread(argv[2]); // target curvature
+  surf = MRISread(argv[3]); // surface to optimize
+
   MRISsetNeighborhoodSizeAndDist(surf,2);
 
 #ifdef HAVE_OPENMP
   omp_set_num_threads(threads);
 #endif
 
+  // Set up the optimization structure
   MyOpt mo;
   mo.fs.surf = surf;
   mo.fs.SetVnoInNbrhdOf();
@@ -985,144 +1063,60 @@ int main(int argc, char **argv)
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  mo.fs.SetH0ToCurv();
-  MRI *curv0 = MRIcopyMRIS(NULL, surf, 0, "curv");
-  MRIwrite(curv0,"curv0.mgz");
+  //mo.fs.SetH0ToCurv();
+  mo.fs.SetH0ToMRI(curv0);
 
-  for(int vno=0; vno < surf->nvertices; vno++){
-    VERTEX *vtx = &(surf->vertices[vno]);
-    vtx->x += (2*vtx->nx)*(drand48()-0.5);
-    vtx->y += (2*vtx->ny)*(drand48()-0.5);
-    vtx->z += (2*vtx->nz)*(drand48()-0.5);
+  // Write out the initial H
+  MRI *curv = MRIcopyMRIS(NULL, surf, 0, "curv");
+  MRIwrite(curv,"curv.start.mgz");
+
+  if(0){
+    // Add noise to the surface
+    for(int vno=0; vno < surf->nvertices; vno++){
+      VERTEX *vtx = &(surf->vertices[vno]);
+      vtx->x += (2*vtx->nx)*(drand48()-0.5);
+      vtx->y += (2*vtx->ny)*(drand48()-0.5);
+      vtx->z += (2*vtx->nz)*(drand48()-0.5);
+    }
+    MRISwrite(surf,"noisy.srf");
+    // Now recompute after adding noise
+    mo.fs.CopyVXYZ();
+    mo.fs.ComputeFaces(0);
+    mo.fs.ComputeVertices(0);
+    mo.fs.ComputeMeanCurvs(0);
   }
-  MRISwrite(surf,"noisy.srf");
 
-  mo.fs.CopyVXYZ();
-  mo.fs.ComputeFaces(0);
-  mo.fs.ComputeVertices(0);
-  mo.fs.ComputeMeanCurvs(0);
+  // Get the initial cost
+  double c = mo.Evaluate(mo.fs.vxyz);
+  printf("Init cost = %g\n",c);fflush(stdout);
 
-  //arma::mat JJ;
-  //double c = mo.EvaluateWithGradient(mo.fs.vxyz,JJ);
-  //printf("c = %g\n",c);
-  //JJ.save("JJ.dat",arma::raw_ascii);
-
+  printf("Starting optimization\n"); fflush(stdout);
   ens::L_BFGS optimizer(10, 100, 1e-4, 0.9, 1e-6, 1e-15, 50, 1e-20);
   arma::mat vxyz = mo.fs.vxyz;
   double t0 = mytimer.seconds();
   for(int k=0; k < 5; k++){
     double cost = optimizer.Optimize(mo, vxyz);
-    printf("k= %2d cost = %g   %g  %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls);
+    printf("k= %2d cost = %g   %g  %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls);fflush(stdout);
     //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
+    mo.fs.CopyVXYZtoSurf(vxyz);
+    char tmpstr[1000];
+    sprintf(tmpstr,"%s.k%02d",argv[4],k);
+    MRISwrite(mo.fs.surf,tmpstr);
   }
-  mo.fs.CopyVXYZtoSurf(vxyz);
-  MRISwrite(mo.fs.surf,argv[4]);
   mo.fs.CopyVXYZ();
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  MRI *curv = MRIcopyMRIS(NULL, surf, 0, "curv");
-  MRIwrite(curv,argv[5]);
+  curv = MRIcopyMRIS(NULL, surf, 0, "curv");
+  MRIwrite(curv,"curv.final.mgz");
 
   exit(0);
 
-  // Profiling. Runs faster the 2nd time around. Weird
-  FSsurf fs;
-  fs.surf = surf;
-  if(0){
-  for(int n=0; n < 2; n++){
-    double t = mytimer.seconds();
-    fs.SetVnoInNbrhdOf();
-    fs.CopyVXYZ();
-    fs.ComputeFaces(0);
-    fs.ComputeVertices(0);
-    fs.ComputeMeanCurvs(0);
-    printf("H %d %6.4f\n",n,mytimer.seconds()-t);
-  }
-  for(int n=0; n < 1; n++){
-    double t = mytimer.seconds();
-    fs.CopyVXYZ();
-    fs.SetVnoInNbrhdOf();
-    fs.ComputeFaces(1);
-    fs.ComputeVertices(1);
-    fs.ComputeMeanCurvs(1);
-    double hc = fs.HCost(0);
-    fs.HCostJ(0);
-    fs.J_cH_p.save("J_cH_p.dat",arma::raw_ascii);
-    printf("hc %g\n",hc);
-    printf("dH %d %6.4f\n",n,mytimer.seconds()-t);
-  }
-  exit(0);
-  }
+  //double Delta = 1e-10;
+  //FStestMeanCurvCostGrad(surf, Delta, vno);
+  //printf("==============================================\n");
+  //FStestMeanCurvGrad(surf, Delta, vno);
+  //printf("==============================================\n");
 
-  double Delta = 1e-10;
-  FStestMeanCurvCostGrad(surf, Delta, vno);
-  printf("==============================================\n");
-  FStestMeanCurvGrad(surf, Delta, vno);
-  printf("==============================================\n");
-
-  FILE *fp=NULL;
-  VERTEX_TOPOLOGY *vtop;
-  VERTEX *vtx;
-  if(vno > -1){
-    vtop = &(surf->vertices_topology[vno]);
-    vtx = &(surf->vertices[vno]);
-    printf("vno %d vnum %d vtotal %d\n",vno,vtop->vnum,vtop->vtotal);
-    GetP(surf,vno);// saves P.txt
-    fp = fopen("nnnbrs.dat","w");
-    fprintf(fp,"%d\n",vtop->vnum);
-    fclose(fp);
-  }
-  MRI *mri = MRIcopyMRIS(NULL, surf, 0, "curv");
-  MRIwrite(mri,argv[4]);
-  exit(0);
-
-  //for(int n=0; n < 5; n++){ need #include to do this now
-  //  double t0 = mytimer.seconds();
-  //  mrisComputeTangentPlanes(surf);
-  //  MRIScomputeSecondFundamentalFormThresholded(surf,-1);
-  //  printf("dt  %6.4f\n",mytimer.seconds()-t0);
-  //}
-
-
-  //printf("FS: k1 %g k2 %g H %g\n",vtx->k1,vtx->k2,vtx->H);
-
-
-
-
-  printf("%g %g %g\n",vtx->nx,vtx->ny,vtx->nz);
-  printf("%g %g %g\n",fs.vertices[vno].norm(0),fs.vertices[vno].norm(1),fs.vertices[vno].norm(2));
-  printf("%g %g %g\n",vtx->nx-fs.vertices[vno].norm(0),vtx->ny-fs.vertices[vno].norm(1),vtx->nz-fs.vertices[vno].norm(2));
-
-
-  //Curv2(surf, vno);
-
-  exit(0);
-
-  printf("vno = %d  %7.4f %7.4f %7.4f\n",vno,vtx->x,vtx->y,vtx->z);
-
-  fp = fopen("faces.dat","w");
-  for(int n=0; n<vtop->vnum; n++){
-    //printf("%2d %6d %6d  ",n,vtop->v[n],vtop->f[n]);
-    FACE *f = &surf->faces[vtop->f[n]];
-    //for(int k=0; k < 3; k++)  printf("%6d ",f->v[k]);
-    for(int k=0; k < 3; k++){
-      VERTEX *kvtx = &surf->vertices[f->v[k]];
-      fprintf(fp," %7.4f %7.4f %7.4f ",kvtx->x,kvtx->y,kvtx->z);
-    }
-    fprintf(fp,"\n");
-  }
-  fclose(fp);
-
-
-  printf("Nbr %6.4f\n",mytimer.seconds());
-
-  printf("Tan %6.4f sec\n",mytimer.seconds());
-
-  //Curv2(surf, vno);
-  //Curv3(surf, vno);
-
-
-  exit(0);
 }
 
