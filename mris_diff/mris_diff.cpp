@@ -1415,17 +1415,24 @@ int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, in
 
   ndiff = 0;
   rmsmax = 0;
+  int vnomax = 0, nhits=0;
+  double rmssum=0;
   for(n=0; n < surf1->nvertices; n++){
     v1 = &(surf1->vertices[n]);
     v2 = &(surf2->vertices[n]);
     if(v1->ripflag || v2->ripflag) continue;
+    nhits++;
     dx = v1->x - v2->x;
     dy = v1->y - v2->y;
     dz = v1->z - v2->z;
     rms = sqrt(dx*dx + dy*dy + dz*dz);
     v1->val = rms;
     if(Gdiag_no == n) printf("vtxno %d  [%g,%g,%g] [%g,%g,%g] %g\n",n,v1->x,v1->y,v1->z,v2->x,v2->y,v2->z,rms);
-    if(rmsmax < rms) rmsmax = rms;
+    rmssum += rms;
+    if(rmsmax < rms) {
+      rmsmax = rms;
+      vnomax = n;
+    }
     if(rms > rmsthresh){
       if(verbosity > 0){
 	printf("%d Surfaces differ in xyz at vertex %d  rms=%g (%g,%g,%g) (%g,%g,%g)\n",
@@ -1435,7 +1442,7 @@ int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, in
     }
   }
   if(ndiff > ndiffmin){
-    printf("Surfaces differ in vertex xyz ndiff=%d, rmsmax = %g\n",ndiff,rmsmax);fflush(stdout);
+    printf("Surfaces differ in vertex xyz ndiff=%d, rmsmax = %g at %d, rmsmean = %g\n",ndiff,rmsmax,vnomax,rmssum/nhits);fflush(stdout);
     return(4);
   }
   if(rmsmax > 0) printf("rmsmax = %g\n",rmsmax);
