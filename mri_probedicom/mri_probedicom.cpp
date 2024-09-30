@@ -1628,9 +1628,14 @@ int DCMCompare_dcm2niix(char *dcmfile1, char *dcmfile2, double thresh)
   fprintf(stdout, "\n");
 
   // "Imaging Frequency";      (0x0018, 0x0084)
+  // In general, imageing freq won't be exactly the same because of
+  // shimming, but they should be "close", probably within a few
+  // hundredths of a Hz. Here just compare to 5Hz. If the freq is off
+  // by more than that, it probably means that something is really
+  // wrong.
   nth++;
   fprintf(stdout, "%2d Imaging Frequency (0018,0084) %f %f  ", nth, tdicomData1->imagingFrequency, tdicomData2->imagingFrequency);
-  if (fabs(tdicomData1->imagingFrequency - tdicomData2->imagingFrequency) > thresh)
+  if (fabs(tdicomData1->imagingFrequency - tdicomData2->imagingFrequency) > 5)
   {
     fprintf(stdout, "  -------- Files differ\n");
     isdiff = 1;            
