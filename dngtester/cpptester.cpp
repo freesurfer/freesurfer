@@ -11,14 +11,15 @@
 #include "error.h"
 #include "diag.h"
 //#include "dmatrix.h"
-//#include "surfgrad.h"
-//#include "fsglm.h"
-//#include "mrisurf_metricProperties.h"
+#include "surfgrad.h"
+#include "mrishash.h"
+#include "mrisurf_metricProperties.h"
+#include "mrishash_internals.h"
 
 #define export
 #define ENS_PRINT_INFO
 #define ENS_PRINT_WARN
-#include <armadillo>
+//#include <armadillo>
 #include <ensmallen.hpp>
 #include "romp_support.h"
 
@@ -82,7 +83,7 @@ int GetP(MRIS *surf, int vno)
   fclose(fp);
   return(0);
 }
-
+#if 1
 //======================================================================
 arma::colvec FSdx = {1,0,0};
 arma::colvec FSdy = {0,1,0};
@@ -628,10 +629,27 @@ public:
   std::vector<FSvertexcell> vertices;
   std::vector<FSmeancurv> mcurvs;
   arma::mat vxyz; // xyz of vertices copied from surf
-  arma::mat J_cH_p; // cost of H wrt p = nvertices x 3
+  int surftype = GRAY_WHITE; //GRAY_CSF
 
   double long HCost(int vno0=-1);
   int HCostJ(int vno0=-1);
+  arma::mat J_cH_p; // cost of H wrt p = nvertices x 3
+
+  double long IntensityCostAndGrad(int DoJ, int vno0=-1);
+  char *adgwsfile=NULL;
+  MRI *mri_brain=NULL;
+  double sigma_global=2.0;
+  arma::mat J_cI_p; // cost of intensity wrt p = nvertices x 3
+
+  double long TangentialSpringCG(void);
+  arma::mat J_cTS_p; // cost of intensity wrt p = nvertices x 3
+
+  long double NTSpringCG(int SpringType);
+  arma::mat J_cNS_p; // cost of intensity wrt p = nvertices x 3
+
+  double SurfRepulsionCG(void);
+  arma::mat J_cRep_p; 
+  MHT *mht=NULL;
 
   // Each element of VnoInNbrhdOf corresponds to a vertex. Each
   // element has list of center vertices in which the element vertex
@@ -769,44 +787,295 @@ public:
   }
 };
 
-// Class to interface with ensmallen to optimize a cost function
-// Before running the class, make sure to set
-//  myopt.fs.surf = surf;
-//  myopt.fs.SetVnoInNbrhdOf();
-//  myopt.fs.CopyVXYZ();
-// Do not pass fs.vxyz as the argument to the Optimizer, eg,
-//    double cost = optimizer.Optimize(moyopt, vxyz);
-//  NOT -->  double cost = optimizer.Optimize(moyopt, myopt.fs.vxyz); NOT!!
-class MyOpt
+double FSsurf::SurfRepulsionCG(void)
 {
-public:
-  int ncalls=0;
-  FSsurf fs;
-  double Evaluate(const arma::mat& vxyz){
-    fs.vxyz = vxyz;
-    fs.ComputeFaces(0);
-    fs.ComputeVertices(0);
-    fs.ComputeMeanCurvs(0);
-    //fs.SetH0(-0.01);
-    double hc = fs.HCost(0);
-    return(hc);
+  int vno, max_vno, i;
+  float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot=0;
+  float max_scale, max_dot;
+  double scale;
+
+  J_cRep_p.zeros(surf->nvertices,3);
+  double cost = 0;
+  for (vno = 0; vno < surf->nvertices; vno++) {
+    VERTEX *v = &surf->vertices[vno];
+
+    x = vxyz(vno,0);
+    y = vxyz(vno,1);
+    z = vxyz(vno,2);
+
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
+    if (!bucket) continue;
+    sx = sy = sz = 0.0;
+    max_dot = max_scale = 0.0;
+    max_vno = 0;
+
+    MHB *bin = bucket->bins;
+    for (i = 0; i < bucket->nused; i++, bin++) {
+      VERTEX *vn = &(surf->vertices[bin->fno]);
+      dx = x - vn->origx;
+      dy = y - vn->origy;
+      dz = z - vn->origz;
+      mrisComputeOrigNormal(surf, bin->fno, norm);
+      dot = dx * norm[0] + dy * norm[1] + dz * norm[2];
+      if(dot > 1) continue;
+      //scale = l_repulse * pow(1.0 - (double)dot, 4.0);
+      scale = pow(1.0 - (double)dot, 4.0);
+      sx += (scale * v->nx);
+      sy += (scale * v->ny);
+      sz += (scale * v->nz);
+    }
+
+    J_cRep_p(vno,0) = sx;
+    J_cRep_p(vno,1) = sy;
+    J_cRep_p(vno,2) = sz;
+
+    MHTrelBucket(&bucket);
   }
-  double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
-    Timer mytimer;
-    double t0 = mytimer.seconds();
-    fs.vxyz = vxyz;
-    fs.ComputeFaces(1);
-    fs.ComputeVertices(1);
-    fs.ComputeMeanCurvs(1);
-    //fs.SetH0(-0.01);
-    double hc = fs.HCost();
-    fs.HCostJ();
-    g = fs.J_cH_p;
-    ncalls ++;
-    printf("  EWG %4d %10.5lf  %4.1lf\n",ncalls,hc,mytimer.seconds()-t0);fflush(stdout);
-    return(hc);
+  return(cost);
+}
+
+
+long double FSsurf::NTSpringCG(int SpringType)
+{
+  if(SpringType == 1) J_cNS_p.zeros(surf->nvertices,3);
+  if(SpringType == 2) J_cTS_p.zeros(surf->nvertices,3);
+
+  long double cost=0;
+  for(int vno = 0; vno < surf->nvertices; vno++){
+    VERTEX * const vertex = &surf->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &surf->vertices_topology[vno];
+    float nx = vertex->nx;
+    float ny = vertex->ny;
+    float nz = vertex->nz;
+
+    float x = vxyz(vno,0);
+    float y = vxyz(vno,1);
+    float z = vxyz(vno,2);
+
+    // compute the average distance between center and nbrs
+    float sx = 0, sy = 0, sz = 0;
+    for(int m = 0; m < vertext->vnum; m++) {
+      int vnonbr = vertext->v[m];
+      sx += vxyz(vnonbr,0)-x;
+      sy += vxyz(vnonbr,1)-y;
+      sz += vxyz(vnonbr,2)-z;
+    }
+    sx /= vertext->vnum;
+    sy /= vertext->vnum;
+    sz /= vertext->vnum;
+
+    // project onto normal
+    sx *= nx;
+    sy *= ny;
+    sz *= nz;
+
+    if(SpringType == 1){
+      J_cNS_p(vno,0) = sx;
+      J_cNS_p(vno,1) = sy;
+      J_cNS_p(vno,2) = sz;
+    }
+    if(SpringType == 2){
+      // remove normal
+      double nc = sx + sy + sz;
+      sx -= (nc*nx);
+      sy -= (nc*ny);
+      sz -= (nc*nz);
+      J_cTS_p(vno,0) = sx;
+      J_cTS_p(vno,1) = sy;
+      J_cTS_p(vno,2) = sz;
+    }
+    cost += (sx*sx + sy*sy + sz*sz);
+
   }
-};
+  return(cost);
+}
+
+double long  FSsurf::TangentialSpringCG(void)
+{// replaced by NTSpringCG()
+  J_cTS_p.zeros(surf->nvertices,3);
+
+  long double cost=0;
+  for(int vno = 0; vno < surf->nvertices; vno++){
+    VERTEX * const vertex = &surf->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &surf->vertices_topology[vno];
+    
+    float x = vxyz(vno,0);
+    float y = vxyz(vno,1);
+    float z = vxyz(vno,2);
+    
+    float sx = 0, sy = 0, sz = 0;
+    for(int m = 0; m < vertext->vnum; m++) {
+      int vnonbr = vertext->v[m];
+      sx += vxyz(vnonbr,0)-x;
+      sy += vxyz(vnonbr,1)-y;
+      sz += vxyz(vnonbr,2)-z;
+    }
+    sx /= vertext->vnum;
+    sy /= vertext->vnum;
+    sz /= vertext->vnum;
+    cost += (sx*sx + sy*sy + sz*sz);
+    
+    // Would normals need to be updated?
+    float nx = vertex->nx;
+    float ny = vertex->ny;
+    float nz = vertex->nz;
+    
+    // project onto normal
+    float nc = sx * nx + sy * ny + sz * nz;
+    
+    // remove normal component and scale
+    J_cTS_p(vno,0) = (sx - nc * nx);
+    J_cTS_p(vno,0) = (sy - nc * ny);
+    J_cTS_p(vno,0) = (sz - nc * nz);
+  }
+  return(cost);
+}
+
+
+double long FSsurf::IntensityCostAndGrad(int DoJ, int vno0)
+{
+  int vno;
+  VERTEX *v;
+  float x, y, z, nx, ny, nz, dx, dy, dz;
+  double xw, yw, zw, delI, delV;
+  float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
+  AutoDetGWStats adgws;
+  int err = adgws.Read(adgwsfile);
+  if(err) exit(1);
+  double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0;
+  if(surftype == GRAY_WHITE){
+    inside_hi = adgws.white_inside_hi;
+    border_hi = adgws.white_border_hi;
+    if(adgws.white_border_low_factor > -9){
+      double f = adgws.white_border_low_factor;
+      border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;
+    }
+    outside_low = adgws.white_outside_low;
+    outside_hi = adgws.white_outside_hi;
+  }
+  if(surftype == GRAY_CSF){
+    inside_hi = adgws.pial_inside_hi;
+    border_hi = adgws.pial_border_hi;
+    border_low = adgws.pial_border_low;
+    outside_low = adgws.pial_outside_low;
+    outside_hi = adgws.pial_outside_hi;
+  }
+  MRI *seg=NULL;
+
+  if(DoJ){
+    // This sets target intensity value v->val
+    CopyVXYZtoSurf(vxyz);
+    MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
+			    sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, seg,-1,-1) ;
+    int vavgs=5;
+    MRISaverageMarkedVals(surf, vavgs) ;
+    J_cI_p.zeros(surf->nvertices,3);
+  }
+
+  long double cost = 0;
+  for (vno = 0; vno < surf->nvertices; vno++) {
+    v = &surf->vertices[vno];
+    if (v->ripflag || v->val < 0) continue;
+    x = vxyz(vno,0);
+    y = vxyz(vno,1);
+    z = vxyz(vno,2);
+
+    // Sample the actual intensity at this vertex
+    double valActual=0;
+    MRISsurfaceRASToVoxelCached(surf, mri_brain, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_brain, xw, yw, zw, &valActual);
+    //if(vno == Gdiag_no) printf("vno =%d xyz = %g %g %g   %g %g %g  valActual=%g valTarg=%g\n",vno,x,y,z,xw,yw,zw,valActual,v->val);
+
+    // epsilon = Difference between target intensity and actual intensity
+    delV = valActual - v->val; // was v->val - valActual; 
+    // Dont allow the difference to be greater than 5 or less than -5
+    // Hidden parameter 5
+    //if (delV > 5)        delV = 5;
+    //else if (delV < -5)  delV = -5;
+    cost += (delV*delV);
+
+    if(!DoJ) continue;
+
+    FSvertexcell vc = vertices[vno];
+    nx = vc.norm(0);
+    ny = vc.norm(1);
+    nz = vc.norm(2);
+
+    /* Numerically compute intensity gradient along the normal. Only used to get the right sign */
+#if 0
+    double val_outside, val_inside , k, ktotal_outside, ktotal_inside;
+    double sigma = v->val2; // smoothing level for this vertex 
+    if (FZERO(sigma)) sigma = sigma_global;
+    if (FZERO(sigma)) sigma = 0.25;
+    // Hidden parameter used to compute the step size
+    double step_size;
+    step_size = MIN(sigma / 2, MIN(mri_brain->xsize, MIN(mri_brain->ysize, mri_brain->zsize)) * 0.5);
+    double dist, val;
+    int n;
+    ktotal_inside = ktotal_outside = 0.0;
+    n = 0, val_outside = val_inside = 0.0;
+    for(dist = step_size; dist <= 2 * sigma; dist += step_size, n++) {
+      k = exp(-dist * dist / (2 * sigma * sigma));
+      xw = x + dist * nx;
+      yw = y + dist * ny;
+      zw = z + dist * nz;
+      ktotal_outside += k;
+      MRISsurfaceRASToVoxelCached(surf, mri_brain, xw, yw, zw, &xw, &yw, &zw);
+      MRIsampleVolume(mri_brain, xw, yw, zw, &val);
+      val_outside += k * val;
+
+      xw = x - dist * nx;
+      yw = y - dist * ny;
+      zw = z - dist * nz;
+      MRISsurfaceRASToVoxelCached(surf, mri_brain, xw, yw, zw, &xw, &yw, &zw);
+      MRIsampleVolume(mri_brain, xw, yw, zw, &val);
+      val_inside += k * val;
+      ktotal_inside += k;
+    }
+    if(ktotal_inside  > 0) val_inside  /= (double)ktotal_inside;
+    if(ktotal_outside > 0) val_outside /= (double)ktotal_outside;
+
+    // Gradient of the intensity at this location wrt a change along the normal
+    delI = (val_outside - val_inside) / 2.0;
+    // Change delI into +1 or -1
+    //if (!FZERO(delI))  delI /= fabs(delI);
+    //else               delI = -1; /* intensities tend to increase inwards */
+#endif
+
+    double Delta = 1.0, valin, valout, c, r, s;
+    xw = x - nx * Delta/2;
+    yw = y - ny * Delta/2;
+    zw = z - nz * Delta/2;
+    MRISsurfaceRASToVoxelCached(surf, mri_brain, xw, yw, zw, &c,&r,&s);
+    MRIsampleVolume(mri_brain, c, r, s, &valin);
+    xw = x + nx * Delta/2;
+    yw = y + ny * Delta/2;
+    zw = z + nz * Delta/2;
+    MRISsurfaceRASToVoxelCached(surf, mri_brain, xw, yw, zw, &c,&r,&s);
+    MRIsampleVolume(mri_brain, c, r, s, &valout);
+    delI = (valout-valin)/Delta;
+
+    // Weight intensity error by cost weighting
+    double del = delV * delI;
+
+    // Set to push vertex in the normal direction by this amount
+    dx = nx * del;
+    dy = ny * del;
+    dz = nz * del;
+
+    if(vno == Gdiag_no){
+      printf("vno=%d  valActual=%g val=%g delV=%g delI=%g valin=%g valout=%g (%g,%g,%g) n=(%g,%g,%g)\n",
+        vno,valActual,v->val,delV,delI,valin,valout,dx,dy,dz,nx,ny,nz);
+      printf("   xyz = %g %g %g   crs = %g %g %g  valActual=%g valTarg=%g delV=%g\n",xw,yw,zw,c,r,s,valActual,v->val,delV);
+      fflush(stdout);
+    }
+
+    J_cI_p(vno,0) = dx;
+    J_cI_p(vno,1) = dy;
+    J_cI_p(vno,2) = dz;
+  } // vertices
+  return(cost);
+}
 
 double long FSsurf::HCost(int vno0)
 {
@@ -843,6 +1112,77 @@ int FSsurf::HCostJ(int vno0)
   J_cH_p *= 2;
   return(0);
 }
+#endif
+
+// Class to interface with ensmallen to optimize a cost function
+// Before running the class, make sure to set
+//  myopt.fs.surf = surf;
+//  myopt.fs.SetVnoInNbrhdOf();
+//  myopt.fs.CopyVXYZ();
+// Do not pass fs.vxyz as the argument to the Optimizer, eg,
+//    double cost = optimizer.Optimize(moyopt, vxyz);
+//  NOT -->  double cost = optimizer.Optimize(moyopt, myopt.fs.vxyz); NOT!!
+class MyOpt
+{
+public:
+  int ncalls=0;
+  FSsurf fs;
+  double Evaluate(const arma::mat& vxyz){
+    static int ncallse = 0;
+    Timer mytimer;
+    double t0 = mytimer.seconds();
+    fs.vxyz = vxyz;
+    fs.ComputeFaces(0);
+    fs.ComputeVertices(0);
+    fs.ComputeMeanCurvs(0);
+    //fs.SetH0(-0.01);
+    //double hc = fs.HCost(0);
+    double c = fs.IntensityCostAndGrad(0);
+    printf("  Eval %4d %13.10lf  %4.1lf\n",ncallse,c,mytimer.seconds()-t0);fflush(stdout);
+    ncallse ++;
+    return(c);
+  }
+  double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
+    Timer mytimer; double t0 = mytimer.seconds();
+    double wI = 1,cI=0;
+    double wS = 3,cNS=0,cTS=0;
+    double wRep = 0,cRep=0;
+    double wH = 10000,cH=0;
+    //double wH = 0,cH=0;
+    double c = 0;
+    fs.vxyz = vxyz;
+    fs.ComputeFaces(1);
+    fs.ComputeVertices(1);
+    if(wH>0){
+      fs.ComputeMeanCurvs(1);
+      cH = fs.HCost();
+      fs.HCostJ();
+      c += wH*cH;
+      g += wH*fs.J_cH_p;
+    }
+    //printf("wH = %g   cH = %20.10lf\n",wH,cH);
+    if(wI > 0){
+      cI = fs.IntensityCostAndGrad(1);
+      c += wI*cI;
+      g += wI*fs.J_cI_p;
+    }
+    if(wRep > 0){
+      cRep = fs.SurfRepulsionCG();
+      c += wRep*cRep;
+      g += wRep*fs.J_cRep_p;
+    }
+    if(wS > 0){
+      cNS = fs.NTSpringCG(1);
+      cTS = fs.NTSpringCG(2);
+      c += (wS*(cNS+cTS));
+      g += (wS*(fs.J_cNS_p+fs.J_cTS_p));
+    }
+    ncalls ++;
+    printf("  EWG %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf\n",
+      ncalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0);fflush(stdout);
+    return(c);
+  }
+};
 
 // Numeric test of Jacobian of mean curv wrt P
 double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0=-1);
@@ -1036,49 +1376,82 @@ double FStestMeanCurvCostGrad(MRIS *surf, double Delta, int vno0)
   return(0);
 }
 
+int SurfDiffStats(MRIS *surf1, MRIS *surf2)
+{
+  double rmsmax=0, rmssum=0, rmssum2=0;
+  int vnomax = -1;
+  for(int vno=0; vno < surf1->nvertices; vno++){
+    VERTEX *vtx1 = &surf1->vertices[vno];
+    VERTEX *vtx2 = &surf2->vertices[vno];
+    double dx = vtx2->x - vtx1->x;
+    double dy = vtx2->y - vtx1->y;
+    double dz = vtx2->z - vtx1->z;
+    double rms = sqrt(dx*dx + dy*dy + dz*dz);
+    if(rmsmax < rms) {
+      rmsmax = rms;
+      vnomax = vno;
+    }
+    rmssum += rms;
+    rmssum2 += (rms*rms);
+  }
+  printf("RMS: max=%g imax=%d mean=%g  %g\n",rmsmax,vnomax,rmssum/surf1->nvertices, rmssum2);
+  return(0);
+}
+
+
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
 {
-  //Gdiag_no = 72533;
-  MRIS *surf;
+  //Gdiag_no = 45768;
+  //MRIS *surf, *surf0;
   //MRI *mri=NULL; // *mri2;
   int threads=1;
   Timer mytimer;
 
-  sscanf(argv[1],"%d\n",&threads);
-  MRI *curv0 = MRIread(argv[2]); // target curvature
-  surf = MRISread(argv[3]); // surface to optimize
+  // 1=threads 2=insurf 3=adgwsfile 4=mri 5=outsurf 6=curv0
 
-  MRISsetNeighborhoodSizeAndDist(surf,2);
+  sscanf(argv[1],"%d\n",&threads);
+
+  MyOpt mo;
+  mo.fs.surf = MRISread(argv[2]); // surface to optimize
+  MRISsaveVertexPositions(mo.fs.surf, ORIGINAL_VERTICES) ; // This is used for repulsion
+
+  //surf0 = MRISread(argv[3]); // surface to optimize
+  mo.fs.adgwsfile = argv[3];
+  mo.fs.mri_brain = MRIread(argv[4]);
+  mo.fs.surftype = GRAY_CSF; //GRAY_WHITE; //
+
+  //MRI *curv0 = MRIread(argv[6]); // target curvature
+
+  MRISsetNeighborhoodSizeAndDist(mo.fs.surf,2);
 
 #ifdef HAVE_OPENMP
   omp_set_num_threads(threads);
 #endif
 
   // Set up the optimization structure
-  MyOpt mo;
-  mo.fs.surf = surf;
   mo.fs.SetVnoInNbrhdOf();
   mo.fs.CopyVXYZ();
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  //mo.fs.SetH0ToCurv();
-  mo.fs.SetH0ToMRI(curv0);
+  mo.fs.SetH0ToCurv();
+  //mo.fs.SetH0ToMRI(curv0);
 
   // Write out the initial H
-  MRI *curv = MRIcopyMRIS(NULL, surf, 0, "curv");
-  MRIwrite(curv,"curv.start.mgz");
+  //MRI *curv = MRIcopyMRIS(NULL, surf, 0, "curv");
+  //MRIwrite(curv,"curv.start.mgz");
 
   if(0){
     // Add noise to the surface
-    for(int vno=0; vno < surf->nvertices; vno++){
-      VERTEX *vtx = &(surf->vertices[vno]);
-      vtx->x += (2*vtx->nx)*(drand48()-0.5);
-      vtx->y += (2*vtx->ny)*(drand48()-0.5);
-      vtx->z += (2*vtx->nz)*(drand48()-0.5);
+    for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
+      VERTEX *vtx = &(mo.fs.surf->vertices[vno]);
+      double umax = 5; // +/- umax
+      vtx->x += (2*umax*vtx->nx)*(drand48()-0.5);
+      vtx->y += (2*umax*vtx->ny)*(drand48()-0.5);
+      vtx->z += (2*umax*vtx->nz)*(drand48()-0.5);
     }
-    MRISwrite(surf,"noisy.srf");
+    MRISwrite( mo.fs.surf,"noisy.srf");
     // Now recompute after adding noise
     mo.fs.CopyVXYZ();
     mo.fs.ComputeFaces(0);
@@ -1087,28 +1460,30 @@ int main(int argc, char **argv)
   }
 
   // Get the initial cost
-  double c = mo.Evaluate(mo.fs.vxyz);
-  printf("Init cost = %g\n",c);fflush(stdout);
+  double c0 = mo.Evaluate(mo.fs.vxyz);
+  printf("Init cost = %g\n",c0);fflush(stdout);
 
   printf("Starting optimization\n"); fflush(stdout);
   ens::L_BFGS optimizer(10, 100, 1e-4, 0.9, 1e-6, 1e-15, 50, 1e-20);
   arma::mat vxyz = mo.fs.vxyz;
   double t0 = mytimer.seconds();
-  for(int k=0; k < 5; k++){
+  for(int k=0; k < 3; k++){
     double cost = optimizer.Optimize(mo, vxyz);
     printf("k= %2d cost = %g   %g  %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls);fflush(stdout);
     //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
     mo.fs.CopyVXYZtoSurf(vxyz);
     char tmpstr[1000];
-    sprintf(tmpstr,"%s.k%02d",argv[4],k);
+    sprintf(tmpstr,"%s.k%02d",argv[5],k);
     MRISwrite(mo.fs.surf,tmpstr);
   }
   mo.fs.CopyVXYZ();
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  curv = MRIcopyMRIS(NULL, surf, 0, "curv");
+  MRI *curv = MRIcopyMRIS(NULL, mo.fs.surf, 0, "curv");
   MRIwrite(curv,"curv.final.mgz");
+  printf("Init cost = %g\n",c0);fflush(stdout);
+  //SurfDiffStats(surf,surf0);
 
   exit(0);
 
