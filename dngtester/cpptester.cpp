@@ -18,6 +18,7 @@
 #include "mrishash_internals.h"
 #include "cmdargs.h"
 #include "version.h"
+#include "label.h"
 
 #define export
 #define ENS_PRINT_INFO
@@ -627,12 +628,14 @@ int FSmeancurv::computeMaybeFaster(arma::mat &vxyz)
 class FSsurf
 {
 public:
-  MRIS *surf; // Classic FS surface
+  MRIS *surf=NULL; // Classic FS surface
+  MRI *mask=NULL; // not used yet
   std::vector<FSface> faces;
   std::vector<FSvertexcell> vertices;
   std::vector<FSmeancurv> mcurvs;
   arma::mat vxyz; // xyz of vertices copied from surf
   int surftype = GRAY_WHITE; //GRAY_CSF
+  int Label2Mask(LABEL *label);
 
   double long HCost(int vno0=-1);
   int HCostJ(int vno0=-1);
@@ -789,6 +792,49 @@ public:
     for(int vno=0; vno < surf->nvertices; vno++) mcurvs[vno].H0 = MRIgetVoxVal(mri,vno,0,0,0);
   }
 };
+
+int FSsurf::Label2Mask(LABEL *label)
+{
+  if(mask) MRIfree(&mask);
+  mask = MRIalloc(surf->nvertices,1,1,MRI_UCHAR);
+  // Create a mask=1 of vertices in the label.
+  for(int n = 0; n < label->n_points; n++){
+    int vno = label->lv[n].vno;
+    MRIsetVoxVal(mask,vno,0,0,0,1);
+  }
+  // Extend the mask outside of the label to those vertices that are
+  // in the extended nbhd of each vertex. Set mask=2 in these
+  // vertices.
+  for(int vno=0; vno < surf->nvertices; vno++){
+    int m = MRIgetVoxVal(mask,vno,0,0,0);
+    if(m != 1) continue;
+    VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno]);
+    for(int nbr=0; nbr < vtop->vtotal; nbr++){
+      int nbrvno = vtop->v[nbr];
+      m = MRIgetVoxVal(mask,nbrvno,0,0,0);
+      if(m) continue;
+      MRIsetVoxVal(mask,nbrvno,0,0,0,2);
+    }
+  }
+  // Extend the mask again to those vertices that are in the extended
+  // nbhd of each marked vertex. Set mask=3 in these vertices.
+  // This will assure that all the vertices/faces that could 
+  // contribute to the cost. 
+  for(int vno=0; vno < surf->nvertices; vno++){
+    int m = MRIgetVoxVal(mask,vno,0,0,0);
+    if(m != 1 && m != 2) continue;
+    VERTEX_TOPOLOGY *vtop = &(surf->vertices_topology[vno]);
+    for(int nbr=0; nbr < vtop->vtotal; nbr++){
+      int nbrvno = vtop->v[nbr];
+      m = MRIgetVoxVal(mask,nbrvno,0,0,0);
+      if(m) continue;
+      MRIsetVoxVal(mask,nbrvno,0,0,0,3);
+    }
+  }
+
+  return(0);
+}
+
 
 double FSsurf::SurfRepulsionCG(void)
 {
@@ -1006,7 +1052,6 @@ double long FSsurf::IntensityCostAndGrad(int DoJ, int vno0)
 
   if(DoJ){
     // This sets target intensity value v->val
-    CopyVXYZtoSurf(vxyz);
     MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
 			    sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, seg,-1,-1,0) ;
     int vavgs=5;
@@ -1168,30 +1213,54 @@ class MyOpt
 {
 public:
   int ncalls=0;
+  int nevcalls=0;
+  int GradOnly=0;
   FSsurf fs;
   double wI = 1;
   double wS = 3;
   double wRep = 0;
   double wH = 10000;
+  // It appears that it will use EvalWithGrad() only if it is there,
+  // which is strange because I would have through that the line
+  // search would have used Eval. If EvalWithGrad() is removed
+  // leaving only Eval and Grad, then it will call them separately
+  // and a differnt number of times, but it ends up being slower. 
   double Evaluate(const arma::mat& vxyz){
-    static int ncallse = 0;
-    Timer mytimer;
-    double t0 = mytimer.seconds();
+    Timer mytimer; double t0 = mytimer.seconds();
+    double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0;
     fs.vxyz = vxyz;
+    fs.CopyVXYZtoSurf(vxyz);
     fs.ComputeFaces(0);
     fs.ComputeVertices(0);
-    fs.ComputeMeanCurvs(0);
-    //fs.SetH0(-0.01);
-    //double hc = fs.HCost(0);
-    double c = fs.IntensityCostAndGrad(0);
-    printf("  Eval %4d %13.10lf  %4.1lf\n",ncallse,c,mytimer.seconds()-t0);fflush(stdout);
-    ncallse ++;
+    if(wH>0){
+      fs.ComputeMeanCurvs(0);
+      cH = fs.HCost();
+      c += wH*cH;
+    }
+    if(wI > 0){
+      cI = fs.IntensityCostAndGrad(0);
+      c += wI*cI;
+    }
+    if(wRep > 0){
+      cRep = fs.SurfRepulsionCG();
+      c += wRep*cRep;
+    }
+    if(wS > 0){
+      cNS = fs.NTSpringCG(1);
+      cTS = fs.NTSpringCG(2);
+      c += (wS*(cNS+cTS));
+    }
+    nevcalls ++;
+    printf("  Eval %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf  %d\n",
+	   nevcalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0,GetVmPeak());
+    fflush(stdout);
     return(c);
   }
   double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
     Timer mytimer; double t0 = mytimer.seconds();
     double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0;
     fs.vxyz = vxyz;
+    fs.CopyVXYZtoSurf(vxyz);
     fs.ComputeFaces(1);
     fs.ComputeVertices(1);
     if(wH>0){
@@ -1218,9 +1287,21 @@ public:
       g += (wS*(fs.J_cNS_p+fs.J_cTS_p));
     }
     ncalls ++;
-    printf("  EWG %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf  %d\n",
-	   ncalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0,GetVmPeak());fflush(stdout);
+    printf("  EWG%d %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf  %d\n",
+	   GradOnly,ncalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0,GetVmPeak());
+    if(Gdiag_no > 0){
+      VERTEX *vtx = &(fs.surf->vertices[Gdiag_no]);
+      printf("  EWGvno %d  (%g,%g,%g) (%g,%g,%g)  (%g,%g,%g)\n",Gdiag_no,vtx->x,vtx->y,vtx->z,
+	     vxyz(Gdiag_no,0),vxyz(Gdiag_no,1),vxyz(Gdiag_no,2),
+	     g(Gdiag_no,0),g(Gdiag_no,1),g(Gdiag_no,2));
+    }
+    fflush(stdout);
     return(c);
+  }
+  void Gradient(const arma::mat& vxyz, arma::mat& g){
+    GradOnly=1;
+    EvaluateWithGradient(vxyz, g);
+    GradOnly=0;
   }
 };
 
@@ -1455,11 +1536,12 @@ double wRep = 0;
 double wH = 10000;
 int threads=1;
 int surftype=1;
-int iters = 3;
+int iters = 1;
 int saveiters = 0;
 int debug = 0, checkoptsonly = 0;
 char *cmdline2, cwd[2000];
 char *outcurvfile=NULL;
+LABEL *label=NULL;
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
@@ -1483,32 +1565,33 @@ int main(int argc, char **argv)
   parse_commandline(argc, argv);
   dump_options(stdout);
 
+#ifdef HAVE_OPENMP
+  omp_set_num_threads(threads);
+#endif
+
   //check_options();
   //if(checkoptsonly) return(0);
 
   Timer mytimer;
+  //double tstart = mytimer.seconds();
 
   // 1=threads 2=insurf 3=adgwsfile 4=mri 5=outsurf 6=curv0
 
   MyOpt mo;
   mo.fs.surf = MRISread(surffile); // surface to optimize
+  if(!mo.fs.surf) exit(1);
+  MRIS *surf0 = MRISread(surffile);
   MRISsaveVertexPositions(mo.fs.surf, ORIGINAL_VERTICES) ; // This is used for repulsion
+  MRISsetNeighborhoodSizeAndDist(mo.fs.surf,2);
 
-  //surf0 = MRISread(argv[3]); // surface to optimize
+  if(label) mo.fs.Label2Mask(label);
+
   mo.fs.adgwsfile = adgwsfile;
   mo.fs.mri_brain = MRIread(imrifile);
   mo.fs.surftype = surftype;
   mo.wI = wI;
   mo.wS = wS;
   mo.wH = wH;
-
-  //MRI *curv0 = MRIread(argv[6]); // target curvature
-
-  MRISsetNeighborhoodSizeAndDist(mo.fs.surf,2);
-
-#ifdef HAVE_OPENMP
-  omp_set_num_threads(threads);
-#endif
 
   // Set up the optimization structure
   mo.fs.SetVnoInNbrhdOf();
@@ -1549,8 +1632,8 @@ int main(int argc, char **argv)
   arma::mat vxyz = mo.fs.vxyz;
   double t0 = mytimer.seconds();
   for(int k=0; k < iters; k++){
-    double cost = optimizer.Optimize(mo, vxyz);
-    printf("k= %2d cost = %g   %g  %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls);fflush(stdout);
+    double cost = optimizer.Optimize(mo, vxyz); //ens::PrintLoss(stdout)
+    printf("k= %2d cost = %g   %g  %d %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls,mo.nevcalls);fflush(stdout);
     //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
     mo.fs.CopyVXYZtoSurf(vxyz);
     if(saveiters){
@@ -1559,8 +1642,21 @@ int main(int argc, char **argv)
       MRISwrite(mo.fs.surf,tmpstr);
     }
   }
+
+  if(label){
+    for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
+      int m = MRIgetVoxVal(mo.fs.mask,vno,0,0,0);
+      if(m) continue;
+      VERTEX *vtx = &mo.fs.surf->vertices[vno];
+      VERTEX *vtx0 = &surf0->vertices[vno];
+      vtx->x = vtx0->x;
+      vtx->y = vtx0->y;
+      vtx->z = vtx0->z;
+    }
+  }
   if(!saveiters) MRISwrite(mo.fs.surf,outsurffile);
-  mo.fs.CopyVXYZ();
+
+  mo.fs.CopyVXYZ();// from surface
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
@@ -1568,6 +1664,7 @@ int main(int argc, char **argv)
   //MRIwrite(curv,"curv.final.mgz");
   printf("Init cost = %g\n",c0);fflush(stdout);
   //SurfDiffStats(surf,surf0);
+  printf("cpptester-runtime   %g %d %d\n",mytimer.seconds()-t0,mo.ncalls,mo.nevcalls);fflush(stdout);
   printf("#VMPC# cpptester VmPeak  %d\n",GetVmPeak());
 
   exit(0);
@@ -1650,6 +1747,12 @@ int parse_commandline(int argc, char **argv) {
       printf("Gdiag_no set to %d\n",Gdiag_no);
       nargsused = 1;
     }
+    else if(!strcmp(option, "--label")){
+      if(nargc < 1) CMDargNErr(option,1);
+      label = LabelRead(NULL,pargv[0]) ;
+      if(!label) exit(1);
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--cbv-test")){
       if(nargc < 3) CMDargNErr(option,3);
       MRIS *surf = MRISread(pargv[0]);
@@ -1695,6 +1798,7 @@ void print_usage(void)
   printf("  --iters iters (defualt %d) \n",iters);
   printf("  --save-iters \n");
   printf("  --threads threads \n");
+  printf("  --label labelfile\n");
   printf("  --debug-vertex vno \n");
 }
 
