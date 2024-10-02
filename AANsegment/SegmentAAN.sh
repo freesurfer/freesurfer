@@ -53,8 +53,8 @@ if( $1 == "--help") then
   echo "Histology-guided MRI segmentation of brainstem nuclei critical to consciousness"
   echo "Olchanyi, M.D., Augustinack, J., Haynes, R., Lewis, L.D.,"
   echo "Cicero, N., Destrieux, C., Folkerth, R., Kinney, H.C., "
-  echo "Fischl, B., Iglesias, J.E., Edlow, B. medRxiv (submitted)."
-  echo "Preprint available at medRxiv.org:  xxxxxxxxxxxxxxx"
+  echo "Fischl, B., Iglesias, J.E., Edlow, B. medRxiv."
+  echo "Preprint available at medRxiv.org: https://www.medrxiv.org/content/10.1101/2024.09.26.24314117v1"
   echo " "
   exit 0
 endif
@@ -252,13 +252,16 @@ rm -f $IsRunningFile
 echo " "
 echo "All done!"
 echo " "
+echo "To visualize the outputs, run: "
+echo "freeview -v $SUBJECTS_DIR/$SUBJECT/T1.mgz -v $SUBJECTS_DIR/$SUBJECT/arousalNetworkLabels.$SUFFIX.mgz:colormap=lut:lut=$FREESURFER_HOME/average/AAN/atlas/freeview.lut.txt"
+echo " "
 echo "If you have used results from this software for a publication, please cite:"
 echo " "
 echo "Histology-guided MRI segmentation of brainstem nuclei critical to consciousness"
 echo "Olchanyi, M.D., Augustinack, J., Haynes, R., Lewis, L.D.,"
 echo "Cicero, N., Destrieux, C., Folkerth, R., Kinney, H.C., "
-echo "Fischl, B., Iglesias, J.E., Edlow, B. medRxiv (submitted)."
-echo "Preprint available at medRxiv.org:  xxxxxxxxxxxxxxx"
+echo "Fischl, B., Iglesias, J.E., Edlow, B. medRxiv."
+echo "Preprint available at medRxiv.org: https://www.medrxiv.org/content/10.1101/2024.09.26.24314117v1"
 echo " "
 
 exit 0
