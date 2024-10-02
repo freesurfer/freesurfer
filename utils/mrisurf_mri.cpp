@@ -1571,7 +1571,7 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_mask,
     double        const thresh,
     int           const flags,
-    MRI *         const mri_aseg, int vno_start, int vno_stop);
+    MRI *         const mri_aseg, int vno_start, int vno_stop, int verbose=1);
     
 int MRIScomputeBorderValues(
     MRI_SURFACE *       mris,
@@ -1589,14 +1589,14 @@ int MRIScomputeBorderValues(
     MRI *         const mri_mask,
     double        const thresh,
     int           const flags,
-    MRI *         const mri_aseg,int vno_start, int vno_stop)
+    MRI *         const mri_aseg,int vno_start, int vno_stop, int verbose)
 {
   int result;
   if (1) {
     result = 
       MRIScomputeBorderValues_new(
         mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
-        sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg,vno_start,vno_stop);
+        sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg,vno_start,vno_stop,verbose);
   } else {
     result = 
       MRIScomputeBorderValues_old(
@@ -1706,7 +1706,7 @@ static int MRIScomputeBorderValues_new(
     double        const thresh,
     int           const flags,
     MRI *         const mri_aseg,
-    int vno_start, int vno_stop)
+    int vno_start, int vno_stop, int verbose)
 {
   float const step_size = mri_brain->xsize/2;
   Timer mytimer ;
@@ -1718,23 +1718,26 @@ static int MRIScomputeBorderValues_new(
 
   mytimer.reset();
 
-  printf("Entering MRIScomputeBorderValues_new(): \n");
-  printf("  inside_hi   = %11.7lf;\n",inside_hi);
-  printf("  border_hi   = %11.7lf;\n",border_hi);
-  printf("  border_low  = %11.7lf;\n",border_low_global);
-  printf("  outside_low = %11.7lf;\n",outside_low);
-  printf("  outside_hi  = %11.7lf;\n",outside_hi);
-  printf("  sigma = %g;\n",sigma);
-  printf("  max_thickness = %g;\n",max_thickness);
-  printf("  step_size=%g;\n",step_size);
-  printf("  STEP_SIZE=%g;\n",STEP_SIZE);
-  printf("  which = %d\n",which);
-  printf("  thresh = %g\n",thresh);
-  printf("  flags = %d\n",flags);
-  printf("  CBVfindFirstPeakD1=%d\n",CBVfindFirstPeakD1);
-  printf("  CBVfindFirstPeakD2=%d\n",CBVfindFirstPeakD2);
-  printf("  nvertices=%d\n",mris->nvertices);
-  printf("  Gdiag_no=%d\n",Gdiag_no);
+  if(verbose || Gdiag_no > -1){
+    printf("Entering MRIScomputeBorderValues_new(): \n");
+    printf("  inside_hi   = %11.7lf;\n",inside_hi);
+    printf("  border_hi   = %11.7lf;\n",border_hi);
+    printf("  border_low  = %11.7lf;\n",border_low_global);
+    printf("  outside_low = %11.7lf;\n",outside_low);
+    printf("  outside_hi  = %11.7lf;\n",outside_hi);
+    printf("  sigma = %g;\n",sigma);
+    printf("  max_thickness = %g;\n",max_thickness);
+    printf("  step_size=%g;\n",step_size);
+    printf("  STEP_SIZE=%g;\n",STEP_SIZE);
+    printf("  which = %d\n",which);
+    printf("  thresh = %g\n",thresh);
+    printf("  flags = %d\n",flags);
+    printf("  CBVfindFirstPeakD1=%d\n",CBVfindFirstPeakD1);
+    printf("  CBVfindFirstPeakD2=%d\n",CBVfindFirstPeakD2);
+    printf("  nvertices=%d\n",mris->nvertices);
+    printf("  Gdiag_no=%d\n",Gdiag_no);
+    printf("  VMPeak = %d\n",GetVmPeak());
+  }
   if(vno_start < 0) vno_start = 0;
   if(vno_stop  < 0) vno_stop = mris->nvertices;
   printf("  vno start=%d, stop=%d\n",vno_start,vno_stop);
@@ -1745,7 +1748,7 @@ static int MRIScomputeBorderValues_new(
 	   vgdiag->x,vgdiag->y,vgdiag->z,vgdiag->nx,vgdiag->ny,vgdiag->nz);
   }
 
-  MRI *mri_tmp;
+  MRI *mri_tmp=NULL;
   if (mri_brain->type == MRI_UCHAR) {
     printf("Replacing 255s with 0s\n");
     mri_tmp = MRIreplaceValues(mri_brain, NULL, 255, 0);
@@ -2566,6 +2569,7 @@ static int MRIScomputeBorderValues_new(
     printf("#CBV# vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",
       Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
   }
+  if(mri_tmp) MRIfree(&mri_tmp);
   msec = mytimer.milliseconds() ;
   printf("MRIScomputeBorderValues_new() finished in %6.4f min\n",(float)msec/(60*1000.0f)); fflush(stdout);
   printf("\n\n");
@@ -8086,7 +8090,7 @@ int AutoDetGWStats::ReadStream(FILE *fp){ // read from stream
   fscanf(fp,"%*s %lf",&max_scale_down);
   return(0);
 }
-int AutoDetGWStats::Read(char *fname){ // from file name
+int AutoDetGWStats::Read(const char *fname){ // from file name
   FILE *fp = fopen(fname,"r");
   if(fp==NULL) return(1);
   ReadStream(fp);

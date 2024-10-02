@@ -1225,7 +1225,7 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               FILE *log_fp,
                               int white,
                               MRI *mri_mask, double thresh, int flags, MRI *mri_aseg,
-                              int vno_start, int vno_stop);
+                              int vno_start, int vno_stop, int verbose=1);
 int MRIScomputePialTargetLocationsMultiModalPar(MRI_SURFACE *mris,
                               MRI *mri_T2,
                               LABEL **labels,
@@ -2606,7 +2606,7 @@ public:
   int AutoDetectStats(void);
   int Write(char *fname);
   int Print(FILE *fp);
-  int Read(char *fname); // from file name
+  int Read(const char *fname); // from file name
   int ReadStream(FILE *fp); // read from stream
 };
 
