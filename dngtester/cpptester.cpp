@@ -1,3 +1,4 @@
+#include <sys/utsname.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -15,6 +16,8 @@
 #include "mrishash.h"
 #include "mrisurf_metricProperties.h"
 #include "mrishash_internals.h"
+#include "cmdargs.h"
+#include "version.h"
 
 #define export
 #define ENS_PRINT_INFO
@@ -1127,6 +1130,10 @@ class MyOpt
 public:
   int ncalls=0;
   FSsurf fs;
+  double wI = 1;
+  double wS = 3;
+  double wRep = 0;
+  double wH = 10000;
   double Evaluate(const arma::mat& vxyz){
     static int ncallse = 0;
     Timer mytimer;
@@ -1144,12 +1151,7 @@ public:
   }
   double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
     Timer mytimer; double t0 = mytimer.seconds();
-    double wI = 1,cI=0;
-    double wS = 3,cNS=0,cTS=0;
-    double wRep = 0,cRep=0;
-    double wH = 10000,cH=0;
-    //double wH = 0,cH=0;
-    double c = 0;
+    double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0;
     fs.vxyz = vxyz;
     fs.ComputeFaces(1);
     fs.ComputeVertices(1);
@@ -1160,7 +1162,6 @@ public:
       c += wH*cH;
       g += wH*fs.J_cH_p;
     }
-    //printf("wH = %g   cH = %20.10lf\n",wH,cH);
     if(wI > 0){
       cI = fs.IntensityCostAndGrad(1);
       c += wI*cI;
@@ -1398,28 +1399,68 @@ int SurfDiffStats(MRIS *surf1, MRIS *surf2)
   return(0);
 }
 
+int  parse_commandline(int argc, char **argv);
+void check_options();
+void print_usage();
+void usage_exit();
+void print_help();
+void dump_options(FILE *fp);
+
+char *surffile = NULL;
+char *adgwsfile = NULL;
+char *imrifile = NULL;
+char *outsurffile = NULL;
+double wI = 1;
+double wS = 3;
+double wRep = 0;
+double wH = 10000;
+int threads=1;
+int surftype=1;
+int iters = 3;
+int saveiters = 0;
+int debug = 0, checkoptsonly = 0;
+char *cmdline2, cwd[2000];
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
 {
-  //Gdiag_no = 45768;
-  //MRIS *surf, *surf0;
-  //MRI *mri=NULL; // *mri2;
-  int threads=1;
+  int nargs = handleVersionOption(argc, argv, "cpptester");
+  if (nargs && argc - nargs == 1) exit (0);
+  argc -= nargs;
+  //char *cmdline = argv2cmdline(argc,argv);
+  //uname(&uts);
+  getcwd(cwd,2000);
+  cmdline2 = argv2cmdline(argc,argv);
+
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+  Gdiag |= DIAG_SHOW ;
+
+  if(argc == 0) usage_exit();
+  parse_commandline(argc, argv);
+  dump_options(stdout);
+
+  //check_options();
+  //if(checkoptsonly) return(0);
+
   Timer mytimer;
 
   // 1=threads 2=insurf 3=adgwsfile 4=mri 5=outsurf 6=curv0
 
-  sscanf(argv[1],"%d\n",&threads);
-
   MyOpt mo;
-  mo.fs.surf = MRISread(argv[2]); // surface to optimize
+  mo.fs.surf = MRISread(surffile); // surface to optimize
   MRISsaveVertexPositions(mo.fs.surf, ORIGINAL_VERTICES) ; // This is used for repulsion
 
   //surf0 = MRISread(argv[3]); // surface to optimize
-  mo.fs.adgwsfile = argv[3];
-  mo.fs.mri_brain = MRIread(argv[4]);
-  mo.fs.surftype = GRAY_CSF; //GRAY_WHITE; //
+  mo.fs.adgwsfile = adgwsfile;
+  mo.fs.mri_brain = MRIread(imrifile);
+  mo.fs.surftype = surftype;
+  mo.wI = wI;
+  mo.wS = wS;
+  mo.wH = wH;
 
   //MRI *curv0 = MRIread(argv[6]); // target curvature
 
@@ -1467,21 +1508,24 @@ int main(int argc, char **argv)
   ens::L_BFGS optimizer(10, 100, 1e-4, 0.9, 1e-6, 1e-15, 50, 1e-20);
   arma::mat vxyz = mo.fs.vxyz;
   double t0 = mytimer.seconds();
-  for(int k=0; k < 3; k++){
+  for(int k=0; k < iters; k++){
     double cost = optimizer.Optimize(mo, vxyz);
     printf("k= %2d cost = %g   %g  %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls);fflush(stdout);
     //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
     mo.fs.CopyVXYZtoSurf(vxyz);
-    char tmpstr[1000];
-    sprintf(tmpstr,"%s.k%02d",argv[5],k);
-    MRISwrite(mo.fs.surf,tmpstr);
+    if(saveiters){
+      char tmpstr[1000];
+      sprintf(tmpstr,"%s.k%02d",outsurffile,k);
+      MRISwrite(mo.fs.surf,tmpstr);
+    }
   }
+  if(!saveiters) MRISwrite(mo.fs.surf,outsurffile);
   mo.fs.CopyVXYZ();
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  MRI *curv = MRIcopyMRIS(NULL, mo.fs.surf, 0, "curv");
-  MRIwrite(curv,"curv.final.mgz");
+  //MRI *curv = MRIcopyMRIS(NULL, mo.fs.surf, 0, "curv");
+  //MRIwrite(curv,"curv.final.mgz");
   printf("Init cost = %g\n",c0);fflush(stdout);
   //SurfDiffStats(surf,surf0);
 
@@ -1495,3 +1539,134 @@ int main(int argc, char **argv)
 
 }
 
+int parse_commandline(int argc, char **argv) {
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if (argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while (nargc > 0) {
+
+    option = pargv[0];
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))             print_help() ;
+    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--white")) surftype = GRAY_WHITE; 
+    else if (!strcasecmp(option, "--pial"))  surftype = GRAY_CSF; 
+    else if (!strcasecmp(option, "--save-iters"))  saveiters = 1;
+
+    else if(!strcasecmp(option, "--surf")){
+      if (nargc < 1) CMDargNErr(option,1);
+      surffile = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--o")){
+      if (nargc < 1) CMDargNErr(option,1);
+      outsurffile = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--vol")){
+      if(nargc < 2) CMDargNErr(option,1);
+      imrifile = pargv[0];
+      adgwsfile = pargv[1];
+      nargsused = 2;
+    }
+    else if (!strcasecmp(option, "--wI")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&wI);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--wS")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&wS);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--wH")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&wH);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--threads")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&threads);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--iters")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&iters);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--debug-vertex")){
+      if(nargc < 1) CMDargNErr(option,1);
+      Gdiag_no = atoi(pargv[0]) ;
+      printf("Gdiag_no set to %d\n",Gdiag_no);
+      nargsused = 1;
+    }
+    else  {
+      printf("ERROR: Option %s unknown\n", option);
+      if (CMDsingleDash(option))
+        printf("       Did you really mean -%s ?\n\n", option);
+      print_help();
+      exit(1);
+    }
+
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+
+void print_usage(void)
+{
+  printf("cpptester \n");
+  printf("  --surf inputsurf : will get curv info from here if needed\n");
+  printf("  --o outputsurf \n");
+  printf("  --vol intensityvol adgws \n");
+  printf("  --wI wI : intensity weight (default is %lf)\n",wI);
+  printf("  --wS wS : spring weight (default is %lf)\n",wS);
+  printf("  --wH wH : meancurv weight (default is %lf)\n",wH);
+  printf("  --white or --pial \n");
+  printf("  --iters iters (defualt %d) \n",iters);
+  printf("  --save-iters \n");
+  printf("  --threads threads \n");
+  printf("  --debug-vertex vno \n");
+}
+
+void print_help(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+/* ------------------------------------------------------ */
+void usage_exit(void) {
+  print_usage() ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+void print_version(void) {
+  std::cout << getVersion() << std::endl;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+void dump_options(FILE *fp) {
+  fprintf(fp,"\n");
+  //fprintf(fp,"cwd %s\n",cwd);
+  //fprintf(fp,"cmdline %s\n",cmdline);
+  fprintf(fp,"surffile  %s\n",surffile);
+  fprintf(fp,"adwgs %s\n",adgwsfile);
+  fprintf(fp,"mri  %s\n",imrifile);
+  fprintf(fp,"outsurf     %s\n",outsurffile);
+  fprintf(fp,"surftype  %d (w=%d, p=%d)\n",surftype,GRAY_WHITE,GRAY_CSF);
+  fprintf(fp,"wI  %g\n",wI);
+  fprintf(fp,"wS  %g\n",wS);
+  fprintf(fp,"wH  %g\n",wH);
+  fprintf(fp,"threads  %d\n",threads);
+  return;
+}
