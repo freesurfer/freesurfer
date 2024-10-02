@@ -935,6 +935,45 @@ double long  FSsurf::TangentialSpringCG(void)
 }
 
 
+int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf)
+{
+  double sigma_global=2.0;
+  float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
+  int a = GetVmPeak();
+  AutoDetGWStats adgws;
+  int b = GetVmPeak();
+  int err = adgws.Read(adgwsfile);
+  int c = GetVmPeak();
+  if(err) exit(1);
+  int surftype = GRAY_WHITE;
+  double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0;
+  if(surftype == GRAY_WHITE){
+    inside_hi = adgws.white_inside_hi;
+    border_hi = adgws.white_border_hi;
+    if(adgws.white_border_low_factor > -9){
+      double f = adgws.white_border_low_factor;
+      border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;
+    }
+    outside_low = adgws.white_outside_low;
+    outside_hi = adgws.white_outside_hi;
+  }
+  if(surftype == GRAY_CSF){
+    inside_hi = adgws.pial_inside_hi;
+    border_hi = adgws.pial_border_hi;
+    border_low = adgws.pial_border_low;
+    outside_low = adgws.pial_outside_low;
+    outside_hi = adgws.pial_outside_hi;
+  }
+  int d = GetVmPeak();
+  MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
+			  sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, NULL,-1,-1,0) ;
+  int e = GetVmPeak();
+
+  printf(" CBV VMP %d %d %d %d %d\n",a,b,c,d,e);fflush(stdout);
+
+  return(0);
+}
+
 double long FSsurf::IntensityCostAndGrad(int DoJ, int vno0)
 {
   int vno;
@@ -969,7 +1008,7 @@ double long FSsurf::IntensityCostAndGrad(int DoJ, int vno0)
     // This sets target intensity value v->val
     CopyVXYZtoSurf(vxyz);
     MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			    sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, seg,-1,-1) ;
+			    sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, seg,-1,-1,0) ;
     int vavgs=5;
     MRISaverageMarkedVals(surf, vavgs) ;
     J_cI_p.zeros(surf->nvertices,3);
@@ -1179,8 +1218,8 @@ public:
       g += (wS*(fs.J_cNS_p+fs.J_cTS_p));
     }
     ncalls ++;
-    printf("  EWG %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf\n",
-      ncalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0);fflush(stdout);
+    printf("  EWG %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf  %d\n",
+	   ncalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0,GetVmPeak());fflush(stdout);
     return(c);
   }
 };
@@ -1281,8 +1320,8 @@ double FStestMeanCurvGrad(MRIS *surf, double Delta, int vno0)
     }
   }
   dt  = mytimer.seconds()-t0;
-  printf("maxmax= %6.4lf, rmax %g, vnomax = %d, dt=%g sec, nv=%d, dtp = %g sec\n",
-	 maxmax,JdiffRabsMax,vnomax,dt,nverts,dt/nverts);
+  printf("maxmax= %6.4lf, rmax %g, vnomax = %d, dt=%g sec, nv=%d, dtp = %g sec  %d\n",
+	 maxmax,JdiffRabsMax,vnomax,dt,nverts,dt/nverts,GetVmPeak());
   fflush(stdout);
 
   return(maxmax);
@@ -1420,6 +1459,7 @@ int iters = 3;
 int saveiters = 0;
 int debug = 0, checkoptsonly = 0;
 char *cmdline2, cwd[2000];
+char *outcurvfile=NULL;
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
@@ -1528,6 +1568,7 @@ int main(int argc, char **argv)
   //MRIwrite(curv,"curv.final.mgz");
   printf("Init cost = %g\n",c0);fflush(stdout);
   //SurfDiffStats(surf,surf0);
+  printf("#VMPC# cpptester VmPeak  %d\n",GetVmPeak());
 
   exit(0);
 
@@ -1607,6 +1648,24 @@ int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       Gdiag_no = atoi(pargv[0]) ;
       printf("Gdiag_no set to %d\n",Gdiag_no);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--cbv-test")){
+      if(nargc < 3) CMDargNErr(option,3);
+      MRIS *surf = MRISread(pargv[0]);
+      MRI *mri = MRIread(pargv[1]);
+      printf("R1 ==========================================\n");
+      int a = GetVmPeak();
+      CBV(pargv[2],mri,surf);
+      int b = GetVmPeak();
+      printf("R1 VMPeak %d %d  %d\n",a,b,b-a);
+      printf("\n\n");
+      printf("R2 ==========================================\n");
+      a = GetVmPeak();
+      CBV(pargv[2],mri,surf);
+      b = GetVmPeak();
+      printf("R2 VMPeak %d %d  %d\n",a,b,b-a);
+      exit(0);
       nargsused = 1;
     }
     else  {
