@@ -212,9 +212,26 @@ elseif(APPLE_ARM64)
   find_library(QUADMATH_LIBRARIES HINTS /opt/homebrew/Cellar/gcc/12.2.0/lib/gcc/current NAMES libquadmath.a)
 endif()
 
-# commented out on 10/2022
-# -------- armadillo --------
-# find_package(ARMADILLO)
+# test not part of regular builds/releases
+if(BUILD_DNG)
+   # -------- armadillo --------
+   if(HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "Rocky8")
+      set (ARMADILLO_DIR "/usr/pubsw/packages/armadillo/12.6_rocky8")
+   elseif(HOST_OS MATCHES "CentOS7")
+      set (ARMADILLO_DIR "/usr/pubsw/packages/armadillo/9.200.7")
+   endif()
+   find_package(Armadillo)
+   message(STATUS "For HOST_OS=${HOST_OS} ARMADILLO_INCLUDE_DIRS=${ARMADILLO_INCLUDE_DIRS}")
+   message(STATUS "For HOST_OS=${HOST_OS} ARMADILLO_LIBRARIES=${ARMADILLO_LIBRARIES}")
+   # -------- ensmallen --------
+   if(HOST_OS MATCHES "CentOS8stream" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "Rocky8")
+      set (ENSMALLEN_DIR "/usr/pubsw/packages/ensmallen/1.14.0")
+   elseif(HOST_OS MATCHES "CentOS7")
+      set (ENSMALLEN_DIR "/usr/pubsw/packages/ensmallen/1.14.0")
+   endif()
+   find_package(ENSMALLEN)
+   message(STATUS "For HOST_OS=${HOST_OS} ENSMALLEN_INCLUDE_DIRS=${ENSMALLEN_INCLUDE_DIRS}")
+endif()
 
 # -------- petsc --------
 find_package(PETSC)
