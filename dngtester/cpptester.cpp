@@ -89,6 +89,8 @@ int GetP(MRIS *surf, int vno)
 }
 #if 1
 //======================================================================
+int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf, int surftype, float max_cbv_dist=5.0);
+
 arma::colvec FSdx = {1,0,0};
 arma::colvec FSdy = {0,1,0};
 arma::colvec FSdz = {0,0,1};
@@ -658,6 +660,9 @@ public:
   arma::mat J_cRep_p; 
   MHT *mht=NULL;
 
+  double TargetSurfCG(void);
+  arma::mat J_cTarg_p; 
+
   // Each element of VnoInNbrhdOf corresponds to a vertex. Each
   // element has list of center vertices in which the element vertex
   // is in the extended neighborhood of (includes self). The pair is
@@ -836,6 +841,32 @@ int FSsurf::Label2Mask(LABEL *label)
   return(0);
 }
 
+double FSsurf::TargetSurfCG(void)
+{
+
+  // Have to run this to get position
+  CBV(adgwsfile, mri_brain, surf, surftype, max_cbv_dist);
+
+  J_cTarg_p.zeros(surf->nvertices,3);
+  double cost = 0;
+  for(int vno = 0; vno < surf->nvertices; vno++) {
+    VERTEX *v = &surf->vertices[vno];
+    double x,y,z;
+    x = vxyz(vno,0);
+    y = vxyz(vno,1);
+    z = vxyz(vno,2);
+    double dx = x - v->targx;
+    double dy = y - v->targy;
+    double dz = z - v->targz;
+    double d2 = dx*dx + dy*dy + dz*dz;
+    double d = sqrt(d2);
+    cost += d2;
+    J_cTarg_p(vno,0) = dx/(d+FLT_EPSILON);
+    J_cTarg_p(vno,1) = dy/(d+FLT_EPSILON);
+    J_cTarg_p(vno,2) = dz/(d+FLT_EPSILON);
+  }
+  return(cost);
+}
 
 double FSsurf::SurfRepulsionCG(void)
 {
@@ -982,7 +1013,6 @@ double long  FSsurf::TangentialSpringCG(void)
 }
 
 
-int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf, int surftype, float max_cbv_dist=5.0);
 int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf, int surftype, float max_cbv_dist)
 {
   double sigma_global=2.0;
@@ -1014,7 +1044,7 @@ int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf, int surftype, float max_cbv
   printf("CBV ih=%g bh=%g bl=%g ol=%g oh=%g\n",inside_hi, border_hi, border_low, outside_low, outside_hi);
   printf("    sigma=%g  maxdist=%g  2maxdist=%g surftype=%d\n",sigma_global, max_cbv_dist, 2*max_cbv_dist, surftype);
   MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi, border_hi, border_low, outside_low, outside_hi,
-			  sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, NULL,-1,-1,1) ;
+			  sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, NULL,-1,-1,0) ;
   return(0);
 }
 
@@ -1217,6 +1247,7 @@ public:
   double wS = 3;
   double wRep = 0;
   double wH = 10000;
+  double wTarg = 0;
   // It appears that it will use EvalWithGrad() only if it is there,
   // which is strange because I would have through that the line
   // search would have used Eval. If EvalWithGrad() is removed
@@ -1224,7 +1255,7 @@ public:
   // and a differnt number of times, but it ends up being slower. 
   double Evaluate(const arma::mat& vxyz){
     Timer mytimer; double t0 = mytimer.seconds();
-    double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0;
+    double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0,cTarg=0;
     fs.vxyz = vxyz;
     fs.CopyVXYZtoSurf(vxyz);
     fs.ComputeFaces(0);
@@ -1247,15 +1278,19 @@ public:
       cTS = fs.NTSpringCG(2);
       c += (wS*(cNS+cTS));
     }
+    if(wTarg > 0){
+      cTarg = wTarg*fs.TargetSurfCG();
+      c += cTarg;
+    }
     nevcalls ++;
-    printf("  Eval %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf  %d\n",
-	   nevcalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0,GetVmPeak());
+    printf("  Eval %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Targ=%7.5lf  dt=%4.3lf\n",
+	   nevcalls,c,cI,cNS,cTS,cH,cTarg,mytimer.seconds()-t0);
     fflush(stdout);
     return(c);
   }
   double EvaluateWithGradient(const arma::mat& vxyz, arma::mat& g){
     Timer mytimer; double t0 = mytimer.seconds();
-    double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0;
+    double c = 0, cH=0, cI=0, cNS=0, cTS=0, cRep=0, cTarg=0;
     fs.vxyz = vxyz;
     fs.CopyVXYZtoSurf(vxyz);
     fs.ComputeFaces(1);
@@ -1283,9 +1318,14 @@ public:
       c += (wS*(cNS+cTS));
       g += (wS*(fs.J_cNS_p+fs.J_cTS_p));
     }
+    if(wTarg > 0){
+      cTarg = wTarg*fs.TargetSurfCG();
+      c += cTarg;
+      g += (wTarg*fs.J_cTarg_p);
+    }
     ncalls ++;
-    printf("  EWG%d %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf Rep=%7.5lf  dt=%4.3lf  %d\n",
-	   GradOnly,ncalls,c,cI,cNS,cTS,cH,cRep,mytimer.seconds()-t0,GetVmPeak());
+    printf("  EWG%d %4d tot=%7.5lf  I=%7.5lf NS=%7.5lf TS=%7.5lf H=%7.5lf cTarg=%7.5lf  dt=%4.3lf\n",
+	   GradOnly,ncalls,c,cI,cNS,cTS,cH,cTarg,mytimer.seconds()-t0);
     if(Gdiag_no > 0){
       VERTEX *vtx = &(fs.surf->vertices[Gdiag_no]);
       printf("  EWGvno %d  (%g,%g,%g) (%g,%g,%g)  (%g,%g,%g)\n",Gdiag_no,vtx->x,vtx->y,vtx->z,
@@ -1528,9 +1568,10 @@ char *adgwsfile = NULL;
 char *imrifile = NULL;
 char *outsurffile = NULL;
 double wI = 1;
-double wS = 3;
+double wS = 30;
 double wRep = 0;
-double wH = 10000;
+double wH = 0;
+double wTarg = 0;
 int threads=1;
 int surftype=1;
 int iters = 1;
@@ -1576,8 +1617,6 @@ int main(int argc, char **argv)
   Timer mytimer;
   //double tstart = mytimer.seconds();
 
-  // 1=threads 2=insurf 3=adgwsfile 4=mri 5=outsurf 6=curv0
-
   MyOpt mo;
   mo.fs.surf = MRISread(surffile); // surface to optimize
   if(!mo.fs.surf) exit(1);
@@ -1593,6 +1632,7 @@ int main(int argc, char **argv)
   mo.wI = wI;
   mo.wS = wS;
   mo.wH = wH;
+  mo.wTarg = wTarg;
   mo.fs.max_cbv_dist = cbvdist;
 
   // Set up the optimization structure
@@ -1783,6 +1823,11 @@ int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&wH);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--wT")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&wTarg);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--cbv-dist")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&cbvdist);
@@ -1862,6 +1907,7 @@ void print_usage(void)
   printf("  --wI wI : intensity weight (default is %lf)\n",wI);
   printf("  --wS wS : spring weight (default is %lf)\n",wS);
   printf("  --wH wH : meancurv weight (default is %lf)\n",wH);
+  printf("  --wT wTarg : weight for target surf (default is %lf)\n",wTarg);
   printf("  --cbv-dist dist : (default is %lf)\n",cbvdist);
   printf("  --white or --pial \n");
   printf("  --target targetsurf : CBV target surface\n");
@@ -1901,6 +1947,7 @@ void dump_options(FILE *fp) {
   fprintf(fp,"wI  %g\n",wI);
   fprintf(fp,"wS  %g\n",wS);
   fprintf(fp,"wH  %g\n",wH);
+  fprintf(fp,"wT  %g\n",wTarg);
   fprintf(fp,"cbvdist  %g\n",cbvdist);
   fprintf(fp,"threads  %d\n",threads);
   return;
