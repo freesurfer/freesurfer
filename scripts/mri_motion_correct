@@ -62,7 +62,7 @@ get_size()
 
   tmpfile=$tmpdir_use/size_file
 
-  mri_convert --in_info --read_only $1 &> $transcript_file
+  mri_convert --in_info --read_only $1 > $transcript_file 2>&1
   ev=$?
   echo "--------" >> $transcript_file
   echo "command was: mri_convert --in_info --read_only $1" >> $transcript_file
@@ -212,14 +212,14 @@ fi
 
 # ----- check for "which" -----
 have_which=
-which which &> /dev/null
+which which > /dev/null 2>&1
 if [ $? -eq 0 ] ; then have_which=y ; fi
 
 # ----- get the base program name -----
 progname=
 if [ $have_which ]
 then
-  which basename &> /dev/null
+  which basename > /dev/null 2>&1
   if [ $? -eq 0 ] ; then progname=`basename $0` ; fi
 fi
 if [ ! $progname ] ; then progname=`echo $0 | awk -F'/' '{print $NF}'` ; fi
@@ -293,10 +293,10 @@ have_mri_convert=
 if [ $have_which ]
 then
   which mri_convert
-  which mri_convert &> /dev/null
+  which mri_convert > /dev/null 2>&1
   if [ $? -eq 0 ] ; then have_mri_convert=y ; fi
 else
-  mri_convert &> /dev/null
+  mri_convert > /dev/null 2>&1
   if [ $? -eq 0 -o $? -eq 1 ] ; then have_mri_convert=y ; fi
 fi
 
@@ -320,7 +320,7 @@ then
   for p in mincresample mincaverage minctracc
   do
     echo -n "checking for $p..."
-    $p &> $transcript_file
+    $p > $transcript_file 2>&1
     ev=$?
     echo "--------" >> $transcript_file
     echo "command was: $p" >> $transcript_file
@@ -344,7 +344,7 @@ if [ $c -eq 1 ]
 then
   echo "only one input file -- no motion correction needed"
   echo -n "converting $infile to $outfile..."
-  mri_convert $infile $outfile &> $transcript_file
+  mri_convert $infile $outfile > $transcript_file 2>&1
   ev=$?
   echo "--------" >> $transcript_file
   echo "command was: mri_convert $infile $outfile" >> $transcript_file
@@ -369,7 +369,7 @@ else
   do
 
     echo -n "converting $f to minc (volume $i)..."
-    mri_convert $f $tmpdir_use/$i.mnc &> $transcript_file
+    mri_convert $f $tmpdir_use/$i.mnc > $transcript_file 2>&1
     ev=$?
     echo "--------" >> $transcript_file
     echo "command was: mri_convert $f $tmpdir_use/$i.mnc" >> $transcript_file
@@ -389,7 +389,7 @@ else
     else
 
       echo -n "registering this volume ($i) to volume 0..."
-      minctracc -lsq6 $tmpdir_use/$i.mnc $tmpdir_use/0.mnc $tmpdir_use/${i}_to_0.xfm &> $transcript_file
+      minctracc -lsq6 $tmpdir_use/$i.mnc $tmpdir_use/0.mnc $tmpdir_use/${i}_to_0.xfm > $transcript_file 2>&1
       ev=$?
       echo "--------" >> $transcript_file
       echo "command was: minctracc -lsq6 $tmpdir_use/$i.mnc $tmpdir_use/0.mnc $tmpdir_use/${i}_to_0.xfm" >> $transcript_file
@@ -404,7 +404,7 @@ else
       echo " done"
 
       echo -n "reslicing registered volume..."
-      mincresample -transformation $tmpdir_use/${i}_to_0.xfm -like $tmpdir_use/0.mnc $tmpdir_use/${i}.mnc $tmpdir_use/${i}_to_0.mnc &> $transcript_file
+      mincresample -transformation $tmpdir_use/${i}_to_0.xfm -like $tmpdir_use/0.mnc $tmpdir_use/${i}.mnc $tmpdir_use/${i}_to_0.mnc > $transcript_file 2>&1
       ev=$?
       echo "--------" >> $transcript_file
       echo "command was: mincresample -transformation $tmpdir_use/${i}_to_0.xfm -like $tmpdir_use/0.mnc $tmpdir_use/${i}.mnc $tmpdir_use/${i}_to_0.mnc" >> $transcript_file
@@ -430,10 +430,10 @@ else
   done
 
   echo -n "averaging volumes..."
-  mincaverage $volumes_to_average $tmpdir_use/avg.mnc &> $transcript_file
+  mincaverage $volumes_to_average $tmpdir_use/avg.mnc > $transcript_file 2>&1
   ev=$?
   echo "--------" >> $transcript_file
-  echo "command was: mincaverage $volumes_to_average $tmpdir_use/avg.mnc &> $transcript_file" >> $transcript_file
+  echo "command was: mincaverage $volumes_to_average $tmpdir_use/avg.mnc > $transcript_file 2>&1" >> $transcript_file
   echo "exit value was: $ev" >> $transcript_file
   if [ $ev -ne 0 ]
   then
@@ -445,7 +445,7 @@ else
   echo "done"
 
   echo -n "creating output volume..."
-  mri_convert $tmpdir_use/avg.mnc $outfile &> $transcript_file
+  mri_convert $tmpdir_use/avg.mnc $outfile > $transcript_file 2>&1
   ev=$?
   echo "--------" >> $transcript_file
   echo "command was: mri_convert $tmpdir_use/avg.mnc $outfile" >> $transcript_file
