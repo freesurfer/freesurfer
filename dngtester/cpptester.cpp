@@ -645,6 +645,7 @@ public:
   char *adgwsfile=NULL;
   MRI *mri_brain=NULL;
   double sigma_global=2.0;
+  float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
   arma::mat J_cI_p; // cost of intensity wrt p = nvertices x 3
 
   double long TangentialSpringCG(void);
@@ -981,17 +982,17 @@ double long  FSsurf::TangentialSpringCG(void)
 }
 
 
-int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf)
+int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf, int surftype, float max_cbv_dist=5.0);
+int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf, int surftype, float max_cbv_dist)
 {
   double sigma_global=2.0;
-  float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
-  int a = GetVmPeak();
+  //float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
   AutoDetGWStats adgws;
-  int b = GetVmPeak();
   int err = adgws.Read(adgwsfile);
-  int c = GetVmPeak();
-  if(err) exit(1);
-  int surftype = GRAY_WHITE;
+  if(err){
+    printf("ERROR: reading %s\n",adgwsfile);
+    exit(1);
+  }
   double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0;
   if(surftype == GRAY_WHITE){
     inside_hi = adgws.white_inside_hi;
@@ -1010,13 +1011,10 @@ int CBV(char *adgwsfile, MRI *mri_brain, MRIS *surf)
     outside_low = adgws.pial_outside_low;
     outside_hi = adgws.pial_outside_hi;
   }
-  int d = GetVmPeak();
-  MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			  sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, NULL,-1,-1,0) ;
-  int e = GetVmPeak();
-
-  printf(" CBV VMP %d %d %d %d %d\n",a,b,c,d,e);fflush(stdout);
-
+  printf("CBV ih=%g bh=%g bl=%g ol=%g oh=%g\n",inside_hi, border_hi, border_low, outside_low, outside_hi);
+  printf("    sigma=%g  maxdist=%g  2maxdist=%g surftype=%d\n",sigma_global, max_cbv_dist, 2*max_cbv_dist, surftype);
+  MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi, border_hi, border_low, outside_low, outside_hi,
+			  sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, NULL,-1,-1,1) ;
   return(0);
 }
 
@@ -1026,7 +1024,6 @@ double long FSsurf::IntensityCostAndGrad(int DoJ, int vno0)
   VERTEX *v;
   float x, y, z, nx, ny, nz, dx, dy, dz;
   double xw, yw, zw, delI, delV;
-  float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
   AutoDetGWStats adgws;
   int err = adgws.Read(adgwsfile);
   if(err) exit(1);
@@ -1054,8 +1051,8 @@ double long FSsurf::IntensityCostAndGrad(int DoJ, int vno0)
     // This sets target intensity value v->val
     MRIScomputeBorderValues(surf, mri_brain, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
 			    sigma_global, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, seg,-1,-1,0) ;
-    int vavgs=5;
-    MRISaverageMarkedVals(surf, vavgs) ;
+    int vavgs=2; // spatial smoothing of the target value
+    if(vavgs > 0) MRISaverageMarkedVals(surf, vavgs) ;
     J_cI_p.zeros(surf->nvertices,3);
   }
 
@@ -1541,7 +1538,11 @@ int saveiters = 0;
 int debug = 0, checkoptsonly = 0;
 char *cmdline2, cwd[2000];
 char *outcurvfile=NULL;
+char *curvfile=NULL;
+char *initcurvfile=NULL;
 LABEL *label=NULL;
+char *targetsurffile=NULL;
+double cbvdist=5.0;
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
@@ -1581,7 +1582,7 @@ int main(int argc, char **argv)
   mo.fs.surf = MRISread(surffile); // surface to optimize
   if(!mo.fs.surf) exit(1);
   MRIS *surf0 = MRISread(surffile);
-  MRISsaveVertexPositions(mo.fs.surf, ORIGINAL_VERTICES) ; // This is used for repulsion
+  MRISsaveVertexPositions(mo.fs.surf, ORIGINAL_VERTICES) ; // This is used for repulsion and CBV
   MRISsetNeighborhoodSizeAndDist(mo.fs.surf,2);
 
   if(label) mo.fs.Label2Mask(label);
@@ -1592,6 +1593,7 @@ int main(int argc, char **argv)
   mo.wI = wI;
   mo.wS = wS;
   mo.wH = wH;
+  mo.fs.max_cbv_dist = cbvdist;
 
   // Set up the optimization structure
   mo.fs.SetVnoInNbrhdOf();
@@ -1599,28 +1601,21 @@ int main(int argc, char **argv)
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  mo.fs.SetH0ToCurv();
-  //mo.fs.SetH0ToMRI(curv0);
 
-  // Write out the initial H
-  //MRI *curv = MRIcopyMRIS(NULL, surf, 0, "curv");
-  //MRIwrite(curv,"curv.start.mgz");
+  if(curvfile){
+    printf("Setting target curv from %s\n",curvfile);
+    MRI *curv0 = MRIread(curvfile);
+    if(curv0==NULL) exit(1);
+    mo.fs.SetH0ToMRI(curv0);
+  } 
+  else  mo.fs.SetH0ToCurv();
 
-  if(0){
-    // Add noise to the surface
-    for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
-      VERTEX *vtx = &(mo.fs.surf->vertices[vno]);
-      double umax = 5; // +/- umax
-      vtx->x += (2*umax*vtx->nx)*(drand48()-0.5);
-      vtx->y += (2*umax*vtx->ny)*(drand48()-0.5);
-      vtx->z += (2*umax*vtx->nz)*(drand48()-0.5);
-    }
-    MRISwrite( mo.fs.surf,"noisy.srf");
-    // Now recompute after adding noise
-    mo.fs.CopyVXYZ();
-    mo.fs.ComputeFaces(0);
-    mo.fs.ComputeVertices(0);
-    mo.fs.ComputeMeanCurvs(0);
+  if(initcurvfile){
+    // Write out the initial H
+    MRI *initcurv = MRIcopyMRIS(NULL, mo.fs.surf, 0, "curv");
+    int err = MRIwrite(initcurv,initcurvfile);
+    if(err) exit(1);
+    MRIfree(&initcurv);
   }
 
   // Get the initial cost
@@ -1660,20 +1655,56 @@ int main(int argc, char **argv)
   mo.fs.ComputeFaces(0);
   mo.fs.ComputeVertices(0);
   mo.fs.ComputeMeanCurvs(0);
-  //MRI *curv = MRIcopyMRIS(NULL, mo.fs.surf, 0, "curv");
-  //MRIwrite(curv,"curv.final.mgz");
+  if(outcurvfile){
+    // Write out the final H
+    MRI *finalcurv = MRIcopyMRIS(NULL, mo.fs.surf, 0, "curv");
+    int err = MRIwrite(finalcurv,outcurvfile);
+    if(err) exit(1);
+    MRIfree(&finalcurv);
+  }
+  if(targetsurffile){
+    MRISsaveVertexPositions(mo.fs.surf, TMP2_VERTICES) ; 
+    for(int v=0; v < mo.fs.surf->nvertices;v++){
+      mo.fs.surf->vertices[v].x = mo.fs.surf->vertices[v].targx;	
+      mo.fs.surf->vertices[v].y = mo.fs.surf->vertices[v].targy;	
+      mo.fs.surf->vertices[v].z = mo.fs.surf->vertices[v].targz;	
+    }
+    int err = MRISwrite(mo.fs.surf,targetsurffile);
+    if(err) exit(1);
+    MRISrestoreVertexPositions(mo.fs.surf, TMP2_VERTICES);
+  }
+
   printf("Init cost = %g\n",c0);fflush(stdout);
-  //SurfDiffStats(surf,surf0);
   printf("cpptester-runtime   %g %d %d\n",mytimer.seconds()-t0,mo.ncalls,mo.nevcalls);fflush(stdout);
   printf("#VMPC# cpptester VmPeak  %d\n",GetVmPeak());
 
   exit(0);
 
+  #if 0
   //double Delta = 1e-10;
   //FStestMeanCurvCostGrad(surf, Delta, vno);
   //printf("==============================================\n");
   //FStestMeanCurvGrad(surf, Delta, vno);
   //printf("==============================================\n");
+  //SurfDiffStats(surf,surf0);
+  if(0){
+    // Add noise to the surface
+    for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
+      VERTEX *vtx = &(mo.fs.surf->vertices[vno]);
+      double umax = 5; // +/- umax
+      vtx->x += (2*umax*vtx->nx)*(drand48()-0.5);
+      vtx->y += (2*umax*vtx->ny)*(drand48()-0.5);
+      vtx->z += (2*umax*vtx->nz)*(drand48()-0.5);
+    }
+    MRISwrite( mo.fs.surf,"noisy.srf");
+    // Now recompute after adding noise
+    mo.fs.CopyVXYZ();
+    mo.fs.ComputeFaces(0);
+    mo.fs.ComputeVertices(0);
+    mo.fs.ComputeMeanCurvs(0);
+  }
+  #endif
+
 
 }
 
@@ -1705,9 +1736,30 @@ int parse_commandline(int argc, char **argv) {
       surffile = pargv[0];
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--curv")){
+      if (nargc < 1) CMDargNErr(option,1);
+      curvfile = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--out-curv")){
+      if (nargc < 1) CMDargNErr(option,1);
+      outcurvfile = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--init-curv")){
+      // for writing out the starting curv file
+      if (nargc < 1) CMDargNErr(option,1);
+      initcurvfile = pargv[0];
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--o")){
       if (nargc < 1) CMDargNErr(option,1);
       outsurffile = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--target")){
+      if (nargc < 1) CMDargNErr(option,1);
+      targetsurffile = pargv[0];
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--vol")){
@@ -1729,6 +1781,11 @@ int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--wH")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&wH);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--cbv-dist")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&cbvdist);
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--threads")){
@@ -1754,22 +1811,30 @@ int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if(!strcmp(option, "--cbv-test")){
-      if(nargc < 3) CMDargNErr(option,3);
+      // 0=insurf 1=mri 2=agws 3=maxdist 4=outsurf 5=outval
+      // Uses surftype from above
+      if(nargc < 5) CMDargNErr(option,3);
       MRIS *surf = MRISread(pargv[0]);
+      MRISsaveVertexPositions(surf, ORIGINAL_VERTICES);
       MRI *mri = MRIread(pargv[1]);
-      printf("R1 ==========================================\n");
-      int a = GetVmPeak();
-      CBV(pargv[2],mri,surf);
-      int b = GetVmPeak();
-      printf("R1 VMPeak %d %d  %d\n",a,b,b-a);
-      printf("\n\n");
-      printf("R2 ==========================================\n");
-      a = GetVmPeak();
-      CBV(pargv[2],mri,surf);
-      b = GetVmPeak();
-      printf("R2 VMPeak %d %d  %d\n",a,b,b-a);
+      float maxdist;
+      sscanf(pargv[3],"%f",&maxdist);
+      CBV(pargv[2],mri,surf,surftype,maxdist);
+      for(int v=0; v<surf->nvertices;v++){
+	surf->vertices[v].x = surf->vertices[v].targx;	
+	surf->vertices[v].y = surf->vertices[v].targy;	
+	surf->vertices[v].z = surf->vertices[v].targz;	
+      }
+      int err = MRISwrite(surf,pargv[4]);
+      if(err) exit(1);
+      MRI *val = MRIcopyMRIS(NULL, surf, 0, "val");
+      err = MRIwrite(val,pargv[5]);
+      if(err) exit(1);
+      MRIfree(&val);
+      printf("\nmyfv %s -f %s:overlay=%s -f %s:overlay=%s:edgecolor=green\n\n",
+	     pargv[1],pargv[0],pargv[5],pargv[4],pargv[5]);
       exit(0);
-      nargsused = 1;
+      nargsused = 3;
     }
     else  {
       printf("ERROR: Option %s unknown\n", option);
@@ -1788,13 +1853,18 @@ int parse_commandline(int argc, char **argv) {
 void print_usage(void)
 {
   printf("cpptester \n");
-  printf("  --surf inputsurf : will get curv info from here if needed\n");
+  printf("  --surf inputsurf \n");
+  printf("  --curv curvfile  : target curv (will get from surf if not spec)\n");
   printf("  --o outputsurf \n");
+  printf("  --out-curv outcurvfile   : write out the curvature of the final surface\n");
+  printf("  --init-curv initcurvfile : write out the curvature of the input surface\n");
   printf("  --vol intensityvol adgws \n");
   printf("  --wI wI : intensity weight (default is %lf)\n",wI);
   printf("  --wS wS : spring weight (default is %lf)\n",wS);
   printf("  --wH wH : meancurv weight (default is %lf)\n",wH);
+  printf("  --cbv-dist dist : (default is %lf)\n",cbvdist);
   printf("  --white or --pial \n");
+  printf("  --target targetsurf : CBV target surface\n");
   printf("  --iters iters (defualt %d) \n",iters);
   printf("  --save-iters \n");
   printf("  --threads threads \n");
@@ -1823,6 +1893,7 @@ void dump_options(FILE *fp) {
   //fprintf(fp,"cwd %s\n",cwd);
   //fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"surffile  %s\n",surffile);
+  if(curvfile) fprintf(fp,"curvfile  %s\n",curvfile);
   fprintf(fp,"adwgs %s\n",adgwsfile);
   fprintf(fp,"mri  %s\n",imrifile);
   fprintf(fp,"outsurf     %s\n",outsurffile);
@@ -1830,6 +1901,7 @@ void dump_options(FILE *fp) {
   fprintf(fp,"wI  %g\n",wI);
   fprintf(fp,"wS  %g\n",wS);
   fprintf(fp,"wH  %g\n",wH);
+  fprintf(fp,"cbvdist  %g\n",cbvdist);
   fprintf(fp,"threads  %d\n",threads);
   return;
 }
