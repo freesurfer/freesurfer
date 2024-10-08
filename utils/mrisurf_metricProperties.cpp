@@ -5861,23 +5861,26 @@ double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptes
   points controlled by dL), and the distance is computed as the
   closest of those 25. An exact solution is possible, just harder 
   to program. The difference is put in to the curv field of surf1.
-  The closest point is put into targ{xyz}
+  The closest point is put into targ{xyz}. Returns the min dist
+  across all verteices.
 */
-int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
+double MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
 {
   int vno1, nthface, faceno2,vno2,k; 
   VERTEX_TOPOLOGY *vt2;
   MRIS_HASH_TABLE *mht;
   float dminv;
-  double d,dmin,dL=0.2;
+  double d,dmin,dL=0.2,dminmin=10e10,dminsum=0,dminsum2=0;
   double pv1[3], pf1[3], pf2[3], pf3[3], pmin[3], pmin0[3];
   VERTEX *v1, *v2;
 
   mht = MHTcreateVertexTable_Resolution(surf2, CURRENT_VERTICES, 10);
 
+  int nhits = 0;
   for (vno1 = 0; vno1 < surf1->nvertices; vno1++) {
     v1 = &surf1->vertices[vno1];
     if (v1->ripflag)  continue;
+    nhits++;
 
     // Get the coords for this vertex on surf1
     StuffVertexCoords(surf1, vno1, pv1);
@@ -5915,10 +5918,21 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
     v1->targx = pmin[0];
     v1->targy = pmin[1];
     v1->targz = pmin[2];
+
+    dminsum += dmin;
+    dminsum2 += (dmin*dmin);
+    if(dminmin > dmin) dminmin = dmin;
   }
 
   MHTfree(&mht);
-  return (NO_ERROR);
+
+  double dminmn = dminsum/nhits;
+  double dminsd = (nhits*dminmn*dminmn + dminsum2 - 2*dminmn*dminsum)/(nhits-1);
+
+  double dmin2mn = dminsum2/nhits;
+  printf("MRISdistanceBetweenSurfacesExact() %d %g %g %g %g\n",nhits,dminmin,dminmn,dminsd,dmin2mn);
+
+  return(dminmin);
 }
 
 short FACES_Hcurvature_determineSign(MRIS *apmris,
