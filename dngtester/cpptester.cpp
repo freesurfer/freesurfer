@@ -1584,6 +1584,7 @@ char *initcurvfile=NULL;
 LABEL *label=NULL;
 char *targetsurffile=NULL;
 double cbvdist=5.0;
+double NoiseLevel=0;
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
@@ -1591,7 +1592,7 @@ int main(int argc, char **argv)
   int nargs = handleVersionOption(argc, argv, "cpptester");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
-  //char *cmdline = argv2cmdline(argc,argv);
+  char *cmdline = argv2cmdline(argc,argv);
   //uname(&uts);
   getcwd(cwd,2000);
   cmdline2 = argv2cmdline(argc,argv);
@@ -1605,19 +1606,24 @@ int main(int argc, char **argv)
 
   if(argc == 0) usage_exit();
   parse_commandline(argc, argv);
+
+  printf("\ncd %s\n",cwd);
+  printf("%s\n\n",cmdline);
   dump_options(stdout);
 
 #ifdef HAVE_OPENMP
   omp_set_num_threads(threads);
 #endif
 
-  //check_options();
+  check_options();
   //if(checkoptsonly) return(0);
 
   Timer mytimer;
   //double tstart = mytimer.seconds();
 
   MyOpt mo;
+
+  // Read in the surface and set up topo
   mo.fs.surf = MRISread(surffile); // surface to optimize
   if(!mo.fs.surf) exit(1);
   MRIS *surf0 = MRISread(surffile);
@@ -1627,7 +1633,7 @@ int main(int argc, char **argv)
   if(label) mo.fs.Label2Mask(label);
 
   mo.fs.adgwsfile = adgwsfile;
-  mo.fs.mri_brain = MRIread(imrifile);
+  if(imrifile)  mo.fs.mri_brain = MRIread(imrifile);
   mo.fs.surftype = surftype;
   mo.wI = wI;
   mo.wS = wS;
@@ -1658,12 +1664,29 @@ int main(int argc, char **argv)
     MRIfree(&initcurv);
   }
 
+  if(NoiseLevel > 0){
+    printf("Adding noise to the surface %g\n",NoiseLevel);
+    for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
+      VERTEX *vtx = &(mo.fs.surf->vertices[vno]);
+      vtx->x += (2*NoiseLevel*vtx->nx)*(drand48()-0.5);
+      vtx->y += (2*NoiseLevel*vtx->ny)*(drand48()-0.5);
+      vtx->z += (2*NoiseLevel*vtx->nz)*(drand48()-0.5);
+    }
+    MRISwrite( mo.fs.surf,"noisy.srf");
+    // Recompute
+    mo.fs.CopyVXYZ();
+    mo.fs.ComputeFaces(0);
+    mo.fs.ComputeVertices(0);
+    mo.fs.ComputeMeanCurvs(0);
+  }
+
   // Get the initial cost
   double c0 = mo.Evaluate(mo.fs.vxyz);
   printf("Init cost = %g\n",c0);fflush(stdout);
 
   printf("Starting optimization\n"); fflush(stdout);
   ens::L_BFGS optimizer(10, 100, 1e-4, 0.9, 1e-6, 1e-15, 50, 1e-20);
+  //ens::Adam optimizer(0.001, 32, 0.9, 0.999, 1e-8, 100000, 1e-5, true);
   arma::mat vxyz = mo.fs.vxyz;
   double t0 = mytimer.seconds();
   for(int k=0; k < iters; k++){
@@ -1727,22 +1750,6 @@ int main(int argc, char **argv)
   //FStestMeanCurvGrad(surf, Delta, vno);
   //printf("==============================================\n");
   //SurfDiffStats(surf,surf0);
-  if(0){
-    // Add noise to the surface
-    for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
-      VERTEX *vtx = &(mo.fs.surf->vertices[vno]);
-      double umax = 5; // +/- umax
-      vtx->x += (2*umax*vtx->nx)*(drand48()-0.5);
-      vtx->y += (2*umax*vtx->ny)*(drand48()-0.5);
-      vtx->z += (2*umax*vtx->nz)*(drand48()-0.5);
-    }
-    MRISwrite( mo.fs.surf,"noisy.srf");
-    // Now recompute after adding noise
-    mo.fs.CopyVXYZ();
-    mo.fs.ComputeFaces(0);
-    mo.fs.ComputeVertices(0);
-    mo.fs.ComputeMeanCurvs(0);
-  }
   #endif
 
 
@@ -1833,6 +1840,11 @@ int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&cbvdist);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--noise")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&NoiseLevel);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--threads")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&threads);
@@ -1915,6 +1927,8 @@ void print_usage(void)
   printf("  --save-iters \n");
   printf("  --threads threads \n");
   printf("  --label labelfile\n");
+  printf("  --cbv-test 0=insurf 1=mri 2=agws 3=maxdist 4=targetsurf 5=targval\n");
+  printf("  --noise NoiseLevel : add uniform noise +/-Level in normal\n");
   printf("  --debug-vertex vno \n");
 }
 
@@ -1949,6 +1963,21 @@ void dump_options(FILE *fp) {
   fprintf(fp,"wH  %g\n",wH);
   fprintf(fp,"wT  %g\n",wTarg);
   fprintf(fp,"cbvdist  %g\n",cbvdist);
+  fprintf(fp,"NoiseLevel  %g\n",NoiseLevel);
   fprintf(fp,"threads  %d\n",threads);
   return;
+}
+void check_options(void){
+  if(imrifile == NULL && (wI > 0 || wTarg > 0)){
+    printf("ERROR: must specify an input mri\n");
+    exit(1);
+  }
+  if(surffile == NULL){
+    printf("ERROR: must specify an input surface\n");
+    exit(1);
+  }
+  if(outsurffile == NULL){
+    printf("ERROR: must specify an output surface\n");
+    exit(1);
+  }
 }
