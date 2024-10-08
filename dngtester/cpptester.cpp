@@ -1340,6 +1340,49 @@ public:
     EvaluateWithGradient(vxyz, g);
     GradOnly=0;
   }
+  double LinMin(arma::mat& vxyz, double stepsize, int nsteps, int niters){
+    arma::mat vxyz0 = vxyz, vxyzmin;
+    arma::mat g;
+
+    int vno = 175;
+    double cmin = 10e10;
+    for(int k=0; k < 1000; k++){
+      g.zeros(vxyz.n_rows,vxyz.n_cols);
+      double c0 = EvaluateWithGradient(vxyz, g);
+      if(k==0) cmin = c0;
+      vxyzmin = vxyz;
+      double cprev = c0;
+      printf("#$$ k = %d =============================================\n",k);
+      printf("LM 00 %6.4lf   %6.4lf %6.4lf %6.4lf \n",cmin,vxyz(vno,0),vxyz(vno,1),vxyz(vno,2));
+      printf(" Jvno %6.4lf %6.4lf %6.4lf eps=%g\n",g(vno,0),g(vno,1),g(vno,2),fs.mcurvs[vno].eps);
+      printf(" vno H0 %6.4lf H %6.4lf \n",fs.mcurvs[vno].H0,fs.mcurvs[vno].H);
+      
+      int minhit = 0;
+      for(int n = 0; n < nsteps; n++){
+	double d = n; //-nsteps/2.0 + n;
+	arma::mat vxyzstep = vxyz - g*stepsize*d; // should check neg as well
+	double cstep = Evaluate(vxyzstep);
+	printf("LM %d %12.9lf   %6.4lf %6.4lf %6.4lf ",n,cstep,vxyz(vno,0),vxyz(vno,1),vxyz(vno,2));
+	if(cmin > cstep) {
+	  cmin = cstep;
+	  vxyzmin = vxyzstep;
+	  minhit = 1;
+	  printf("min\n");
+	}
+	else if((cstep > cprev)){ // && minhit
+	  printf("increase\n");
+	  //printf(" Cost increaed, breaking\n");
+	  break;
+	}
+	else printf("\n");
+	fflush(stdout);
+	cprev = cstep;
+      } // step
+      vxyz = vxyzmin;
+    }
+    return(cmin);
+  }
+
 };
 
 // Numeric test of Jacobian of mean curv wrt P
@@ -1556,6 +1599,25 @@ int SurfDiffStats(MRIS *surf1, MRIS *surf2)
   return(0);
 }
 
+MRI *AramaMat2MRI(arma::mat mat)
+{
+  int nframes = mat.n_cols;
+  int nvox = mat.n_rows;
+  MRI *mri = MRIallocSequence(nvox,1,1,MRI_FLOAT,nframes);
+
+  //printf("nvox = %d nframes = %d\n",nvox,nframes);
+  for(int r=0; r<nvox; r++){
+    for(int c=0; c<nframes; c++){
+      //printf("r=%d c=%d\n",r,c); fflush(stdout);
+      MRIsetVoxVal(mri,r,0,0,c,mat(r,c));
+      fflush(stderr);
+    }
+  }
+  return(mri);
+}
+
+
+
 int  parse_commandline(int argc, char **argv);
 void check_options();
 void print_usage();
@@ -1585,6 +1647,7 @@ LABEL *label=NULL;
 char *targetsurffile=NULL;
 double cbvdist=5.0;
 double NoiseLevel=0;
+int DoBFGS = 1;
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
@@ -1678,6 +1741,8 @@ int main(int argc, char **argv)
     mo.fs.ComputeFaces(0);
     mo.fs.ComputeVertices(0);
     mo.fs.ComputeMeanCurvs(0);
+    printf("Difference between true input and noisy surfs\n");
+    MRISdiffSimple(mo.fs.surf, surf0, 0, .00000001, 0);
   }
 
   // Get the initial cost
@@ -1685,21 +1750,27 @@ int main(int argc, char **argv)
   printf("Init cost = %g\n",c0);fflush(stdout);
 
   printf("Starting optimization\n"); fflush(stdout);
-  ens::L_BFGS optimizer(10, 100, 1e-4, 0.9, 1e-6, 1e-15, 50, 1e-20);
-  //ens::Adam optimizer(0.001, 32, 0.9, 0.999, 1e-8, 100000, 1e-5, true);
-  arma::mat vxyz = mo.fs.vxyz;
   double t0 = mytimer.seconds();
-  for(int k=0; k < iters; k++){
-    double cost = optimizer.Optimize(mo, vxyz); //ens::PrintLoss(stdout)
-    printf("k= %2d cost = %g   %g  %d %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls,mo.nevcalls);fflush(stdout);
-    //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
-    mo.fs.CopyVXYZtoSurf(vxyz);
-    if(saveiters){
-      char tmpstr[1000];
-      sprintf(tmpstr,"%s.k%02d",outsurffile,k);
-      MRISwrite(mo.fs.surf,tmpstr);
+
+
+  if(DoBFGS){
+    double armijoConst = 1e-4; // default is 1e-4
+    double wolfe = .9; // default is 0.9
+    ens::L_BFGS optimizer(10, 100, armijoConst, wolfe, 1e-6, 1e-15, 50, 1e-20);
+    arma::mat vxyz = mo.fs.vxyz;
+    for(int k=0; k < iters; k++){
+      double cost = optimizer.Optimize(mo, vxyz); //ens::PrintLoss(stdout)
+      printf("k= %2d cost = %g   %g  %d %d\n",k,cost,mytimer.seconds()-t0,mo.ncalls,mo.nevcalls);fflush(stdout);
+      //printf("#VMPC#k%d  VmPeak  %d\n",k,GetVmPeak());
+      mo.fs.CopyVXYZtoSurf(vxyz);
+      if(saveiters){
+	char tmpstr[1000];
+	sprintf(tmpstr,"%s.k%02d",outsurffile,k);
+	MRISwrite(mo.fs.surf,tmpstr);
+      }
     }
   }
+  else  mo.LinMin(mo.fs.vxyz,.1,20,iters);
 
   if(label){
     for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
@@ -1736,6 +1807,16 @@ int main(int argc, char **argv)
     if(err) exit(1);
     MRISrestoreVertexPositions(mo.fs.surf, TMP2_VERTICES);
   }
+
+  if(0 && wH>0){
+    printf("Saving J\n");
+    MRI *J = AramaMat2MRI(mo.fs.J_cH_p);
+    MRIwrite(J,"j.mgz");
+    MRIfree(&J);
+  }
+
+  printf("Difference between true input and output surfs\n");
+  MRISdiffSimple(mo.fs.surf, surf0, 0, .00000001, 0);
 
   printf("Init cost = %g\n",c0);fflush(stdout);
   printf("cpptester-runtime   %g %d %d\n",mytimer.seconds()-t0,mo.ncalls,mo.nevcalls);fflush(stdout);
