@@ -1344,9 +1344,9 @@ public:
     arma::mat vxyz0 = vxyz, vxyzmin;
     arma::mat g;
 
-    int vno = 175;
+    int vno = 328;
     double cmin = 10e10;
-    for(int k=0; k < 1000; k++){
+    for(int k=0; k < niters; k++){
       g.zeros(vxyz.n_rows,vxyz.n_cols);
       double c0 = EvaluateWithGradient(vxyz, g);
       if(k==0) cmin = c0;
@@ -1357,27 +1357,26 @@ public:
       printf(" Jvno %6.4lf %6.4lf %6.4lf eps=%g\n",g(vno,0),g(vno,1),g(vno,2),fs.mcurvs[vno].eps);
       printf(" vno H0 %6.4lf H %6.4lf \n",fs.mcurvs[vno].H0,fs.mcurvs[vno].H);
       
-      int minhit = 0;
-      for(int n = 0; n < nsteps; n++){
-	double d = n; //-nsteps/2.0 + n;
-	arma::mat vxyzstep = vxyz - g*stepsize*d; // should check neg as well
-	double cstep = Evaluate(vxyzstep);
-	printf("LM %d %12.9lf   %6.4lf %6.4lf %6.4lf ",n,cstep,vxyz(vno,0),vxyz(vno,1),vxyz(vno,2));
-	if(cmin > cstep) {
-	  cmin = cstep;
-	  vxyzmin = vxyzstep;
-	  minhit = 1;
-	  printf("min\n");
-	}
-	else if((cstep > cprev)){ // && minhit
-	  printf("increase\n");
-	  //printf(" Cost increaed, breaking\n");
-	  break;
-	}
-	else printf("\n");
-	fflush(stdout);
-	cprev = cstep;
-      } // step
+      for(int direction = -1; direction < 2; direction +=2 ){
+	for(int n = 1; n < nsteps; n++){
+	  double d = direction*n;
+	  arma::mat vxyzstep = vxyz - g*stepsize*d; // should check neg as well
+	  double cstep = Evaluate(vxyzstep);
+	  if(cmin > cstep) {
+	    cmin = cstep;
+	    vxyzmin = vxyzstep;
+	    printf("LM %d %3.1lf %12.9lf   %6.4lf %6.4lf %6.4lf ",n,d,cstep,vxyz(vno,0),vxyz(vno,1),vxyz(vno,2));
+	    printf("min\n");
+	    fflush(stdout);
+	  }
+	  else if((cstep > cprev)){
+	    //printf("increase\n");
+	    //printf(" Cost increaed, breaking\n");
+	    break;
+	  }
+	  cprev = cstep;
+	} // step
+      } // direction
       vxyz = vxyzmin;
     }
     return(cmin);
@@ -1647,7 +1646,9 @@ LABEL *label=NULL;
 char *targetsurffile=NULL;
 double cbvdist=5.0;
 double NoiseLevel=0;
-int DoBFGS = 1;
+int DoBFGS = 0;
+double LinMinStep=0.1;
+long int Seed = 53;
 
 //MAIN ----------------------------------------------------
 int main(int argc, char **argv) 
@@ -1670,16 +1671,17 @@ int main(int argc, char **argv)
   if(argc == 0) usage_exit();
   parse_commandline(argc, argv);
 
-  printf("\ncd %s\n",cwd);
-  printf("%s\n\n",cmdline);
-  dump_options(stdout);
-
 #ifdef HAVE_OPENMP
   omp_set_num_threads(threads);
 #endif
 
   check_options();
   //if(checkoptsonly) return(0);
+  printf("\ncd %s\n",cwd);
+  printf("%s\n\n",cmdline);
+  dump_options(stdout);
+
+  srand48(Seed);
 
   Timer mytimer;
   //double tstart = mytimer.seconds();
@@ -1754,9 +1756,10 @@ int main(int argc, char **argv)
 
 
   if(DoBFGS){
-    double armijoConst = 1e-4; // default is 1e-4
-    double wolfe = .9; // default is 0.9
-    ens::L_BFGS optimizer(10, 100, armijoConst, wolfe, 1e-6, 1e-15, 50, 1e-20);
+    //double armijoConst = 1e-4; // default is 1e-4
+    //double wolfe = .9; // default is 0.9
+    //ens::L_BFGS optimizer(10, 100, armijoConst, wolfe, 1e-6, 1e-15, 50, 1e-20);
+    ens::GradientDescent optimizer(0.001,100,1e-10);
     arma::mat vxyz = mo.fs.vxyz;
     for(int k=0; k < iters; k++){
       double cost = optimizer.Optimize(mo, vxyz); //ens::PrintLoss(stdout)
@@ -1770,7 +1773,7 @@ int main(int argc, char **argv)
       }
     }
   }
-  else  mo.LinMin(mo.fs.vxyz,.1,20,iters);
+  else  mo.LinMin(mo.fs.vxyz,LinMinStep,20,iters);
 
   if(label){
     for(int vno=0; vno < mo.fs.surf->nvertices; vno++){
@@ -1926,6 +1929,11 @@ int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&NoiseLevel);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--linmin-step")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&LinMinStep);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--threads")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&threads);
@@ -2010,6 +2018,8 @@ void print_usage(void)
   printf("  --label labelfile\n");
   printf("  --cbv-test 0=insurf 1=mri 2=agws 3=maxdist 4=targetsurf 5=targval\n");
   printf("  --noise NoiseLevel : add uniform noise +/-Level in normal\n");
+  printf("  --seed Seed : seed for noise (%ld)\n",Seed);
+  printf("  --linmin-step stepsize : %lf\n",LinMinStep);
   printf("  --debug-vertex vno \n");
 }
 
@@ -2045,6 +2055,8 @@ void dump_options(FILE *fp) {
   fprintf(fp,"wT  %g\n",wTarg);
   fprintf(fp,"cbvdist  %g\n",cbvdist);
   fprintf(fp,"NoiseLevel  %g\n",NoiseLevel);
+  fprintf(fp,"LinMinStep  %g\n",LinMinStep);
+  fprintf(fp,"Seed  %ld\n",Seed);
   fprintf(fp,"threads  %d\n",threads);
   return;
 }
