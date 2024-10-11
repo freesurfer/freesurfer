@@ -231,6 +231,9 @@ else
 endif
 echo $returnVal
 
+# TEMPORARY: convert to .stats file under /stats
+mkdir -p ${SUBJECTS_DIR}/${SUBJECTNAME}/stats
+mv ${SUBJECTS_DIR}/${SUBJECTNAME}/mri/arousalNetworkVolumes.${SUFFIX}.txt ${SUBJECTS_DIR}/${SUBJECTNAME}/stats/arousalNetworkVolumes.${SUFFIX}.stats
 
 if ($returnVal) then
   uname -a | tee -a $AANNUCLOG
