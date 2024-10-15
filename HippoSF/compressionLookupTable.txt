@@ -36,5 +36,5 @@
 7005 35 Central-nucleus                      197 60  248 255
 7006 36 Medial-nucleus                       2   149 2   255
 7007 37 Cortical-nucleus                     221 249 166 255
-7009 38 Corticoamygdaloid-transition          20  60  120 255
+7009 38 Corticoamygdaloid-transitio          20  60  120 255
 7015 39 Paralaminar-nucleus                   45  205 165 255
