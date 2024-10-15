@@ -33,3 +33,6 @@ if(BUILD_GUIS)
   add_subdirectory(nnUNet)
 
 endif()
+
+# should this be in the if statement, is there any reason to install w/o GUI?
+install_configured(dissection_photo_gui.sh DESTINATION bin)
