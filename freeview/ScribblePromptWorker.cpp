@@ -19,8 +19,7 @@ ScribblePromptWorker::ScribblePromptWorker(QObject *parent)
   connect(this, SIGNAL(ComputeTriggered()), SLOT(DoCompute()));
   connect(this, SIGNAL(ApplyTriggered()), SLOT(DoApply()));
   connect(this, SIGNAL(InitializationTriggered(QString)), SLOT(DoInitialization(QString)));
-  QString fn = QProcessEnvironment::systemEnvironment().value( "FREESURFER_HOME" ) + "/traced_ScribblePrompt_UNet_nf192_res128.pt";
-//  fn = "/Users/rpwang/src/torch_test/traced_ScribblePrompt_UNet_nf192_res128.pt";
+  QString fn = QProcessEnvironment::systemEnvironment().value( "FREESURFER_HOME" ) + "/pytorch_models/traced_ScribblePrompt_UNet_nf192_res128.pt";
   if (QFile::exists(fn))
     Initialize(fn);
   else
