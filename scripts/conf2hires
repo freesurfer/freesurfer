@@ -37,6 +37,9 @@ set RunIt = 1
 set UseHighMyelin = 0; # Allows using diff thresholds when placing white in high-myelin cortex
 set HighMyelinFactor = (); # Value between 0 (closer to white) and 1 (closer to cortical gm)
 
+if($?FS_V8_XOPTS == 0) setenv FS_V8_XOPTS 0
+set UseV8 = $FS_V8_XOPTS;
+
 # Options for mri_normalize, can strongly affect the pial placement
 set normOptsRCA = (-seed 1234 -mprage -aseg rawavg.aseg.presurf.mgz)
 set normOptsC2H = (-sigma 8 -erode 1 -min_dist 1)
@@ -77,6 +80,9 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set V8XoptsFile = ()
+if($UseV8) set V8XoptsFile = $FREESURFER/etc/global-expert-options.v8.txt
 
 set PWD = pwd;
 # better yet, make sure the real pwd is used:
@@ -392,7 +398,7 @@ foreach hemi ($hemilist)
   else
     set hml = ()
   endif
-  set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
+  set xopts = `fsr-getxopts PlaceWhiteSurf $V8XoptsFile $GlobXOptsFile $XOptsFile `;
   set cmd = ($cmd $xopts)
   echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
   echo $cmd    |& tee -a $LF |& tee -a $CF
@@ -428,7 +434,7 @@ foreach hemi ($hemilist)
   endif
   if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
   # Things might need to add: noaseg, noaparc, UseFixMtl
-  set xopts = `fsr-getxopts PlaceT1PialSurf $XOptsFile $GlobXOptsFile`;
+  set xopts = `fsr-getxopts PlaceT1PialSurf $V8XoptsFile $GlobXOptsFile $XOptsFile `;
   set cmd = ($cmd $xopts)
   echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
   echo $cmd      |& tee -a $LF |& tee -a $CF
@@ -508,7 +514,7 @@ if($#MMode) then
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
     --$MMBBRcon --surf $srcsurf --gm-proj-abs 1.5 --wm-proj-abs 1 --threads $threads)
   set cmd = ($cmd --no-coreg-ref-mask) # otherwise can become non-determin if aparc+aseg is there
-  set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+  set xopts = `fsr-getxopts bbregister $V8XoptsFile $GlobXOptsFile $XOptsFile `;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded $MMregAuto $MM ../surf/lh.$srcsurf ../surf/rh.$srcsurf`
   echo "\n#===============================" | tee -a $LF
@@ -615,7 +621,7 @@ if($#MMode) then
     #if($DoT2)    set cmd = ($cmd -T2    rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
     #if($DoFLAIR) set cmd = ($cmd -FLAIR rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
     # Things might need to add: noaseg, noaparc
-    set xopts = `fsr-getxopts PlaceMMPialSurf $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts PlaceMMPialSurf $V8XoptsFile $GlobXOptsFile $XOptsFile `;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
@@ -704,6 +710,15 @@ while( $#argv != 0 )
   set flag = $argv[1]; shift;
   
   switch($flag)
+
+    case "-v8": 
+    case "--v8": 
+      set UseV8 = 1
+      breaksw;
+    case "-no-v8": 
+    case "--no-v8": 
+      set UseV8 = 0
+      breaksw;
 
     case "--s":
       if($#argv < 1) goto arg1err;
@@ -990,6 +1005,7 @@ usage_exit:
   echo "  --stopmask stopmaskscm"
   echo "  --expert xopts (or -expert)"
   echo "  --force-update"
+  echo "  --v8/--no-v8 ($UseV8)"
   echo ""
 
   if(! $PrintHelp) exit 1;

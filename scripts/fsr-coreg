@@ -27,6 +27,9 @@ set GlobXOptsFile = ()
 set ForceUpdate = 0
 set rtsat = 4.685
 
+if($?FS_V8_XOPTS == 0) setenv FS_V8_XOPTS 0
+set UseV8 = $FS_V8_XOPTS;
+
 set inputargs = ($argv);
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -44,6 +47,9 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set V8XoptsFile = ()
+if($UseV8) set V8XoptsFile = $FREESURFER/etc/global-expert-options.v8.txt
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -132,7 +138,7 @@ foreach modename ($modenames)
 
   # If it gets here, then register refmode runs together
   set cmd = (mri_robust_template --template $average --mov $srclist --lta $ltalist --sat $rtsat)
-  set xopts = `fsr-getxopts $selfname-mri_robust_template $XOptsFile $GlobXOptsFile`;
+  set xopts = `fsr-getxopts $selfname-mri_robust_template $V8XoptsFile $GlobXOptsFile $XOptsFile `;
   set cmd = ($cmd $xopts)
   date | tee -a $LF
   echo "cd `pwd`" | tee -a $LF
@@ -185,7 +191,7 @@ foreach modename ($modenames)
   set UN = `UpdateNeeded $ltaauto $movvol`
   if($UN == 1 || $ForceUpdate == 1) then
     set cmd = (mri_coreg --mov $movvol --ref $refvol --reg $ltaauto --threads $threads)
-    set xopts = `fsr-getxopts $selfname-mri_coreg $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts $selfname-mri_coreg $V8XoptsFile $GlobXOptsFile $XOptsFile `;
     set cmd = ($cmd $xopts)
     date | tee -a $LF
     echo "cd `pwd`" | tee -a $LF
@@ -219,7 +225,7 @@ foreach modename ($modenames)
       set UN = `UpdateNeeded $runreflta $runlta $lta`
       if($UN == 1 || $ForceUpdate) then
         set cmd = (mri_concatenate_lta $runlta $lta $runreflta)
-        set xopts = `fsr-getxopts $selfname-mri_concatenate_lta $XOptsFile $GlobXOptsFile`;
+        set xopts = `fsr-getxopts $selfname-mri_concatenate_lta $V8XoptsFile $GlobXOptsFile $XOptsFile `;
         set cmd = ($cmd $xopts)
         date | tee -a $LF
         echo "cd `pwd`" | tee -a $LF
@@ -237,7 +243,7 @@ foreach modename ($modenames)
     set UN = `UpdateNeeded $outvol $runreflta $movvol`
     if($UN == 1 || $ForceUpdate == 1) then
       set cmd = (mri_vol2vol --mov $movvol --reg $runreflta --o $outvol --interp cubic)
-      set xopts = `fsr-getxopts $selfname-mri_vol2vol $XOptsFile $GlobXOptsFile`;
+      set xopts = `fsr-getxopts $selfname-mri_vol2vol $V8XoptsFile $GlobXOptsFile $XOptsFile `;
       set cmd = ($cmd $xopts)
       date | tee -a $LF
       echo "cd `pwd`" | tee -a $LF
@@ -332,6 +338,15 @@ while( $#argv != 0 )
   set flag = $argv[1]; shift;
   
   switch($flag)
+
+    case "-v8": 
+    case "--v8": 
+      set UseV8 = 1
+      breaksw;
+    case "-no-v8": 
+    case "--no-v8": 
+      set UseV8 = 0
+      breaksw;
 
     case "--importdir":
     case "--id":
@@ -495,6 +510,7 @@ usage_exit:
   echo "  --force-update : force update of files regardless of time stamp"
   echo "  --o outdir : set the output dir (default is importdir)"
   echo "  --expert xoptsfile"
+  echo "  --v8/--no-v8 ($UseV8)"
   echo ""
 
   if(! $PrintHelp) exit 1;

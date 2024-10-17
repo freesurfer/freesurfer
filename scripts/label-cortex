@@ -22,6 +22,8 @@ set XOptsFile = ()
 set GlobXOptsFile = ()
 set RunIt = 1
 set DoHipAmyg = 0
+if($?FS_V8_XOPTS == 0) setenv FS_V8_XOPTS 0
+set UseV8 = $FS_V8_XOPTS;
 
 set asegname = aseg.presurf
 set surfname = white.preaparc
@@ -47,6 +49,9 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set V8XoptsFile = ()
+if($UseV8) set V8XoptsFile = $FREESURFER/etc/global-expert-options.v8.txt
 
 # Set up log file
 if($LF != /dev/null) rm -f $LF
@@ -78,7 +83,7 @@ foreach hemi ($hemilist)
   set ud = `UpdateNeeded $ctxlabelha $whitepreaparc $aseg`
   if($DoHipAmyg && ($ud || $ForceUpdate)) then
     set cmd = (mri_label2label --label-cortex $whitepreaparc $aseg 1 $ctxlabelha)
-    set xopts = `fsr-getxopts CortexLabelHA $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts CortexLabelHA $V8XoptsFile $GlobXOptsFile $XOptsFile `;
     set cmd = ($cmd $xopts)
     echo $cmd |& tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
