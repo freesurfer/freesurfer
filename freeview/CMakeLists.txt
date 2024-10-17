@@ -205,14 +205,16 @@ if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils)
     VolumeFilterOptimal.cpp
     DialogSaveAllVolumes.cpp
     ToolWindowLesionPopup.cpp
-#    TorchScriptModule.cpp
-#    ScribblePromptWorker.cpp
     DialogLoadODF.cpp
     freeview.qrc
   )
 
   if(PETSC_FOUND AND NOT APPLE_ARM64)
      set(SOURCES ${SOURCES} DialogLineProfile.cpp LayerLineProfile.cpp)
+  endif()
+
+  if(BUILD_SCRIBBLE)
+     set(SOURCES ${SOURCES} TorchScriptModule.cpp ScribblePromptWorker.cpp)
   endif()
 
   # build the QVTKWidget utilities
@@ -318,11 +320,38 @@ if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils)
     install(TARGETS freeview DESTINATION bin)
   endif()
 
-  # for libtorch stuff
-#  if(APPLE)
-#    include_directories(/usr/local/lib/python3.10/site-packages/torch/include)
-#    link_directories(/usr/local/lib/python3.10/site-packages/torch/lib)
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib/python3.10/site-packages/torch/lib -ltorch -lc10 -ltorch_cpu")
-#  endif()
+  # Use cmake option -DBUILD_SCRIBBLE=ON for in house rocky8 builds (not for release).
+  # Compile extra source files above, change build options and link in 3rd party libtorch.
+  # There is a related ifdef in ../packages/dcm2niix/CMakeLists.txt
+  if(BUILD_SCRIBBLE)
+     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSCRIBBLE_PROMPT")
+     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSCRIBBLE_PROMPT")
+     if(APPLE)
+        message(FATAL_ERROR "Disabled on MacOS; 3rd party homebrew install may not match torch distribution.")
+        # include_directories(/usr/local/lib/python3.10/site-packages/torch/include)
+        # link_directories(/usr/local/lib/python3.10/site-packages/torch/lib)
+        # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib/python3.10/site-packages/torch/lib -ltorch -lc10 -ltorch_cpu")
+     else()
+        host_os()
+        if (NOT ${HOST_OS} MATCHES "Rocky8")
+           message(FATAL_ERROR "BUILD_SCRIBBLE not supported on ${HOST_OS}")
+        endif()
+        set(TORCH_DIR "/space/freesurfer/packages/libtorch/2.3.0.dev20240124+cpu")
+        include_directories(${TORCH_DIR}/include)
+        link_directories(${TORCH_DIR}/lib)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${TORCH_DIR}/lib -ltorch -lc10 -ltorch_cpu")
+        set(CMAKE_CXX_STANDARD 17)
+        target_compile_features(freeview PUBLIC cxx_std_17)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++1z")
+
+        add_custom_command(TARGET freeview POST_BUILD COMMAND
+           ./custom_rpath.sh ${CMAKE_CURRENT_SOURCE_DIR} ${Qt5_DIR} ${VTK_DIR} ${TORCH_DIR} ${CMAKE_INSTALL_PREFIX}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+           COMMENT "Set RPATH and install as ${CMAKE_INSTALL_PREFIX}/freeview --> freeview_scribble_prompt."
+        )
+     endif()
+  endif()
 
 endif()
+
