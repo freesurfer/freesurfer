@@ -55,7 +55,7 @@ option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
 option(FSPYTHON_INSTALL_TREE "install fspython, model files and scripts to a separate install tree" OFF)
 option(FSPYTHON_INSTALL_CUDA "install torch and tensorflow packages that support cuda into fspython" OFF)
-option(BUILD_SCRIBBLE "Build freeview to support scribble prompt...in-house builds only OFF")
+option(BUILD_SCRIBBLE "Build freeview to support scribble prompt...in-house builds only" OFF)
 option(APPLE_ARM64 "Mac arm64 build" OFF)
 
 message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
