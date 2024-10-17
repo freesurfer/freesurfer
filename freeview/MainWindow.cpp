@@ -1353,8 +1353,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("view") << sa[0]);
   }
 
-  if (parser->Found("neuro-view"))
-    SetNeurologicalView(true);
+  SetNeurologicalView(parser->Found("neuro-view"));
 
   if ( parser->Found("orthographic"))
     AddScript(QStringList("setorthographic"));
@@ -10085,6 +10084,10 @@ void MainWindow::SetNeurologicalView(bool b)
   {
     ((LayerMRI*)layer)->SetDisplayInNeurologicalView(b);
   }
+  for (int i = 0; i < 3; i++)
+  {
+    ((RenderView2D*)m_views[i])->ResetCameraClippingRange();
+  }
 }
 
 void MainWindow::OnShowLabelOutline(bool bShow)
@@ -10176,3 +10179,4 @@ bool MainWindow::GetNeurologicalView()
 {
   return ((RenderView2D*)m_views[0])->GetNeurologicalView();
 }
+
