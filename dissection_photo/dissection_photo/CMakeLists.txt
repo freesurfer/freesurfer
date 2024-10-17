@@ -27,4 +27,6 @@ if(BUILD_GUIS)
     install(TARGETS dissection_photo DESTINATION bin)
   endif()
 
+  install_configured(dissection_photo_gui.sh DESTINATION bin)
+
 endif()
