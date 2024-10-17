@@ -3,13 +3,18 @@
 #
 # fsr-getxopts
 #
-# USAGE: fsr-getxopts cmd xoptsfile
+# USAGE: fsr-getxopts key xoptsfile
 #
-# Parses expert options for freesurfer recon.
-# Looks in xoptsfile for a line with cmd as the first item,
-# then returns the rest of the items on that line. Ignores
-# all lines with # in them, regardless of where on the line
-# they occur.
+
+# Parses expert options for freesurfer recon.  Looks in xoptsfile for
+# a line with key as the first item, then returns the rest of the
+# items on that line. Ignores all lines with # in them, regardless of
+# where on the line they occur. If multiple files are passed then it
+# returns all options for matches in the order of the files passed on
+# the command line. A file should not have multiple occurances of a
+# key or else it will not properly generate the options (but not
+# crash)
+
 #
 # Eg, if the file expert.opts contains:
 #   mri_em_register -p .5
@@ -36,14 +41,15 @@ set VERSION = 'fsr-getxopts @FS_VERSION@';
 
 if($#argv < 2) then
   # Dont print out anything here otherwise mess up recon-all
-  # fsr-getxopts cmd xoptsfile1 xoptsfile2 ...
+  # fsr-getxopts key xoptsfile1 xoptsfile2 ...
   exit 0;
 endif
 
-set cmd           = $argv[1]; shift
+set key           = $argv[1]; shift
 set xoptsfilelist = ($argv)
 
 # Go thru the list of xopts files
+set optslist = ()
 foreach xoptsfile ($xoptsfilelist)
   # If it is not there, then an error
   if(! -e $xoptsfile) then
@@ -51,27 +57,26 @@ foreach xoptsfile ($xoptsfilelist)
     exit 1;
   endif
 
-  # Search for the command in the xoptsflie
-  set tmp = `grep $cmd $xoptsfile | wc -l`;
+  # Search for the command in the xoptsfile
+  # Before 10/16/24, it used this grep command. But this  is
+  # not specific enough because it will find any match when
+  # we only want the first item
+  #set tmp = `grep $key  | wc -l`;
 
-  # If it is not there, move on to the next xopts file
-  if($tmp == 0) continue
+  # This awk works on the first item only. Note that any lines with #
+  # are ignored regardless of where the # occurs
+  set tmp = `cat $xoptsfile | grep -v \# | awk -v key=$key '{if($1 == key) print $0}'`
 
-  # If there are multiple instances of the command, error. It is
-  # ok for the same command to be in multiple files (see below)
-  # but not in the same file
-  if($tmp > 1) then
-    echo "ERROR: cmd $cmd represented more than once in $xoptsfile"
-    exit 1;
-  endif
+  # If the key is not in the file, move on to the next xopts file
+  if($#tmp == 0) continue
 
-  # If it gets here, there is only one instance, so extract the options
-  set tmp = `grep -v \# $xoptsfile | grep $cmd `;
-  echo "$tmp[2-$#tmp]"
+  # Note that it accumulates a list of options from all files in the
+  # order of the files on the command line. This is a different
+  # behavior than pre 10/16/24 where it would only take the options
+  # from the first file.
+  set optslist = ($optslist $tmp[2-$#tmp])
 
-  # Do not search through any remaining xopts file. If the same command
-  # exists in multiple files precedence is given to the first file
-  break;
 end
+echo $optslist
 
 exit 0
