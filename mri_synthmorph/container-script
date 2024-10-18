@@ -29,7 +29,7 @@ import shutil
 import subprocess
 
 
-# Report version. Avoid error when piping, for example to head.
+# Report version. Avoid errors when piping, for example to `head`.
 signal.signal(signal.SIGPIPE, handler=signal.SIG_DFL)
 hub = 'https://hub.docker.com/u/freesurfer'
 print(f'Running SynthMorph version {version} from {hub}')
@@ -78,7 +78,7 @@ if tool in ('docker', 'podman'):
 
 
 # For Apptainer/Singularity, the user inside and outside the container is the
-# same. The working directory is also the same, unless we explicilty set it.
+# same. The working directory is also the same, unless we explicitly set it.
 if tool in ('apptainer', 'singularity'):
     arg = ('run', '--nv', '--pwd', '/mnt', '-e', '-B', f'{host}:/mnt', sif_file)
 
