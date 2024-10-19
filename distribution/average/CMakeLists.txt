@@ -32,6 +32,7 @@ install_symlinks(
   mni305.cor.subfov1.mgz
   mni305.cor.subfov2.mgz
   mni305.mask.cor.mgz
+  mni305.cor.stripped.mgz
 )
 
 # fsaverage
