@@ -1,233 +1,33 @@
 #!/usr/bin/env python3
 
-# Built-in modules. Import third-party modules further down.
 import os
 import sys
-import shutil
-import textwrap
 import argparse
+import textwrap
+import surfa as sf
+from synthmorph import utils
 
 
-# Settings.
+# Argument settings.
 default = {
     'model': 'joint',
     'hyper': 0.5,
     'extent': 256,
     'steps': 7,
+    'method': 'linear',
+    'type': 'float32',
+    'fill': 0,
 }
 choices = {
     'model': ('joint', 'deform', 'affine', 'rigid'),
     'extent': (192, 256),
+    'method': ('linear', 'nearest'),
+    'type': ('uint8', 'uint16', 'int16', 'int32', 'float32'),
 }
 limits = {
     'steps': 5,
 }
-weights = {
-    'joint': ('synthmorph.affine.2.h5', 'synthmorph.deform.3.h5',),
-    'deform': ('synthmorph.deform.3.h5',),
-    'affine': ('synthmorph.affine.2.h5',),
-    'rigid': ('synthmorph.rigid.1.h5',),
-}
-
-
-def rewrap(text, width=None, hard='\t\n', hard_indent=0):
-    """Rewrap text such that lines fill the available horizontal space.
-
-    Reformats individual paragraphs of a text body, considering subsequent
-    lines with identical indentation as paragraphs. For unspecified width, the
-    function will attempt to determine the extent of the terminal.
-
-    Parameters
-    ----------
-    text : str
-        Text to rewrap.
-    width : int, optional
-        Maximum line width. None means the width of the terminal as determined
-        by `textwrap`, defaulting to 80 characters for background processes.
-    hard : str, optional
-        String interpreted as a hard break when terminating a line. Useful for
-        inserting a line break without changing the indentation level. Must end
-        with a line break and will be removed from the output text.
-    hard_indent : int, optional
-        Number of additional whitespace characters by which to indent the lines
-        following a hard break. See `hard`.
-
-    Returns
-    -------
-    out : str
-        Reformatted text.
-
-    """
-    # Inputs.
-    if width is None:
-        width = shutil.get_terminal_size().columns
-    lines = text.splitlines(keepends=True)
-
-    # Merge lines to paragraphs.
-    pad = []
-    pad_hard = []
-    par = []
-    for i, line in enumerate(lines):
-        ind = len(line) - len(line.lstrip())
-        if i == 0 or ind != pad[-1] or lines[i - 1].endswith(hard):
-            par.append('')
-            pad.append(ind)
-            pad_hard.append(ind)
-
-        if line.endswith(hard):
-            line = line.replace(hard, '\n')
-            pad_hard[-1] += hard_indent
-        par[-1] += line[ind:]
-
-    # Reformat paragraphs.
-    for i, _ in enumerate(par):
-        par[i] = textwrap.fill(
-            par[i], width,
-            initial_indent=' ' * pad[i], subsequent_indent=' ' * pad_hard[i],
-        )
-
-    return '\n'.join(par)
-
-
-def network_space(im, shape, center=None):
-    """Construct transform from network space to the voxel space of an image.
-
-    Constructs a coordinate transform from the space the network will operate
-    in to the zero-based image index space. The network space has isotropic
-    1-mm voxels, left-inferior-anterior (LIA) orientation, and no shear. It is
-    centered on the field of view, or that of a reference image. This space is
-    an indexed voxel space, not world space.
-
-    Parameters
-    ----------
-    im : surfa.Volume
-        Input image to construct the transform for.
-    shape : (3,) array-like
-        Spatial shape of the network space.
-    center : surfa.Volume, optional
-        Center the network space on the center of a reference image.
-
-    Returns
-    -------
-    out : tuple of (3, 4) NumPy arrays
-        Transform from network to input-image space and its inverse, thinking
-        coordinates.
-
-    """
-    old = im.geom
-    new = sf.ImageGeometry(
-        shape=shape,
-        voxsize=1,
-        rotation='LIA',
-        center=old.center if center is None else center.geom.center,
-        shear=None,
-    )
-
-    net_to_vox = old.world2vox @ new.vox2world
-    vox_to_net = new.world2vox @ old.vox2world
-    return net_to_vox.matrix, vox_to_net.matrix
-
-
-def transform(im, trans, shape=None, normalize=False, batch=False):
-    """Apply a spatial transform to 3D image voxel data in dimensions.
-
-    Applies a transformation matrix operating in zero-based index space or a
-    displacement field to an image buffer.
-
-    Parameters
-    ----------
-    im : surfa.Volume or NumPy array or TensorFlow tensor
-        Input image to transform, without batch dimension.
-    trans : array-like
-        Transform to apply to the image. A matrix of shape (3, 4), a matrix
-        of shape (4, 4), or a displacement field of shape (*space, 3),
-        without batch dimension.
-    shape : (3,) array-like, optional
-        Output shape used for converting matrices to dense transforms. None
-        means the shape of the input image will be used.
-    normalize : bool, optional
-        Min-max normalize the image intensities into the interval [0, 1].
-    batch : bool, optional
-        Prepend a singleton batch dimension to the output tensor.
-
-    Returns
-    -------
-    out : float TensorFlow tensor
-        Transformed image with with a trailing feature dimension.
-
-    """
-    # Add singleton feature dimension if needed.
-    if tf.rank(im) == 3:
-        im = im[..., tf.newaxis]
-
-    out = vxm.utils.transform(
-        im, trans, fill_value=0, shift_center=False, shape=shape,
-    )
-
-    if normalize:
-        out -= tf.reduce_min(out)
-        out /= tf.reduce_max(out)
-
-    if batch:
-        out = out[tf.newaxis, ...]
-
-    return out
-
-
-def load_weights(model, weights):
-    """Load weights into model or submodel.
-
-    Attempts to load (all) weights into a model or one of its submodels. If
-    that fails, `model` may be a submodel of what we got weights for, and we
-    attempt to load the weights of a submodel (layer) into `model`.
-
-    Parameters
-    ----------
-    model : TensorFlow model
-        Model to initialize.
-    weights : str or pathlib.Path
-        Path to weights file.
-
-    Raises
-    ------
-    ValueError
-        If unsucessful at loading any weights.
-
-    """
-    # Extract submodels.
-    models = [model]
-    i = 0
-    while i < len(models):
-        layers = [f for f in models[i].layers if isinstance(f, tf.keras.Model)]
-        models.extend(layers)
-        i += 1
-
-    # Add models wrapping a single model in case this was done in training.
-    # Requires list expansion or Python will get stuck.
-    models.extend([tf.keras.Model(m.inputs, m(m.inputs)) for m in models])
-
-    # Attempt to load all weights into one of the models.
-    for mod in models:
-        try:
-            mod.load_weights(weights)
-            return
-        except ValueError as e:
-            pass
-
-    # Assume `model` is a submodel of what we got weights for.
-    with h5py.File(weights, mode='r') as h5:
-        layers = h5.attrs['layer_names']
-        weights = [list(h5[lay].attrs['weight_names']) for lay in layers]
-
-        # Layers with weights. Attempt loading.
-        layers, weights = zip(*filter(lambda f: f[1], zip(layers, weights)))
-        for lay, wei in zip(layers, weights):
-            try:
-                model.set_weights([h5[lay][w] for w in wei])
-                return
-            except ValueError as e:
-                if lay is layers[-1]:
-                    raise e
+resolve = ('model', 'method')
 
 
 # Documentation.
@@ -235,19 +35,107 @@ n = '\033[0m' if sys.stdout.isatty() else ''
 b = '\033[1m' if sys.stdout.isatty() else ''
 u = '\033[4m' if sys.stdout.isatty() else ''
 prog = os.path.basename(sys.argv[0])
-doc = f'''{prog}
+
+
+# References.
+ref = f'''
+SynthMorph: learning contrast-invariant registration without acquired images\t
+Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
+IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022\t
+https://doi.org/10.1109/TMI.2021.3116879
+
+Anatomy-specific acquisition-agnostic {u}affine{n} registration learned from fictitious images\t
+Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
+SPIE Medical Imaging: Image Processing, 12464, 1246402, 2023\t
+https://doi.org/10.1117/12.2653251\t
+https://synthmorph.io/#papers (PDF)
+
+Anatomy-aware and acquisition-agnostic {u}joint{n} registration with SynthMorph\t
+Hoffmann M, Hoopes A, Greve DN, Fischl B*, Dalca AV* (*equal contribution)\t
+Imaging Neuroscience, 2, 1-33, 2024\t
+https://doi.org/10.1162/imag_a_00197
+
+Website: https://synthmorph.io
+'''
+
+help_general = f'''{prog}
 
 {b}NAME{n}
         {b}{prog}{n} - register 3D brain images without preprocessing
 
 {b}SYNOPSIS{n}
-        {b}{prog}{n} [options] {u}moving{n} {u}fixed{n}
+        {b}{prog}{n} [-h] {u}command{n} [options]
+
+{b}DESCRIPTION{n}
+        SynthMorph is a deep-learning tool for symmetric, acquisition-agnostic
+        registration of single-frame brain MRI of any geometry. The
+        registration is anatomy-aware, removing the need for skull-stripping,
+        and you can control the warp smoothness.
+
+        Pass an option or {u}command{n} from the following list. You can omit
+        trailing characters, as long as there is no ambiguity.
+
+        {b}register{n}
+                Register 3D brain images without preprocessing.
+
+        {b}apply{n}
+                Apply an existing transform to another 3D image or label map.
+
+        {b}-h{n}
+                Print this help text and exit.
+
+{b}IMAGE FORMAT{n}
+        The registration supports single-frame image volumes of any size,
+        resolution, and orientation. The moving and the fixed image geometries
+        can differ. The accepted image file formats are: MGH (.mgz) and NIfTI
+        (.nii.gz, .nii).
+
+        Internally, the registration converts image buffers to: isotropic 1-mm
+        voxels, intensities min-max normalized into the interval [0, 1], and
+        left-inferior-anterior (LIA) axes. This conversion requires intact
+        image-to-world matrices. That is, the head must have the correct
+        anatomical orientation in a viewer like {b}freeview{n}.
+
+{b}TRANSFORM FORMAT{n}
+        SynthMorph transformations operate in physical RAS space. We save
+        matrix transforms as text in LTA format (.lta) and displacement fields
+        as images with three frames indicating shifts in RAS direction.
+
+{b}ENVIRONMENT{n}
+        The following environment variables affect {b}{prog}{n}:
+
+        SUBJECTS_DIR
+                Ignored unless {b}{prog}{n} runs inside a container. Mounts the
+                host directory SUBJECTS_DIR to {u}/mnt{n} inside the container.
+                Defaults to the current working directory.
+
+{b}SEE ALSO{n}
+        For converting, composing, and applying transforms, consider FreeSurfer
+        tools {b}lta_convert{n}, {b}mri_warp_convert{n},
+        {b}mri_concatenate_lta{n}, {b}mri_concatenate_gcam{n}, and
+        {b}mri_convert{n}.
+
+{b}CONTACT{n}
+        Reach out to freesurfer@nmr.mgh.harvard.edu or at
+        https://voxelmorph.net.
+
+{b}REFERENCES{n}
+        If you use SynthMorph in a publication, please cite us!
+''' + textwrap.indent(ref, prefix=' ' * 8)
+
+help_register = f'''{prog}-register
+
+{b}NAME{n}
+        {b}{prog}-register{n} - register 3D brain images without preprocessing
+
+{b}SYNOPSIS{n}
+        {b}{prog} register{n} [options] {u}moving{n} {u}fixed{n}
 
 {b}DESCRIPTION{n}
         SynthMorph is a deep-learning tool for symmetric, acquisition-agnostic
         registration of brain MRI with any volume size, resolution, and
         orientation. The registration is anatomy-aware, removing the need for
-        skull-stripping.
+        skull-stripping, and you can control the warp smoothness.
 
         SynthMorph registers a {u}moving{n} (source) image to a {u}fixed{n}
         (target) image. Their geometries can differ. The options are as
@@ -262,10 +150,10 @@ doc = f'''{prog}
                 initialization with {b}-i{n}.
 
         {b}-o{n} {u}image{n}
-                Save the moving image registered to the fixed image.
+                Save {u}moving{n} registered to {u}fixed{n}.
 
         {b}-O{n} {u}image{n}
-                Save the fixed image registered to the moving image.
+                Save {u}fixed{n} registered to {u}moving{n}.
 
         {b}-H{n}
                 Update the voxel-to-world matrix instead of resampling when
@@ -274,22 +162,22 @@ doc = f'''{prog}
                 registration.
 
         {b}-t{n} {u}trans{n}
-                Save the transform from the moving to the fixed image,
-                including any initialization.
+                Save the transform from {u}moving{n} to {u}fixed{n}, including
+                any initialization.
 
         {b}-T{n} {u}trans{n}
-                Save the transform from the fixed to the moving image,
-                including any initialization.
+                Save the transform from {u}fixed{n} to {u}moving{n}, including
+                any initialization.
 
         {b}-i{n} {u}trans{n}
-                Apply an initial matrix transform to the moving image before
-                the registration.
+                Apply an initial matrix transform to {u}moving{n} before the
+                registration.
 
         {b}-M{n}
-                Apply half the initial matrix transform to the moving and (the
-                inverse of) the other half to the fixed image, for symmetry.
+                Apply half the initial matrix transform to {u}moving{n} and
+                (the inverse of) the other half to {u}fixed{n}, for symmetry.
                 This will make running the deformable after an affine step
-                equivalent to joint registration. Requires -i.
+                equivalent to joint registration. Requires {b}-i{n}.
 
         {b}-j{n} {u}threads{n}
                 Number of TensorFlow threads. System default if unspecified.
@@ -323,36 +211,8 @@ doc = f'''{prog}
         {b}-h{n}
                 Print this help text and exit.
 
-{b}APPLYING TRANSFORMS{n}
-        Apply a deformation field to another image using FreeSurfer tools:
-                # mri_convert -at def.nii.gz in.nii.gz out.nii.gz
-
-        Apply an affine transform (.lta) to another image:
-                # mri_convert -at aff.lta in.nii.gz out.nii.gz
-
-{b}IMAGE FORMAT{n}
-        SynthMorph registers single-frame image volumes of any size,
-        resolution, and orientation. The moving and the fixed image geometries
-        can differ. The accepted file formats are: MGH (.mgz) and NIfTI
-        (.nii.gz, .nii).
-
-        Internally, we convert image buffers to: isotropic 1-mm voxels,
-        intensities min-max normalized into the interval [0, 1], and
-        left-inferior-anterior (LIA) axis orientation. This conversion
-        requires intact image-to-world matrices. That is, the head must have
-        the correct anatomical orientation in a viewer like FreeView.
-
-{b}TRANSFORM FORMAT{n}
-        SynthMorph transforms operate in physical RAS space. We save matrix
-        transforms as text in LTA format (.lta) and displacement fields as
-        images with three frames indicating shifts in RAS direction.
-
-        For converting, composing, and applying transforms, consider the
-        FreeSurfer tools lta_convert, mri_warp_convert, mri_concatenate_lta,
-        mri_concatenate_gcam, and mri_convert.
-
 {b}ENVIRONMENT{n}
-        The following environment variables affect {b}{prog}{n}:
+        The following environment variables affect {b}{prog}-register{n}:
 
         CUDA_VISIBLE_DEVICES
                 Use a specific GPU. If unset or empty, passing {b}-g{n} will
@@ -362,262 +222,195 @@ doc = f'''{prog}
                 Load model weights from directory {u}FREESURFER_HOME/models{n}.
                 Ignored when specifying weights with {b}-w{n}.
 
-        SUBJECTS_DIR
-                Ignored unless {b}{prog}{n} runs inside a container. Mount the
-                host directory SUBJECTS_DIR to {u}/mnt{n} inside the container.
-                Defaults to the current working directory.
-
 {b}EXAMPLES{n}
         Joint affine-deformable registration, saving the moved image:
-                # {prog} -o out.nii mov.nii fix.nii
+                # {prog} register -o out.nii mov.nii fix.nii
+
+        Joint registration at 25% warp smoothness:
+                # {prog} register -r 0.25 -o out.nii mov.nii fix.nii
 
         Affine registration saving the transform:
-                # {prog} -m affine -t aff.lta mov.nii.gz fix.nii.gz
+                # {prog} register -m affine -t aff.lta mov.nii.gz fix.nii.gz
 
         Deformable registration only, assuming prior affine alignment:
-                # {prog} -m deform -t def.mgz mov.mgz fix.mgz
+                # {prog} register -m deform -t def.mgz mov.mgz fix.mgz
 
-        Deformable registration initialized with an affine transform:
-                # {prog} -m deform -i aff.lta -o out.mgz mov.mgz fix.mgz
+        Deformable step initialized with an affine transform:
+                # {prog} reg -m def -i aff.lta -o out.mgz mov.mgz fix.mgz
 
-        Rigid registration, updating the output image header (no resampling):
-                # {prog} -m rigid -Ho out.mgz mov.mgz fix.mgz
+        Rigid registration, setting the output image header (no resampling):
+                # {prog} register -m rigid -Ho out.mgz mov.mgz fix.mgz
+'''
 
-{b}CONTACT{n}
-        Reach out to freesurfer@nmr.mgh.harvard.edu or at
-        https://github.com/voxelmorph/voxelmorph.
+help_apply = f'''{prog}-apply
 
-{b}REFERENCES{n}
-        If you use SynthMorph in a publication, please cite us!
+{b}NAME{n}
+        {b}{prog}-apply{n} - apply an existing SynthMorph transform
+
+{b}SYNOPSIS{n}
+        {b}{prog} apply{n} [options] {u}trans{n} {u}image{n} {u}output{n}
+        [{u}image{n} {u}output{n} ...]
+
+{b}DESCRIPTION{n}
+        Apply a spatial transform {u}trans{n} estimated by SynthMorph to a 3D
+        {u}image{n} and write the result to {u}output{n}. You can pass any
+        number of image-output pairs to be processed in the same way.
+
+        The following options identically affect all input-output pairs.
+
+        {b}-H{n}
+                Update the voxel-to-world matrix of {u}output{n} instead of
+                resampling. For matrix transforms only. Not all software and
+                file formats support headers with shear from affine
+                registration.
+
+        {b}-m{n} {u}method{n}
+                Interpolation method ({', '.join(choices['method'])}). Defaults
+                to {default['method']}. Choose linear for images and nearest
+                for label (segmentation) maps.
+
+        {b}-t{n} {u}type{n}
+                Output data type ({', '.join(choices['type'])}). Defaults to
+                {default['type']}. Casting to a type other than
+                {default['type']} after linear interpolation may result in
+                information loss.
+
+        {b}-f{n} {u}fill{n}
+                Extrapolation fill value for areas outside the field-of-view of
+                {u}image{n}. Defaults to {default['fill']}.
+
+        {b}-h{n}
+                Print this help text and exit.
+
+{b}EXAMPLES{n}
+        Apply an affine transform to an image:
+                # {prog} apply affine.lta image.nii out.nii.gz
+
+        Apply a warp to an image, saving the output in floating-point format:
+                # {prog} apply -t float32 warp.nii image.nii out.nii
+
+        Apply the same transform to two images:
+                # {prog} app warp.mgz im_1.mgz out_1.mgz im_2.mgz out_2.mgz
+
+        Transform a label map:
+                # {prog} apply -m nearest warp.nii labels.nii out.nii
 '''
 
 
-# References.
-ref = '''
-SynthMorph: learning contrast-invariant registration without acquired images\t
-Hoffmann M, Billot B, Greve DN, Iglesias JE, Fischl B, Dalca AV\t
-IEEE Transactions on Medical Imaging, 41 (3), 543-558, 2022\t
-https://doi.org/10.1109/TMI.2021.3116879
+# Command-line parsing.
+p = argparse.ArgumentParser()
+p.format_help = lambda: utils.rewrap_text(help_general, end='\n\n')
 
-Anatomy-specific acquisition-agnostic affine registration learned from fictitious images\t
-Hoffmann M, Hoopes A, Fischl B*, Dalca AV* (*equal contribution)\t
-SPIE Medical Imaging: Image Processing, 12464, 1246402, 2023\t
-https://doi.org/10.1117/12.2653251\t
-https://synthmorph.io/#papers (PDF)
-
-Anatomy-aware and acquisition-agnostic joint registration with SynthMorph\t
-Hoffmann M, Hoopes A, Greve DN, Fischl B*, Dalca AV* (*equal contribution)\t
-Imaging Neuroscience, 2, 1-33, 2024\t
-https://doi.org/10.1162/imag_a_00197
-
-Website: https://synthmorph.io
-'''
-doc += textwrap.indent(ref, prefix=' ' * 8)
+sub = p.add_subparsers(dest='command')
+commands = {f: sub.add_parser(f) for f in ('register', 'apply')}
 
 
-# Command-line arguments.
-p = argparse.ArgumentParser(add_help=False)
-p.add_argument('moving')
-p.add_argument('fixed')
-p.add_argument('-m', dest='model', choices=choices['model'], default=default['model'])
-p.add_argument('-o', dest='out_moving', metavar='image')
-p.add_argument('-O', dest='out_fixed', metavar='image')
-p.add_argument('-H', dest='header_only', action='store_true')
-p.add_argument('-t', dest='trans', metavar='trans')
-p.add_argument('-T', dest='inverse', metavar='trans')
-p.add_argument('-i', dest='init', metavar='trans')
-p.add_argument('-M', dest='mid_space', action='store_true')
-p.add_argument('-j', dest='threads', metavar='threads', type=int)
-p.add_argument('-g', dest='gpu', action='store_true')
-p.add_argument('-r', dest='hyper', metavar='lambda', type=float, default=default['hyper'])
-p.add_argument('-n', dest='steps', metavar='steps', type=int, default=default['steps'])
-p.add_argument('-e', dest='extent', choices=choices['extent'], type=int, default=default['extent'])
-p.add_argument('-w', dest='weights', metavar='weights', action='append')
-p.add_argument('-h', action='store_true')
-p.add_argument('-v', dest='verbose', action='store_true')
-p.add_argument('-d', dest='out_dir', metavar='dir')
+def add_flags(f):
+    out = {}
+
+    if f in choices:
+        out.update(choices=choices[f])
+        if f in resolve:
+            out.update(type=lambda x: utils.resolve_abbrev(x, strings=choices[f]))
+
+    if f in default:
+        out.update(default=default[f])
+
+    return out
 
 
-# Help.
+# Registration arguments.
+r = commands['register']
+r.add_argument('moving')
+r.add_argument('fixed')
+r.add_argument('-m', dest='model', **add_flags('model'))
+r.add_argument('-o', dest='out_moving', metavar='image')
+r.add_argument('-O', dest='out_fixed', metavar='image')
+r.add_argument('-H', dest='header_only', action='store_true')
+r.add_argument('-t', dest='trans', metavar='trans')
+r.add_argument('-T', dest='inverse', metavar='trans')
+r.add_argument('-i', dest='init', metavar='trans')
+r.add_argument('-M', dest='mid_space', action='store_true')
+r.add_argument('-j', dest='threads', metavar='threads', type=int)
+r.add_argument('-g', dest='gpu', action='store_true')
+r.add_argument('-r', dest='hyper', metavar='lambda', type=float, **add_flags('hyper'))
+r.add_argument('-n', dest='steps', metavar='steps', type=int, **add_flags('steps'))
+r.add_argument('-e', dest='extent', type=int, **add_flags('extent'))
+r.add_argument('-w', dest='weights', metavar='weights', action='append')
+r.add_argument('-v', dest='verbose', action='store_true')
+r.add_argument('-d', dest='out_dir', metavar='dir')
+r.format_help = lambda: utils.rewrap_text(help_register, end='\n\n')
+
+# Transformation arguments.
+a = commands['apply']
+a.add_argument('trans')
+a.add_argument('pairs', metavar='image output', nargs='+')
+a.add_argument('-H', dest='header_only', action='store_true')
+a.add_argument('-m', dest='method', **add_flags('method'))
+a.add_argument('-t', dest='type', **add_flags('type'))
+a.add_argument('-f', dest='fill', metavar='fill', type=float, **add_flags('fill'))
+a.format_help = lambda: utils.rewrap_text(help_apply, end='\n\n')
+
+
+# Parse arguments.
 if len(sys.argv) == 1:
     p.print_usage()
     exit(0)
 
-if any(f[0] == '-' and 'h' in f for f in sys.argv):
-    print(rewrap(doc), end='\n\n')
+# Command resolution.
+c = sys.argv[1] = utils.resolve_abbrev(sys.argv[1], commands)
+if len(sys.argv) == 2 and c in commands:
+    commands[c].print_usage()
     exit(0)
 
+# Default command.
+if c not in (*commands, '-h'):
+    sys.argv.insert(1, 'register')
 
-# Parse arguments.
 arg = p.parse_args()
-in_shape = (arg.extent,) * 3
-is_mat = arg.model in ('affine', 'rigid')
-
-if arg.header_only and not is_mat:
-    print('Error: -H is not compatible with deformable registration')
-    exit(1)
-
-if arg.mid_space and not arg.init:
-    print('Error: -M requires matrix initialization')
-    exit(1)
-
-if not 0 < arg.hyper < 1:
-    print('Error: regularization strength not in open interval (0, 1)')
-    exit(1)
-
-if arg.steps < limits['steps']:
-    print('Error: too few integration steps')
-    exit(1)
 
 
-# Setup.
-gpu = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu if arg.gpu else ''
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if arg.verbose else '3'
+# Command.
+if arg.command == 'register':
+
+    # Argument checking.
+    if arg.header_only and not arg.model in ('affine', 'rigid'):
+        sf.system.fatal('-H is not compatible with deformable registration')
+
+    if arg.mid_space and not arg.init:
+        sf.system.fatal('-M requires matrix initialization')
+
+    if not 0 < arg.hyper < 1:
+        sf.system.fatal('regularization strength not in open interval (0, 1)')
+
+    if arg.steps < limits['steps']:
+        sf.system.fatal('too few integration steps')
+
+    # TensorFlow setup.
+    gpu = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
+    os.environ['CUDA_VISIBLE_DEVICES'] = gpu if arg.gpu else ''
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if arg.verbose else '3'
+    from synthmorph import registration
+
+    registration.register(arg)
 
 
-# Third-party imports. Avoid waiting for TensorFlow just for documentation.
-import h5py
-import numpy as np
-import surfa as sf
-import tensorflow as tf
-import voxelmorph as vxm
+if arg.command == 'apply':
 
+    # Argument checking.
+    which = 'affine' if arg.trans.endswith('.lta') else 'warp'
+    if arg.header_only and which == 'warp':
+        sf.system.fatal('-H is not compatible with deformable transforms')
 
-# Threading.
-if arg.threads:
-    tf.config.threading.set_inter_op_parallelism_threads(arg.threads)
-    tf.config.threading.set_intra_op_parallelism_threads(arg.threads)
+    if len(arg.pairs) % 2:
+        sf.system.fatal('list of input-output pairs not of even length')
 
+    # Transform.
+    trans = getattr(sf, f'load_{which}')(arg.trans)
+    prop = dict(method=arg.method, resample=not arg.header_only, fill=arg.fill)
+    for inp, out in zip(arg.pairs[::2], arg.pairs[1::2]):
+        sf.load_volume(inp).transform(trans, **prop).astype(arg.type).save(out)
 
-# Input data.
-mov = sf.load_volume(arg.moving)
-fix = sf.load_volume(arg.fixed)
-if not len(mov.shape) == len(fix.shape) == 3:
-    sf.system.fatal('input images are not single-frame volumes')
-
-
-# Transforms between native voxel and network coordinates. Voxel and network
-# spaces differ for each image. The networks expect isotropic 1-mm LIA spaces.
-# We center these on the original images, except for deformable registration:
-# this assumes prior affine registration, so we center the moving network space
-# on the fixed image, to take into account affine transforms applied by
-# resampling, updating the header, or passed on the command line alike.
-center = fix if arg.model == 'deform' else None
-net_to_mov, mov_to_net = network_space(mov, shape=in_shape, center=center)
-net_to_fix, fix_to_net = network_space(fix, shape=in_shape)
-
-# Coordinate transforms from and to world space. There is only one world.
-mov_to_ras = mov.geom.vox2world.matrix
-fix_to_ras = fix.geom.vox2world.matrix
-ras_to_mov = mov.geom.world2vox.matrix
-ras_to_fix = fix.geom.world2vox.matrix
-
-
-# Incorporate an initial matrix transform, mapping moving to fixed coordinates,
-# as FreeSurfer LTAs store the inverse of what you might expect. For mid-space
-# initialization, compute the matrix square root of the transform between fixed
-# and moving network space.
-if arg.init:
-    init = sf.load_affine(arg.init).convert(space='voxel')
-    if init.ndim != 3 \
-        or not sf.transform.image_geometry_equal(mov.geom, init.source, tol=1e-3) \
-        or not sf.transform.image_geometry_equal(fix.geom, init.target, tol=1e-3):
-        sf.system.fatal('initial transform geometry does not match images')
-
-    init = fix_to_net @ init @ net_to_mov
-    if arg.mid_space:
-        init = tf.linalg.sqrtm(init)
-        if np.any(np.isnan(init)):
-            sf.system.fatal(f'cannot compute matrix square root of {arg.init}')
-        net_to_fix = net_to_fix @ init
-        fix_to_net = np.linalg.inv(net_to_fix)
-
-    net_to_mov = net_to_mov @ tf.linalg.inv(init)
-    mov_to_net = np.linalg.inv(net_to_mov)
-
-
-# Take the input images to network space. When saving the moving image with the
-# correct voxel-to-RAS matrix after incorporating an initial matrix transform,
-# an image viewer taking this matrix into account will show an unchanged image.
-# However, the networks only see the voxel data, which have been moved.
-inputs = (
-    transform(mov, net_to_mov, shape=in_shape, normalize=True, batch=True),
-    transform(fix, net_to_fix, shape=in_shape, normalize=True, batch=True),
-)
-if arg.out_dir:
-    os.makedirs(arg.out_dir, exist_ok=True)
-    inp_1 = os.path.join(arg.out_dir, 'inp_1.mgz')
-    inp_2 = os.path.join(arg.out_dir, 'inp_2.mgz')
-    geom_1 = sf.ImageGeometry(in_shape, vox2world=mov_to_ras @ net_to_mov)
-    geom_2 = sf.ImageGeometry(in_shape, vox2world=fix_to_ras @ net_to_fix)
-    sf.Volume(inputs[0][0], geom_1).save(inp_1)
-    sf.Volume(inputs[1][0], geom_2).save(inp_2)
-
-
-# Network.
-prop = dict(in_shape=in_shape, bidir=True)
-if is_mat:
-    prop.update(make_dense=False, rigid=arg.model == 'rigid')
-    model = vxm.networks.VxmAffineFeatureDetector(**prop)
-
-else:
-    prop.update(mid_space=True, int_steps=arg.steps, skip_affine=arg.model == 'deform')
-    model = vxm.networks.HyperVxmJoint(**prop)
-    inputs = (tf.constant([arg.hyper]), *inputs)
-
-
-# Weights.
-if not arg.weights:
-    fs = os.environ.get('FREESURFER_HOME')
-    if not fs:
-        sf.system.fatal('set environment variable FREESURFER_HOME or weights')
-    arg.weights = [os.path.join(fs, 'models', f) for f in weights[arg.model]]
-
-for f in arg.weights:
-    load_weights(model, weights=f)
-
-
-# Inference. The first transform maps from the moving to the fixed image, or
-# equivalently, from fixed to moving coordinates. The second is the inverse.
-# Convert transforms between moving and fixed network spaces to transforms
-# between the original voxel spaces.
-fw, bw = map(tf.squeeze, model(inputs))
-fw = vxm.utils.compose((net_to_mov, fw, fix_to_net), shift_center=False, shape=fix.shape)
-bw = vxm.utils.compose((net_to_fix, bw, mov_to_net), shift_center=False, shape=mov.shape)
-
-
-# Associate image geometries with the transforms. LTAs store the inverse.
-if is_mat:
-    fw, bw = bw, fw
-    fw = sf.Affine(fw, source=mov, target=fix, space='voxel')
-    bw = sf.Affine(bw, source=fix, target=mov, space='voxel')
-
-else:
-    fw = sf.Warp(fw, source=mov, target=fix, format=sf.Warp.Format.disp_crs)
-    bw = sf.Warp(bw, source=fix, target=mov, format=sf.Warp.Format.disp_crs)
-
-
-# Output transforms.
-f = dict(space='world') if is_mat else dict(format=sf.Warp.Format.disp_ras)
-if arg.trans:
-    fw.convert(**f).save(arg.trans)
-
-if arg.inverse:
-    bw.convert(**f).save(arg.inverse)
-
-
-# Moved images.
-if arg.out_moving:
-    mov.transform(fw, resample=not arg.header_only).save(arg.out_moving)
-
-if arg.out_fixed:
-    fix.transform(bw, resample=not arg.header_only).save(arg.out_fixed)
-
-
-vmpeak = sf.system.vmpeak()
-if(vmpeak is not None):
-    print(f'#@# mri_synthmorph: {arg.model}, threads: {arg.threads}, VmPeak: {vmpeak}')
 
 print('Thank you for choosing SynthMorph. Please cite us!')
-print(rewrap(ref))
+print(utils.rewrap_text(ref))
