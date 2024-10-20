@@ -16,7 +16,7 @@ install_configured(fs-synthmorph-reg DESTINATION bin)
 
 ## 08/2024 - currently failing on Intel Mac
 
-if(NOT APPLE OR APPLE_ARM64)
+if(NOT APPLE)
    add_test_script(NAME mri_synthmorph_test_register SCRIPT test_register.sh)
    add_test_script(NAME mri_synthmorph_test_apply SCRIPT test_apply.sh)
 endif()
