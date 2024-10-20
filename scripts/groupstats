@@ -24,6 +24,8 @@ set DoAsegStats = 1
 set DoWMParcStats = 1
 set SrcSurfReg = sphere.reg
 set Replace53 = "--replace53"
+set Wait = 0
+set tpollsec = -1
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -390,6 +392,12 @@ while( $#argv != 0 )
       set Replace53 = ""
       breaksw
 
+    case "--wait":
+      if($#argv < 1) goto arg1err;
+      set tpollsec = $argv[1]; shift;
+      set Wait = 1;
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -449,16 +457,51 @@ if($#outdir == 0) then
   exit 1;
 endif
 
-foreach s ($slist)
-  if(! -e $SUBJECTS_DIR/$s) then
-    echo "ERROR: cannot find $SUBJECTS_DIR/$s"
-    exit 1;
-  endif
-end
 if($#fwhmlist == 0) then
   echo "ERROR: you must specify a fwhm"
   echo "If you do not want to smooth, use --fwhm 0"
   exit 1;
+endif
+
+foreach s ($slist)
+  set subjdir = $SUBJECTS_DIR/$s
+  if(! -e $subjdir) then
+    if($Wait) continue
+    echo "ERROR: cannot find $subjdir"
+    exit 1;
+  endif
+  if(-e $subjdir/scripts/recon-all.error) then
+    echo "ERROR: $s has an error file"
+    exit 1;
+  endif
+  set done = $subjdir/scripts/recon-all.done
+  set IsRunningLH   = $subjdir/scripts/IsRunning.lh
+  set IsRunningRH   = $subjdir/scripts/IsRunning.rh
+  set IsRunningLHRH = $subjdir/scripts/IsRunning.lh+rh
+  if(-e $done && (-e $IsRunningLH || -e $IsRunningRH || -e $IsRunningLHRH)) then
+    echo "ERROR: $s has both done and IsRunning files"
+    exit 1;
+  endif
+  if(! $Wait) then
+    if(! -e $done && !(-e $IsRunningLH || -e $IsRunningRH || -e $IsRunningLHRH) ) then
+      echo "ERROR: $s has neither done nor IsRunning files"
+      exit 1;
+    endif
+  endif
+end
+
+if($Wait) then
+  while (1)
+    @ nwait = 0
+    foreach s ($slist)
+      set subjdir = $SUBJECTS_DIR/$s
+      set done = $subjdir/scripts/recon-all.done
+      if(! -e $done) @ nwait = $nwait + 1
+    end
+    if($nwait == 0) break;
+    echo "Waiting for $nwait cases to finish `date`"
+    sleep $tpollsec
+  end
 endif
 
 goto check_params_return;
@@ -495,6 +538,7 @@ usage_exit:
   echo "  --new : append .new.mris_make_surfaces to map names"
   echo "  --base : sets meas thickness area volume curv sulc (excludes w-g.pct)" 
   echo "  --keep53 : keep 5.3 aseg names (eg, Thalamus-Proper)"
+  echo "  --wait tpollsec: wait until all subjects have a .done file (poll every tpoll sec)"
   echo "  "
 
   if(! $PrintHelp) exit 1;
