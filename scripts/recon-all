@@ -1604,8 +1604,6 @@ if($SynthStrip) then
   set ud = `UpdateNeeded $synthstrip $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthstrip $V8XoptsFile $GlobXOptsFile $XOptsFile`;
-echo fsr-getxopts synthstrip $V8XoptsFile $GlobXOptsFile $XOptsFile
-echo xopts $xopts
     set cmd = (mri_synthstrip --threads $OMP_NUM_THREADS -i $origvol -o $synthstrip $xopts)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -2011,6 +2009,24 @@ endif
 
 set synthmorphdir = ()
 if($UseSynthMorph) then
+  # Now affine register to the mni305
+  set mni305stripped = $FREESURFER/average/mni305.cor.stripped.mgz
+  set sm_mni305dir = $mdir/transforms/synthmorph.mni305
+  set mni305lta = $sm_mni305dir/aff.lta
+  set cmd = (fs-synthmorph-reg --i $synthstrip --t $mni305stripped --affine-only \
+      --o $sm_mni305dir --threads $OMP_NUM_THREADS)
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    pushd $mdir/transforms
+    set cmd = (lta_convert --ltavox2vox --inlta synthmorph.mni305/aff.lta --outlta talairach.xfm.lta) # convert to VOX2VOX
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (lta_convert --inlta talairach.xfm.lta --outmni talairach.xfm)
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    popd
+  endif
   set synthmorphdir = $mdir/transforms/synthmorph.1.0mm.1.0mm
   # This will use nu by default
   set xopts = `fsr-getxopts fs-synthmorph-reg $V8XoptsFile $GlobXOptsFile $XOptsFile `;
@@ -2020,31 +2036,6 @@ if($UseSynthMorph) then
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-  endif
-  # Convert the nii.gz warp to m3z
-  set mnim3z = $mdir/transforms/mni152.1.0mm.1.0mm.m3z
-  set warp = $mdir/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz    
-  set ud = `UpdateNeeded $mnim3z $warp`
-  if($ud || $ForceUpdate) then
-    set cmd = (mri_warp_convert --inm3z $warp --outm3z $mnim3z)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF    
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      set mnixfm = $mdir/transforms/mni152.xfm 
-      set smlta = $synthmorphdir/reg.invol_to_targ.lta
-      set cmd = (lta_convert --inlta $smlta --outmni $mnixfm)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF    
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      # Link m3z, xfm, and lta to talairach.{xfm,lta,m3z}. This will make the space
-      # be MNI152 (define by mni_icbm152_nlin_asym_09c 1mm) instead of MNI305!
-      pushd $mdir/transforms > /dev/null
-      ln -sf mni152.1.0mm.1.0mm.m3z talairach.m3z
-      ln -sf mni152.xfm talairach.xfm
-      ln -sf synthmorph.1.0mm.1.0mm/reg.invol_to_targ.lta talairach.xfm.lta
-      popd > /dev/null
-    endif
   endif
 endif
 
