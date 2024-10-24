@@ -124,6 +124,16 @@ if (! -d $SUBJECTS_DIR/$SUBJECTNAME ) then
   exit 1
 endif
 
+# Warning if scripts directory does not exist
+if (! -d $SUBJECTS_DIR/$SUBJECTNAME/scripts ) then
+  echo " "
+  echo "WARNING: ./scripts Directory in subject to process:"
+  echo "   $SUBJECTS_DIR/$SUBJECTNAME"
+  echo "does not exist."
+  echo "Check if $SUBJECTNAME has been fully processed with recon-all!"
+  echo " "
+endif
+
 # Error if subject not processed
 if (! -e ${SUBJECTS_DIR}/${SUBJECTNAME}/mri/wmparc.mgz || \
     ! -e ${SUBJECTS_DIR}/${SUBJECTNAME}/mri/norm.mgz || \
@@ -256,7 +266,7 @@ echo " "
 echo "All done!"
 echo " "
 echo "To visualize the outputs, run: "
-echo "freeview -v $SUBJECTS_DIR/$SUBJECT/T1.mgz -v $SUBJECTS_DIR/$SUBJECT/arousalNetworkLabels.$SUFFIX.mgz:colormap=lut:lut=$FREESURFER_HOME/average/AAN/atlas/freeview.lut.txt"
+echo "freeview -v $SUBJECTS_DIR/$SUBJECTNAME/T1.mgz -v $SUBJECTS_DIR/$SUBJECTNAME/arousalNetworkLabels.$SUFFIX.mgz:colormap=lut:lut=$FREESURFER_HOME/average/AAN/atlas/freeview.lut.txt"
 echo " "
 echo "If you have used results from this software for a publication, please cite:"
 echo " "
