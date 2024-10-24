@@ -6102,6 +6102,7 @@ while( $#argv != 0 )
     case "-subjid":
     case "-sid":
     case "-s":
+    case "--s":
       if ( $#argv < 1) goto arg1err;
       set subjid = $argv[1]; shift;
       set subjid = `basename $subjid`; # removes trailing /
@@ -6121,6 +6122,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-i"
+    case "--i"
       if( $#argv < 1) goto arg1err;
       set InputVol = "$argv[1]"; shift;
       if(! -e "$InputVol") then
@@ -8078,6 +8080,7 @@ while( $#argv != 0 )
 
     case "-openmp":
     case "-threads"
+    case "--threads"
     case "-nthreads"
       if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
@@ -8339,10 +8342,6 @@ check_params:
     endif
 
     if($UseSamseg || $UseSynthSeg) then
-      if($longitudinal || $LongSamseg) then
-        echo "ERROR: cannot use -samseg or -synthseg with long or longsamseg"
-        #exit 1;
-      endif
       set DoCALabel        = 0;
       set DoASegMerge      = 1;
       set UseSynthMorph    = 1
