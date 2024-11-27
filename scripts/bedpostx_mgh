@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # bedpostx_mgh
 # (This script was modified from FSL's bedpostx by Anastasia Yendiki)
