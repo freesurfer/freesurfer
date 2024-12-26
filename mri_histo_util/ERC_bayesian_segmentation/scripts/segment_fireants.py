@@ -23,11 +23,15 @@ import math
 from torch.nn.functional import grid_sample
 #from fireants.io import Image,BatchedImages
 #from fireants.registration import AffineRegistration, GreedyRegistration
-from ext.fireants.io import Image,BatchedImages
-from ext.fireants.registration import AffineRegistration, GreedyRegistration
+#from ext.fireants.io import Image,BatchedImages
+#from ext.fireants.registration import AffineRegistration, GreedyRegistration
+from ext.fireants_trimmed import Image, BatchedImages
+from ext.fireants_trimmed import GreedyRegistration
 import SimpleITK as sitk
 from time import time
-from ERC_bayesian_segmentation.custom_cc_labeldiff_loss import HybridDiceLabelDiffloss
+#from ERC_bayesian_segmentation.custom_cc_labeldiff_loss import HybridDiceLabelDiffloss
+from ext.fireants_trimmed import HybridDiceLabelDiffloss
+
 
 ########################################################
 
