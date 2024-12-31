@@ -96,6 +96,13 @@ torch.set_num_threads(args.threads)
 
 ########################################################
 
+# Reproducibility: https://discuss.pytorch.org/t/reproducibility-with-all-the-bells-and-whistles/81097
+seed = 0; torch.manual_seed(seed); torch.cuda.manual_seed_all(seed); torch.cuda.manual_seed(seed)
+np.random.seed(seed); np.random.seed(seed);
+torch.backends.cudnn.deterministic = True; torch.backends.cudnn.benchmark = False
+
+########################################################
+
 # Disable gradients
 torch.set_grad_enabled(False)
 
