@@ -1350,7 +1350,8 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
 
     set cmd = mri_binarize
     set cmd = ($cmd --i $fsdir/mri/$segname.mgz)
-    set cmd = ($cmd `printf "--replaceonly-nn %s 11 " $ids`)
+    set cmd = ($cmd --match $ids)
+    set cmd = ($cmd --replaceonly-nn 11)
     set cmd = ($cmd --o $labdir/anatorig/${segname}+thalnuc.nii.gz)
     echo $cmd
     $cmd
