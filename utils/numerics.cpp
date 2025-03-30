@@ -1212,6 +1212,9 @@ float OpenMatrixDeterminant(MATRIX *iMatrix)
     else
       determinant = vnl_determinant< float >(vnlMatrix);
   }
+  else {
+    determinant = ERROR_BAD_PARM;
+  }
 
   return determinant;
 }
