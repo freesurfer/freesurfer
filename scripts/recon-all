@@ -7285,6 +7285,8 @@ while( $#argv != 0 )
       set DoTalairach      = 1;
       set DoTalCheck       = 1;
       set DoNormalization  = 1;
+      set DoCANormalize    = 1;
+      set DoGCAReg         = 1;
       set DoSkullStrip     = 1;
       set DoNuIntensityCor = 1;
       breaksw
