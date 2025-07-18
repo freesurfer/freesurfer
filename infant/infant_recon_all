@@ -160,7 +160,7 @@ if input_masked and input_seg:
 # ---- Start pipeline ----
 pl = fsp.CommandPipeline(
     name='Infant Recon', 
-    log='log/recon.log',
+    log=os.path.join(output_subdir, output_subj, 'log/recon.log'),
     keep_going=args.keep_going,
 )
 
@@ -528,7 +528,7 @@ try:
         # Base options for mri_segstats
         options = '--seg mri/aseg.mgz --sum stats/aseg.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg' \
         ' --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR' \
-        ' --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject ' + output_subj
+        ' --surf-wm-vol --surf-ctx-vol --totalgray --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject ' + output_subj # --euler 
 
         inputs = [
             'mri/norm.mgz',
