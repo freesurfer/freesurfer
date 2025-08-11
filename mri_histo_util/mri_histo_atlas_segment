@@ -133,7 +133,7 @@ echo "*******************************"
 echo "* Working on right hemisphere *"
 echo "*******************************"
 echo "  "
-cmd="fspython $BASEPATH/scripts/segment.py --i $INPUT --atlas_mode $ATLAS_MODE --gmm_mode $GMM_MODE --bf_mode $BF_MODE --i_seg $SYNTHSEG --o_synthseg_vols $SYNTHSEGCSV --i_field $FIELD --atlas_dir $ATLAS_DIR --hemi r --o $OUTPUT_SEG --o_vol $OUTPUT_VOL --threads $THREADS $CPU_FLAG "
+cmd="fspython $BASEPATH/scripts/segment.py --i $INPUT --atlas_mode $ATLAS_MODE --gmm_mode $GMM_MODE --bf_mode $BF_MODE --i_seg $SYNTHSEG --o_synthseg_vols $SYNTHSEGCSV --i_field $FIELD --atlas_dir $ATLAS_DIR --hemi r --o_bf_corr $BFCORR --o $OUTPUT_SEG --o_vol $OUTPUT_VOL --threads $THREADS $CPU_FLAG "
 echo "Running command:"
 echo $cmd
 echo "  "
