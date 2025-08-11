@@ -32,7 +32,7 @@ parser.add_argument("--i_field", help="Registration to data/mni.nii.gz provided 
 parser.add_argument("--atlas_dir", help="Atlas directory")
 parser.add_argument("--atlas_mode", help="Atlas mode (must be full or simplified)")
 parser.add_argument("--hemi", help="hemisphere to segment (must be l or r)")
-parser.add_argument("--gmm_mode", help="hemisphere to segment (must be l or r)", default="1mm")
+parser.add_argument("--gmm_mode", help="GMM mode", default="1mm")
 parser.add_argument("--bf_mode", help="bias field basis function: dct, polynomial, or hybrid", default="dct")
 parser.add_argument("--line_search", default="Armijo", help="type of line search; must be Armijo (default) or Wolfe")
 parser.add_argument("--o", help="Output segmentation.")
