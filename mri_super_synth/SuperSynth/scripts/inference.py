@@ -147,6 +147,15 @@ def main():
             if np.sum(np.array(label_list_segmentation_exvivo_freesurfer) == label_list_segmentation_whole_freesurfer[l]) == 0:
                 mask_exvivo_whole[l] = False
 
+        # Load FreeSurfer labels
+        d = {}
+        with open(os.getenv('FREESURFER_HOME') + '/FreeSurferColorLUT.txt') as f:
+            for l in f:
+                if l.strip() and not l.lstrip().startswith('#'):
+                    p = l.split()
+                    if len(p) > 1 and p[0].isdigit(): d[int(p[0])] = p[1]
+        FSlabelNames = [None] * (max(d) + 1) if d else []
+        for k, v in d.items(): FSlabelNames[k] = v
 
         print('Preparing model and loading weights')
         if device == 'cpu':
@@ -321,7 +330,10 @@ def main():
                     for l in range(len(llist)):
                         lab = llist[l]
                         if (lab > 0) and (lab != 24) and (lab < 900) and (lab != 99):
-                            row1.append(str(lab))
+                            if FSlabelNames[lab] is None:
+                                row1.append('(' + str(lab) + ')')
+                            else:
+                                row1.append(FSlabelNames[lab] + ' (' + str(lab) + ')')
                             row2.append(str(vols[l]))
                     writer.writerow(row1)
                     writer.writerow(row2)
