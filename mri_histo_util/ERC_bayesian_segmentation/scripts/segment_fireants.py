@@ -372,10 +372,10 @@ class LabelDataset(Dataset):
         return prior_indices, prior_values
 
 # TODO: without this line, I get weird runtime errors...
-prefetch = 4
-workers = 2
-prefetch_factor = max(prefetch//workers, 1)
-label_loader = DataLoader(LabelDataset(atlas_names), num_workers=workers, prefetch_factor=prefetch_factor)
+#Haiden's Edit:
+prefetch = 1
+workers = 0
+label_loader = DataLoader(LabelDataset(atlas_names), num_workers=workers)
 A = np.zeros([*atlas_size, n_tissues], dtype=numpy_dtype)
 # We keep track of these probability masses we use to correct differences in labeling between A and SynthSeg
 MLhippo = np.zeros(atlas_size, dtype=numpy_dtype)
