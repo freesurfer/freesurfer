@@ -1611,6 +1611,7 @@ if($SynthStrip) then
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthstrip $V8XoptsFile $GlobXOptsFile $XOptsFile`;
     set cmd = (mri_synthstrip --threads $OMP_NUM_THREADS -i $origvol -o $synthstrip $xopts)
+    if($UseGPU) set cmd = ($cmd -g)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
