@@ -116,6 +116,7 @@ int main(int argc, char *argv[])
   float voxel_size[3];
   int in_i_direction_flag, in_j_direction_flag, in_k_direction_flag;
   int out_i_direction_flag, out_j_direction_flag, out_k_direction_flag;
+  int vector3d_flag = FALSE;
   int  in_orientation_flag = FALSE;
   char in_orientation_string[STRLEN];
   int  out_orientation_flag = FALSE;
@@ -162,6 +163,7 @@ int main(int argc, char *argv[])
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
   int transform_flag, invert_transform_flag;
+  int DoVectorRotation = FALSE; // flag to indicate vector field rotation should be applied
   LTA *lta_transform = NULL;
   MRI *mri_transformed = NULL;
   MRI *mritmp=NULL;
@@ -316,6 +318,7 @@ int main(int argc, char *argv[])
   out_i_size_flag = out_j_size_flag = out_k_size_flag = FALSE;
   in_i_direction_flag = in_j_direction_flag = in_k_direction_flag = FALSE;
   out_i_direction_flag = out_j_direction_flag = out_k_direction_flag = FALSE;
+  vector3d_flag = FALSE;
   in_center_flag = FALSE;
   delta_in_center_flag = FALSE;
   out_center_flag = FALSE;
@@ -690,6 +693,11 @@ int main(int argc, char *argv[])
       transform_flag = TRUE;
       invert_transform_flag = TRUE;
     }
+    else if (strcmp(argv[i], "--vector") == 0)
+    {
+      DoVectorRotation = TRUE;
+      printf("Vector field rotation enabled\n");
+    }
     ///////////////////////////////////////////////////////////
     else if (strcmp(argv[i], "--upsample") == 0 )
     {
@@ -833,6 +841,11 @@ int main(int argc, char *argv[])
                in_k_directions[2]);
       }
       in_k_direction_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--3d-vector") == 0 ||
+            strcmp(argv[i], "--3d_vector") == 0)
+    {
+      vector3d_flag = TRUE;
     }
     else if(strcmp(argv[i], "--ctab") == 0)
     {
@@ -3157,7 +3170,33 @@ int main(int argc, char *argv[])
              LTAtransformTypeName(lta_transform->type));
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
-
+    
+      MATRIX *m_rotation_3x3 = NULL;
+      if (DoVectorRotation) {
+        // Extract rotation matrix for vector field rotation
+        MATRIX *m_rotation_4x4 = MatrixAlloc(4, 4, MATRIX_REAL);
+        if (lta_transform->type == LINEAR_RAS_TO_RAS) {
+          Trns_ExtractRotationMatrix(lta_transform->xforms[0].m_L, m_rotation_4x4);
+        }
+        else {
+          //make a copy of lta 
+          LTA *lta_transform_copy = LTAcopy(lta_transform,NULL);
+          LTAchangeType(lta_transform_copy, LINEAR_RAS_TO_RAS);
+          if (Gdiag_no > 0) {
+            printf("lta_transform_copy->xforms[0].m_L:\n");
+            MatrixPrint(stdout, lta_transform_copy->xforms[0].m_L);
+          }
+          Trns_ExtractRotationMatrix(lta_transform_copy->xforms[0].m_L, m_rotation_4x4);
+          LTAfree(&lta_transform_copy);
+        }
+        if (Gdiag_no > 0) {
+          printf("R_rot_4x4:\n");
+          MatrixPrint(stdout, m_rotation_4x4);
+        }
+        // Extract 3x3 rotation matrix from top-left of 4x4 matrix
+        m_rotation_3x3 = MatrixCopyRegion(m_rotation_4x4, NULL, 1, 1, 3, 3, 1, 1);
+        MatrixFree(&m_rotation_4x4);
+      }
       /* LTAtransform() runs either MRIapplyRASlinearTransform()
          for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
       /* MRIlinearTransform() calls MRIlinearTransformInterp() */
@@ -3219,6 +3258,15 @@ int main(int argc, char *argv[])
         mri_transformed->c_a = mri_template->c_a ;
         mri_transformed->c_s = mri_template->c_s ;
       }
+      
+      if (DoVectorRotation) {
+        printf("Applying rotation to vector field\n");
+        // Pass NULL for Vt2s since src == targ (in-place rotation)
+        // MRIvol2VolR will compute identity internally
+        MRIvol2VolR(mri_transformed, mri_transformed, NULL, 0, 0, m_rotation_3x3);
+        MatrixFree(&m_rotation_3x3);
+      }
+
       LTAfree(&lta_transform);
       MRIfree(&mri);
       mri = mri_transformed;
