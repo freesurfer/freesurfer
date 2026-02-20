@@ -600,7 +600,7 @@ static void usage_exit(void)
 }
 
 /***-------------------------------------------------------****/
-int PrettyMatrixPrint(MATRIX *mat)
+int PrettyMatrixPrint(MATRIX *mat, int precision)
 {
   int row;
 
@@ -621,9 +621,9 @@ int PrettyMatrixPrint(MATRIX *mat)
 
   for (row=1; row < 5; ++row)
   {
-    printf("              %8.4f %8.4f %8.4f %10.4f\n",
-           mat->rptr[row][1], mat->rptr[row][2],
-           mat->rptr[row][3], mat->rptr[row][4]);
+    printf("              %8.*f %8.*f %8.*f %10.*f\n",
+           precision, mat->rptr[row][1], precision, mat->rptr[row][2],
+           precision, mat->rptr[row][3], precision, mat->rptr[row][4]);
   }
 
   return (NO_ERROR);
@@ -1281,12 +1281,12 @@ static void do_file(char *fname)
   printf("Primary Slice Direction: %s\n",MRIsliceDirectionName(mri));
   m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
   printf("\nvoxel to ras transform:\n") ;
-  PrettyMatrixPrint(m) ;
+  PrettyMatrixPrint(m, precision) ;
   printf("\nvoxel-to-ras determinant %g\n",MatrixDeterminant(m));
   MatrixFree(&m) ;
   m = extract_r_to_i(mri);
   printf("\nras to voxel transform:\n");
-  PrettyMatrixPrint(m);
+  PrettyMatrixPrint(m, precision);
   MatrixFree(&m);
 
   // multi-frame info:

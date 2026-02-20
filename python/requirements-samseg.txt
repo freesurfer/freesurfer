@@ -6,6 +6,6 @@
 # 12/18/2025
 # samseg@git+https://github.com/freesurfer/samseg.git@b961604591ad3caab3120b531dc4ba306974abe7
 # above removed due to surfa dependency issue
-samseg@git+https://github.com/freesurfer/samseg.git@dev
+samseg@git+https://github.com/freesurfer/samseg.git@ccb17cbcdad707fbbf65e5e934fc89b95cc8529a
 # pointing to dev branch of samseg
 # samseg

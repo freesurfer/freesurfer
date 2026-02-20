@@ -102,7 +102,7 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
 static long long __getMRITAGlength(MRI *mri, bool niftiheaderext=false);
 static VOL_GEOM __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int swapped_flag, bool *has_ras_xform);
-static int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header *niihdr);
+static int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header *niihdr, MATRIX *nii_transform=NULL);
 static void __readFSniiextensionHeader(znzFile fp, MRI *mri);
 static void __writeFSniiextensionHeader(znzFile fp, MRI *mri, int intent=MGZ_INTENT_UNKNOWN);
 
@@ -157,7 +157,7 @@ static int itkMorphWrite(MRI *mri, const char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr);
-static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr);
+static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr, MATRIX *nii_sform=NULL);
 static void swap_nifti_1_header(struct nifti_1_header *hdr);
 //static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
 
@@ -8594,7 +8594,8 @@ static MRI *niiRead(const char *fname, int read_volume)
     printf("[DEBUG] niiRead(): hdr.vox_offset = %ld, file position = %ld\n", (long)hdr.vox_offset, here);
   }
 
-  if (__niiReadSetVox2ras(mri, &hdr))  // error
+  MATRIX *nii_sform = MatrixConstVal(0, 4, 4, NULL);
+  if (__niiReadSetVox2ras(mri, &hdr, nii_sform))  // error
       return NULL;
 
   if (Gdiag & DIAG_INFO)
@@ -8627,16 +8628,16 @@ static MRI *niiRead(const char *fname, int read_volume)
 	  bool founddiff = VOL_GEOM::checkgeom(&ras_xform, mri, geothresh, Gdiag & DIAG_INFO);
 	  if (founddiff) {
 	    // print vol geometry
-	    mri->geomprint("%s niiRead(): vol geom from Nifti sform/qform:\n", (Gdiag & DIAG_INFO) ? "[DEBUG]" : "[INFO]");
-	    ras_xform.geomprint("%s niiRead(): vol geom from TAG_RAS_XFORM in FS header extension:\n", (Gdiag & DIAG_INFO) ? "[DEBUG]" : "[INFO]");
+	    mri->geomprint("[WARNING] niiRead(%s): vol geom from Nifti sform/qform:\n", fname);
+	    ras_xform.geomprint("[WARNING] niiRead(%s): vol geom from TAG_RAS_XFORM in FS header extension:\n", fname);
 	  }
 	}
     
 	printf("%s niiRead(): volume vox2ras check, thresh=%g (ras_xform vs sform/qform) ...\n", (Gdiag & DIAG_INFO) ? "[DEBUG]" : "[INFO]", geothresh);
-	vox2rasdiff = VOL_GEOM::checkvox2ras(&ras_xform, mri, geothresh, Gdiag & DIAG_INFO);      
+	vox2rasdiff = VOL_GEOM::checkvox2ras(&ras_xform, mri, geothresh, Gdiag & DIAG_INFO, nii_sform);      
 	if (vox2rasdiff) {
 	  // We now treat the differences between TAG_RAS_XFORM and vol_geom as WARNING not ERROR
-	  printf("[WARNING] niiRead(%s): vol geom differs - Nifti sform/qform vs TAG_RAS_XFORM in FS header extension (thresh=%g)\n", fname, vg_isEqual_Threshold);
+	  printf("[WARNING] niiRead(%s): VOX2RAS differs - Nifti sform/qform vs TAG_RAS_XFORM in FS header extension (thresh=%g)\n", fname, vg_isEqual_Threshold);
 	  printf("[WARNING] niiRead(%s): ignore TAG_RAS_XFORM in FS header extension, use Nifti sform/qform\n", fname);
 	}
       } // !IsIco7
@@ -8660,6 +8661,7 @@ static MRI *niiRead(const char *fname, int read_volume)
       printf("[INFO] niiRead(): (no header extension) NIFTI_INTENT_DISPVECT => MGZ_INTENT_WARPMAP, mri->version = %d, mri->intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
     }
   }
+  MatrixFree(&nii_sform);
 
   mri->xsize = mri->xsize * space_units_factor;
   mri->ysize = mri->ysize * space_units_factor;
@@ -10099,7 +10101,7 @@ static int itkMorphWrite(MRI *mri, const char *fname)
 
 } /* end itkMorphWrite() */
 
-static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
+static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr, MATRIX *nii_sform)
 {
   int err;
   MATRIX *sform;
@@ -10124,10 +10126,13 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
   if (Gdiag & DIAG_INFO)
   {
     printf("[DEBUG] niftiSformToMri() sform:\n");
-    MatrixPrint(stdout,sform);
+    int precision = 10;
+    MatrixPrint(stdout,sform, precision);
   }
 
   err = MRIsetVox2RASFromMatrix(mri, sform);
+  MatrixCopy(sform, nii_sform);
+  nii_sform->rptr[4][4] = 1;
   MatrixFree(&sform);
   
   return (err);
@@ -12775,14 +12780,14 @@ VOL_GEOM __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int s
 
 
 // return 0 for success; 1 for error
-int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr)
+int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr, MATRIX *nii_transform)
 {
   // Set the vox2ras matrix
   if (niihdr->sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
     fprintf(stderr, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
-    if (niftiSformToMri(mri, niihdr) != NO_ERROR) {
+    if (niftiSformToMri(mri, niihdr, nii_transform) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
     }

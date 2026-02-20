@@ -432,10 +432,11 @@ struct VOL_GEOM
   
   // report the vox2ras differences between the two VOL_GEOM
   // return true if there are any differences; otherwise, return false
-  static bool checkvox2ras(VOL_GEOM *vg1, VOL_GEOM *vg2, double geothresh, bool debug=false)
+  static bool checkvox2ras(VOL_GEOM *vg1, VOL_GEOM *vg2, double geothresh, bool debug=false, MATRIX *nii_sform=NULL)
   {
-    MATRIX *vox2ras1 = MRIxfmCRS2XYZ(vg1, 0);
-    MATRIX *vox2ras2 = MRIxfmCRS2XYZ(vg2, 0);
+    MATRIX *vox2ras1 = MRIxfmCRS2XYZ(vg1, 0);  // from TAG_RAS_XFORM
+    MATRIX *vox2ras2 = MRIxfmCRS2XYZ(vg2, 0);  // from MRI_XFORM
+#if 0
     bool vox2rasdiff = false;
     for (int r = 1; r <= 4; r++) {
       for (int c = 1; c <= 4; c++) {
@@ -450,14 +451,27 @@ struct VOL_GEOM
 	}
       } // c
     } // r
+#else
+    bool vox2rasdiff = VOL_GEOM::diffvox2ras(vox2ras1, vox2ras2, geothresh, "TAG_RAS_XFORM vs MRI_XFORM", debug);
+#endif
 
     if (vox2rasdiff) {
+      if (nii_sform != NULL) {
+        VOL_GEOM::diffvox2ras(vox2ras1, nii_sform, geothresh, "TAG_RAS_XFORM vs NII_SFORM", debug);
+        VOL_GEOM::diffvox2ras(vox2ras2, nii_sform, geothresh, "MRI_XFROM vs NII_SFORM", debug);
+      }
+
       // print vox2ras matrix
       int precision = 10;
-      printf("VOL_GEOM::checkvox2ras(): vox2ras1:\n");
+      printf("VOL_GEOM::checkvox2ras(): vox2ras1 (TAG_RAS_XFROM):\n");
       MatrixPrint(stdout, vox2ras1, precision);
-      printf("VOL_GEOM::checkvox2ras(): vox2ras2:\n");
-      MatrixPrint(stdout, vox2ras2, precision);	  
+      printf("VOL_GEOM::checkvox2ras(): vox2ras2 (MRI_XFORM):\n");
+      MatrixPrint(stdout, vox2ras2, precision);
+
+      if (nii_sform != NULL) {
+	printf("VOL_GEOM::checkvox2ras(): nii_sform:\n");
+	MatrixPrint(stdout, nii_sform, precision);
+      }
     }
     
     MatrixFree(&vox2ras1);
@@ -465,6 +479,31 @@ struct VOL_GEOM
 
     return vox2rasdiff;
   }
+
+  
+  static bool diffvox2ras(MATRIX* vox2ras1, MATRIX* vox2ras2, double thresh, const char* msg, bool debug=false)
+  {
+    printf("%sVOL_GEOM::diffvox2ras(): %s\n", (debug) ? "[DEBUG] " : "", msg);
+    
+    bool vox2rasdiff = false;
+    for (int r = 1; r <= 4; r++) {
+      for (int c = 1; c <= 4; c++) {
+	double val1 = vox2ras1->rptr[r][c];
+	double val2 = vox2ras2->rptr[r][c];
+	double diff = fabs(val1-val2);
+	//printf("%sVOL_GEOM::diffvox2ras(): row=%d col=%d val1=%.10lf val2=%.10lf\n", (debug) ? "[DEBUG] " : "", r, c, val1, val2);
+	if (diff > thresh) {
+	  printf("%sVOL_GEOM::diffvox2ras(): Volumes differ in vox2ras row=%d col=%d diff=%.10lf (thresh=%g), val1=%.10lf val2=%.10lf\n",
+		 (debug) ? "[DEBUG] " : "",
+		 r, c, diff, thresh, val1, val2);
+	  vox2rasdiff = true;
+	}
+      } // c
+    } // r
+
+    return vox2rasdiff;
+  }
+  
 
   // write VOL_GEOM to znzFile
   void write(znzFile fp, bool niftiheaderext=false, bool shearless=true)

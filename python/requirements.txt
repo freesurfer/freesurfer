@@ -19,8 +19,8 @@ scipy
 segment-anything
 six
 ### 11/2023 - a spheremorph package version cannot be solved for that is compatible with other package versions installed on MacOS
-spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
-surfa@git+https://github.com/freesurfer/surfa.git@master
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
+surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
 tensorboard
 Werkzeug
 # capping urllib to avoid this conflict with OpenSSL:
