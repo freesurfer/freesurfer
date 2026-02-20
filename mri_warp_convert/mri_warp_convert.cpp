@@ -41,14 +41,14 @@ struct Parameters
   string in_warp;
   string out_warp;
   string in_src_geom;
-  string in_warpformat;
-  string out_warpformat;
+  string in_interp;
+  string out_interp;
   filetypes::FileType in_type;
   filetypes::FileType out_type;
   bool downsample;
   LTA *lta1;
   LTA *lta2;
-  bool has_inwarpformat;
+  bool has_in_interp;
 };
 
 
@@ -93,14 +93,14 @@ GCAM* readSPM(const string& warp_file, const string& src_geom)
 {
   // This version should properly handle all voxel sizes in the warp and the source
   // See also MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out)
-  printf("readSPM() as %s\n", (P.in_warpformat.compare("abs-ras") == 0) ? "abs-ras"  : "abs-crs");
+  printf("readSPM() as %s\n", (P.in_interp.compare("abs-ras") == 0) ? "abs-ras"  : "abs-crs");
   MRI *warp = MRIread(warp_file.c_str()) ;
   if(warp == NULL) ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n", Progname, warp_file.c_str()) ;
   MRI *src = MRIread(src_geom.c_str()) ;
   if(src == NULL) ErrorExit(ERROR_NOFILE, "%s: could not source volume %s\n", Progname, src_geom.c_str()) ;
   
   // it is either abs-ras or abs-crs for --inspm
-  if (P.in_warpformat.compare("abs-ras") == 0)
+  if (P.in_interp.compare("abs-ras") == 0)
   {
     // this section of codes read SPM as ABS_RAS, and do the RAS2VOX conversion using src_geom
     MATRIX *vox2ras1 = MRIxfmCRS2XYZ(src, 1); // spm crs base=1
@@ -452,18 +452,18 @@ void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
 
 void writeMGZWarp(const string& fname, GCAM *gcam)
 {
-  int dataformat =  WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
-  if (P.out_warpformat.compare("abs-crs") == 0)
-    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS;
-  else if (P.out_warpformat.compare("disp-crs") == 0)
-    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS;
-  else if (P.out_warpformat.compare("abs-ras") == 0)
-    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS;
-  else if (P.out_warpformat.compare("disp-ras") == 0)
-    dataformat = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS;
+  int datainterp =  WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
+  if (P.out_interp.compare("abs-crs") == 0)
+    datainterp = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS;
+  else if (P.out_interp.compare("disp-crs") == 0)
+    datainterp = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS;
+  else if (P.out_interp.compare("abs-ras") == 0)
+    datainterp = WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_RAS;
+  else if (P.out_interp.compare("disp-ras") == 0)
+    datainterp = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS;
 
   Warpfield *warpfield = new Warpfield();
-  warpfield->convert(gcam, dataformat);
+  warpfield->convert(gcam, datainterp);
   warpfield->write(fname.c_str());
 }
 
@@ -642,11 +642,11 @@ int main(int argc, char *argv[])
       else                      gcam = readFSL2(P.in_warp.c_str(),P.in_src_geom);
       break;
     case filetypes::SPM:
-      // set default warp format for SPM to "abs-ras"
-      if (!P.has_inwarpformat)
-        P.in_warpformat = string("abs-ras");
+      // set default warp interpretation for SPM to "abs-ras"
+      if (!P.has_in_interp)
+        P.in_interp = string("abs-ras");
 
-      if (P.in_warpformat.compare("abs-ras") != 0 && P.in_warpformat.compare("abs-crs") != 0) {
+      if (P.in_interp.compare("abs-ras") != 0 && P.in_interp.compare("abs-crs") != 0) {
 	printf("ERROR: --inspm only handles abs-ras or abs-crs\n");
 	exit(1);
       }
@@ -654,7 +654,7 @@ int main(int argc, char *argv[])
 	printf("ERROR: --inspm needs source/atlas geometry, use --insrcgeom or -g to specify\n");
 	exit(1);
       }
-      printf("inwarpformat set to %s\n",P.in_warpformat.c_str());
+      printf("in-interp set to %s\n",P.in_interp.c_str());
       gcam = readSPM(P.in_warp.c_str(),P.in_src_geom);
       break;
     case filetypes::ITK:
@@ -905,20 +905,20 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.downsample = true;
     nargs = 0;
   }
-  else if (!strcmp(option, "INWARPFORMAT"))
+  else if (!strcmp(option, "IN-INTERP"))
   {
-    P.has_inwarpformat = true;
-    P.in_warpformat = string(argv[1]);
+    P.has_in_interp = true;
+    P.in_interp = string(argv[1]);
     nargs = 1;
-    cout << "--inwarpformat: " << P.in_warpformat
-         << " (specify input warp data format: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
+    cout << "--in-interp: " << P.in_interp
+         << " (specify input warp data interpretation: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
   }
-  else if (!strcmp(option, "OUTWARPFORMAT"))
+  else if (!strcmp(option, "OUT-INTERP"))
   {
-    P.out_warpformat = string(argv[1]);
+    P.out_interp = string(argv[1]);
     nargs = 1;
-    cout << "--outwarpformat: " << P.out_warpformat
-         << " (specify output warp data format: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
+    cout << "--out-interp: " << P.out_interp
+         << " (specify output warp data interpretation: abs-crs (default), disp-crs, abs-ras, or disp-ras)" << endl;
   } 
   else if (!strcmp(option, "VG-THRESH"))
   {
