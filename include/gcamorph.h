@@ -32,6 +32,7 @@
 #include "gca.h"
 #include "transform.h"
 #include "label.h"
+#include "warpfield.h"
 
 #define GCAM_UNLABELED                   0x0000
 #define GCAM_LABELED                     0x0001
@@ -310,7 +311,7 @@ int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca,
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 double    GCAMelasticEnergy(GCA_MORPH *gcam) ;
 MRI       *GCAMestimateLameConstants(GCA_MORPH *gcam) ;
-int       GCAMwrite( const GCA_MORPH *gcam, const char *fname );
+int       GCAMwrite( const GCA_MORPH *gcam, const char *fname, int datainterp=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS );
 //int       GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam, MRI *mrtemplate=NULL);
 int       GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam);
 GCA_MORPH *GCAMread(const char *fname) ;

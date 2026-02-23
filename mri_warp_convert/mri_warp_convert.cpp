@@ -33,7 +33,7 @@
 using namespace std;
 
 namespace filetypes {
-  enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX, RAS, SPM, MGZWARP };
+  enum FileType { UNKNOWN, FSWARP, FSL, ITK, VOX, RAS, SPM };
 }
 
 struct Parameters
@@ -60,32 +60,17 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 const char *Progname = NULL;
 
-// input is MGH_MORPH
-GCAM* readM3Z(const string& warp_file)
-// Read an m3z file. Just calls down to GCAMread
+// input is MGH_MORPH (.m3z/.m3d) or warp in MRI_MGH_FILE/NII_FILE format
+GCAM* readFSWARP(const string& warp_file)
+// Read an freesurfer 3D morph file. Just calls down to GCAMread
 {
   GCAM* gcam = GCAMread(warp_file.c_str());
   if (gcam == NULL)
   {
-    cerr << "ERROR readM3Z: cannot read " << warp_file << endl;
+    cerr << "ERROR readFSWARP(): cannot read " << warp_file << endl;
     exit(1);
   }
 
-  return gcam;
-}
-
-// input is MRI_MGH_FILE/NII_FILE
-GCAM *readMGZWarp(const string& mgzwarpfile)
-{
-  Warpfield *warpfield = new Warpfield();
-
-  GCAM *gcam = warpfield->read(mgzwarpfile.c_str());
-  if (gcam == NULL)
-  {
-    cerr << "ERROR readMGZWarp: cannot read " << mgzwarpfile << endl;
-    exit(1);
-  }
-  
   return gcam;
 }
 
@@ -439,18 +424,8 @@ GCAM* read_voxel(const string& warp_file, const string& src_geom)
   return out;
 }
 
-void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
-// Write an m3z file. Just calls down to GCAMwrite
-{
-  GCA_MORPH* out = downsample ? GCAMdownsample2(gcam) : gcam;
-  int err = GCAMwrite(out, fname.c_str());
-  if(err) exit(1);
-  if (downsample) {
-      GCAMfree(&out);
-  }
-}
-
-void writeMGZWarp(const string& fname, GCAM *gcam)
+void writeFSWARP(const string& fname, GCAM *gcam, bool downsample=false)
+// Write an freesurfer 3D morph file. Just calls down to GCAMwrite
 {
   int datainterp =  WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
   if (P.out_interp.compare("abs-crs") == 0)
@@ -462,9 +437,12 @@ void writeMGZWarp(const string& fname, GCAM *gcam)
   else if (P.out_interp.compare("disp-ras") == 0)
     datainterp = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS;
 
-  Warpfield *warpfield = new Warpfield();
-  warpfield->convert(gcam, datainterp);
-  warpfield->write(fname.c_str());
+  GCA_MORPH* out = downsample ? GCAMdownsample2(gcam) : gcam;
+  int err = GCAMwrite(out, fname.c_str(), datainterp);
+  if(err) exit(1);
+  if (downsample) {
+      GCAMfree(&out);
+  }
 }
 
 void writeFSL(const string& fname, const GCAM *gcam)
@@ -631,12 +609,9 @@ int main(int argc, char *argv[])
   GCA_MORPH* gcam = NULL;
   bool is_lps = false;
   switch (P.in_type) {
-    case filetypes::M3Z:
-      gcam = readM3Z(P.in_warp.c_str());
+    case filetypes::FSWARP:
+      gcam = readFSWARP(P.in_warp.c_str());
       break;
-    case filetypes::MGZWARP:
-      gcam = readMGZWarp(P.in_warp.c_str());
-      break;      
     case filetypes::FSL:
       if(P.in_src_geom.empty()) gcam = readFSL(P.in_warp.c_str());
       else                      gcam = readFSL2(P.in_warp.c_str(),P.in_src_geom);
@@ -691,12 +666,9 @@ int main(int argc, char *argv[])
   }
 
   switch (P.out_type) {
-    case filetypes::M3Z:
-      writeM3Z(P.out_warp.c_str(), gcam, P.downsample);
+    case filetypes::FSWARP:
+      writeFSWARP(P.out_warp.c_str(), gcam, P.downsample);
       break;
-    case filetypes::MGZWARP:
-      writeMGZWarp(P.out_warp.c_str(), gcam);
-      break;      
     case filetypes::FSL:
       writeFSL(P.out_warp.c_str(), gcam);
       break;
@@ -749,24 +721,15 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 
   bool multi_input = false;
   bool multi_output = false;
-  if (!strcmp(option, "INM3Z") )
+  if (!strcmp(option, "INFSWARP") || !strcmp(option, "INM3Z") || !strcmp(option, "INMGZWARP") )
   {
     if (P.in_type != filetypes::UNKNOWN)
       multi_input = true;
     P.in_warp = string(argv[1]);
-    P.in_type = filetypes::M3Z;
+    P.in_type = filetypes::FSWARP;
     nargs = 1;
-    cout << "--inm3z: " << P.in_warp << " input M3Z warp." << endl;
+    cout << "--infswarp: " << P.in_warp << " input Freesurfer 3D morph." << endl;
   }
-  else if (!strcmp(option, "INMGZWARP"))
-  {
-    if (P.in_type != filetypes::UNKNOWN)
-      multi_input = true;
-    P.in_warp = string(argv[1]);
-    P.in_type = filetypes::MGZWARP;
-    nargs = 1;
-    cout << "--inmgzwarp: " << P.in_warp << " input MGZWARP." << endl;
-  }  
   else if (!strcmp(option, "INFSL"))
   {
     if (P.in_type != filetypes::UNKNOWN)
@@ -812,23 +775,14 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--inras: " << P.in_warp << " input RAS warp." << endl;
   }
-  else if (!strcmp(option, "OUTMGZWARP"))
+  else if (!strcmp(option, "OUTFSWARP") || !strcmp(option, "OUTM3Z") || !strcmp(option, "OUTMGZWARP")  )
   {
     if (P.out_type != filetypes::UNKNOWN)
       multi_output = true;    
     P.out_warp = string(argv[1]);
-    P.out_type = filetypes::MGZWARP;
+    P.out_type = filetypes::FSWARP;
     nargs = 1;
-    cout << "--outmgz: " << P.out_warp << " output MGZWARP." << endl;    
-  }
-  else if (!strcmp(option, "OUTM3Z") )
-  {
-    if (P.out_type != filetypes::UNKNOWN)
-      multi_output = true;    
-    P.out_warp = string(argv[1]);
-    P.out_type = filetypes::M3Z;
-    nargs = 1;
-    cout << "--outm3z: " << P.out_warp << " output M3Z." << endl;
+    cout << "--outfswarp: " << P.out_warp << " output Freesurfer 3D morph." << endl;
   }
   else if (!strcmp(option, "OUTFSL") )
   {
@@ -901,7 +855,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "DOWNSAMPLE") || !strcmp(option, "D"))
   {
     if (!P.downsample)
-        cout << "--downsample: save M3Z at half resolution." << endl;
+        cout << "--downsample: save FSWARP at half resolution." << endl;
     P.downsample = true;
     nargs = 0;
   }
@@ -1003,9 +957,9 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     return false;
   }
 
-  if (P.out_type != filetypes::M3Z && P.downsample) {
+  if (P.out_type != filetypes::FSWARP && P.downsample) {
     cerr << endl << endl;
-    cerr << "ERROR: --downsample flag only valid for output type M3Z"
+    cerr << "ERROR: --downsample flag only valid for output type FSWARP"
          << endl << endl;
     return false;
   }

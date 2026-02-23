@@ -5,19 +5,19 @@ source "$(dirname $0)/../test.sh"
 FSTEST_NO_DATA_RESET=1 && init_testdata
 
 # LPS-to-LPS displacement field to M3Z
-test_command mri_warp_convert --inlps lps.nii.gz --insrcgeom geom.mgz --outm3z out.m3z
+test_command mri_warp_convert --inlps lps.nii.gz --insrcgeom geom.mgz --outfswarp out.m3z
 compare_vol out.m3z ref.m3z --thresh 0.001
 
 # RAS-to-RAS displacement field to M3Z
-test_command mri_warp_convert --inras ras.nii.gz --insrcgeom geom.mgz --outm3z out.m3z
+test_command mri_warp_convert --inras ras.nii.gz --insrcgeom geom.mgz --outfswarp out.m3z
 compare_vol out.m3z ref.m3z --thresh 0.001
 
 # M3Z to LPS-to-LPS deplacement field
-test_command mri_warp_convert --inm3z ref.m3z --outlps out.nii.gz
+test_command mri_warp_convert --infswarp ref.m3z --outlps out.nii.gz
 compare_vol out.nii.gz lps.nii.gz --thresh 0.001
 
 # M3Z to RAS-to-RAS deplacement field
-test_command mri_warp_convert --inm3z ref.m3z --outras out.nii.gz
+test_command mri_warp_convert --infswarp ref.m3z --outras out.nii.gz
 compare_vol out.nii.gz ras.nii.gz --thresh 0.001
 
 # LPS-to-LPS to RAS-to-RAS
@@ -29,15 +29,15 @@ test_command mri_warp_convert --inras lps.nii.gz --insrcgeom geom.mgz --outras o
 compare_vol out.nii.gz lps.nii.gz --thresh 0.001
 
 # downsample M3Z
-test_command mri_warp_convert --inlps lps.nii.gz --insrcgeom geom.mgz --outm3z out.m3z --downsample
+test_command mri_warp_convert --inlps lps.nii.gz --insrcgeom geom.mgz --outfswarp out.m3z --downsample
 compare_vol out.m3z half.ref.m3z --thresh 0.001
 
 # downsample M3Z
-test_command mri_warp_convert --inras ras.nii.gz -g geom.mgz --outm3z out.m3z -d
+test_command mri_warp_convert --inras ras.nii.gz -g geom.mgz --outfswarp out.m3z -d
 compare_vol out.m3z half.ref.m3z --thresh 0.001
 
 # convert downsampled M3Z
-test_command mri_warp_convert --inm3z half.ref.m3z --outlps out.nii.gz
+test_command mri_warp_convert --infswarp half.ref.m3z --outlps out.nii.gz
 compare_vol out.nii.gz half.ref.nii.gz --thresh 0.001
 
 # LPS to source-voxel shift
@@ -49,7 +49,7 @@ test_command mri_warp_convert --invox vox.mgz -g geom.mgz --outlps out.nii.gz
 compare_vol out.nii.gz lps.nii.gz --thresh 0.001
 
 # convert m3z to 4D mgz warp
-test_command mri_warp_convert --inm3z ref.m3z --outmgzwarp out.m3z.mgz --out-interp abs-crs
+test_command mri_warp_convert --infswarp ref.m3z --outfswarp out.m3z.mgz --out-interp abs-crs
 compare_vol out.m3z.mgz ref.m3z.mgz
 if [[ "$host_os" == "macos10" ]] || [[ "$host_os" == "macos12" ]]; then
    TESTDATA_SUFFIX=".macos"

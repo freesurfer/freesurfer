@@ -294,7 +294,7 @@ set ud = `UpdateNeeded $m3z $warp $targvolcrop $regcroptargtocropinvol $regcropt
 if($ud || $ForceUpdate) then
   date | tee -a $LF
   set cmd = (mri_warp_convert --initk $warp --insrcgeom $targvolcrop \
-    --outm3z $m3z --vg-thresh $vgthresh)
+    --outfswarp $m3z --vg-thresh $vgthresh)
   if($CropInput) set cmd = ($cmd --lta1-inv $regcroptargtocropinvol )
   if($#regcroptotarg) set cmd = ($cmd --lta2 $regcroptotarg)
   echo "\n\n"| tee -a $LF 
@@ -421,7 +421,7 @@ if($ud || $ForceUpdate) then
   # then the lta1 indicates how to go from the cropped CRS to the
   # uncropped CRS.
   set cmd = (mri_warp_convert --inras $deform --insrcgeom $involcrop\
-     --outm3z $m3z --vg-thresh $vgthresh)
+     --outfswarp $m3z --vg-thresh $vgthresh)
   if($CropInput) set cmd = ($cmd --lta1-inv $regcroptoinvol)
   if($#regcroptotarg) set cmd = ($cmd --lta2 $regcroptotarg)
   echo "\n\n$cmd" | tee -a $LF
