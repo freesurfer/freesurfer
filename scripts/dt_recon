@@ -23,7 +23,9 @@ set OutDir = ();
 set reg = ();
 set mask = ();
 set bbrinit = coreg
+set bvalthresh = 0;
 set ForceUpdate = 0
+set threads = 1
 
 set PrintHelp = 0;
 set LF = ();
@@ -46,6 +48,8 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set StartDate = `date`
 
 mkdir -p $OutDir
 if($status) then
@@ -105,6 +109,36 @@ if($#bvals == 0) then
   endif
 endif
 
+if($bvalthresh > 0) then
+  # Get a list of frames that meet the lowb criteria (less than $bvalthresh)
+  set fw = $OutDir/frame.lowb.dat
+  set ud = `UpdateNeeded $fw $bvals`
+  if($ud || $ForceUpdate) then
+    # Extract frames that are lowb
+    cat $bvals | awk -v bvalthresh=$bvalthresh '{if($1 < bvalthresh) print 1; if($1 >= bvalthresh) print 0;}' > $fw
+  endif
+  set n1s = `cat $fw | grep 1 | wc -l`
+  if($n1s == 0) then
+    echo "ERROR: no bvals found < $bvalthresh" | tee -a $LF
+    exit 1
+  endif
+  echo "Found $#n1s low bvals" | tee -a $LF
+  # Get a mean lowb image before ECC, which could then be used to
+  # register and/or mask, but not used for anything right now. May
+  # also be used when switching to eddy. Note that lowb below is after
+  # computing the log whereas lowbnoecc will be the native
+  # contrast/intensity
+  set lowbnoecc = $OutDir/dwi.lowb.nii.gz
+  set ud = `UpdateNeeded $lowbnoecc $f $fw`
+  if($ud || $ForceUpdate) then
+    # Create a mean of the lowb frames
+    set cmd = (mri_concat $f --mean --w $fw --o $lowbnoecc)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+endif
+
 # Eddy/Motion Correct (needs its own tmp dir)
 set fec = $OutDir/dwi-ec.nii.gz
 if($DoEddyCorrect) then
@@ -135,23 +169,19 @@ else
   set fec = $f
 endif
 
-# Get a mean lowb images, which could then be used to register and/or
-# mask. But not used for anything right now. Note that lowb is after
-# computing the log whereas template will be the native contrast/intensity
-set fw = $OutDir/frameweight.dat
-set ud = `UpdateNeeded $fw $bvals`
-if($ud || $ForceUpdate) then
-  # Extract frames that are lowb
-  cat $bvals | awk '{if($1 < .0001) print 1; if($1 > .0001) print 0;}' > $fw
-endif
-set template = $OutDir/mean.bval0.nii.gz
-set ud = `UpdateNeeded $template $fw $fec`
-if($ud || $ForceUpdate) then
-  # Create a mean of the lowb frames
-  set cmd = (mri_concat $fec --mean --w $fw --o $template)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1
+if($bvalthresh > 0) then
+  # Get a mean lowb images, which could then be used to register and/or
+  # mask. But not used for anything right now. Note that lowb below is after
+  # computing the log whereas template will be the native contrast/intensity.
+  set template = $OutDir/dwi-ec.lowb.nii.gz
+  set ud = `UpdateNeeded $template $fw $fec`
+  if($ud || $ForceUpdate) then
+    # Create a mean of the lowb frames
+    set cmd = (mri_concat $fec --mean --w $fw --o $template)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
 endif
 
 # Fit tensors
@@ -189,7 +219,7 @@ if($#reg == 0) then
       echo "Registration" |  tee -a $LF
       date |  tee -a $LF
       set cmd = (bbregister --s $subject --mov $OutDir/lowb.nii.gz \
-         --init-$bbrinit --lta $reg --bold) # TODO: can it be run without --reg????
+         --init-$bbrinit --lta $reg --bold --threads $threads) # TODO: can it be run without --reg????
       if($subject == fsaverage) set cmd = ($cmd --12)
       echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
       echo "cd `pwd`" |  tee -a $LF
@@ -239,7 +269,10 @@ if($DoTalairach) then
   endif
 endif
 
-echo "dt_recon finished without error at `date`" |& tee -a $LF
+echo "Started at " $StartDate
+echo "Ended   at " `date`
+
+echo "dt_recon finished without error" |& tee -a $LF
 
 exit 0
 #############------------------------------------#######################
@@ -312,6 +345,11 @@ while( $#argv != 0 )
       set OutDir = $argv[1]; shift;
       breaksw
 
+    case "--threads":
+      if ( $#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set reg = $argv[1]; shift;
@@ -345,6 +383,11 @@ while( $#argv != 0 )
     case "--no-reg":
       set DoRegistration = 0;
       set DoTalairach = 0;
+      breaksw
+
+    case "--bval-thresh":
+      if($#argv < 1) goto arg1err;
+      set bvalthresh = $argv[1]; shift;
       breaksw
 
     case "--no-tal":
@@ -509,7 +552,9 @@ usage_exit:
   echo "  --prune_thr thr  : set threshold for masking (default is FLT_MIN)"
   echo "  --init-spm       : init BBR with SPM instead of coreg (requires matlab)"
   echo "  --init-fsl       : init BBR with FSL instead of coreg"
+  echo "  --bval-thresh thresh : threshold for defining low-b volumes (not used yet)"
   echo "  --force          : force rerun of all files"
+  echo "  --threads        : only for bbregister"
   echo "  --debug          : print out lots of info"
   echo "  --version        : print version of this script and exit"
   echo "  --help           : voluminous bits of wisdom"
