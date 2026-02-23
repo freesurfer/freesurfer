@@ -29,6 +29,10 @@ set ndilations = 1
 set DoMask = 1
 set params = ()
 set DoMultiFrameMean = 1
+# Total readout time in sec. If TRT=1, then b0 map will be in
+# voxels. Otherwise in Hz. Having the right number here will
+# be important when running with eddy
+set TRT = 1 
 
 set tmpdir = ();
 set cleanup = 1;
@@ -166,8 +170,8 @@ endif
 if($#params == 0) then
   set params = $outdir/params.dat
   if(! -e $params) then
-    echo "0  1 0 1" > $params
-    echo "0 -1 0 1" >> $params
+    echo "0  1 0 $TRT" > $params
+    echo "0 -1 0 $TRT" >> $params
   endif
 else
   cp $params $outdir/log
@@ -349,6 +353,11 @@ while( $#argv != 0 )
       set threads = $argv[1]; shift;
       breaksw
 
+    case "--trt":
+      if($#argv < 1) goto arg1err;
+      set TRT = $argv[1]; shift;
+      breaksw
+
     case "--ndil":
     case "--ndilations":
       if($#argv < 1) goto arg1err;
@@ -518,6 +527,7 @@ usage_exit:
   echo " --p params : parameter file passed to topup (default is assuming AP/PA)"
   echo " --no-multi-frame-mean : do not comute the mean of multi-frame inputs (will need a param file)"
   echo " --qa : apply B0 cor to compare to the output of topup"
+  echo " --trt total readout time in sec (default is $TRT)" 
   echo " --threads nthreads "
   echo ""
 
