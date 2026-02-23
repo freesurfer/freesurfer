@@ -33,10 +33,8 @@
     </positional>
     <required-flagged>
       <intro>Exactly one input is required:</intro>
-      <argument>--inm3z &lt;in.m3z&gt;</argument>
-      <explanation>input Freesurfer 3D morph in M3Z format</explanation>
-      <argument>--inmgzwarp &lt;inwarp.mgz&gt;</argument>
-      <explanation>input Freesurfer 3D morph in mgz format</explanation>       
+      <argument>--infswarp &lt;in-warp&gt;</argument>
+      <explanation>input Freesurfer 3D morph, support m3z (deprecated), mgz, and nifti NIFTI_INTENT_DISPVECT file formats</explanation>
       <argument>--infsl &lt;in.nii.gz&gt;</argument>
       <explanation>input FSL warp (recommend to use with --insrcgeom)</explanation>
       <argument>--inspm &lt;y_rinput.nii&gt;</argument>
@@ -48,10 +46,8 @@
       <argument>--invox &lt;in.mgz&gt;</argument>
       <explanation>input displacement field in source-voxel space</explanation>
       <intro>Exactly one output is required:</intro>
-      <argument>--outm3z &lt;out.m3z&gt;</argument>
-      <explanation>output Freesurfer 3D morph in M3Z format</explanation>
-      <argument>--outmgzwarp &lt;outwarp.mgz&gt;</argument>
-      <explanation>output Freesurfer 3D morph in mgz format</explanation>      
+      <argument>--outfswarp &lt;out-warp&gt;</argument>
+      <explanation>output Freesurfer 3D morph, support m3z (deprecated), mgz, and nifti NIFTI_INTENT_DISPVECT file formats</explanation>
       <argument>--outfsl &lt;out.nii.gz&gt;</argument>
       <explanation>output warp in FSL format</explanation>
       <argument>--outlps, --outitk &lt;out.nii.gz&gt;</argument>
@@ -80,20 +76,20 @@
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):
-    mri_warp_convert --infsl fsl.nii.gz --outm3z out.m3z --insrcgeom src.nii.gz</example>
+    mri_warp_convert --infsl fsl.nii.gz --outfswarp out.m3z --insrcgeom src.nii.gz</example>
   <example>Convert ITK warp (e.g. ANTs) to M3Z (FreeSurfer):
-    mri_warp_convert --initk itk.nii.gz --outm3z out.m3z --insrcgeom src.nii.gz</example>
+    mri_warp_convert --initk itk.nii.gz --outfswarp out.m3z --insrcgeom src.nii.gz</example>
   <example>Convert ANTS antsRegistrationSyN.sh or antsRegistrationSyNQuick.sh output to M3Z (FreeSurfer):
     antsRegistrationSyNQuick.sh -d 3 -m mov.mgz -f targ.mgz -o reg. 
     ConvertTransformFile 3 ants.reg0GenericAffine.mat ants.reg0GenericAffine.txt --hm --ras
     lta_convert --src mov.mgz --trg targ.mgz --inniftyreg ants.reg0GenericAffine.txt --outlta ants.reg0GenericAffine.lta
-    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outm3z out.m3z --insrcgeom targ.mgz
+    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outfswarp out.m3z --insrcgeom targ.mgz
       Note that the insrcgeom is the target, not the mov; this is needed to work with --lta1-inv.
   </example>
   <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
-    mri_warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
+    mri_warp_convert --infswarp in.m3z --outitk out.nii.gz</example>
   <example>Convert M3Z (FreeSurfer) to mgz warp (FreeSurfer) in absolute CRS:
-    mri_warp_convert --inm3z in.m3z --outmgzwarp outwarp.mgz --out-interp abs-crs</example>
+    mri_warp_convert --infswarp in.m3z --outfswarp outwarp.mgz --out-interp abs-crs</example>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
   <see-also>mri_convert -at or -ait (apply transforms to an image)
 lta_convert (convert between different linear transform formats)
