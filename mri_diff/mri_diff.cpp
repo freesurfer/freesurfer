@@ -409,9 +409,9 @@ int main(int argc, char *argv[]) {
           if (ExitOnDiff) {
 	    if (Gdiag & DIAG_INFO) {
 	      int precision = 10;
-	      printf("[DEBUG] checkgeo vox2ras1:\n");
+	      printf("[DEBUG] mri_diff CheckGeo vox2ras1:\n");
 	      MatrixPrint(stdout, vox2ras1, precision);
-	      printf("[DEBUG] checkgeo vox2ras2:\n");
+	      printf("[DEBUG] mri_diff CheckGeo vox2ras2:\n");
 	      MatrixPrint(stdout, vox2ras2, precision);
 	    }
 	    exit(104);

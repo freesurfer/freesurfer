@@ -10131,8 +10131,10 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr, MATRIX *nii_sfo
   }
 
   err = MRIsetVox2RASFromMatrix(mri, sform);
-  MatrixCopy(sform, nii_sform);
-  nii_sform->rptr[4][4] = 1;
+  if (nii_sform != NULL) {
+    MatrixCopy(sform, nii_sform);
+    nii_sform->rptr[4][4] = 1;
+  }
   MatrixFree(&sform);
   
   return (err);

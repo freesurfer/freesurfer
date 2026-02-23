@@ -40,7 +40,7 @@
       <argument>--infsl &lt;in.nii.gz&gt;</argument>
       <explanation>input FSL warp (recommend to use with --insrcgeom)</explanation>
       <argument>--inspm &lt;y_rinput.nii&gt;</argument>
-      <explanation>input SPM warp (use with --insrcgeom). Use --inwarpformat  &lt;&gt; to specify the data format, which is either abs-ras (default) or abs-crs.)</explanation>
+      <explanation>input SPM warp (use with --insrcgeom). Use --in-interp  &lt;&gt; to specify the data interpretation, which is either abs-ras (default) or abs-crs.)</explanation>
       <argument>--inlps, --initk &lt;in.nii.gz&gt;</argument>
       <explanation>input LPS-to-LPS displacement field (e.g. ITK, ANTs)</explanation>
       <argument>--inras &lt;in.nii.gz&gt;</argument>
@@ -71,10 +71,10 @@
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
       <argument>-lta2 LTA (or -lta2-inv)</argument>
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
-      <argument>--inwarpformat inwarp-format</argument>
-      <explanation>specify warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs). This option only works with '--inspm &lt;out.mgz&gt;'. </explanation>      
-      <argument>--outwarpformat outwarp-format</argument>
-      <explanation>specify warp data format: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
+      <argument>--in-interp in-interp</argument>
+      <explanation>specify warp data interpretation: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs). This option only works with '--inspm &lt;out.mgz&gt;'. </explanation>      
+      <argument>--out-interp out-interp</argument>
+      <explanation>specify warp data interpretation: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
       <argument>--vg-thresh vgthresh</argument>
       <explanation>specify threshold for testing diffs in volume geom</explanation>
     </optional-flagged>
@@ -93,7 +93,7 @@
   <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
     mri_warp_convert --inm3z in.m3z --outitk out.nii.gz</example>
   <example>Convert M3Z (FreeSurfer) to mgz warp (FreeSurfer) in absolute CRS:
-    mri_warp_convert --inm3z in.m3z --outmgzwarp outwarp.mgz --outwarpformat abs-crs</example>
+    mri_warp_convert --inm3z in.m3z --outmgzwarp outwarp.mgz --out-interp abs-crs</example>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
   <see-also>mri_convert -at or -ait (apply transforms to an image)
 lta_convert (convert between different linear transform formats)
