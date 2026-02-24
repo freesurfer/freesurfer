@@ -469,16 +469,16 @@ def main():
             image_utils.MRIwrite(mri_resampled, photo_aff, output_directory + '/mri.deformed.photo_space.mgz')
         REFaff[:-1, -1] += np.squeeze(cog_mri_ras)
         if y_shifts is None:
-            RAS, RASres, rasaff = image_utils.computeRAS(grids_new_mri_nonlin, REF.shape, REFaff, photo_aff, fsprefix, output_directory + '/temp.mgz')
+            RAS, RASres = image_utils_refine_with_seg.computeRAS(grids_new_mri_nonlin, REF.shape, REFaff, photo_aff, LINEAR.shape, affnew)
             image_utils.MRIwrite(RAS, photo_aff, output_directory + '/field.photo_space.mgz')
-            image_utils.MRIwrite(RASres, rasaff, output_directory + '/field.1mm.mgz')
+            image_utils.MRIwrite(RASres, affnew, output_directory + '/field.1mm.mgz')
         else:
-            RAS, RASres, rasaff = image_utils.computeRAS(grids_new_mri_nonlin_no_shift, REF.shape, REFaff, photo_aff, fsprefix, output_directory + '/temp.mgz')
-            image_utils.MRIwrite(RASres, rasaff, output_directory + '/field.1mm.mgz')
+            RAS, RASres = image_utils_refine_with_seg.computeRAS(grids_new_mri_nonlin_no_shift, REF.shape, REFaff, photo_aff, LINEAR.shape, affnew)
+            image_utils.MRIwrite(RASres, affnew, output_directory + '/field.1mm.mgz')
         REFres, _ = image_utils.deform(REF, REFaff, RASres, device, mode='linear')
         REFmaskRes, _ = image_utils.deform(REFmask.astype(np.float32), REFaff, RASres, device, mode='linear')
         REFres *= REFmaskRes
-        image_utils.MRIwrite(REFres, rasaff, output_directory + '/mri.deformed.mgz')
+        image_utils.MRIwrite(REFres, affnew, output_directory + '/mri.deformed.mgz')
         cmd += (' -v ' + output_directory + '/mri.deformed.mgz ')
 
         if arguments.input_roi_dir is not None:
@@ -490,7 +490,7 @@ def main():
                 roiIm, roiAff = image_utils.MRIread(g[i])
                 roiDef, _ = image_utils.deform(roiIm, roiAff, RASres, device, mode='linear')
                 roiDef *= REFmaskRes
-                image_utils.MRIwrite(roiDef, rasaff, output_directory + '/nonlinearly_registered_roi_' + os.path.split(g[i])[1])
+                image_utils.MRIwrite(roiDef, affnew, output_directory + '/nonlinearly_registered_roi_' + os.path.split(g[i])[1])
 
     if Pmesh is not None:
         cmd += (' -f ' + output_directory + '/registered.surf')
@@ -499,7 +499,7 @@ def main():
 
     if arguments.deform_recon_dir is not None:
         print('MRI recon directory provided; working on FreeSurfer data')
-        image_utils.deform_FS_derivatives(arguments.deform_recon_dir, arguments.hemisphere, RASres, rasaff, output_directory, device)
+        image_utils.deform_FS_derivatives(arguments.deform_recon_dir, arguments.hemisphere, RASres, affnew, output_directory, device)
         cmd += (' -v ' + output_directory + '/aparc+aseg.deformed.mgz:colormap=lut')
         if (arguments.hemisphere=='both') or (arguments.hemisphere=='left'):
             cmd += (' -f ' + output_directory + '/lh.pial.deformed  -f ' + output_directory + '/lh.white.deformed')

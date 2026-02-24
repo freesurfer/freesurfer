@@ -402,7 +402,7 @@ def fast_3D_interp_torch(X, II, JJ, KK, mode):
     return Y
 
 # Computes deformation as a field of RAS coordinates, in photo space and at 1mm isotropic
-def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, fsprefix, tempfile):
+def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, iso_size, iso_aff):
     # First in native space of the photo recon
     IJKmri = []
     for c in range(3):
@@ -410,22 +410,23 @@ def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, fsprefix, temp
     IJKmri = np.stack(IJKmri, axis=-1)
     RAS = np.zeros_like(IJKmri)
     for c in range(3):
-        RAS[..., c] = REFaff[c, 0] * IJKmri[..., 0] + REFaff[c, 1] * IJKmri[..., 1] + REFaff[c, 2] * IJKmri[..., 2] + REFaff[c, 3]
-        RASresampled = []
-    for c in range(3):
-        MRIwrite(RAS[..., c], photo_aff, tempfile)
-        cmd = fsprefix + ' mri_convert ' + tempfile + ' ' + tempfile + ' --voxsize 1 1 1  -odt float'
-        a = os.system(cmd + ' >/dev/null')
-        if a > 0:
-            raise Exception('mri_convert failed; exiting')
-        aux, rasaff = MRIread(tempfile)
-        RASresampled.append(aux)
-    RASresampled = np.stack(RASresampled, axis=-1)
-    # mri_convert has problem with extrapolation; we need to kill the last few slices
-    fitted_thickness = np.abs(photo_aff[:-1,:-1]).max()
-    RASresampled = RASresampled[:,:,:-np.ceil(fitted_thickness).astype(np.int32),:]
-    os.system('rm -rf  ' + tempfile + ' >/dev/null ')
-    return RAS, RASresampled, rasaff
+        RAS[..., c] = REFaff[c, 0] * IJKmri[..., 0] + REFaff[c, 1] * IJKmri[..., 1] + REFaff[c, 2] * IJKmri[
+            ..., 2] + REFaff[c, 3]
+    # now in the 1x1x1 space of the linear / ML interpolations
+    v2v = torch.tensor(np.linalg.inv(photo_aff) @ iso_aff, device=device, dtype=torch.float32)
+    coords = torch.stack(torch.meshgrid(
+        torch.arange(iso_size[0], device=device),
+        torch.arange(iso_size[1], device=device),
+        torch.arange(iso_size[2], device=device),
+        indexing='ij'), dim=-1).reshape(-1, 3)  # shape (N, 3)
+    coords_trans = (v2v @ torch.cat([coords, torch.ones(coords.shape[0], 1, device=device)], dim=-1).T).T[:,
+                   :3]  # (N,3)
+    grid = 2.0 * coords_trans / (torch.tensor(RAS.shape[:3], device=device) - 1) - 1.0  # scale to [-1,1]
+    grid = grid.view(1, iso_size[0], iso_size[1], iso_size[2], 3)  # shape (1, X, Y, Z, 3)
+    RASres = F.grid_sample(torch.tensor(RAS, device=device, dtype=torch.float32).permute([3, 0, 1, 2]).unsqueeze(0),
+                           grid.flip([-1]), mode='bilinear', padding_mode='border', align_corners=True)
+    RASres = RASres[0].permute(1, 2, 3, 0).detach().cpu().numpy()
+    return RAS, RASres
 
 # deform an image with a field of RAS coordinates
 def deform(I, aff, RAS, device, mode='linear'):
