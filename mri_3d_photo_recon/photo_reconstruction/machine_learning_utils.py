@@ -3,7 +3,7 @@ import numpy as np
 from torch.nn.functional import conv3d
 from  ext.unet3d.model import UNet2D
 
-def photo_imputation(input, affine, y_shifts, sz, threshold_fg, unsharp_sigma, unsharp_amount, checkpoint, device):
+def photo_imputation(input, aff, y_shifts, sz, threshold_fg, unsharp_sigma, unsharp_amount, checkpoint, device):
     with torch.no_grad():
 
         # Prepare CNN
@@ -17,6 +17,19 @@ def photo_imputation(input, affine, y_shifts, sz, threshold_fg, unsharp_sigma, u
 
         # Prepare normalized input tensor
         I = input.clone()
+        affine = aff.copy()
+        volres = np.sqrt(np.sum(aff**2, axis=0))[:-1]
+        if np.any(volres[:2]!=1.0):
+            resized = []
+            from cv2 import resize, INTER_AREA
+            for k in range(I.shape[2]):
+                Isl = resize(I[:,:,k,:].detach().cpu().numpy(), None, fx=volres[0], fy=volres[1], interpolation=INTER_AREA)
+                resized.append(Isl)
+            I = torch.tensor(np.stack(resized, axis=-2), device=device, dtype=I.dtype)
+            affine[:-1, 0] /= volres[0]
+            affine[:-1, 1] /= volres[1]
+            affine[:-1, -1] += (affine[:-1, :-1] @ np.array([0.5-0.5*volres[0], 0.5-0.5*volres[1], 0]))
+
         Igray = I.mean(dim=3)
         M = (Igray > threshold_fg)
 
