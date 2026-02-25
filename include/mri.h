@@ -444,9 +444,9 @@ struct VOL_GEOM
 	double val2 = vox2ras2->rptr[r][c];
 	double diff = fabs(val1-val2);
 	if (diff > geothresh) {
-	  printf("%sVOL_GEOM::checkvox2ras(): Volumes differ in vox2ras row=%d col=%d diff=%.10lf (thresh=%g)\n",
-		 (debug) ? "[DEBUG] " : "",
-		 r, c, diff, geothresh);
+	  if (debug)
+	    printf("[DEBUG]VOL_GEOM::checkvox2ras(): Volumes differ in vox2ras row=%d col=%d diff=%.10lf (thresh=%g)\n",
+		   r, c, diff, geothresh);
 	  vox2rasdiff = true;
 	}
       } // c
@@ -455,10 +455,10 @@ struct VOL_GEOM
     bool vox2rasdiff = VOL_GEOM::diffvox2ras(vox2ras1, vox2ras2, geothresh, "TAG_RAS_XFORM vs MRI_XFORM", debug);
 #endif
 
-    if (vox2rasdiff) {
+    if (vox2rasdiff && debug) {
       if (nii_sform != NULL) {
+        VOL_GEOM::diffvox2ras(nii_sform, vox2ras2, geothresh, "NII_SFORM vs MRI_XFORM", debug);
         VOL_GEOM::diffvox2ras(vox2ras1, nii_sform, geothresh, "TAG_RAS_XFORM vs NII_SFORM", debug);
-        VOL_GEOM::diffvox2ras(vox2ras2, nii_sform, geothresh, "MRI_XFROM vs NII_SFORM", debug);
       }
 
       // print vox2ras matrix
@@ -483,7 +483,8 @@ struct VOL_GEOM
   
   static bool diffvox2ras(MATRIX* vox2ras1, MATRIX* vox2ras2, double thresh, const char* msg, bool debug=false)
   {
-    printf("%sVOL_GEOM::diffvox2ras(): %s\n", (debug) ? "[DEBUG] " : "", msg);
+    if (debug)
+      printf("[DEBUG]VOL_GEOM::diffvox2ras(): %s\n", msg);
     
     bool vox2rasdiff = false;
     for (int r = 1; r <= 4; r++) {
@@ -491,16 +492,18 @@ struct VOL_GEOM
 	double val1 = vox2ras1->rptr[r][c];
 	double val2 = vox2ras2->rptr[r][c];
 	double diff = fabs(val1-val2);
-	//printf("%sVOL_GEOM::diffvox2ras(): row=%d col=%d val1=%.10lf val2=%.10lf\n", (debug) ? "[DEBUG] " : "", r, c, val1, val2);
 	if (diff > thresh) {
-	  printf("%sVOL_GEOM::diffvox2ras(): Volumes differ in vox2ras row=%d col=%d diff=%.10lf (thresh=%g), val1=%.10lf val2=%.10lf\n",
-		 (debug) ? "[DEBUG] " : "",
-		 r, c, diff, thresh, val1, val2);
+	  if (debug)
+	    printf("[DEBUG]\tVOL_GEOM::diffvox2ras(): vox2ras differs at row=%d col=%d diff=%.10lf (thresh=%g), val1=%.10lf val2=%.10lf\n",
+		   r, c, diff, thresh, val1, val2);
 	  vox2rasdiff = true;
 	}
       } // c
     } // r
 
+    if (!vox2rasdiff && debug)
+      printf("\tVOL_GEOM::diffvox2ras(): vox2ras same\n");
+ 
     return vox2rasdiff;
   }
   
