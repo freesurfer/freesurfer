@@ -7,6 +7,8 @@ setenv FS_COPY_HEADER_CTAB 1 # make sure that anything saved in FV has its color
 
 set subject = ();
 set overlay = ();
+set overlayreg = ();
+set overlaylistname = ()
 set mainvol = ();
 set auxvol = ();
 set auxvol0 = ();
@@ -25,11 +27,9 @@ set mainsurf = ();
 set auxsurf = ();
 set DoSurfs = 0;
 set surfext = ()
-set overlay = ();
-set overlayreg = ();
 set twfvol = ();
 set twfreg = ();
-set interp = nearest
+set interp = cubic
 set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set auxsegcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set ctabset = 0
@@ -127,11 +127,15 @@ if(! $UseTkMedit) then
       set cmd = ($cmd -l $label)
     end
   endif
+  @ kov = 0
   foreach ov ($overlay)
+    @ kov = $kov + 1
     #set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
     set fmid = $fthresh;
     #set fvopt = ($ov":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
     set fvopt = ($ov":"colormap=heat":"heatscale=$fthresh,$fmax":"heatscale_options=$overlaymethod)
+    echo $kov $overlaylistname[$kov]
+    if("$overlaylistname[$kov]" != noname) set fvopt = (${fvopt}:name=$overlaylistname[$kov])
     if($#overlayreg) set fvopt = ($fvopt":"reg=${overlayreg}:resample=$interp)
     set cmd = ($cmd -v $fvopt)
   end
@@ -409,6 +413,11 @@ while( $#argv != 0 )
         exit 1;
       endif
       set overlay = ($overlay $ov)
+      if(! `isargflag $argv`) then
+        set overlaylistname = ($overlaylistname $argv[1]); shift
+      else
+        set overlaylistname = ($overlaylistname noname);
+      endif
       breaksw
 
     case "-linear":
@@ -431,6 +440,10 @@ while( $#argv != 0 )
 
     case "-cubic":
       set interp = cubic
+      breaksw
+
+    case "-nearest":
+      set interp = nearest
       breaksw
 
     case "-timecourse":
@@ -915,8 +928,9 @@ usage_exit:
   echo "-main-minmax min max : set intensity min max on fist volume"
   echo "-defects : load info needed to evaluate defects"
   echo "-defectps : load defect pointset (also loaded with -defects)"
+  echo "-nearest : use nearest interpolation for volume overlays"
   echo "-trilin : use trilinear interpolation for volume overlays"
-  echo "-cubic : use cubic interpolation for volume overlays"
+  echo "-cubic : use cubic interpolation for volume overlays (default)"
   echo "-neuro : use neurological orientation instead of radiological"
   echo "-fminmax min max : min and max for overlays (default $fthresh $fmax)"
   echo "-linear, -linearopaque, -piecewise, -mid_to_max : overlay colorbar transition (default $overlaymethod)"
@@ -924,7 +938,6 @@ usage_exit:
   echo "-rotate-around-cursor (-rca) : in 3d view, rotate around cursor (use -no- to turn off)"
   echo "-ss ScreenShot Quit01 : take a screen shot (saves as png)"
   echo "  Note: if Quit=1 then uses virtual frame buffer (so you won't see anything) and exits after "
-  #echo "-linear, -linearopaque, -piecewise, -min_to_max (default) : overlay heat scale"
   echo "--keep-sphere-vol-geom : do not ignore sphere volume geometry when loading sphere"
   echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
