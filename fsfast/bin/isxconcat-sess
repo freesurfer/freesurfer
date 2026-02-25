@@ -245,7 +245,7 @@ foreach hemi ($hemilist)
     if($status) exit 1;
   endif
 
-  if($hemi == mni305 || $hemi == cvs_avg35_inMNI152) then
+  if($hemi == mni305 || $hemi == cvs_avg35_inMNI152 || $hemi == fsmni152) then
     # Take intersection of single mask and subcort mask
     set maskvol2 = $outdir/"$SpStr"subcort.mask.$FSF_OUTPUT_FORMAT
     set ud = `UpdateNeeded $maskvol2 $maskvol`
@@ -427,7 +427,7 @@ end # Loop over hemi
 
 if($DoAnats) then
   foreach hemi ($hemilist)
-    if($hemi != mni305 && $hemi != cvs_avg35_inMNI152) then
+    if($hemi != mni305 && $hemi != cvs_avg35_inMNI152 && $hemi != fsmni152) then
       foreach mapname (thickness curv sulc)
         set outvol = $outdir/$hemi.$mapname.sm00.$FSF_OUTPUT_FORMAT
         set cmd = (isxconcat0-sess -o $outvol $sessargs \
@@ -757,6 +757,13 @@ check_params:
       set hemilist = (cvs_avg35_inMNI152)
       set DoResample = 0;
     endif
+    set UseFSMNI152 = `getana -a $analysis -t IsFSMNI152`;
+    if($UseFSMNI152) then
+      set ToSurf = 0;
+      set ToVol = 1;
+      set hemilist = (fsmni152)
+      set DoResample = 0;
+    endif
     # Get the h-file, usually for FIRs
     if($#GetHRF == 0) set GetHRF = `getana -a $analysis -t IsFIR`;
     if($GetHRF) set anamaplist = ($anamaplist h);
@@ -839,13 +846,14 @@ check_params:
   endif
   if($#regfile == 0) set regfile = register.dof$RegDOF.lta
 
-  if($hemilist[1] == mni305 || $UseCVS) then
+  if($hemilist[1] == mni305 || $UseCVS || $UseFSMNI152) then
     if($talres == 2) then
       set subcortmask = $SUBJECTS_DIR/$trgsubject/mri.2mm/subcort.mask.mgz
     else
       set subcortmask = $SUBJECTS_DIR/$trgsubject/mri/subcort.mask.1mm.mgz
     endif
     if($UseCVS) set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
+    if($UseFSMNI152) set subcortmask = $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/mni152.subcortgm.2.0mm.cropped.nii.gz
     if(! -e $subcortmask) then
       echo "ERROR: cannot find $subcortmask"
       exit 1;

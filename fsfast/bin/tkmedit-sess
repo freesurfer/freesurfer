@@ -95,6 +95,7 @@ if($#analysis != 0) then
   set fsd = `getana -a $analysis -t fsd`;
   set UseTalairach = `getana -a $analysis -t IsMNI305`;
   set UseCVS = `getana -a $analysis -t IsCVS`;
+  set UseFSMNI152 = `getana -a $analysis -t IsFSMNI152`;
   set IsFIR = `getana -a $analysis -t IsFIR`;
   set UseB0DC = `getana -a $analysis -t UseB0DC`;
 else if($#flac) then
@@ -119,6 +120,7 @@ if($#mapanalysis != 0) then
   endif
   set MapUseTalairach = `getana -a $mapanalysis -t IsMNI305`;
   set MapUseCVS = `getana -a $analysis -t IsCVS`;
+  set MapUseFSMNI152 = `getana -a $analysis -t IsFSMNI152`;
   if($UseTalairach != $MapUseTalairach) then
     if($MapUseTalairach) then
       echo "ERROR: map analysis $mapanalysis is talairach-based."
@@ -156,7 +158,8 @@ if(! $UseTalairach) then
     set regfile = $d/`basename $regfile`;
     set subject = `reg2subject --r $regfile`;
   else
-    set subject = cvs_avg35_inMNI152
+    if($UseCVS) set subject = cvs_avg35_inMNI152
+    if($UseFSMNI152) set subject = fsmni152
     set regfile = ();
   endif
 else

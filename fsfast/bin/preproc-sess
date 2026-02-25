@@ -71,6 +71,7 @@ set subject = ();
 set hemi = ();
 set ToMNI305 = 0;
 set ToCVS = 0;
+set ToFSMNI152 = 0;
 set RawRes = 2;
 set RegDOF = 6;
 set regfile = ();
@@ -289,7 +290,7 @@ foreach sess ($SessList)
     if($status) exit 1;
   endif
 
-  if($ToMNI305 || $ToCVS) then
+  if($ToMNI305 || $ToCVS || $ToFSMNI152) then
     set cmd = (rawfunc2tal-sess -fwhm $fwhm )
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($RawRes == 1) set cmd = ($cmd -1mm)
@@ -306,6 +307,7 @@ foreach sess ($SessList)
     if($PerSess) set cmd = ($cmd -per-session)
     if($DoMC == 0)   set cmd = ($cmd -no-mc)
     if($ToCVS) set cmd = ($cmd -cvs)
+    if($ToFSMNI152) set cmd = ($cmd -fsmni152)
     echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -610,8 +612,16 @@ while( $#argv != 0 )
       set RawRes = 2;
       set ToMNI305 = 0;
       set ToCVS = 1;
+      set ToFSMNI152 = 0;
       #set PerRun = 1;
       #set PerSess = 0;
+      breaksw
+
+    case "-fsmni152":
+      set RawRes = 2;
+      set ToFSMNI152 = 1;
+      set ToCVS = 0;
+      set ToMNI305 = 0;
       breaksw
 
     case "-usual":
@@ -706,7 +716,8 @@ while( $#argv != 0 )
       endif
       set ToMNI305 = `getana -a $analysis -t IsMNI305`;
       set ToCVS    = `getana -a $analysis -t IsCVS`;
-      if($ToMNI305 || $ToCVS) then
+      set ToFSMNI152 = `getana -a $analysis -t IsFSMNI152`;
+      if($ToMNI305 || $ToCVS || $ToFSMNI152) then
         set RawRes = `getana -a $analysis -t RawRes`;
       endif
       set volsurffwhm = `getana -a $analysis -t VolSurfFWHM`;
@@ -831,9 +842,9 @@ check_params:
     set stcoutstem = $mcoutstem
   endif
 
-  if($ToSurf || $ToMNI305 || $ToCVS) then
+  if($ToSurf || $ToMNI305 || $ToCVS || $ToFSMNI152) then
     if($#fwhm == 0) then
-      echo "ERROR: must specify -fwhm with -surface or -mni305 or -cvs."
+      echo "ERROR: must specify -fwhm with -surface or -mni305 or -cvs or -fsmni152."
       echo "       Set it to 0 for no smoothing"
       exit 1;
     endif
@@ -921,7 +932,8 @@ usage_exit:
   echo "  -surface subject hemi : set hemi to lhrh to do both"
   echo "  -mni305-2mm    : sample raw data to mni305 at 2mm (same as -mni305)"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
-  echo "  -cvs : sample raw data to cvs_avg35_inMNI152 at 2mm (not with -mni305)"
+  echo "  -cvs : sample raw data to cvs_avg35_inMNI152 at 2mm (not with -mni305 or -fsmni152)"
+  echo "  -fsmni152 : sample raw data to fsmni152 at 2mm (not with -mni305 or -cvs)"
   echo "  -b0dc : apply B0 distortion correction (looks for fsd/b0dcmap.nii.gz); see epidewarp.fsl"
   echo ""
   echo "Session Arguments (some combination required)"

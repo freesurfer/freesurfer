@@ -144,6 +144,9 @@ while(1)
     if(strcmp(flac.RawSpace,'cvs_avg35_inMNI152'))
       flac.RawSpaceRes = sscanf(tline,'%*s %*s %*s %f',1); 
     end
+    if(strcmp(flac.RawSpace,'fsmni152'))
+      flac.RawSpaceRes = sscanf(tline,'%*s %*s %*s %f',1); 
+    end
     if(strcmp(flac.RawSpaceType,'surface'))
       flac.subject = sscanf(tline,'%*s %*s %s',1);
       flac.hemi = sscanf(tline,'%*s %*s %*s %s',1);

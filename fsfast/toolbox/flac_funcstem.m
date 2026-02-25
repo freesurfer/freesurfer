@@ -30,6 +30,8 @@ if(~maskflag)
     stem = sprintf('%s%s.sm%g.mni305.%dmm%s',flac.mcstem,stc,flac.rawfwhm,flac.RawSpaceRes,ExpKey);
   elseif(strcmp(flac.RawSpace,'cvs_avg35_inMNI152'))
     stem = sprintf('%s%s.sm%g.cvs_avg35_inMNI152.%dmm%s',flac.mcstem,stc,flac.rawfwhm,flac.RawSpaceRes,ExpKey);
+  elseif(strcmp(flac.RawSpace,'fsmni152'))
+    stem = sprintf('%s%s.sm%g.fsmni152.%dmm%s',flac.mcstem,stc,flac.rawfwhm,flac.RawSpaceRes,ExpKey);
   else % surface
     if(isempty(flac.volsurffwhm))
       stem = sprintf('%s%s.sm%g.%s.%s%s',flac.mcstem,stc,flac.rawfwhm,flac.subject,flac.hemi,ExpKey);
@@ -46,6 +48,8 @@ else
     stem = sprintf('%s.mni305.%dmm%s',flac.mask,flac.RawSpaceRes,ExpKey);
   elseif(strcmp(flac.RawSpace,'cvs_avg35_inMNI152'))
     stem = sprintf('%s.cvs_avg35_inMNI152.%dmm%s',flac.mask,flac.RawSpaceRes,ExpKey);
+  elseif(strcmp(flac.RawSpace,'fsmni152'))
+    stem = sprintf('%s.fsmni152.%dmm%s',flac.mask,flac.RawSpaceRes,ExpKey);
   else
     stem = sprintf('%s.%s.%s%s',flac.mask,flac.subject,flac.hemi,ExpKey);
   end

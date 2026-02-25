@@ -140,6 +140,7 @@ echo "PerSession $PerSession" | tee -a $flac
 if($RawSpace == native)      echo "RawSpace volume native" | tee -a $flac
 if($RawSpace == mni305)      echo "RawSpace volume mni305 $RawRes" | tee -a $flac
 if($RawSpace == cvs_avg35_inMNI152)  echo "RawSpace volume cvs_avg35_inMNI152 $RawRes" | tee -a $flac
+if($RawSpace == fsmni152)            echo "RawSpace volume fsmni152 $RawRes" | tee -a $flac
 if($RawSpaceType == surface) echo "RawSpace surface $RawSpace $RawHemi" | tee -a $flac
 echo "mask $maskstem" | tee -a $flac
 echo "RawFWHM $RawFWHM" | tee -a $flac
@@ -527,6 +528,16 @@ while( $#argv != 0 )
       #set mcstem = fmcpr
       breaksw
 
+    case "-fsmni152":
+      set RawRes = 2;
+      if(! `isargflag $argv`) then
+        set RawRes = $argv[1]; shift;
+      endif
+      set RawSpaceType = volume;
+      set RawSpace = fsmni152
+      #set mcstem = fmcpr
+      breaksw
+
     case "-subcort-mask":
     case "-subcort":
       set ApplySubCortMask = 1;
@@ -746,7 +757,7 @@ check_params:
     exit 1;
   endif
   if($#RawSpaceType == 0) then
-    echo "ERROR: must specify -native, -surface, or -mni305 or -cvs"
+    echo "ERROR: must specify -native, -surface, or -mni305 or -cvs or -fsmni152"
     exit 1;
   endif
   if($#RawFWHM != 0 && $#funcstem != 0) then
@@ -846,6 +857,7 @@ usage_exit:
   echo "  -surface subject hemi : sample raw data onto the hemi.subject surface"
   echo "  -mni305 <resMM>       : sample raw in mni305 with resolution resMM (1 or 2)"
   echo "  -cvs                  : sample raw in CVS space (fixed at 2mm)"
+  echo "  -fsmni152             : sample raw in MNI152 space (fixed at 2mm) using synthmoprh"
   echo "  -native               : leave raw data in native functional space"
   echo "  -fwhm FWHMmm : spatially smooth input by FWHM (in mm) in proper space"
   echo "  -stc SliceOrder : slice-time correct using the name of the SliceOrder (default none)"
@@ -977,6 +989,13 @@ be performed in the volume after resampling.
 When performing volume-based analysis, this will cause the raw 4D data
 to be resampled onto the 2mm Combined-Volume-Surface (CVS) space. Any
 smoothing will be performed in the volume after resampling.
+
+-fsmni152
+
+When performing volume-based analysis, this will cause the raw 4D data
+to be resampled onto the 2mm MNI152 space using synthmorp warp
+computed on the anatomical (default with recon-all now). Any smoothing
+will be performed in the volume after resampling.
 
 -native
 

@@ -100,6 +100,9 @@ switch ($tag)
     else if($RawSpace[2] == "cvs_avg35_inMNI152") then 
       set res = $RawSpace[3];
       set funcstem = $smstem.cvs_avg35_inMNI152.$res"mm"$expkey
+    else if($RawSpace[2] == "fsmni152") then 
+      set res = $RawSpace[3];
+      set funcstem = $smstem.fsmni152.$res"mm"$expkey
     else
       set funcstem = $smstem
     endif
@@ -179,8 +182,9 @@ switch ($tag)
   case "res":
     set IsMNI305 = `getana -a $analysis -t IsMNI305`
     set IsCVS = `getana -a $analysis -t IsCVS`
-    if(! $IsMNI305 && ! $IsCVS) then
-      echo "ERROR: $analysis is not mni305- or cvs-based"
+    set IsFSMNI152 = `getana -a $analysis -t IsFSMNI152`
+    if(! $IsMNI305 && ! $IsCVS && ! $IsFSMNI152) then
+      echo "ERROR: $analysis is not mni305- or cvs-based or fsmni152-based"
       exit 1;
     endif
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
@@ -197,6 +201,12 @@ switch ($tag)
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
     set result = 0;
     if($tmp[2] == cvs_avg35_inMNI152) set result = 1;
+    breaksw;
+
+  case "IsFSMNI152":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    set result = 0;
+    if($tmp[2] == fsmni152) set result = 1;
     breaksw;
 
   case "IsPerSession":

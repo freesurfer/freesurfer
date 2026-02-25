@@ -160,12 +160,17 @@ foreach sess ($SessList)
           --no-save-reg --o $outmask)
         if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
       else
-        set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+        if($UseCVS == 1) then
+          set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+          set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
+        else
+          set gcam = $SUBJECTS_DIR/$subject/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz
+          set dstreg = $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/reg.1.0mm.to.2.0mm.cropped.lta
+        endif
 	if(! -e $gcam) then
           echo "ERROR: cannot find $gcam" | tee -a $LF
           exit 1;
         endif
-        set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
         set cmd = (mri_vol2vol --vsm-pedir $pedir --gcam $mask $reg $gcam $dstreg)
         if($UseB0DC) set cmd = ($cmd $b0dcmap)
         if(! $UseB0DC) set cmd = ($cmd 0)
@@ -224,12 +229,17 @@ foreach sess ($SessList)
             --no-save-reg --o $outmask)
           if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
         else
-          set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+          if($UseCVS == 1) then
+            set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+            set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
+          else
+            set gcam = $SUBJECTS_DIR/$subject/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz
+            set dstreg = $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/reg.1.0mm.to.2.0mm.cropped.lta
+          endif
           if(! -e $gcam) then
             echo "ERROR: cannot find $gcam" | tee -a $LF
             exit 1;
           endif
-          set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
           set cmd = (mri_vol2vol --vsm-pedir $pedir --gcam $mask $reg $gcam $dstreg)
           if($UseB0DC) set cmd = ($cmd $b0dcmap)
           if(! $UseB0DC) set cmd = ($cmd 0)
@@ -313,12 +323,17 @@ foreach sess ($SessList)
         --no-save-reg --o $outvol)
       if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap $pedir)
     else
-      set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+      if($UseCVS == 1) then
+        set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+        set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
+      else
+        set gcam = $SUBJECTS_DIR/$subject/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz
+        set dstreg = $FREESURFER/average/mni_icbm152_nlin_asym_09c/reg-targets/reg.1.0mm.to.2.0mm.cropped.lta
+      endif
       if(! -e $gcam) then
         echo "ERROR: cannot find $gcam" | tee -a $LF
         exit 1;
       endif
-      set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
       set cmd = (mri_vol2vol --vsm-pedir $pedir --gcam $invol $reg $gcam $dstreg)
       if($UseB0DC) set cmd = ($cmd $b0dcmap)
       if(! $UseB0DC) set cmd = ($cmd 0)
@@ -382,6 +397,12 @@ while( $#argv != 0 )
     case "-cvs"
       set target = cvs_avg35_inMNI152;
       set UseCVS = 1;
+      set res = 2;
+      breaksw
+
+    case "-fsmni152"
+      set target = fsmni152
+      set UseCVS = 2;
       set res = 2;
       breaksw
 
@@ -569,8 +590,14 @@ if($UseCVS == 0) then
     set brainmask = $FREESURFER_HOME/subjects/fsaverage/mri/brainmask.mgz
   endif
 else
-  set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
-  set brainmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/brainmask.mgz
+  if($UseCVS == 1) then
+    set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
+    set brainmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/brainmask.mgz
+  endif
+  if($UseCVS == 2) then
+    set subcortmask = $FREESURFER_HOME/average/mni_icbm152_nlin_asym_09c/reg-targets/mni152.subcortgm.2.0mm.cropped.nii.gz
+    set brainmask = $FREESURFER_HOME/average/mni_icbm152_nlin_asym_09c/reg-targets/mni152.2.0mm.cropped.nii.gz
+  endif
 endif
 if($ApplySubCortMask && ! -e $subcortmask) then
   echo "ERROR: cannot find $subcortmask"      
