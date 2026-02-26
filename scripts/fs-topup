@@ -28,7 +28,7 @@ set DoQA = 0
 set ndilations = 1
 set DoMask = 1
 set params = ()
-set DoMultiFrameMean = 1
+set MultiFrame = 1 # 1=compute mean, 2=take first frame
 # Total readout time in sec. If TRT=1, then b0 map will be in voxels,
 # otherwise in Hz. The choice of TRT will have two implications: (1)
 # if the number is wrong, then the Hz value will be wrong. (2) if
@@ -137,11 +137,12 @@ foreach v ($vols)
   endif
   set nf = `cat $nframesfile`
   set nframes = ($nframes $nf)
-  if($nf > 1 && $DoMultiFrameMean) then
+  if($nf > 1 && $MultiFrame) then
     set vmn = $outdir/vol$n.nii.gz
     set ud = `UpdateNeeded $vmn $v`
     if($ud || $ForceUpdate) then
-      set cmd = (mri_concat $v --mean --o $vmn)
+      if($MultiFrame == 1) set cmd = (mri_concat  $v --mean --o $vmn)
+      if($MultiFrame == 2) set cmd = (mri_convert $v --frame 0  $vmn)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) goto error_exit
@@ -430,9 +431,12 @@ while( $#argv != 0 )
       breaksw
 
     case "--multi-frame-mean":
-      set DoMultiFrameMean = 1
+      set MultiFrame = 1
       breaksw
-    case "--no-multi-frame-mean":
+    case "--multi-frame-first":
+      set MultiFrame = 2
+      breaksw
+    case "--no-multi-frame":
       set DoMultiFrameMean = 0
       breaksw
 
@@ -575,6 +579,9 @@ usage_exit:
   echo " --qa : bbregister with and without B0DC to assure that the cost goes down (needs --s)"
   echo  "  Note: this can add 5-10min onto this script's execution time"
   echo " --trt total readout time in sec (default is $TRT)" 
+  echo " --multi-frame-mean : compute the mean of multi-frame inputs"
+  echo " --multi-frame-first : extract the first frame of multi-frame inputs"
+  echo " --no-multi-frame : do not do anything to multi-frame inputs (requires --p)"
   echo " --threads nthreads : does not appear to help much with topup"
   echo ""
 
@@ -667,7 +674,8 @@ try it on a few cases to convince yourself it is doing the right thing
 then leave it off.
 
 If either vol1 or vol2 has multiple frames, then the mean across
-frames is computed and used.
+frames is computed and used. The first frame can be used instead by
+specifying --multi-frame-first. 
 
 CITATION: From: https://fsl.fmrib.ox.ac.uk/fsl/docs/diffusion/topup/index.html
 
