@@ -208,7 +208,9 @@ endif
 if($#templateout) then
   set template = $templateout
 else
-  set template = $tmpdir/template.nii
+  # Use mgh here to avoid annoying changes in the way FS converts to
+  # nifit creating inconsistencies between v7 and v81 and v82.
+  set template = $tmpdir/template.mgh
 endif
 set cmd = (mri_convert $movvol $template)
 if($#frame != 0) set cmd = ($cmd --frame $frame)
