@@ -617,15 +617,10 @@ series to be corrected. For this application, one would then take the
 first frame from the series as the non-reversed input (first input
 volume). 
 
-fMRI: note that for fMRI, you probably should acquire a separate spin
-echo acquistion for both the normal and reversed PEs directions as the
-first frame in the BOLD series will have dropout that topop probably
-cannot deal with. This should not be a problem for DWI since it it
-already spin echo.
-
 If you are going to use the output in conjunction with other
 FreeSurfer programs, eg, FSFAST or bbregister, then pass those
-programs the b0dc.vox.nii.gz as the --vsm argument.
+programs the b0dc.vox.nii.gz as the --vsm argument. Within the FSFAST
+structure, copy or link b0dc.vox.nii.gz to sess/fsd/b0dcmap.nii.gz.
 
 If you are going to use the output with other FSL programs, then 
 pass outdir/topup as the topup input.
@@ -670,6 +665,9 @@ check yourself; fs-topup will not throw an error. These registrations
 may add 5-10min on the execution time for fs-topup, so you may want to
 try it on a few cases to convince yourself it is doing the right thing
 then leave it off.
+
+If either vol1 or vol2 has multiple frames, then the mean across
+frames is computed and used.
 
 CITATION: From: https://fsl.fmrib.ox.ac.uk/fsl/docs/diffusion/topup/index.html
 
