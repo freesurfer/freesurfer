@@ -8612,6 +8612,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     VOL_GEOM ras_xform = __niiReadHeaderextension(fp, mri, fname, swapped_flag, &has_ras_xform);
     if (has_ras_xform)
     {
+      bool TAG_RAS_XFORM_DEBUG = (getenv("TAG_RAS_XFORM_DEBUG") != NULL) ? true : false;
       bool vox2rasdiff = false;
 	
       // skip the vol geom check for ico7 surface encoded volumes
@@ -8623,9 +8624,9 @@ static MRI *niiRead(const char *fname, int read_volume)
 	if (vol_geom_thresh != NULL)
 	  geothresh = atof(vol_geom_thresh);
 
-	if (Gdiag & DIAG_INFO) {
-	  printf("%s niiRead(): geometry check, thresh=%g (ras_xform vs sform/qform) ...\n", (Gdiag & DIAG_INFO) ? "[DEBUG]" : "[INFO]", geothresh);
-	  bool founddiff = VOL_GEOM::checkgeom(&ras_xform, mri, geothresh, Gdiag & DIAG_INFO);
+	if (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG) {
+	  printf("[DEBUG] niiRead(): geometry check, thresh=%g (ras_xform vs sform/qform) ...\n", geothresh);
+	  bool founddiff = VOL_GEOM::checkgeom(&ras_xform, mri, geothresh, (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG));
 	  if (founddiff) {
 	    // print vol geometry
 	    mri->geomprint("[WARNING] niiRead(%s): vol geom from Nifti sform/qform:\n", fname);
@@ -8633,9 +8634,10 @@ static MRI *niiRead(const char *fname, int read_volume)
 	  }
 	}
     
-	printf("%s niiRead(): volume vox2ras check, thresh=%g (ras_xform vs sform/qform) ...\n", (Gdiag & DIAG_INFO) ? "[DEBUG]" : "[INFO]", geothresh);
-	vox2rasdiff = VOL_GEOM::checkvox2ras(&ras_xform, mri, geothresh, Gdiag & DIAG_INFO, nii_sform);      
-	if (vox2rasdiff) {
+	if (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG)
+	  printf("[DEBUG] niiRead(): volume vox2ras check, thresh=%g (ras_xform vs sform/qform) ...\n", geothresh);
+	vox2rasdiff = VOL_GEOM::checkvox2ras(&ras_xform, mri, geothresh, (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG), nii_sform);      
+	if (vox2rasdiff && (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG)) {
 	  // We now treat the differences between TAG_RAS_XFORM and vol_geom as WARNING not ERROR
 	  printf("[WARNING] niiRead(%s): VOX2RAS differs - TAG_RAS_XFORM vs Nifti sform/qform in FS header extension (thresh=%g)\n", fname, vg_isEqual_Threshold);
 	  printf("[WARNING] niiRead(%s): ignore TAG_RAS_XFORM in FS header extension, use Nifti sform/qform\n", fname);
@@ -8645,7 +8647,8 @@ static MRI *niiRead(const char *fname, int read_volume)
       if (!vox2rasdiff)
       {
 	// difference between ras_xform and *mri is within threshold
-	printf("[INFO] niiRead(): update vol geom with TAG_RAS_XFORM in FS header extension\n");
+	if (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG)
+	  printf("[INFO] niiRead(): update vol geom with TAG_RAS_XFORM in FS header extension\n");
 	mri->update_ras_xform(ras_xform);
       }
     } // end of has_ras_xform
