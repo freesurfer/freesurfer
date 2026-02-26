@@ -1,11 +1,12 @@
-function volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,UseBB)
-% volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,UseBB)
+function volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,UseBB,ffwhm)
+% volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,UseBB,ffwhm)
 % 
-% 3D gaussian smoother.
+% 3D gaussian smoother (Note: can actually do 4D with ffwhm)
 %
 % cfwhm - fwhm for cols
 % rfwhm - fwhm for rows
 % sfwhm - fwhm for slice
+% ffwhm - fwhm for frames
 % UseBB - reduce size to bounding box of non-zero voxels padded
 % with 4STDs in each dim. This will not yield exactly the same 
 % result, but it will be close, but it can speed things up a lot.
@@ -28,19 +29,21 @@ function volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,UseBB)
 
 volsm = [];
 
-if(nargin ~= 4 & nargin ~= 5)
-  fprintf('volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,<UseBB>)\n');
+if(nargin ~= 4 & nargin ~= 5 & nargin ~= 6)
+  fprintf('volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,<UseBB>,<ffwhm>)\n');
   return;
 end
 
 if(~exist('UseBB','var')) UseBB = []; end
 if(isempty(UseBB))        UseBB = 0; end
+if(~exist('ffwhm','var')) ffwhm=0; end
 
 if(isfield(vol,'vol')) vol = vol.vol; end
 
 rstd = rfwhm/sqrt(log(256.0));
 cstd = cfwhm/sqrt(log(256.0));
 sstd = sfwhm/sqrt(log(256.0));
+fstd = ffwhm/sqrt(log(256.0));
 
 if(UseBB)
   % This is not exactly the same near the edges of the volume
@@ -85,6 +88,15 @@ if(sstd > 0)
   vol = fast_smooth1d(vol,sstd);
   vol = reshape(vol,[nslices ncols nrows nframes]);
   vol = permute(vol,[3 2 1 4]);
+end
+
+% Do the frames
+if(fstd > 0)
+  vol = permute(vol,[4 1 2 3]);
+  vol = reshape(vol,[nframes nrows*ncols*nslices]);
+  vol = fast_smooth1d(vol,ffwhm);
+  vol = reshape(vol,[nframes nrows ncols nslices ]);
+  vol = permute(vol,[2 3 4 1]);
 end
 
 if(~UseBB)

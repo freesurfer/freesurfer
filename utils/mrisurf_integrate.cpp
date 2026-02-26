@@ -303,10 +303,13 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
     }
   }
 
+  Timer mytimer;
   old_averages = parms->n_averages;
   for (done = total_steps = 0, n_averages = base_averages; !done; n_averages /= 4) {
+    printf("%d ITime1a %g ------------\n",total_steps,mytimer.milliseconds()/1000.0);  fflush(stdout);
     parms->n_averages = n_averages;
     steps = MRISintegrate(mris, parms, n_averages);
+    printf("%d ITime1b %g\n",total_steps,mytimer.milliseconds()/1000.0);  fflush(stdout);
 
     if (n_averages > 0 && parms->flags & IP_RETRY_INTEGRATION &&
         ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) || (parms->integration_type == INTEGRATE_LM_SEARCH))) {
@@ -319,11 +322,13 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
       parms->start_t += steps;
       total_steps += steps;
       steps = MRISintegrate(mris, parms, n_averages);
+      printf("%d ITime1c %g\n",total_steps,mytimer.milliseconds()/1000.0);  fflush(stdout);
       parms->integration_type = integration_type;
       parms->niterations = niter;
       parms->start_t += steps;
       total_steps += steps;
       steps = MRISintegrate(mris, parms, n_averages);
+      printf("%d ITime1d %g\n",total_steps,mytimer.milliseconds()/1000.0);  fflush(stdout);
     }
     parms->start_t += steps;
     total_steps += steps;
@@ -2284,9 +2289,12 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
 {
   int base_averages, i, nbrs[MAX_NBHD_SIZE], niter, passno, msec, use_nl_area;
   double starting_sse, ending_sse, l_area, pct_error;
+  Timer mytimer;
 
   printf("MRISunfold() max_passes = %d -------\n", max_passes);
+  printf("UTime1 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
   mrisLogIntegrationParms(stdout, mris, parms);
+  printf("UTime2 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
   printf("--------------------\n");
 
   use_nl_area = (!FZERO(parms->l_nlarea));
@@ -2364,28 +2372,28 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
   base_averages = parms->n_averages;
   l_area = parms->l_area;
   niter = parms->niterations;
+  printf("npasses = %d, ncoef=%lu\n",(int)max_passes,(int)NCOEFS);
   passno = 0;
   for (passno = 0; passno < max_passes; passno++) {
-#if 0
-    if (mris->nsize < parms->nbhd_size)  /* resample distances on surface */
-#endif
-    {
-      if (Gdiag & DIAG_SHOW) {
-        fprintf(stdout, "resampling long-range distances");
-      }
-      MRISsaveVertexPositions(mris, TMP_VERTICES);
-      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
-      MRIScomputeMetricProperties(mris);
-      if (parms->complete_dist_mat) {
-        MRIScomputeAllDistances(mris);
-      }
-      else {
-        MRISsampleDistances(mris, nbrs, parms->nbhd_size);
-      }
-      MRISrestoreVertexPositions(mris, TMP_VERTICES);
-      MRIScomputeMetricProperties(mris);
-      mrisClearMomentum(mris);
+    if (Gdiag & DIAG_SHOW) {
+      fprintf(stdout, "resampling long-range distances");
     }
+    printf("%d UTime3a %g\n",passno,mytimer.milliseconds()/1000.0);  fflush(stdout);
+    MRISsaveVertexPositions(mris, TMP_VERTICES);
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
+    MRIScomputeMetricProperties(mris);
+    if (parms->complete_dist_mat) {
+      MRIScomputeAllDistances(mris);
+      printf("%d UTime3a1 %g\n",passno,mytimer.milliseconds()/1000.0);  fflush(stdout);
+    }
+    else {
+      MRISsampleDistances(mris, nbrs, parms->nbhd_size);
+      printf("%d UTime3a2 %g\n",passno,mytimer.milliseconds()/1000.0);  fflush(stdout);
+    }
+    MRISrestoreVertexPositions(mris, TMP_VERTICES);
+    MRIScomputeMetricProperties(mris);
+    mrisClearMomentum(mris);
+    printf("%d UTime3b %g\n",passno,mytimer.milliseconds()/1000.0);  fflush(stdout);
 
     {
       char *cp;
@@ -2459,6 +2467,7 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
       if (mris->status == MRIS_SPHERE && i == NCOEFS - 1) {
         continue;
       }
+      printf("%d UTime5a %g ==========\n",i,mytimer.milliseconds()/1000.0);  fflush(stdout);
 
       pct_error = MRISpercentDistanceError(mris);
       if (Gdiag & DIAG_WRITE)
@@ -2468,12 +2477,8 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
                 i + 1,
                 (int)(NCOEFS),
                 (float)pct_error);
-      fprintf(stdout,
-              "pass %d: epoch %d of %d starting distance error %%%2.2f\n",
-              passno + 1,
-              i + 1,
-              (int)(NCOEFS),
-              (float)pct_error);
+      printf("pass %d: epoch %d of %d starting distance error %%%2.2f\n",
+              passno + 1,i + 1,(int)(NCOEFS),(float)pct_error);
 
       parms->l_dist = dist_coefs[i];
       if (use_nl_area) {
@@ -2483,13 +2488,17 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
         parms->l_area = area_coefs[i];
       }
       parms->l_angle = ANGLE_AREA_SCALE * parms->l_area;
-      if (i == NCOEFS - 1) /* see if distance alone
-                                can make things better */
+      if (i == NCOEFS - 1) /* see if distance alone can make things better */
       {
+	printf("%d UTime5b %g\n",i,mytimer.milliseconds()/1000.0);  fflush(stdout);
         starting_sse = MRIScomputeSSE(mris, parms);
       }
+      printf("%d UTime5c %g\n",i,mytimer.milliseconds()/1000.0);  fflush(stdout);
+      // This is what takes by far the most time here, but only on the first pass
       mrisIntegrationEpoch(mris, parms, base_averages);
+      printf("%d UTime5d %g\n",i,mytimer.milliseconds()/1000.0);  fflush(stdout);
     }
+    printf("UTime6 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
 
     if (use_nl_area) {
       parms->l_nlarea = area_coefs[NCOEFS - 1];
@@ -2528,6 +2537,7 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
   pct_error = MRISpercentDistanceError(mris);
   if (Gdiag & DIAG_WRITE) fprintf(parms->fp, "starting distance error %%%2.2f\n", (float)pct_error);
   fprintf(stdout, "starting distance error %%%2.2f\n", (float)pct_error);
+  printf("UTime7 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
 
   /* finally, remove all the small holes */
   parms->l_nlarea = 1.0f;
@@ -2545,6 +2555,7 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
   if (getenv("MRIS_SPHERE_NEW_BEHAVIOR") == nullptr) mris->avg_nbrs = incorrect_avg_nbrs;
   mrisRemoveNegativeArea(mris, parms, base_averages > 32 ? 32 : base_averages, MAX_NEG_AREA_PCT, 2);
   MRISresetNeighborhoodSize(mris, 3);
+  printf("UTime8 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
 
   if (mris->status == MRIS_PLANE && parms->complete_dist_mat == 0) /* smooth out remaining folds */
   {
@@ -2564,6 +2575,7 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
     MRISintegrate(mris, parms, 0);
     /* mrisRemoveNegativeArea(mris, parms, 0, MAX_NEG_AREA_PCT, 1);*/
   }
+  printf("UTime9 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
 
   pct_error = MRISpercentDistanceError(mris);
   fprintf(stdout, "final distance error %%%2.2f\n", (float)pct_error);
@@ -2580,6 +2592,7 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
     fprintf(parms->fp, "final distance error %%%2.2f\n", pct_error);
     INTEGRATION_PARMS_closeFp(parms);
   }
+  printf("UTime10 %g\n",mytimer.milliseconds()/1000.0);  fflush(stdout);
   printf("MRISunfold() return, current seed %ld\n", getRandomSeed());
   fflush(stdout);
 
@@ -2676,12 +2689,15 @@ MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int ma
     parms->tol = parms->tol * 1024 / (sqrt((double)base_averages + 1));
   }
 #endif
-
+  
+  printf("UTime1 %g\n",start.milliseconds()/1000.0);  fflush(stdout);
   for (i = 0, NEG_AREA_K = orig_k; i < 4; NEG_AREA_K *= 4, i++) {
     passno = 0;
     do {
       last_sse = MRIScomputeSSE(mris, parms);
-      printf("epoch %d (K=%2.1f), pass %d, starting sse = %2.2f\n", i + 1, NEG_AREA_K, passno + 1, last_sse);
+      printf("epoch %d (K=%2.1f), pass %d, starting sse = %2.2f, t=%g\n", 
+	     i + 1, NEG_AREA_K, passno + 1, last_sse, start.milliseconds()/1000.0);
+      fflush(stdout);
       niter = mrisIntegrationEpoch(mris, parms, base_averages);
       sse = MRIScomputeSSE(mris, parms);
       pct_change = (last_sse - sse) / (last_sse * niter); /* per time step */
@@ -2692,13 +2708,8 @@ MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int ma
              niter,
              pct_change);
     } while (pct_change > parms->tol);
-#if 0
-    if (passno == 1)   /* couldn't make any progress at all */
-    {
-      break ;
-    }
-#endif
   }
+  printf("UTime2 %g\n",start.milliseconds()/1000.0);  fflush(stdout);
 
   NEG_AREA_K = orig_k;
   pct_error = MRISpercentDistanceError(mris);

@@ -434,6 +434,8 @@ main(int argc, char *argv[])
   }
   if(SurfCopyCoords) MRIScopyCoords(mris,SurfCopyCoords);
 
+  //MRISwritePatch(mris, "patch0") ;
+
   if (Gdiag_no >= 0)
     printf("vno %d is %sin patch\n", Gdiag_no,
            mris->vertices[Gdiag_no].ripflag ? "NOT " : "") ;
@@ -446,15 +448,15 @@ main(int argc, char *argv[])
     for (n = 0 ; n < mris->vertices_topology[Gdiag_no].vnum ; n++)
       printf("\t%d\n", mris->vertices_topology[Gdiag_no].v[n]) ;
   }
+
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-  if (parms.niterations > 0)
-  {
+
+  if (parms.niterations > 0) {
     MRISresetNeighborhoodSize(mris, nbrs) ;
 
-    if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand))
-    {
+    if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand)) {
       static INTEGRATION_PARMS p2 ;
       int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
       if( req >= STRLEN ) {
@@ -512,16 +514,26 @@ main(int argc, char *argv[])
       MRISreadOriginalProperties(mris, original_surf_name) ;
     if (randomly_flatten)
       MRISflattenPatchRandomly(mris) ;
-    else
+    else {
+      printf("Flattening patch\n");
       MRISflattenPatch(mris) ;
+      printf("Done flattening\n");
+    }
+    //MRISwritePatch(mris, "patch1") ;
 
     /* optimize metric properties of flat map */
-    fprintf(stderr,"minimizing metric distortion induced by projection...\n");
+    printf("minimizing metric distortion induced by projection...\n");
+    printf("  scaling\n");
     MRISscaleBrain(mris, mris, scale) ;
+    //MRISwritePatch(mris, "patch.scaled") ;
     MRIScomputeMetricProperties(mris) ;
+    printf("  unfolding\n");
     MRISunfold(mris, &parms, max_passes) ;
+    //MRISwritePatch(mris, "patch.unfolded") ;
+    printf("  centering\n");
     MRIScenter(mris, mris) ;
-    fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
+    //MRISwritePatch(mris, "patch.centered") ;
+    printf("writing flattened patch to %s\n", out_patch_fname) ;
     MRISwritePatch(mris, out_patch_fname) ;
   }
 

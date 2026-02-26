@@ -24,7 +24,7 @@ set subject = ();
 set ForceUpdate = 0
 set threads = 1
 set vols = ()
-set DoQA = 1
+set DoQA = 0
 set ndilations = 1
 set DoMask = 1
 set params = ()
@@ -248,6 +248,7 @@ if($DoQA) then
   # thought FS was better for v2 but FSL was better for v1; bbregister
   # mincost agrees. Not sure what is going on. The RMS diff in the
   # registrations is 0.4mm and 0.3mm, so not such a big deal
+  # Note: TRT must = 1 or else the B0 map will not be voxel-shift
   foreach v (1 2) # might not be perfect with multiple frames
     set vb0dc = $outdir/qa/v$v.qa.nii.gz
     set ud = `UpdateNeeded $vb0dc $vols[$v] $b0dc` 
@@ -493,6 +494,11 @@ if($#params) then
   endif
 endif
 
+if($DoQA && $TRT != 1) then
+  echo "ERROR: TRT = $TRT, cannot use --qa if TRT != 1"
+  exit 1
+endif
+
 which topup >& /dev/null
 if($status) then
   echo "ERROR: cannot find topup in the path."
@@ -526,7 +532,7 @@ usage_exit:
   echo " --config-{odd,even}: use b02b0_{1,2}.cnf"
   echo " --p params : parameter file passed to topup (default is assuming AP/PA)"
   echo " --no-multi-frame-mean : do not comute the mean of multi-frame inputs (will need a param file)"
-  echo " --qa : apply B0 cor to compare to the output of topup"
+  echo " --qa : apply B0 cor to compare to the output of topup (note: TRT must be 1)"
   echo " --trt total readout time in sec (default is $TRT)" 
   echo " --threads nthreads "
   echo ""
@@ -539,5 +545,16 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-When using in conjunction with eddy_correct, the first volume input to
-topup must be the same as the first volume in --imain to eddy_correct.
+When using in conjunction with FSLs eddy for DTI analysis, the
+first volume input to topup must be the same as the first volume in
+--imain to eddy_correct.
+
+Setting the total readout time. If you are going to use the output in conjunction with 
+FSFAST (eg, --fsm with bbregister, mri_vol2vol, or mri_vol2surf), then set TRT=1. 
+The proper value will be TRT = EPIFactor * EchoSpacing, where the EchoSpacing is in seconds. 
+Eg, TRT = 116*0.58ms*.001 = 0.0673 seconds. It is more important to get this right for
+eddy than it is for topup itself.
+
+
+
+

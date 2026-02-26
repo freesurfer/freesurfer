@@ -1,5 +1,6 @@
-function [X M] = fast_retroicor(t,indpeak,M,peakamp,troughamp)
-% [X M] = fast_retroicor(t,indpeak,<M>,<peakamp>,<troughamp>)
+function [X M] = fast_retroicor(t,indpeak,M,peakamp,troughamp,peakphase)
+% [X M] = fast_retroicor(t,indpeak,<M>,<peakamp>,<troughamp>,<peakphase>)
+% M is the number of frequencies
 %
 % Based on Glover, Li, and Ress, Image-Based Method for Retrospective
 % Correction of Physiological Motion Effects in fMRI: RETROICOR. MRM,
@@ -8,8 +9,8 @@ function [X M] = fast_retroicor(t,indpeak,M,peakamp,troughamp)
 
 X = [];
 
-if(nargin < 2 | nargin > 5)
-  fprintf('[X M] = fast_retroicor(t,indpeak,<M>,<peakamp>,<troughamp>)');
+if(nargin < 2 | nargin > 6)
+  fprintf('[X M] = fast_retroicor(t,indpeak,<M>,<peakamp>,<troughamp>)\n');
   return;
 end
 
@@ -28,6 +29,7 @@ if(~exist('peakamp','var')) peakamp = []; end
 if(isempty(peakamp)) peakamp = ones(npeaks,1); end
 if(~exist('troughamp','var')) troughamp = []; end
 if(isempty(troughamp)) troughamp = -ones(npeaks,1); end
+if(~exist('peakphase','var')) peakphase = []; end
 
 baseline = (peakamp + troughamp)/2;
 amp = (peakamp - troughamp)/2;
@@ -42,6 +44,7 @@ for nthpeak = 1:npeaks-1
   k2 = indpeak(nthpeak+1)-1;
   tk = t(k1:k2)-t(k1);
   phik = 2*pi*tk/dt;
+  if(~isempty(peakphase)) phik = phik+peakphase(nthpeak); end
   for h = 1:M
     c = 1 + 2*(h-1);
     X(k1:k2,c) = amp(nthpeak)*cos(h*phik) + baseline(nthpeak);
@@ -67,6 +70,7 @@ for nthpeak = 1:npeaks-1
     k2 = nt;
     tk = t(k1:k2)-t(k1);
     phik = 2*pi*tk/dt;
+    if(~isempty(peakphase)) phik = phik+peakphase(nthpeak); end
     for h = 1:M
       c = 1 + 2*(h-1);
       X(k1:k2,c) = amp(nthpeak)*cos(h*phik) + baseline(nthpeak);
