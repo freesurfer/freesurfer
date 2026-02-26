@@ -57,8 +57,9 @@ if($verb) then
   cat $osfile
 endif
 
+# This foreach requires that the OS string have no spaces
 foreach os (`cat $osfile`)
-  if($os == $osnow) then
+  if("$os" == "$osnow") then
     if($verb) then
       echo "Exiting with 0 because found a match to $osnow"
     endif
