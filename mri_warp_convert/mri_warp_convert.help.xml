@@ -26,72 +26,76 @@
 <help>
   <name>mri_warp_convert</name>
   <synopsis>mri_warp_convert &lt;input-type&gt; &lt;output-type&gt; [options]</synopsis>
-  <description>This program converts non-linear deformation warp fields between different file formats. Some formats may require you to pass an image if the geometry information is missing from the transform file.</description>
+  <description>This program converts non-linear deformation fields between different file formats. Some formats may require you to pass an image if the geometry information is missing from the transform file.
+
+The deformation field vector (width x height x depth x nframes) is indexed by atlas CRS with one frame for each dimension. The data interpretation at each voxel is one of the following: abs-crs, disp-crs, abs-ras, disp-ras, disp-lps.
+
+'image' refers to the source (moving) volume; 'atlas' refers to the target (fixed) volume.
+
+For information of the data interpretations and Freesurfer 3D morph, see mri_warp_convert wiki page at
+https://surfer.nmr.mgh.harvard.edu/fswiki/mri_warp_convert</description>
   <arguments>
     <positional>
       <intro>None.</intro>
     </positional>
     <required-flagged>
       <intro>Exactly one input is required:</intro>
-      <argument>--infswarp &lt;in-warp&gt;</argument>
-      <explanation>input Freesurfer 3D morph, support m3z (deprecated), mgz, and nifti NIFTI_INTENT_DISPVECT file formats</explanation>
+      <argument>--infswarp &lt;in.{m3z,mgz,nii.gz}&gt;</argument>
+      <explanation>input Freesurfer 3D morph, supporting m3z (deprecated), mgz, and nifti with intent code NIFTI_INTENT_DISPVECT</explanation>
       <argument>--infsl &lt;in.nii.gz&gt;</argument>
-      <explanation>input FSL warp (recommend to use with --insrcgeom)</explanation>
+      <explanation>input FSL warp (recommend to use with --insrcgeom), data interpretation is displacement in FSL RAS (the implementation is not fully tested)</explanation>
       <argument>--inspm &lt;y_rinput.nii&gt;</argument>
-      <explanation>input SPM warp (use with --insrcgeom). Use --in-interp  &lt;&gt; to specify the data interpretation, which is either abs-ras (default) or abs-crs.)</explanation>
+      <explanation>input SPM warp (use with --insrcgeom). Use --in-interp  &lt;&gt; to specify the data interpretation, which is either abs-ras (default) or abs-crs.</explanation>
       <argument>--inlps, --initk &lt;in.nii.gz&gt;</argument>
-      <explanation>input LPS-to-LPS displacement field (e.g. ITK, ANTs)</explanation>
+      <explanation>input LPS-to-LPS displacement field (disp-lps) (e.g. ITK, ANTs)</explanation>
       <argument>--inras &lt;in.nii.gz&gt;</argument>
-      <explanation>input RAS-to-RAS displacement field (e.g. NiftyReg)</explanation>
+      <explanation>input RAS-to-RAS displacement field (disp-ras) (e.g. NiftyReg)</explanation>
       <argument>--invox &lt;in.mgz&gt;</argument>
-      <explanation>input displacement field in source-voxel space</explanation>
+      <explanation>input displacement field in source-voxel space (the implementation is not fully tested)</explanation>
       <intro>Exactly one output is required:</intro>
-      <argument>--outfswarp &lt;out-warp&gt;</argument>
-      <explanation>output Freesurfer 3D morph, support m3z (deprecated), mgz, and nifti NIFTI_INTENT_DISPVECT file formats</explanation>
-      <argument>--outfsl &lt;out.nii.gz&gt;</argument>
-      <explanation>output warp in FSL format</explanation>
+      <argument>--outfswarp &lt;out.{m3z,mgz,nii.gz}&gt;</argument>
+      <explanation>output Freesurfer 3D morph, supporting m3z (deprecated), mgz, and nifti with intent code NIFTI_INTENT_DISPVECT</explanation>
       <argument>--outlps, --outitk &lt;out.nii.gz&gt;</argument>
-      <explanation>output LPS-to-LPS displacement field (e.g. ITK, ANTs)</explanation>
+      <explanation>output LPS-to-LPS displacement field (disp-lps) (e.g. ITK, ANTs), Nifti with intent code NIFTI_INTENT_VECTOR</explanation>
       <argument>--outras &lt;out.nii.gz&gt;</argument>
-      <explanation>output RAS-to-RAS displacement field (e.g. NiftyReg)</explanation>
+      <explanation>output RAS-to-RAS displacement field (disp-ras) (e.g. NiftyReg), Nifti with intent code NIFTI_INTENT_VECTOR</explanation>
       <argument>--outvox &lt;out.mgz&gt;</argument>
-      <explanation>output displacement field in source-voxel space</explanation>
+      <explanation>output displacement field in source-voxel space (the implementation is not fully tested)</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>-g, --insrcgeom &lt;geom.mgz&gt;</argument>
       <explanation>Specify volume geometry of the input to the warp space, i.e., srcgeom shares an RAS space with the warp volume. Usually this is identical to the geom of the warp volume itself (if the warp input is in a format that has such info). This also allows the input to the warp to have a different geometry than the warp itself, though this is probably better handled with -lta1.
 </explanation>
       <argument>-d, --downsample</argument>
-      <explanation>Downsample output M3Z to spacing of 2.</explanation>
+      <explanation>Downsample output Freesurfer 3D morph to spacing of 2.</explanation>
       <argument>-lta1 LTA (or -lta1-inv)</argument>
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
       <argument>-lta2 LTA (or -lta2-inv)</argument>
       <explanation> Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 -> atlas/destination image</explanation>
-      <argument>--in-interp in-interp</argument>
-      <explanation>specify warp data interpretation: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs). This option only works with '--inspm &lt;out.mgz&gt;'. </explanation>      
-      <argument>--out-interp out-interp</argument>
-      <explanation>specify warp data interpretation: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
+      <argument>--in-interp &lt;in-interp&gt;</argument>
+      <explanation>only works with '--spm &lt;&gt;', specify input SPM warp data interpretation: abs-crs or abs-ras (default is abs-abs). </explanation>      
+      <argument>--out-interp &lt;out-interp&gt;</argument>
+      <explanation>only works with '--outfswarp &lt;&gt;', specify output Freesurfer MGZ 3D morph data interpretation: abs-crs, disp-crs, abs-ras, or disp-ras (default is abs-crs)</explanation>
       <argument>--vg-thresh vgthresh</argument>
       <explanation>specify threshold for testing diffs in volume geom</explanation>
     </optional-flagged>
   </arguments>
-  <example>Convert FSL warp to M3Z (FreeSurfer):
-    mri_warp_convert --infsl fsl.nii.gz --outfswarp out.m3z --insrcgeom src.nii.gz</example>
-  <example>Convert ITK warp (e.g. ANTs) to M3Z (FreeSurfer):
-    mri_warp_convert --initk itk.nii.gz --outfswarp out.m3z --insrcgeom src.nii.gz</example>
-  <example>Convert ANTS antsRegistrationSyN.sh or antsRegistrationSyNQuick.sh output to M3Z (FreeSurfer):
+  <example>Convert warp from FSL to FreeSurfer:
+    mri_warp_convert --infsl fsl.nii.gz --outfswarp out.mgz --insrcgeom src.nii.gz</example>
+  <example>Convert warp from ITK (e.g. ANTs) to FreeSurfer:
+    mri_warp_convert --initk itk.nii.gz --outfswarp out.mgz --insrcgeom src.nii.gz</example>
+  <example>Convert ANTS antsRegistrationSyN.sh or antsRegistrationSyNQuick.sh output to FreeSurfer:
     antsRegistrationSyNQuick.sh -d 3 -m mov.mgz -f targ.mgz -o reg. 
     ConvertTransformFile 3 ants.reg0GenericAffine.mat ants.reg0GenericAffine.txt --hm --ras
     lta_convert --src mov.mgz --trg targ.mgz --inniftyreg ants.reg0GenericAffine.txt --outlta ants.reg0GenericAffine.lta
-    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outfswarp out.m3z --insrcgeom targ.mgz
+    mri_warp_convert --lta1-inv ants.reg0GenericAffine.lta --initk ants.reg1Warp.nii.gz --outfswarp out.mgz --insrcgeom targ.mgz
       Note that the insrcgeom is the target, not the mov; this is needed to work with --lta1-inv.
   </example>
-  <example>Convert M3Z (FreeSurfer) to ITK warp (e.g. ANTs):
-    mri_warp_convert --infswarp in.m3z --outitk out.nii.gz</example>
-  <example>Convert M3Z (FreeSurfer) to mgz warp (FreeSurfer) in absolute CRS:
-    mri_warp_convert --infswarp in.m3z --outfswarp outwarp.mgz --out-interp abs-crs</example>
+  <example>Convert warp from FreeSurfer to ITK (e.g. ANTs):
+    mri_warp_convert --infswarp in.mgz --outitk out.nii.gz</example>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
-  <see-also>mri_convert -at or -ait (apply transforms to an image)
+  <see-also>https://surfer.nmr.mgh.harvard.edu/fswiki/mri_warp_convert
+mri_convert -at or -ait (apply transforms to an image)
 lta_convert (convert between different linear transform formats)
 mri_concatenate_lta (concatenate or invert LTA transforms)
 mri_concatenate_gcam (concatenate or invert warp fields)</see-also>
