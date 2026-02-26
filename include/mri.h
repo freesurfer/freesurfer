@@ -494,7 +494,7 @@ struct VOL_GEOM
 	double diff = fabs(val1-val2);
 	if (diff > thresh) {
 	  if (debug)
-	    printf("[DEBUG]\tVOL_GEOM::diffvox2ras(): vox2ras differs at row=%d col=%d diff=%.10lf (thresh=%g), val1=%.10lf val2=%.10lf\n",
+	    printf("                              : vox2ras differs at row=%d col=%d diff=%.10lf (thresh=%g), val1=%.10lf val2=%.10lf\n",
 		   r, c, diff, thresh, val1, val2);
 	  vox2rasdiff = true;
 	}
@@ -502,7 +502,7 @@ struct VOL_GEOM
     } // r
 
     if (!vox2rasdiff && debug)
-      printf("\tVOL_GEOM::diffvox2ras(): vox2ras same\n");
+      printf("                              : vox2ras same\n");
  
     return vox2rasdiff;
   }
