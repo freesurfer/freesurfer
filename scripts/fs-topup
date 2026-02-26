@@ -29,9 +29,12 @@ set ndilations = 1
 set DoMask = 1
 set params = ()
 set DoMultiFrameMean = 1
-# Total readout time in sec. If TRT=1, then b0 map will be in
-# voxels. Otherwise in Hz. Having the right number here will
-# be important when running with eddy
+# Total readout time in sec. If TRT=1, then b0 map will be in voxels,
+# otherwise in Hz. The choice of TRT will have two implications: (1)
+# if the number is wrong, then the Hz value will be wrong. (2) if
+# combining with FSL eddy, then it needs to be consistent. Note that
+# FSL eddy typically fails when TRT=1. The choice itself will not 
+# have an effect on the B0-corrected maps.
 set TRT = 1 
 
 set tmpdir = ();
@@ -55,6 +58,7 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+setenv OMP_NUM_THREADS $threads
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -65,7 +69,6 @@ set hour   = `date +%H`
 set min    = `date +%M`
 
 mkdir -p $outdir/log
-if($DoQA) mkdir -p $outdir/qa
 if($#subject) mkdir -p $outdir/reg
 pushd $outdir > /dev/null
 set outdir = `pwd`;
@@ -164,9 +167,10 @@ if($ud || $ForceUpdate) then
   if($status) goto error_exit
 endif
 
-# I think this indicates the phase encode direction This is for AP
-# then PA. See also BBR command.  When running vol2vol or vol2surf or
-# bbr on the 2nd volume have to change the PE dir.
+# This indicates the phase encode direction. Below is for AP then
+# PA. See also BBR command.  When running vol2vol or vol2surf or bbr
+# on the 2nd volume have to change the PE dir. Note that when used
+# with FSL eddy, this needs to be consistent.
 if($#params == 0) then
   set params = $outdir/params.dat
   if(! -e $params) then
@@ -177,10 +181,14 @@ else
   cp $params $outdir/log
 endif
 
-set b0dcnomask = $outdir/b0dc.nomask.nii.gz # Hz
+# Determine if TRT=1
+set TRTis1 = `echo "sqrt((1-$TRT)*(1-$TRT)) < .0001" | bc -l`
+
+set b0dcnomask = $outdir/b0dc.nomask.nii.gz # vox if TRT=1, Hz otherwise
 set bothb0dc = $outdir/both.b0dc.nii.gz
 set ud = `UpdateNeeded $b0dcnomask $both`
 if($ud || $ForceUpdate) then
+  # Run FSL topup
   set cmd = (fs_time topup --imain=$both --datain=$params --out=$outdir \
    --fout=$b0dcnomask --iout=$bothb0dc)
   if($#config) set cmd = ($cmd --config=$config)
@@ -195,9 +203,10 @@ if($ud || $ForceUpdate) then
     goto error_exit
   endif
   # annoyingly creates ${outdir}_fieldcoef.nii.gz ${outdir}_movpar.txt
-  # Move them to the output folder
-  mv ${outdir}_fieldcoef.nii.gz $outdir/fieldcoef.nii.gz 
-  mv ${outdir}_movpar.txt $outdir/movpar.txt
+  # Move them to the output folder. Add "topup_" as a prefix so that
+  # other FSL commands can take $outdir/topup as the topup argument.
+  mv ${outdir}_fieldcoef.nii.gz $outdir/topup_fieldcoef.nii.gz 
+  mv ${outdir}_movpar.txt $outdir/topup_movpar.txt
 endif
 
 # Compute the mean of the two (or more) corrected volumes
@@ -226,7 +235,7 @@ if($DoMask) then
       if($status) goto error_exit
     endif
   endif
-  # Now mask the VSM volume
+  # Now mask the B0map volume
   set b0dc = $outdir/b0dc.nii.gz
   set ud = `UpdateNeeded $b0dc $maskb0dc $b0dcnomask`
   if($ud || $ForceUpdate) then
@@ -239,8 +248,31 @@ else
   set b0dc = $b0dcnomask
 endif
 
-if($DoQA) then
-  # Compare both.b0dc.nii (the fsl-corrected vols) to v1.qa and v2.qa.
+# Create vox and hz maps depending upon TRT
+set vsm = $outdir/b0dc.vox.nii.gz
+if($TRTis1) then
+  # If TRT is 1.0, then b0dc is the voxel shift map (VSM)
+  pushd $outdir
+  ln -fs b0dc.nii.gz b0dc.vox.nii.gz
+  popd
+else
+  # If TRT is not 1.0, then b0dc is in Hz
+  pushd $outdir
+  ln -fs b0dc.nii.gz b0dc.hz.nii.gz
+  popd
+  # Create a VSM by multiplying Hz by TRT.
+  set ud = `UpdateNeeded $vsm $b0dc`
+  if($ud || $ForceUpdate) then
+    set cmd = (fscalc $b0dc -mul $TRT -o $vsm)
+    echo "\n" $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+if(0 && $DoQA) then
+  # This is a comparison of how FS vs FSL apply the B0 map.  Compare
+  # both.b0dc.nii (the fsl-corrected vols) to v1.qa and v2.qa.
   # both.b0dc.nii has two frames corresponding to v1 and v2.  Note:
   # vol2vol will not do jacobian correction whereas topup will, so you
   # might see some bright spots in the FSL output. When I examined
@@ -248,12 +280,13 @@ if($DoQA) then
   # thought FS was better for v2 but FSL was better for v1; bbregister
   # mincost agrees. Not sure what is going on. The RMS diff in the
   # registrations is 0.4mm and 0.3mm, so not such a big deal
-  # Note: TRT must = 1 or else the B0 map will not be voxel-shift
+  # Note that useful so commenting out
+  mkdir -p $outdir/qa
   foreach v (1 2) # might not be perfect with multiple frames
     set vb0dc = $outdir/qa/v$v.qa.nii.gz
     set ud = `UpdateNeeded $vb0dc $vols[$v] $b0dc` 
     if($ud || $ForceUpdate) then
-      set cmd = (mri_vol2vol --mov $vols[$v] --targ $meanb0dc --regheader --vsm $b0dc --o $vb0dc)
+      set cmd = (mri_vol2vol --mov $vols[$v] --targ $meanb0dc --regheader --vsm $vsm --o $vb0dc)
       if($v == 2) set cmd = ($cmd --vsm-pedir -2)
       echo "\n" $cmd | tee -a $LF
       $cmd |& tee -a $LF
@@ -275,23 +308,25 @@ if($#subject) then
     if($status) goto error_exit
   endif
  
-  foreach v (1 2) # might not be perfect with multiple frames
-    foreach c (nob0dc b0dc)
-      set reg = $outdir/reg/reg.v$v.$c.lta
-      set mov = $vols[$v]
-      set vsm = ""
-      if($c == b0dc) set vsm = "--vsm $b0dc"
-      set ud = `UpdateNeeded $reg $mov` # should add b0dc
-      if($ud || $ForceUpdate) then
-        set cmd = (bbregister --s $subject --mov $mov --bold --reg $reg $vsm \
-          --init-reg $regmean --threads $threads)
-        if($v == 2) set cmd = ($cmd --vsm-pedir -2)
-        echo "\n" $cmd | tee -a $LF
-        $cmd |& tee -a $LF
-        if($status) goto error_exit
-      endif
-    end # cor
-  end # vol
+  if($DoQA) then
+    foreach v (1 2) # might not be perfect with multiple frames
+      foreach c (nob0dc b0dc)
+        set reg = $outdir/reg/reg.v$v.$c.lta
+        set mov = $vols[$v]
+        set vsmopt = ""
+        if($c == b0dc) set vsmopt = "--vsm $vsm"
+        set ud = `UpdateNeeded $reg $mov` # should add b0dc
+        if($ud || $ForceUpdate) then
+          set cmd = (bbregister --s $subject --mov $mov --bold --reg $reg $vsmopt \
+            --init-reg $regmean --threads $threads)
+          if($v == 2) set cmd = ($cmd --vsm-pedir -2)
+          echo "\n" $cmd | tee -a $LF
+          $cmd |& tee -a $LF
+          if($status) goto error_exit
+        endif
+      end # cor
+    end # vol
+  endif # QA
 endif
 
 #========================================================
@@ -474,6 +509,11 @@ if($#subject) then
     echo "ERROR: cannot find $subject"
     exit 1;
   endif
+else
+  if($DoQA) then
+    echo "ERROR: must specify --s subject with --qa"
+    exit 1;
+  endif
 endif
 
 if($#config) then
@@ -494,10 +534,10 @@ if($#params) then
   endif
 endif
 
-if($DoQA && $TRT != 1) then
-  echo "ERROR: TRT = $TRT, cannot use --qa if TRT != 1"
-  exit 1
-endif
+#if($DoQA && $TRT != 1) then
+#  echo "ERROR: TRT = $TRT, cannot use --qa if TRT != 1"
+#  exit 1
+#endif
 
 which topup >& /dev/null
 if($status) then
@@ -523,18 +563,19 @@ arg2err:
 usage_exit:
   echo ""
   echo "fs-topup - FS front end for FSL's topup (developed under FSL 6.0.5.1)"
-  echo " --i vol1 vol2"
+  echo " --i vol1 vol2 : vol1 and vol2 have opposite phase encodings"
   echo " --o outdir"
   echo " --ndilations ndil : dilate mask"
   echo " --no-mask : do not mask the B0 map"
-  echo " --s subject (for QA and mincost)"
+  echo " --s subject : register B0-corrected to subject (also needed for QA using mincost)"
   echo " --config topup.cfn : topup config file (does not use a config file by default)"
   echo " --config-{odd,even}: use b02b0_{1,2}.cnf"
   echo " --p params : parameter file passed to topup (default is assuming AP/PA)"
   echo " --no-multi-frame-mean : do not comute the mean of multi-frame inputs (will need a param file)"
-  echo " --qa : apply B0 cor to compare to the output of topup (note: TRT must be 1)"
+  echo " --qa : bbregister with and without B0DC to assure that the cost goes down (needs --s)"
+  echo  "  Note: this can add 5-10min onto this script's execution time"
   echo " --trt total readout time in sec (default is $TRT)" 
-  echo " --threads nthreads "
+  echo " --threads nthreads : does not appear to help much with topup"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -545,16 +586,114 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-When using in conjunction with FSLs eddy for DTI analysis, the
-first volume input to topup must be the same as the first volume in
---imain to eddy_correct.
+This program is a FreeSurfer frontend for for FSLs topup B0
+distortion correction command (developed under FSL 6.0.5.1). It
+collects the inputs, runs topup, creates a mask using synthstrip,
+registers to FreeSurfer subject (if supplied). See also fs-eddytopper.
 
-Setting the total readout time. If you are going to use the output in conjunction with 
-FSFAST (eg, --fsm with bbregister, mri_vol2vol, or mri_vol2surf), then set TRT=1. 
-The proper value will be TRT = EPIFactor * EchoSpacing, where the EchoSpacing is in seconds. 
-Eg, TRT = 116*0.58ms*.001 = 0.0673 seconds. It is more important to get this right for
-eddy than it is for topup itself.
+There will be (possibly) three output B0 maps: b0dc.nii.gz,
+b0dc.vox.nii.gz, b0dc.hz.nii.gz.  If TRT is set to a value different
+than 1, then b0dc.nii.gz will be in Hz and b0dc.hz.nii.gz will be a
+symlink pointing to b0dc.nii.gz. Note that TRT must be set accurately
+for the Hz values to be accurate (see below).  If TRT=1, then
+b0dc.nii.gz will be in voxels and b0dc.vox.nii.gz will be a symlink
+pointing to b0dc.nii.gz (and b0dc.hz.nii.gz) will not exit. Note that
+b0dc.vox.nii.gz will always be right regardless of TRT. Note that
+these maps will have been masked unless --no-mask is used. There is an
+output b0dc.nomask.nii.gz (in either Hz or vox depending upon TRT).
 
+Setting the total readout time (TRT). The proper value will be TRT =
+EPIFactor * EchoSpacing/AccelFactor, where the EchoSpacing is in
+seconds.  Eg, TRT = 116*0.58ms*.001/2 = 0.0336 seconds. If the TRT is
+not set correctly, the only implication is that the Hz values will be
+wrong.  It will still apply the proper correction and the voxel shift
+map will still be right.
 
+Note that topup will register the second input volume (ie, the
+reversed phase encode direction) to the first and the output maps will
+be in the (undistored) space of the first volume. This allows for the
+reversed phase encoded image to be acquired at a different time as the
+series to be corrected. For this application, one would then take the
+first frame from the series as the non-reversed input (first input
+volume). 
 
+fMRI: note that for fMRI, you probably should acquire a separate spin
+echo acquistion for both the normal and reversed PEs directions as the
+first frame in the BOLD series will have dropout that topop probably
+cannot deal with. This should not be a problem for DWI since it it
+already spin echo.
+
+If you are going to use the output in conjunction with other
+FreeSurfer programs, eg, FSFAST or bbregister, then pass those
+programs the b0dc.vox.nii.gz as the --vsm argument.
+
+If you are going to use the output with other FSL programs, then 
+pass outdir/topup as the topup input.
+
+When using in conjunction with FSLs eddy for DTI analysis, the first
+volume input to topup must be the same as the first volume in --imain
+to eddy_correct and the TRT must be consistent (as does the
+acquisition parameter file). According to the eddy FAQ
+https://fsl.fmrib.ox.ac.uk/fsl/docs/diffusion/eddy/FAQ/index.html the
+TRT value does not matter that much. As long as it is consistent
+between topup and eddy, they give indistinguishable results. However,
+eddy may crash if TRT is too low (~<.01) or too high (~>.9).  Also see
+fs-eddytopper.
+
+The topup config depends on the number of slices. Eg, if odd, then use
+b02b0_1.cnf; if even then b02b0_2.cnf = b02b0.cnf, and topup will die
+if you give it the wrong one. By default, fs-topup will look at the
+number of slices and choose the right one. Note: if you dont give
+topup a config file at all, it will not die, though Im not sure if it
+will do the right thing.
+
+When passing a subject, it will create outdir/reg/reg.mean.b0dc.lta
+which is the BBR registration of the mean of the two B0-corrected
+inputs.
+
+Quality Assurance (QA): if you add the --qa option with --s, then
+fs-topup will register each of the input volumes to the FreeSurfer
+anatomical using bbregister with and without B0 correction. If the B0
+correction is working, then the best BBR cost should decrease. There
+will be a reg folder in the output folder with the followinng files:
+
+reg.v1.b0dc.dat.mincost
+reg.v1.nob0dc.dat.mincost
+reg.v2.b0dc.dat.mincost
+reg.v2.nob0dc.dat.mincost
+
+v1 is for the first input volume and v2 for the second.  The first
+value in each file is the minimum cost found by BBR. The value in the
+b0dc file should be less than that in the corresponding nob0dc
+file. If not, then something went wrong. This is something you must
+check yourself; fs-topup will not throw an error. These registrations
+may add 5-10min on the execution time for fs-topup, so you may want to
+try it on a few cases to convince yourself it is doing the right thing
+then leave it off.
+
+CITATION: From: https://fsl.fmrib.ox.ac.uk/fsl/docs/diffusion/topup/index.html
+
+If you use topup in your research, please make sure that you reference
+at least the first of the articles listed below, and ideally both.
+For your convenience, we provide example text (short and more details
+versions), which you are welcome to use in your methods description.
+
+Brief summary text: "Data was collected with reversed phase-encode
+blips, resulting in pairs of images with distortions going in opposite
+directions. From these pairs the susceptibility-induced off-resonance
+field was estimated using a method similar to that described in
+[Andersson 2003] as implemented in FSL [Smith 2004] and the two images
+were combined into a single corrected one."
+
+[Andersson 2003] J.L.R. Andersson, S. Skare, J. Ashburner How to
+correct susceptibility distortions in spin-echo echo-planar images:
+application to diffusion tensor imaging. NeuroImage, 20(2):870-888,
+2003.
+
+[Smith 2004] S.M. Smith, M. Jenkinson, M.W. Woolrich, C.F. Beckmann,
+T.E.J. Behrens, H. Johansen-Berg, P.R. Bannister, M. De Luca,
+I. Drobnjak, D.E. Flitney, R. Niazy, J. Saunders, J. Vickers,
+Y. Zhang, N. De Stefano, J.M. Brady, and P.M. Matthews. Advances in
+functional and structural MR image analysis and implementation as
+FSL. NeuroImage, 23(S1):208-219, 2004.
 
