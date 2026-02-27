@@ -953,7 +953,7 @@ trg1 and src2 are from the same anatomy.
 \param int DoJac - perform jacobian correction (conserves sum(SrcVals))
 \param int UseHash - use hash table (no reason not to, much faster).
 */
-MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int ReverseMapFlag, int DoJac, int UseHash, MHT **HashVect)
+MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int ReverseMapFlag, int DoJac, int UseHash)
 {
   MRI *TrgSurfVals = NULL;
   MRI_SURFACE *SrcSurfReg, *TrgSurfReg;
@@ -964,8 +964,6 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
   float dmin;
   MHT **Hash = NULL;
   MRI *SrcHits, *TrgHits;
-
-  if(HashVect != NULL) UseHash = 1;
 
   npairs = nsurfs / 2;
   printf("MRISapplyReg(): nsurfs = %d, revmap=%d, jac=%d,  hash=%d\n", nsurfs, ReverseMapFlag, DoJac, UseHash);
@@ -1007,13 +1005,10 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
 
   if (UseHash) {
     printf("MRISapplyReg: building hash tables (res=16).\n");
-    if(HashVect == NULL){
-      Hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
-      for (n = 0; n < nsurfs; n++) {
-	Hash[n] = MHTcreateVertexTable_Resolution(SurfReg[n], CURRENT_VERTICES, 16);
-      }
+    Hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
+    for (n = 0; n < nsurfs; n++) {
+      Hash[n] = MHTcreateVertexTable_Resolution(SurfReg[n], CURRENT_VERTICES, 16);
     }
-    else Hash = HashVect;
   }
 
   if (DoJac) {
@@ -1200,7 +1195,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
 
   MRIfree(&SrcHits);
   MRIfree(&TrgHits);
-  if(UseHash && HashVect==NULL)
+  if (UseHash)
     for (n = 0; n < nsurfs; n++) MHTfree(&Hash[n]);
   return (TrgSurfVals);
 }
