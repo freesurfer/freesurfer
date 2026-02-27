@@ -271,7 +271,7 @@ else
   endif
 endif
 
-if(0 && $DoQA) then
+if($DoQA == 2) then
   # This is a comparison of how FS vs FSL apply the B0 map.  Compare
   # both.b0dc.nii (the fsl-corrected vols) to v1.qa and v2.qa.
   # both.b0dc.nii has two frames corresponding to v1 and v2.  Note:
@@ -281,7 +281,7 @@ if(0 && $DoQA) then
   # thought FS was better for v2 but FSL was better for v1; bbregister
   # mincost agrees. Not sure what is going on. The RMS diff in the
   # registrations is 0.4mm and 0.3mm, so not such a big deal
-  # Note that useful so commenting out
+  # Not that useful so have to spec --qa2
   mkdir -p $outdir/qa
   foreach v (1 2) # might not be perfect with multiple frames
     set vb0dc = $outdir/qa/v$v.qa.nii.gz
@@ -442,6 +442,9 @@ while( $#argv != 0 )
 
     case "--qa":
       set DoQA = 1
+      breaksw
+    case "--qa2":
+      set DoQA = 2
       breaksw
 
     case "--no-mask":
@@ -610,11 +613,12 @@ these maps will have been masked unless --no-mask is used. There is an
 output b0dc.nomask.nii.gz (in either Hz or vox depending upon TRT).
 
 Setting the total readout time (TRT). The proper value will be TRT =
-EPIFactor * EchoSpacing/AccelFactor, where the EchoSpacing is in
-seconds.  Eg, TRT = 116*0.58ms*.001/2 = 0.0336 seconds. If the TRT is
-not set correctly, the only implication is that the Hz values will be
-wrong.  It will still apply the proper correction and the voxel shift
-map will still be right.
+EPIFactor * EchoSpacing * PartialFourier / AccelFactor, where the
+EchoSpacing is in seconds.  Eg, TRT = 116*0.58ms*.001/2 = 0.0336
+seconds. If the TRT is not set correctly, the only implication is that
+the Hz values will be wrong.  It will still apply the proper
+correction and the voxel shift map will still be right. Note that SMS
+acceleration does not reduce the effective echo spacing.
 
 Note that topup will register the second input volume (ie, the
 reversed phase encode direction) to the first and the output maps will
