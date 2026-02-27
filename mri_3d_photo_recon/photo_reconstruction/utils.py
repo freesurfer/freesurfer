@@ -68,7 +68,10 @@ def get_arguments():
     parser.add_argument("--no_z_stretch", dest="no_z_stretch", action="store_true",
                         help="Use when you are certain of slice thickness and/or photos are outside the mesh")
     parser.set_defaults(no_z_stretch=False)
-    
+
+    parser.add_argument("--use_svf_for_photos", dest="use_svf_for_photos", action="store_true",
+                        help="Uses a diffeomorphic deformation model (SVF) for the photos")
+    parser.set_defaults(use_svf_for_photos=False)
 
     parser.add_argument("--stretch_factor_lr_mesh", type=float, default=1.0,
                         help="Stretch mesh in left-right direction by this factor.")
