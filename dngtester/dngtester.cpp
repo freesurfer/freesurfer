@@ -47,9 +47,6 @@
 #include "surfcluster.h"
 #include "fsglm.h"
 #include "cma.h"
-#include "mrishash.h"
-#include "randomfields.h"
-#include "fmriutils.h"
 
 #include "romp_support.h"
 #undef private
@@ -1777,6 +1774,141 @@ MRI *SimAtrophyLabel(MRIS *surf, LABEL *label, double dist)
   return(mri);
 }
 
+class MRISflat2mri {
+public:
+  MRIS *surf=NULL;
+  MRIS *surfreg=NULL;
+  //LABEL *label=NULL;
+  double lhfsasph1xyz[3] = {11.40, 15.42, -98.14}; //vno 136722 
+  double lhfsasph2xyz[3] = {-4.52, 30.08, -95.26}; //vno 52903
+  double lhfsasph3xyz[3] = {2.92, 36.70, -92.98}; //vno 136674
+  int fsavno1=-1, fsavno2=-1;
+  int nvox[2] = {-1,-1};
+  double voxsize[2] = {0,0};
+  double dthresh = 2;
+  MRI *flat2mri(MRI *ov);
+};
+
+MRI *MRISflat2mri::flat2mri(MRI *ov)
+{
+  // Get a list of the vertices in the patch
+  std::vector<double> vx,vy;
+  std::vector<int> vnolist;
+  for(int vno=0; vno < surf->nvertices; vno++){
+    VERTEX *v = &(surf->vertices[vno]);    
+    if(v->ripflag) continue;
+    vx.push_back(v->x);
+    vy.push_back(v->y);
+    vnolist.push_back(vno);
+    // get xmin/max ymin/max too
+  }
+  printf("Found %d vertices in patch\n",(int)vx.size());
+
+  float dmin;
+  int vno1 = MRISfindClosestVertex(surfreg, lhfsasph1xyz[0], lhfsasph1xyz[1], lhfsasph1xyz[2], &dmin, CURRENT_VERTICES);
+  int vno2 = MRISfindClosestVertex(surfreg, lhfsasph2xyz[0], lhfsasph2xyz[1], lhfsasph2xyz[2], &dmin, CURRENT_VERTICES);
+  int vno3 = MRISfindClosestVertex(surfreg, lhfsasph3xyz[0], lhfsasph3xyz[1], lhfsasph3xyz[2], &dmin, CURRENT_VERTICES);
+
+  MRI *mri = MRIallocSequence(nvox[0],nvox[1],1,ov->type,ov->nframes);
+  MRIcopyHeader(ov,mri);
+  MRIcopyPulseParameters(ov,mri);
+  if(ov->ct) mri->ct = CTABdeepCopy(ov->ct);  
+  mri->valid = 1;
+  mri->xsize = voxsize[0];
+  mri->ysize = voxsize[1];
+  mri->zsize = 1; // flat in this dim
+
+  // vno1 and vno2 are two vertices that dictate the direction of the columns/width
+  VERTEX *v1 = &(surf->vertices[vno1]);
+  VERTEX *v2 = &(surf->vertices[vno2]);
+  VERTEX *v3 = &(surf->vertices[vno3]);
+  double d12 = sqrt( pow(v1->x-v2->x,2.0) + pow(v1->y-v2->y,2.0) + pow(v1->z-v2->z,2.0));
+
+  // The center is defined midway between the two vertices
+  mri->c_r  = (v1->x+v2->x)/2;
+  mri->c_a  = (v1->y+v2->y)/2;
+  mri->c_s  = 0;
+
+  // Set the geometry to be axial. When loading the slice into FV, it
+  // will appear that you are looking down on an axial slice.
+
+  // Set slice axis to point in z (axial slice)
+  mri->z_r = 0;
+  mri->z_a = 0;
+  mri->z_s = 1;
+
+  // Set col axis to point along the vector between v1 and v2
+  mri->x_r = +(v2->x - v1->x)/d12;
+  mri->x_a = +(v2->y - v1->y)/d12;
+  mri->x_s = 0;
+
+  // Set row axis to be orthog to col axis
+  mri->y_r = -mri->x_a;
+  mri->y_a = mri->x_r;
+  mri->y_s = 0;
+
+  double d32r = v3->x - v2->x;
+  double d32a = v3->y - v2->y;
+  double tmp = mri->y_r * d32r + mri->y_a * d32a;
+  if(0 && tmp < 0){
+    mri->y_r = -mri->y_a;
+    mri->y_a = -mri->y_r;
+    printf("Reversing y DC\n");
+  }
+
+  MATRIX *vox2ras = mri->get_Vox2RAS(0);
+
+  printf("v1 %d %g %g %g\n",vno1,v1->x,v1->y,v1->z);
+  printf("v2 %d %g %g %g\n",vno2,v2->x,v2->y,v2->z);
+  printf("x_r %g x_a %g\n",mri->x_r,mri->x_a);
+  printf("center %g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
+  printf("d12 = %g\n",d12);
+  printf("vox2ras = [\n");
+  MatrixPrint(stdout,vox2ras);
+  printf("];\n");
+
+  //MHT *Hash = MHTcreateVertexTable_Resolution(surf, CURRENT_VERTICES, 16);
+
+  // Go through each point in the mri and find closest vertex in patch
+  // Probably a more efficient way to do this with hash, but the data
+  // are pretty small. Could probably improve the interp
+  MATRIX *vox = MatrixAlloc(4,1,MATRIX_REAL);
+  vox->rptr[4][1] = 1;
+  MATRIX *ras=NULL;
+  for(int c=0; c < mri->width; c++){
+    for(int r=0; r < mri->height; r++){
+      vox->rptr[1][1] = c;
+      vox->rptr[2][1] = r;
+      ras = MatrixMultiplyD(vox2ras,vox,ras);
+      double dmin = 10e10;
+      int nmin = -1;
+      for(int n=0; n < vx.size(); n++){
+	double dx = vx[n] - ras->rptr[1][1];
+	double dy = vy[n] - ras->rptr[2][1];
+	double d2 = sqrt(dx*dx + dy*dy);
+	if(dmin > d2){
+	  dmin = d2;
+	  nmin = n;
+	}
+      }
+      for(int f=0; f < mri->nframes; f++){
+	int vno = vnolist[nmin];
+	double val = MRIgetVoxVal(ov,vno,0,0,f);
+	if(dmin > dthresh) val = 0;
+	MRIsetVoxVal(mri,c,r,0,f,val);
+      }
+    }
+  }
+  // Could reset the geom so that all subjects have 
+  // the same.
+
+  MatrixFree(&vox2ras);
+  MatrixFree(&vox);
+  MatrixFree(&ras);
+  return(mri);
+}
+
+
 MRI *MRIaseg2acqueduct(MRI *aseg)
 {
   MATRIX *vox2ras = aseg->get_Vox2RAS(0);
@@ -1963,1177 +2095,27 @@ MRI *MRIsegRaphe(MRI *asegaq, MRI *dasb)
   return(asegaq);
 }
 
-class RapheSeg 
-{
-public:
-  MRI *aseg0=NULL, *dasb0=NULL;
-  int AqInfSlice=1000, AqSupSlice=-1;
-  int AqPostRow=1000, AqAntRow=-1;
-  int BsLeftCol=1000, BsRightCol=-1;
-  MRI *dr0=NULL, *mr0=NULL;
-  MRI *doit(void);
-  int RapheDice(MRI *aseg);
-};
-MRI *RapheSeg::doit(void)
-{
-  double drtargvol = 150.3; // vs 115 mm3
-  double mrtargvol =  99.6; // vs  64 mm3
-  double voxvol = aseg0->xsize*aseg0->ysize*aseg0->zsize;
-  double DRAPmm = 6.0; // VB used 6
-  double MRAPmm = 11.0; // VB used 6
-
-  // Make a copy so that they can be reoriented if needed
-  MRI *aseg = MRIcopy(aseg0,NULL);
-  MRI *dasb = MRIcopy(dasb0,NULL);
-
-  // Reorient to RAS
-  char ostr[5];
-  ostr[4] = '\0';
-  MRIdircosToOrientationString(aseg,ostr);
-  printf("Aseg Orientation %s\n",ostr);
-  if(strcmp(ostr,"RAS")){
-    printf("Reorientating Aseg to RAS\n");
-    MRI *rastemplate = MRIcopy(aseg,NULL);
-    MRIorientationStringToDircos(rastemplate, "RAS");
-    MRI *tmp = MRIresample(aseg, rastemplate, SAMPLE_NEAREST);
-    MRIfree(&aseg);
-    aseg = tmp;
-    MRIfree(&rastemplate);
-  } 
-  MRIdircosToOrientationString(dasb,ostr);
-  printf("DASB Orientation %s\n",ostr);
-  if(strcmp(ostr,"RAS")){
-    printf("Reorientating DASB to RAS\n");
-    MRI *rastemplate = MRIcopy(dasb,NULL);
-    MRIorientationStringToDircos(rastemplate, "RAS");
-    MRI *tmp = MRIresample(dasb, rastemplate, SAMPLE_NEAREST);
-    MRIfree(&dasb);
-    dasb = tmp;
-    MRIfree(&rastemplate);
-  } 
-  int DRAPvox = ceil(DRAPmm/aseg->ysize);
-  int MRAPvox = ceil(MRAPmm/aseg->ysize);
-
-  int err = MRIdimMismatch(aseg, dasb, 0);
-  if(err) {
-    printf("ERROR: MRIrapheSeg(): dimension mismatch\n");
-    return (NULL);
-  }
-
-  // Go through the sagittal plane to find the largest row 
-  std::vector<int> supslice;
-  for(int r=0; r < aseg->height; r++){
-    int aqfound=0;
-    for(int s=0; s < aseg->depth;  s++){
-      // At this row/slice, search the cols for aqueduct
-      for(int c=0; c < aseg->width; c++){
-	int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	if(segid == 540){
-	  aqfound=1;
-	  break;
-	}
-      }
-      if(aqfound){
-	supslice.push_back(s-1);
-	aqfound=1;
-	printf("row %d %d\n",r,s-1);
-	break;
-      }
-    } // slice
-    if(!aqfound) supslice.push_back(0);
-  } // row
-  int naq=0, nbs=0;
-  double dasbaqsum = 0, dasbbssum = 0;
-  for(int c=0; c < aseg->width; c++){
-    for(int r=0; r < aseg->height; r++){
-      for(int s=0; s < aseg->depth;  s++){
-	int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	if(segid == 540){
-	  naq++;
-	  dasbaqsum += MRIgetVoxVal(dasb,c,r,s,0);
-	  if(AqInfSlice > s) AqInfSlice = s;
-	  if(AqSupSlice < s) AqSupSlice = s;
-	  if(AqPostRow > r)  AqPostRow = r;
-	  if(AqAntRow  < r)  AqAntRow = r;
-	}
-	if(segid == 16){
-	  nbs++;
-	  dasbbssum += MRIgetVoxVal(dasb,c,r,s,0);
-	  if(BsLeftCol  > c) BsLeftCol=c;
-	  if(BsRightCol < c) BsRightCol=c;
-	}
-      }
-    }
-  }
-  // give it another index
-  AqInfSlice--;
-  AqPostRow--;
-
-  double dasbaqmn = dasbaqsum/naq;
-  double dasbbsmn = dasbbssum/naq;
-  printf("nbs = %d dasbbs = %g  naq = %d dasbaq = %g\n",nbs,dasbbsmn,naq,dasbaqmn);
-  printf("Bounding Box: c = (%d,%d), r=(%d,%d), s=(%d,%d) DRAPVox=%d MRAPVox=%d\n",
-	 BsLeftCol,BsRightCol,AqPostRow,AqAntRow,AqInfSlice,AqSupSlice,DRAPvox,MRAPvox);
-
-  // DR ==============================================================
-  int drseedc=0, drseedr=0, drseeds=0;
-  double drmax = 0;
-  for(int r=AqAntRow-DRAPvox; r <= AqAntRow; r++){
-    for(int s=AqInfSlice; s <= supslice[r]; s++){
-      for(int c=BsLeftCol; c <= BsRightCol; c++){
-	int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	double val = MRIgetVoxVal(dasb,c,r,s,0);
-	//printf("%d %d %d   %d  %g\n",c,r,s,segid,val);
-	if(segid != 16) continue;
-	if(val > drmax){
-	  drmax = val;
-	  drseedc = c;
-	  drseedr = r;
-	  drseeds = s;
-	}
-      }
-    }
-  }
-  printf("DR: max=%g, seed = (%d,%d,%d)\n",drmax,drseedc,drseedr,drseeds);
-  MRIsetVoxVal(aseg,drseedc,drseedr,drseeds,0,118);
-  int drvolvoxtarg = round(drtargvol/voxvol);
-  printf("voxvol = %g, drvolvoxtarg = %d\n",voxvol,drvolvoxtarg);
-  std::vector<std::vector<int>> drcrs;
-  std::vector<int>crs = {drseedc,drseedr,drseeds};
-  drcrs.push_back(crs);
-  while(1){
-    double dasbmax = -1;
-    int cnbr=0, rnbr=0, snbr=0;
-    for(int n=0; n < drcrs.size(); n++){
-      for(int cd = -1; cd < 2; cd++){
-	for(int rd = -1; rd < 2; rd++){
-	  for(int sd = -1; sd < 2; sd++){
-	    if(abs(cd)+abs(rd)+abs(sd) != 1) continue; // face nbrs only
-	    int c = drcrs[n][0]+cd;
-	    int r = drcrs[n][1]+rd;
-	    int s = drcrs[n][2]+sd;
-	    int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	    if(segid != 16) continue;
-	    if(s > supslice[r]) continue;
-	    if(s < AqInfSlice ) continue;
-	    if(r < AqAntRow-DRAPvox || r > AqAntRow) continue;
-	    double val = MRIgetVoxVal(dasb,c,r,s,0);
-	    if(val > dasbmax){
-	      dasbmax = val;
-	      cnbr = c;
-	      rnbr = r;
-	      snbr = s;
-	    }
-	  }//sd
-	}//rd
-      }//cd
-    } // loop over voxels in current DR
-    if(dasbmax < 0){
-      printf("ERROR: could not fill DR up to %d (%d)\n",drvolvoxtarg,(int)drcrs.size());
-      break;
-    }
-    crs.clear();
-    crs = {cnbr,rnbr,snbr};
-    drcrs.push_back(crs);
-    MRIsetVoxVal(aseg,cnbr,rnbr,snbr,0,118);
-    if(drcrs.size() == drvolvoxtarg) break;
-  }
-  printf("#DR# Found %d voxels\n",(int)drcrs.size());
-
-  // MR ==============================================================
-  int mrseedc=0, mrseedr=0, mrseeds=0;
-  double mrmax = 0;
-  for(int r=AqAntRow-MRAPvox; r <= AqAntRow; r++){
-    for(int s=0; s <= AqInfSlice; s++){
-      for(int c=BsLeftCol; c <= BsRightCol; c++){
-	int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	double val = MRIgetVoxVal(dasb,c,r,s,0);
-	//printf("%d %d %d   %d  %g\n",c,r,s,segid,val);
-	if(segid != 16) continue;
-	if(val > mrmax){
-	  mrmax = val;
-	  mrseedc = c;
-	  mrseedr = r;
-	  mrseeds = s;
-	}
-      }
-    }
-  }
-  printf("MR: max=%g, seed = (%d,%d,%d)\n",mrmax,mrseedc,mrseedr,mrseeds);
-  MRIsetVoxVal(aseg,mrseedc,mrseedr,mrseeds,0,119);
-  int mrvolvoxtarg = round(mrtargvol/voxvol);
-  printf("voxvol = %g, mrvolvoxtarg = %d\n",voxvol,mrvolvoxtarg);
-  std::vector<std::vector<int>> mrcrs;
-  crs.clear();
-  crs = {mrseedc,mrseedr,mrseeds};
-  mrcrs.push_back(crs);
-  while(1){
-    double dasbmax = -1;
-    int cnbr=0, rnbr=0, snbr=0;
-    for(int n=0; n < mrcrs.size(); n++){
-      for(int cd = -1; cd < 2; cd++){
-	for(int rd = -1; rd < 2; rd++){
-	  for(int sd = -1; sd < 2; sd++){
-	    if(abs(cd)+abs(rd)+abs(sd) != 1) continue; // face nbrs only
-	    int c = mrcrs[n][0]+cd;
-	    int r = mrcrs[n][1]+rd;
-	    int s = mrcrs[n][2]+sd;
-	    int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	    if(segid != 16) continue;
-	    if(s > supslice[r]) continue;
-	    if(r < AqAntRow-MRAPvox || r > AqAntRow) continue;
-	    double val = MRIgetVoxVal(dasb,c,r,s,0);
-	    if(val > dasbmax){
-	      dasbmax = val;
-	      cnbr = c;
-	      rnbr = r;
-	      snbr = s;
-	    }
-	  }//sd
-	}//rd
-      }//cd
-    } // loop over voxels in current MR
-    if(dasbmax < 0){
-      printf("ERROR: could not fill MR up to %d (%d)\n",mrvolvoxtarg,(int)mrcrs.size());
-      break;
-    }
-    crs.clear();
-    crs = {cnbr,rnbr,snbr};
-    mrcrs.push_back(crs);
-    MRIsetVoxVal(aseg,cnbr,rnbr,snbr,0,119);
-    if(mrcrs.size() == mrvolvoxtarg) break;
-  }
-  printf("#MR# Found %d voxels\n",(int)mrcrs.size());
-
-  if(strcmp(ostr,"RAS")){
-    printf("Reorientating back to %s\n",ostr);
-    MRI *tmp = MRIresample(aseg, aseg0, SAMPLE_NEAREST);
-    MRIfree(&aseg);
-    aseg = tmp;
-  }
-
-  // Update the ctab
-  if(!aseg->ct) aseg->ct = CTABreadDefault();
-  CTE *cte = aseg->ct->entries[118];
-  if(cte == NULL) {
-    cte = (CTE *)malloc(sizeof(CTE));
-    aseg->ct->entries[118] = cte;
-  }
-  strcpy(cte->name,"Dorsal-Raphe");
-  cte->ri=255; cte->gi=20; cte->bi=147; cte->ai=0;
-  cte->rf=cte->ri/255.0; cte->gf=cte->gi/255.0; cte->bf=cte->gi/255.0;
-
-  cte = aseg->ct->entries[119];
-  if(cte == NULL) {
-    cte = (CTE *)malloc(sizeof(CTE));
-    aseg->ct->entries[118] = cte;
-  }
-  strcpy(cte->name,"Median-Raphe");
-  cte->ri=205; cte->gi=179; cte->bi=139; cte->ai=0;
-  cte->rf=cte->ri/255.0; cte->gf=cte->gi/255.0; cte->bf=cte->gi/255.0;
-
-  cte = aseg->ct->entries[540];
-  if(cte == NULL) {
-    cte = (CTE *)malloc(sizeof(CTE));
-    aseg->ct->entries[540] = cte;
-  }
-  strcpy(cte->name,"Cerebral-Aqueduct");
-  cte->ri=170; cte->gi=85; cte->bi=255; cte->ai=0;
-  cte->rf=cte->ri/255.0; cte->gf=cte->gi/255.0; cte->bf=cte->gi/255.0;
-
-  if(dr0 || mr0) RapheDice(aseg);
-
-  return(aseg);
-}
-int RapheSeg::RapheDice(MRI *aseg)
-{
-  // Dice ===============================================
-  char ostr0[5];
-  ostr0[4] = '\0';
-  MRIdircosToOrientationString(aseg,ostr0);
-  printf("Dice: Aseg Orientation %s\n",ostr0);
-  if(dr0 || mr0){
-    char ostr[5];
-    ostr[4] = '\0';
-    if(dr0){
-      MRIdircosToOrientationString(dr0,ostr);
-      printf("DR0 Orientation %s\n",ostr);
-      if(strcmp(ostr,ostr0)){
-	printf("Reorientating DR0 to RAS\n");
-	MRI *rastemplate = MRIcopy(dr0,NULL);
-	MRIorientationStringToDircos(rastemplate, ostr0);
-	MRI *tmp = MRIresample(dr0, rastemplate, SAMPLE_NEAREST);
-	MRIfree(&dr0);
-	dr0 = tmp;
-	MRIfree(&rastemplate);
-      } 
-    }
-    if(mr0){
-      MRIdircosToOrientationString(mr0,ostr);
-      printf("MR0 Orientation %s\n",ostr);
-      if(strcmp(ostr,ostr0)){
-	printf("Reorientating MR0 to RAS\n");
-	MRI *rastemplate = MRIcopy(mr0,NULL);
-	MRIorientationStringToDircos(rastemplate, ostr0);
-	MRI *tmp = MRIresample(mr0, rastemplate, SAMPLE_NEAREST);
-	MRIfree(&mr0);
-	mr0 = tmp;
-	MRIfree(&rastemplate);
-      } 
-    }
-    int ndr0=0, nmr0=0, ndr=0, nmr=0, ndrboth=0, nmrboth=0;
-    for(int c=0; c < aseg->width; c++){
-      for(int r=0; r < aseg->height; r++){
-	for(int s=0; s < aseg->depth;  s++){
-	  int segid = MRIgetVoxVal(aseg,c,r,s,0);
-	  if(segid == 118) ndr++;
-	  if(dr0){
-	    double val = MRIgetVoxVal(dr0,c,r,s,0);
-	    if(val > 0.01){
-	      ndr0++;
-	      if(segid == 118) ndrboth++;
-	    }
-	  }
-	  if(segid == 119) nmr++;
-	  if(mr0){
-	    double val = MRIgetVoxVal(mr0,c,r,s,0);
-	    if(val > 0.01){
-	      nmr0++;
-	      if(segid == 119) nmrboth++;
-	    }
-	  }
-	}
-      }
-    }
-    if(dr0){
-      double dice = (double)ndrboth/((ndr0+ndr)/2.0);
-      printf("DRdice: %3d %3d %3d %6.4lf\n",ndr0,ndr,ndrboth,dice);
-    }
-    if(mr0){
-      double dice = (double)nmrboth/((nmr0+nmr)/2);
-      printf("MRdice: %3d %3d %3d %6.4lf\n",nmr0,nmr,nmrboth,dice);
-    }
-  }
-  return(0);
-}
-class MRISflat2mri {
-public:
-  MRIS *surf=NULL;
-  MRIS *surfreg=NULL;
-  //LABEL *label=NULL;
-  double lhfsasph1xyz[3] = {11.40, 15.42, -98.14}; //vno 136722 
-  double lhfsasph2xyz[3] = {-4.52, 30.08, -95.26}; //vno 52903
-  double lhfsasph3xyz[3] = {2.92, 36.70, -92.98}; //vno 136674
-  int fsavno1=-1, fsavno2=-1;
-  int nvox[2] = {-1,-1};
-  double voxsize[2] = {0,0};
-  double dthresh = 2;
-  MRI *flat2mri(MRI *ov);
-};
-
-MRI *MRISflat2mri::flat2mri(MRI *ov)
-{
-  // Get a list of the xy coords of the vertices in the patch
-  std::vector<double> vx,vy;
-  std::vector<int> vnolist;
-  for(int vno=0; vno < surf->nvertices; vno++){
-    VERTEX *v = &(surf->vertices[vno]);    
-    if(v->ripflag) continue;
-    vx.push_back(v->x);
-    vy.push_back(v->y);
-    vnolist.push_back(vno);
-    // get xmin/max ymin/max too
-  }
-  printf("Found %d vertices in patch\n",(int)vx.size());
-
-  // Three points to define the coordinate system
-  float dmin;
-  int vno1 = MRISfindClosestVertex(surfreg, lhfsasph1xyz[0], lhfsasph1xyz[1], lhfsasph1xyz[2], &dmin, CURRENT_VERTICES);
-  int vno2 = MRISfindClosestVertex(surfreg, lhfsasph2xyz[0], lhfsasph2xyz[1], lhfsasph2xyz[2], &dmin, CURRENT_VERTICES);
-  int vno3 = MRISfindClosestVertex(surfreg, lhfsasph3xyz[0], lhfsasph3xyz[1], lhfsasph3xyz[2], &dmin, CURRENT_VERTICES);
-
-  MRI *mri = MRIallocSequence(nvox[0],nvox[1],1,ov->type,ov->nframes);
-  MRIcopyHeader(ov,mri);
-  MRIcopyPulseParameters(ov,mri);
-  if(ov->ct) mri->ct = CTABdeepCopy(ov->ct);  
-  mri->valid = 1;
-  mri->xsize = voxsize[0];
-  mri->ysize = voxsize[1];
-  mri->zsize = 1; // flat in this dim
-
-  // vno1 and vno2 are two vertices that dictate the direction of the columns/width
-  VERTEX *v1 = &(surf->vertices[vno1]);
-  VERTEX *v2 = &(surf->vertices[vno2]);
-  VERTEX *v3 = &(surf->vertices[vno3]);
-  double d12 = sqrt( pow(v1->x-v2->x,2.0) + pow(v1->y-v2->y,2.0) + pow(v1->z-v2->z,2.0));
-
-  // The center is defined midway between these two vertices
-  mri->c_r  = (v1->x+v2->x)/2;
-  mri->c_a  = (v1->y+v2->y)/2;
-  mri->c_s  = 0;
-
-  // Set the geometry to be axial. When loading the slice into FV, it
-  // will appear that you are looking down on an axial slice.
-
-  // Set slice axis to point in z (axial slice)
-  mri->z_r = 0;
-  mri->z_a = 0;
-  mri->z_s = 1;
-
-  // Set col axis to point along the vector between v1 and v2
-  mri->x_r = +(v2->x - v1->x)/d12;
-  mri->x_a = +(v2->y - v1->y)/d12;
-  mri->x_s = 0;
-
-  // Set row axis to be orthog to col axis
-  mri->y_r = -mri->x_a;
-  mri->y_a = mri->x_r;
-  mri->y_s = 0;
-
-  double d32r = v3->x - v2->x;
-  double d32a = v3->y - v2->y;
-  double tmp = mri->y_r * d32r + mri->y_a * d32a;
-  if(0 && tmp < 0){
-    mri->y_r = -mri->y_a;
-    mri->y_a = -mri->y_r;
-    printf("Reversing y DC\n");
-  }
-
-  MATRIX *vox2ras = mri->get_Vox2RAS(0);
-
-  printf("v1 %d %g %g %g\n",vno1,v1->x,v1->y,v1->z);
-  printf("v2 %d %g %g %g\n",vno2,v2->x,v2->y,v2->z);
-  printf("x_r %g x_a %g\n",mri->x_r,mri->x_a);
-  printf("center %g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
-  printf("d12 = %g\n",d12);
-  printf("vox2ras = [\n");
-  MatrixPrint(stdout,vox2ras);
-  printf("];\n");
-
-  //MHT *Hash = MHTcreateVertexTable_Resolution(surf, CURRENT_VERTICES, 16);
-
-  // Go through each point in the mri and find closest vertex in patch
-  // Probably a more efficient way to do this with hash, but the data
-  // are pretty small. Could probably improve the interp
-  MATRIX *vox = MatrixAlloc(4,1,MATRIX_REAL);
-  vox->rptr[4][1] = 1;
-  MATRIX *ras=NULL;
-  int nout = 0;
-  for(int c=0; c < mri->width; c++){
-    for(int r=0; r < mri->height; r++){
-      vox->rptr[1][1] = c;
-      vox->rptr[2][1] = r;
-      ras = MatrixMultiplyD(vox2ras,vox,ras);
-      double dmin = 10e10;
-      int nmin = -1;
-      for(int n=0; n < vx.size(); n++){
-	double dx = vx[n] - ras->rptr[1][1];
-	double dy = vy[n] - ras->rptr[2][1];
-	double d2 = sqrt(dx*dx + dy*dy);
-	if(dmin > d2){
-	  dmin = d2;
-	  nmin = n;
-	}
-      }
-      if(dmin > 2) nout++;
-      if((c==0 && r==0) || (c==mri->width-1 && r==0) || (c==0 && r==mri->height-1) || (c==mri->width-1 && r==mri->height-1)) printf("c=%d r=%d vno=%d\n",c,r,vnolist[nmin]);
-      for(int f=0; f < mri->nframes; f++){
-	int vno = vnolist[nmin];
-	double val = MRIgetVoxVal(ov,vno,0,0,f);
-	if(dmin > dthresh) val = 0;
-	MRIsetVoxVal(mri,c,r,0,f,val);
-      }
-    }
-  }
-  // Could reset the geom so that all subjects have 
-  // the same.
-  printf("nout %d\n",nout);
-
-  MatrixFree(&vox2ras);
-  MatrixFree(&vox);
-  MatrixFree(&ras);
-  return(mri);
-}
-
-class MRISsphere2mri {
-public:
-  MRIS *sphere=NULL; // just sphere, eg lh.sphere
-  MRIS *surfreg=NULL; // sphere.reg of this subject
-  LTA *lta = NULL;
-  //LABEL *label=NULL;
-  double lhfsasph1xyz[3] = {11.40, 15.42, -98.14}; //vno 136722 
-  double lhfsasph2xyz[3] = {-4.52, 30.08, -95.26}; //vno 52903
-  double lhfsasph3xyz[3] = {2.92, 36.70, -92.98}; //vno 136674
-  double rhfsasph1xyz[3] = {-32.1000, 23.9500, -91.6300}; //90206
-  double rhfsasph2xyz[3] = {-10.3700, 40.0200, -91.0500}; //89549
-  double rhfsasph3xyz[3] = {-17.4600, 42.9400, -88.6100}; //13969
-  //90206 89549 13969
-  int fsavno1=-1, fsavno2=-1;
-  int nvox[2] = {-1,-1};
-  double P0[2] = {-180,-90}, P1[2] = {180,90};
-  double dthresh = 2;
-  MRI *sphere2mri(MRI *ov, int direction=1);
-  void xyz2rpt(double x, double y, double z, double *r, double *phi, double *theta){
-    *r = sqrt(x*x+y*y+z*z);
-    *theta = 90 - acos(z/(*r))*180/M_PI; // -90 to +90
-    *phi = atan2(y,x)*180/M_PI;     // -180 to +180
-  }
-  void rpt2xyz(double r, double phi, double theta, double *x, double *y, double *z){
-    double th = (90-theta)*M_PI/180;
-    *x = r*sin(th)*cos(phi*M_PI/180);
-    *y = r*sin(th)*sin(phi*M_PI/180);
-    *z = r*cos(th);
-  }
-  void rpt2xyz(double r, double phi, double theta, float *x, float *y, float *z){
-    double xx,yy,zz;
-    this->rpt2xyz(r,phi,theta,&xx,&yy,&zz);
-    *x = xx; *y = yy; *z = zz;
-  }
-};
-MRI *MRISsphere2mri::sphere2mri(MRI *ov, int direction)
-{
-  // direction=1=sphere2mri
-  // direction=2=mri2sphere
-  if(direction != 1 && direction != 2){
-    printf("ERROR: diretion=%d must be 1 or 2\n",direction);
-    return(NULL);
-  }
-
-  // Three points to define the common coordinate system. Map them to the current surface via sphere.reg=surfreg
-  float dmin;
-  int vno1, vno2, vno3;
-  if(surfreg->hemisphere == 0){
-    vno1 = MRISfindClosestVertex(surfreg, lhfsasph1xyz[0], lhfsasph1xyz[1], lhfsasph1xyz[2], &dmin, CURRENT_VERTICES);
-    vno2 = MRISfindClosestVertex(surfreg, lhfsasph2xyz[0], lhfsasph2xyz[1], lhfsasph2xyz[2], &dmin, CURRENT_VERTICES);
-    vno3 = MRISfindClosestVertex(surfreg, lhfsasph3xyz[0], lhfsasph3xyz[1], lhfsasph3xyz[2], &dmin, CURRENT_VERTICES);
-  }
-  else{
-    vno1 = MRISfindClosestVertex(surfreg, rhfsasph1xyz[0], rhfsasph1xyz[1], rhfsasph1xyz[2], &dmin, CURRENT_VERTICES);
-    vno2 = MRISfindClosestVertex(surfreg, rhfsasph2xyz[0], rhfsasph2xyz[1], rhfsasph2xyz[2], &dmin, CURRENT_VERTICES);
-    vno3 = MRISfindClosestVertex(surfreg, rhfsasph3xyz[0], rhfsasph3xyz[1], rhfsasph3xyz[2], &dmin, CURRENT_VERTICES);
-  }
-
-  // From here on out we use the unregistered ?h.sphere (less distortion)
-
-  // vno1 and vno2 are two vertices that dictate the direction of the columns/width
-  VERTEX *v1 = &(sphere->vertices[vno1]);
-  VERTEX *v2 = &(sphere->vertices[vno2]);
-  VERTEX *v3 = &(sphere->vertices[vno3]);
-  //double d12 = sqrt( pow(v1->x-v2->x,2.0) + pow(v1->y-v2->y,2.0) + pow(v1->z-v2->z,2.0));
-  //double radius = sqrt( pow(v1->x,2.0) + pow(v1->y,2.0) + pow(v1->z,2.0));
-  double radius, phi1, theta1, phi2, theta2, phi3, theta3;
-  this->xyz2rpt(v1->x,v1->y,v1->z,&radius,&phi1,&theta1);
-  this->xyz2rpt(v2->x,v2->y,v2->z,&radius,&phi2,&theta2);
-  this->xyz2rpt(v3->x,v3->y,v3->z,&radius,&phi3,&theta3);
-  printf("Prior to any +=360 phi %6.4lf %6.4lf %6.4lf\n",phi1,phi2,phi3);
-  // This can happen on rh
-  if(phi1 < -90) phi1 += 360;
-  if(phi2 < -90) phi2 += 360;
-  if(phi3 < -90) phi3 += 360;
-  double cphi = (phi1+phi2)/2;
-  double ctheta = (theta1+theta2)/2;
-  double calpha = atan2((theta2-theta1),(phi2-phi1))*180/M_PI;
-  if(surfreg->hemisphere != 0) calpha = 180-calpha;
-  double cx,cy,cz;
-  this->rpt2xyz(radius,cphi,ctheta,&cx,&cy,&cz);
-  int cvno = MRISfindClosestVertex(sphere, cx, cy, cz, &dmin, CURRENT_VERTICES);
-  VERTEX *cv = &(sphere->vertices[cvno]);
-  printf("vno1=%d (%g,%g,%g) vno2=%d (%g,%g,%g) vno3=%d (%g,%g,%g) \n",vno1,
-	 v1->x,v1->y,v1->z, vno2,v2->x,v2->y,v2->z, vno3,v3->x,v3->y,v3->z);
-  printf("phi = (%g,%g,%g) theta=(%g,%g,%g)\n",phi1,phi2,phi3,theta1,theta2,theta3);
-  printf("center phi=%g theta=%g alpha=%g %4.1f %4.1f %4.1f  cvno=%d  %4.1f %4.1f %4.1f  d=%g\n",
-	 cphi,ctheta,calpha,cx,cy,cz,cvno,cv->x,cv->y,cv->z,dmin);
-  printf("radius %g\n",radius);
-  printf("v1 %d %g %g %g\n",vno1,v1->x,v1->y,v1->z);
-  printf("v2 %d %g %g %g\n",vno2,v2->x,v2->y,v2->z);
-
-  double par[12];
-  for(int k=0; k<12; k++) par[k]=0;
-  par[3] = calpha; // rotation about x
-  par[4] = ctheta; // rotation about y
-  par[5] = cphi; // rotation about z (applied first)
-  par[6] = 1; par[7] = 1; par[8] = 1;
-  MATRIX *T = TranformAffineParams2Matrix(par, NULL);
-
-  //VERTEX *v = &(sphere->vertices[cvno]);
-  //printf("before %g %g %g\n",v->x,v->y,v->z);
-  MRISmatrixMultiply(sphere, T);
-  //MRISwrite(sphere,"lh.sphere.T");
-  //printf("after  %g %g %g\n",v->x,v->y,v->z);
-  MatrixFree(&T);
-  MHT *Hash = MHTcreateVertexTable_Resolution(sphere, CURRENT_VERTICES, 16);
-
-  MRI *ovsurf=NULL, *ovslice=NULL;
-  if(direction == 1){
-    ovsurf = ov;
-    ovslice = MRIallocSequence(nvox[0],nvox[1],1,ovsurf->type,ovsurf->nframes);
-    MRIcopyPulseParameters(ovsurf,ovslice);
-    if(ovsurf->ct) ovslice->ct = CTABdeepCopy(ovsurf->ct);  
-    ovslice->valid = 1;
-    
-    // The coordinates of the MRI structure will be in phi/theta degrees
-    ovslice->xsize = fabs((P1[0]-P0[0])/nvox[0]);
-    ovslice->ysize = fabs((P1[1]-P0[1])/nvox[1]);
-    ovslice->zsize = 1; // flat in this dim
-
-    // The center
-    ovslice->c_r  = 0.5;
-    ovslice->c_a  = (P1[0]+P0[0])/2;
-    ovslice->c_s  = (P1[1]+P0[1])/2;
-    // Set col axis to A->P 
-    ovslice->x_r = 0;
-    ovslice->x_a = 1;
-    ovslice->x_s = 0;
-    // Set row axis to be orthog to col axis
-    ovslice->y_r = 0;
-    ovslice->y_a = 0;
-    ovslice->y_s = 1;
-    // Set slice axis to point in x
-    ovslice->z_r = 1;
-    ovslice->z_a = 0;
-    ovslice->z_s = 0;
-  } else {
-    ovslice = ov;
-    ovsurf = MRIallocSequence(sphere->nvertices,1,1,ovslice->type,ovslice->nframes);
-    MRIcopyPulseParameters(ovslice,ovsurf);
-    if(ovslice->ct) ovsurf->ct = CTABdeepCopy(ovslice->ct);  
-  }
-  MATRIX *vox2ras = ovslice->get_Vox2RAS(0);
-  printf("x_r %g x_a %g\n",ovslice->x_r,ovslice->x_a);
-  printf("center %g %g %g\n",ovslice->c_r,ovslice->c_a,ovslice->c_s);
-  //printf("vox2ras = [\n");
-  //MatrixPrint(stdout,vox2ras);
-  //printf("];\n");
-
-  // Go through each point in the mri and find closest vertex in patch
-  // Probably a more efficient way to do this with hash, but the data
-  // are pretty small. Could probably improve the interp
-  MATRIX *vox = MatrixAlloc(4,1,MATRIX_REAL);
-  vox->rptr[4][1] = 1;
-  MATRIX *phitheta=NULL;
-  for(int c=0; c < ovslice->width; c++){
-    for(int r=0; r < ovslice->height; r++){
-      if(surfreg->hemisphere == 0) vox->rptr[1][1] = c; //lh 
-      if(surfreg->hemisphere == 1) vox->rptr[1][1] = ovslice->width - c - 1; //rh
-      vox->rptr[2][1] = r;
-      vox->rptr[3][1] = 0;
-      phitheta = MatrixMultiplyD(vox2ras,vox,phitheta);
-      double p = phitheta->rptr[2][1];
-      double t = phitheta->rptr[3][1];
-      double x,y,z;
-      this->rpt2xyz(radius,p,t,&x,&y,&z);
-      int vno = Hash->findClosestVertexNoXYZ(x,y,z, &dmin);
-      for(int f=0; f < ovslice->nframes; f++){
-	double val;
-	if(direction == 1){
-	  val = MRIgetVoxVal(ovsurf,vno,0,0,f);
-	  MRIsetVoxVal(ovslice,c,r,0,f,val);
-	} else {
-	  val = MRIgetVoxVal(ovslice,c,r,0,f);
-	  // If the slice is 0 here and if the surf already has a
-	  // non-zero value here, then don't overwrite it. This is to
-	  // try to prevent loss of non-zero voxels at the edge. These
-	  // may be lost in the forward (sphere2mri) loop.
-	  if(val == 0 && MRIgetVoxVal(ovsurf,vno,0,0,f)!=0) continue;
-	  MRIsetVoxVal(ovsurf,vno,0,0,f,val);
-	}
-      }
-    }
-  }
-
-  if(direction == 2){ // should only be done with seg
-    // Fill holes: Bin. Invert. Cluster. Loop through voxels in clusters 2-N
-    MATRIX *ras2vox = MatrixInverse(vox2ras,NULL);
-    SURFCLUSTERSUM *scs;
-    int NClusters=0;
-    MRIScopyMRI(sphere, ovsurf, 0, "val");
-    // Set marked by binarizing map as it is
-    for(int vno=0; vno < sphere->nvertices; vno++) {
-      VERTEX *v = &(sphere->vertices[vno]);
-      if(v->val > .001) v->marked = 1;
-      else              v->marked = 0;
-    }
-    // Close using marked by dilating by 2 and then eroding by 1. The
-    // goal here is only to make sure that any voids are actual holes
-    // and not inlets.
-    MRISdilateMarked(sphere,2);
-    MRISerodeMarked(sphere,1);
-    // Reset val to be the inverse of the closed marked
-    for(int vno=0; vno < sphere->nvertices; vno++) {
-      VERTEX *v = &(sphere->vertices[vno]);
-      v->val = !v->marked;
-    }
-    // Cluster to find any holes
-    scs = sclustMapSurfClusters(sphere,.0001,-1,0,0,&NClusters,NULL,NULL);
-    printf("nc = %d\n",NClusters);
-    for(int vno=0; vno < sphere->nvertices; vno++){
-      VERTEX *v = &(sphere->vertices[vno]);
-      int cno = v->undefval;
-      // If it is not marked and not in a hole then skip vertex
-      if(! v->marked && cno < 2) continue;
-      double phi, theta;
-      phitheta->rptr[4][1] = 1; // just to make sure
-      this->xyz2rpt(v->x,v->y,v->z,&radius,&phi,&theta);
-      phitheta->rptr[1][1] = 0;
-      phitheta->rptr[2][1] = phi; 
-      phitheta->rptr[3][1] = theta;
-      vox = MatrixMultiplyD(ras2vox,phitheta,vox);
-      int c = round(vox->rptr[1][1]);
-      int r = round(vox->rptr[2][1]);
-      if(c < 0 || c >= ovslice->width) continue;
-      if(r < 0 || r >= ovslice->height) continue;
-      if(surfreg->hemisphere == 1) c = ovslice->width - c  - 1; //rh
-      double val = MRIgetVoxVal(ovslice,c,r,0,0);
-      //printf("cno=%d vno = %d  pt=(%g,%g) cr = (%d %d)  %g\n",cno,vno,phi,theta,c,r,val);
-      MRIsetVoxVal(ovsurf,vno,0,0,0,val);
-    }
-    MatrixFree(&ras2vox);
-  }
-
-  MatrixFree(&vox2ras);
-  MatrixFree(&vox);
-  MatrixFree(&phitheta);
-  if(direction == 1) return(ovslice);
-  else return(ovsurf);
-}
-
-#if 0
-class SpatTempCluster {
-  // test masking, edge and corner
-  // clusters - centroid, pointsets, size
-public:
-  int topo=1; //1 = volume, 2 = surface
-  int nbrtype = 1; //1=face, 2=+edge, 3=+corner
-  MRI *binmask=NULL;
-  MRI *cnomap =NULL;
-  MRIS *surf=NULL;
-  std::vector<std::vector<int>> voxlist; //c,r,s,f
-  std::vector<std::vector<int>> GetNearestNeighbors(std::vector<int> vox){
-    std::vector<std::vector<int>> nbrs;
-    if(topo==1){ // volume
-      for(int dc=-1; dc <= +1; dc++){
-	for(int dr=-1; dr <= +1; dr++){
-	  for(int ds=-1; ds <= +1; ds++){
-	    if(abs(dc)+abs(dr)+abs(ds) > nbrtype) continue;
-	    if(vox[0]+dc < 0 || vox[0]+dc >= binmask->width) continue;
-	    if(vox[1]+dr < 0 || vox[1]+dr >= binmask->height) continue;
-	    if(vox[2]+ds < 0 || vox[2]+ds >= binmask->depth) continue;
-	    for(int df=-1; df <= +1; df++){
-	      if(abs(dc)+abs(dr)+abs(ds)+abs(df)==0) continue; // not self
-	      // this line forces a face topology across frames
-	      if(abs(df) > 0 && (abs(dc)+abs(dr)+abs(ds) > 0) ) continue;
-	      if(vox[3]+df < 0 || vox[3]+df >= binmask->nframes) continue;
-	      std::vector<int> dcrsf = {vox[0]+dc,vox[1]+dr,vox[2]+ds,vox[3]+df};
-	      nbrs.push_back(dcrsf);
-	    }
-	  }
-	}
-      }
-    } else { // surface 
-      int vno = vox[0];
-      // Doing frames separately forces face topology across frame
-      for(int df=-1; df <= +1; df++){
-	if(vox[3]+df < 0 || vox[3]+df >= binmask->nframes) continue;
-	std::vector<int> dcrsf = {vox[0],0,0,vox[3]+df};
-	nbrs.push_back(dcrsf);
-      }
-      VERTEX_TOPOLOGY *vtop = &surf->vertices_topology[vno];
-      int vnum = vtop->vtotal;
-      for(int i = 0; i < vnum; i++) {
-	int vnbno = vtop->v[i];
-	std::vector<int> dcrsf = {vnbno,0,0,vox[3]};
-	nbrs.push_back(dcrsf);
-      }
-    }
-    return(nbrs);
-  }
-  class Cluster {
-  public: 
-    int cno = 0;
-    int nmembers = 0;
-    std::vector<std::vector<int>> crst;
-  };
-  std::vector<Cluster> ClusterList;
-  int GrowOne(std::vector<int> vox, int cno)
-  {
-    int m;
-    m = MRIgetVoxVal(this->binmask,vox[0],vox[1],vox[2],vox[3]);
-    if(!m) return(0); // not a set voxel
-    m = MRIgetVoxVal(this->cnomap,vox[0],vox[1],vox[2],vox[3]);
-    if(m) return(0); // already in a cluster
-    // To get here, the vox must be active in the binmask and not in a cluster already
-    MRIsetVoxVal(this->cnomap,vox[0],vox[1],vox[2],vox[3], cno+1);
-    this->ClusterList[cno].crst.push_back(vox);
-    int nhits = 1;
-    std::vector<std::vector<int>> nbrs = this->GetNearestNeighbors(vox);
-    for(int n=0; n < nbrs.size(); n++){
-      nhits += this->GrowOne(nbrs[n],cno);
-    }
-    this->ClusterList[cno].nmembers += nhits;
-    return(nhits);
-  }
-  int Clusterize(void){
-    if(this->cnomap) MRIfree(&this->cnomap);
-    this->cnomap = MRIclone(this->binmask,NULL);
-    this->ClusterList.clear();
-    int pointno = -1;
-    int cno = -1;
-    while(1){
-      pointno ++;
-      if(pointno >= this->voxlist.size()) break;
-      int done = 0;
-      std::vector<int> vox;
-      while(1){ // find the next point that has not been marked
-	vox = voxlist[pointno];
-	int val = MRIgetVoxVal(this->cnomap,vox[0],vox[1],vox[2],vox[3]);
-	if(val) { // point already found
-	  pointno++;
-	  if(pointno >= this->voxlist.size()) {
-	    done = 1;
-	    break;
-	  }
-	}
-	else break; // found an unmarked point
-      }
-      if(done) break;
-      cno++;
-      Cluster cl;
-      cl.cno = cno;
-      printf("cno=%d pointno=%d  %d %d %d %d =====\n",cno,pointno,vox[0],vox[1],vox[2],vox[3]);
-      this->ClusterList.push_back(cl);
-      this->GrowOne(vox,cno);
-    }
-    printf("Found %d clusters\n",(int)this->ClusterList.size());
-    this->cnomap->ct = CTABalloc(this->ClusterList.size()+1);
-    CTABunique(this->cnomap->ct, 100);
-    return(this->ClusterList.size());
-  }
-  int PrintClusterSum(FILE *fp){
-    for(int n=0; n < this->ClusterList.size(); n++){
-      Cluster cl = ClusterList[n];
-      fprintf(fp,"%2d %4d   %3d %3d %3d  %3d\n",n+1,(int)cl.crst.size(),cl.crst[0][0],cl.crst[0][1],cl.crst[0][2],cl.crst[0][3]);
-    }
-    fflush(fp);
-    return(0);
-  }
-  int GetBinMask(MRI *ov, double thmin, double thmax, int sign, MRI *mask)
-  {
-    if(this->binmask) MRIfree(&this->binmask);
-    this->binmask = MRIallocSequence(ov->width,ov->height,ov->depth,MRI_INT,ov->nframes);
-    MRIcopyHeader(ov,this->binmask);
-    this->voxlist.clear();
-    //not thread safe
-    for(int c=0; c < ov->width; c++){
-      for(int r=0; r < ov->height; r++){
-	for(int s=0; s < ov->depth; s++){
-	  if(mask && MRIgetVoxVal(ov,c,r,s,0)<0.5) continue;
-	  for(int f=0; f < ov->nframes; f++){
-	    double val = MRIgetVoxVal(ov,c,r,s,f);
-	    if(sign ==  0) val = fabs(val);
-	    if(sign == -1) val = -val;
-	    if(val < thmin || val > thmax) continue;
-	    std::vector<int> vox = {c,r,s,f};
-	    voxlist.push_back(vox);
-	    MRIsetVoxVal(binmask,c,r,s,f,1);
-	  }
-	}
-      }
-    }
-    printf("thmin=%g thmax=%g sign=%d nhits=%d\n",thmin,thmax,sign,(int)voxlist.size());
-    return(voxlist.size());
-  }
-
-};
-#endif
-
-#if 0
-MRI *MRIsegBorder(MRI *seg, int *maxlabel, int topo)
-{
-  // This is supposed to replicate the border creation as done in
-  // MRIvoxelsInLabelWithPartialVolumeEffects(). In that function,
-  // the border is only created for a single label, where as here
-  // it is created for all labels. That func uses topo=1
-  int nnbrs=0;
-  if(topo == 1) nnbrs = 6;  // face neighbors
-  if(topo == 2) nnbrs = 18; // +edge neighbors
-  if(topo == 3) nnbrs = 26; // +corner neighbors
-  MRI *border = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_INT,1+nnbrs);
-  MRIcopyHeader(seg,border);
-  MRIcopyPulseParameters(seg,border);
-
-  *maxlabel = 0;
-  int nhits = 0;
-  for(int c=0; c < seg->width; c++){
-    for(int r=0; r < seg->height; r++){
-      for(int s=0; s < seg->depth; s++){
-	int voxlabel = MRIgetVoxVal(seg,c,r,s,0);
-	if(*maxlabel < voxlabel) *maxlabel = voxlabel;
-	int knbr = 0;
-	for(int dc = -1; dc < 2; dc++){
-	  int cc = c+dc;
-	  if(cc < 0 || cc >= seg->width) continue;
-	  for(int dr = -1; dr < 2; dr++){
-	    int rr = r+dr;
-	    if(rr < 0 || rr >= seg->height) continue;
-	    for(int ds = -1; ds < 2; ds++){
-	      int ss = s+ds;
-	      if(ss < 0 || ss >= seg->depth) continue;
-	      if(abs(dc)+abs(dr)+abs(ds)>topo) continue;
-	      int nbrlabel = MRIgetVoxVal(seg,cc,rr,ss,0);
-	      if(voxlabel != nbrlabel) {
-		// dont use voxlabel here because label 0 will be 0
-		MRIsetVoxVal(border,c,r,s,0,1);
-		MRIsetVoxVal(border,c,r,s,1+knbr,nbrlabel);
-		knbr++;
-		//dc = 2; dr = 2; ds = 2; // break
-		nhits++;
-	      }
-	    }//ds
-	  }//dr
-	}//dc
-
-      }//s
-    }//r
-  }//c
-  printf("nhits = %d, maxlabel=%d\n",nhits,*maxlabel);
-  return(border);
-}
-#endif
-
-std::vector<MRI*> MRIarraySmooth(std::vector<MRI*>y, std::vector<double> fwhm, MRI *mask, MRIS *surf)
-{
-  std::vector<MRI*> emptyVec;
-  int ny = y.size();
-  std::vector<MRI*> yout(ny);
-  for(int n=0; n < ny; n++) {
-    yout[n] = MRIcopy(y[n], NULL);
-    if(!yout[n]) return(emptyVec);
-  }
-  // Check that fhwm{1,2}=0 with surf
-  if(fwhm[0]>0 || fwhm[1]>0 || fwhm[2]>0){
-    double gstdc = fwhm[0]/sqrt(log(256.0));
-    double gstdr = fwhm[1]/sqrt(log(256.0));
-    double gstds = fwhm[2]/sqrt(log(256.0));
-    printf("std %g %g %g\n",gstdc,gstdr,gstds);
-    for(int n=0; n < ny; n++){
-      if(surf==NULL){
-	MRI *tmpmri = MRIgaussianSmoothNI(yout[n], gstdc, gstdr, gstds, yout[n]);
-	if(!tmpmri) return(emptyVec);
-      } else {
-	int niters = MRISfwhm2niters(fwhm[0],surf);
-	if(n==0) printf("Smoothing input by fwhm=%lf niters=%d \n",fwhm[0],niters);
-	MRI *tmpmri = MRISsmoothMRI(surf, yout[n], niters, mask, yout[n]);
-	if(!tmpmri) return(emptyVec);
-      }
-    }
-  }
-  if(fwhm[3]>0){
-    // Create a new volume for each frame putting the array dim as the first dim,
-    // then col, row, and slice. Then filter in only the first dim. Then reverse
-    // the process. Assumes all inputs have the same number of frames. This applies
-    // to both vol and surface because this dimension is outside of both.
-    MRI *tmpmri = MRIallocSequence(ny, y[0]->width,y[0]->height, MRI_FLOAT, y[0]->depth);
-    tmpmri->xsize = y[0]->tr;
-    double gstdc = fwhm[3]/sqrt(log(256.0));
-    printf("Array smoothing ny=%d, tr=%g, fwhm=%g, gstd=%g\n",ny,y[0]->tr,fwhm[3],gstdc);
-    for(int f=0; f < y[0]->nframes; f++){
-      for(int n=0; n < ny; n++) {
-	for(int c=0; c < y[0]->width; c++){
-	  for(int r=0; r < y[0]->height; r++){
-	    for(int s=0; s < y[0]->depth; s++){
-	      double val = MRIgetVoxVal(yout[n],c,r,s,f);
-	      MRIsetVoxVal(tmpmri,n,c,r,s,val);
-	    }
-	  }
-	}
-      }
-      MRI *tmpmri2 = MRIgaussianSmoothNI(tmpmri, gstdc, 0, 0, tmpmri);
-      if(!tmpmri2) return(emptyVec);
-      for(int n=0; n < ny; n++) {
-	for(int c=0; c < y[0]->width; c++){
-	  for(int r=0; r < y[0]->height; r++){
-	    for(int s=0; s < y[0]->depth; s++){
-	      double val = MRIgetVoxVal(tmpmri,n,c,r,s);
-	      MRIsetVoxVal(yout[n],c,r,s,f,val);
-	    }
-	  }
-	}
-      }
-    } // frame
-  }
-
-  return(yout);
-}
-
-#if 0
-// Gaussian smoothing in the temporal (frame) dimension. tstd is the
-// stddev of the gaussian in units of the src->tr (typically ms). Note
-// that the normalization uses normtype=2 (if not specified) to force
-// the rows the of the G matrix to sum to 1
-MRI *MRItemporalGSmooth(MRI *src, MRI *mask, double tstd, MRI *targ, int normtype)
-{
-  if(targ == NULL) {
-    targ = MRIallocSequence(src->width, src->height, src->depth, MRI_FLOAT, src->nframes);
-    if(targ == NULL) {
-      printf("ERROR: MRItemporalGSmooth(): could not alloc\n");
-      return (NULL);
-    }
-    MRIcopy(src, targ);
-    MRIcopyPulseParameters(src,targ);
-  }
-  
-  printf("tstd = %g, tr=%g, nstd %g, normtype %d\n", tstd,src->tr, tstd/src->tr, normtype);
-  MATRIX *G = GaussianMatrix(src->nframes, tstd/src->tr, normtype, NULL);
-#ifdef HAVE_OPENMP
-#pragma omp parallel for 
-#endif
-  for(int c = 0; c < src->width; c++){
-    for(int r = 0; r < src->height; r++) {
-      for(int s = 0; s < src->depth; s++) {
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	MATRIX *v = MatrixAlloc(src->nframes, 1, MATRIX_REAL);
-	for(int f=0; f < src->nframes; f++) v->rptr[f+1][1] = MRIgetVoxVal(src, c, r, s, f);
-	MATRIX *vg = MatrixMultiply(G, v, NULL);
-	for(int f=0; f < src->nframes; f++) MRIsetVoxVal(targ, c, r, s, f, vg->rptr[f+1][1]);
-	MatrixFree(&v);
-	MatrixFree(&vg);
-      } // slice
-    } // rows
-  }// col
-  MatrixFree(&G);
-  return(targ);
-}
-#endif
-
 /*----------------------------------------*/
 int main(int argc, char **argv) 
 {
-  int threads = 20;
 #ifdef HAVE_OPENMP
-  omp_set_num_threads(threads);
+  //omp_set_num_threads(10);
 #endif
   //Gdiag_no = 72533;
-  MRI *mri;
+  MRI *mri=NULL; // *mri2;
 
-  // dngtester 1=sphere 2=sphere.reg 3=lta 4=ovsurf 5=ovslice 6=dir <7=ctab>
-  int direction = 0;
-  sscanf(argv[6],"%d",&direction);
-  MRISsphere2mri s2m;
-  s2m.sphere = MRISread(argv[1]); // sphere
-  s2m.surfreg = MRISread(argv[2]); // sphere.reg
-  s2m.lta = LTAread(argv[3]); // lta
-  if(s2m.lta->type != REGISTER_DAT){
-    printf("Changing LTA to TKR\n");
-    LTAchangeType(s2m.lta, REGISTER_DAT);
-  }
-  LTAmat2RotMat(s2m.lta);
-  MRISltaMultiply(s2m.sphere,s2m.lta);
-  if(direction == 1){
-    s2m.nvox[0] = 400;
-    s2m.nvox[1] = 200;
-    s2m.P0[0] = -90; s2m.P0[1] = -45;
-    s2m.P1[0] = +90; s2m.P1[1] = +45;
-    mri = MRIread(argv[4]); //ovsurf is input, ovslice output
-  } else {
-    mri = MRIread(argv[5]); //ovslice is input, ovsurf output
-  }
-  if(argc > 7) mri->ct = CTABreadASCII(argv[7]);
-  MRI *ss = s2m.sphere2mri(mri,direction);
-  if(direction == 1)  MRIwrite(ss,argv[5]);
-  else                MRIwrite(ss,argv[4]);
+  //RapheSeg rs;
+  //MRI *dasb = MRIread(argv[2]);
+  //MRI *segaq = MRIaseg2aqueduct(mri);
+  //MRIsegRaphe(segaq,dasb);
 
   exit(0);
 
 
-  mri = MRIread(argv[1]);
-  MRI *mrimask = MRIread(argv[2]);
-  SpatTempCluster stc;
-  stc.nbrtype = 3;
-  printf("binmask\n");
-  stc.GetBinMask(mri,1.3,1000,0,mrimask);
-  printf("cluster\n");
-  stc.Clusterize();
-  printf("write\n");
-  MRIwrite(stc.cnomap,argv[3]);
-  FILE *fp = fopen(argv[4],"w");
-  stc.PrintClusterSum(fp);
-  fclose(fp);
-
-  exit(0);
-
-  mri = MRIread(argv[1]);
-  double tstd;
-  sscanf(argv[2],"%lf",&tstd);
-  MRI *tmri = MRItemporalGSmooth(mri, NULL, tstd, NULL);
-  MRIwrite(tmri,argv[3]);
-  exit(0);
-
-  std::vector<MRI*> yarray;
-  std::vector<double> fwhm(4);
-  char *outbase = argv[1];
-  for(int n=2; n < 6; n++) {
-    sscanf(argv[n],"%lf",&fwhm[n-2]);
-    printf("%d %lf\n",n,fwhm[n-2]);
-  }
-  for(int n=6; n < argc; n++){
-    printf("Reading %d %s\n",n,argv[n]);
-    MRI *mritmp = MRIread(argv[n]);
-    yarray.push_back(mritmp);
-  }
-  std::vector<MRI*> yout = MRIarraySmooth(yarray, fwhm, NULL, NULL);
-  for(int n = 0; n < yout.size(); n++){
-    char tmpstr[2000];
-    sprintf(tmpstr,"%s.%03d.nii.gz",outbase,n);
-    MRIwrite(yout[n],tmpstr);
-  }
-
-  exit(0);
-
-  int maxlabel;
-  int segid = 17;
-  mri = MRIread(argv[1]);
-  Timer mytimer;
-  MRI *sb = MRIsegBorder(mri,&maxlabel,1);
-  int msecBorder = mytimer.milliseconds();
-  printf("%d\n",msecBorder);
-  MRIwrite(sb,"segborder.mgz");
-  MRI *mri_vals = MRIread(argv[2]);
-  printf("starting with sb ================\n");
-  mytimer.reset();
-  MRIvoxelsInLabelWithPartialVolumeEffects(mri,mri_vals,segid,NULL,NULL,maxlabel+1,sb);
-  //msecBorder = mytimer.milliseconds();
-  //printf("%d\n",msecBorder);
-  printf("starting without sb ================\n");
-  mytimer.reset();
-  MRIvoxelsInLabelWithPartialVolumeEffects(mri,mri_vals,segid,NULL,NULL,maxlabel+1,NULL);
-  //msecBorder = mytimer.milliseconds();
-  //printf("%d\n",msecBorder);
-  exit(0);
-
-  mri = MRIread(argv[1]);
-  SpatTempCluster stc2;
-  stc.GetBinMask(mri,0.1,std::numeric_limits<double>::infinity(),0,NULL);
-  stc.surf = MRISread(argv[2]);
-  stc.topo = 2;
-  stc.Clusterize();
-  MRIwrite(stc.cnomap,argv[3]);
-  MRIwrite(stc.binmask,"binmask.mgz");
-  stc.PrintClusterSum(stdout);
-  exit(0);
-
-
-
-  
   MRIS *surf;
   std::vector<int> segids;
   double dist=0;
   LABEL *label2;
-
-  // define an uber label in fsaverage space
-  // map label to individual mris_apply_reg
-  // convert label to a patch using infalted (label2patch)
-  // flatten the patch
-  // run this program
 
   // surf patch label overlay out
   MRISflat2mri f2m;
@@ -3152,17 +2134,7 @@ int main(int argc, char **argv)
   MRIwrite(flat,argv[5]);
 
   exit(0);
-  RapheSeg rs;
-  rs.aseg0 = MRIread(argv[1]);
-  rs.dasb0 = MRIread(argv[2]);
-  rs.dr0 = MRIread(argv[3]);
-  rs.mr0 = MRIread(argv[4]);
-  MRI *rseg = rs.doit();
-  MRIwrite(rseg,argv[5]);
-  //MRI *segaq = MRIaseg2aqueduct(mri);
-  //MRIsegRaphe(segaq,dasb);
 
-  exit(0);
 
   surf = MRISread(argv[1]);
   mri = MRIread(argv[2]);
@@ -3624,30 +2596,4 @@ int RapheSeg::AcqueductSeg(void)
 
   return(0);
 }
-#endif
-
-
-
-#if 0   // ok to delete this
-  int stindex2index(std::vector<int> stindex){
-    int nvox = this->binmask->width * this->binmask->height * this->binmask->depth;
-    int index = stindex[0] + stindex[1]*nvox;
-    return(index);
-  }
-  std::vector<int> index2stindex(int index){
-    int nvox = this->binmask->width * this->binmask->height * this->binmask->depth;
-    int tindex = floor((double)index/nvox);
-    int sindex = index - tindex*nvox;
-    std::vector<int> stindex = {sindex,tindex};
-    return(stindex);
-  }
-  std::vector<int> sindex2crs(int sindex){
-    int w = this->binmask->width;
-    int h = this->binmask->height;
-    int s = floor((double)sindex/(w*h));
-    int r = (double(sindex-s*w*h)/w);
-    int c = sindex-r*w-s*w*h;
-    std::vector<int> crs = {c,r,s};
-    return(crs);
-  }
 #endif
