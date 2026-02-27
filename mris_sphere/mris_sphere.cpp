@@ -105,8 +105,6 @@ int KeepVolGeom = 1;
 
 char *rusage_file=NULL;
 
-Timer mytimer;
-
 int
 main(int argc, char *argv[])
 {
@@ -243,7 +241,6 @@ main(int argc, char *argv[])
     //                if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRISwrite(mris, "rot") ;
   }
-  printf("Time1 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
 
   if (talairach)
   {
@@ -281,7 +278,6 @@ main(int argc, char *argv[])
     LTAfree(&lta) ;
     MRISwrite(mris, "xfm") ;
   }
-  printf("Time1b %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
 
   if(LeftRightRev){
     printf("Left-right reversing input\n");
@@ -303,8 +299,6 @@ main(int argc, char *argv[])
   max_dim = MAX(abs(mris->xhi-mris->xlo), abs(mris->yhi-mris->ylo)) ;
   max_dim = MAX(max_dim,abs(mris->zhi-mris->zlo)) ;
 #endif
-  printf("Time1c %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
-
   if (max_dim > .75*DEFAULT_RADIUS)
   {
     float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
@@ -318,7 +312,6 @@ main(int argc, char *argv[])
     printf("setting target radius to be %2.3f to match surface areas\n",
            target_radius) ;
   }
-  printf("Time1d %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
 
   //  MRISsampleAtEachDistance(mris, parms.nbhd_size, parms.max_nbrs) ;
   if (!load && do_inflate)
@@ -387,19 +380,15 @@ main(int argc, char *argv[])
     mrisComputeOriginalVertexDistances(mris);
   }
   
-  printf("projecting onto sphere...\n");
-  printf("Time2 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
+  fprintf(stderr, "projecting onto sphere...\n");
   MRISprojectOntoSphere(mris, mris, target_radius) ;
-  printf("Time3 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRISwrite(mris, "after");
   
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
   MRISsetNeighborhoodSize(mris, nbrs) ;
-  printf("Time4 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
   
   int const countNegativeFaces   = MRIScountNegativeFaces(mris);
-  printf("Time5 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
   int const allowedNegativeFaces = nint(.8*mris->nfaces);
   if (countNegativeFaces > allowedNegativeFaces)
   {
@@ -423,15 +412,12 @@ main(int argc, char *argv[])
   }
   else
   {
-    printf("Time5b %g starting unfolding\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
     MRISunfold(mris, &parms, max_passes) ;
-    printf("Time6 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
   }
   if (remove_negative)
   {
     parms.niterations = 1000 ;
     MRISremoveOverlapWithSmoothing(mris,&parms) ;
-    printf("Time7 %g\n",mytimer.milliseconds()/(1000.0));  fflush(stdout);
   }
   if (!load)
   {
