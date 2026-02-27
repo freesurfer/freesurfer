@@ -67,6 +67,7 @@ install_configured(
   fsfirst.fsl
   fs-check-version
   fs-check-os
+  fs-eddy
   fs_install_mcr
   fs_install_cuda
   fs_lib_check
