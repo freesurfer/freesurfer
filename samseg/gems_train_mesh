@@ -32,8 +32,6 @@ import argparse
 import tempfile
 import errno
 import shutil
-from functools import partial
-print = partial(print, flush=True)
 
 def parse_args(args):
   parser = argparse.ArgumentParser()
@@ -49,14 +47,9 @@ def parse_args(args):
                       help='Location of `kvlBuildAtlasMesh` binary')
   parser.add_argument('-l', '--label-files', nargs='+', required=True, \
                       help='The ground truth lables to train against')
-  parser.add_argument('-c', '--collapse', nargs='+', required=False, \
-                      help='Label collapse file')
   #parser.add_argument('-t', '--lookup-table', required=False, default=None, \
   #                    help='The FreeSurfer-like lookup table')
   args = parser.parse_args()
-
-  # print out the command line
-  print(' '.join(sys.argv))
 
   if args.schedule_file is None:
     args.schedule = default_training_schedule()
@@ -130,9 +123,8 @@ def run_kvlBuildAtlasMesh(binary, work_dir, epoch_num, num_upsamples, mesh_size,
   # launch  
   orig_dir = os.getcwd()
   os.chdir(launch_dir)
-  launch_cmd = f"fs_time {binary} {num_upsamples} {mesh_size[0]} {mesh_size[1]} {mesh_size[2]} {stiffness} {num_itr} {edgeCollapse} {out_dir} "+' '.join(label_files)
+  launch_cmd = f"{binary} {num_upsamples} {mesh_size[0]} {mesh_size[1]} {mesh_size[2]} {stiffness} {num_itr} {edgeCollapse} {out_dir} "+' '.join(label_files)
   print("  launch command: "+launch_cmd)
-  #sys.exit();
   os.system(launch_cmd)
   os.chdir(orig_dir)
 
@@ -150,7 +142,6 @@ def main(argv):
   startCollection = None
   try:
     for epoch_num, epoch in enumerate(args.schedule):
-      print(f'Epoch {epoch_num} ====================================')
       kvl_num_itr = int(epoch[0])
       kvl_stiffness = float(epoch[1])
       kvl_edge_collapse = float(epoch[2])
