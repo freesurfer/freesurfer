@@ -219,13 +219,9 @@ int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
     GCSAload_inputs(v_inputs,gcsa->inputvals, vno);
     if (vno == Gdiag_no){
       DiagBreak();
-      int annotindex;
-      const char *annotname;
-      annotname = annotation_to_name(v->annotation, &annotindex);
-      printf("GCSAtrainMeans(): vno = %d annot=%d %d %s ",vno,v->annotation,annotindex,annotname);
+      printf("vno = %d annot=%d ",vno,v->annotation);
       for(int n=0; n < gcsa->ninputs; n++) printf("%6.4f ",v_inputs[n]);
       printf("\n");
-      fflush(stdout);
     }
     if (vno == Gdiag_no && v->annotation == 1336341) DiagBreak();
     if (v->annotation == 0) /* not labeled */
@@ -975,10 +971,9 @@ MRI *GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
     if (vno_classifier == Gdiag_no) DiagBreak();
     gcsan = &gcsa->gc_nodes[vno_classifier];
+
     cpn = &gcsa->cp_nodes[vno_prior];
     label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, p, NULL, 0, vno);
-    if(vno == Gdiag_no) printf("GCSAlabel(): vno=%d vno_prior=%d label=%d\n",vno,vno_prior,label);
-
     v->annotation = label;
     //v->val2 = p ; // posterior prob in val2
     for(int k=0; k < 3; k++) MRIsetVoxVal(probabilities,vno,0,0,k,p[k]);
@@ -1071,8 +1066,8 @@ int GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
     ptotal += p;
     sumpl += plikelihood;
     if(vno == Gdiag_no){
-      printf("#@# vno=%d n=%d/%d annot=%d label=%s in=%8.4f mu=%8.4f; cvar=%8.4f;  d=%8.4lf; det=%8.4lf; proj=%8.4f; pl=%8.4f; ppost=%8.4f; prior=%8.4f\n",
-	     vno,n,cpn->nlabels,cpn->labels[n],annotation_to_name(cpn->labels[n],NULL), v_inputs[0],gcs->v_means->rptr[1][1],gcs->m_cov->rptr[1][1],v_x->rptr[1][1],det,proj,plikelihood,p,cp->prior);
+      printf("#@# vno=%d n=%d annot=%d in=%8.4f mu=%8.4f; cvar=%8.4f;  d=%8.4lf; det=%8.4lf; proj=%8.4f; pl=%8.4f; ppost=%8.4f; prior=%8.4f\n",
+	     vno,n,cpn->labels[n],v_inputs[0],gcs->v_means->rptr[1][1],gcs->m_cov->rptr[1][1],v_x->rptr[1][1],det,proj,plikelihood,p,cp->prior);
       fflush(stdout);
     }
     fflush(stdout);
@@ -1157,26 +1152,18 @@ int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp)
   return (NO_ERROR);
 }
 
-// label=annotation
 static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris, int vno)
 {
   int n, i, j, m, nbr_label;
   CP *cp;
 
-  int debug=0;
-  if(vno == Gdiag_no) debug=1;
-
   if (label == 0) DiagBreak();
-
-  int annotindex;
-  const char *annotname;
-  if(debug) annotname = annotation_to_name(label, &annotindex);
 
   for (n = 0; n < cpn->nlabels; n++) {
     if (cpn->labels[n] == label) break;
   }
-  if (n >= cpn->nlabels){ /* have to allocate a new prior struct */
-
+  if (n >= cpn->nlabels) /* have to allocate a new prior struct */
+  {
     if (n >= cpn->max_labels) {
       int old_max_labels, i;
       int *old_labels;
@@ -1221,11 +1208,6 @@ static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris,
   }
 
   cpn->total_training++;
-  if(debug) {
-    printf(" gcsaprior: vno=%d n=%d annot=%d index=%d %s ntrain=%d\n",vno,n,label,annotindex,annotname,cpn->total_training);
-    fflush(stdout);
-  }
-
   cp = &cpn->cps[n];
 
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
