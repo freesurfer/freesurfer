@@ -30,7 +30,7 @@ set ExitOnError = 0
 set ForceUpdate = 0
 set DoSubfields = 1
 set DoSegmentSubregions = 1
-set DoQCache = 1
+set DoQCache = 0
 set DoSCLimbic = 1
 set DoHThSU = 1
 set DoMCADura = 1
@@ -589,6 +589,15 @@ while( $#argv != 0 )
       set DoQCache = 0
       breaksw
 
+    case "--no-v8+":
+      # For FS v8+, these are already done as part of recon-all
+      set DoSynthSeg = 0
+      set DoSynthStrip = 0
+      set DoMCADura = 0
+      set DoVSinus = 0
+      set DoSynthMorph = 0
+      breaksw
+
     case "--cos7":
       set vmrun = $cos7run
       breaksw
@@ -707,7 +716,7 @@ usage_exit:
   echo " --no-subregions, --subregions (default is to do them)"
   echo " --cvs, --no-cvs : run CVS. Default is NOT to run CVS"
   echo " --no-synthmorph : do not run fs-synthmorph-reg"
-  echo " --no-qcache, --qcache : run qcache (default is to run)"
+  echo " --qcache, --no-qcache : run qcache (default is not to run)"
   echo "   qcache will fail for longitudinal "
   echo " --no-sclimbic : do not run sclimbic"
   echo " --no-hthsu : do not run hypothalamic subunits"
@@ -718,6 +727,7 @@ usage_exit:
   echo " --no-qa-stats : do not run qastats"
   echo " --no-samseg : do not run samseg"
   echo " --no-xhemi : do not run xhemi"
+  echo " --no-v8+ : turns off synthseg, synthstrip, mcadura, and vsinus as they are done in recon-all"
   echo " --threads nthreads (or setenv FS_OMP_NUM_THREADS)"
   echo " --force : force rerunning even if output is newer tha input"
   echo " --exit-on-error : exit immediately if an error occurs"
@@ -755,7 +765,7 @@ FS_OMP_NUM_THREADS.
 
 By default, it will not rerun a command if the output is newer than
 the input; this can be turned off with --force. The exception is
-qcache which will be run regardless (unless --no-qcache), although
+qcache which will be run regardless if --qcache is specified, although
 qcache itself will not rerun some items if the output is newer than
 the input.
 
