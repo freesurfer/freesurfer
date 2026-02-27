@@ -1,0 +1,643 @@
+#!/bin/tcsh -f
+# fs-eddy - FreeSurfer frontend to run FSL's eddy command
+
+set VERSION = 'dt_recon @FS_VERSION@';
+set ProgName = `basename $0`;
+
+set inputargs = ($argv);
+
+set InputVol = ();
+set bvals = ();
+set bvecs = ();
+set outdir = ();
+set mask = ();
+set bvalthresh = 0;
+set acqp = ()
+set TRT = () # Total readout time
+set index = ()
+set DoTopup = 0;
+set topupvol1 = (); # positive phase encoded
+set topupvol2 = (); # reverse phase encoded
+set subject = ();
+set ForceUpdate = 0
+set threads = 1
+set cpu = _cpu
+set tudir = ()
+set DoTENSORFIT = 0
+set TopupQA = 0
+
+set PrintHelp = 0;
+set LF = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+source $FREESURFER_HOME/sources.csh
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartDate = `date`
+setenv OMP_NUM_THREADS $threads
+
+mkdir -p $outdir/log
+if($status) then
+  echo "ERROR: creating $outdir"
+  exit 1;
+endif
+
+# Get full path to output dir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+set LF = $outdir/log/fs-eddy.log
+if(-e $LF) mv $LF $LF.bak
+echo "fs-eddy logfile" | tee -a $LF
+date                    | tee -a $LF
+echo "VERSION $VERSION"  | tee -a $LF
+echo "cd `pwd`"          | tee -a $LF
+echo $0 $inputargs       | tee -a $LF
+hostname                 | tee -a $LF
+which eddy               | tee -a $LF
+echo OMP_NUM_THREADS $OMP_NUM_THREADS | tee -a $LF
+
+# Force FSL to use nifti
+setenv FSLOUTPUTTYPE NIFTI_GZ
+
+if($DoTopup) then
+  if($#topupvol1 == 0) then
+    set topupvol1 = $outdir/topup.samepe.nii.gz
+    set ud = `UpdateNeeded $topupvol1 $InputVol`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_convert $InputVol --frame 0 $topupvol1)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1
+    endif
+  endif
+  set tudir = $outdir/topup
+  set cmd = (fs-topup --i $topupvol1 $topupvol2 --threads $threads --o $tudir --trt $TRT)
+  if($#acqp) set cmd = ($cmd --config $acqp)
+  if($#subject) set cmd = ($cmd --s $subject)
+  if($TopupQA)  set cmd = ($cmd --qa)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  # Set the acq params for eddy to that of topup
+  set acqp = $tudir/params.dat
+  #pushd $outdir
+  #ln -sf topup/fieldcoef.nii.gz topup_fieldcoef.nii.gz
+  #ln -fs topup/movpar.txt topup_movpar.txt
+  #popd
+endif  
+
+# Make sure that bvals and bvecs are in FSL format
+set bvalsfsl = $outdir/bvals.fsl.dat
+set ud = `UpdateNeeded $bvalsfsl $bvals`
+if($ud || $ForceUpdate) then
+  set nlbvals = `cat $bvals | wc -l`
+  if($nlbvals == 1) then
+    cp $bvals $bvalsfsl
+  else
+    rm -f $bvalsfsl
+    foreach a ( `cat $bvals` )
+      echo -n $a" " >> $bvalsfsl
+    end
+    #echo " " >> $bvalsfsl
+  endif
+endif
+set bvecsfsl = $outdir/bvecs.fsl.dat
+set ud = `UpdateNeeded $bvecsfsl $bvecs`
+if($ud || $ForceUpdate) then
+  set nlbvecs = `cat $bvecs | wc -l`
+  if($nlbvecs == 3) then
+    cp $bvecs $bvecsfsl
+  else
+    rm -f $bvecsfsl
+    cat $bvecs | awk '{printf("%g ",$1)}' >> $bvecsfsl
+    echo "" >> $bvecsfsl
+    cat $bvecs | awk '{printf("%g ",$2)}' >> $bvecsfsl
+    echo "" >> $bvecsfsl
+    cat $bvecs | awk '{printf("%g ",$3)}' >> $bvecsfsl
+    echo "" >> $bvecsfsl
+  endif
+endif
+
+# Check that the number of items agree
+set nbvals = `cat $bvalsfsl | wc -w`
+set nbvecs = `head -n 1 $bvecsfsl | wc -w`
+if($nbvals != $nbvecs) then
+  echo "ERROR: bval/bvec mismatch $nbvals/$nbvecs"
+  echo $bvalsfsl
+  echo $bvecsfsl
+  exit 1
+endif
+# Should check against the number of frames in the dwi file
+
+# Get a list of frames that meet the lowb criteria (ie, less than $bvalthresh)
+echo bvalthresh $bvalthresh  | tee -a $LF
+set fw = $outdir/frame.lowb.dat
+set ud = `UpdateNeeded $fw $bvals`
+if($ud || $ForceUpdate) then
+  # Extract frames that are lowb
+  rm -f $fw
+  foreach bval (`cat $bvals`) 
+    set islowb = `echo "$bval <= $bvalthresh" | bc -l`
+    if($islowb) then
+      echo 1 >> $fw
+    else
+      echo 0 >> $fw
+    endif
+  end
+endif
+set n1s = `cat $fw | grep 1 | wc -l`
+if($n1s == 0) then
+  echo "ERROR: no bvals found < $bvalthresh" | tee -a $LF
+  exit 1
+endif
+echo "Found $n1s low bvals" | tee -a $LF
+
+# Acquisition parameter file
+if($#acqp == 0) then
+  set acqp = $outdir/acqp.dat
+  if(! -e $acqp) then
+    # Last item is the readout time. I don't know if it needs to be
+    # accurate as long as it is consistent. The other items are probably
+    # more important
+    echo "0  1 0 $TRT" > $acqp
+    echo "0 -1 0 $TRT" >> $acqp
+  endif
+else
+  if(! $DoTopup) then
+    cp $acqp $outdir/acqp.dat
+    set acqp = $outdir/acqp.dat
+  endif
+endif
+# Index. The 1-based number is the row in the acqp file 
+# that indicates the acq parameters used for a given frame,
+# so the there must be nframes=nbvals
+if($#index == 0) then
+  set index = $outdir/index.dat
+  if(! -e $index) then
+    @ n = 0
+    while ($n < $nbvals)
+      echo -n "1 " >> $index
+      @ n = $n + 1
+    end
+    echo "" >> $index
+  endif
+else
+  set nind = `cat $index | wc -w`
+  if($nind != $nbvals) then
+    echo "ERROR: passed $index has $nind items, expecting $nbvals"
+    exit 1
+  endif
+  set ud = `UpdateNeeded $outdir/index.dat $index`
+  if($ud || $ForceUpdate) then
+    set cmd = (cp $index $outdir/index.dat)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+  set index = $outdir/index.dat
+endif
+
+# Convert the input to nifti
+set dwi = $outdir/dwi.nii.gz
+set ud = `UpdateNeeded $dwi $InputVol`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_convert $InputVol $dwi);
+  echo $cmd       |  tee -a $LF
+  fs_time $cmd            |& tee -a $LF
+  if($status) exit 1;
+endif
+
+# Create a mean of the lowb frames to use to create the mask.
+# Note: this will distortion in it. 
+set lowbnoecc = $outdir/dwi.lowb.nii.gz
+set ud = `UpdateNeeded $lowbnoecc $dwi $fw`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_concat $dwi --mean --w $fw --o $lowbnoecc)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+endif
+
+# Create a mask if one is not passed
+if($#mask != 0) then
+  set maskcp = $outdir/mask.nii.gz
+  set ud = `UpdateNeeded $maskcp $mask`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $mask $maskcp)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+  set mask = $maskcp
+else
+  set mask = $outdir/mask.nii.gz
+  set ud = `UpdateNeeded $mask $lowbnoecc`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_synthstrip -i $lowbnoecc -m $mask --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) exit 1
+    # Dilate it? Maybe not needed for WM
+  endif
+endif
+
+set dwiecc = $outdir/dwi-ecc.nii.gz
+set ud = `UpdateNeeded $dwiecc $dwi $mask $acqp $index $bvalsfsl $bvecsfsl`
+if($ud || $ForceUpdate) then
+  set dwibase  = $outdir/dwi
+  set maskbase = $outdir/mask
+  set dwieccbase  = $outdir/dwi-ecc
+  set cmd = (eddy$cpu --imain=$dwibase --mask=$maskbase --acqp=$acqp --index=$index \
+    --bvals=$bvalsfsl --bvecs=$bvecsfsl --out=$dwieccbase)
+  if($DoTopup) set cmd = ($cmd --topup=$tudir/topup)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) exit 1
+endif
+
+# Create a mean of the lowb frames. 
+# Note: this will NOT have distortion in it. 
+set lowbecc = $outdir/dwi-ecc.lowb.nii.gz
+set ud = `UpdateNeeded $lowbecc $dwiecc $fw`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_concat $dwiecc --mean --w $fw --o $lowbecc)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+endif
+
+if($#subject) then
+  set reg = $outdir/register.lta
+  set ud = `UpdateNeeded $reg $lowbecc`
+  if($ud || $ForceUpdate) then
+    set cmd = (bbregister --t2 --mov $lowbecc --reg $reg --s $subject --threads $threads)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+endif
+
+if($DoTENSORFIT) then
+  set glmdir = $outdir/tensorfit
+  set beta = $glmdir/beta.nii.gz
+  set ud = `UpdateNeeded $beta $dwiecc $mask $bvals $bvecs`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_glmfit --y $dwiecc --glmdir $glmdir --nii.gz  --dti $bvals $bvecs --mask $mask)
+    echo $cmd       |  tee -a $LF 
+    $cmd            |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+
+echo "\n"|& tee -a $LF
+echo "Started at " $StartDate|& tee -a $LF
+echo "Ended   at " `date`|& tee -a $LF
+
+echo "fs-eddy finished without error" |& tee -a $LF
+
+exit 0
+#############------------------------------------#######################
+##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
+#############------------------------------------#######################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--subject":
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set subject = `basename $subject`; # removes trailing /
+      breaksw
+
+    case "--sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv  SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--b":
+      if ($#argv < 2) goto arg2err;
+      set bvals = $argv[1]; shift;
+      set bvecs = $argv[1]; shift;
+      if(! -e $bvals) then
+        echo "ERROR: cannot find $bvals"
+        exit 1;
+      endif
+      if(! -e $bvecs) then
+        echo "ERROR: cannot find $bvecs"
+        exit 1;
+      endif
+      breaksw
+
+    case "--i"
+      if( $#argv < 1) goto arg1err;
+      set InputVol = "$argv[1]"; shift;
+      if(! -e "$InputVol") then
+        echo "ERROR: cannot find $InputVol"
+        exit 1
+      endif
+      if(! -r "$InputVol") then
+        echo "ERROR: $InputVol exists but is not readable"
+        exit 1
+      endif
+      set InVolDir  = `dirname  "$InputVol"`;
+      set InVolBase = `basename "$InputVol"`;
+      pushd $InVolDir > /dev/null
+      set InVolDir = `pwd`;
+      popd > /dev/null
+      set InputVol = "$InVolDir/$InVolBase";
+      set DoConvertInput = 1;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if ( $#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      setenv OMP_NUM_THREADS $threads
+      breaksw
+
+    case "--topup-rev":
+      if ( $#argv < 1) goto arg1err;
+      set topupvol2 = $argv[1]; shift;
+      set DoTopup = 1
+      breaksw
+
+    case "--topup-same":
+      if ( $#argv < 1) goto arg1err;
+      set topupvol1 = $argv[1]; shift;
+      breaksw
+
+    case "--acqp":
+      if($#argv < 1) goto arg1err;
+      set acqp = $argv[1]; shift;
+      breaksw
+
+    case "--acqp-index":
+      if($#argv < 1) goto arg1err;
+      set index = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      set subject = `reg2subject --r $reg`;
+      breaksw
+
+    case "--bval-thresh":
+      if($#argv < 1) goto arg1err;
+      set bvalthresh = $argv[1]; shift;
+      breaksw
+
+    case "--mask":
+      if ( $#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      if(! -e $mask) then
+        echo "ERROR: cannot find $mask"
+        exit 1;
+      endif 
+      breaksw
+
+    case "--gpu":
+      set cpu = ""
+      breaksw
+
+    case "--cpu":
+      set cpu = _cpu
+      breaksw
+
+    case "--no-reg":
+      set DoRegistration = 0;
+      set DoTalairach = 0;
+      breaksw
+
+    case "--trt":
+      if($#argv < 1) goto arg1err;
+      set TRT = $argv[1]; shift;
+      breaksw
+
+    case "--topup-qa":
+      set TopupQA = 1
+      breaksw
+
+    case "--tensorfit":
+      set DoTENSORFIT = 1;
+      breaksw
+    case "--no-tensorfit":
+      set DoTENSORFIT = 0;
+      breaksw
+
+    case "--force":
+      set ForceUpdate = 1;
+      breaksw
+
+    case "--verbose":
+      set verbose = 1;
+      breaksw
+
+    case "--echo":
+      set echo = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      goto error_exit;
+      breaksw
+  endsw
+end
+
+goto parse_args_return;
+############--------------##################
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+check_params:
+
+if($#InputVol == 0) then
+  echo "ERROR: must specify input volume"
+  exit 1;
+endif
+if(! -e $InputVol) then
+  echo "ERROR: cannot find $InputVol"
+  exit 1;
+endif
+if($#outdir == 0) then
+  echo "ERROR: must specify output dir"
+  exit 1;
+endif
+which eddy > /dev/null
+if($status) then
+  echo "ERROR: cannot find eddy. Make sure"
+  echo "       FSL is installed"
+  exit 1;
+endif
+if($#bvals == 0) then
+  echo "ERORR: must spec --b bvals bvecs"
+  exit 1
+endif
+foreach f ($InputVol $bvals $bvecs $topupvol1 $topupvol2 $acqp $index)
+  if(-e $f) continue
+    echo "ERROR: cannot find $f"
+    exit 1
+  endif
+end
+if($#TRT == 0) then
+  echo "ERROR: must set total readout time"
+  exit 1
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+error_exit:
+  uname -a | tee -a $LF 
+  echo "" |& tee -a $LF 
+  echo "eddy exited with ERRORS at `date`" |& tee -a $LF 
+  echo "" |& tee -a $LF 
+  exit 1;
+############--------------##################
+
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fs-eddy : FreeSurfer frontend for FSL's eddy (and maybe topup) programs"
+  echo ""
+  echo " Required Aruments:";
+  echo "   --i invol : DWI series acquisition"
+  echo "   --b bvals bvecs"
+  echo "   --o outputdir"
+  echo "   --bval-thresh thresh : threshold for defining low-b frames in the input volume"
+  echo "   --trt TRT : total readout time in sec (see --help)"
+  echo ""
+  echo " Other Arguments (Optional)"
+  echo "   --acqp acqp : FSL formatted acquisition parameter file (uses 0 1 0 TRT and 0 -1 0 TRT if not spec)"
+  echo "   --acqp-index acquisitionindex : indicates which frame belongs to which row of acqp (uses 1s if not spec)"
+  echo "   --topup-rev revvol : perform topop correction where revvol is acq with the reversed PE wrt invol"
+  echo "   --topup-same samevol : specify a volume with PE same as invol (otherwise uses the first frame of the invol)"
+  echo "   --gpu             : allow use of a gpu if available" 
+  echo "   --cpu             : forces use of cpu (default)" 
+  echo "   --s subject       : register to FreeSurfer subject (passes --s subject to fs-topup too)"
+  echo "   --tensorfit       : run FreeSurfer's  mri_glmfit to fit the tensor (same as in dt_recon)"
+  echo "   --topup-qa        : run fs-topup with --qa option (requires --s)"
+  echo "   --threads        : only for bbregister"
+  echo "   --force          : force rerun of all analyses"
+  echo "   --debug          : print out lots of info"
+  echo "   --version        : print version of this script and exit"
+  echo "   --help           : voluminous bits of wisdom"
+  echo "See also fs-topup --help"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+  echo ""
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program is a FreeSurfer frontend for for FSLs eddy and (possibly)
+topup B0 distortion correction command (developed under FSL
+6.0.5.1). It will apply eddy and motion and B0 correction to an input
+DWI series, with the option of fitting the tensor using FS mri_glmfit.
+Note that eddy can take quite a long time (hours), so use the gpu
+option if possible. Also, it appears that eddy is not deterministic,
+i.e., you get a different answer each time your run it, even when all
+the inputs and parameters are the same.
+
+See fs-topup --help for more information.
+
+LowB Volumes. One of the first steps is to extract the mean of the
+frames with low b-values, defined as <= bval-thresh. This mean image
+is used to create mask used by eddy. There is probably a better way to
+do this.
+
+Note: this has only been tested on single PE direction data where
+the same-PE volume has been extracted from the input time series. It
+may work with multi-direction data, but not sure.
+
+Total readout time (TRT, --trt). Ideally it is equal to the Echo
+Spacing (in seconds) times the EPI factor times PartialFourier divided
+by the Acceleration Factor. Eg, if ESP = 0.58ms and EPI Factor is 116,
+then TRT=0.0673 sec.  This value is passed to topup (if you are using
+topup).  According to the eddy FAQ
+https://fsl.fmrib.ox.ac.uk/fsl/docs/diffusion/eddy/FAQ/index.html the
+TRT value does not matter that much. As long as it is consistent
+between topup and eddy, they give indistinguishable results. However,
+eddy may crash if TRT is too low (~<.01) or too high (~>.9).
+
+CITATION: From: https://fsl.fmrib.ox.ac.uk/fsl/docs/diffusion/eddy/index.html
+
+If you use eddy in your research, please make sure that you reference:
+
+Jesper L. R. Andersson and Stamatios N. Sotiropoulos. An integrated
+approach to correction for off-resonance effects and subject movement
+in diffusion MR imaging. NeuroImage, 125:1063-1078, 2016.
+
+If you use topup, reference:
+
+[Andersson 2003] J.L.R. Andersson, S. Skare, J. Ashburner How to
+correct susceptibility distortions in spin-echo echo-planar images:
+application to diffusion tensor imaging. NeuroImage, 20(2):870-888,
+2003.
+
+[Smith 2004] S.M. Smith, M. Jenkinson, M.W. Woolrich, C.F. Beckmann,
+T.E.J. Behrens, H. Johansen-Berg, P.R. Bannister, M. De Luca,
+I. Drobnjak, D.E. Flitney, R. Niazy, J. Saunders, J. Vickers,
+Y. Zhang, N. De Stefano, J.M. Brady, and P.M. Matthews. Advances in
+functional and structural MR image analysis and implementation as
+FSL. NeuroImage, 23(S1):208-219, 2004.
+
