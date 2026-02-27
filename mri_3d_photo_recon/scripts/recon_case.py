@@ -469,11 +469,11 @@ def main():
             image_utils.MRIwrite(mri_resampled, photo_aff, output_directory + '/mri.deformed.photo_space.mgz')
         REFaff[:-1, -1] += np.squeeze(cog_mri_ras)
         if y_shifts is None:
-            RAS, RASres = image_utils_refine_with_seg.computeRAS(grids_new_mri_nonlin, REF.shape, REFaff, photo_aff, LINEAR.shape, affnew)
+            RAS, RASres = image_utils_refine_with_seg.computeRAS(grids_new_mri_nonlin, REF.shape, REFaff, photo_aff, LINEAR.shape, affnew, device)
             image_utils.MRIwrite(RAS, photo_aff, output_directory + '/field.photo_space.mgz')
             image_utils.MRIwrite(RASres, affnew, output_directory + '/field.1mm.mgz')
         else:
-            RAS, RASres = image_utils_refine_with_seg.computeRAS(grids_new_mri_nonlin_no_shift, REF.shape, REFaff, photo_aff, LINEAR.shape, affnew)
+            RAS, RASres = image_utils_refine_with_seg.computeRAS(grids_new_mri_nonlin_no_shift, REF.shape, REFaff, photo_aff, LINEAR.shape, affnew, device)
             image_utils.MRIwrite(RASres, affnew, output_directory + '/field.1mm.mgz')
         REFres, _ = image_utils.deform(REF, REFaff, RASres, device, mode='linear')
         REFmaskRes, _ = image_utils.deform(REFmask.astype(np.float32), REFaff, RASres, device, mode='linear')

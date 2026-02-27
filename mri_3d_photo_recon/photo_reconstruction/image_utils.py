@@ -402,7 +402,7 @@ def fast_3D_interp_torch(X, II, JJ, KK, mode):
     return Y
 
 # Computes deformation as a field of RAS coordinates, in photo space and at 1mm isotropic
-def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, iso_size, iso_aff):
+def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, iso_size, iso_aff, device):
     # First in native space of the photo recon
     IJKmri = []
     for c in range(3):
