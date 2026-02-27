@@ -210,30 +210,37 @@ int main(int argc, char *argv[])
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
-  if (!read_fname)  { // default
+  if (!read_fname)
+  {
     printf("labeling surface...\n") ;
     probs = GCSAlabel(gcsa, mris) ;
     if(Gdiag_no >= 0) printf("vertex %d: label %s\n", Gdiag_no,annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     if(mri_aseg) GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
     printf("relabeling using gibbs priors...\n") ;
     GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
-    if (Gdiag_no >= 0) printf("vertex %d: label %s\n",Gdiag_no,
-			      annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    if (Gdiag_no >= 0)
+      printf("vertex %d: label %s\n",
+             Gdiag_no,
+             annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     if (mri_aseg)
+    {
       GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
-
+    }
     GCSArelabelIslands(gcsa, mris, 5, MIN_AREA_PCT);
-    if (Gdiag_no >= 0)  printf("vertex %d: label %s\n",Gdiag_no,
-			       annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-    if (gcsa_write_iterations != 0) {
+    if (Gdiag_no >= 0)
+      printf("vertex %d: label %s\n",
+             Gdiag_no,
+             annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    if (gcsa_write_iterations != 0)
+    {
       char fname[STRLEN] ;
-      sprintf(fname, "%s_post.nii.gz", gcsa_write_fname) ;
+      sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRISwriteAnnotation(mris, fname) ;
     }
   }
-  else  {
-    // read in an existing annot to refine
+  else
+  {
     MRISreadAnnotation(mris, read_fname) ;
     if (refine != 0)
     {
@@ -269,7 +276,7 @@ int main(int argc, char *argv[])
   }
 
   printf("writing output to %s...\n", out_fname) ;
-  if(MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+  if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not write annot file %s for %s",
               Progname, out_fname, subject_name) ;
 
