@@ -10,10 +10,10 @@ if ("$tcsh61706" != "") then
 endif
 
 # very first thing: check MCR installation
-#checkMCR.sh
-#if ($status) then
-#    exit 1
-#endif
+checkMCR.sh
+if ($status) then
+    exit 1
+endif
 
 
 
@@ -58,14 +58,6 @@ if( $1 == "--help") then
   echo " "
   exit 0
 endif
-
-if($#argv > 1) then
-  if($argv[1] == "--threads") then
-    setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $argv[2];
-    shift; shift
-  endif
-endif
-
 
 # If wrong number of arguments given
 if( $#argv != 1  && $#argv != 2 ) then
@@ -197,10 +189,7 @@ endif
 
 
 # Parameters
-#set RUNTIME="$FREESURFER_HOME/MCRv97/";
-#set RUNTIME84="$FREESURFER_HOME/MCRv84/";
-set RUNTIME="/usr/pubsw/packages/matlab/9.7"
-set RUNTIME84="/usr/pubsw/packages/matlab/8.4"
+set RUNTIME="$FREESURFER_HOME/MCRv97/";
 set RESOLUTION="0.375";
 set ATLASMESH="$FREESURFER_HOME/average/AAN/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/AAN/atlas/targetWorkingres.mgz";
@@ -240,7 +229,7 @@ echo "#@# AAN Nuclei processing `date`" \
   |& tee -a $AANNUCLOG
 
 # command
-set cmd="run_segmentNuclei.sh $RUNTIME84 $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $ATLASDUMPWHOLE $LUT $K $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/"
+set cmd="run_segmentNuclei.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $ATLASDUMPWHOLE $LUT $K $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/"
 
 fs_time ls >& /dev/null
 if ($status) then
@@ -254,8 +243,7 @@ echo $returnVal
 
 # TEMPORARY: convert to .stats file under /stats
 mkdir -p ${SUBJECTS_DIR}/${SUBJECTNAME}/stats
-mv ${SUBJECTS_DIR}/${SUBJECTNAME}/mri/arousalNetworkVolumes.${SUFFIX}.txt \
-  ${SUBJECTS_DIR}/${SUBJECTNAME}/stats/arousalNetworkVolumes.${SUFFIX}.stats
+mv ${SUBJECTS_DIR}/${SUBJECTNAME}/mri/arousalNetworkVolumes.${SUFFIX}.txt ${SUBJECTS_DIR}/${SUBJECTNAME}/stats/arousalNetworkVolumes.${SUFFIX}.stats
 
 if ($returnVal) then
   uname -a | tee -a $AANNUCLOG
@@ -272,20 +260,13 @@ endif
 # All done!
 rm -f $IsRunningFile
 
-set ctab = /homes/4/greve/bin/aan.ctab
-set v1 = $SUBJECTS_DIR/$SUBJECTNAME/mri/arousalNetworkLabels.$SUFFIX.mgz
-set v2 = $SUBJECTS_DIR/$SUBJECTNAME/mri/arousalNetworkLabels.$SUFFIX.FSvoxelSpace.mgz
-foreach v ($v1 $v2)
-  set cmd = (mri_binarize --i $v --o $v --ctab $ctab --replaceonly 1001 118 --replaceonly 1006 119)
-  echo $cmd
-  $cmd 
-end
+
 
 echo " "
 echo "All done!"
 echo " "
 echo "To visualize the outputs, run: "
-echo "fsvglrun freeview --hide-3d-slices -neuro-view -v $SUBJECTS_DIR/$SUBJECTNAME/mri/nu.mgz -v $v2"
+echo "freeview -v $SUBJECTS_DIR/$SUBJECTNAME/T1.mgz -v $SUBJECTS_DIR/$SUBJECTNAME/arousalNetworkLabels.$SUFFIX.mgz:colormap=lut:lut=$FREESURFER_HOME/average/AAN/atlas/freeview.lut.txt"
 echo " "
 echo "If you have used results from this software for a publication, please cite:"
 echo " "
