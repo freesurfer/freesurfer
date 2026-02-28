@@ -402,7 +402,7 @@ def fast_3D_interp_torch(X, II, JJ, KK, mode):
     return Y
 
 # Computes deformation as a field of RAS coordinates, in photo space and at 1mm isotropic
-def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, iso_size, iso_aff):
+def computeRAS(grids_new_mri_nonlin, REFshape, REFaff, photo_aff, iso_size, iso_aff, device):
     # First in native space of the photo recon
     IJKmri = []
     for c in range(3):
@@ -521,3 +521,46 @@ def deform_FS_derivatives(deform_recon_dir, hemisphere, RAS, RASaff, output_dire
         vox_norm = np.linalg.inv(aaseg_aff) @ np.concatenate([coords, np.ones([coords.shape[0], 1])],  axis=1).transpose()
         coords_deformed = interp(vox_norm[:-1, :].T)
         nib.freesurfer.io.write_geometry(output_directory + '/' + surf_file + '.deformed', coords_deformed, faces, volume_info=meta)
+
+
+# Integrate a bunch of 2D SVFs into deformation fields
+def svf_integration(svf, n_steps=6):
+    # Rearrange to (N, 2, H, W) for grid_sample
+    v = svf.permute(3, 0, 1, 2).contiguous()
+    N, C, H, W = v.shape
+    v = v / (2 ** n_steps)
+    r = torch.linspace(-1, 1, H, device=v.device)
+    c = torch.linspace(-1, 1, W, device=v.device)
+    grid_r, grid_c = torch.meshgrid(r, c, indexing='ij')
+    base_grid = torch.stack((grid_r, grid_c), dim=-1)  # (H, W, 2)
+    base_grid = base_grid.unsqueeze(0).repeat(N, 1, 1, 1)  # (N, H, W, 2)
+
+    # Convert displacement from pixel space to normalized grid space
+    v_norm = torch.zeros_like(v)
+    v_norm[:, 0] = v[:, 0] * (2.0 / (H - 1))
+    v_norm[:, 1] = v[:, 1] * (2.0 / (W - 1))
+
+    # Initialize deformation field φ = Id + v
+    phi = base_grid + v_norm.permute(0, 2, 3, 1)
+
+    # Scaling and squaring
+    for _ in range(n_steps):
+        # Sample phi at phi locations (compose deformation)
+        phi = F.grid_sample(
+            phi.permute(0, 3, 1, 2),
+            phi.flip([3]),
+            mode='bilinear',
+            padding_mode='border',
+            align_corners=True
+        ).permute(0, 2, 3, 1)
+
+    # Convert back to displacement field
+    disp = phi - base_grid
+    disp_pix = torch.zeros_like(disp)
+    disp_pix[..., 0] = disp[..., 0] * (H - 1) / 2.0
+    disp_pix[..., 1] = disp[..., 1] * (W - 1) / 2.0
+
+    # Rearrange back to (2, H, W, N)
+    disp_pix = disp_pix.permute(3, 1, 2, 0).contiguous()
+
+    return disp_pix

@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 import ext.interpol as interpol
+from photo_reconstruction.image_utils import svf_integration
 
 class photo_aligner(nn.Module):
     """
@@ -43,6 +44,7 @@ class photo_aligner(nn.Module):
         allow_nonlin=False,
         allow_affine_mri=False,
         allow_nonlin_mri=False,
+        svf_mode_photos=False,
         cp_spacing2d=None,
         cp_spacing3d=None,
         k_lncc_mri=1.0,
@@ -67,6 +69,7 @@ class photo_aligner(nn.Module):
         self.photo_dist_rearranged = torch.unsqueeze(torch.unsqueeze(self.photo_dist, dim=0), dim=0).to(self.device)
         self.min_photo_dist = torch.min(self.photo_dist)
         self.photo_aff = torch.Tensor(photo_aff).to(self.device)
+        self.svf_mode_photos = svf_mode_photos
         if mri_vol is None:
             self.mri_vol = self.mri_rearranged = self.mri_mask = self.mri_mask_rearranged = self.mri_aff = None
         else:
@@ -272,7 +275,7 @@ class photo_aligner(nn.Module):
         # We scale angles / shearings / scalings as a simple form of preconditioning (which shouldn't be needed with bfgs, but whatever...)
 
         # Parameters of photos
-        theta_f = (self.theta / 180 * torch.tensor(np.pi))
+        theta_f = ((self.theta - self.theta.mean()) / 180 * torch.tensor(np.pi)) # subtracting mean kills solution ambiguity with rotation
         shear_f = self.shear / 100  # percentages
         scaling_f = torch.exp(self.scaling / 20)  # ensures positive and symmetry around 1 in log scale
         t_f = self.t + self.DELTA  # no scaling
@@ -327,6 +330,8 @@ class photo_aligner(nn.Module):
             # field_fullsiz = torch.nn.Upsample(size=self.photo_siz,  align_corners=True, mode="bilinear" )(field_pixels.permute([0,3,1,2]))
             field_fullsiz = interpol.resize(field_pixels.permute([0,3,1,2]), shape=self.photo_siz, anchor = 'e', interpolation = 3, bound = 'dft', prefilter = False)
             field_fullsiz_rearranged = field_fullsiz.permute(0, 2, 3, 1)
+            if self.svf_mode_photos: # integrate field if needed
+                field_fullsiz_rearranged = svf_integration(field_fullsiz_rearranged)
             # Membrane energy
             grad_x = (field_fullsiz_rearranged[:, 2:, 1:-1, :] - field_fullsiz_rearranged[:, :-2, 1:-1, :]) / (2.0 * self.pixel_size)
             grad_y = (field_fullsiz_rearranged[:, 1:-1, 2:, :] - field_fullsiz_rearranged[:, 1:-1, :-2, :]) / (2.0 * self.pixel_size)
@@ -337,36 +342,22 @@ class photo_aligner(nn.Module):
             cost_field = torch.zeros(1).to(self.device)
 
         # update mesh grids for photos
-        grids_new = torch.zeros(self.grids.shape).to(self.device)
         photo_aff = torch.zeros(4, 4).to(self.device)
         photo_aff[:, :] = self.photo_aff
         photo_aff[1, 2:] = self.photo_aff[1, 2:] * sz_f
-        T = torch.zeros([4, 4, self.Nslices]).to(self.device)
+        if field_fullsiz_rearranged is None:
+            nonlingrid = self.grids
+        else:
+            nonlingrid = self.grids + torch.cat([field_fullsiz_rearranged, torch.zeros_like(self.grids[0:1])], dim=0)
+        T = []
         for z in range(self.Nslices):
-            T[:, :, z] = torch.matmul(torch.matmul(torch.inverse(photo_aff), M[:, :, z]), photo_aff )
-            if field_fullsiz_rearranged is None:
-                for d in range(3):
-                    grids_new[d, :, :, z] = (
-                        T[d, 0, z] * self.grids[0, :, :, z]
-                        + T[d, 1, z] * self.grids[1, :, :, z]
-                        + T[d, 2, z] * self.grids[2, :, :, z]
-                        + T[d, 3, z]
-                    )
-            else:
-                for d in range(2):
-                    grids_new[d, :, :, z] = (
-                        T[d, 0, z] * self.grids[0, :, :, z]
-                        + T[d, 1, z] * self.grids[1, :, :, z]
-                        + T[d, 2, z] * self.grids[2, :, :, z]
-                        + T[d, 3, z]
-                        + field_fullsiz_rearranged[d, :, :, z]
-                    )
-                grids_new[2, :, :, z] = (
-                    T[2, 0, z] * self.grids[0, :, :, z]
-                    + T[2, 1, z] * self.grids[1, :, :, z]
-                    + T[2, 2, z] * self.grids[2, :, :, z]
-                    + T[2, 3, z]
-                )
+            T.append(torch.matmul(torch.matmul(torch.inverse(photo_aff), M[:, :, z]), photo_aff ))
+        T = torch.stack(T, dim=-1)
+        grids_new = []
+        for d in range(3):
+            grids_new.append(T[d, 0, :][None, None] * nonlingrid[0]+ T[d, 1, :][None, None] * nonlingrid[1] \
+                             + T[d, 2, :][None, None] * nonlingrid[2] + T[d, 3, :][None, None])
+        grids_new = torch.stack(grids_new, dim=0)
 
         # Resample photos
         # We need to make the new grid compatible with grid_resample...
