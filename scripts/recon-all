@@ -4192,6 +4192,7 @@ if($DoSphere) then
         echo "$cmd" > $CMDF
         set CMDFS = ( $CMDFS $CMDF )
       else
+        echo $cmd |& tee -a $LF
         if($RunIt) $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
       endif
@@ -4212,13 +4213,14 @@ if($DoSurfReg) then
   set cmd = (rca-surfreg --s $subjid --threads $OMP_NUM_THREADS \
    --tif-path $AvgCurvTifPath --tif-name $AvgCurvTif)
   if($#hemilist == 1) set cmd = ($cmd --$hemilist)
-  if($longitudinal) set cmd = ($cmd --long)
+  if($longitudinal) set cmd = ($cmd --long $longbaseid)
   if($UseNoNeg) set cmd = ($cmd --usenoneg)
   if($JosaReg) set cmd = ($cmd --josa)
   if($ForceUpdate) set cmd = ($cmd --force)
   if($XOptsFile) set cmd = ($cmd --expert $XOptsFile)
   echo "#@# Surf Reg  `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   if($RunIt) then
+    echo $cmd |& tee -a $LF
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
