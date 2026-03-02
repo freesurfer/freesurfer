@@ -14,7 +14,7 @@ show_help() {
   echo " "
   echo "Usage: "
   echo " "
-  echo "mri_tumorsynth supports three primary usage scenarios, with flexibility for single or multi-sequence inputs: "
+  echo "mri_TumorSynth supports three primary usage scenarios, with flexibility for single or multi-sequence inputs: "
   echo ""
   echo "   * Whole-tumor + healthy tissue segmentation (primary use case) or inner tumor substructure segmentation (requires tumor ROI input). "
   echo "   * Combine T1CE, T2, and FLAIR for better segmentation of heterogeneous tumors. "
@@ -28,7 +28,7 @@ show_help() {
   echo "--wholetumor "
   echo "           [Default] Whole-tumor (1 single label) + healthy tissue mode (17 labels). Outputs combined mask of healthy brain tissue and whole tumor (includes edema, enhancing tumor, non-enhancing tumor). Input must be skull-stripped and registered to SRI-24 template. "
   echo "--innertumor "
-  echo "           Inner tumor substructure mode. Outputs BraTS-compliant subclasses: Tumor Core (TC), Non-Enhancing Tumor (NET), and Edema. Input must be a tumor ROI image (prepare by multiplying raw MRI scan with --wholetumor output mask. i.e. fslmaths wholetumorsegmentation.nii.gz -thr 17.5 -uthr 18.5 -bin -mul t1ce.nii.gz t1ce_tumor_roi.nii.gz)."
+  echo "           Inner tumor substructure mode. Outputs BraTS-compliant subclasses: Enhancing Tumor, Non-Enhancing Tumor, and Necrosis. Input must be a tumor ROI image (prepare by multiplying raw MRI scan with --wholetumor output mask. i.e. fslmaths wholetumorsegmentation.nii.gz -thr 17.5 -uthr 18.5 -bin -mul t1ce.nii.gz t1ce_tumor_roi.nii.gz)."
   echo "--threads [THREADS] "    
   echo "           Number of cores to be used. You can use -1 to use all available cores. Default is -1 (optional)"
   echo "--cpu "     
@@ -48,7 +48,7 @@ then
 fi
 
 # For each execution we work in a different temporaly directory where we have right access and writting permissions 
-working_dir=`mktemp -d -t TumorSynth_`
+working_dir=`mktemp -d -t TumorSynth_XXXXX`
 dir_list=""
 DEVICE="GPU"
 NUM_THREADS=8
@@ -59,7 +59,7 @@ list_files=""
 
 # For sanity check we output on the screen all the variables
 echo " "
-echo "mri_tumorsynth - U-Net trained to segment the healthy brain tissue and tumor in MR scans with tumor with support for multi-sequence MR inputs (T1, T1CE, T2, FLAIR,...)."
+echo "mri_TumorSynth - U-Net trained to segment the healthy brain tissue and tumor in MR scans with tumor with support for multi-sequence MR inputs (T1, T1CE, T2, FLAIR,...)."
 echo " "
 echo "Temporal working directory: ${working_dir}"
 echo " "
@@ -111,6 +111,7 @@ echo "MODEL NAME: ${MODEL_NAME}"
 echo "NUMBER OF THREADS: ${NUM_THREADS}"
 echo "DEVICE: ${DEVICE}"
 echo "NNUNET DIRECTORY: ${NNUNET_ENV_DIR}"
+echo "NNUNET RESULTS FOLDER: ${RESULTS_FOLDER}"
 
 # Copying all the input data in the corresponding working directory
 n=1
@@ -176,11 +177,6 @@ then
     exit -1    
 fi
 echo "Model found: ${MODEL_NAME} at ${MODEL_FILE}"
-
-# Setting up local environment variables
-nnUNet_preprocessed=${working_dir}/nnUNet_preprocessed
-RESULTS_FOLDER=${MODEL_FILE/nnUNet\/*/}
-nnUNet_raw_data_base=${working_dir}/nnUNet_raw_data_base
 
 # The case of the whole tumor segmentation (18 values, 17 tissues and 1 label for the tumor)
 endlabel=18
