@@ -30,6 +30,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <iostream>
+#include <atomic>
+#include <crypt.h>
 
 #ifndef NO_FIPS_SUPPORT
 #include <openssl/conf.h>
@@ -108,6 +110,13 @@ static int __handleErrors_openssl();
 int chklc(char *msg)
 {
   static int first_time = 1;
+
+  // static atomic variables to track if chklc() has been called or is in progress
+  static std::atomic<bool> chklc_inprogress(false);
+  static std::atomic<bool> chklc_done(false);
+  if (chklc_done || chklc_inprogress)
+    return 1;  // simply return if chklc() has been called, or is in progress
+  chklc_inprogress = true;
   
   char str[STRLEN];
   if (msg != NULL)
@@ -328,7 +337,15 @@ int chklc(char *msg)
       printf("[DEBUG] chklc() 4 line license file %s\n", lfilename);
     if (Gdiag_no > 0 && first_time) printf("4 line license file\n");
     strcpy(key, key2);
-    crypt_gkey = crypt(gkey, "FS");
+
+    if (chklc_done)
+      return 1;  // simply return if chklc() has been called
+
+    // use thread-safe crypt_r()
+    struct crypt_data cdata;
+    cdata.initialized = 0;    
+    crypt_gkey = crypt_r(gkey, "FS", &cdata);
+    chklc_done = true;  // mark that chklc() has been called
     if (crypt_gkey == NULL) {
       printf("ERROR: crypt() returned null with 4-line file (%s)\n", lfilename);
       if (msg != NULL)
