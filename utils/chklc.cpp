@@ -31,7 +31,9 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <atomic>
+#ifndef __APPLE__
 #include <crypt.h>
+#endif
 
 #ifndef NO_FIPS_SUPPORT
 #include <openssl/conf.h>
@@ -341,10 +343,15 @@ int chklc(char *msg)
     if (chklc_done)
       return 1;  // simply return if chklc() has been called
 
+#ifndef __APPLE__
     // use thread-safe crypt_r()
     struct crypt_data cdata;
     cdata.initialized = 0;    
     crypt_gkey = crypt_r(gkey, "FS", &cdata);
+#else
+    // crypt_r() is generally not supported natively on macOS
+    crypt_gkey = crypt(gkey, "FS");
+#endif
     chklc_done = true;  // mark that chklc() has been called
     if (crypt_gkey == NULL) {
       printf("ERROR: crypt() returned null with 4-line file (%s)\n", lfilename);
