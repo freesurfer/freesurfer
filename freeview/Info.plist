@@ -15,15 +15,15 @@
         <key>CFBundleVersion</key>
         <string>100</string>
         <key>CFBundleShortVersionString</key>
-        <string>8.0.0</string>
+        <string>8.2.0</string>
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>CFBundleIdentifier</key>
         <string>org.martinos.freeview</string>
         <key>NSHumanReadableCopyright</key>
-        <string>© 2022 Massachusetts General Hospital</string>
+        <string>© 2026 Massachusetts General Hospital</string>
         <key>LSMinimumSystemVersion</key>
-        <string>10.13</string>
+        <string>12.7</string>
         <key>CFBundleIconFile</key>
         <string>freeview.icns</string>
         <key>NSMainNibFile</key>
