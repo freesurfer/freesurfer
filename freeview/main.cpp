@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
     "':colorscale=min,max' Set generic colorscale values for jet/gecolor/nih/pet.\n\n"
     "':lut=name' Set lookup table to the given name. Name can be the name of a stock color table or the filename of a color table file.\n\n"
     "':binary_color=color' Set the color of the non-zero voxels. Colormap must be set to binary. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
+    "':clear_background=val' Set clearing background for grayscale display. Val can be 'on' or 'true' or a number as the threshold. \n\n"
     "':percentile=flag' Set min/mid/max thresholds as percentile.\n\n"
     "':vector=flag' Display 3 frame volume as vectors. flag can be 'yes', 'true' or '1'.\n\n"
     "':tensor=flag' Display 9 frame volume as tensors. flag can be 'yes', 'true' or '1'.\n\n"

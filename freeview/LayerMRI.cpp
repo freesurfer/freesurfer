@@ -400,7 +400,6 @@ bool LayerMRI::LoadVolumeFromFile()
   InitializeActors();
   
   GetProperty()->SetVolumeSource( m_volumeSource );
-  GetProperty()->RestoreSettings( m_sFilename );
 
   //  int* dim = m_imageData->GetDimensions();
   //  qDebug() << dim[0] << dim[1] << dim[2];

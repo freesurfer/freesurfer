@@ -48,6 +48,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   mResliceInterpolation( 0 ),
   mTextureSmoothing( 0 ),
   mbClearBackground( false ),
+  mClearBackgroundValue(-1),
   mMinVoxelValue( 0 ),
   mMaxVoxelValue( 0 ),
   mMinVisibleValue( 0 ),
@@ -299,6 +300,7 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
     m_frameSettings = map["FrameSettings"].toMap();
   }
 
+  /*
   if (map.contains("ClearBackground"))
   {
     mbClearBackground = map["ClearBackground"].toBool();
@@ -308,6 +310,7 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
   {
     mClearBackgroundValue = map["ClearBackgroundValue"].toDouble();
   }
+  */
 
   if (m_bRememberFrameSettings && mri->GetNumberOfFrames() > 1)
   {
@@ -356,9 +359,12 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
     }
   }
 
-  this->OnColorMapChanged();
-  emit OpacityChanged( mOpacity );
-  emit DisplayModeChanged();
+  if (mri->GetImageData())
+  {
+    this->OnColorMapChanged();
+    emit OpacityChanged( mOpacity );
+    emit DisplayModeChanged();
+  }
 }
 
 void LayerPropertyMRI::SaveSettings( const QString& filename )
@@ -1607,7 +1613,8 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGenericThreshold = mMaxGrayscaleWindow;
   mMinContourThreshold = mHeatScaleMidThreshold;
   mMaxContourThreshold = mMaxGrayscaleWindow;
-  mClearBackgroundValue = mMinGrayscaleWindow;
+  if (!mbClearBackground)
+    mClearBackgroundValue = mMinGrayscaleWindow;
 }
 
 void LayerPropertyMRI::ResetWindowLevel()

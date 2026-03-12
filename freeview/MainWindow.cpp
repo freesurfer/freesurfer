@@ -2736,6 +2736,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         else
           cerr << "Unrecognized color input for :binary_color.\n";
       }
+      else if (subOption == "clear_background")
+      {
+        sup_data["ClearBackground"] = subArgu;
+      }
       else if (subOption == "select_label")
       {
         selected_labels = subArgu;
@@ -5886,6 +5890,7 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     fullpath = filename;
   }
   layer->SetFileName( fullpath );
+  layer->GetProperty()->RestoreSettings( fullpath );
   if ( !reg_filename.isEmpty() )
   {
     layer->SetRegFileName( QFileInfo( reg_filename ).absoluteFilePath() );
@@ -5921,6 +5926,17 @@ void MainWindow::LoadVolumeFile( const QString& filename,
 
   if (sup_data.contains("BinaryColor"))
     layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
+
+  if (sup_data.contains("ClearBackground"))
+  {
+    layer->GetProperty()->SetClearBackground(true);
+    bool bOK;
+    double val = sup_data["ClearBackground"].toDouble(&bOK);
+    if (bOK)
+    {
+      layer->GetProperty()->SetClearBackgroundValue(val);
+    }
+  }
 
   layer->GetProperty()->blockSignals(false);
 
