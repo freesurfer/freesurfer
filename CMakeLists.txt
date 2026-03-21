@@ -131,12 +131,14 @@ if(DISTRIBUTE_FSPYTHON)
    if(FSPYTHON_VERSION MATCHES "3.8")
       ## same path for all linux OS for default python 3.8
       set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION})
-   else()
+   elseif(FSPYTHON_VERSION MATCHES "3.9")
       ## paths may differ under FS_PACKAGES_DIR default /usr/pubsw/packages starting with python 3.9
       if(HOST_OS MATCHES "Ubuntu22" OR HOST_OS MATCHES "Ubuntu24")
          set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION}_ubuntu22)
-      else(HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "Rocky9")
+      elseif(HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "Rocky9")
          set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION}_rocky8)
+      else()
+         set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION})
       endif()
    endif()
 
