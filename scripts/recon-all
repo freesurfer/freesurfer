@@ -4217,7 +4217,7 @@ if($DoSurfReg) then
   if($UseNoNeg) set cmd = ($cmd --usenoneg)
   if($JosaReg) set cmd = ($cmd --josa)
   if($ForceUpdate) set cmd = ($cmd --force)
-  if($XOptsFile) set cmd = ($cmd --expert $XOptsFile)
+  if($#XOptsFile) set cmd = ($cmd --expert $XOptsFile)
   echo "#@# Surf Reg  `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     echo $cmd |& tee -a $LF

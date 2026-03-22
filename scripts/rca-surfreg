@@ -248,6 +248,7 @@ while( $#argv != 0 )
       set RunIt = 0;
       breaksw
 
+    case "--expert":
     case "-expert":
       if( $#argv < 1) goto arg1err;
       set XOptsFile = $argv[1]; shift;
