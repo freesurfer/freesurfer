@@ -7870,7 +7870,8 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (hdr.sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stderr, "INFO: using NIfTI-1 sform \n");
+    if (Gdiag & DIAG_INFO || getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -7879,7 +7880,8 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   }
   else if (hdr.qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform \n");
+    if (Gdiag & DIAG_INFO || getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -12791,7 +12793,8 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr, MATRIX *nii_tra
   if (niihdr->sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stderr, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
+    if (Gdiag & DIAG_INFO || getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
     if (niftiSformToMri(mri, niihdr, nii_transform) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
@@ -12800,7 +12803,8 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr, MATRIX *nii_tra
   }
   else if (niihdr->qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
+    if (Gdiag & DIAG_INFO || getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
     if (niftiQformToMri(mri, niihdr) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
