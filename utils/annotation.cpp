@@ -440,7 +440,7 @@ LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *n
       if (*nlabels > 0)
       {
 	if (Gdiag & DIAG_INFO)
-	  printf("[DEBUG] annotation2labelV2(): push_back(%d)\n", npoints);
+	  printf("[DEBUG] annotation2labelV2(): push_back(%d), prev_annot = %d\n", npoints, prev_annot);
         npointsPerLabel.push_back(npoints);
         npoints = 0;
       }
@@ -453,10 +453,10 @@ LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *n
         break;   // found all the labels, done processing
       }
 
-      if (Gdiag & DIAG_INFO)
-	printf("[DEBUG] annotation2labelV2(): increment counter, prev_annot=curr_annot\n");
       (*nlabels)++;
       prev_annot = curr_annot;
+      if (Gdiag & DIAG_INFO)
+	printf("[DEBUG] annotation2labelV2(): next label, prev_annot = %d, nlabels = %d\n", prev_annot, *nlabels);
     }
 
     npoints++;
@@ -464,8 +464,10 @@ LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *n
 
   // this is for annot files not having annotations <= 0
   if (npoints > 0) {
-    if (Gdiag & DIAG_INFO)
-      printf("[DEBUG] annotation2labelV2(): last push_back(%d), prev_annot = %d, curr_annot = %d, nlabels=%d, npoints=%d\n", npoints, prev_annot, curr_annot, *nlabels, npoints);
+    if (Gdiag & DIAG_INFO) {
+      printf("[DEBUG] annotation2labelV2(): prev_annot = %d, curr_annot = %d, nlabels=%d, npoints=%d\n", prev_annot, curr_annot, *nlabels, npoints);
+      printf("[DEBUG] annotation2labelV2(): last push_back(%d), prev_annot = %d\n", npoints, prev_annot);    
+    }
     npointsPerLabel.push_back(npoints);
     npoints = 0;
   }
