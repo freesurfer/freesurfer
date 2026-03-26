@@ -87,6 +87,7 @@ tensorflow==2.20.0
 tensorflow-estimator==2.15.0
 tensorflow-io-gcs-filesystem==0.37.1
 termcolor==3.1.0
+tf_keras==2.20.1
 threadpoolctl==3.6.0
 tifffile==2024.8.30
 --find-links https://download.pytorch.org/whl/torch_stable.html

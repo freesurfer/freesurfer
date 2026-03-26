@@ -8,6 +8,8 @@
 # Then update environment - set PATH to contain FREESURFER_FSPYTHON/bin and force
 # FREESURFER_HOME to FREESURFER_FPSYHTON in order to find model files, etc.
 
+# for python 3.9 compatability
+export TF_USE_LEGACY_KERAS=1
 # set a variable to python dist in either the single or split install tree setup
 export FREESURFER_HOME_FSPYTHON="${FREESURFER_HOME}"
 
