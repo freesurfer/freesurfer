@@ -100,6 +100,15 @@ if(USE_JNIFTI)
 endif()
 
 if(BUILD_DCM2NIIXFSLIB)
+    # CMake policy CMP0069 dictates the behavior when the INTERPROCEDURAL_OPTIMIZATION (IPO or LTO) target property is enabled.
+    # Setting 'SET CMP0069 NEW', mri_convert failed linking; setting 'SET CMP0069 OLD' got deprecated warning.
+    # So, disable CMAKE_INTERPROCEDURAL_OPTIMIZATION for BUILD_DCM2NIIXFSLIB=ON
+    #cmake_policy(SET CMP0069 OLD)
+    
+    # CMAKE_INTERPROCEDURAL_OPTIMIZATION is enabled in ucm.cmake
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
+    message(STATUS "Build libdcm2niixfs.a, disable LTO (Link Time Optimization).")
+
     set(DCM2NIIXFSLIB dcm2niixfs)
     set(DCM2NIIXFSLIB_SRCS
         dcm2niix_fswrapper.cpp
@@ -179,6 +188,8 @@ if(USE_TURBOJPEG)
     add_definitions(-DmyTurboJPEG)
     target_include_directories(dcm2niix PRIVATE ${TURBOJPEG_INCLUDEDIR})
     target_link_libraries(dcm2niix ${TURBOJPEG_LIBRARIES})
+    # macOS kludge: pkg-config gives -lturbojpeg, but Homebrew installs libturbojpeg.dylib
+    # target_link_libraries(dcm2niix ${TURBOJPEG_LDFLAGS} turbojpeg)
 endif()
 
 if(USE_JASPER)

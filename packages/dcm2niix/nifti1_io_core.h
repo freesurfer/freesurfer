@@ -55,18 +55,31 @@ typedef struct { /** x4 vector struct INTEGER**/
 	if ((p) != NULL) \
 	*(p) = (v)
 float dotProduct(vec3 u, vec3 v);
-float nifti_mat33_determ(mat33 R);
 int isSameFloat(float a, float b);
 int isSameDouble(double a, double b);
 bool littleEndianPlatform();
 
 vec3 nifti_mat33_eig3(double bxx, double bxy, double bxz, double byy, double byz, double bzz);
-mat33 nifti_mat33_inverse(mat33 R);
-mat33 nifti_mat33_mul(mat33 A, mat33 B);
 mat33 nifti_mat33_transpose(mat33 A);
 mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4]);
+// issue908: hide visibility of functions that conflict with nifti2_io.h
+#pragma GCC visibility push(hidden)
+float nifti_mat33_determ(mat33 R);
+mat33 nifti_mat33_inverse(mat33 R);
+mat33 nifti_mat33_mul(mat33 A, mat33 B);
 mat44 nifti_mat44_inverse(mat44 R);
 mat44 nifti_mat44_mul(mat44 A, mat44 B);
+void nifti_swap_2bytes(size_t n, void *ar); // 2 bytes at a time
+void nifti_swap_4bytes(size_t n, void *ar); // 4 bytes at a time
+void nifti_swap_8bytes(size_t n, void *ar); // 8 bytes at a time
+void nifti_mat44_to_quatern(mat44 R,
+							float *qb, float *qc, float *qd,
+							float *qx, float *qy, float *qz,
+							float *dx, float *dy, float *dz, float *qfac);
+mat44 nifti_quatern_to_mat44(float qb, float qc, float qd,
+							 float qx, float qy, float qz,
+							 float dx, float dy, float dz, float qfac);
+#pragma GCC visibility pop
 vec3 crossProduct(vec3 u, vec3 v);
 vec3 nifti_vect33_norm(vec3 v);
 vec4 nifti_vect44_norm(vec4 v);
@@ -83,16 +96,6 @@ void swap_nifti_header(struct nifti_1_header *h, int is_nifti);
 #endif
 #endif
 vec4 nifti_vect44mat44_mul(vec4 v, mat44 m);
-void nifti_swap_2bytes(size_t n, void *ar); // 2 bytes at a time
-void nifti_swap_4bytes(size_t n, void *ar); // 4 bytes at a time
-void nifti_swap_8bytes(size_t n, void *ar); // 8 bytes at a time
-void nifti_mat44_to_quatern(mat44 R,
-							float *qb, float *qc, float *qd,
-							float *qx, float *qy, float *qz,
-							float *dx, float *dy, float *dz, float *qfac);
-mat44 nifti_quatern_to_mat44(float qb, float qc, float qd,
-							 float qx, float qy, float qz,
-							 float dx, float dy, float dz, float qfac);
 
 #ifdef __cplusplus
 }

@@ -27,7 +27,7 @@ class dcm2niix_fswrapper {
 
         // interface to singleDICOM() to convert only the single image provided
         static int dcm2NiiSingleFile(const char* dcmfile);
-  
+
 	// interface to nii_dicom_batch.cpp::nii_getMrifsStruct()
 	static MRIFSSTRUCT *getMrifsStruct(void);
 

@@ -10,7 +10,7 @@
 # The documentation can be found at the library's page:
 # https://github.com/onqtam/ucm
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5...4.0)
 
 include(CMakeParseArguments)
 
@@ -23,6 +23,16 @@ if(COMMAND cotire AND "1.7.9" VERSION_LESS "${COTIRE_CMAKE_MODULE_VERSION}")
     set(ucm_with_cotire 1)
 else()
     set(ucm_with_cotire 0)
+endif()
+
+# optionally enable Link Time Optimization (LTO) if supported
+include(CheckIPOSupported)
+check_ipo_supported(RESULT lto_supported OUTPUT lto_output)
+if(lto_supported)
+    message(STATUS "LTO (Link Time Optimization) is supported and will be enabled.")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(WARNING "LTO not supported: ${lto_output}")
 endif()
 
 # option(UCM_UNITY_BUILD          "Enable unity build for targets registered with the ucm_add_target() macro"                     OFF)
