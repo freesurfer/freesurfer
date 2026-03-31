@@ -62,8 +62,10 @@ bool littleEndianPlatform();
 vec3 nifti_mat33_eig3(double bxx, double bxy, double bxz, double byy, double byz, double bzz);
 mat33 nifti_mat33_transpose(mat33 A);
 mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4]);
+#ifndef LINKING_FREESURFER
 // issue908: hide visibility of functions that conflict with nifti2_io.h
 #pragma GCC visibility push(hidden)
+#endif
 float nifti_mat33_determ(mat33 R);
 mat33 nifti_mat33_inverse(mat33 R);
 mat33 nifti_mat33_mul(mat33 A, mat33 B);
@@ -79,7 +81,9 @@ void nifti_mat44_to_quatern(mat44 R,
 mat44 nifti_quatern_to_mat44(float qb, float qc, float qd,
 							 float qx, float qy, float qz,
 							 float dx, float dy, float dz, float qfac);
+#ifndef LINKING_FREESURFER
 #pragma GCC visibility pop
+#endif
 vec3 crossProduct(vec3 u, vec3 v);
 vec3 nifti_vect33_norm(vec3 v);
 vec4 nifti_vect44_norm(vec4 v);
