@@ -74,11 +74,11 @@ six==1.17.0
 # spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
 # specify hash for 8.2.0 release
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
-# git+https://github.com/freesurfer/surfa.git@master
+git+https://github.com/freesurfer/surfa.git@master
 # surfa@git+https://github.com/freesurfer/surfa.git@ec5ddb193fd1caf22ec654c457b5678f6bd8e460
 # surfa@git+https://github.com/freesurfer/surfa.git@78957160b63a01f4cbfce13b45d63d40d28f87f9
 # specify hash for 8.2.0 release
-surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
+# surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
 sympy==1.14.0
 SynthSeg@git+https://github.com/jnolan14/SynthSeg.git@standalone_predict39
 tensorboard==2.20.0
