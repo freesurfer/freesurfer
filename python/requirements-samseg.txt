@@ -8,6 +8,6 @@
 # above removed due to surfa dependency issue
 # samseg@git+https://github.com/freesurfer/samseg.git@ccb17cbcdad707fbbf65e5e934fc89b95cc8529a
 # specify hash for 8.2.0 release
-samseg@git+https://github.com/freesurfer/samseg.git@2ce2b6be69f2954ea704e593a5be79c284a3a8c3
+# samseg@git+https://github.com/freesurfer/samseg.git@2ce2b6be69f2954ea704e593a5be79c284a3a8c3
 # pointing to dev branch of samseg
-# samseg
+samseg@git+https://github.com/freesurfer/samseg.git@dev
