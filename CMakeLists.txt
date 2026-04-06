@@ -985,6 +985,7 @@ add_subdirectories(
   mris_skeletonize
   mris_smooth
   mris_sphere
+  mris_sphere2mri
   mris_surface_stats
   mris_thickness
   mris_thickness_diff

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mris_sphere2mri</name>
+	<description>This program creates a slice image of the input overlay by "flattening" the sphere around a certain point.
+        </description>
+  <arguments>
+    <required>
+      <argument>--sphere spherefile</argument>
+      <explanation>Path to sphere of a given subject</explanation>
+      <argument>--sphere.reg sphereregfile</argument>
+      <explanation>Path to sphere.reg of a given subject</explanation>
+      <argument>--lta ltafile </argument>
+      <explanation>Path to lta, eg, talairach.lta</explanation>
+      <argument>--ov-surf surfoverlay</argument>
+      <explanation>Path to surface overlay (maybe input or output depending on whether --surf-to-slice or --slice-to-surf has been specified)</explanation>
+      <argument>--ov-slice slicefile</argument>
+      <explanation>Path to slice (eg, mgz) (maybe input or output depending on whether --surf-to-slice or --slice-to-surf has been specified)</explanation>
+      <argument>--surf-to-slice</argument>
+      <explanation>Use surface overlay as input and create slice as output</explanation>
+      <argument>--slice-to-surf</argument>
+      <explanation>Use slice as input and create a surface overlay as output</explanation>
+    </required>
+
+    <optional>
+    </optional>
+  </arguments>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
+
