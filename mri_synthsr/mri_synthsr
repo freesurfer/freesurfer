@@ -1229,7 +1229,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
         if ras_axes_flo[i] != ras_axes_ref[i]:
             new_volume = np.swapaxes(new_volume, ras_axes_flo[i], ras_axes_ref[i])
             swapped_axis_idx = np.where(ras_axes_flo == ras_axes_ref[i])
-            ras_axes_flo[swapped_axis_idx], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx]
+            ras_axes_flo[swapped_axis_idx[0][0]], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx[0][0]]
 
     # align directions
     dot_products = np.sum(aff_flo[:3, :3] * aff_ref[:3, :3], axis=0)

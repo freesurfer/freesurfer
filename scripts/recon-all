@@ -11,7 +11,24 @@
 
 umask 002;
 
-setenv FS_RECON_VERSION '@FS_VERSION@ (@BUILD_STAMP@)'
+# set FS_RECON_VERSION at run time
+setenv FS_RECON_VERSION ""
+set bstamp_file="$FREESURFER_HOME/build-stamp.txt"
+if ( -e $bstamp_file) then
+   set bstamp_text=`cat ${bstamp_file}`
+   echo ${bstamp_text} | grep 'local-build' > /dev/null
+   if ($status == 0) then
+      set id=`whoami`
+      set fs_version="${id}-local"
+   else
+      set fs_version=`echo ${bstamp_text} | tr -s '-' ' ' | awk '{print $4}'`
+   endif
+   setenv FS_RECON_VERSION "'""${fs_version} (${bstamp_text})""'"
+   echo "setenv FS_RECON_VERSION $FS_RECON_VERSION"
+else
+   echo "recon-all: FS_RECON_VERSION is not set"
+   # exit 1
+endif
 
 # This turns on the V8 options
 if($?FS_V8_XOPTS == 0) setenv FS_V8_XOPTS 1

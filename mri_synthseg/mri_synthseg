@@ -996,7 +996,7 @@ def get_flip_indices(labels_segmentation, n_neutral_labels):
     lr_indices = np.zeros_like(lr_corresp_unique)
     for i in range(lr_corresp_unique.shape[0]):
         for j, lab in enumerate(lr_corresp_unique[i]):
-            lr_indices[i, j] = np.where(labels_segmentation == lab)[0]
+            lr_indices[i, j] = np.where(labels_segmentation == lab)[0][0]
 
     # build 1d vector to swap LR corresponding labels taking into account neutral labels
     flip_indices = np.zeros_like(labels_segmentation)
@@ -1004,9 +1004,9 @@ def get_flip_indices(labels_segmentation, n_neutral_labels):
         if labels_segmentation[i] in neutral_labels:
             flip_indices[i] = i
         elif labels_segmentation[i] in left:
-            flip_indices[i] = lr_indices[1, np.where(lr_corresp_unique[0, :] == labels_segmentation[i])]
+            flip_indices[i] = lr_indices[1, np.where(lr_corresp_unique[0, :] == labels_segmentation[i])[0][0]]
         else:
-            flip_indices[i] = lr_indices[0, np.where(lr_corresp_unique[1, :] == labels_segmentation[i])]
+            flip_indices[i] = lr_indices[0, np.where(lr_corresp_unique[1, :] == labels_segmentation[i])[0][0]]
 
     return labels_segmentation, flip_indices, unique_idx
 
@@ -2253,7 +2253,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
         if ras_axes_flo[i] != ras_axes_ref[i]:
             new_volume = np.swapaxes(new_volume, ras_axes_flo[i], ras_axes_ref[i])
             swapped_axis_idx = np.where(ras_axes_flo == ras_axes_ref[i])
-            ras_axes_flo[swapped_axis_idx], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx]
+            ras_axes_flo[swapped_axis_idx[0][0]], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx[0][0]]
 
     # align directions
     dot_products = np.sum(aff_flo[:3, :3] * aff_ref[:3, :3], axis=0)

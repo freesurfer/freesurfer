@@ -1,4 +1,3 @@
-
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -245,7 +244,7 @@ MRIFSSTRUCT *dcm2niix_fswrapper::getMrifsStruct(void) {
 
 // interface to nii_dicom_batch.cpp::nii_getAutoScaleFactorVector()
 std::vector<std::vector<float>> *dcm2niix_fswrapper::getAutoScaleFactorVector() {
-	return nii_getAutoScaleFactorVector();
+        return nii_getAutoScaleFactorVector();
 }
 
 // interface to nii_dicom_batch.cpp::nii_getMrifsStructVector()
@@ -313,7 +312,7 @@ void dcm2niix_fswrapper::dicomDump(const char *dicomdir, const char *series_info
       fprintf(fpout, " max-value");
     }
 #endif
-		// output as csv
+                // output as csv
 		if (extrainfo)
 			fprintf(fpout, ",%s,%s,%s,%s,%f,%s", tdicomData->patientName, tdicomData->studyDate, mfrCode2Str(tdicomData->manufacturer), tdicomData->manufacturersModelName, tdicomData->fieldStrength, tdicomData->deviceSerialNumber);
 
