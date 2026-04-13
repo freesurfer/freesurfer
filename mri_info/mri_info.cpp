@@ -457,8 +457,6 @@ static int parse_commandline(int argc, char **argv)
       nargc --;
       pargv ++;
     }    
-    else if (strcasecmp(option, "--diag-debug") == 0)
-      Gdiag |= DIAG_INFO;
     else if (!strcasecmp(option, "-it") ||
              !strcasecmp(option, "--in_type"))
     {
@@ -1191,7 +1189,7 @@ static void do_file(char *fname)
     return;
   }
 
-  int precision = (Gdiag & DIAG_INFO) ? 10 : 4;
+  int precision = (debug) ? 10 : 4;
   
   fprintf(fpout,"Volume information for %s\n", fname);
   // mri_identify has been called but the result is not stored

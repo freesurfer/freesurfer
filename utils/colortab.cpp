@@ -1126,9 +1126,9 @@ COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp)
 
   /* Read the number of entries to read. */
   num_entries_to_read = znzreadInt(fp);
-  if (Gdiag & DIAG_INFO)
-    printf("[INFO] znzCTABreadFromBinaryV2(): fname = '%s' (%d bytes), ct->nentries=%d, num_entries_to_read=%d\n",
-	   ct->fname, toread, ct->nentries, num_entries_to_read);
+  //if (Gdiag & DIAG_INFO)
+  //  printf("[INFO] znzCTABreadFromBinaryV2(): fname = '%s' (%d bytes), ct->nentries=%d, num_entries_to_read=%d\n",
+  //	   ct->fname, toread, ct->nentries, num_entries_to_read);
 
   /* For each entry, read in the info. */
   for (i = 0; i < num_entries_to_read; i++) {
@@ -1695,8 +1695,8 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
   if (NULL == ct) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABprintASCII: ct was NULL"));
   if (NULL == fp) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABprintASCII: fp was NULL"));
 
-  if (Gdiag & DIAG_INFO)
-    printf("[DEBUG] CTABprintASCII(): fname = '%s' (%lu bytes)\n", ct->fname, strlen(ct->fname));
+  //if (Gdiag & DIAG_INFO)
+  //  printf("[DEBUG] CTABprintASCII(): fname = '%s' (%lu bytes)\n", ct->fname, strlen(ct->fname));
 
   for (structure = 0; structure < ct->nentries; structure++) {
     if (NULL != ct->entries[structure]) {

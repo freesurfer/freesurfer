@@ -390,7 +390,7 @@ static int AnnotTableSortByAnnot(const void *p1, const void *p2)
  *   4. build LABEL array for each label found, vertices are sorted in increasing order
  *      if annotation is not found in given LUT, name it 'UnknownLabel#N'
  */
-LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *nlabels)
+LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *nlabels, bool debug)
 {
   MRI  *Stat = NULL;
 
@@ -434,12 +434,12 @@ LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *n
     curr_annot = annotTable[n].annot;
     if (prev_annot != curr_annot)
     {
-      if (Gdiag & DIAG_INFO)
+      if (debug)
 	printf("[DEBUG] annotation2labelV2(): prev_annot = %d, curr_annot = %d, nlabels=%d, npoints=%d\n", prev_annot, curr_annot, *nlabels, npoints);
       // save number of points for the label if we got one already
       if (*nlabels > 0)
       {
-	if (Gdiag & DIAG_INFO)
+	if (debug)
 	  printf("[DEBUG] annotation2labelV2(): push_back(%d), prev_annot = %d\n", npoints, prev_annot);
         npointsPerLabel.push_back(npoints);
         npoints = 0;
@@ -448,14 +448,14 @@ LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *n
       // check if we are at the last assigned vertex yet
       // not all annot files have annotations <= 0
       if (curr_annot <= 0) {
-	if (Gdiag & DIAG_INFO)
+	if (debug)
 	  printf("[DEBUG] annotation2labelV2(): end of labels curr_annot = %d\n", curr_annot);
         break;   // found all the labels, done processing
       }
 
       (*nlabels)++;
       prev_annot = curr_annot;
-      if (Gdiag & DIAG_INFO)
+      if (debug)
 	printf("[DEBUG] annotation2labelV2(): next label, prev_annot = %d, nlabels = %d\n", prev_annot, *nlabels);
     }
 
@@ -464,7 +464,7 @@ LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *n
 
   // this is for annot files not having annotations <= 0
   if (npoints > 0) {
-    if (Gdiag & DIAG_INFO) {
+    if (debug) {
       printf("[DEBUG] annotation2labelV2(): prev_annot = %d, curr_annot = %d, nlabels=%d, npoints=%d\n", prev_annot, curr_annot, *nlabels, npoints);
       printf("[DEBUG] annotation2labelV2(): last push_back(%d), prev_annot = %d\n", npoints, prev_annot);    
     }
