@@ -8612,6 +8612,10 @@ static MRI *niiRead(const char *fname, int read_volume)
       printf("[DEBUG] niiRead(): processing extension ...\n");
     bool has_ras_xform = false;
     VOL_GEOM ras_xform = __niiReadHeaderextension(fp, mri, fname, swapped_flag, &has_ras_xform);
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL) {
+      long long here = znztell(fp);
+      printf("[DEBUG] niiRead(): extension processed, hdr.vox_offset = %ld, file position = %lld\n", (long)hdr.vox_offset, here);
+    }
     if (has_ras_xform)
     {
       bool TAG_RAS_XFORM_DEBUG = (getenv("TAG_RAS_XFORM_DEBUG") != NULL) ? true : false;
@@ -12736,9 +12740,13 @@ VOL_GEOM __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int s
       
     // it seems that znzseek() works fine on either .nii or .nii.gz
     if (count != 2 || !valid_ecode) {
-      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
-	printf("[WARN] __niiReadHeaderextension(): no valid extension read, rollback bytes read (esize=%d, ecode=%d, count=%d, valid_ecode=%d)\n", esize, ecode, count, valid_ecode);
       znzseek(fp, -4 * count, SEEK_CUR); /* back up past any read */
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL) {
+	long long here = znztell(fp);
+	printf("[DEBUG] __niiReadHeaderextension(): no more valid extension read, rollback bytes read, file position = %lld, "
+	       "(swapped_flag=%d, esize=%d, ecode=%d, count=%d, valid_ecode=%d)\n",
+	       here, swapped_flag, esize, ecode, count, valid_ecode);
+      }
       break;                             /* no extension, no error condition */
     }
     else
@@ -12760,10 +12768,11 @@ VOL_GEOM __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int s
       if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __niiReadHeaderextension(): ecode %d, esize %d\n", ecode, esize);
 
-      if (ecode != NIFTI_ECODE_FREESURFER)
+      if (ecode != NIFTI_ECODE_FREESURFER) {
+        // move file pointer to the end of current extension data
+	znzseek(fp, esize-8, SEEK_CUR); /* back up past any read */
 	continue;
-      else
-      {
+      } else {
 	mri->ras_good_flag = 1;
 	
         if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
