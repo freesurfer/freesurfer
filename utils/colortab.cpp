@@ -95,7 +95,9 @@ COLOR_TABLE *CTABreadASCII2(const char *fname, int checkDuplicateNames)
   /* If no structures, bail. */
   if (max_structure <= 0) {
     fclose(fp);
-    ErrorReturn(NULL, (ERROR_NOFILE, "CTABreadASCII(%s): badly formed file", fname));
+    printf("ERROR: CTABreadASCII2(): no structures found\n");
+    printf("   break %s:%d\n", __FILE__, __LINE__);
+    ErrorReturn(NULL, (ERROR_NOFILE, "CTABreadASCII2(%s): badly formed file", fname));
   }
 
   /* Allocate our table. */
