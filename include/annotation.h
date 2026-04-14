@@ -44,7 +44,7 @@ int print_annotation_table(FILE *fp);
 int print_annotation_colortable(FILE *fp);
 int index_to_annotation(int index) ;
 LABEL *annotation2label(int annotid, MRIS *Surf);
-LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *nlabels);
+LABEL **annotation2labelV2(MRIS *Surf, int lbindex, const char *statfile, int *nlabels, bool debug=false);
 int set_atable_from_ctable(COLOR_TABLE *pct);
 int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) ;
 int MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) ;

@@ -629,11 +629,11 @@ MATRIX *MRIxfmCRS2XYZ(const VOL_GEOM *mri, int base, bool useshear)
     *MATRIX_RELT(matshear, 1, 2) = (MRIxfmCRS2XYZPrecision)mri->s_r;
     *MATRIX_RELT(matshear, 1, 3) = (MRIxfmCRS2XYZPrecision)mri->s_a;
     *MATRIX_RELT(matshear, 2, 3) = (MRIxfmCRS2XYZPrecision)mri->s_s;
-    if (Gdiag & DIAG_INFO)
-    {
-      printf("[DEBUG] MRIxfmCRS2XYZ() matshear:\n");
-      MatrixPrint(stdout, matshear);
-    }
+    //if (Gdiag & DIAG_INFO)
+    //{
+    //  printf("[DEBUG] MRIxfmCRS2XYZ() matshear:\n");
+    //  MatrixPrint(stdout, matshear);
+    //}
     m = MatrixMultiplyD(m, matshear, NULL);
   }
 
