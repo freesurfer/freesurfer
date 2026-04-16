@@ -296,7 +296,7 @@ def main():
                         row2 = []
                         for l in range(len(llist)):
                             lab = llist[l]
-                            if (lab > 0) and (lab != 24) and (lab < 900) and (lab != 99):
+                            if (lab > 0) and ((lab != 24) or (mode=='invivo')) and (lab < 900) and (lab != 99):
                                 if FSlabelNames[lab] is None:
                                     row1.append('(' + str(lab) + ')')
                                 else:
