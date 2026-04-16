@@ -1202,6 +1202,28 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
+  // Invasive Logan ------------------------------------
+  if(DoLogan) {
+    // Model integralYi = [integralCp Yi]*beta
+    //  Vt = beta[1]
+    //  The equation is solved only for time points > tstar
+    // This equation does not match the original logan or the Ichise MA1
+    // but it generally tracks the original logan very well
+    printf("Performing Logan\n"); fflush(stdout);
+    mriglm->Xg = RTM_intCr;
+    mriglm->npvr = 1;
+    printf("Computing integral of input ..."); fflush(stdout);
+    mriglm->pvr[0] = mriglm->y;
+    mriglm->y = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
+    printf("done.\n"); fflush(stdout);
+    printf("Loganizing\n"); fflush(stdout);
+    MRIloganize(&(mriglm->Xg), &(mriglm->y), &(mriglm->pvr[0]),RTM_TimeMin,Logan_Tstar/60);
+    NoContrastsOK = 1;
+    nContrasts = 0;
+    mriglm->glm->ncontrasts = nContrasts;
+    sprintf(tmpstr,"%s/time.min.dat",GLMDir);
+    MatrixWriteTxt(tmpstr, RTM_TimeMin);
+  }
   if(DoLoganMA1) {
     // Model Yi = [integralRef integralYi]*beta
     //  Vt = beta[0]/beta[1]
@@ -1220,7 +1242,7 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
-  // Invasive Logan ------------------------------------
+  // Invasive Patlak ------------------------------------
   if(DoPatlak) {
     // Model Ct/Cp = K*intRef + Vt
     //  V0 = beta[0]
