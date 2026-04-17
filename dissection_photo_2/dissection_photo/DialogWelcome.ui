@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>405</height>
+    <height>416</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,7 +26,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="styleSheet">
-      <string notr="true">font-weight:bold; font-size: 20pt;</string>
+      <string notr="true">font-weight:bold; font-size: 20px;</string>
      </property>
      <property name="text">
       <string>FreeSurfer Dissection Photo Tools</string>
@@ -41,7 +41,7 @@
      <item row="4" column="0">
       <widget class="QLabel" name="label_8">
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 16pt; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 16px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Spatial Correction</string>
@@ -54,7 +54,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="label_2">
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 16pt; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 16px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Spatial Correction</string>
@@ -67,7 +67,7 @@
      <item row="2" column="0">
       <widget class="QLabel" name="label_6">
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 16pt; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 16px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Spatial Correction</string>
@@ -90,7 +90,7 @@
      <item row="6" column="0">
       <widget class="QLabel" name="label_4">
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 16pt; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 16px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Spatial Correction</string>
@@ -151,7 +151,7 @@
    <item>
     <widget class="QLabel" name="label_10">
      <property name="text">
-      <string>&lt;a style='color:#c95659;font-size:20pt;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;Photo Tools Wiki Page &gt;&lt;/a&gt;</string>
+      <string>&lt;a style='color:#c95659;font-size:20px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;Photo Tools Wiki Page &gt;&lt;/a&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

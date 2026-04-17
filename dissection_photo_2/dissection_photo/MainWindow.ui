@@ -61,7 +61,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>3</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -83,7 +83,7 @@
             <item>
              <widget class="QLabel" name="labelTitle_2">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20pt;</string>
+               <string notr="true">font-weight: bold; font-size: 20px;</string>
               </property>
               <property name="text">
                <string>Segmentation</string>
@@ -495,7 +495,7 @@ QPushButton:disabled {background: #999999;}</string>
                <bool>false</bool>
               </property>
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20pt;</string>
+               <string notr="true">font-weight: bold; font-size: 20px;</string>
               </property>
               <property name="text">
                <string>Connected Components</string>
@@ -557,6 +557,10 @@ QPushButton:disabled {background: #999999;}</string>
                   <width>100</width>
                   <height>0</height>
                  </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: #457c92; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="text">
                  <string>Clear</string>
@@ -679,8 +683,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="labelTitle">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20pt; 
-</string>
+               <string notr="true">font-weight: bold; font-size: 20px;</string>
               </property>
               <property name="text">
                <string>Retrospective Correction</string>
@@ -994,7 +997,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_9">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20pt;</string>
+               <string notr="true">font-weight: bold; font-size: 20px;</string>
               </property>
               <property name="text">
                <string>FreeSurfer Dissection Photo Tools</string>
@@ -1050,7 +1053,7 @@ QPushButton:disabled {background: #999999;}</string>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>40</width>
+                     <width>1</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -1086,7 +1089,7 @@ QPushButton:disabled {background: #999999;}</string>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>40</width>
+                     <width>1</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -1156,7 +1159,7 @@ QPushButton:disabled {background: #999999;}</string>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>40</width>
+                     <width>1</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -1192,7 +1195,7 @@ QPushButton:disabled {background: #999999;}</string>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>40</width>
+                     <width>1</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -1222,7 +1225,7 @@ QPushButton:disabled {background: #999999;}</string>
                <string notr="true"/>
               </property>
               <property name="text">
-               <string>&lt;a style='color:#c95659;font-size:20pt;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
+               <string>&lt;a style='color:#c95659;font-size:20px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -1313,7 +1316,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_6">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20pt;</string>
+               <string notr="true">font-weight: bold; font-size: 20px;</string>
               </property>
               <property name="text">
                <string>3D Photo Reconstruction</string>
