@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+$FREESURFER_HOME/bin/mask_extraction.app/Contents/MacOS/mask_extraction "$@"
+exit $?
