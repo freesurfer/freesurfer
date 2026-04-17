@@ -127,7 +127,8 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
           e->acceptProposedAction();
           if (watched == ui->widgetDropImages)
           {
-            SetInputFolder(QFileInfo(urls.last().toLocalFile()).absolutePath());
+            QFileInfo fi(QFileInfo(urls.last().toLocalFile()));
+            SetInputFolder(fi.isDir()?fi.absoluteFilePath():fi.absolutePath());
           }
           else if (watched == ui->widgetDropCalibration)
           {
