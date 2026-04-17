@@ -83,7 +83,7 @@
             <item>
              <widget class="QLabel" name="labelTitle_2">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20px;</string>
+               <string notr="true">font-weight: bold; font-size: 16px;</string>
               </property>
               <property name="text">
                <string>Segmentation</string>
@@ -495,7 +495,7 @@ QPushButton:disabled {background: #999999;}</string>
                <bool>false</bool>
               </property>
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20px;</string>
+               <string notr="true">font-weight: bold; font-size: 16px;</string>
               </property>
               <property name="text">
                <string>Connected Components</string>
@@ -683,7 +683,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="labelTitle">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20px;</string>
+               <string notr="true">font-weight: bold; font-size: 16px;</string>
               </property>
               <property name="text">
                <string>Retrospective Correction</string>
@@ -997,7 +997,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_9">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20px;</string>
+               <string notr="true">font-weight: bold; font-size: 16px;</string>
               </property>
               <property name="text">
                <string>FreeSurfer Dissection Photo Tools</string>
@@ -1065,7 +1065,7 @@ QPushButton:disabled {background: #999999;}</string>
                     <cursorShape>PointingHandCursor</cursorShape>
                    </property>
                    <property name="styleSheet">
-                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 20px;background: #57a2c0; border-radius: 15; color:white;</string>
+                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 18px;background: #57a2c0; border-radius: 15; color:white;</string>
                    </property>
                    <property name="text">
                     <string> Upload Images</string>
@@ -1171,7 +1171,7 @@ QPushButton:disabled {background: #999999;}</string>
                     <cursorShape>PointingHandCursor</cursorShape>
                    </property>
                    <property name="styleSheet">
-                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 20px;background: #a6a233; border-radius: 15; color:white;</string>
+                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 18px;background: #a6a233; border-radius: 15; color:white;</string>
                    </property>
                    <property name="text">
                     <string> Upload Calibration</string>
@@ -1225,7 +1225,7 @@ QPushButton:disabled {background: #999999;}</string>
                <string notr="true"/>
               </property>
               <property name="text">
-               <string>&lt;a style='color:#c95659;font-size:20px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
+               <string>&lt;a style='color:#c95659;font-size:18px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -1316,7 +1316,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_6">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 20px;</string>
+               <string notr="true">font-weight: bold; font-size: 16px;</string>
               </property>
               <property name="text">
                <string>3D Photo Reconstruction</string>
@@ -1929,7 +1929,7 @@ QPushButton:disabled {background: #999999;}</string>
      <x>0</x>
      <y>0</y>
      <width>1435</width>
-     <height>24</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
