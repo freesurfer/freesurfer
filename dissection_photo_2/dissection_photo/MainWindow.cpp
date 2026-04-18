@@ -319,6 +319,11 @@ void MainWindow::OnButtonLoadMask()
         if (msgbox.clickedButton() != yesBtn)
           bRunNNUnet = false;
       }
+      if (bRunNNUnet && m_strNNUnetScriptFolder.isEmpty())
+      {
+        QMessageBox::warning(this, "Error", "NNUNET_SCRIPT_DIR was not set. Failed to generate mask files.");
+        return;
+      }
       if (bRunNNUnet)
       {
         ClearFolder(path);
@@ -444,9 +449,23 @@ void MainWindow::SetupScriptPath()
   m_strNNUnetScriptFolder = QProcessEnvironment::systemEnvironment().value("NNUNET_SCRIPT_DIR");
   m_strNNUnetModelFolder = QProcessEnvironment::systemEnvironment().value("NNUNET_MODEL_DIR");
   if (m_strNNUnetModelFolder.isEmpty())
-    qDebug() << "NNUNET_MODEL_DIR is not set!";
+  {
+    m_strNNUnetModelFolder = QProcessEnvironment::systemEnvironment().value("FREESURFER_HOME_FSPYTHON") + "/models/nnUNetTrainer__nnUNetPlans__2d";
+    if (!QFileInfo(m_strNNUnetModelFolder).exists())
+    {
+      m_strNNUnetModelFolder.clear();
+      qDebug() << "NNUNET_MODEL_DIR is not set!";
+    }
+  }
   if (m_strNNUnetScriptFolder.isEmpty())
-    qDebug() << "NNUNET_SCRIPT_DIR is not set!";
+  {
+    m_strNNUnetScriptFolder = QProcessEnvironment::systemEnvironment().value("FREESURFER_HOME_FSPYTHON") + "/python/packages/nnUNet_v2";
+    if (!QFileInfo(m_strNNUnetScriptFolder).exists())
+    {
+      m_strNNUnetScriptFolder.clear();
+      qDebug() << "NNUNET_SCRIPT_DIR is not set!";
+    }
+  }
 
   // copy resource files
   static QTemporaryDir dir;
@@ -577,7 +596,8 @@ void MainWindow::LoadImage(int n, bool bNoProcessing, bool bPreview)
   else if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
   {
     m_listMaskFiles = QDir(m_strMaskFolder).entryInfoList(QDir::Files, QDir::Name);
-    mask_fn = m_listMaskFiles[n].absoluteFilePath();
+    if (m_listMaskFiles.size() > n)
+      mask_fn = m_listMaskFiles[n].absoluteFilePath();
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
