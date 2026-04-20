@@ -684,6 +684,7 @@ static void print_usage(void) {
   printf("   --ptypeN permtype (0=noperm, 1=sign, 2=shuffle, 3=sign+shufflen\n");
   printf("   --no-residualizeN : do not residualize modality N before permuting (not recommended)\n");
   printf("   --save-surrogatesN : save all surrogates in one file (a stack) for modality N=1,2\n");
+  printf("   --save-input : save input maps\n");
   printf("   --map1-only only analyze modality 1 (for creating atlases and surrogatess); modality 2 not needed\n");
   printf("   --surrogatesN surrogatesNfile : input surrogate stack for modality N\n");
   printf("     as output from another run of mri_dualperm, possibly using --map1-only.\n");
