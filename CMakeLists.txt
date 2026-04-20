@@ -1023,6 +1023,7 @@ if(NOT MINIMAL)
     BrainstemSS
     diffusion_tool
     dissection_photo
+    dissection_photo_2
     dummy
     exvivo
     freeview

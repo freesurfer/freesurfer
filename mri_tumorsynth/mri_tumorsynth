@@ -48,7 +48,7 @@ then
 fi
 
 # For each execution we work in a different temporaly directory where we have right access and writting permissions 
-working_dir=`mktemp -d -t TumorSynth_`
+working_dir=`mktemp -d -t TumorSynth_XXXXX`
 dir_list=""
 DEVICE="GPU"
 NUM_THREADS=8
@@ -59,7 +59,7 @@ list_files=""
 
 # For sanity check we output on the screen all the variables
 echo " "
-echo "mri_tumorsynth - U-Net trained to segment the healthy brain tissue and tumor in MR scans with tumor with support for multi-sequence MR inputs (T1, T1CE, T2, FLAIR,...)."
+echo "mri_TumorSynth - U-Net trained to segment the healthy brain tissue and tumor in MR scans with tumor with support for multi-sequence MR inputs (T1, T1CE, T2, FLAIR,...)."
 echo " "
 echo "Temporal working directory: ${working_dir}"
 echo " "
@@ -111,6 +111,7 @@ echo "MODEL NAME: ${MODEL_NAME}"
 echo "NUMBER OF THREADS: ${NUM_THREADS}"
 echo "DEVICE: ${DEVICE}"
 echo "NNUNET DIRECTORY: ${NNUNET_ENV_DIR}"
+echo "NNUNET RESULTS FOLDER: ${RESULTS_FOLDER}"
 
 # Copying all the input data in the corresponding working directory
 n=1
@@ -177,11 +178,6 @@ then
 fi
 echo "Model found: ${MODEL_NAME} at ${MODEL_FILE}"
 
-# Setting up local environment variables
-nnUNet_preprocessed=${working_dir}/nnUNet_preprocessed
-RESULTS_FOLDER=${MODEL_FILE/nnUNet\/*/}
-nnUNet_raw_data_base=${working_dir}/nnUNet_raw_data_base
-
 # The case of the whole tumor segmentation (18 values, 17 tissues and 1 label for the tumor)
 endlabel=18
 if [ "${INNER_TUMOR}" = "1" ] ;
@@ -215,7 +211,7 @@ for data_dir in $(echo "$dir_list" | tr ',' '\n'); do
     upper=`echo "${num} + 0.5" | bc -l`
     fslmaths `ls ${working_dir}/output${i}/*.* | grep nii` -thr ${lower} -uthr ${upper} -bin -add ${working_dir}/label${num}.nii.gz ${working_dir}/label${num}.nii.gz
   done
-  ((i++))
+  let i++ || true
 done
 
 filelist="${working_dir}/label0.nii.gz "
