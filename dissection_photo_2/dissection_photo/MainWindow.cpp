@@ -319,13 +319,19 @@ void MainWindow::OnButtonLoadMask()
         if (msgbox.clickedButton() != yesBtn)
           bRunNNUnet = false;
       }
-      if (bRunNNUnet && m_strNNUnetScriptFolder.isEmpty())
+      if (bRunNNUnet && (m_strNNUnetScriptFolder.isEmpty() || m_strNNUnetModelFolder.isEmpty()))
       {
-        QMessageBox::warning(this, "Error", "NNUNET_SCRIPT_DIR was not set. Failed to generate mask files.");
+        QMessageBox::warning(this, "Error", "Could not locate nnUNet locations. Failed to generate mask files. Please set NNUNET_SCRIPT_DIR and NNUNET_MODEL_DIR manually.");
         return;
       }
       if (bRunNNUnet)
       {
+        if (m_strNNUnetScriptFolder.isEmpty() || m_strNNUnetModelFolder.isEmpty())
+        {
+          QMessageBox::warning(this, "Error", "nnUNet script or model not found. Mask could not be generated.");
+          return;
+        }
+
         ClearFolder(path);
         QStringList cmd;
         QDir dir(m_sTempDir);

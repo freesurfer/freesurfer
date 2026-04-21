@@ -89,8 +89,11 @@ void QThumbnailWidget::SetItemChecked(int n, bool bChecked)
     pix.setDevicePixelRatio(1);
     QPainter p(&pix);
     QPixmap pch(":/resource/checked@2x.png");
+    if (devicePixelRatio() == 1)
+      pch = pch.scaledToWidth(pch.width()/2, Qt::SmoothTransformation);
     QRect rc = pch.rect();
-    rc.moveTopRight(pix.rect().topRight()+QPoint(-2,2));
+    int nOffset = devicePixelRatio();
+    rc.moveTopRight(pix.rect().topRight()+QPoint(-nOffset,nOffset));
     p.drawPixmap(rc, pch);
     p.end();
     QListWidgetItem* it = item(n);
