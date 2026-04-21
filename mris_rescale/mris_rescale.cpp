@@ -40,13 +40,14 @@ static void print_version(void) ;
 
 const char *Progname ;
 
-
+double targetradius = DEFAULT_RADIUS;
+double scale = -1;
 int
 main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
-  float        radius, scale ;
+  float        radius;
 
   nargs = handleVersionOption(argc, argv, "mris_rescale");
   if (nargs && argc - nargs == 1)
@@ -71,12 +72,17 @@ main(int argc, char *argv[]) {
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
+  printf("Reading in %s",in_fname) ;
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
-  radius = MRISaverageRadius(mris) ;
-  scale = DEFAULT_RADIUS / radius ;
+  if(scale < 0){
+    radius = MRISaverageRadius(mris) ;
+    scale = targetradius / radius ;
+    printf("radius = %g  target-radius = %g\n",radius,targetradius);
+  }
+  printf("scale = %g\n",scale);
   MRISscaleBrain(mris, mris, scale) ;
   MRISwrite(mris, out_fname) ;
 
@@ -99,6 +105,15 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "scale")){
+    sscanf(argv[2],"%lf",&scale);
+    nargs = 1;
+  }
+  else if (!stricmp(option, "div-scale")){
+    sscanf(argv[2],"%lf",&scale);
+    scale = 1.0/scale;
+    nargs = 1;
+  }
   else switch (toupper(*option)) {
     case '?':
     case 'U':
@@ -122,15 +137,16 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
-  fprintf(stderr, "usage: %s [options] <input surface file> <output surf>\n",
-          Progname) ;
+  printf("usage: %s [options] <input surface file> <output surf>\n",Progname) ;
+  printf(" -scale scale : simply multiply xyz by scale\n");
+  printf(" -div-scale divscale : simply multiply xyz by 1/divscale\n");
 }
 
 static void
 print_help(void) {
   print_usage() ;
   fprintf(stderr,
-          "\nThis program will rescale a surface representation\n") ;
+          "\nThis program will rescale a surface representation to a radius of %g\n",targetradius) ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
