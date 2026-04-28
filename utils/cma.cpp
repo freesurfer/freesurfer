@@ -2121,7 +2121,7 @@ int SegDice::PrintDiceStats(FILE *fp)
   }
   double vol = this->seg1->xsize * this->seg1->ysize * this->seg1->zsize;
   fprintf(fp,"# mri_compute_seg_overlap\n");
-  fprintf(fp,"# CaseName %s\n",this->CaseName);
+  if(this->CaseName) fprintf(fp,"# CaseName %s\n",this->CaseName);
   fprintf(fp,"# asegstat2table mean=dice std=tpr min=fpr max=jaccard range=count2\n");
   fprintf(fp,"# ColHeaders Index SegId NVoxels Volume_mm3 StructName Dice TPR FPR Jaccard Count2\n");
   fprintf(fp,"# Index SegId NVoxels Volume_mm3  StructName                     Dice     TPR     FPR Jaccard Count2\n");

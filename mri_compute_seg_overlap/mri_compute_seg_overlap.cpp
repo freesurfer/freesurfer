@@ -497,7 +497,7 @@ static int get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "case-name")){ // -case-name
     // Must go before -dice
-    sprintf(sd.CaseName,"%s",argv[2]);
+    sd.CaseName = argv[2];
     nargs = 1;
   }
   else if (!stricmp(option, "dice")){ // -dice

@@ -745,7 +745,7 @@ public:
   COLOR_TABLE *ctab=NULL;
   std::vector<int> seglist;
   char delimiter = ' ';
-  char CaseName[1000] = "Case";
+  char *CaseName = NULL;
   char *seg1file=NULL, *seg2file=NULL;
   std::vector<double> dice, tpr, fdr, jaccard;
   std::vector<int> count1, count2, count12/*intersection*/, countFD;
