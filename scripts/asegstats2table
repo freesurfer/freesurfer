@@ -160,7 +160,7 @@ def options_parse():
     parser.add_option('', '--append', dest='appendflag', action='store_true', default=False, help=h_append)
     parser.add_option('--sd', dest='SUBJECTS_DIR');
     parser.add_option('-m', '--meas', dest='meas',
-                      choices=('volume','Area_mm2','nvoxels','nvertices','mean','std','snr','max'),  default='volume', help=h_meas)
+                      choices=('volume','Area_mm2','nvoxels','nvertices','mean','std','min','max','range','snr'),  default='volume', help=h_meas)
     parser.add_option('--maxsegno', dest='maxsegno',
                       help=h_inp)
     parser.add_option('--segids-from-file', dest='segidsfile', help=h_segsfile)
