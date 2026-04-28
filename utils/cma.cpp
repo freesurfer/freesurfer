@@ -2064,7 +2064,7 @@ int SegDice::PrintDiceDat(FILE *fp)
     if(ReportEmpty==0 && count1[c]==0 && count2[c]==0) continue;
     std::vector<int>::iterator ind = std::find(excludelist.begin(), excludelist.end(), seglist[c]);
     if(ind != excludelist.end()) continue;
-    fprintf(fp,"%6.5lf ",*it);
+    fprintf(fp,"%c%6.5lf",this->delimiter,*it);
   }
   fprintf(fp,"\n");
   return(0);
@@ -2113,6 +2113,45 @@ int SegDice::WriteDiceTable(char *fname)
   fclose(fp);
   return(err);
 }
+int SegDice::PrintDiceStats(FILE *fp)
+{
+  if(ctab==NULL){
+    printf("ERROR: PrintDiceStats(): ctab is  NULL\n");
+    return(1);
+  }
+  double vol = this->seg1->xsize * this->seg1->ysize * this->seg1->zsize;
+  fprintf(fp,"# mri_compute_seg_overlap\n");
+  fprintf(fp,"# CaseName %s\n",this->CaseName);
+  fprintf(fp,"# asegstat2table mean=dice std=tpr min=fpr max=jaccard range=count2\n");
+  fprintf(fp,"# ColHeaders Index SegId NVoxels Volume_mm3 StructName Dice TPR FPR Jaccard Count2\n");
+  fprintf(fp,"# Index SegId NVoxels Volume_mm3  StructName                     Dice     TPR     FPR Jaccard Count2\n");
+  int c = -1;
+  for(auto it = std::begin(dice); it != std::end(dice); ++it) {
+    c++;
+    if(ReportEmpty==0 && count1[c]==0 && count2[c]==0) continue;
+    std::vector<int>::iterator ind = std::find(excludelist.begin(), excludelist.end(), seglist[c]);
+    if(ind != excludelist.end()) continue;
+    int segid = this->seglist[c];
+    fprintf(fp,"   %4d  %4d   %4d     %7.1f  %-30s %6.4f %6.4f %6.4f %6.4f %4d\n",
+	    c,segid,count1[c],count1[c]*vol,ctab->entries[segid]->name,
+	    dice[c],tpr[c],fdr[c],jaccard[c],count2[c]);
+  }
+  return(0);
+}
+
+int SegDice::WriteDiceStats(const char *fname)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp==NULL){
+    printf("ERROR: WriteDiceStats(): could not open %s\n",fname);
+    return(1);
+  }
+  int err = PrintDiceStats(fp);
+  fclose(fp);
+  return(err);
+}
+
 
 MRI *MRIoneHotEncode(MRI *seg, std::vector<int> segidlist, int Force1)
 {

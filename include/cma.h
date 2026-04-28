@@ -744,6 +744,8 @@ public:
   MRI *mask=NULL;
   COLOR_TABLE *ctab=NULL;
   std::vector<int> seglist;
+  char delimiter = ' ';
+  char CaseName[1000] = "Case";
   char *seg1file=NULL, *seg2file=NULL;
   std::vector<double> dice, tpr, fdr, jaccard;
   std::vector<int> count1, count2, count12/*intersection*/, countFD;
@@ -755,6 +757,8 @@ public:
   int WriteDiceDat(char *fname);
   int PrintDiceTable(FILE *fp);
   int WriteDiceTable(char *fname);
+  int PrintDiceStats(FILE *fp);
+  int WriteDiceStats(const char *fname);
 };
 
 #endif
