@@ -606,11 +606,13 @@ if __name__ == "__main__":
                 print('Use --skip flag to automatically skip bad or missing stats files')
                 print("")
                 sys.exit(1)
+
+        caseid = parsed.caselist[0] if (parsed.caselist) else specifier
         nmeasures = len(measurelist)
         if nmeasures0 is None: nmeasures0 = nmeasures
         if nmeasures != nmeasures0 and not options.common_flag and not options.all_flag:
-            print("WARN: %s nmeasures = %d, expecting %d" % (specifier, nmeasures, nmeasures0))
-        pretable.append( (specifier, id_name_map, measurelist) )
+            print("WARN: %s nmeasures = %d, expecting %d" % (caseid, nmeasures, nmeasures0))
+        pretable.append( (caseid, id_name_map, measurelist) )
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
