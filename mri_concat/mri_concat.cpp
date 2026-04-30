@@ -134,6 +134,7 @@ int DoFNorm = 0;
 char *rusage_file=NULL;
 //MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
 COLOR_TABLE *ctab=NULL;
+int NoCtab = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -760,6 +761,7 @@ int main(int argc, char **argv)
   }
 
   if(ctab) mriout->ct = ctab;
+  if(NoCtab) mriout->ct = NULL;
 
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
@@ -1126,6 +1128,9 @@ static int parse_commandline(int argc, char **argv)
       if(!ctab) exit(1);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--no-ctab")){
+      NoCtab = 1;
+    }
     else if (!strcasecmp(option, "--tar1"))
     {
       if(nargc < 1)
@@ -1238,6 +1243,7 @@ static void print_usage(void)
 
   printf("   --vote-ex0 : most frequent value at each voxel excluding 0 and fraction of occurances\n");
   printf("   --ctab ctab : embed color table in the output\n");
+  printf("   --no-ctab : remove any ctab before saving\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("   --tar1 dofadjust : compute temporal ar1\n");
   printf("   --prune : set vox to 0 unless all frames are non-zero\n");
