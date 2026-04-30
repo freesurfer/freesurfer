@@ -47,6 +47,37 @@
 #include "mri_identify.h"
 #include "cmdargs.h"
 
+#if 0
+int CTABindex2segid(MRI *indexseg, COLOR_TABLE *ctab)
+{
+  if(ctab == NULL) ctab = indexseg->ct;
+  if(ctab == NULL){
+    printf("ERROR: CTABindex2segid(): need ctab\n");
+    return(1);
+  }
+  std::vector<int> index2segid;
+  for(int segid = 0; segid < ctab->nentries; segid++) {
+    if(!ctab->entries[segid]) continue;
+    index2segid.push_back(segid);
+  }
+  for(int c=0; c < indexseg->width; c++){
+    for(int r=0; r < indexseg->height; r++){
+      for(int s=0; s < indexseg->depth; s++){
+	int index = MRIgetVoxVal(indexseg,c,r,s,0);
+	if(index >= ctab->nentries){
+	  printf("ERROR: CTABindex2segid(): (%d,%d,%d) index=%d ctabmax=%d\n",c,r,s,index,ctab->nentries);
+	  return(1);
+	}
+	int segid = index2segid[index];
+	MRIsetVoxVal(indexseg,c,r,s,0,segid);
+      }
+    }
+  }
+  return(0);
+}
+#endif
+
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -763,11 +794,16 @@ int main(int argc, char **argv)
   if(ctab) mriout->ct = ctab;
   if(NoCtab) mriout->ct = NULL;
 
+  if(mriout->ct && DoMaxIndex){
+    printf("Renumbering index2segid\n");
+    MRIindex2segid(mriout,NULL);
+  }
+
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
   if(err) exit(err);
 
-  if(debug) PrintRUsage(RUSAGE_SELF, "mri_ca_label ", stdout);
+  if(debug) PrintRUsage(RUSAGE_SELF, "mri_concat ", stdout);
   if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   return(0);
