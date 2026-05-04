@@ -1127,6 +1127,9 @@ changing slices</string>
       <property name="alternatingRowColors">
        <bool>false</bool>
       </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::ExtendedSelection</enum>
+      </property>
       <property name="rootIsDecorated">
        <bool>false</bool>
       </property>

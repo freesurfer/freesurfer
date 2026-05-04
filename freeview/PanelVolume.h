@@ -148,6 +148,10 @@ protected slots:
 
   void OnCheckBoxSetOffsetToMean(bool b);
 
+  void OnCheckAllSelectedLabelItems();
+
+  void OnUncheckAllSelectedLabelItems();
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );
   void DoUpdateWidgets();
