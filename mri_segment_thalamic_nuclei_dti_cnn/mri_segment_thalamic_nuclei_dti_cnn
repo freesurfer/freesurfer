@@ -33,6 +33,15 @@ K.set_image_data_format('channels_last')
 #                                         Main Entrypoint
 # ================================================================================================
 
+def batch_normalization(axis, name, tensor):
+    major, minor, patch = (int(x) for x in tf.__version__.split(".")[:3])
+    if (major, minor) <= (2, 13):
+        # Old behavior requires fused=False
+        return keras.layers.BatchNormalization(axis=axis, name=name, fused=False)(tensor)
+    else:
+        # New behavior (fused argument removed)
+        return keras.layers.BatchNormalization(axis=axis, name=name)(tensor)
+
 
 def main():
     # parse arguments
@@ -1062,7 +1071,7 @@ def conv_enc(nb_features,
 
         if batch_norm is not None:
             name = '%s_bn_down_%d' % (prefix, level)
-            last_tensor = keras.layers.BatchNormalization(axis=batch_norm, name=name, fused=False)(last_tensor)
+            last_tensor = batch_normalization(batch_norm, name, last_tensor)
 
         # max pool if we're not at the last level
         if level < (nb_levels - 1):
@@ -1197,7 +1206,7 @@ def conv_dec(nb_features,
 
         if batch_norm is not None:
             name = '%s_bn_up_%d' % (prefix, level)
-            last_tensor = keras.layers.BatchNormalization(axis=batch_norm, name=name, fused=False)(last_tensor)
+            last_tensor = batch_normalization(batch_norm, name, last_tensor)
 
     # Compute likelyhood prediction (no activation yet)
     name = '%s_likelihood' % prefix
