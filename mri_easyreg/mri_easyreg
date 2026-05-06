@@ -23,12 +23,15 @@ K.set_image_data_format('channels_last')
 
 def batch_normalization(axis, name, tensor):
     major, minor, patch = (int(x) for x in tf.__version__.split(".")[:3])
-    if (major, minor) <= (2, 13):
-        # Old behavior requires fused=False
+    if (os.getenv("TF_USE_LEGACY_KERAS")):
         return KL.BatchNormalization(axis=axis, name=name, fused=False)(tensor)
-    else:
-        # New behavior (fused argument removed)
-        return KL.BatchNormalization(axis=axis, name=name)(tensor)
+    else:    
+        if (major, minor) <= (2, 13):
+            # Old behavior requires fused=False
+            return KL.BatchNormalization(axis=axis, name=name, fused=False)(tensor)
+        else:
+            # New behavior (fused argument removed)
+            return KL.BatchNormalization(axis=axis, name=name)(tensor)
 
 
 def main():

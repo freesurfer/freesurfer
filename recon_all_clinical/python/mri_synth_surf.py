@@ -30,12 +30,15 @@ def batch_normalization(axis, name, tensor):
     fused_batch_norm = False if (platform.system() == 'Darwin' and platform.machine() == 'arm64') else None
     
     major, minor, patch = (int(x) for x in tf.__version__.split(".")[:3])
-    if (major, minor) <= (2, 13):
-        # Old behavior requires fused=False
+    if (os.getenv("TF_USE_LEGACY_KERAS")):
         return keras.layers.BatchNormalization(axis=axis, name=name, fused=fused_batch_norm)(tensor)
     else:
-        # New behavior (fused argument removed)
-        return keras.layers.BatchNormalization(axis=axis, name=name)(tensor)
+        if (major, minor) <= (2, 13):
+            # Old behavior requires fused=False
+            return keras.layers.BatchNormalization(axis=axis, name=name, fused=fused_batch_norm)(tensor)
+        else:
+            # New behavior (fused argument removed)
+            return keras.layers.BatchNormalization(axis=axis, name=name)(tensor)
 
 def main():
 
