@@ -3,7 +3,7 @@ ImageIO==2.37.2
 Jinja2
 Markdown==3.9
 MarkupSafe==3.0.3
-# PySocks@file:///home/conda/feedstock_root/build_artifacts/pysocks_1733217236728/work
+# PySocks@file:///home/conda/feedstock_root/build_artifacts/pysocks_1661604839144/work
 PyYAML==6.0.3
 Pygments==2.20.0
 # PyWavelets==1.6.0
@@ -11,49 +11,53 @@ SynthSeg@git+https://github.com/jnolan14/SynthSeg.git@standalone_predict39
 Werkzeug==3.1.8
 absl-py==2.3.1
 astunparse==1.6.3
-# brotlipy@file:///Users/runner/miniforge3/conda-bld/brotlipy_1725393348365/work
+# boltons@file:///home/conda/feedstock_root/build_artifacts/boltons_1711936407380/work
 cachetools==6.2.6
-certifi==2026.1.4
 # certifi@file:///home/conda/feedstock_root/build_artifacts/certifi_1754231422783/work/certifi
-# cffi@file:///Users/runner/miniforge3/conda-bld/cffi_1725560622100/work
-# charset-normalizer@file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1661170624537/work
+cffi==2.0.0
+# charset-normalizer@file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1698833585322/work
 charset-normalizer==3.4.4
-# colorama@file:///home/conda/feedstock_root/build_artifacts/colorama_1655412516417/work
-# conda-package-handling@file:///home/conda/feedstock_root/build_artifacts/conda-package-handling_1736345463896/work
-# conda==4.14.0
-# conda_package_streaming@file:///home/conda/feedstock_root/build_artifacts/conda-package-streaming_1751548120229/work
+# colorama@file:///home/conda/feedstock_root/build_artifacts/colorama_1666700638685/work
+# conda@file:///Users/runner/miniforge3/conda-bld/conda_1754405378105/work/conda-src
+# conda-libmamba-solver@file:///home/conda/feedstock_root/build_artifacts/conda-libmamba-solver_1745834476052/work/src
+# conda-package-handling@file:///home/conda/feedstock_root/build_artifacts/conda-package-handling_1691048088238/work
+# conda_package_streaming@file:///home/conda/feedstock_root/build_artifacts/conda-package-streaming_1691009212940/work
 contourpy==1.3.0
-# cryptography@file:///Users/runner/miniforge3/conda-bld/cryptography-split_1672673285537/work
+cryptography==48.0.0
 cycler==0.12.1
 deepsurfer==0.1.1a5
+# distro@file:///home/conda/feedstock_root/build_artifacts/distro_1704321475663/work
 filelock==3.19.1
 fireants@git+https://github.com/jnolan14/FireANTs.git@66d54fef55e42ee3906f5514c50c16b1668e225a
 flatbuffers==25.12.19
 fonttools==4.60.2
+# frozendict@file:///Users/runner/miniforge3/conda-bld/frozendict_1728841376066/work
 fsspec==2025.10.0
 future==1.0.0
 gast==0.7.0
 gems==0.4.0
 google-auth-oauthlib==1.3.1
-google-auth==2.49.2
+google-auth==2.50.0
 google-pasta==0.2.0
 grpcio==1.80.0
 h5py==3.14.0
 idna==3.11
-# idna@file:///home/conda/feedstock_root/build_artifacts/idna_1642433548627/work
+# idna@file:///home/conda/feedstock_root/build_artifacts/idna_1701026962277/work
 importlib_metadata==8.7.1
 importlib_resources==6.5.2
 joblib==1.5.3
+# jsonpatch@file:///home/conda/feedstock_root/build_artifacts/jsonpatch_1695536281965/work
+# jsonpointer@file:///Users/runner/miniforge3/conda-bld/jsonpointer_1725302889598/work
 keras==3.10.0
 kiwisolver==1.4.7
 lazy-loader==0.5
 libclang==18.1.1
-# libmambapy@file:///Users/runner/miniforge3/conda-bld/mamba-split_1661285844041/work/libmambapy
-# mamba@file:///Users/runner/miniforge3/conda-bld/mamba-split_1661285844041/work/mamba
+# libmambapy@file:///Users/runner/miniforge3/conda-bld/bld/rattler-build_libmambapy_1753777003/work/libmambapy
 llvmlite==0.43.0
 markdown-it-py==3.0.0
 matplotlib==3.9.4
 mdurl==0.1.2
+# menuinst@file:///Users/runner/miniforge3/conda-bld/menuinst_1753546343304/work
 ml_dtypes==0.5.4
 mpmath==1.3.0
 namex==0.1.0
@@ -66,62 +70,58 @@ oauthlib==3.3.1
 ## wheel does not finish buildiing on darwin_arm64
 # opencv-python
 opt_einsum==3.4.0
-optree==0.19.0
+optree==0.19.1
+# packaging@file:///home/conda/feedstock_root/build_artifacts/packaging_1710075952259/work
 packaging==26.2
-# pandas=2.3.3
+# pandas==2.3.3
 pillow==11.3.0
-protobuf==6.33.6
-# pyOpenSSL@file:///home/conda/feedstock_root/build_artifacts/pyopenssl_1643496850550/work
+# platformdirs@file:///home/conda/feedstock_root/build_artifacts/platformdirs_1706713388748/work
+# pluggy@file:///home/conda/feedstock_root/build_artifacts/pluggy_1706116770704/work
+protobuf==5.29.6
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
 # pycosat@file:///Users/runner/miniforge3/conda-bld/pycosat_1732588445684/work
-# pycparser@file:///home/conda/feedstock_root/build_artifacts/pycparser_1636257122734/work
+# pycparser@file:///home/conda/feedstock_root/build_artifacts/pycparser_1711811537435/work
 pyparsing==3.3.2
 pystrum@git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
 python-dateutil==2.9.0.post0
-pytz==2026.1.post1
-# requests@file:///home/conda/feedstock_root/build_artifacts/requests_1656534056640/work
+pytz==2026.2
+# requests@file:///home/conda/feedstock_root/build_artifacts/requests_1684774241324/work
 requests-oauthlib==2.0.0
-requests==2.32.5
 rich==15.0.0
 rsa==4.9.1
-# ruamel-yaml-conda@file:///Users/runner/miniforge3/conda-bld/ruamel_yaml_1695546309954/work
+# ruamel.yaml@file:///Users/runner/miniforge3/conda-bld/ruamel.yaml_1755625075382/work
+# ruamel.yaml.clib@file:///Users/runner/miniforge3/conda-bld/ruamel.yaml.clib_1728724493881/work
 scikit-image==0.24.0
 scikit-learn==1.6.1
 scipy==1.13.1
 segment-anything==1.0
-six==1.17.0
 simpleitk==2.5.4
-# six@file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
+six==1.17.0
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
-# surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
+# surfa@git+https://github.com/freesurfer/surfa.git@0a04738981ffebe29f6e35bf9bd8c4458c82e50f
 git+https://github.com/freesurfer/surfa.git@master
-## pip cannot solve for spec with version
-# sympy=1.13.1
+# sympy==1.13.1
 sympy
 tensorboard-data-server==0.7.2
-tensorboard==2.20.0
+tensorboard==2.19.0
 tensorflow-estimator==2.15.0
 tensorflow-io-gcs-filesystem==0.37.1
 tensorflow-macos==2.15.1
 tensorflow-metal==1.2.0
-tensorflow==2.20.0
+tensorflow==2.19.1
 termcolor==3.1.0
-tf_keras==2.20.1
+tf_keras==2.19.0
 threadpoolctl==3.6.0
 tifffile==2024.8.30
-# toolz@file:///home/conda/feedstock_root/build_artifacts/toolz_1657485559105/work
 torch==2.6.0
-# torch==2.8.0
-# tqdm@file:///home/conda/feedstock_root/build_artifacts/tqdm_1649051611147/work
-## pip did not solve for anything
-# tqdm
+# tqdm@file:///home/conda/feedstock_root/build_artifacts/tqdm_1707598593068/work
 transforms3d==0.4.2
-trimesh==4.12.1
+trimesh==4.12.2
 typing_extensions==4.15.0
 tzdata==2026.2
 urllib3==1.26.15
-uv==0.11.8
+uv==0.11.10
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4
 wrapt==2.1.2
 xxhash==3.7.0
