@@ -299,6 +299,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxAutoWindowSlice, SIGNAL(toggled(bool)), p, SLOT(SetAutoWindowSlice(bool)));
 
   ui->colorLabelBrushValue->installEventFilter(this);
+  ui->treeWidgetColorTable->viewport()->installEventFilter(this);
 }
 
 bool PanelVolume::eventFilter(QObject *watched, QEvent *event)
@@ -308,6 +309,12 @@ bool PanelVolume::eventFilter(QObject *watched, QEvent *event)
     QMouseEvent* e = static_cast<QMouseEvent*>(event);
     if (e->button() == Qt::LeftButton)
       OnColorTableChangeColor();
+  }
+  else if (watched == ui->treeWidgetColorTable->viewport() && event->type() == QEvent::MouseButtonPress)
+  {
+    QMouseEvent* e = static_cast<QMouseEvent*>(event);
+    if (e->button() == Qt::RightButton)
+      return true;
   }
 
   return PanelLayer::eventFilter(watched, event);
@@ -1805,8 +1812,8 @@ void PanelVolume::OnCheckBoxSelectAllLabels(int nState)
   }
   ui->treeWidgetColorTable->blockSignals(false);
 
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     if (layer->IsTypeOf("VolumeTrack"))
     {
@@ -1830,8 +1837,8 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
 {
   ui->checkBoxSelectAllLabels->blockSignals(true);
   ui->checkBoxSelectAllLabels->setCheckState(Qt::PartiallyChecked);
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     int nVal = item->data(0, Qt::UserRole+1).toInt();
     QList<int> selected;
@@ -1875,10 +1882,23 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
   if (sender() == ui->treeWidgetColorTable)
   {
     QMenu menu;
-    QAction* act = new QAction(this);
+    QAction* act;
     QTreeWidgetItem* item = ui->treeWidgetColorTable->itemAt(pt);
     if (item)
     {
+      QList<QTreeWidgetItem*> sel_items = ui->treeWidgetColorTable->selectedItems();
+      if (sel_items.size() > 1)
+      {
+        act = new QAction(this);
+        act->setText("Check All");
+        connect(act, SIGNAL(triggered(bool)), SLOT(OnCheckAllSelectedLabelItems()));
+        menu.addAction(act);
+        act = new QAction(this);
+        act->setText("Uncheck All");
+        connect(act, SIGNAL(triggered(bool)), SLOT(OnUncheckAllSelectedLabelItems()));
+        menu.addAction(act);
+        menu.addSeparator();
+      }
       double val = item->data(0, Qt::UserRole+1).toDouble();
       LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
       if ( layer )
@@ -1888,6 +1908,7 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
         layer->GetWorldVoxelSize(vs);
         if (layer->GetLayerLabelCenter(val, pos))
         {
+          act = new QAction(this);
           act->setText("Go to Centroid");
           connect(act, SIGNAL(triggered()), SLOT(OnColorTableItemDoubleClicked()));
           menu.addAction(act);
@@ -1917,6 +1938,7 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
         }
         else
         {
+          act = new QAction(this);
           act->setText("Label does not exist in volume");
           menu.addAction(act);
         }
@@ -2136,4 +2158,18 @@ void PanelVolume::OnSetShowAsContour(bool b)
       }
     }
   }
+}
+
+void PanelVolume::OnCheckAllSelectedLabelItems()
+{
+  QList<QTreeWidgetItem*> items = ui->treeWidgetColorTable->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+    item->setCheckState(0, Qt::Checked);
+}
+
+void PanelVolume::OnUncheckAllSelectedLabelItems()
+{
+  QList<QTreeWidgetItem*> items = ui->treeWidgetColorTable->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+    item->setCheckState(0, Qt::Unchecked);
 }

@@ -329,9 +329,11 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     cube->SetXLength(voxel_size[0]);
     cube->SetYLength(voxel_size[1]);
     cube->SetZLength(voxel_size[2]);
+
     vtkSmartPointer<vtkGlyph3DMapper> glyph = vtkSmartPointer<vtkGlyph3DMapper>::New();
     glyph->SetSourceConnection(cube->GetOutputPort());
     glyph->SetScaleModeToNoDataScaling();
+    glyph->UseSelectionIdsOn();
 #if VTK_MAJOR_VERSION > 5
     glyph->SetInputData(polydata);
 #else
@@ -343,7 +345,7 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     actor_out->SetMapper(glyph);
     glyph->ScalarVisibilityOn();
 
-/*
+    /*
     vtkSmartPointer<vtkGlyph3D> glyph = vtkSmartPointer<vtkGlyph3D>::New();
     glyph->SetSourceConnection(cube->GetOutputPort());
     glyph->SetScaleModeToDataScalingOff();

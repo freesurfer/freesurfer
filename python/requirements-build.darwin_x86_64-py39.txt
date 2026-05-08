@@ -1,0 +1,103 @@
+ImageIO==2.37.2
+# Jinja2==3.1.6
+Jinja2
+Markdown==3.9
+MarkupSafe==3.0.3
+PyWavelets==1.6.0
+PyYAML==6.0.3
+SynthSeg@git+https://github.com/jnolan14/SynthSeg.git@standalone_predict39
+Werkzeug==3.1.8
+absl-py==2.3.1
+astunparse==1.6.3
+cachetools==6.2.6
+certifi==2026.4.22
+cffi==2.0.0
+charset-normalizer==3.4.7
+contourpy==1.3.0
+cryptography==48.0.0
+cycler==0.12.1
+deepsurfer==0.1.1a5
+filelock==3.19.1
+fireants@git+https://github.com/jnolan14/FireANTs.git@66d54fef55e42ee3906f5514c50c16b1668e225a
+flatbuffers==25.12.19
+fonttools==4.60.2
+fsspec==2025.10.0
+gast==0.7.0
+google-auth-oauthlib==1.0.0
+google-auth==2.50.0
+google-pasta==0.2.0
+grpcio==1.80.0
+h5py==3.14.0
+idna==3.13
+importlib_metadata==8.7.1
+importlib_resources==6.5.2
+joblib==1.5.3
+keras==2.14.0
+kiwisolver==1.4.7
+lazy-loader==0.5
+libclang==18.1.1
+llvmlite==0.43.0
+matplotlib==3.9.4
+ml-dtypes==0.2.0
+mpmath==1.3.0
+networkx==3.2.1
+git+https://github.com/adalca/neurite.git@95b2b568b124cbc654467177ddcdb2cb3526788c
+nibabel==5.3.3
+numba==0.60.0
+numpy==1.26.4
+oauthlib==3.3.1
+opencv-python==4.11.0.86
+opt_einsum==3.4.0
+packaging==26.2
+pandas==2.3.3
+pillow==11.3.0
+protobuf==4.25.9
+pyasn1==0.6.3
+pyasn1_modules==0.4.2
+pycparser==2.23
+# pyfs==0.0.0
+pyparsing==3.3.2
+git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
+python-dateutil==2.9.0.post0
+# pytz==2026.2
+# qatoolspython==0.9.6b0
+requests-oauthlib==2.0.0
+requests==2.32.5
+rsa==4.9.1
+scikit-image==0.24.0
+scikit-learn==1.6.1
+scipy==1.13.1
+segment-anything==1.0
+simpleitk==2.5.4
+six==1.17.0
+# spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
+# specify hash for 8.2.0 release
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
+# surfa@git+https://github.com/freesurfer/surfa.git@ec5ddb193fd1caf22ec654c457b5678f6bd8e460
+# surfa@git+https://github.com/freesurfer/surfa.git@78957160b63a01f4cbfce13b45d63d40d28f87f9
+# specify hash for 8.2.0 release
+# surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
+git+https://github.com/freesurfer/surfa.git@master
+# sympy==1.14.0
+tensorboard-data-server==0.7.2
+tensorboard==2.14.1
+tensorflow-estimator==2.14.0
+tensorflow-io-gcs-filesystem==0.37.1
+tensorflow==2.14.0
+termcolor==3.1.0
+threadpoolctl==3.6.0
+tifffile==2024.8.30
+# --find-links https://download.pytorch.org/whl/torch_stable.html
+# torch==2.6.0
+torch==2.2.2
+# tqdm==4.67.3
+transforms3d==0.4.2
+trimesh==4.12.2
+typing_extensions==4.15.0
+tzdata==2026.2
+urllib3==2.6.3
+uv==0.11.11
+voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4
+wrapt==1.14.2
+xxhash==3.7.0
+zipp==3.23.1
