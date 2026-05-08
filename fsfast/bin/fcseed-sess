@@ -154,7 +154,7 @@ foreach sess ($SessList)
         set seganat = $tmpdir/wm.seg.$FSF_OUTPUT_FORMAT
         set cmd = (mri_binarize --i $apas --o $seganat \
           --match 2 41 7 46 251 252 253 254 255 77 78 79)
-        if($WMErode > 0) set cmd = ($cmd --erode $WMErode)
+        if($Erode > 0) set cmd = ($cmd --erode $Erode)
         echo $cmd | tee -a $LLF
         $cmd | tee -a $LLF
         if($status) then
@@ -236,6 +236,7 @@ foreach sess ($SessList)
         if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
         if($RescaleType == 1) set cmd = ($cmd --mul 100 --div $gmval)
         if($RescaleType == 2) set cmd = ($cmd --rescale-local 100)
+        if($Erode > 0) set cmd = ($cmd --erode $Erode)
         echo $cmd | tee -a $LLF
         $cmd | tee -a $LLF
         if($status) exit 1;
@@ -388,7 +389,11 @@ check_params:
   set DoSVD   = `cat $fcconfig | awk '{if($1 == "DoSVD") print $2}'`
   set DoSqr   = `cat $fcconfig | awk '{if($1 == "DoSqr") print $2}'`
   if($#MakeMask == 0) set MakeMask = `cat $fcconfig | awk '{if($1 == "MakeMask") print $2}'`
-  set WMErode = `cat $fcconfig | awk '{if($1 == "WMErode") print $2}'`
+  set Erode = `cat $fcconfig | awk '{if($1 == "Erode") print $2}'`
+  if($#Erode == 0) then
+    set Erode = `cat $fcconfig | awk '{if($1 == "WMErode") print $2}'`
+    if($#Erode == 0) set Erode = 0
+  endif
   set SVDSynth = `cat $fcconfig | awk '{if($1 == "SVDSynth") print $2}'`
   set DoWM   = `cat $fcconfig | awk '{if($1 == "DoWM") print $2}'`
   set rlf = `cat $fcconfig | awk '{if($1 == "RunListFile") print $2}'`
@@ -471,7 +476,7 @@ usage_exit:
   echo "   -s  sessid      "
   echo "   -d  srchdir     "
   echo ""
-  echo "   -make-mask : create an output mask of the seed region"
+  echo "   -make-mask : create an output mask of the seed region (does not do anything)"
   echo "   -no-make-mask : do not create an output mask of the seed region"
   echo "   -overwrite : delete and overwrite any existing files"
   echo ""
