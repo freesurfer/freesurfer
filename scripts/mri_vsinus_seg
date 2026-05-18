@@ -22,6 +22,7 @@ set ctab = ()
 
 set fov = 144 # shape of the unet
 
+set pt_model = ()
 set invol = ();
 set outdir = ();
 set subject = ();
@@ -159,9 +160,14 @@ endif
 set segcrop = $outdir/vsinus.crop-to-prior.norev.mgz
 set ud = `UpdateNeeded $segcrop $involcrop`
 if($ud) then
-  set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac --conform\
+  set cmd = (mri_sclimbic_seg --ctab $ctab --keep_ac --conform\
     --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
     --fov $fov --threads $threads --no-cite-sclimbic --i $involcrop --o $segcrop)
+  if($#pt_model) then
+    set cmd = ($cmd --pt_model $pt_model)
+  else
+    set cmd = ($cmd --model $model)
+  endif
   if($DoPost) set cmd = ($cmd --write_posteriors)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -383,6 +389,11 @@ while( $#argv != 0 )
     case "--m":
       if($#argv < 1) goto arg1err;
       set model = $argv[1]; shift;
+      breaksw
+
+    case "--pt_model":
+      if($#argv < 1) goto arg1err;
+      set pt_model = $argv[1]; shift;    
       breaksw
 
     case "--ctab":

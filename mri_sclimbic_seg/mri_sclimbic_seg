@@ -15,8 +15,8 @@ import surfa as sf
 import scipy.ndimage
 
 
-# defer tensorflow import until we need it (for faster command-line parsing)
-tf = None
+# defer tensorflow, pytorch import until we need it (for faster command-line parsing)
+tf, pt = None, None
 
 
 description = """
@@ -88,6 +88,7 @@ def main():
     parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
     parser.add_argument('--model', help='Alternative model weights to load.')
+    parser.add_argument('--pt_model', help='Pytorch model weights to load.')
     parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation. Must be minimal, including 0, and sorted.')
     parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
@@ -143,22 +144,45 @@ def main():
 
     cuda_device = os.getenv('CUDA_VISIBLE_DEVICES')
     if cuda_device is None or cuda_device == '-1':
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-        print('Using CPU')
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # hide gpu
+
+    if (args.pt_model):
+        # defer pytorch importing until after parsing
+        global pt
+        import torch as pt
+        if pt.cuda.is_available():
+            device = pt.device("cuda")
+            print('Using GPU device', cuda_device)
+        else:
+            device = pt.device("cpu")
+            print('Using CPU')
+
+        # set number of threads
+        print('Using %d thread(s)' % args.threads)
+        pt.set_num_threads(args.threads)          # set the number of threads used for intraop parallelism on CPU
+        pt.set_num_interop_threads(args.threads)  # set the number of threads used for interop parallelism on CPU    
+
+        model_file = args.pt_model
     else:
-        print('Using GPU device', cuda_device)
+        device = None
+        if (os.environ['CUDA_VISIBLE_DEVICES'] == '-1'):
+            print('Using CPU')
+        else:
+            print('Using GPU device', cuda_device)
 
-    # defer tensorflow importing until after parsing
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.debug else '3'
-    global tf
-    import tensorflow as tf
-    if not args.debug:
-        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+        # defer tensorflow importing until after parsing
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.debug else '3'
+        global tf
+        import tensorflow as tf
+        if not args.debug:
+            tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-    # set number of threads
-    print('Using %d thread(s)' % args.threads)
-    tf.config.threading.set_inter_op_parallelism_threads(args.threads)
-    tf.config.threading.set_intra_op_parallelism_threads(args.threads)
+        # set number of threads
+        print('Using %d thread(s)' % args.threads)
+        tf.config.threading.set_inter_op_parallelism_threads(args.threads)
+        tf.config.threading.set_intra_op_parallelism_threads(args.threads)
+
+        model_file = args.model if args.model else os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
 
     percentile = args.percentile
     if args.sevenT:
@@ -180,7 +204,6 @@ def main():
     print('Loaded population stats', pop_stats_file)
 
     # load model weights and initialize segmenter
-    model_file = args.model if args.model else os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
     segmenter = LimbicSegmenter(model_file=model_file,
                                 labels=labels,
                                 population_stats=population_stats,
@@ -193,7 +216,8 @@ def main():
                                 exclude=args.exclude,
                                 inshape=(args.fov,args.fov,args.fov),
                                 nfeatures=args.features,
-                                nchannels=args.nchannels);
+                                nchannels=args.nchannels,
+                                device=device);
     print('Loaded model weights', model_file) 
 
     # loop through each image and segment
@@ -389,7 +413,8 @@ class LimbicSegmenter:
                  exclude=[],
                  inshape=(160,160,160),
                  nfeatures=24,
-                 nchannels=1):
+                 nchannels=1,
+                 device=None):
 
         self.labels = labels
         self.population_stats = population_stats
@@ -406,6 +431,9 @@ class LimbicSegmenter:
         self.percentile = percentile
         self.nchannels = nchannels;
         self.nfeatures = nfeatures;
+        self.device = device
+        if (pt is not None and self.device is None):
+            self.device = pt.device("cpu") 
 
         # build mask of labels to exclude in stats output files
         # always ignore unknown label
@@ -415,29 +443,52 @@ class LimbicSegmenter:
         print(f'nb_labels {len(self.labels)}');
         # build and load model
         print(f'inshape {self.inshape} features {nfeatures}')
-        self.model = unet(nb_features=nfeatures,
-                          input_shape=(*self.inshape, self.nchannels),
-                          nb_levels=3,
-                          conv_size=3,
-                          nb_labels=len(self.labels),
-                          name='unet',
-                          prefix=None,
-                          feat_mult=2,
-                          pool_size=2,
-                          padding='same',
-                          dilation_rate_mult=1,
-                          activation='elu',
-                          use_residuals=False,
-                          final_pred_activation='softmax',
-                          nb_conv_per_level=2,
-                          layer_nb_feats=None,
-                          conv_dropout=0,
-                          batch_norm=-1,
-                          input_model=None)
-        print(f'  {self.model.layers[0].input_shape[0]}');
-        print(f"Loading weights from {model_file} -----------------------");
-        self.model.load_weights(model_file, by_name=True)
-        print("Done loading weights -----------------------");
+
+        if (pt is not None):
+            ### Freeseg integration
+            from freeseg.checkpoint import Checkpoint
+            from freeseg.utils import utility as utils
+
+            checkpoint = Checkpoint()
+            checkpoint.load(model_file, device=self.device)
+            assert checkpoint.model_arch_dict is not None, "Model architecture information not available."
+            #assert checkpoint.train_dataset_dict is not None, "Training dataset information not available."
+
+            the_model_name = checkpoint.model_arch_dict.get("class", None)
+            assert the_model_name is not None, "Model name is not available."
+
+            model_class = utils.get_class(the_model_name)
+            self.model = model_class(checkpoint.model_arch_dict).to(self.device)
+            #print(f'  {self.model.layers[0].input_shape[0]}')
+            print(f"Loading weights from {model_file} -----------------------")
+            self.model.load_state_dict(checkpoint.model_state_dict)
+            self.model.eval()
+            print("Done loading weights -----------------------")
+            ### End of Freeseg integration            
+        else:
+            self.model = unet(nb_features=nfeatures,
+                            input_shape=(*self.inshape, self.nchannels),
+                            nb_levels=3,
+                            conv_size=3,
+                            nb_labels=len(self.labels),
+                            name='unet',
+                            prefix=None,
+                            feat_mult=2,
+                            pool_size=2,
+                            padding='same',
+                            dilation_rate_mult=1,
+                            activation='elu',
+                            use_residuals=False,
+                            final_pred_activation='softmax',
+                            nb_conv_per_level=2,
+                            layer_nb_feats=None,
+                            conv_dropout=0,
+                            batch_norm=-1,
+                            input_model=None)
+            print(f'  {self.model.layers[0].input_shape[0]}');
+            print(f"Loading weights from {model_file} -----------------------");
+            self.model.load_weights(model_file, by_name=True)
+            print("Done loading weights -----------------------");
 
     def reset_timer(self):
         """
@@ -537,7 +588,21 @@ class LimbicSegmenter:
 
         # posterior prediction
         self.reset_timer()
-        prediction = self.model.predict(conformed.framed_data[np.newaxis]).squeeze()
+        if (pt is not None):
+            # reshape conformed image data to [C, H, W, D], add batch dimension -> [B, C, H, W, D]
+            # ??? Q. without the copy(), got the following error when segmenting bert vsinus:
+            # *** ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)
+
+            conformed_tensor = pt.from_numpy(conformed.framed_data.copy()).movedim(-1, 0).unsqueeze(0).to(self.device)
+            with pt.no_grad():
+                (prediction, _) = self.model(conformed_tensor)
+                #(prediction, _) = self.model(np.moveaxis(conformed.framed_data[np.newaxis], -1, 1).to(self.device))
+
+            # move prediction tensor to cpu, reshape it to [B, H, W, D, C], remove batch dimension -> [H, W, D, C]
+            prediction = prediction.cpu().movedim(1, -1).squeeze()            
+        else:
+            prediction = self.model.predict(conformed.framed_data[np.newaxis]).squeeze()
+        
         self.print_time('Prediction time')
         
         self.reset_timer()
