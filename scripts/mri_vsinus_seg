@@ -22,6 +22,7 @@ set ctab = ()
 
 set fov = 144 # shape of the unet
 
+set pt_model = ()
 set invol = ();
 set outdir = ();
 set subject = ();
@@ -39,7 +40,6 @@ set rcasynthseg = 0
 
 set ForceUpdate = 0
 
-set tmpdir = ();
 set cleanup = -1;
 set LF = ();
 
@@ -73,12 +73,6 @@ mkdir -p $outdir/log
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
-
-if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.mri_vsinus_seg.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.mri_vsinus_seg.$$
-endif
-mkdir -p $tmpdir
 
 # Set up log file
 if($cleanup) set LF = `fname2stem $seg`.log
@@ -129,7 +123,7 @@ set lta = $synthmorphdir/reg.targ_to_invol.lta
 # Map the prior from mni152 to native space (have to use LTA, not warp)
 set prior = $outdir/native.avg12567.prior.mgz
 set ud = `UpdateNeeded $prior $lta $invol`
-if($ud) then
+if($ud || $ForceUpdate) then
   set cmd = (mri_vol2vol --mov $priormni --lta $lta --targ $invol --o $prior)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -138,7 +132,7 @@ endif
 # This create the minimum crop around the prior (vox values unimportant)
 set priormincrop = $outdir/native.avg12567.prior.mincrop.mgz
 set ud = `UpdateNeeded $priormincrop $prior`
-if($ud) then
+if($ud || $ForceUpdate) then
   set cmd = (mri_mask -T .001 -crop 0 $prior $prior $priormincrop)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -147,7 +141,7 @@ endif
 # Map the intensity image to the mincrop, padded to $fov
 set involcrop = $outdir/invol.crop-to-prior.norev.mgz
 set ud = `UpdateNeeded $involcrop $priormincrop $invol`
-if($ud) then
+if($ud || $ForceUpdate) then
   set cmd = (mri_binarize --crop-around-ras $involcrop $invol \
     nolta cras $priormincrop 0 $fov $fov $fov)
   echo $cmd | tee -a $LF
@@ -158,10 +152,15 @@ endif
 # Now do the segmentation in this cropped space
 set segcrop = $outdir/vsinus.crop-to-prior.norev.mgz
 set ud = `UpdateNeeded $segcrop $involcrop`
-if($ud) then
-  set cmd = (mri_sclimbic_seg --model $model --ctab $ctab --keep_ac --conform\
+if($ud || $ForceUpdate) then
+  set cmd = (mri_sclimbic_seg --ctab $ctab --keep_ac --conform\
     --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
     --fov $fov --threads $threads --no-cite-sclimbic --i $involcrop --o $segcrop)
+  if($#pt_model) then
+    set cmd = ($cmd --pt_model $pt_model)
+  else
+    set cmd = ($cmd --model $model)
+  endif
   if($DoPost) set cmd = ($cmd --write_posteriors)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -173,7 +172,7 @@ set ctxsegmask = ()
 if($#ctxseg) then
   set ctxsegmask = $outdir/ctxsegmask.mgz
   set ud = `UpdateNeeded $ctxsegmask $ctxseg`
-  if($ud) then
+  if($ud || $ForceUpdate) then
     set cmd = (mri_binarize --i $ctxseg --match 3 42 --inv --o $ctxsegmask)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -183,7 +182,7 @@ endif
 
 # Map back to the native input space 
 set ud = `UpdateNeeded $seg $segcrop $ctxsegmask`
-if($ud) then
+if($ud || $ForceUpdate) then
   set cmd = (mri_vol2vol --mov $segcrop --targ $invol --interp nearest --o $seg --regheader)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -210,7 +209,7 @@ endif
 if($#subject) then
   set stats = $SUBJECTS_DIR/$subject/stats/vsinus.stats
   set ud = `UpdateNeeded $stats $seg`
-  if($ud) then
+  if($ud || $ForceUpdate) then
     set cmd = (mri_segstats --i $invol --seg $seg --sum $stats --subject $subject --etiv)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -223,7 +222,7 @@ if($#diceseg) then
   set tbl = $outdir/dice.table
   set dat = $outdir/dice.dat
   set ud = `UpdateNeeded $tbl $seg`
-  if($ud) then
+  if($ud || $ForceUpdate) then
     set cmd = (mri_compute_seg_overlap -dice $diceseg $seg embedded 1 0 $dat $tbl)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -235,7 +234,7 @@ endif
 if($DoPost) then
   set postcrop = $outdir/vsinus.crop-to-prior.norev.posteriors.mgz
   set ud = `UpdateNeeded $postvol $postcrop`
-  if($ud) then
+  if($ud || $ForceUpdate) then
     set postcrop_no0 = $outdir/post.no0.mgz
     set cmd = (mri_convert --nskip 1 $postcrop $postcrop_no0)
     echo $cmd | tee -a $LF
@@ -385,6 +384,11 @@ while( $#argv != 0 )
       set model = $argv[1]; shift;
       breaksw
 
+    case "--pt_model":
+      if($#argv < 1) goto arg1err;
+      set pt_model = $argv[1]; shift;    
+      breaksw
+
     case "--ctab":
       if($#argv < 1) goto arg1err;
       set ctab = $argv[1]; shift;
@@ -435,13 +439,6 @@ while( $#argv != 0 )
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
-      breaksw
-
-    case "--tmp":
-    case "--tmpdir":
-      if($#argv < 1) goto arg1err;
-      set tmpdir = $argv[1]; shift;
-      set cleanup = 0;
       breaksw
 
     case "--no-cleanup":

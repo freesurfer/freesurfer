@@ -36,15 +36,19 @@ set_target_properties(fsbindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOU
 
 if(HOST_OS MATCHES "Ubuntu24")
    set(VAST_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings")
-   set(FSBIND_38_LIB "fsbindings.cpython-38-x86_64-linux-gnu.so")
+   if("${FSPYTHON_VERSION}" MATCHES "3.8")
+      set(FSBIND_LIB "fsbindings.cpython-38-x86_64-linux-gnu.so")
+   elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
+      set(FSBIND_LIB "fsbindings.cpython-39-x86_64-linux-gnu.so")
+   endif()
    add_custom_command(TARGET fsbindings POST_BUILD COMMAND
-     cp -p -f ${VAST_BASE}/${FSBIND_38_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_38_LIB}
+     cp -p -f ${VAST_BASE}/${FSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB}
      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
      COMMENT "Copy in ubuntu22 fsbindings libraries for ubuntu24"
    )
-   install(FILES ${FSBIND_38_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/packages/fsbindings)
+   install(FILES ${FSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/packages/fsbindings)
    # remove when "make clean" is run - wildcard expressions do not work
-   set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_38_LIB}")
+   set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB}")
 endif()
 
 # PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE

@@ -43,6 +43,7 @@ typedef struct
   int DoIntensity;
   const char *InIntensityName;
   const char *InIntensityUnits;
+  char *CaseName=NULL;
   int DoSNR; 
 } SEGSTAT;
 

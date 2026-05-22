@@ -2170,6 +2170,7 @@ int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, do
 int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm);
 std::vector<std::vector<double>> *MRIdiff2Vect(const MRI *mri1, const MRI *mri2, const double thresh, const MRI *mask);
 MRI *MRIapplyDiffVect(MRI *mri1, const MRI *mask, std::vector<std::vector<double>> diffvec, int *napply, MRI *mri2);
+int MRIindex2segid(MRI *indexseg, COLOR_TABLE *ctab=NULL);
 
 #endif
 

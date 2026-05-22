@@ -22,6 +22,7 @@ set DoTest = 0
 
 set fsctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
+set pt_model = ()
 set outseg = ()
 set outdir = ();
 set invol = ();
@@ -170,10 +171,15 @@ foreach hemi ($hemilist)
   # Now segment
   set ud = `UpdateNeeded $seg $involcrop`
   if($ud || $ForceUpdate) then
-    set cmd = (mri_sclimbic_seg --model $model --ctab $ctablh --keep_ac \
+    set cmd = (mri_sclimbic_seg --ctab $ctablh --keep_ac \
       --percentile 99.9 --vmp --output-base mcadura --conform \
       --logfile mri_mcadura_seg.log --no-cite-sclimbic --threads $threads \
       --fov 72 --i $involcrop --o $seg)
+    if($#pt_model) then
+      set cmd = ($cmd --pt_model $pt_model)
+    else
+      set cmd = ($cmd --model $model)
+    endif
     if(! $cleanup) set cmd = ($cmd --write_posteriors)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -280,6 +286,11 @@ while( $#argv != 0 )
   
   switch($flag)
 
+    case "--pt_model":
+      if($#argv < 1) goto arg1err;
+      set pt_model = $argv[1]; shift;    
+      breaksw
+ 
     case "--o":
       if($#argv < 1) goto arg1err;
       set outseg = $argv[1]; shift;

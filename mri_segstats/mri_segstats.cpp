@@ -198,6 +198,7 @@ int GetCachedBrainVolStats = 1;
 MRI *MRIrescaleBySeg(MRI *invol, MRI *seg, std::vector<int> segids, double targetmean, MRI *outvol);
 double atlas_icv=0;
 int UseSegBorder = 1;
+char *CaseName = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -1273,6 +1274,7 @@ int main(int argc, char **argv)
       segstat = (SEGSTAT *)calloc(sizeof(SEGSTAT),1);
       segstat->nentries = nsegid;
       segstat->entry = StatSumTable;
+      segstat->CaseName = CaseName;
       if(!mris) segstat->IsSurf = 0;
       else      segstat->IsSurf = 1;
       if(ctab)  segstat->UseName = 1;
@@ -1930,6 +1932,11 @@ static int parse_commandline(int argc, char **argv)
     {
       if (nargc < 1) argnerr(option,1);
       StatTableFile = pargv[0];
+      nargsused = 1;
+    }
+    else if( !strcmp(option, "--case-name")){
+      if (nargc < 1) argnerr(option,1);
+      CaseName = pargv[0];
       nargsused = 1;
     }
     else if ( !strcmp(option, "--sum-in") )
