@@ -64,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
   */
 
   ui->widgetImageView->SetNumberOfExpectedPoints(4);
+  connect(ui->widgetImageView, SIGNAL(PointEdited()), SLOT(OnPointEdited()), Qt::QueuedConnection);
 
   m_wndProgress = new ProgressWindow(this);
   m_wndProgress->hide();
@@ -81,9 +82,10 @@ MainWindow::MainWindow(QWidget *parent)
   ui->widgetDropCalibration->setAcceptDrops(true);
   ui->widgetDropCalibration->setMouseTracking(true);
   ui->widgetDropImages->setAcceptDrops(true);
-  ui->widgetDropImages->setAcceptDrops(true);
+  ui->widgetDropCalibrationPhoto->setAcceptDrops(true);
   ui->widgetDropCalibration->installEventFilter(this);
   ui->widgetDropImages->installEventFilter(this);
+  ui->widgetDropCalibrationPhoto->installEventFilter(this);
   connect(ui->listWidgetThumbnail, SIGNAL(CurrentIndexChanged(int)), SLOT(OnThumbnailIndexChanged(int)));
 }
 
@@ -102,7 +104,7 @@ MainWindow::~MainWindow()
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
-  if (watched == ui->widgetDropImages || watched == ui->widgetDropCalibration)
+  if (watched == ui->widgetDropImages || watched == ui->widgetDropCalibration || watched == ui->widgetDropCalibrationPhoto)
   {
     if (event->type() == QEvent::DragEnter)
     {
@@ -133,6 +135,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
           else if (watched == ui->widgetDropCalibration)
           {
             SetCalibrationFile(QFileInfo(urls.last().toLocalFile()).absoluteFilePath());
+          }
+          else if (watched == ui->widgetDropCalibrationPhoto)
+          {
+            SetCalibrationPhoto(QFileInfo(urls.last().toLocalFile()).absoluteFilePath());
           }
         }
         else
@@ -170,7 +176,7 @@ void MainWindow::SetInputFolder(const QString &path, const QString& root_output)
   m_strInputFolder = path;
   if (path.isEmpty())
   {
-    ui->labelImageFolder->setText("Or drag and drop your image folder into this text box");
+    ui->labelImageFolder->setText("Or drag and drop your image folder into this box");
   }
   else
   {
@@ -189,11 +195,25 @@ void MainWindow::SetCalibrationFile(const QString &path)
   m_strCalibrationFile = path;
   if (path.isEmpty())
   {
-    ui->labelCalibrationFile->setText("Or drag and drop your calibration file into this text box");
+    ui->labelCalibrationFile->setText("Or drag and drop your calibration file into this box");
   }
   else
   {
     ui->labelCalibrationFile->setText(path + "<br /><a href='clear'>Clear</a>");
+  }
+}
+
+void MainWindow::SetCalibrationPhoto(const QString &path)
+{
+  m_strCalibrationPhoto = path;
+  if (path.isEmpty())
+  {
+    ui->labelCalibrationPhoto->setText("Or drag and drop the image into this box");
+  }
+  else
+  {
+    ui->labelCalibrationPhoto->setText(path);
+    OnButtonCalibration();
   }
 }
 
@@ -281,6 +301,72 @@ void MainWindow::OnButtonCalibrationFile()
   if (!path.isEmpty())
   {
     SetCalibrationFile(path);
+  }
+}
+
+void MainWindow::OnButtonCalibrationPhoto()
+{
+  QString path = QFileDialog::getOpenFileName(this, "Select Image File", "");
+  if (!path.isEmpty())
+  {
+    SetCalibrationPhoto(path);
+  }
+}
+
+void MainWindow::OnButtonBackToStart()
+{
+  ui->stackedWidget->setCurrentWidget(ui->pageStartUp);
+  SetCalibrationPhoto("");
+  ui->frameBottomBar->hide();
+  ui->frameTopBar->hide();
+  ui->widgetImageView->Clear();
+}
+
+void MainWindow::OnButtonSaveCalibration()
+{
+  double w = 1, h = 1;
+  bool bOK;
+  w = ui->lineEditRectWidth->text().trimmed().toDouble(&bOK);
+  if (bOK)
+    h = ui->lineEditRectHeight->text().trimmed().toDouble(&bOK);
+  if (!bOK)
+  {
+    QMessageBox::warning(this, "Error", "Please enter valid width and height");
+    return;
+  }
+  QList<QPoint> pts = ui->widgetImageView->GetEditedPoints();
+  if (pts.size() < 8)
+  {
+    QMessageBox::warning(this, "Error", "Please finish the drawing of all 4 points with radius.");
+    return;
+  }
+
+  QString fn = QFileDialog::getSaveFileName(this, "Specify Output npz File", m_strCalibrationPhoto, "*.npz");
+  if (!fn.isEmpty())
+  {
+    QStringList cmd;
+    QStringList list;
+    foreach (QPoint pt, pts)
+      list << QString::number(pt.x()) << QString::number(pt.y());
+
+    cmd << m_strPythonCmd << m_strPyScriptFiducialsCalibration
+        << "--in_img" << QString("\"%1\"").arg(ui->widgetImageView->GetFilename())
+        << "--points" << list.join(" ")
+        << "--width" << QString::number(w)
+        << "--height" << QString::number(h)
+        << "--out_file" << QString("\"%1\"").arg(fn);
+    m_proc->start(cmd.join(" "));
+    m_proc->setProperty("task", "fiducials_calibration");
+    ui->widgetImageView->ShowMessage("Processing...");
+  }
+}
+
+void MainWindow::OnPointEdited()
+{
+  QList<QPoint> pts = ui->widgetImageView->GetEditedPoints();
+  if (ui->pageCalibration->isVisible())
+  {
+    ui->pushButtonSaveCalibration->setEnabled(pts.size() >= 8);
   }
 }
 
@@ -878,8 +964,9 @@ void MainWindow::OnProcessFinished()
   }
   else if (task == "fiducials_calibration")
   {
+    // do nothing
+    /*
     QString calibration_file = sender()->property("output_file").toString();
-    //    qDebug() << calibration_file;
     QDir dir(m_sTempDir);
     QString fn = ui->widgetImageView->GetFilename();
     QString sub_dir = QFileInfo(fn).completeBaseName();
@@ -893,6 +980,7 @@ void MainWindow::OnProcessFinished()
         << "--out_dir" << QString("\"%1\"").arg(m_strOutputFolder);
     m_proc->start(cmd.join(" "));
     m_proc->setProperty("task", "fiducials_correction_single");
+    */
   }
   else if (task == "mask_to_cc")
   {
@@ -996,6 +1084,38 @@ void MainWindow::OnButtonProceedToRecon()
   m_nIndex = 0;
   ui->frameTopBar->hide();
   ui->frameBottomBar->hide();
+}
+
+void MainWindow::OnButtonProceedToCalibration()
+{
+  ui->stackedWidget->setCurrentWidget(ui->pageCalibration);
+  ui->pushButtonSaveCalibration->hide();
+  ui->pushButtonSaveCalibration->setEnabled(false);
+  ui->pushButtonProceedToCalibration->hide();
+  ui->widgetCalibrationControl->hide();
+  ui->widgetDropCalibrationPhoto->show();
+}
+
+void MainWindow::OnButtonCalibration()
+{
+  if (m_strCalibrationPhoto.isEmpty())
+  {
+    QMessageBox::warning(this, "Calibration", "Please select an image file for calibration");
+    return;
+  }
+  ui->widgetImageView->SetEditMode(WidgetImageView::EM_CALIBRATION);
+  ui->widgetImageView->ClearEdits();
+  if (ui->widgetImageView->LoadImage(m_strCalibrationPhoto))
+  {
+    ui->pushButtonProceedToCalibration->hide();
+    ui->pushButtonSaveCalibration->show();
+    ui->widgetDropCalibrationPhoto->hide();
+    ui->widgetCalibrationControl->show();
+    ui->frameTopBar->show();
+    ui->widgetPointMode->hide();
+  }
+  else
+    QMessageBox::warning(this, "Error", "Please load an image file");
 }
 
 void MainWindow::OnSliderSegOpacity(int n)
