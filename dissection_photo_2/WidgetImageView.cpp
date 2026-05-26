@@ -65,6 +65,7 @@ bool WidgetImageView::LoadImage(const QString& filename, const QString& mask, co
     m_dScale = 1.0;
     m_ptOffset = QPoint(0,0);
     m_listPoints = points;
+    m_listRedoPoints.clear();
     m_listRegions = regions;
     UpdateScaledImage();
     return true;
@@ -203,6 +204,9 @@ void WidgetImageView::paintEvent(QPaintEvent *e)
   QRect rc = rect();
   QPainter p(this);
   p.fillRect(rc, Qt::black);
+  if (m_sFilename.isEmpty())
+    return;
+
   QRect target = m_imageScaled.rect();
   target.moveCenter(rect().center()+m_ptOffset);
   p.drawImage(target, m_imageScaled);
@@ -371,6 +375,9 @@ void WidgetImageView::mouseReleaseEvent(QMouseEvent *e)
       }
       else
         m_listPoints[m_nNumberOfExpectedPoints-1] = pt;
+      m_listRedoPoints.clear();
+
+      emit PointEdited();
 
       if (m_listPoints.size() == m_nNumberOfExpectedPoints && m_nEditMode == EM_CALIBRATION)
         emit CalibrationReady(m_listPoints);
@@ -519,11 +526,13 @@ void WidgetImageView::UpdateScaledImage(bool bSmooth)
 void WidgetImageView::ClearEdits()
 {
   m_listPoints.clear();
+  m_listRedoPoints.clear();
   m_listRegions.clear();
   m_imageOverlay = QImage();
   m_listSelectedMasks.clear();
   HideMessage();
   UpdateAll();
+  emit PointEdited();
 }
 
 void WidgetImageView::SetMaskOpacity(double val)
@@ -682,4 +691,33 @@ void WidgetImageView::Reset()
   m_dScale = 1.0;
   m_ptOffset = QPoint(0,0);
   UpdateScaledImage();
+}
+
+void WidgetImageView::Clear()
+{
+  m_sMessage.clear();
+  m_sFilename.clear();
+  update();
+}
+
+void WidgetImageView::UndoLastPoint()
+{
+  if (!m_listPoints.isEmpty())
+  {
+    m_listRedoPoints << m_listPoints.last();
+    m_listPoints.removeLast();
+    update();
+    emit PointEdited();
+  }
+}
+
+void WidgetImageView::RedoLastPoint()
+{
+  if (!m_listRedoPoints.isEmpty())
+  {
+    m_listPoints << m_listRedoPoints.last();
+    m_listRedoPoints.removeLast();
+    update();
+    emit PointEdited();
+  }
 }

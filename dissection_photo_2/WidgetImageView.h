@@ -73,6 +73,7 @@ public:
 signals:
   void LastRegionEdited(int n);
   void CalibrationReady(const QList<QPoint>& pts);
+  void PointEdited();
 
 public slots:
   void SetNumberOfExpectedPoints(int n)
@@ -115,6 +116,12 @@ public slots:
 
   void Reset();
 
+  void Clear();
+
+  void UndoLastPoint();
+
+  void RedoLastPoint();
+
 private:
   void PrepareImage();
   void UpdateScaledImage(bool bSmooth = false);
@@ -146,6 +153,7 @@ private:
   int       m_nNumberOfExpectedPoints;
   int       m_nEditMode;
   QList<QPoint> m_listPoints;
+  QList<QPoint> m_listRedoPoints;
   QList<RECT_REGION> m_listRegions;
   QColor    m_colorPen;
 

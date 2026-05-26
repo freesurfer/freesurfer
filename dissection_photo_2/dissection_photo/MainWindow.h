@@ -44,6 +44,9 @@ public slots:
   void OnButtonCreateMask();
   void OnLinkActivated(const QString& link);
   void OnButtonTogglePreview(bool b);
+  void OnButtonCalibrationPhoto();
+  void OnButtonBackToStart();
+  void OnButtonSaveCalibration();
 
 private slots:
   void OnProcessOutputMessage();
@@ -54,12 +57,15 @@ private slots:
   void OnButtonProceedToSeg();
   void OnButtonProceedToCC();
   void OnButtonProceedToRecon();
+  void OnButtonProceedToCalibration();
   void OnSliderSegOpacity(int n);
   void OnLastRegionEdited(int n);
   void OnToggleMask();
   void OnFileChanged(const QString& path);
   void ShowProgressWindow(bool bShow = true);
   void OnThumbnailIndexChanged(int n);
+  void OnButtonCalibration();
+  void OnPointEdited();
 
 private:
   void SetupScriptPath();
@@ -71,6 +77,7 @@ private:
   void RepositionProgressWindow();
   void SetInputFolder(const QString& path, const QString& root_output = "");
   void SetCalibrationFile(const QString& path);
+  void SetCalibrationPhoto(const QString& path);
   void RunRetrospectiveCorrection(const QString& infile, const QList<QPoint>& pts, double w, double h);
 
   Ui::MainWindow *ui;
@@ -78,6 +85,7 @@ private:
   QString  m_strRootOutputFolder;
   QString  m_strOutputFolder;
   QString  m_strCalibrationFile;
+  QString  m_strCalibrationPhoto;
   QString  m_strFinalOutputFolder;
   QString  m_strMaskFolder;
 
