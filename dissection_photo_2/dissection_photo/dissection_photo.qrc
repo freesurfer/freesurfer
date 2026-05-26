@@ -12,5 +12,6 @@
         <file>resource/reset@2x.png</file>
         <file>resource/calibration1@2x.png</file>
         <file>resource/calibration2@2x.png</file>
+        <file>resource/checked@2x.png</file>
     </qresource>
 </RCC>
