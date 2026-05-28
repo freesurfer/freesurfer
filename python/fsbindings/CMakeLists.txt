@@ -35,20 +35,25 @@ set_target_properties(fsbindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOU
 ## the workaround for ubuntu 24 is to copy the python3.8 fsbindings libraries as built on and saved from an ubuntu 22 system
 
 if(HOST_OS MATCHES "Ubuntu24")
-   set(VAST_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings")
+   set(FSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings")
+   set(GEMSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems")
    if("${FSPYTHON_VERSION}" MATCHES "3.8")
       set(FSBIND_LIB "fsbindings.cpython-38-x86_64-linux-gnu.so")
+      set(GEMSBIND_LIB "gemsbindings.cpython-38-x86_64-linux-gnu.so")
    elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
       set(FSBIND_LIB "fsbindings.cpython-39-x86_64-linux-gnu.so")
+      set(GEMSBIND_LIB "gemsbindings.cpython-39-x86_64-linux-gnu.so")
    endif()
    add_custom_command(TARGET fsbindings POST_BUILD COMMAND
-     cp -p -f ${VAST_BASE}/${FSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB}
+     cp -p -f ${FSBIND_UB22_BASE}/${FSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB} && cp -p -f ${GEMSBIND_UB22_BASE}/${GEMSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${GEMSBIND_LIB}
      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-     COMMENT "Copy in ubuntu22 fsbindings libraries for ubuntu24"
+     COMMENT "Copy in ubuntu22 fsbindings and gemsbinding libraries for ubuntu24"
    )
    install(FILES ${FSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/packages/fsbindings)
+   install(FILES ${GEMSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems)
    # remove when "make clean" is run - wildcard expressions do not work
    set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB}")
+   set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${GEMSBIND_LIB}")
 endif()
 
 # PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
