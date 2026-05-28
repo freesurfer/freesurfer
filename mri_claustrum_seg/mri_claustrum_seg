@@ -36,6 +36,7 @@ set segr = $SCRIPT_DIR/claustrum-seg.py
 set MNITargetRes = 1.5mm 
 set ctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
+set pt_model = ()
 set outdir = ();
 set invol = ();
 set subject = ()
@@ -218,12 +219,29 @@ foreach hemi ($hemilist)
   if($ud || $ForceUpdate) then
     set csv = $outdir/seg.$hemi.vol.csv
     set cmd = ($python $segr --i $involcrop --o $seg --threads $threads)
-    if($#model) set cmd = ($cmd --model $model)
-    if($DoPost) set cmd = ($cmd --post $post)
-    if($SaveCsv) set cmd = ($cmd --csv $csv)
+    if($#pt_model) then
+      set freeseglog = $outdir/log/freeseg_predict-$hemi.Y$year.M$month.D$day.H$hour.M$min.log
+      set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --keep_biggest_component --use_topology_classes --smooth_posteriors --logfile $freeseglog)
+      #set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --smooth_posteriors --logfile $freeseglog)
+    else if($#model) then
+      set cmd = ($cmd --model $model)
+    endif
+    if($#pt_model) then
+      if($DoPost) set cmd = ($cmd --write_posteriors)
+      if($SaveCsv) set cmd = ($cmd --vol $csv)
+    else
+      if($DoPost) set cmd = ($cmd --post $post)
+      if($SaveCsv) set cmd = ($cmd --csv $csv)
+    endif
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF	
     if($status) goto error_exit
+    if($#pt_model) then
+      # copy freeseg generated posteriors to where they are expected
+      set post0 = $tmpdir/posteriors/seg.$hemi.mgz
+      if($hemi == lh) set post0 = $tmpdir/posteriors/seg.$hemi.lrrev.mgz
+      cp $post0 $post
+    endif
     # Add colortable
     set cmd = (mri_convert --ctab $ctab $seg $seg)
     echo $cmd | tee -a $LF
@@ -612,6 +630,14 @@ while( $#argv != 0 )
     case "--i":
       if($#argv < 1) goto arg1err;
       set invol = $argv[1]; shift;
+      breaksw
+
+    # pytorch model file converted from tensorflow
+    # '-pt_model' takes precedence over '-model'
+    case "--pt_model":
+      if($#argv < 1) goto arg1err;
+      set pt_model = $argv[1]; shift;
+      set segr = $SCRIPT_DIR/freeseg_predict.py
       breaksw
 
     case "--model":
