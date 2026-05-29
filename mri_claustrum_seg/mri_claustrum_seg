@@ -221,8 +221,8 @@ foreach hemi ($hemilist)
     set cmd = ($python $segr --i $involcrop --o $seg --threads $threads)
     if($#pt_model) then
       set freeseglog = $outdir/log/freeseg_predict-$hemi.Y$year.M$month.D$day.H$hour.M$min.log
-      set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --keep_biggest_component --use_topology_classes --smooth_posteriors --logfile $freeseglog)
-      #set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --smooth_posteriors --logfile $freeseglog)
+      set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --keep_biggest_component --use_topology_classes --smooth_posteriors --resamplefirst --keep_resample_geom --logfile $freeseglog)
+      #set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --smooth_posteriors --resamplefirst --keep_resample_geom --logfile $freeseglog)
     else if($#model) then
       set cmd = ($cmd --model $model)
     endif
