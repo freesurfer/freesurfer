@@ -124,7 +124,8 @@ option(PATCH_FSPYTHON "Build subdirs with source using gfortran" OFF)
 ## For backwards compatability, use pre-existing python 3.8 default unless overriden via cmake cmd line.
 ## With cmake, set -DFFSPYTHON_VERSION="[0-9].[0-9]" as found under FS_PACKAGES_DIR.
 if(NOT FSPYTHON_VERSION)
-   set(FSPYTHON_VERSION "3.8")
+   # set(FSPYTHON_VERSION "3.8")
+   set(FSPYTHON_VERSION "3.9")
 endif()
 
 if(DISTRIBUTE_FSPYTHON)
