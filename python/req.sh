@@ -347,7 +347,7 @@ if [ $torchcpu -eq 1 ]; then
    ## Does not look like there is a way to specify the latest version of the torch cpu package
    ## in requirements-extra.txt, e.g., torch==*.cpu
    # func_setup_fspython
-   torch_rev=`$python_binary -m pip freeze | grep torch | sed 's;^.*==;;'`
+   torch_rev=`$python_binary -m pip freeze | grep "torch==" | sed 's;^.*==;;'`
    torch_rev_numeric=`echo $torch_rev| sed 's;\+.*;;'`
    if [ "${torch_rev}" == "${torch_rev_numeric}+cpu" ]; then
       echo "$s: ${torch_rev} already installed - nothing to do."
