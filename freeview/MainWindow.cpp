@@ -90,6 +90,7 @@
 #include "FSGroupDescriptor.h"
 #include "WindowGroupPlot.h"
 #include "DialogLoadSurfaceOverlay.h"
+#include "DialogLoadSurface.h"
 #include "DialogReloadLayer.h"
 #include "DialogSmoothSurface.h"
 
@@ -6713,16 +6714,27 @@ void MainWindow::OnCloseTrack()
 
 void MainWindow::OnLoadSurface()
 {
-  // user getSaveFilename as a hack to allow adding options next to filename
-  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select surface file",
-                                                         AutoSelectLastDir( "surf" ),
-                                                         "Surface files (*)", 0, QFileDialog::DontConfirmOverwrite);
-  if ( !filenames.isEmpty() )
+  DialogLoadSurface dlg( this );
+  QStringList recentFiles;
+  for ( int i = 0; i < m_actionRecentSurfaces.size(); i++ )
   {
-    for ( int i = 0; i < filenames.size(); i++ )
+    if ( m_actionRecentSurfaces[i]->isVisible() )
     {
-      if (!filenames[i].trimmed().isEmpty())
-        AddScript(QStringList("loadsurface") << filenames[i]);
+      recentFiles << m_actionRecentSurfaces[i]->data().toString();
+    }
+  }
+  dlg.SetRecentFiles( recentFiles );
+  if (dlg.exec() == QDialog::Accepted)
+  {
+    QStringList filenames = dlg.GetFilenames();
+    bool bAll = dlg.GetLoadAll();
+    if ( !filenames.isEmpty() )
+    {
+      for ( int i = 0; i < filenames.size(); i++ )
+      {
+        if (!filenames[i].trimmed().isEmpty())
+          AddScript(QStringList("loadsurface") << (filenames[i] + ":all=" + (bAll?"1":"0")));
+      }
     }
   }
 }

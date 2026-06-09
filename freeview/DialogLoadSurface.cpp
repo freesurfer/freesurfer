@@ -5,6 +5,8 @@
 #include <QFileInfo>
 #include "MainWindow.h"
 #include <QSettings>
+#include <QLineEdit>
+#include "MigrationDefs.h"
 
 DialogLoadSurface::DialogLoadSurface(QWidget *parent) :
   QDialog(parent),
@@ -13,30 +15,21 @@ DialogLoadSurface::DialogLoadSurface(QWidget *parent) :
   ui->setupUi(this);
 
   QSettings s;
-  ui->lineEditFilename->setText(s.value("DialogLoadSurface/Filename").toString());
-  ui->lineEditFilename->setCursorPosition(ui->lineEditFilename->text().size());
-  ui->checkBoxInflated->setChecked(s.value("DialogLoadSurface/LoadInflated").toBool());
-  ui->checkBoxOrig->setChecked(s.value("DialogLoadSurface/LoadOrig").toBool());
-  ui->checkBoxPial->setChecked(s.value("DialogLoadSurface/LoadPial").toBool());
-  ui->checkBoxWhite->setChecked(s.value("DialogLoadSurface/LoadWhite").toBool());
+
   UpdateStatus();
 }
 
 DialogLoadSurface::~DialogLoadSurface()
 {
   QSettings s;
-  s.setValue("DialogLoadSurface/Filename", ui->lineEditFilename->text().trimmed());
-  s.setValue("DialogLoadSurface/LoadInflated", ui->checkBoxInflated->isChecked());
-  s.setValue("DialogLoadSurface/LoadOrig", ui->checkBoxOrig->isChecked());
-  s.setValue("DialogLoadSurface/LoadPial", ui->checkBoxPial->isChecked());
-  s.setValue("DialogLoadSurface/LoadWhite", ui->checkBoxWhite->isChecked());
+  s.setValue("DialogLoadSurface/Filename", ui->comboBoxFilename->currentText().trimmed());
 
   delete ui;
 }
 
 void DialogLoadSurface::accept()
 {
-  if (ui->lineEditFilename->text().trimmed().isEmpty())
+  if (ui->comboBoxFilename->currentText().trimmed().isEmpty())
   {
     QMessageBox::warning(this, "Error", "Please enter the filename of the surface file to load");
   }
@@ -46,73 +39,44 @@ void DialogLoadSurface::accept()
 
 void DialogLoadSurface::OnOpen()
 {
-  QString lastdir = QFileInfo(ui->lineEditFilename->text().trimmed()).absoluteFilePath();
+  QString lastdir = QFileInfo(ui->comboBoxFilename->currentText().trimmed()).absoluteFilePath();
   QString filename = QFileDialog::getOpenFileName( this, "Select surface file",
                                                    MainWindow::AutoSelectLastDir(lastdir, "surf" ),
                                                    "Surface files (*)");
   if (!filename.isEmpty())
   {
-    ui->lineEditFilename->setText(filename);
-    ui->lineEditFilename->setCursorPosition(filename.size());
+    ui->comboBoxFilename->setCurrentText(filename);
+    ui->comboBoxFilename->lineEdit()->setCursorPosition(filename.size());
   }
 
   UpdateStatus();
 }
 
+void DialogLoadSurface::SetRecentFiles( const QStringList& filenames )
+{
+  QStringList fns = filenames;
+  fns.insert(0, "current folder");
+  ui->comboBoxFilename->clear();
+  ui->comboBoxFilename->addItems( fns );
+  if ( !filenames.isEmpty() )
+  {
+    ui->comboBoxFilename->setCurrentIndex( 0 );
+    ui->comboBoxFilename->setCurrentText("");
+    ui->comboBoxFilename->lineEdit()->setCursorPosition( ui->comboBoxFilename->currentText().size() );
+  }
+}
+
 void DialogLoadSurface::UpdateStatus()
 {
-  /*
-  QString fn = GetFilename();
-  if (fn.contains(".inflated"))
-  {
-    ui->checkBoxInflated->setChecked(true);
-    ui->checkBoxInflated->setEnabled(false);
-  }
-  else
-    ui->checkBoxInflated->setEnabled(true);
-
-  if (fn.contains(".pial"))
-  {
-    ui->checkBoxPial->setChecked(true);
-    ui->checkBoxPial->setEnabled(false);
-  }
-  else
-    ui->checkBoxPial->setEnabled(true);
-
-  if (fn.contains(".white"))
-  {
-    ui->checkBoxWhite->setChecked(true);
-    ui->checkBoxWhite->setEnabled(false);
-  }
-  else
-    ui->checkBoxWhite->setEnabled(true);
-
-  if (fn.contains(".orig"))
-  {
-    ui->checkBoxOrig->setChecked(true);
-    ui->checkBoxOrig->setEnabled(false);
-  }
-  else
-    ui->checkBoxOrig->setEnabled(true);
-  */
 }
 
-QString DialogLoadSurface::GetFilename()
+QStringList DialogLoadSurface::GetFilenames()
 {
-  return ui->lineEditFilename->text().trimmed();
+  QStringList fns = ui->comboBoxFilename->currentText().trimmed().split( QRegularExpression( "[;]" ), MD_SkipEmptyParts );
+  return fns;
 }
 
-QStringList DialogLoadSurface::GetSupFiles()
+bool DialogLoadSurface::GetLoadAll()
 {
-  QStringList list;
-  if (ui->checkBoxInflated->isChecked())
-    list << "inflated";
-  if (ui->checkBoxOrig->isChecked())
-    list << "orig";
-  if (ui->checkBoxPial->isChecked())
-    list << "pial";
-  if (ui->checkBoxWhite->isChecked())
-    list << "white";
-
-  return list;
+  return ui->checkBoxAll->isChecked();
 }
