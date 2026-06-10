@@ -1507,6 +1507,15 @@ void RenderView3D::Elevation(double degrees)
   RequestRedraw();
 }
 
+void RenderView3D::Roll(double degrees)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->Roll(degrees);
+  cam->OrthogonalizeViewUp();
+  m_renderer->ResetCameraClippingRange();
+  RequestRedraw();
+}
+
 void RenderView3D::Rotate90()
 {
   Azimuth(90);
@@ -1515,6 +1524,16 @@ void RenderView3D::Rotate90()
 void RenderView3D::Rotate180()
 {
   Azimuth(180);
+}
+
+void RenderView3D::Rotate90Right()
+{
+  Elevation(90);
+}
+
+void RenderView3D::Rotate90DOP()
+{
+  Roll(90);
 }
 
 void RenderView3D::UpdateScalarBar()
