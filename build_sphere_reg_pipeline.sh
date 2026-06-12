@@ -93,6 +93,7 @@ echo ">>> Configuring (cmake)"
 cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
   -DCMAKE_PROJECT_freesurfer_INCLUDE="$SRC_DIR/cmake/ci_build_helper.cmake" \
   -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DFS_PACKAGES_DIR=/usr \
   ${ITK_DIR:+-DITK_DIR="$ITK_DIR"} \
   -DBUILD_GUIS=OFF -DMINIMAL=ON \
