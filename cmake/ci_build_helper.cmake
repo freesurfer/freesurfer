@@ -36,3 +36,22 @@ add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-error=implicit-function-declara
 add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-error=implicit-int>)
 add_compile_options(
   $<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:AppleClang,Clang>>:-Wno-error=incompatible-function-pointer-types>)
+
+# Homebrew's ITK (and similar) record a full C SDK include dir
+# (.../SDKs/MacOSX*.sdk/usr/include) in ITK_INCLUDE_DIRS. FreeSurfer adds those
+# via include_directories(SYSTEM ${ITK_INCLUDE_DIRS}); when the active toolchain
+# is a *different* SDK (e.g. Xcode vs CommandLineTools), that C usr/include
+# shadows libc++'s <limits.h>/<math.h> and the C++ build fails. Override
+# include_directories to drop any such SDK C include (the real ITK-5.x include
+# is kept). The original command remains available as _include_directories.
+macro(include_directories)
+  set(_fs_inc_args)
+  foreach(_a ${ARGV})
+    if(_a MATCHES "\\.sdk/usr/include$" OR _a STREQUAL "/usr/include")
+      message(STATUS "ci_build_helper: dropping C sysroot include: ${_a}")
+    else()
+      list(APPEND _fs_inc_args "${_a}")
+    endif()
+  endforeach()
+  _include_directories(${_fs_inc_args})
+endmacro()
