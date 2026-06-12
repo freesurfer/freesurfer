@@ -23,6 +23,12 @@ on:
 permissions:
   contents: write
 
+# Supersede older runs on the same branch so their queued (often runner-starved)
+# macOS jobs don't pile up competing for scarce hosted runners.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: build-${{ matrix.name }}
