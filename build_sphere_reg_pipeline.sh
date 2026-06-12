@@ -135,6 +135,7 @@ for e in json.load(open(sys.argv[1])):
         break
 PY
 fi
+if [ "${FS_DIAG_ONLY:-0}" = "1" ]; then echo ">>> FS_DIAG_ONLY: stopping after printing include flags"; exit 0; fi
 
 # ---------------------------------------------------------------------------
 # 3. Build the tools the sphere->sphere.reg->std-mesh pipeline needs
