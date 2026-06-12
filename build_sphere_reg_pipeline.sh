@@ -61,7 +61,8 @@ if [ "$INSTALL_DEPS" = "1" ]; then
     echo ">>> Installing macOS dependencies (brew)"
     command -v brew >/dev/null || { echo "Homebrew required: https://brew.sh"; exit 1; }
     brew update >/dev/null || true
-    brew install cmake itk gsl libomp jpeg-turbo libtiff expat || true
+    # gcc provides gfortran, which FreeSurfer's CMake enables as a language
+    brew install cmake itk gsl libomp jpeg-turbo libtiff expat gcc || true
     ITK_DIR="$(echo "$(brew --prefix)"/lib/cmake/ITK-* | tr ' ' '\n' | head -1)"
   fi
 fi
@@ -82,6 +83,10 @@ if [ "$OS" = "Darwin" ]; then
   # AppleClang OpenMP via Homebrew libomp
   OMP_PREFIX="$(brew --prefix libomp 2>/dev/null || true)"
   [ -n "$OMP_PREFIX" ] && EXTRA="-DOpenMP_ROOT=$OMP_PREFIX"
+  # FreeSurfer's CMake enables the Fortran language; point it at Homebrew gfortran
+  GFORTRAN="$(ls "$(brew --prefix gcc 2>/dev/null)"/bin/gfortran* 2>/dev/null | head -1 || true)"
+  [ -z "$GFORTRAN" ] && GFORTRAN="$(command -v gfortran || true)"
+  [ -n "$GFORTRAN" ] && EXTRA="$EXTRA -DCMAKE_Fortran_COMPILER=$GFORTRAN"
 fi
 
 echo ">>> Configuring (cmake)"
