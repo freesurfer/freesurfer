@@ -61,8 +61,11 @@ if [ "$INSTALL_DEPS" = "1" ]; then
     echo ">>> Installing macOS dependencies (brew)"
     command -v brew >/dev/null || { echo "Homebrew required: https://brew.sh"; exit 1; }
     brew update >/dev/null || true
-    # gcc provides gfortran, which FreeSurfer's CMake enables as a language
+    # gcc provides gfortran, which FreeSurfer's CMake enables as a language.
+    # XQuartz supplies the X11/GL libs (libGL/libGLU/libXmu/libXt) that some
+    # FreeSurfer targets reference during CMake generation.
     brew install cmake itk gsl libomp jpeg-turbo libtiff expat gcc || true
+    brew install --cask xquartz || true
     ITK_DIR="$(echo "$(brew --prefix)"/lib/cmake/ITK-* | tr ' ' '\n' | head -1)"
   fi
 fi
@@ -87,6 +90,8 @@ if [ "$OS" = "Darwin" ]; then
   GFORTRAN="$(ls "$(brew --prefix gcc 2>/dev/null)"/bin/gfortran* 2>/dev/null | head -1 || true)"
   [ -z "$GFORTRAN" ] && GFORTRAN="$(command -v gfortran || true)"
   [ -n "$GFORTRAN" ] && EXTRA="$EXTRA -DCMAKE_Fortran_COMPILER=$GFORTRAN"
+  # help CMake find XQuartz's X11/GL libs
+  [ -d /opt/X11 ] && EXTRA="$EXTRA -DCMAKE_PREFIX_PATH=/opt/X11"
 fi
 
 echo ">>> Configuring (cmake)"
