@@ -107,6 +107,12 @@ if [ "$OS" = "Darwin" ]; then
   # Apple Silicon: enable FreeSurfer's arm64 path (defines ARM64, disables x86
   # SSE intrinsics in affine.h, sets PNG NEON, etc.).
   [ "$ARCH" = "arm64" ] && EXTRA="$EXTRA -DAPPLE_ARM64=ON"
+  # FreeSurfer's arm64 path links some tools (mri_robust_register, which we do
+  # not build) against gfortran/quadmath; point CMake at Homebrew gcc's copies
+  # so generation succeeds (fall back to the libSystem stub if absent).
+  GFLIB="$(ls "$(brew --prefix gcc 2>/dev/null)"/lib/gcc/*/libgfortran.dylib 2>/dev/null | head -1)"
+  QMLIB="$(ls "$(brew --prefix gcc 2>/dev/null)"/lib/gcc/*/libquadmath.dylib 2>/dev/null | head -1)"
+  EXTRA="$EXTRA -DGFORTRAN_LIBRARIES=${GFLIB:-$STUB} -DQUADMATH_LIBRARIES=${QMLIB:-$STUB}"
 fi
 
 echo ">>> Configuring (cmake)"
