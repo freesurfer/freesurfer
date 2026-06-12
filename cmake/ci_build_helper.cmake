@@ -24,4 +24,14 @@ if(X11_FOUND AND NOT TARGET X11::X11)
     INTERFACE_LINK_LIBRARIES "${X11_X11_LIB}")
 endif()
 
-add_compile_options(-Wno-error)
+# -Wno-error relaxes FreeSurfer's -Werror; the -Wno-error=<name> entries
+# additionally downgrade warnings that Apple/LLVM clang promotes to errors BY
+# DEFAULT (int-conversion, implicit-function-declaration, implicit-int), which
+# the vendored C packages (e.g. packages/nifti) still trip. All are accepted
+# (and harmless) by the Linux gcc toolchain too.
+add_compile_options(
+  -Wno-error
+  -Wno-error=int-conversion
+  -Wno-error=implicit-function-declaration
+  -Wno-error=implicit-int
+  -Wno-error=incompatible-function-pointer-types)
