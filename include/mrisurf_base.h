@@ -37,8 +37,16 @@ extern int fix_vertex_area;
 
 // Configurable support for enabling the new code that does get reproducible results
 //
+// These select the deterministic-reduction (ROMP_Distributor) implementations,
+// which run in parallel at the default romp_level while producing run-to-run
+// reproducible results.  The correlation-error and top-level SSE terms are the
+// hottest functions during mris_register (they are evaluated repeatedly by the
+// line-minimization search), so enabling them is the single largest
+// wall-clock win for surface registration on multi-core machines.
 #define BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTEQUADRATICCURVATURESSE_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
 
 
 // Includes

@@ -2961,11 +2961,9 @@ int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_
 
 int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  double du, dv, up1, um1, vp1, vm1, delta, src, target, mag, max_mag, l_corr;
-  VERTEX *v;
+  double max_mag, l_corr;
   int vno, fno;
-  float x, y, z, e1x, e1y, e1z, e2x, e2y, e2z, ux, uy, uz, vx, vy, vz, std, coef, vsmooth = 1.0;
-  double d_dist = D_DIST * mris->avg_vertex_dist;
+  double const d_dist = D_DIST * mris->avg_vertex_dist;
 
   l_corr = parms->l_corr;
   if (FZERO(l_corr)) {
@@ -2978,28 +2976,43 @@ int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     MRISPwrite(parms->mrisp_template, "temp.hipl");
     MRISPwrite(parms->mrisp, "srf.hipl");
   }
+
+  // Each vertex's gradient (v->dx/dy/dz) is independent and the template
+  // sampling (MRISPfunctionVal) is read-only, so this loop parallelizes
+  // cleanly.  It runs every integration iteration during mris_register, so
+  // it is one of the hottest serial sections in the registration.
+  // assume_reproducible: each vertex writes only its own dx/dy/dz and the only
+  // reduction is an order-independent max, so the parallel result is bitwise
+  // identical to the serial one.  This level actually engages threads at the
+  // default romp_level (lower levels such as experimental/fast do not).
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) reduction(max : max_mag)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    ROMP_PFLB_begin
+
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
 
-    e1x = v->e1x;
-    e1y = v->e1y;
-    e1z = v->e1z;
-    e2x = v->e2x;
-    e2y = v->e2y;
-    e2z = v->e2z;
-    x = v->x;
-    y = v->y;
-    z = v->z;
+    float const e1x = v->e1x;
+    float const e1y = v->e1y;
+    float const e1z = v->e1z;
+    float const e2x = v->e2x;
+    float const e2y = v->e2y;
+    float const e2z = v->e2z;
+    float const x = v->x;
+    float const y = v->y;
+    float const z = v->z;
 #if 0
-    src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0) ;
+    double src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0) ;
 #else
-    src = v->curv;
+    double const src = v->curv;
 #endif
-    target = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no);
-    std    = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no + 1);
+    double const target = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no);
+    double std    = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no + 1);
     std = sqrt(std);
     if (FZERO(std)) {
       std = DEFAULT_STD /*FSMALL*/;
@@ -3007,11 +3020,12 @@ int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #if DISABLE_STDS
     std = 1.0f;
 #endif
-    delta = (target - src);
+    double const delta = (target - src);
+    float vsmooth = 1.0;
     if (parms->vsmoothness) {
       vsmooth = 1.0 + parms->vsmoothness[vno];
     }
-    coef = vsmooth * delta * l_corr / std;
+    double const coef = vsmooth * delta * l_corr / std;
 
     /* now compute gradient of template w.r.t. a change in vertex position */
 
@@ -3019,38 +3033,25 @@ int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       sample the curvature functions along the tangent plane axes and
       compute the derivates using them.
     */
-    ux = e1x * d_dist;
-    uy = e1y * d_dist;
-    uz = e1z * d_dist;
-    vx = e2x * d_dist;
-    vy = e2y * d_dist;
-    vz = e2z * d_dist;
-
-#if 0
-    /* compute src term */
-    up1 = MRISPfunctionVal(parms->mrisp, mris, x+ux, y+uy, z+uz, fno) ;
-    um1 = MRISPfunctionVal(parms->mrisp, mris, x-ux, y-uy, z-uz, fno) ;
-    vp1 = MRISPfunctionVal(parms->mrisp, mris, x+vx, y+vy, z+vz, fno) ;
-    vm1 = MRISPfunctionVal(parms->mrisp, mris, x-vx, y-vy, z-vz, fno) ;
-    du = (up1 - um1) / (2 * d_dist) ;
-    dv = (vp1 - vm1) / (2 * d_dist) ;
-    v->dx += coef * (du*e1x + dv*e2x) ;  /* in negative of grad. direction */
-    v->dy += coef * (du*e1y + dv*e2y) ;
-    v->dz += coef * (du*e1z + dv*e2z) ;
-#endif
+    float const ux = e1x * d_dist;
+    float const uy = e1y * d_dist;
+    float const uz = e1z * d_dist;
+    float const vx = e2x * d_dist;
+    float const vy = e2y * d_dist;
+    float const vz = e2z * d_dist;
 
     /* compute target term */
-    up1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + ux, y + uy, z + uz, fno);
-    um1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - ux, y - uy, z - uz, fno);
-    vp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + vx, y + vy, z + vz, fno);
-    vm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - vx, y - vy, z - vz, fno);
-    du = (up1 - um1) / (2 * d_dist);
-    dv = (vp1 - vm1) / (2 * d_dist);
+    double const up1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + ux, y + uy, z + uz, fno);
+    double const um1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - ux, y - uy, z - uz, fno);
+    double const vp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + vx, y + vy, z + vz, fno);
+    double const vm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - vx, y - vy, z - vz, fno);
+    double const du = (up1 - um1) / (2 * d_dist);
+    double const dv = (vp1 - vm1) / (2 * d_dist);
     v->dx -= coef * (du * e1x + dv * e2x);
     v->dy -= coef * (du * e1y + dv * e2y);
     v->dz -= coef * (du * e1z + dv * e2z);
 
-    mag = sqrt(v->dx * v->dx + v->dy * v->dy + v->dz * v->dz);
+    double const mag = sqrt(v->dx * v->dx + v->dy * v->dy + v->dz * v->dz);
     if (mag > max_mag) {
       max_mag = mag;
     }
@@ -3065,7 +3066,10 @@ int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
              coef * (du * e1y + dv * e2y),
              coef * (du * e1z + dv * e2z),
              vsmooth);
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "max gradient magnitude = %2.5f\n", max_mag);
@@ -3334,37 +3338,53 @@ int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
 
 int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  double ap1, am1, da, bp1, bm1, db, gp1, gm1, dg, delta, src, target, mag, max_mag;
-  VERTEX *v;
-  int vno, fno;
-  float x, y, z, std, coef, dx, dy, dz, nv, r;
+  double max_mag;
+  int vno;
+  float nv, r;
 
   if (FZERO(parms->l_pcorr)) {
     return (NO_ERROR);
   }
-  fno = parms->frame_no;
   max_mag = 0.0f;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRISPwrite(parms->mrisp_template, "temp.hipl");
     /*    MRISPwrite(parms->mrisp, "srf.hipl") ;*/
   }
-  mris->gamma = mris->beta = mris->alpha = 0;
+
+  // The rotational gradient is a global reduction over all vertices (the
+  // alpha/beta/gamma sums), and each per-vertex contribution is independent.
+  // Accumulate into thread-reduced locals, then commit to mris.  This loop
+  // runs every iteration during the rigid alignment phase of mris_register.
+  double alpha_sum = 0.0, beta_sum = 0.0, gamma_sum = 0.0;
+
+  // fast: the alpha/beta/gamma accumulators are floating-point sum reductions
+  // whose result depends on summation order, so the parallel result is not
+  // bitwise identical to the serial one.  Gating at "fast" keeps the default
+  // (reproducible) behavior serial while still allowing users who opt into a
+  // more aggressive romp_level to parallelize the rigid-alignment phase.
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(fast) \
+      reduction(+ : alpha_sum, beta_sum, gamma_sum) reduction(max : max_mag)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    ROMP_PFLB_begin
+
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
 
-    x = v->x;
-    y = v->y;
-    z = v->z;
+    float const x = v->x;
+    float const y = v->y;
+    float const z = v->z;
 #if 0
-    src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0) ;
+    double src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0) ;
 #else
-    src = v->curv;
+    double const src = v->curv;
 #endif
-    target = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no);
-    std    = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no + 1);
+    double const target = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no);
+    double std    = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no + 1);
     std = sqrt(std);
     if (FZERO(std)) {
       std = DEFAULT_STD /*FSMALL*/;
@@ -3372,8 +3392,8 @@ int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #if DISABLE_STDS
     std = 1.0f;
 #endif
-    delta = (target - src);
-    coef = delta / std;
+    double const delta = (target - src);
+    float const coef = delta / std;
 
     /* now compute gradient of template w.r.t. a change in vertex position */
 
@@ -3382,35 +3402,37 @@ int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       rotational directions using the associated skew-symmetric
       differential rotation matrices
     */
+    float dx, dy, dz;
+
     /* compute alpha term - differential rotation around z axis */
     dx = y * D_ANGLE;
     dy = -x * D_ANGLE;
     dz = 0;
-    am1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
-    ap1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
-    da = (ap1 - am1) / (2 * D_ANGLE);
+    double const am1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
+    double const ap1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
+    double const da = (ap1 - am1) / (2 * D_ANGLE);
 
     /* compute beta term - differential rotation around y axis */
     dx = -z * D_ANGLE;
     dy = 0;
     dz = x * D_ANGLE;
-    bm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
-    bp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
-    db = (bp1 - bm1) / (2 * D_ANGLE);
+    double const bm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
+    double const bp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
+    double const db = (bp1 - bm1) / (2 * D_ANGLE);
 
     /* compute gamma term - differential rotation around x axis */
     dx = 0;
     dy = -z * D_ANGLE;
     dz = y * D_ANGLE;
-    gm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
-    gp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
-    dg = (gp1 - gm1) / (2 * D_ANGLE);
+    double const gm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
+    double const gp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
+    double const dg = (gp1 - gm1) / (2 * D_ANGLE);
 
-    mris->gamma -= coef * dg; /* around x-axis */
-    mris->beta -= coef * db;  /* around y-axis */
-    mris->alpha -= coef * da; /* around z-axis */
+    gamma_sum -= coef * dg; /* around x-axis */
+    beta_sum  -= coef * db; /* around y-axis */
+    alpha_sum -= coef * da; /* around z-axis */
 
-    mag = sqrt(v->dx * v->dx + v->dy * v->dy + v->dz * v->dz);
+    double const mag = sqrt(v->dx * v->dx + v->dy * v->dy + v->dz * v->dz);
     if (mag > max_mag) {
       max_mag = mag;
     }
@@ -3418,22 +3440,32 @@ int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       DiagBreak();
       ErrorExit(ERROR_BADPARM, "mrisComputePolarCorrelationTerm: delta is not finite at vno %d", vno);
     }
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   nv = MRISvalidVertices(mris);
   r = mris->radius;
-  mris->alpha /= nv;
-  mris->beta /= nv;
-  mris->gamma /= nv;
+  mris->alpha = alpha_sum / nv;
+  mris->beta  = beta_sum / nv;
+  mris->gamma = gamma_sum / nv;
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    ROMP_PFLB_begin
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
     v->dx = r * mris->alpha;
     v->dy = r * mris->beta;
     v->dz = r * mris->gamma;
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "max gradient magnitude = %2.5f\n", max_mag);

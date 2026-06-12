@@ -85,6 +85,7 @@ option(QATOOLS_MODULE "Install QA tools" ON)
 option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(FREEVIEW_LINEPROF "The default is to build freeview w/o lineprof (which in turn requires petsc)" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
+option(FS_OPTIMIZE_ARCH "Enable arch-specific auto-vectorization tuning flags (equivalent, not bitwise-identical, FP)" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
 option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
@@ -455,6 +456,25 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
   set(OMP_CXX_LIBRARIES OpenMP::OpenMP_CXX)
+endif()
+
+## Optional, opt-in CPU-tuning flags to let the compiler auto-vectorize the
+## surface hot loops (mris_sphere / mris_register).  OFF by default because the
+## resulting FP is numerically equivalent but not bitwise identical, and the
+## flags are not portable across machines.  Use a conservative, distributable
+## baseline (not -march=native).
+if(FS_OPTIMIZE_ARCH)
+   if(APPLE_ARM64)
+      set(FS_ARCH_FLAGS "-mcpu=apple-m1")
+   elseif(APPLE)
+      set(FS_ARCH_FLAGS "-mavx2 -mfma")
+   else()
+      ## linux/x86_64: portable v2 baseline plus AVX2/FMA where available
+      set(FS_ARCH_FLAGS "-mavx2 -mfma")
+   endif()
+   message(STATUS "FS_OPTIMIZE_ARCH enabled, adding CPU-tuning flags: ${FS_ARCH_FLAGS}")
+   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${FS_ARCH_FLAGS}")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FS_ARCH_FLAGS}")
 endif()
 
 ## Avoid error from __powf_finite undefined.
