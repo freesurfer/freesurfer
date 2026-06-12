@@ -104,6 +104,9 @@ if [ "$OS" = "Darwin" ]; then
   # holds limits.h/math.h and would shadow libc++ when added to the compile).
   ZPREFIX="$(brew --prefix zlib 2>/dev/null || true)"
   [ -n "$ZPREFIX" ] && EXTRA="$EXTRA -DZLIB_ROOT=$ZPREFIX -DZLIB_INCLUDE_DIR=$ZPREFIX/include -DZLIB_LIBRARY=$ZPREFIX/lib/libz.dylib"
+  # Apple Silicon: enable FreeSurfer's arm64 path (defines ARM64, disables x86
+  # SSE intrinsics in affine.h, sets PNG NEON, etc.).
+  [ "$ARCH" = "arm64" ] && EXTRA="$EXTRA -DAPPLE_ARM64=ON"
 fi
 
 echo ">>> Configuring (cmake)"
