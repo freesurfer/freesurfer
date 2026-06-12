@@ -136,9 +136,22 @@ cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
 echo ">>> Building tools"
 cmake --build "$BUILD_DIR" -j"$JOBS" \
   --target mris_register mris_convert mris_curvature
-# mris_make_template is excluded from MINIMAL; build it directly if present
-if [ -d "$BUILD_DIR/mris_make_template" ]; then
-  cmake --build "$BUILD_DIR" -j"$JOBS" --target mris_make_template || true
+# mris_make_template is gated out by MINIMAL, but it links exactly the same
+# libraries as mris_register. Build it directly by reusing mris_register's
+# compile flags and link line (so the pipeline can also build atlases).
+RD="$BUILD_DIR/mris_register/CMakeFiles/mris_register.dir"
+if [ -f "$RD/link.txt" ] && [ -f "$SRC_DIR/mris_make_template/mris_make_template.cpp" ]; then
+  echo ">>> Building mris_make_template (direct compile+link)"
+  BABS="$(cd "$BUILD_DIR" && pwd)"
+  MMT_CXX="$(awk '{print $1; exit}' "$RD/link.txt")"
+  MMT_FLAGS="$(sed -n 's/^CXX_FLAGS = //p' "$RD/flags.make")"
+  MMT_INC="$(sed -n 's/^CXX_INCLUDES = //p' "$RD/flags.make")"
+  if $MMT_CXX $MMT_FLAGS $MMT_INC -c "$SRC_DIR/mris_make_template/mris_make_template.cpp" -o "$BABS/mmt.o"; then
+    link="$(cat "$RD/link.txt")"
+    link="${link/CMakeFiles\/mris_register.dir\/mris_register.cpp.o/$BABS/mmt.o}"
+    link="${link/-o mris_register /-o $BABS/mris_make_template }"
+    ( cd "$BUILD_DIR/mris_register" && eval "$link" ) || echo "    (mris_make_template link failed; skipping)"
+  fi
 fi
 
 # ---------------------------------------------------------------------------

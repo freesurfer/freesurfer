@@ -63,6 +63,11 @@ jobs:
       - name: Smoke test
         run: ./dist-freesurfer/run.sh mris_register 2>&1 | grep -iE "usage|input" | head -1 || true
 
+      - name: Benchmark (serial vs all cores)
+        run: |
+          chmod +x scripts/bench_mris_register.sh
+          ./scripts/bench_mris_register.sh
+
       - name: Package
         run: tar czf mris_register-${{ matrix.name }}.tgz -C dist-freesurfer .
 

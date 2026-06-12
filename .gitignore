@@ -470,3 +470,5 @@ utils/xmlToHtml
 # testdata
 */testdata
 Testing
+_build_sphere_reg/
+dist-freesurfer/
