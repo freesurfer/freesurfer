@@ -90,8 +90,9 @@ if [ "$OS" = "Darwin" ]; then
   GFORTRAN="$(ls "$(brew --prefix gcc 2>/dev/null)"/bin/gfortran* 2>/dev/null | head -1 || true)"
   [ -z "$GFORTRAN" ] && GFORTRAN="$(command -v gfortran || true)"
   [ -n "$GFORTRAN" ] && EXTRA="$EXTRA -DCMAKE_Fortran_COMPILER=$GFORTRAN"
-  # help CMake find XQuartz's X11/GL libs
-  [ -d /opt/X11 ] && EXTRA="$EXTRA -DCMAKE_PREFIX_PATH=/opt/X11"
+  # NOTE: deliberately NOT setting CMAKE_PREFIX_PATH=/opt/X11. CMake's FindX11
+  # already searches /opt/X11 on macOS, and adding it to CMAKE_PREFIX_PATH put
+  # /opt/X11/include ahead of the C++ stdlib, breaking libc++ <climits>.
 fi
 
 echo ">>> Configuring (cmake)"
