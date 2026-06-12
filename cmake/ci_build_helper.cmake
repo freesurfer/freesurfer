@@ -56,3 +56,24 @@ macro(include_directories)
   _include_directories(${_fs_inc_args})
 endmacro()
 
+
+# Minimal build: only mris_register (and the sibling surface tools used by the
+# sphere->sphere.reg->std-mesh pipeline) are wanted. FreeSurfer's root adds
+# hundreds of unrelated tool subdirectories (mri_robust_register, mri_probedicom,
+# Fortran tools, GUIs, ...) whose missing deps break CMake's *generate* step even
+# though we never build them. Override add_subdirectory so that, AT THE ROOT
+# ONLY, just the directories mris_register needs are configured. Subdirectories
+# added deeper (e.g. packages/* from packages/CMakeLists.txt) are untouched.
+macro(add_subdirectory _fs_dir)
+  if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(_fs_keep packages utils mris_register mris_convert mris_curvature mris_make_template)
+    list(FIND _fs_keep "${_fs_dir}" _fs_idx)
+    if(_fs_idx GREATER -1)
+      _add_subdirectory(${ARGV})
+    else()
+      message(STATUS "ci_build_helper: skipping root subdir not needed for mris_register: ${_fs_dir}")
+    endif()
+  else()
+    _add_subdirectory(${ARGV})
+  endif()
+endmacro()
