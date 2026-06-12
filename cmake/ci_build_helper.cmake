@@ -24,14 +24,15 @@ if(X11_FOUND AND NOT TARGET X11::X11)
     INTERFACE_LINK_LIBRARIES "${X11_X11_LIB}")
 endif()
 
-# -Wno-error relaxes FreeSurfer's -Werror; the -Wno-error=<name> entries
-# additionally downgrade warnings that Apple/LLVM clang promotes to errors BY
-# DEFAULT (int-conversion, implicit-function-declaration, implicit-int), which
-# the vendored C packages (e.g. packages/nifti) still trip. All are accepted
-# (and harmless) by the Linux gcc toolchain too.
+# -Wno-error relaxes FreeSurfer's -Werror generally. The remaining entries
+# downgrade warnings that Apple/LLVM clang promotes to errors BY DEFAULT
+# (int-conversion, implicit-function-declaration, implicit-int,
+# incompatible-function-pointer-types), which the vendored C packages
+# (e.g. packages/nifti) trip on macOS. They are scoped to C compiles, and the
+# clang-only spelling is scoped to clang, so the Linux gcc build is unaffected.
+add_compile_options(-Wno-error)
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-error=int-conversion>)
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-error=implicit-function-declaration>)
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-error=implicit-int>)
 add_compile_options(
-  -Wno-error
-  -Wno-error=int-conversion
-  -Wno-error=implicit-function-declaration
-  -Wno-error=implicit-int
-  -Wno-error=incompatible-function-pointer-types)
+  $<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:AppleClang,Clang>>:-Wno-error=incompatible-function-pointer-types>)
