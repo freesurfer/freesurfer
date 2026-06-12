@@ -67,7 +67,7 @@ if [ "$INSTALL_DEPS" = "1" ]; then
     # (libc++ <climits>/<cmath> failures). The X11/GL libraries it would provide
     # are only referenced by tools we don't build (e.g. mri_probedicom); we feed
     # CMake placeholder library paths for those at generate time instead.
-    brew install cmake itk gsl libomp jpeg-turbo libtiff expat gcc || true
+    brew install cmake itk gsl libomp jpeg-turbo libtiff expat gcc zlib || true
     ITK_DIR="$(echo "$(brew --prefix)"/lib/cmake/ITK-* | tr ' ' '\n' | head -1)"
   fi
 fi
@@ -100,6 +100,10 @@ if [ "$OS" = "Darwin" ]; then
            X11_Xext_LIB X11_SM_LIB X11_ICE_LIB X11_Xpm_LIB X11_Xmu_LIB X11_Xt_LIB; do
     EXTRA="$EXTRA -D${v}=$STUB"
   done
+  # Force zlib to resolve to Homebrew, not the macOS SDK usr/include (which also
+  # holds limits.h/math.h and would shadow libc++ when added to the compile).
+  ZPREFIX="$(brew --prefix zlib 2>/dev/null || true)"
+  [ -n "$ZPREFIX" ] && EXTRA="$EXTRA -DZLIB_ROOT=$ZPREFIX -DZLIB_INCLUDE_DIR=$ZPREFIX/include -DZLIB_LIBRARY=$ZPREFIX/lib/libz.dylib"
 fi
 
 echo ">>> Configuring (cmake)"
@@ -108,7 +112,7 @@ cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DCMAKE_CXX_STANDARD=17 \
-  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_VERBOSE_MAKEFILE=OFF \
   -DFS_PACKAGES_DIR=/usr \
   ${ITK_DIR:+-DITK_DIR="$ITK_DIR"} \
   -DBUILD_GUIS=OFF -DMINIMAL=ON \
