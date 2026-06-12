@@ -1,0 +1,63 @@
+name: sphere-reg binaries (mris_register)
+
+# Builds the parallelized surface-registration tools (mris_register,
+# mris_convert, mris_curvature) for Linux, macOS Intel, and macOS Apple
+# Silicon, and publishes ready-to-download binaries.
+#
+#   * every push / manual run  -> per-platform build artifacts (Actions tab)
+#   * pushing a tag like v1.0  -> a GitHub Release with the binaries attached
+#
+# No local toolchain or know-how required: download the archive for your OS,
+# unpack, and run ./run.sh mris_register ...
+#
+# Note: the Linux leg is verified. The macOS legs are wired identically and
+# fail-fast is disabled, so a successful Linux build is never blocked by a
+# macOS dependency hiccup; the macOS legs are validated the first time they run.
+
+on:
+  push:
+    branches: [ "claude/sphere-reg-pipeline-optimization-xtpgi7" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build-${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, name: linux-x86_64 }
+          - { os: macos-13,      name: macos-intel-x86_64 }
+          - { os: macos-14,      name: macos-arm64 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sphere-reg tools
+        run: |
+          chmod +x build_sphere_reg_pipeline.sh
+          ./build_sphere_reg_pipeline.sh --jobs 3
+
+      - name: Smoke test
+        run: ./dist-freesurfer/run.sh mris_register 2>&1 | grep -iE "usage|input" | head -1 || true
+
+      - name: Package
+        run: tar czf mris_register-${{ matrix.name }}.tgz -C dist-freesurfer .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mris_register-${{ matrix.name }}
+          path: mris_register-${{ matrix.name }}.tgz
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" "mris_register-${{ matrix.name }}.tgz" --clobber \
+            || gh release create "${GITHUB_REF_NAME}" "mris_register-${{ matrix.name }}.tgz" \
+                 --title "${GITHUB_REF_NAME}" --notes "mris_register binaries (Linux + macOS Intel/ARM)"
