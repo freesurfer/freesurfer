@@ -33,15 +33,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-13, name: macos-intel-x86_64 }
+          # Intel (x86_64) is cross-built on the plentiful Apple-Silicon runner
+          # via Rosetta, since GitHub's native macos-13 Intel runners are scarce.
+          - { os: macos-14, name: macos-intel-x86_64, cross_x86: true }
           - { os: macos-14, name: macos-arm64 }
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build sphere-reg tools
+      - name: Build sphere-reg tools (native)
+        if: ${{ !matrix.cross_x86 }}
         run: |
           chmod +x build_sphere_reg_pipeline.sh
           ./build_sphere_reg_pipeline.sh --jobs 3
+
+      - name: Build sphere-reg tools (x86_64 cross on Apple Silicon)
+        if: ${{ matrix.cross_x86 }}
+        run: |
+          # x86_64 Homebrew under /usr/local (via Rosetta), then run the same
+          # build script under Rosetta so uname reports x86_64 and it uses the
+          # x86_64 toolchain/deps.
+          if [ ! -x /usr/local/bin/brew ]; then
+            arch -x86_64 /bin/bash -c \
+              'NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+          fi
+          export PATH="/usr/local/bin:$PATH"
+          chmod +x build_sphere_reg_pipeline.sh
+          arch -x86_64 /bin/bash ./build_sphere_reg_pipeline.sh --jobs 3
 
       - name: Smoke test
         run: ./dist-freesurfer/run.sh mris_register 2>&1 | grep -iE "usage|input" | head -1 || true
