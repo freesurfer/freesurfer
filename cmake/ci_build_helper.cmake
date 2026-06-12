@@ -77,3 +77,12 @@ macro(add_subdirectory _fs_dir)
     _add_subdirectory(${ARGV})
   endif()
 endmacro()
+
+# ITK 5.x headers require C++17 (std::is_same_v), but FreeSurfer still uses
+# std::binary_function/unary_function which C++17 removed. Tell libc++ to keep
+# those legacy bits so both compile under -std=c++17 (clang/libc++ only).
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_definitions(
+    _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
+    _LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
+endif()
