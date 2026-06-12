@@ -155,24 +155,89 @@ if [ -f "$RD/link.txt" ] && [ -f "$SRC_DIR/mris_make_template/mris_make_template
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Package
+# 4. Package  (self-contained: relocate all dependent libraries)
 # ---------------------------------------------------------------------------
+# bundle_self_contained BINDIR LIBDIR OS
+#   Copies every non-system dynamic library the binaries depend on (transitively)
+#   into LIBDIR and rewrites the install names so each binary finds its libraries
+#   relative to its own location. After this the binaries are portable: copy the
+#   folder anywhere and run bin/<tool> directly, with no Homebrew and no
+#   DYLD/LD_LIBRARY_PATH. On macOS this also ad-hoc re-signs every file, which is
+#   mandatory on Apple Silicon (editing a Mach-O invalidates its code signature
+#   and dyld will kill an unsigned binary).
+bundle_self_contained() {
+  local BINDIR="$1" LIBDIR="$2" OS="$3"
+  mkdir -p "$LIBDIR"
+  if [ "$OS" = "Darwin" ]; then
+    _sys() { case "$1" in /usr/lib/*|/System/*) return 0;; *) return 1;; esac; }
+    # 1. fixed-point copy of every transitive non-system dependency
+    local added=1
+    while [ "$added" = "1" ]; do
+      added=0
+      for f in "$BINDIR"/* "$LIBDIR"/*.dylib; do
+        [ -f "$f" ] || continue
+        while IFS= read -r dep; do
+          case "$dep" in @*|"") continue;; esac
+          _sys "$dep" && continue
+          local base; base="$(basename "$dep")"
+          if [ ! -f "$LIBDIR/$base" ] && [ -f "$dep" ]; then
+            cp -L "$dep" "$LIBDIR/$base"; chmod u+w "$LIBDIR/$base"; added=1
+          fi
+        done < <(otool -L "$f" 2>/dev/null | awk 'NR>1{print $1}')
+      done
+    done
+    # 2. rewrite library IDs and all references to @loader_path-relative paths
+    for lib in "$LIBDIR"/*.dylib; do
+      [ -f "$lib" ] || continue
+      install_name_tool -id "@loader_path/$(basename "$lib")" "$lib" 2>/dev/null || true
+    done
+    for f in "$BINDIR"/* "$LIBDIR"/*.dylib; do
+      [ -f "$f" ] || continue
+      local rel; case "$f" in "$BINDIR"/*) rel="@loader_path/../lib";; *) rel="@loader_path";; esac
+      while IFS= read -r dep; do
+        case "$dep" in @*|"") continue;; esac
+        _sys "$dep" && continue
+        local base; base="$(basename "$dep")"
+        [ -f "$LIBDIR/$base" ] || continue
+        install_name_tool -change "$dep" "$rel/$base" "$f" 2>/dev/null || true
+      done < <(otool -L "$f" 2>/dev/null | awk 'NR>1{print $1}')
+    done
+    # 3. ad-hoc re-sign every binary and library (required on Apple Silicon)
+    for f in "$BINDIR"/* "$LIBDIR"/*.dylib; do
+      [ -f "$f" ] && codesign --force --sign - "$f" 2>/dev/null || true
+    done
+  else  # Linux: recursively bundle non-system libs and set an $ORIGIN rpath
+    local added=1
+    while [ "$added" = "1" ]; do
+      added=0
+      for f in "$BINDIR"/* "$LIBDIR"/*.so*; do
+        [ -f "$f" ] || continue
+        while IFS= read -r dep; do
+          case "$dep" in /lib/*|/usr/lib/*|/lib64/*|/usr/lib64/*|linux-vdso*|"") continue;; esac
+          local base; base="$(basename "$dep")"
+          if [ ! -f "$LIBDIR/$base" ] && [ -f "$dep" ]; then
+            cp -L "$dep" "$LIBDIR/$base"; chmod u+w "$LIBDIR/$base"; added=1
+          fi
+        done < <(ldd "$f" 2>/dev/null | awk '/=>/{print $3}')
+      done
+    done
+    if command -v patchelf >/dev/null 2>&1; then
+      for f in "$BINDIR"/*; do [ -f "$f" ] && patchelf --set-rpath '$ORIGIN/../lib' "$f" 2>/dev/null || true; done
+      for f in "$LIBDIR"/*.so*; do [ -f "$f" ] && patchelf --set-rpath '$ORIGIN' "$f" 2>/dev/null || true; done
+    fi
+  fi
+}
+
 DIST="dist-freesurfer"
 rm -rf "$DIST"; mkdir -p "$DIST/bin" "$DIST/lib"
 for t in mris_register mris_convert mris_curvature mris_make_template; do
   f="$(find "$BUILD_DIR" -name "$t" -type f -perm -u+x 2>/dev/null | head -1)"
   [ -n "$f" ] && cp "$f" "$DIST/bin/" && echo "    packaged $t"
 done
-# bundle non-system shared libs
-for b in "$DIST"/bin/*; do
-  if [ "$OS" = "Linux" ]; then
-    ldd "$b" 2>/dev/null | awk '/=>/{print $3}' \
-      | grep -iE "ITK|libgomp|libtiff|libexpat|libgsl|libz|libnetcdf" || true
-  else
-    otool -L "$b" 2>/dev/null | awk 'NR>1{print $1}' \
-      | grep -iE "ITK|libomp|libtiff|libexpat|libgsl" || true
-  fi
-done | sort -u | while read -r so; do [ -f "$so" ] && cp -n "$so" "$DIST/lib/" 2>/dev/null || true; done
+# Make the dist fully self-contained so the binaries run directly (no Homebrew,
+# no env vars): recursively bundle every non-system dependent library and
+# rewrite the baked-in absolute paths to be relative to the binary.
+bundle_self_contained "$DIST/bin" "$DIST/lib" "$OS"
 
 cat > "$DIST/run.sh" <<'RUN'
 #!/usr/bin/env bash
@@ -187,7 +252,7 @@ RUN
 chmod +x "$DIST/run.sh"
 
 echo ""
-echo ">>> DONE. Binaries in $DIST/bin :"
+echo ">>> DONE. Self-contained binaries in $DIST/bin :"
 ls -1 "$DIST/bin"
-echo ">>> Run with, e.g.:"
-echo "    $DIST/run.sh mris_register -threads $JOBS lh.sphere lh.atlas.tif lh.sphere.reg"
+echo ">>> Run directly (no Homebrew / env vars needed), e.g.:"
+echo "    $DIST/bin/mris_register -threads $JOBS lh.sphere lh.atlas.tif lh.sphere.reg"
