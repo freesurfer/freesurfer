@@ -62,10 +62,12 @@ if [ "$INSTALL_DEPS" = "1" ]; then
     command -v brew >/dev/null || { echo "Homebrew required: https://brew.sh"; exit 1; }
     brew update >/dev/null || true
     # gcc provides gfortran, which FreeSurfer's CMake enables as a language.
-    # XQuartz supplies the X11/GL libs (libGL/libGLU/libXmu/libXt) that some
-    # FreeSurfer targets reference during CMake generation.
+    # NOTE: intentionally NOT installing XQuartz. Its /opt/X11/include gets added
+    # to libutils' compile (FindX11 picks it up) and shadows the C++ stdlib
+    # (libc++ <climits>/<cmath> failures). The X11/GL libraries it would provide
+    # are only referenced by tools we don't build (e.g. mri_probedicom); we feed
+    # CMake placeholder library paths for those at generate time instead.
     brew install cmake itk gsl libomp jpeg-turbo libtiff expat gcc || true
-    brew install --cask xquartz || true
     ITK_DIR="$(echo "$(brew --prefix)"/lib/cmake/ITK-* | tr ' ' '\n' | head -1)"
   fi
 fi
@@ -90,9 +92,14 @@ if [ "$OS" = "Darwin" ]; then
   GFORTRAN="$(ls "$(brew --prefix gcc 2>/dev/null)"/bin/gfortran* 2>/dev/null | head -1 || true)"
   [ -z "$GFORTRAN" ] && GFORTRAN="$(command -v gfortran || true)"
   [ -n "$GFORTRAN" ] && EXTRA="$EXTRA -DCMAKE_Fortran_COMPILER=$GFORTRAN"
-  # NOTE: deliberately NOT setting CMAKE_PREFIX_PATH=/opt/X11. CMake's FindX11
-  # already searches /opt/X11 on macOS, and adding it to CMAKE_PREFIX_PATH put
-  # /opt/X11/include ahead of the C++ stdlib, breaking libc++ <climits>.
+  # Satisfy CMake generation for X11/GL-linked tools we never build, using a
+  # placeholder library that always exists (libSystem). This avoids needing
+  # XQuartz, whose /opt/X11/include would shadow the C++ stdlib.
+  STUB=/usr/lib/libSystem.B.dylib
+  for v in GL_LIBRARY GLU_LIBRARY XMU_LIBRARY XT_LIBRARY X11_X11_LIB \
+           X11_Xext_LIB X11_SM_LIB X11_ICE_LIB X11_Xpm_LIB X11_Xmu_LIB X11_Xt_LIB; do
+    EXTRA="$EXTRA -D${v}=$STUB"
+  done
 fi
 
 echo ">>> Configuring (cmake)"
