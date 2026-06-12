@@ -21,17 +21,14 @@ source with one command**. No FreeSurfer/AFNI build experience is required.
 
 ## 1. Download prebuilt binaries (no build)
 
-CI builds binaries for **Linux x86_64**, **macOS Intel (x86_64)**, and
-**macOS Apple Silicon (arm64)** on every push, and attaches them to a GitHub
-Release whenever a tag (`v*`) is pushed.
+CI builds **macOS Intel (x86_64)** and **macOS Apple Silicon (arm64)** binaries
+for both tools on every push, and attaches them to a GitHub Release on tags.
 
 1. Open the repo's **Releases** page (or the **Actions** tab → latest
    "sphere-reg binaries" run → **Artifacts**).
-2. Download the archive for your machine:
-   * `mris_register-macos-arm64.tgz`     (M1/M2/M3 Macs)
-   * `mris_register-macos-intel-x86_64.tgz` (Intel Macs)
-   * `mris_register-linux-x86_64.tgz`
-   * and the matching `MapIcosahedron-*` archive from the **afni** repo.
+2. Download the archive for your Mac:
+   * `mris_register-macos-arm64.tgz` / `mris_register-macos-intel-x86_64.tgz`
+   * the matching `MapIcosahedron-macos-*` archive from the **afni** repo.
 3. Unpack and run via the bundled `run.sh` (it sets the library paths for you):
 
    ```bash
@@ -49,7 +46,7 @@ Release whenever a tag (`v*`) is pushed.
 Clone this branch and run the builder. It installs dependencies, configures,
 compiles, and packages — no manual steps.
 
-### FreeSurfer tools (mris_register, mris_convert, mris_curvature)
+### FreeSurfer tools (mris_register, mris_convert, mris_curvature) — Linux
 
 ```bash
 git clone -b claude/sphere-reg-pipeline-optimization-xtpgi7 <freesurfer-repo-url>
@@ -58,6 +55,9 @@ cd freesurfer
 # -> dist-freesurfer/bin/{mris_register,mris_convert,mris_curvature}
 # -> dist-freesurfer/run.sh
 ```
+
+The FreeSurfer build script targets **Linux**. On macOS, use FreeSurfer's
+official `mris_register` and only build AFNI's `MapIcosahedron` (below) locally.
 
 ### AFNI/SUMA MapIcosahedron
 
@@ -69,7 +69,8 @@ cd afni/src
 # -> dist-afni/run.sh
 ```
 
-Supported hosts: Ubuntu/Debian (apt) and macOS Intel + Apple Silicon (Homebrew).
+Supported hosts: `build_sphere_reg_pipeline.sh` (FreeSurfer) → Ubuntu/Debian.
+`build_mapicosahedron.sh` (AFNI) → Ubuntu/Debian and macOS Intel + Apple Silicon.
 Pass `--no-deps` to skip dependency installation if you already have them.
 
 ---

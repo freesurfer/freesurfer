@@ -1,18 +1,14 @@
 name: sphere-reg binaries (mris_register)
 
 # Builds the parallelized surface-registration tools (mris_register,
-# mris_convert, mris_curvature) for Linux, macOS Intel, and macOS Apple
-# Silicon, and publishes ready-to-download binaries.
+# mris_convert, mris_curvature) for macOS Intel and macOS Apple Silicon, and
+# publishes ready-to-download binaries.
 #
-#   * every push / manual run  -> per-platform build artifacts (Actions tab)
+#   * every push / manual run  -> per-arch build artifacts (Actions tab)
 #   * pushing a tag like v1.0  -> a GitHub Release with the binaries attached
 #
-# No local toolchain or know-how required: download the archive for your OS,
+# No local toolchain or know-how required: download the archive for your Mac,
 # unpack, and run ./run.sh mris_register ...
-#
-# Note: the Linux leg is verified. The macOS legs are wired identically and
-# fail-fast is disabled, so a successful Linux build is never blocked by a
-# macOS dependency hiccup; the macOS legs are validated the first time they run.
 
 on:
   push:
@@ -37,9 +33,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, name: linux-x86_64 }
-          - { os: macos-13,      name: macos-intel-x86_64 }
-          - { os: macos-14,      name: macos-arm64 }
+          - { os: macos-13, name: macos-intel-x86_64 }
+          - { os: macos-14, name: macos-arm64 }
     steps:
       - uses: actions/checkout@v4
 

@@ -113,6 +113,7 @@ cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DCMAKE_CXX_STANDARD=17 \
   -DCMAKE_VERBOSE_MAKEFILE=OFF \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DFS_PACKAGES_DIR=/usr \
   ${ITK_DIR:+-DITK_DIR="$ITK_DIR"} \
   -DBUILD_GUIS=OFF -DMINIMAL=ON \
@@ -120,6 +121,20 @@ cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
   -DBUILD_FORTRAN=OFF -DINTEGRATE_SAMSEG=OFF -DBUILD_ATTIC=OFF -DQATOOLS_MODULE=OFF \
   -DPYTHON_EXECUTABLE="$(command -v python3)" \
   $EXTRA
+
+# (diagnostic) print the include order for a representative utils C++ file so
+# any directory shadowing the C++ standard library can be identified.
+if [ -f "$BUILD_DIR/compile_commands.json" ]; then
+  echo ">>> argparse.cpp include flags:"
+  python3 - "$BUILD_DIR/compile_commands.json" <<'PY' || true
+import json,sys,re
+for e in json.load(open(sys.argv[1])):
+    if e["file"].endswith("argparse.cpp"):
+        cmd = e.get("command") or " ".join(e.get("arguments", []))
+        print("  "+ " ".join(re.findall(r'-I\S+|-isystem\s*\S+|-isysroot\s*\S+', cmd)))
+        break
+PY
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Build the tools the sphere->sphere.reg->std-mesh pipeline needs
