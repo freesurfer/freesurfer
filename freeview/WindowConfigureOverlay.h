@@ -91,6 +91,7 @@ protected slots:
   void OnButtonLoadCustom();
   void OnButtonSaveCustom();
   void OnCheckSetMidToMin(bool bChecked);
+  void OnComboColorScale(int nSel);
 
 private:
   Ui::WindowConfigureOverlay *ui;

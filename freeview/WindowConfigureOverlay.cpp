@@ -40,11 +40,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   m_fDataCache = NULL;
   ui->widgetHistogram->SetNumberOfBins( 200 );
   ui->widgetHolderAddPoint->hide();
-  ui->checkBoxClearLower->hide();
-  ui->checkBoxClearHigher->hide();
-  ui->pushButtonFlip->hide();
-  ui->pushButtonLoadCustom->hide();
-  ui->pushButtonSaveCustom->hide();
+  ui->widgetCustom->hide();
   ui->widgetColorPicker->setCurrentColor(Qt::green);
   m_rangeOverall[0] = 0;
   m_rangeOverall[1] = 1;
@@ -196,21 +192,10 @@ void WindowConfigureOverlay::UpdateUI()
     ui->labelFrameRange->setText(QString("0-%1").arg(overlay->GetNumberOfFrames()-1));
     ui->groupBoxFrame->setVisible(overlay->GetNumberOfFrames() > 1);
 
-    //   ui->radioButtonGreenRed ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_GreenRed );
-    //   ui->radioButtonBlueRed    ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_BlueRed );
-    ui->radioButtonHeat->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Heat );
-    ui->radioButtonJet->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Jet );
-    ui->radioButtonColorWheel->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_ColorWheel );
-    ui->radioButtonCustom->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Custom );
-    ui->radioButtonEmbedded->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Embedded );
+    ui->comboBoxColorScale->setCurrentIndex(p->GetColorScale());
+    ui->groupBoxThreshold->setEnabled(p->GetColorScale() != SurfaceOverlayProperty::CS_Embedded);
 
-    ui->groupBoxThreshold->setEnabled(!ui->radioButtonEmbedded->isChecked());
-
-    ui->pushButtonLoadCustom->setVisible(ui->radioButtonCustom->isChecked());
-    ui->pushButtonSaveCustom->setVisible(ui->radioButtonCustom->isChecked());
-    ui->pushButtonFlip->setVisible(ui->radioButtonCustom->isChecked());
-    ui->checkBoxClearHigher->setVisible(ui->radioButtonCustom->isChecked());
-    ui->checkBoxClearLower->setVisible(ui->radioButtonCustom->isChecked());
+    ui->widgetCustom->setVisible(p->GetColorScale() == SurfaceOverlayProperty::CS_Custom);
 
     ui->checkBoxUsePercentile->setChecked(p->GetUsePercentile());
     ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
@@ -238,8 +223,10 @@ void WindowConfigureOverlay::UpdateUI()
     ui->radioButtonLinearOpaque  ->setChecked( p->GetColorMethod() == SurfaceOverlayProperty::CM_LinearOpaque );
     ui->radioButtonPiecewise     ->setChecked( p->GetColorMethod() == SurfaceOverlayProperty::CM_Piecewise );
 
-    ui->checkBoxInverse->setChecked( p->GetColorInverse() );
-    ui->checkBoxTruncate->setChecked( p->GetColorTruncate() );
+    ui->checkBoxTruncate->setEnabled(p->GetColorScale() <= SurfaceOverlayProperty::CS_Heat);
+    ui->checkBoxInverse->setEnabled(p->GetColorScale() <= SurfaceOverlayProperty::CS_Jet);
+    ui->checkBoxTruncate->setChecked(ui->checkBoxTruncate->isEnabled() && p->GetColorTruncate());
+    ui->checkBoxInverse->setChecked(ui->checkBoxInverse->isEnabled() && p->GetColorInverse());
     ui->checkBoxClearLower->setChecked(p->GetClearLower());
     ui->checkBoxClearHigher->setChecked(p->GetClearHigher());
 
@@ -436,26 +423,7 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
     return false;
   }
 
-  if ( ui->radioButtonHeat->isChecked() )
-  {
-    p->SetColorScale( SurfaceOverlayProperty::CS_Heat );
-  }
-  else if ( ui->radioButtonColorWheel->isChecked() )
-  {
-    p->SetColorScale( SurfaceOverlayProperty::CS_ColorWheel );
-  }
-  else if ( ui->radioButtonJet->isChecked() )
-  {
-    p->SetColorScale( SurfaceOverlayProperty::CS_Jet );
-  }
-  else if ( ui->radioButtonCustom->isChecked() )
-  {
-    p->SetColorScale( SurfaceOverlayProperty::CS_Custom );
-  }
-  else if (ui->radioButtonEmbedded->isChecked())
-  {
-    p->SetColorScale( SurfaceOverlayProperty::CS_Embedded );
-  }
+  p->SetColorScale(ui->comboBoxColorScale->currentIndex());
 
   if ( ui->radioButtonLinear->isChecked() )
   {
@@ -519,7 +487,7 @@ void WindowConfigureOverlay::UpdateGraph(bool bApply)
         ui->widgetHistogram->SetInputData( m_fDataCache, overlay->GetDataSize(), range);
       else
         ui->widgetHistogram->SetInputData( overlay->GetData(), overlay->GetDataSize(), range);
-      ui->widgetHistogram->SetSymmetricMarkers(p->GetColorScale() <= SurfaceOverlayProperty::CS_BlueRed);
+      ui->widgetHistogram->SetSymmetricMarkers(p->GetColorScale() == SurfaceOverlayProperty::CS_Heat);
       ui->widgetHistogram->SetMarkerEditable(p->GetColorScale() == SurfaceOverlayProperty::CS_Custom);
 
       int nBins = ui->widgetHistogram->GetNumberOfBins();
@@ -648,7 +616,7 @@ void WindowConfigureOverlay::OnHistogramMarkerChanged()
   SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
 
   LineMarkers markers = ui->widgetHistogram->GetMarkers();
-  if (ui->radioButtonCustom->isChecked())
+  if (ui->comboBoxColorScale->currentIndex() == SurfaceOverlayProperty::CS_Custom)
   {
     m_markers = markers;
     UpdateGraph(true);
@@ -669,7 +637,7 @@ void WindowConfigureOverlay::OnHistogramMarkerChanged()
       }
       if (i == 1)
       {
-        if (ui->radioButtonPiecewise->isChecked() && ui->radioButtonHeat->isChecked())
+        if (ui->radioButtonPiecewise->isChecked() && ui->comboBoxColorScale->currentIndex() == 0)
         {
           if (bUsePercentile)
             ChangeLineEditNumber(ui->lineEditMid, overlay->PositionToPercentile(markers[i].position-m_dSavedOffset, bIgnoreZeros),
@@ -1071,4 +1039,20 @@ void WindowConfigureOverlay::OnButtonLoadCustom()
       overlay->EmitDataUpdated();
     }
   }
+}
+
+void WindowConfigureOverlay::OnComboColorScale(int nSel)
+{
+  UpdateGraphAndApply();
+  bool bCustom = (nSel == ui->comboBoxColorScale->count()-1);
+  if (bCustom)
+  {
+    OnCustomColorScale();
+    ui->radioButtonLinearOpaque->click();
+  }
+  ui->widgetCustom->setVisible(bCustom);
+  ui->widgetHolderAddPoint->setVisible(bCustom);
+  ui->widgetHolderThreshold->setHidden(bCustom);
+  ui->checkBoxTruncate->setEnabled(nSel <= SurfaceOverlayProperty::CS_Heat);
+  ui->checkBoxInverse->setEnabled(nSel <= SurfaceOverlayProperty::CS_Jet);
 }
