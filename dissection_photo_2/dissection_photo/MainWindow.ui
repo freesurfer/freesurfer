@@ -61,7 +61,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>4</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -96,7 +96,7 @@
             <item>
              <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;p&gt;Ctrl + Z to toggle mask visibility.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Refine a binary mask of the slab faces within the image. &lt;/p&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;p&gt;Ctrl + Z to toggle mask visibility.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
@@ -508,7 +508,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_4">
               <property name="text">
-               <string>Left mouse button to pan, Right button to zoom, Ctrl+Left to draw. Please select slices in order. Click &quot;Create Mask&quot; after you select all the slices in the image.</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select the slabs in order and include all connected components. Any component not included with be ignored.&lt;/p&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left to draw. Please select slices in order. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -627,7 +627,7 @@ QPushButton:disabled {background: #999999;}</string>
                </spacer>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButtonProceedToRecon">
+               <widget class="QPushButton" name="pushButtonQuit">
                 <property name="enabled">
                  <bool>true</bool>
                 </property>
@@ -642,7 +642,7 @@ QPushButton:disabled {background: #999999;}</string>
 QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="text">
-                 <string>Proceed to Reconstruction</string>
+                 <string>Quit</string>
                 </property>
                </widget>
               </item>
@@ -696,7 +696,7 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_2">
               <property name="text">
-               <string>Left mouse button to pan, right button to zoom, Ctrl+left button to draw</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select between manual calibration modes and preview the corrected image. Include the dimension of your rulers within the text box.&lt;/p&gt;&lt;p&gt;Left mouse button to pan, right button to zoom, Ctrl+left button to place points&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -1040,7 +1040,7 @@ QPushButton:disabled {background: #999999;}</string>
                <item>
                 <widget class="QLabel" name="label_122">
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>Upload your uncorrected photographs of dissection photographs</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1146,7 +1146,7 @@ QPushButton:disabled {background: #999999;}</string>
                <item>
                 <widget class="QLabel" name="label_14">
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>OPTIONAL: Upload a calibration file for automatic spatial correction.</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1233,7 +1233,7 @@ QPushButton:disabled {background: #999999;}</string>
                  <string notr="true"/>
                 </property>
                 <property name="text">
-                 <string>&lt;a style='color:#c95659;font-size:18px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
+                 <string>&lt;a style='color:#a6a233;font-size:20px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -1417,7 +1417,7 @@ QPushButton:disabled {background: #999999;}</string>
                <item>
                 <widget class="QLabel" name="labelCalibrationPhoto">
                  <property name="text">
-                  <string>Or drag and drop the image into this box</string>
+                  <string>Or drag and drop the image of the workspace into this box</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignHCenter|Qt::AlignTop</set>
@@ -1451,7 +1451,7 @@ QPushButton:disabled {background: #999999;}</string>
                   </size>
                  </property>
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>For each fiducial marker in your image click the center of the marker and its outer circle. Include the dimention between fiducial centers in the provided text box.</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1729,23 +1729,6 @@ QPushButton:disabled {background: #999999;}</string>
                  </size>
                 </property>
                </spacer>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButtonQuit">
-                <property name="minimumSize">
-                 <size>
-                  <width>100</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #89448e; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
-                </property>
-                <property name="text">
-                 <string>Quit</string>
-                </property>
-               </widget>
               </item>
               <item>
                <spacer name="horizontalSpacer_11">
@@ -2347,8 +2330,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>785</x>
-     <y>46</y>
+     <x>943</x>
+     <y>62</y>
     </hint>
     <hint type="destinationlabel">
      <x>172</x>
@@ -2363,7 +2346,7 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>646</x>
+     <x>800</x>
      <y>62</y>
     </hint>
     <hint type="destinationlabel">
@@ -2475,7 +2458,7 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnTogglePointMode(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>717</x>
+     <x>871</x>
      <y>62</y>
     </hint>
     <hint type="destinationlabel">
@@ -2539,12 +2522,12 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>UndoLastMaskEdit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>224</x>
-     <y>212</y>
+     <x>328</x>
+     <y>258</y>
     </hint>
     <hint type="destinationlabel">
-     <x>546</x>
-     <y>300</y>
+     <x>1158</x>
+     <y>383</y>
     </hint>
    </hints>
   </connection>
@@ -2587,8 +2570,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>SetBrushSize(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>176</y>
+     <x>251</x>
+     <y>213</y>
     </hint>
     <hint type="destinationlabel">
      <x>642</x>
@@ -2635,8 +2618,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnSliderSegOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>381</x>
-     <y>182</y>
+     <x>458</x>
+     <y>215</y>
     </hint>
     <hint type="destinationlabel">
      <x>576</x>
@@ -2699,8 +2682,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonProcess()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>294</x>
-     <y>334</y>
+     <x>396</x>
+     <y>372</y>
     </hint>
     <hint type="destinationlabel">
      <x>261</x>
@@ -2715,8 +2698,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonClear()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>272</x>
-     <y>170</y>
+     <x>353</x>
+     <y>223</y>
     </hint>
     <hint type="destinationlabel">
      <x>247</x>
@@ -2741,46 +2724,14 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonProceedToRecon</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnButtonProceedToRecon()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>279</x>
-     <y>818</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>287</x>
-     <y>856</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonQuit</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>251</x>
-     <y>818</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>279</x>
-     <y>856</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>pushButtonTogglePreview</sender>
    <signal>toggled(bool)</signal>
    <receiver>MainWindow</receiver>
    <slot>OnButtonTogglePreview(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>285</y>
+     <x>372</x>
+     <y>320</y>
     </hint>
     <hint type="destinationlabel">
      <x>207</x>
@@ -2811,8 +2762,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonCalibration()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>369</x>
-     <y>808</y>
+     <x>573</x>
+     <y>825</y>
     </hint>
     <hint type="destinationlabel">
      <x>378</x>
@@ -2875,8 +2826,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>ClearEdits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>626</y>
+     <x>454</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>671</x>
@@ -2891,8 +2842,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>UndoLastPoint()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>123</x>
-     <y>628</y>
+     <x>212</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>652</x>
@@ -2907,12 +2858,28 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>RedoLastPoint()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>199</x>
-     <y>624</y>
+     <x>279</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>664</x>
      <y>597</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonQuit</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>326</x>
+     <y>822</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>417</x>
+     <y>1201</y>
     </hint>
    </hints>
   </connection>

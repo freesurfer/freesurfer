@@ -766,7 +766,7 @@ void MainWindow::OnButtonNext()
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
   {
-    ui->pushButtonProceedToRecon->setEnabled(true);
+    ui->pushButtonQuit->setEnabled(true);
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCorrection)
   {
