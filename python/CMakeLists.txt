@@ -2,9 +2,10 @@ project(fspython)
 
 # build the cxx/python bindings for the below modules
 add_subdirectories(fsbindings)
-if(NOT INTEGRATE_SAMSEG)
-  add_subdirectories(gems/cxx)
-endif()
+## gems in atiic as of 6/2026
+# if(NOT INTEGRATE_SAMSEG)
+#  add_subdirectories(gems/cxx)
+# endif()
 
 ## FSPYTHON_VERSION set in top level CMakeLists.txt
 # set(FSPYTHON_VERSION "3.8")
