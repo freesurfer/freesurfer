@@ -2563,6 +2563,15 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         else
           sup_data["VectorSkip"] = subArgu;
       }
+      else if ( subOption == "vector_color" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector_color argument.\n";
+        }
+        else
+          sup_data["VectorColor"] = subArgu;
+      }
       else if ( subOption == "vector_normalize" )
       {
         if ( subArgu.isEmpty() )
@@ -5927,6 +5936,18 @@ void MainWindow::LoadVolumeFile( const QString& filename,
 
   if (sup_data.contains("BinaryColor"))
     layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
+
+  if (sup_data.contains("VectorColor"))
+  {
+    QColor c = ParseColorInput(sup_data["VectorColor"].toString());
+    if (c.isValid())
+    {
+      layer->GetProperty()->SetVectorColor(c);
+      layer->GetProperty()->SetVectorColorCode(LayerPropertyMRI::VC_Single);
+    }
+    else
+      qDebug() << "Invalid vector color input";
+  }
 
   if (sup_data.contains("ClearBackground"))
   {

@@ -74,6 +74,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bDisplayVector( false ),
   m_nVectorInversion( VI_None ),
   m_nVectorRepresentation( VR_Line ),
+  m_nVectorColorCode(VC_Directional),
   m_bDisplayTensor( false ),
   m_nTensorInversion( VI_None ),
   m_nTensorRepresentation( TR_Boxoid ),
@@ -102,7 +103,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nVectorSkip(0),
   m_dVectorNormThreshold(0),
   m_bAutoWindowSlice(false),
-  m_colorBinary(Qt::white)
+  m_colorBinary(Qt::white),
+  m_colorVector(Qt::yellow)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -175,6 +177,7 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_bDisplayVector        =   p->m_bDisplayVector;
   m_nVectorInversion      =   p->m_nVectorInversion;
   m_nVectorRepresentation =   p->m_nVectorRepresentation;
+  m_nVectorColorCode      =   p->m_nVectorColorCode;
   m_bHeatScaleClearHigh   =   p->m_bHeatScaleClearHigh;
   m_bHeatScaleTruncate    =   p->m_bHeatScaleTruncate;
   m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
@@ -182,6 +185,7 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_dVectorLineWidth      =   p->m_dVectorLineWidth;
   m_dVectorNormThreshold  =   p->m_dVectorNormThreshold;
   m_colorBinary           =   p->m_colorBinary;
+  m_colorVector           =   p->m_colorVector;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
 
@@ -407,6 +411,7 @@ QVariantMap LayerPropertyMRI::GetFullSettings()
   map["DisplayVector"] = m_bDisplayVector;
   map["VectorInversion"] = m_nVectorInversion;
   map["VectorRepresentation"] = m_nVectorRepresentation;
+  map["VectorColorCode"] = m_nVectorColorCode;
   map["VectorLengthScale"] = m_dVectorDisplayScale;
   map["VectorWidthScale"] = m_dVectorLineWidth;
   map["VectorNormalize"] = m_bNormalizeVector;
@@ -439,6 +444,9 @@ void LayerPropertyMRI::RestoreFullSettings(const QVariantMap &map)
 
   if (map.contains("VectorRepresentation"))
     m_nVectorRepresentation = map["VectorRepresentation"].toInt();
+
+  if (map.contains("VectorColorCode"))
+    m_nVectorColorCode = map["VectorColorCode"].toInt();
 
   if (map.contains("DisplayTensor"))
     m_bDisplayTensor = map["DisplayTensor"].toBool();
@@ -899,6 +907,18 @@ void LayerPropertyMRI::SetVectorRepresentation( int n )
     m_nTensorRepresentation = n;
     emit DisplayModeChanged();
   }
+}
+
+void LayerPropertyMRI::SetVectorColorCode(int n)
+{
+  m_nVectorColorCode = n;
+  emit VectorColorChanged();
+}
+
+void LayerPropertyMRI::SetVectorColor(const QColor &c)
+{
+  m_colorVector = c;
+  emit VectorColorChanged();
 }
 
 void LayerPropertyMRI::SetDisplayTensor( bool b )

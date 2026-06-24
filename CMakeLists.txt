@@ -894,7 +894,9 @@ add_subdirectory(fem_elastic)
 ##      'git clone --recurse-submodules https://github.com/yhuang43/freesurfer.git'.#
 
 if(NOT INTEGRATE_SAMSEG)
-  add_subdirectories(samsegmesh2surf gems)  
+  ## gems in atiic as of 6/2026
+  # add_subdirectories(samsegmesh2surf gems)
+  add_subdirectories(samsegmesh2surf)
 endif()
 
 # --------------------------------------------------
