@@ -2349,6 +2349,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   default:
     break;
   }
+
+  if (GetProperty()->GetVectorColorCode() == LayerPropertyMRI::VC_Single)
+    UpdateVectorColor();
   
   emit ActorUpdated();
 }
