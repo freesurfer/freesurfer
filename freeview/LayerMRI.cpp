@@ -295,6 +295,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(VectorLineWidthChanged(double)), this, SLOT(UpdateVectorLineWidth(double)));
   connect( p, SIGNAL(VectorSkipChanged(int)), SLOT(UpdateVectorActor()));
   connect( p, SIGNAL(Contour2DShown(bool)), SLOT(UpdateContour2D()));
+  connect( p, SIGNAL(VectorColorChanged()), SLOT(UpdateVectorColor()));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -4770,4 +4771,20 @@ int LayerMRI::GetLabelCount(int nVal, int nPlane, int nStart, int nEnd)
     }
   }
   return nCount;
+}
+
+void LayerMRI::UpdateVectorColor()
+{
+  bool single_color = (GetProperty()->GetVectorColorCode() == LayerPropertyMRI::VC_Single);
+  QColor c = GetProperty()->GetVectorColor();
+  for (int i = 0; i < 3; i++)
+  {
+    m_glyphActor2D[i]->GetMapper()->SetScalarVisibility(single_color?0:1);
+    m_glyphActor3D[i]->GetMapper()->SetScalarVisibility(single_color?0:1);
+    m_vectorDotActor2D[i]->GetMapper()->SetScalarVisibility(single_color?0:1);
+    m_glyphActor2D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+    m_glyphActor3D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+    m_vectorDotActor2D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  }
+  emit ActorUpdated();
 }

@@ -97,14 +97,11 @@
       <property name="verticalSpacing">
        <number>6</number>
       </property>
-      <item row="14" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item row="26" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
-         <widget class="QSlider" name="sliderOpacity">
+         <widget class="QSlider" name="sliderOffset">
           <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="value">
            <number>100</number>
           </property>
           <property name="orientation">
@@ -113,372 +110,27 @@
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBoxOpacity">
-          <property name="maximum">
-           <double>1.000000000000000</double>
+         <widget class="QLineEdit" name="lineEditOffset">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
-          <property name="singleStep">
-           <double>0.100000000000000</double>
-          </property>
-          <property name="value">
-           <double>1.000000000000000</double>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
           </property>
          </widget>
         </item>
        </layout>
-      </item>
-      <item row="25" column="0">
-       <widget class="QLabel" name="labelOffset">
-        <property name="text">
-         <string>Offset</string>
-        </property>
-       </widget>
-      </item>
-      <item row="15" column="1">
-       <widget class="QCheckBox" name="checkBoxSmooth">
-        <property name="text">
-         <string>Smooth display</string>
-        </property>
-       </widget>
-      </item>
-      <item row="18" column="0">
-       <widget class="QLabel" name="labelLookUpTable">
-        <property name="text">
-         <string>Lookup table</string>
-        </property>
-       </widget>
-      </item>
-      <item row="12" column="1">
-       <widget class="QComboBox" name="comboBoxMask">
-        <item>
-         <property name="text">
-          <string>None</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="9" column="1">
-       <layout class="QGridLayout" name="gridLayout_4">
-        <property name="spacing">
-         <number>5</number>
-        </property>
-        <item row="0" column="0">
-         <spacer name="horizontalSpacer_11">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::MinimumExpanding</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>14</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="3" column="1">
-         <widget class="QLabel" name="labelVectorSkip">
-          <property name="text">
-           <string>Skip</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QSpinBox" name="spinBoxVectorSkip">
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="wrapping">
-           <bool>false</bool>
-          </property>
-          <property name="minimum">
-           <number>0</number>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLabel" name="labelVectorScale">
-          <property name="text">
-           <string>Length scale</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QLineEdit" name="lineEditVectorLineWidth">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="2">
-         <widget class="QLineEdit" name="lineEditVectorNormThreshold">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLabel" name="labelVectorNormThreshold">
-          <property name="text">
-           <string>Norm threshold</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="2">
-         <widget class="QLineEdit" name="lineEditVectorScale">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLabel" name="labelVectorLineWidth">
-          <property name="text">
-           <string>Width scale</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="labelFileName">
-        <property name="text">
-         <string>File name</string>
-        </property>
-       </widget>
-      </item>
-      <item row="19" column="0">
-       <widget class="QLabel" name="labelDirectionCode">
-        <property name="text">
-         <string>Color code</string>
-        </property>
-       </widget>
-      </item>
-      <item row="18" column="1">
-       <widget class="QComboBox" name="comboBoxLookUpTable"/>
       </item>
       <item row="20" column="0">
        <widget class="QLabel" name="labelWindow">
         <property name="text">
          <string>Window</string>
-        </property>
-       </widget>
-      </item>
-      <item row="23" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_7">
-        <item>
-         <widget class="QSlider" name="sliderMid">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditMid">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="27" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_17">
-        <item>
-         <widget class="QLineEdit" name="lineEditBrushValue">
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::WheelFocus</enum>
-          </property>
-          <property name="toolTip">
-           <string>Enter partial name to search</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="colorLabelBrushValue">
-          <property name="minimumSize">
-           <size>
-            <width>40</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="cursor">
-           <cursorShape>PointingHandCursor</cursorShape>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="margin">
-           <number>3</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="labelBrushValueWarning">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>1</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>8</pointsize>
-           </font>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">color: rgb(240,0,0);</string>
-          </property>
-          <property name="text">
-           <string>Label value not in color table!</string>
-          </property>
-          <property name="scaledContents">
-           <bool>true</bool>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="16" column="1">
-       <widget class="QCheckBox" name="checkBoxUpsample">
-        <property name="text">
-         <string>Upsample display</string>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="1">
-       <widget class="QComboBox" name="comboBoxRenderObject">
-        <item>
-         <property name="text">
-          <string>Line</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Line with direction</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>3D bar (slow!)</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QCheckBox" name="checkBoxAutoAdjustFrameLevel">
-        <property name="text">
-         <string>Auto adjust window level
-of each frame</string>
-        </property>
-       </widget>
-      </item>
-      <item row="23" column="0">
-       <widget class="QLabel" name="labelMid">
-        <property name="text">
-         <string>Mid</string>
         </property>
        </widget>
       </item>
@@ -531,22 +183,106 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="labelCorrelationSurface">
+      <item row="17" column="0">
+       <widget class="QLabel" name="labelColorMap">
         <property name="text">
-         <string>Correlation
- surface</string>
+         <string>Color map</string>
         </property>
        </widget>
       </item>
-      <item row="11" column="0">
-       <widget class="QLabel" name="labelInversion">
+      <item row="21" column="0">
+       <widget class="QLabel" name="labelLevel">
         <property name="text">
-         <string>Inversion</string>
+         <string>Level</string>
         </property>
        </widget>
       </item>
-      <item row="26" column="1">
+      <item row="1" column="1">
+       <widget class="QComboBox" name="comboBoxCorrelationSurface"/>
+      </item>
+      <item row="7" column="1">
+       <widget class="QCheckBox" name="checkBoxDisplayTensor">
+        <property name="text">
+         <string>Display as tensors</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="1">
+       <widget class="QComboBox" name="comboBoxInversion">
+        <item>
+         <property name="text">
+          <string>None</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Invert X</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Invert Y</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Invert Z</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="26" column="0">
+       <widget class="QLabel" name="labelOffset">
+        <property name="text">
+         <string>Offset</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="checkBoxDisplayVector">
+        <property name="text">
+         <string>Display as vectors</string>
+        </property>
+       </widget>
+      </item>
+      <item row="23" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <item>
+         <widget class="QSlider" name="sliderMid">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditMid">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="28" column="0">
+       <widget class="QLabel" name="labelBrushValue">
+        <property name="text">
+         <string>Label value</string>
+        </property>
+       </widget>
+      </item>
+      <item row="27" column="1">
        <layout class="QGridLayout" name="gridLayout">
         <item row="1" column="2">
          <spacer name="horizontalSpacer_2">
@@ -690,10 +426,104 @@ changing slices</string>
         </item>
        </layout>
       </item>
-      <item row="21" column="0">
-       <widget class="QLabel" name="labelLevel">
+      <item row="2" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QSlider" name="sliderFrame">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinBoxFrame">
+          <property name="wrapping">
+           <bool>true</bool>
+          </property>
+          <property name="minimum">
+           <number>0</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="12" column="1">
+       <widget class="QComboBox" name="comboBoxMask">
+        <item>
+         <property name="text">
+          <string>None</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="17" column="1">
+       <widget class="QComboBox" name="comboBoxColorMap"/>
+      </item>
+      <item row="14" column="0">
+       <widget class="QLabel" name="labelOpacity">
         <property name="text">
-         <string>Level</string>
+         <string>Opacity</string>
+        </property>
+       </widget>
+      </item>
+      <item row="15" column="1">
+       <widget class="QCheckBox" name="checkBoxSmooth">
+        <property name="text">
+         <string>Smooth display</string>
+        </property>
+       </widget>
+      </item>
+      <item row="16" column="1">
+       <widget class="QCheckBox" name="checkBoxUpsample">
+        <property name="text">
+         <string>Upsample display</string>
+        </property>
+       </widget>
+      </item>
+      <item row="21" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_10">
+        <item>
+         <widget class="QSlider" name="sliderLevel">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditLevel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelFrame">
+        <property name="text">
+         <string>Frame</string>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="1">
+       <widget class="QCheckBox" name="checkBoxNormalizeVectors">
+        <property name="text">
+         <string>Normalize vectors</string>
         </property>
        </widget>
       </item>
@@ -730,98 +560,6 @@ changing slices</string>
         </item>
        </layout>
       </item>
-      <item row="21" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_10">
-        <item>
-         <widget class="QSlider" name="sliderLevel">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditLevel">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="7" column="1">
-       <widget class="QCheckBox" name="checkBoxDisplayTensor">
-        <property name="text">
-         <string>Display as tensors</string>
-        </property>
-       </widget>
-      </item>
-      <item row="11" column="1">
-       <widget class="QComboBox" name="comboBoxInversion">
-        <item>
-         <property name="text">
-          <string>None</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Invert X</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Invert Y</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Invert Z</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="24" column="0">
-       <widget class="QLabel" name="labelMax">
-        <property name="text">
-         <string>Max</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="comboBoxCorrelationSurface"/>
-      </item>
-      <item row="14" column="0">
-       <widget class="QLabel" name="labelOpacity">
-        <property name="text">
-         <string>Opacity</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelFrame">
-        <property name="text">
-         <string>Frame</string>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="0">
-       <widget class="QLabel" name="labelRenderObject">
-        <property name="text">
-         <string>Render</string>
-        </property>
-       </widget>
-      </item>
       <item row="20" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <property name="spacing">
@@ -855,52 +593,80 @@ changing slices</string>
         </item>
        </layout>
       </item>
-      <item row="17" column="0">
-       <widget class="QLabel" name="labelColorMap">
-        <property name="text">
-         <string>Color map</string>
-        </property>
-       </widget>
-      </item>
-      <item row="10" column="1">
-       <widget class="QCheckBox" name="checkBoxNormalizeVectors">
-        <property name="text">
-         <string>Normalize vectors</string>
-        </property>
-       </widget>
-      </item>
-      <item row="27" column="0">
-       <widget class="QLabel" name="labelBrushValue">
-        <property name="text">
-         <string>Label value</string>
-        </property>
-       </widget>
-      </item>
-      <item row="24" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_11">
+      <item row="28" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
-         <widget class="QSlider" name="sliderMax">
-          <property name="maximum">
-           <number>100</number>
+         <widget class="QLineEdit" name="lineEditBrushValue">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
           </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+          <property name="focusPolicy">
+           <enum>Qt::WheelFocus</enum>
+          </property>
+          <property name="toolTip">
+           <string>Enter partial name to search</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEditMax">
+         <widget class="QLabel" name="colorLabelBrushValue">
+          <property name="minimumSize">
+           <size>
+            <width>40</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="margin">
+           <number>3</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelBrushValueWarning">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>1</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
+          <property name="font">
+           <font>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: rgb(240,0,0);</string>
+          </property>
+          <property name="text">
+           <string>Label value not in color table!</string>
+          </property>
+          <property name="scaledContents">
+           <bool>true</bool>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -910,20 +676,6 @@ changing slices</string>
        <widget class="QCheckBox" name="checkBoxDisplayRGB">
         <property name="text">
          <string>Display as RGB map</string>
-        </property>
-       </widget>
-      </item>
-      <item row="12" column="0">
-       <widget class="QLabel" name="labelMask">
-        <property name="text">
-         <string>Mask</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QCheckBox" name="checkBoxDisplayVector">
-        <property name="text">
-         <string>Display as vectors</string>
         </property>
        </widget>
       </item>
@@ -961,30 +713,91 @@ changing slices</string>
         </item>
        </widget>
       </item>
-      <item row="22" column="0">
-       <widget class="QLabel" name="labelMin">
-        <property name="text">
-         <string>Min</string>
+      <item row="9" column="1">
+       <layout class="QGridLayout" name="gridLayout_4">
+        <property name="spacing">
+         <number>5</number>
         </property>
-       </widget>
-      </item>
-      <item row="17" column="1">
-       <widget class="QComboBox" name="comboBoxColorMap"/>
-      </item>
-      <item row="25" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_14">
-        <item>
-         <widget class="QSlider" name="sliderOffset">
-          <property name="maximum">
-           <number>100</number>
+        <item row="0" column="1">
+         <widget class="QLabel" name="labelVectorColor">
+          <property name="text">
+           <string>Color</string>
           </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditOffset">
+        <item row="3" column="1">
+         <widget class="QLabel" name="labelVectorScale">
+          <property name="text">
+           <string>Length scale</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <spacer name="horizontalSpacer_11">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::MinimumExpanding</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>14</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="0" column="2">
+         <widget class="QComboBox" name="comboBoxVectorColorCode">
+          <item>
+           <property name="text">
+            <string>Directional</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Single</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLabel" name="labelVectorSkip">
+          <property name="text">
+           <string>Skip</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="2">
+         <widget class="QLineEdit" name="lineEditVectorScale">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -999,38 +812,155 @@ changing slices</string>
           </property>
          </widget>
         </item>
-       </layout>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEditFileName">
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QSlider" name="sliderFrame">
-          <property name="maximum">
-           <number>100</number>
+        <item row="5" column="2">
+         <widget class="QSpinBox" name="spinBoxVectorSkip">
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
           </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="spinBoxFrame">
           <property name="wrapping">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="minimum">
            <number>0</number>
           </property>
          </widget>
         </item>
+        <item row="4" column="2">
+         <widget class="QLineEdit" name="lineEditVectorNormThreshold">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="labelVectorLineWidth">
+          <property name="text">
+           <string>Width scale</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLabel" name="labelVectorNormThreshold">
+          <property name="text">
+           <string>Norm threshold</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QLineEdit" name="lineEditVectorLineWidth">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QtColorPicker" name="colorPickerVector" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>16</height>
+           </size>
+          </property>
+         </widget>
+        </item>
        </layout>
+      </item>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="checkBoxAutoAdjustFrameLevel">
+        <property name="text">
+         <string>Auto adjust window level
+of each frame</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="QComboBox" name="comboBoxRenderObject">
+        <item>
+         <property name="text">
+          <string>Line</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Line with direction</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>3D bar</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="12" column="0">
+       <widget class="QLabel" name="labelMask">
+        <property name="text">
+         <string>Mask</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelFileName">
+        <property name="text">
+         <string>File name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="0">
+       <widget class="QLabel" name="labelInversion">
+        <property name="text">
+         <string>Inversion</string>
+        </property>
+       </widget>
+      </item>
+      <item row="22" column="0">
+       <widget class="QLabel" name="labelMin">
+        <property name="text">
+         <string>Min</string>
+        </property>
+       </widget>
+      </item>
+      <item row="18" column="1">
+       <widget class="QComboBox" name="comboBoxLookUpTable"/>
       </item>
       <item row="22" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_9">
@@ -1061,6 +991,116 @@ changing slices</string>
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="19" column="0">
+       <widget class="QLabel" name="labelDirectionCode">
+        <property name="text">
+         <string>Color code</string>
+        </property>
+       </widget>
+      </item>
+      <item row="24" column="0">
+       <widget class="QLabel" name="labelMax">
+        <property name="text">
+         <string>Max</string>
+        </property>
+       </widget>
+      </item>
+      <item row="14" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QSlider" name="sliderOpacity">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="value">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxOpacity">
+          <property name="maximum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.100000000000000</double>
+          </property>
+          <property name="value">
+           <double>1.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelCorrelationSurface">
+        <property name="text">
+         <string>Correlation
+ surface</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditFileName">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="labelRenderObject">
+        <property name="text">
+         <string>Render</string>
+        </property>
+       </widget>
+      </item>
+      <item row="18" column="0">
+       <widget class="QLabel" name="labelLookUpTable">
+        <property name="text">
+         <string>Lookup table</string>
+        </property>
+       </widget>
+      </item>
+      <item row="24" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_11">
+        <item>
+         <widget class="QSlider" name="sliderMax">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditMax">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="23" column="0">
+       <widget class="QLabel" name="labelMid">
+        <property name="text">
+         <string>Mid</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -1787,8 +1827,8 @@ changing slices</string>
    <slot>OnCheckShowContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>146</x>
-     <y>1590</y>
+     <x>145</x>
+     <y>1669</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1803,8 +1843,8 @@ changing slices</string>
    <slot>OnComboColorMap(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>344</x>
-     <y>659</y>
+     <x>398</x>
+     <y>718</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1819,8 +1859,8 @@ changing slices</string>
    <slot>OnColorTableCurrentItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>260</x>
-     <y>1242</y>
+     <x>259</x>
+     <y>1318</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1836,7 +1876,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>156</x>
-     <y>1186</y>
+     <y>1239</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1851,8 +1891,8 @@ changing slices</string>
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>285</x>
-     <y>584</y>
+     <x>339</x>
+     <y>643</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1867,8 +1907,8 @@ changing slices</string>
    <slot>OnSliderWindow(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>263</x>
-     <y>748</y>
+     <x>317</x>
+     <y>810</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1883,8 +1923,8 @@ changing slices</string>
    <slot>OnSliderLevel(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>778</y>
+     <x>311</x>
+     <y>843</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1899,8 +1939,8 @@ changing slices</string>
    <slot>OnSliderMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>808</y>
+     <x>311</x>
+     <y>876</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1915,8 +1955,8 @@ changing slices</string>
    <slot>OnSliderMid(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>838</y>
+     <x>311</x>
+     <y>909</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1931,8 +1971,8 @@ changing slices</string>
    <slot>OnSliderMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>868</y>
+     <x>311</x>
+     <y>942</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1947,8 +1987,8 @@ changing slices</string>
    <slot>OnSliderOffset(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>898</y>
+     <x>311</x>
+     <y>975</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1963,8 +2003,8 @@ changing slices</string>
    <slot>OnLineEditWindow(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>747</y>
+     <x>394</x>
+     <y>808</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1979,8 +2019,8 @@ changing slices</string>
    <slot>OnLineEditLevel(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>777</y>
+     <x>394</x>
+     <y>841</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1995,8 +2035,8 @@ changing slices</string>
    <slot>OnLineEditMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>807</y>
+     <x>394</x>
+     <y>874</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2011,8 +2051,8 @@ changing slices</string>
    <slot>OnLineEditMid(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>837</y>
+     <x>394</x>
+     <y>907</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2027,8 +2067,8 @@ changing slices</string>
    <slot>OnLineEditMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>867</y>
+     <x>394</x>
+     <y>940</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2043,8 +2083,8 @@ changing slices</string>
    <slot>OnLineEditOffset(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>920</y>
+     <x>394</x>
+     <y>973</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -2059,8 +2099,8 @@ changing slices</string>
    <slot>OnComboLookupTable(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>344</x>
-     <y>691</y>
+     <x>398</x>
+     <y>750</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -2076,7 +2116,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>326</x>
-     <y>1690</y>
+     <y>1764</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2092,7 +2132,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>326</x>
-     <y>1727</y>
+     <y>1820</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2108,7 +2148,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>326</x>
-     <y>1833</y>
+     <y>1931</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2124,7 +2164,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>326</x>
-     <y>1690</y>
+     <y>1764</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2140,7 +2180,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>326</x>
-     <y>1727</y>
+     <y>1820</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2156,7 +2196,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>326</x>
-     <y>1833</y>
+     <y>1931</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2172,7 +2212,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>394</x>
-     <y>1688</y>
+     <y>1766</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2188,7 +2228,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>394</x>
-     <y>1725</y>
+     <y>1820</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -2204,7 +2244,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>394</x>
-     <y>1831</y>
+     <y>1929</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -2268,7 +2308,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>334</x>
-     <y>1458</y>
+     <y>1532</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2284,7 +2324,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>402</x>
-     <y>1456</y>
+     <y>1534</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2300,7 +2340,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>334</x>
-     <y>1458</y>
+     <y>1532</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2315,8 +2355,8 @@ changing slices</string>
    <slot>OnColorTableItemClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>69</x>
-     <y>1242</y>
+     <x>68</x>
+     <y>1318</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2332,7 +2372,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>404</x>
-     <y>1207</y>
+     <y>1272</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2348,7 +2388,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>259</x>
-     <y>1654</y>
+     <y>1733</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -2363,8 +2403,8 @@ changing slices</string>
    <slot>OnComboMask(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>344</x>
-     <y>530</y>
+     <x>398</x>
+     <y>586</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2395,8 +2435,8 @@ changing slices</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>236</x>
-     <y>949</y>
+     <x>294</x>
+     <y>1002</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2411,8 +2451,8 @@ changing slices</string>
    <slot>OnLineEditVectorDisplayScale(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>390</y>
+     <x>370</x>
+     <y>446</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2428,11 +2468,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>194</x>
-     <y>998</y>
+     <y>1051</y>
     </hint>
     <hint type="destinationlabel">
      <x>23</x>
-     <y>839</y>
+     <y>910</y>
     </hint>
    </hints>
   </connection>
@@ -2444,11 +2484,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>194</x>
-     <y>998</y>
+     <y>1051</y>
     </hint>
     <hint type="destinationlabel">
-     <x>257</x>
-     <y>838</y>
+     <x>311</x>
+     <y>909</y>
     </hint>
    </hints>
   </connection>
@@ -2460,11 +2500,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>194</x>
-     <y>998</y>
+     <y>1051</y>
     </hint>
     <hint type="destinationlabel">
-     <x>340</x>
-     <y>837</y>
+     <x>394</x>
+     <y>907</y>
     </hint>
    </hints>
   </connection>
@@ -2475,8 +2515,8 @@ changing slices</string>
    <slot>OnColorTableItemDoubleClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>131</x>
-     <y>1242</y>
+     <x>130</x>
+     <y>1318</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2491,8 +2531,8 @@ changing slices</string>
    <slot>OnCheckBoxSelectAllLabels(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>14</x>
-     <y>1207</y>
+     <x>13</x>
+     <y>1272</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2507,8 +2547,8 @@ changing slices</string>
    <slot>OnColorTableItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>203</x>
-     <y>1242</y>
+     <x>202</x>
+     <y>1318</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2523,8 +2563,8 @@ changing slices</string>
    <slot>OnLineEditMaskThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>554</y>
+     <x>394</x>
+     <y>610</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2539,8 +2579,8 @@ changing slices</string>
    <slot>OnLineEditVectorLineWidth(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>364</y>
+     <x>370</x>
+     <y>420</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2556,7 +2596,7 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>395</x>
-     <y>1654</y>
+     <y>1733</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2572,11 +2612,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>395</x>
-     <y>1654</y>
+     <y>1733</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
-     <y>1834</y>
+     <y>1932</y>
     </hint>
    </hints>
   </connection>
@@ -2588,11 +2628,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>395</x>
-     <y>1654</y>
+     <y>1733</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
-     <y>1833</y>
+     <y>1931</y>
     </hint>
    </hints>
   </connection>
@@ -2604,11 +2644,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>395</x>
-     <y>1654</y>
+     <y>1733</y>
     </hint>
     <hint type="destinationlabel">
      <x>394</x>
-     <y>1831</y>
+     <y>1929</y>
     </hint>
    </hints>
   </connection>
@@ -2619,12 +2659,12 @@ changing slices</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>236</x>
-     <y>1060</y>
+     <x>294</x>
+     <y>1129</y>
     </hint>
     <hint type="destinationlabel">
-     <x>298</x>
-     <y>1060</y>
+     <x>356</x>
+     <y>1129</y>
     </hint>
    </hints>
   </connection>
@@ -2635,8 +2675,8 @@ changing slices</string>
    <slot>OnLineEditVectorNormThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>416</y>
+     <x>370</x>
+     <y>472</y>
     </hint>
     <hint type="destinationlabel">
      <x>525</x>
@@ -2652,11 +2692,11 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>395</x>
-     <y>1654</y>
+     <y>1733</y>
     </hint>
     <hint type="destinationlabel">
      <x>404</x>
-     <y>1801</y>
+     <y>1899</y>
     </hint>
    </hints>
   </connection>
@@ -2668,11 +2708,27 @@ changing slices</string>
    <hints>
     <hint type="sourcelabel">
      <x>403</x>
-     <y>1598</y>
+     <y>1665</y>
     </hint>
     <hint type="destinationlabel">
      <x>648</x>
      <y>1576</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxVectorColorCode</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnComboVectorColor(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>354</x>
+     <y>366</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>589</x>
+     <y>357</y>
     </hint>
    </hints>
   </connection>
@@ -2722,5 +2778,6 @@ changing slices</string>
   <slot>OnLineEditVectorNormThreshold(QString)</slot>
   <slot>OnColorTableItemClicked(QTreeWidgetItem*)</slot>
   <slot>OnButtonContourUpdate()</slot>
+  <slot>OnComboVectorColor(int)</slot>
  </slots>
 </ui>

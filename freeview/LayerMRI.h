@@ -430,6 +430,7 @@ protected slots:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata = NULL, vtkImageData* brightnessData = NULL );
   virtual void UpdateVectorActor( int nPlane );
+  void UpdateVectorColor();
 
   void ResetSurfaceRegionIds();
 
