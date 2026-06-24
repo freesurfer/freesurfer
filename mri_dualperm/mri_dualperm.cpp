@@ -301,6 +301,12 @@ int main(int argc, char *argv[])
     MRIsetSign(dpm->sig[0],dpm->gamma[0],0);
     sprintf(fname,"%s/sig.nii.gz",cdir);
     MRIwrite(dpm->sig[0],fname);
+    int nmask = MRIcountNonzero(dpm->mask);
+    sprintf(fname,"%s/nmask.dat",glmdir);
+    fp = fopen(fname,"w");
+    fprintf(fp,"%d\n",nmask);
+    fclose(fp);
+    printf("nmask %d\n",nmask);
 
     modemap[modeno] = dpm->gamma[0];
     pmode[modeno] = MRIglmDeepCopy(dpm);
@@ -345,12 +351,14 @@ int main(int argc, char *argv[])
   // Write out the basic data and set up a file pointer for loop
   FILE *fp1=NULL, *fp2=NULL, *fp12=NULL;
   std::vector<double> cc0;
+  double cc0val = 0;
   if(nmodes == 2){
     SpatialCor sc(modemap[0],modemap[1],dp.mode[0]->mask);
     sc.pearsoncor();
     sprintf(fname,"%s/cc.dat",outdir);
     cc0.push_back(sc.pcc);
     printf("cc0 = %12.9lf\n",sc.pcc);
+    cc0val = sc.pcc;
     fp = fopen(fname,"w");
     fprintf(fp,"%12.9lf\n",sc.pcc);
     fclose(fp);
@@ -449,6 +457,7 @@ int main(int argc, char *argv[])
     if(fp12) fclose(fp12);
 
     double p1pos=0, p1neg=0, p1abs=0, p2pos=0, p2neg=0, p2abs=0, p12pos=0, p12neg=0, p12abs=0;
+    double cc1std=0,cc2std=0,cc12std=0;
     if(dp.permtype[0] != 0){
       sprintf(fname,"%s/p1.dat",outdir);
       fp = fopen(fname,"w");
@@ -456,6 +465,11 @@ int main(int argc, char *argv[])
       p1neg = GetPVal(cc0[0], cc1, -1); fprintf(fp,"%31.28lf ",p1neg);
       p1abs = GetPVal(cc0[0], cc1,  0); fprintf(fp,"%31.28lf ",p1abs);
       fprintf(fp,"\n");
+      fclose(fp);
+      cc1std = stddevvector(cc1);
+      sprintf(fname,"%s/cc1.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf\n",cc1std);
       fclose(fp);
     }
     if(dp.permtype[1] != 0){
@@ -465,6 +479,11 @@ int main(int argc, char *argv[])
       p2neg = GetPVal(cc0[0], cc2, -1); fprintf(fp,"%31.28lf ",p2neg);
       p2abs = GetPVal(cc0[0], cc2,  0); fprintf(fp,"%31.28lf ",p2abs);
       fprintf(fp,"\n");
+      fclose(fp);
+      cc2std = stddevvector(cc2);
+      sprintf(fname,"%s/cc2.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf\n",cc2std);
       fclose(fp);
     }
     if(dp.permtype[0] != 0 && dp.permtype[1] != 0){
@@ -487,6 +506,36 @@ int main(int argc, char *argv[])
       fprintf(fp,"\n");
       fclose(fp);
 
+      cc12std = stddevvector(cc12);
+      sprintf(fname,"%s/cc12.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf\n",cc12std);
+      fclose(fp);
+
+      sprintf(fname,"%s/p.maxdv.dat",outdir);
+      fp = fopen(fname,"w");
+      int pick = 0;
+      if(fabs(cc12std-cc1std) > fabs(cc12std-cc2std)) {
+	pick = 1;
+	fprintf(fp,"%31.28lf %31.28lf %31.28lf\n",p1pos,p1neg,p1abs);
+	printf("MaxDV %31.28lf %31.28lf %31.28lf\n",p1pos,p1neg,p1abs);
+      }
+      else {
+	pick = 2;
+	fprintf(fp,"%31.28lf %31.28lf %31.28lf\n",p2pos,p2neg,p2abs);
+	printf("MaxDV %31.28lf %31.28lf %31.28lf\n",p2pos,p2neg,p2abs);
+      }
+      fclose(fp);
+
+      sprintf(fname,"%s/cc.perm.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf %31.28lf %31.28lf %d\n",cc1std,cc2std,cc12std,pick);
+      fclose(fp);
+      
+      printf("cc0 %31.28lf\n",cc0val);
+      printf("pick %d\n",pick);
+      printf("CCSTD: %31.28lf %31.28lf %31.28lf %d\n",cc1std,cc2std,cc12std,pick);
+      
     }
   }
 
