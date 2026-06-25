@@ -8,11 +8,12 @@ endif()
 
 
 if(NOT INTEGRATE_SAMSEG)
-   if (FSPYTHON_INSTALL_TREE)
-      install_pyscript_fspython_tree(run_samseg run_samseg_long sbtiv gems_compute_atlas_probs)
-   else()
-      install_pyscript(run_samseg run_samseg_long sbtiv gems_compute_atlas_probs)
-   endif()
+   message(STATUS "No install of run_samseg run_samseg_long sbtiv gems_compute_atlas_probs for INTEGRATE_SAMSEG=OFF")
+   # if (FSPYTHON_INSTALL_TREE)
+   #    install_pyscript_fspython_tree(run_samseg run_samseg_long sbtiv gems_compute_atlas_probs)
+   # else()
+   #   install_pyscript(run_samseg run_samseg_long sbtiv gems_compute_atlas_probs)
+   # endif()
 # else()
    ## the case for -DINTEGRATE_SAMSEG=ON is handled by ./samseg_scripts/CMakeLists.txt
    # install_samseg_cli()   

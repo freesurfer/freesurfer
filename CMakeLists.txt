@@ -235,14 +235,18 @@ if(DISABLE_LINEPROF)
 endif()
 
 message(STATUS "For HOST_OS=${HOST_OS} TIFF_SYSLIBS=${TIFF_SYSLIBS}")
-message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
-  message(STATUS "User defined SAMSEG sandbox ${USER_SAMSEG_PATH}")
-  if(NOT INTEGRATE_SAMSEG)
-    message(WARNING "set INTEGRATE_SAMSEG=ON, USER_SAMSEG_PATH only work with INTEGRATE_SAMSEG=ON")
-    set(INTEGRATE_SAMSEG ON)
+  if(EXISTS ${USER_SAMSEG_PATH})
+    message(STATUS "For HOST_OS=${HOST_OS} USER_SAMSEG_PATH=${USER_SAMSEG_PATH}")
+    if(NOT INTEGRATE_SAMSEG)
+      message(WARNING "set INTEGRATE_SAMSEG=ON, USER_SAMSEG_PATH only work with INTEGRATE_SAMSEG=ON")
+      set(INTEGRATE_SAMSEG ON)
+    endif()
+  else()
+    message(FATAL_ERROR "USER_SAMSEG_PATH=${USER_SAMSEG_PATH} does not exist.")
   endif()
 endif()
+message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 
 ##  Modern compilers on new platforms often provide many more warnings than older compilers
 ##  for example the gcc 7.5.0 compiler warnings about falling through switch statements
@@ -896,7 +900,6 @@ add_subdirectory(fem_elastic)
 if(NOT INTEGRATE_SAMSEG)
   ## gems in atiic as of 6/2026
   # add_subdirectories(samsegmesh2surf gems)
-  add_subdirectories(samsegmesh2surf)
 endif()
 
 # --------------------------------------------------

@@ -9,12 +9,14 @@ import os.path as path
 from setuptools import setup, find_packages, Distribution
 
 # the freesurfer python packages
+#
+# Removed for case INTEGRATE_SAMSEG == 'OFF'
+#    'gems',
+#    'gems.subregions',
 INTEGRATE_SAMSEG = os.environ.get("INTEGRATE_SAMSEG_OPTION")
 if (INTEGRATE_SAMSEG == 'OFF'):
   packages = [
     'fsbindings',
-    'gems',
-    'gems.subregions',
   ]
 else:
   packages = [
@@ -53,9 +55,12 @@ if (INTEGRATE_SAMSEG == 'OFF'):
       description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
       author='Laboratory for Computational Neuroimaging',
       packages=packages,
+      # package_data={
+      #     'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
+      #     'gems': find_libs('gemsbindings'),
+      # },
       package_data={
-          'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
-          'gems': find_libs('gemsbindings'),
+          'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False)
       },
       install_requires=requirements,
       include_package_data=True
