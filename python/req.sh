@@ -390,21 +390,27 @@ if [ $uninstall -eq 1 ]; then
    # tflow_subdir="$install_path/python/lib/python3.8/site-packages"
    # tflow_subdir="$install_path/python/lib/python3.8/site-packages/tensorflow"
    if [ ! -z ${FSPYTHON_VERSION} ]; then
-      tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python${FSPYTHON_VERSION}/site-packages/tensorflow"
+      # tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python${FSPYTHON_VERSION}/site-packages/tensorflow"
+      site_packages_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python${FSPYTHON_VERSION}/site-packages"
    else
-      tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python3.8/site-packages/tensorflow"
+      # tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python3.8/site-packages/tensorflow"
+      site_packages_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python3.8/site-packages"
    fi
-   if [ -e $tflow_subdir ]; then
+   # if [ -e $tflow_subdir ]; then
+   if [ -e $site_packages_subdir ]; then
       rm -f header.list
-      (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+      # (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+      (cd ${site_packages_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
       if [ -e ./header.list ]; then
         if [ ! -z ./header.list ]; then
            file_cnt=`wc -l header.list | awk '{print $1}'`
            if [ "$file_cnt" != "0" ]; then
               echo "$s: Removing $file_cnt NVIDIA copyrighted source files"
-              (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+              # (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+              (cd ${site_packages_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
               rm -f delete_header.sh
-              cat header.list | sed 's;^;rm -f '${tflow_subdir}'/;' > delete_header.sh
+              # cat header.list | sed 's;^;rm -f '${tflow_subdir}'/;' > delete_header.sh
+              cat header.list | sed 's;^;rm -f '${site_packages_subdir}'/;' > delete_header.sh
               bash delete_header.sh
               # rm -f header.list delete_header.sh
            else
@@ -412,7 +418,8 @@ if [ $uninstall -eq 1 ]; then
               echo "no license text mentioning NVIDIA found to remove."
            fi
         else
-           echo "%s: no source files found to check for copyrights under $tflow_subdir"
+           # echo "%s: no source files found to check for copyrights under $tflow_subdir"
+           echo "%s: no source files found to check for copyrights under $site_packages_subdir"
         fi
       fi
    else
