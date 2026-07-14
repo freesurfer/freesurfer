@@ -38,17 +38,19 @@ if(HOST_OS MATCHES "Ubuntu24")
    set(FSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings")
    set(GEMSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems")
    if("${FSPYTHON_VERSION}" MATCHES "3.8")
-      set(FSBIND_LIB "fsbindings.cpython-38-x86_64-linux-gnu.so")
-      set(GEMSBIND_LIB "gemsbindings.cpython-38-x86_64-linux-gnu.so")
+      set(FSBIND_LIB "fsbindings.cpython-38-${UBUNTU_GCC_LIBDIR}.so")
+      set(GEMSBIND_LIB "gemsbindings.cpython-38-${UBUNTU_GCC_LIBDIR}.so")
    elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
-      set(FSBIND_LIB "fsbindings.cpython-39-x86_64-linux-gnu.so")
-      set(GEMSBIND_LIB "gemsbindings.cpython-39-x86_64-linux-gnu.so")
+      set(FSBIND_LIB "fsbindings.cpython-39-${UBUNTU_GCC_LIBDIR}.so")
+      set(GEMSBIND_LIB "gemsbindings.cpython-39-${UBUNTU_GCC_LIBDIR}.so")
    endif()
-   add_custom_command(TARGET fsbindings POST_BUILD COMMAND
-     cp -p -f ${FSBIND_UB22_BASE}/${FSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB} && cp -p -f ${GEMSBIND_UB22_BASE}/${GEMSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${GEMSBIND_LIB}
-     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-     COMMENT "Copy in ubuntu22 fsbindings and gemsbinding libraries for ubuntu24"
-   )
+   if("${UBUNTU_GCC_LIBDIR}" MATCHES "x86_64-linux-gnu")
+      add_custom_command(TARGET fsbindings POST_BUILD COMMAND
+        cp -p -f ${FSBIND_UB22_BASE}/${FSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB} && cp -p -f ${GEMSBIND_UB22_BASE}/${GEMSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${GEMSBIND_LIB}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Copy in ubuntu22 x86_64 fsbindings and gemsbinding libraries for ubuntu24 x86_64"
+      )
+   endif()
    install(FILES ${FSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/packages/fsbindings)
    install(FILES ${GEMSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems)
    # remove when "make clean" is run - wildcard expressions do not work

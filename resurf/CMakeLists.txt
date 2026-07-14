@@ -8,26 +8,38 @@ if(ITK_FOUND AND VTK_FOUND)
      include(${VTK_USE_FILE})
   endif()
 
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
-     set(UB24_BASE "/usr/lib/x86_64-linux-gnu")
-
-     # set(UB24_COMMON_LINK_OPTIONS "-Wl,--unresolved-symbols=ignore-in-shared-libs -Wl,-rpath,/usr/lib/x86_64-linux-gnu/lib:/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server:/usr/lib/x86_64-linux-gnu/hdf5/serial")
-     set(UB24_COMMON_LINK_OPTIONS "-Wl,--unresolved-symbols=ignore-in-shared-libs")
+  if(HOST_OS MATCHES "Ubuntu24")
+     if(NOT UBUNTU_ARM64)
+        set(UB24_ITK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(UB24_VTK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        # set(UB24_COMMON_LINK_OPTIONS "-Wl,--unresolved-symbols=ignore-in-shared-libs -Wl,-rpath,/usr/lib/${UBUNTU_GCC_LIBDIR}/lib:/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server:/usr/lib/${UBUNTU_GCC_LIBDIR}/hdf5/serial")
+        set(UB24_COMMON_LINK_OPTIONS "-Wl,--unresolved-symbols=ignore-in-shared-libs")
+        set(EXT "5.3.so")
+     else()
+        # don't have native itk libs on arm64
+        set(UB24_ITK_BASE "/usr/pubsw/packages/itk/5.4_ubuntu24/lib")
+        set(UB24_VTK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        # set(UB24_COMMON_LINK_OPTIONS "-Wl,--unresolved-symbols=ignore-in-shared-libs -Wl,-rpath,${UB24_ITK_BASE}:${UB24_VTK_BASE}/lib:/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server:/usr/lib/${UBUNTU_GCC_LIBDIR}/hdf5/serial")
+        set(UB24_COMMON_LINK_OPTIONS "-Wl,--unresolved-symbols=ignore-in-shared-libs")
+        set(EXT "5.4.so")
+     endif()
 
      # reset and do not use default glob that pulls in every library
      set(ITK_LIBRARIES "")
 
-     set(MRIS_COMMON_ITK_LIBS libITKIOBMP-5.3.so.1 libITKIOBioRad-5.3.so.1 libITKIOBruker-5.3.so.1 libITKIOGDCM-5.3.so.1 libITKIOGE-5.3.so.1 libITKIOGIPL-5.3.so.1 libITKIOHDF5-5.3.so.1 libITKIOJPEG-5.3.so.1 libITKIOJPEG2000-5.3.so.1 libITKIOLSM-5.3.so.1 libITKIOMINC-5.3.so.1 libITKIOMRC-5.3.so.1 libITKIOMeta-5.3.so.1 libITKIONIFTI-5.3.so.1 libITKIONRRD-5.3.so.1 libITKIOPNG-5.3.so.1 libITKIOStimulate-5.3.so.1 libITKIOTIFF-5.3.so.1 libITKIOVTK-5.3.so.1 libITKNrrdIO-5.3.so.1 libITKniftiio-5.3.so.1 libITKznz-5.3.so.1 libitkdouble-conversion-5.3.so.1 libitkopenjpeg-5.3.so.1 libitksys-5.3.so.1 libitktiff-5.3.so.1 libitkv3p_netlib-5.3.so.1 libitkvnl-5.3.so.1 libitkvnl_algo-5.3.so.1)
+     set(MRIS_COMMON_ITK_LIBS libITKIOBMP-${EXT} libITKIOBioRad-${EXT} libITKIOBruker-${EXT} libITKIOGDCM-${EXT} libITKIOGE-${EXT} libITKIOGIPL-${EXT} libITKIOHDF5-${EXT} libITKIOJPEG-${EXT} libITKIOJPEG2000-${EXT} libITKIOLSM-${EXT} libITKIOMINC-${EXT} libITKIOMRC-${EXT} libITKIOMeta-${EXT} libITKIONIFTI-${EXT} libITKIONRRD-${EXT} libITKIOPNG-${EXT} libITKIOStimulate-${EXT} libITKIOTIFF-${EXT} libITKIOVTK-${EXT} libITKNrrdIO-${EXT} libITKniftiio-${EXT} libITKznz-${EXT} libitkdouble-conversion-${EXT} libitkopenjpeg-${EXT} libitksys-${EXT} libitkv3p_netlib-${EXT} libitkvnl-${EXT} libitkvnl_algo-${EXT})
 
-     set(MRI_VESSEL_SEGMENT_ITK_LIBS ${MRIS_COMMON_ITK_LIBS} libITKCommon-5.3.so.1 libITKIOImageBase-5.3.so.1 libITKLabelMap-5.3.so.1)
-     set(MRIS_CURVATURE2IMAGE_ITK_LIBS libitkv3p_netlib-5.3.so.1 libitkvnl-5.3.so.1 libitkvnl_algo-5.3.so.1)
+     set(MRI_VESSEL_SEGMENT_ITK_LIBS ${MRIS_COMMON_ITK_LIBS} libITKCommon-${EXT} libITKIOImageBase-${EXT} libITKLabelMap-${EXT})
+     set(MRIS_CURVATURE2IMAGE_ITK_LIBS libitkv3p_netlib-${EXT} libitkvnl-${EXT} libitkvnl_algo-${EXT})
      set(MRIS_EXTRACT_VALUES_ITK_LIBS ${MRIS_COMMON_ITK_LIBS})
-     set(MRIS_IMAGE2VTK_ITK_LIBS ${MRIS_COMMON_ITK_LIBS} libITKIOMeshBYU-5.3.so.1 libITKIOMeshFreeSurfer-5.3.so.1 libITKIOMeshGifti-5.3.so.1 libITKIOMeshOBJ-5.3.so.1 libITKIOMeshOFF-5.3.so.1 libITKIOMeshVTK-5.3.so.1 libITKgiftiio-5.3.so.1)
+     set(MRIS_IMAGE2VTK_ITK_LIBS ${MRIS_COMMON_ITK_LIBS} libITKIOMeshBYU-${EXT} libITKIOMeshFreeSurfer-${EXT} libITKIOMeshGifti-${EXT} libITKIOMeshOBJ-${EXT} libITKIOMeshOFF-${EXT} libITKIOMeshVTK-${EXT} libITKgiftiio-${EXT})
+
      # no entries for MRIS_MESH_SUBDIVIDE_ITK_LIBS
-     set(MRIS_MULTIMODAL_ITK_LIBS libITKCommon-5.3.so.1 libITKNrrdIO-5.3.so.1 libITKniftiio-5.3.so.1 libITKznz-5.3.so.1 libitkdouble-conversion-5.3.so.1 libitkopenjpeg-5.3.so.1 libitktiff-5.3.so.1 libitkv3p_netlib-5.3.so.1 libitkvnl-5.3.so.1 libitkvnl_algo-5.3.so.1)
+     set(MRIS_MULTIMODAL_ITK_LIBS libITKCommon-${EXT} libITKNrrdIO-${EXT} libITKniftiio-${EXT} libITKznz-${EXT} libitkdouble-conversion-${EXT} libitkopenjpeg-${EXT} libitkv3p_netlib-${EXT} libitkvnl-${EXT} libitkvnl_algo-${EXT})
+
      set(MRIS_MULTIMODAL_SURFACE_PLACEMENT_ITK_LIBS ${MRIS_COMMON_ITK_LIBS})
-     set(MRIS_PROFILECLUSTERING_ITK_LIBS ${MRIS_COMMON_ITK_LIBS} libITKCommon-5.3.so.1 libITKIOImageBase-5.3.so.1 libITKStatistics-5.3.so.1)
-     set(MRIS_SURF2VTK_ITK_LIBS libITKCommon-5.3.so.1 libITKNrrdIO-5.3.so.1 libITKniftiio-5.3.so.1 libITKznz-5.3.so.1 libitkdouble-conversion-5.3.so.1 libitkopenjpeg-5.3.so.1 libitktiff-5.3.so.1 libitkv3p_netlib-5.3.so.1 libitkvnl-5.3.so.1 libitkvnl_algo-5.3.so.1)
+     set(MRIS_PROFILECLUSTERING_ITK_LIBS ${MRIS_COMMON_ITK_LIBS} libITKCommon-${EXT} libITKIOImageBase-${EXT} libITKStatistics-${EXT})
+     set(MRIS_SURF2VTK_ITK_LIBS libITKCommon-${EXT} libITKNrrdIO-${EXT} libITKniftiio-${EXT} libITKznz-${EXT} libitkdouble-conversion-${EXT} libitkopenjpeg-${EXT} libitkv3p_netlib-${EXT} libitkvnl-${EXT} libitkvnl_algo-${EXT})
 
      # reset and do not use default glob that pulls in every library
      set(VTK_LIBRARIES "")
@@ -69,49 +81,64 @@ if(ITK_FOUND AND VTK_FOUND)
   )
 
   add_executable(mris_multimodal mris_multimodal.cxx)
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_multimodal PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_multimodal PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mris_multimodal PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_MULTIMODAL_ITK_LIBS} ${MRIS_MULTIMODAL_VTK_LIBS})
-        target_link_libraries(mris_multimodal ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_multimodal ${LIB})
      endforeach()
+
      target_link_libraries(mris_multimodal utils nifti)
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()
      target_link_libraries(mris_multimodal utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   endif()
   install(TARGETS mris_multimodal DESTINATION bin)
-  
+
+
   # also needs ITKStatistics
   add_executable(mris_profileClustering mris_profileClustering.cxx)
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_profileClustering PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_profileClustering PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mris_profileClustering PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_PROFILECLUSTERING_ITK_LIBS} ${MRIS_PROFILECLUSTERING_VTK_LIBS})
-        target_link_libraries(mris_profileClustering ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_profileClustering ${LIB})
      endforeach()
+
      target_link_libraries(mris_profileClustering utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()
      target_link_libraries(mris_profileClustering utils nifti ${OPENGL_LIBRARIES} "${ITK_LIBRARIES};ITKStatistics" ${VTK_LIBRARIES})
   endif() 
   install(TARGETS mris_profileClustering DESTINATION bin)
+
  
   add_executable(mris_surf2vtk mris_surf2vtk.cxx)
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_surf2vtk PRIVATE ${UB24_ITK_BASE})
+     target_link_options(mris_surf2vtk PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_SURF2VTK_ITK_LIBS})
-        target_link_libraries(mris_surf2vtk ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_surf2vtk ${LIB})
      endforeach()
+
      target_link_libraries(mris_surf2vtk utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()
      target_link_libraries(mris_surf2vtk utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   endif()
   install(TARGETS mris_surf2vtk DESTINATION bin)
- 
+
+
   add_executable(mris_image2vtk mris_image2vtk.cxx) # Code/vtkNIFTIImageReader.cxx)
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_image2vtk PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_image2vtk PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mris_image2vtk PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_IMAGE2VTK_ITK_LIBS} ${MRIS_IMAGE2VTK_VTK_LIBS})
-        target_link_libraries(mris_image2vtk ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_image2vtk ${LIB})
      endforeach()
+
      target_link_libraries(mris_image2vtk utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   elseif( (HOST_OS MATCHES "Ubuntu24" AND NOT UB24_SYSLIBS ) OR ((HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "Rocky9" OR HOST_OS MATCHES "Ubuntu22") AND HOST_OS_GCC_VERSION MATCHES "11"))
     # also needs ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU for ITK5.4
     target_link_libraries(mris_image2vtk utils nifti "${ITK_LIBRARIES};ITKIOMeshOFF;ITKIOMeshOBJ;ITKIOMeshGifti;ITKIOMeshFreeSurfer;ITKIOMeshBYU" ${VTK_LIBRARIES} )
@@ -122,20 +149,24 @@ if(ITK_FOUND AND VTK_FOUND)
   endif()
   install(TARGETS mris_image2vtk DESTINATION bin)
 
+
   #file(GLOB ALGLIB_SRC /space/erebus/2/users/vsiless/code/commong/alglib/src/*.cpp)
   #add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
   #target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   #install(TARGETS sigmoidFit DESTINATION bin)
 
-  # also needs ITKLabelMap
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
-     # builds in Ubuntu24 container with system vtk libs
+  ## also needs ITKLabelMap
+  ## Does not build on all OS's ??
+  if(HOST_OS MATCHES "Ubuntu24")
      add_executable(mri_vessel_segment mri_vessel_segment.cxx)
+     target_link_directories(mri_vessel_segment PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mri_vessel_segment PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mri_vessel_segment PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRI_VESSEL_SEGMENT_ITK_LIBS} ${MRI_VESSEL_SEGMENT_VTK_LIBS})
-        target_link_libraries(mri_vessel_segment ${UB24_BASE}/${LIB})
+        target_link_libraries(mri_vessel_segment ${LIB})
      endforeach()
+
      target_link_libraries(mri_vessel_segment utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
      install(TARGETS mri_vessel_segment DESTINATION bin)
   elseif(NOT ((HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "Rocky9" OR (HOST_OS MATCHES "Ubuntu24" AND NOT UB24_SYSLIBS) OR HOST_OS MATCHES "Ubuntu22") AND HOST_OS_GCC_VERSION MATCHES "11"))
      # fails if some vtk packages are not installed/present
@@ -147,37 +178,49 @@ if(ITK_FOUND AND VTK_FOUND)
      install(TARGETS mri_vessel_segment DESTINATION bin)
   endif()
 
+
   add_executable(mris_multimodal_surface_placement mris_multimodal_surface_placement.cxx ${TRACKIO})
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_multimodal_surface_placement PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_multimodal_surface_placement PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mris_multimodal_surface_placement PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_MULTIMODAL_SURFACE_PLACEMENT_ITK_LIBS} ${MRIS_MULTIMODAL_SURFACE_PLACEMENT_VTK_LIBS})
-        target_link_libraries(mris_multimodal_surface_placement ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_multimodal_surface_placement ${LIB})
      endforeach()
+
      target_link_libraries(mris_multimodal_surface_placement utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()
      target_link_libraries(mris_multimodal_surface_placement utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   endif()
   install(TARGETS mris_multimodal_surface_placement DESTINATION bin)
 
+
   add_executable(mris_curvature2image mris_curvature2image.cxx)
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_curvature2image PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_curvature2image PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mris_curvature2image PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_CURVATURE2IMAGE_ITK_LIBS} ${MRIS_CURVATURE2IMAGE_VTK_LIBS})
-        target_link_libraries(mris_curvature2image ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_curvature2image ${LIB})
      endforeach()
+
      target_link_libraries(mris_curvature2image utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()
      target_link_libraries(mris_curvature2image utils nifti ${VTK_LIBRARIES})
    endif()
   install(TARGETS mris_curvature2image DESTINATION bin)
 
+
   add_executable(mris_extract_values mris_extract_values.cxx)
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
+  if(HOST_OS MATCHES "Ubuntu24")
+     target_link_directories(mris_extract_values PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_extract_values PRIVATE ${UB24_VTK_BASE})
+     target_link_options(mris_extract_values PRIVATE ${UB24_COMMON_LINK_OPTIONS})
      foreach(LIB ${MRIS_EXTRACT_VALUES_ITK_LIBS} ${MRIS_EXTRACT_VALUES_VTK_LIBS})
-        target_link_libraries(mris_extract_values ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_extract_values ${LIB})
      endforeach()
+
      target_link_libraries(mris_extract_values utils nifti)
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()
      target_link_libraries(mris_extract_values utils nifti ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   endif()
@@ -188,6 +231,7 @@ if(ITK_FOUND AND VTK_FOUND)
      target_link_options(mris_profileClustering PRIVATE "LINKER:--as-needed")
      target_link_options(mris_surf2vtk PRIVATE "LINKER:--as-needed")
      target_link_options(mris_image2vtk PRIVATE "LINKER:--as-needed")
+     # target_link_options(mri_vessel_segment PRIVATE "LINKER:--as-needed")
      target_link_options(mris_multimodal_surface_placement PRIVATE "LINKER:--as-needed")
      target_link_options(mris_curvature2image PRIVATE "LINKER:--as-needed")
      target_link_options(mris_extract_values PRIVATE "LINKER:--as-needed")

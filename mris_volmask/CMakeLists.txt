@@ -23,8 +23,17 @@ if(VTK_FOUND AND ITK_FOUND AND NOT MINIMAL)
   include_directories(${VTK_INCLUDE_DIRS})
   add_executable(mris_volmask_vtk mris_volmask_old.cpp cmd_line_interface.cpp)
 
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
-     set(UB24_BASE "/usr/lib/x86_64-linux-gnu")
+  if(HOST_OS MATCHES "Ubuntu24")
+     if(NOT UBUNTU_ARM64)
+        set(UB24_ITK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(UB24_VTK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(EXT "5.3.so")
+     else()
+        # don't have native itk libraries on arm64
+        set(UB24_ITK_BASE "/usr/pubsw/packages/itk/5.4_ubuntu24/lib")
+        set(UB24_VTK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(EXT "5.4.so")
+     endif()
 
      # reset and do not use default glob that pulls in every library
      set(VTK_LIBRARIES "")
@@ -32,11 +41,14 @@ if(VTK_FOUND AND ITK_FOUND AND NOT MINIMAL)
 
      # reset and do not use default glob that pulls in every library
      set(ITK_LIBRARIES "")
-     set(MRIS_VOLMASK_ITK_LIBS libitkv3p_netlib-5.3.so.1 libitkvnl-5.3.so.1 libitkvnl_algo-5.3.so.1)
+     set(MRIS_VOLMASK_ITK_LIBS libitkv3p_netlib-${EXT} libitkvnl-${EXT} libitkvnl_algo-${EXT})
 
+     target_link_directories(mris_volmask_vtk PRIVATE ${UB24_ITK_BASE})
+     target_link_directories(mris_volmask_vtk PRIVATE ${UB24_VTK_BASE})
      foreach(LIB ${MRIS_VOLMASK_ITK_LIBS} ${MRIS_VOLMASK_VTK_LIBS})
-        target_link_libraries(mris_volmask_vtk ${UB24_BASE}/${LIB})
+        target_link_libraries(mris_volmask_vtk ${LIB})
      endforeach()
+
      target_link_libraries(mris_volmask_vtk utils nifti)
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UB24_COMMON_LINK_OPTIONS}")
   else()

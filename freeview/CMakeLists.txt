@@ -368,16 +368,29 @@ if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils AND ITK_FOUND)
     target_link_libraries(freeview ${GLUT_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
-  if(HOST_OS MATCHES "Ubuntu24" AND UB24_SYSLIBS)
-     set(UB24_BASE "/usr/lib/x86_64-linux-gnu")
+  if(HOST_OS MATCHES "Ubuntu24")
+     if(NOT UBUNTU_ARM64)
+        set(UB24_ITK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(UB24_VTK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(EXT "5.3.so")
+     else()
+        # no itk system libs in ubuntu24  arm64
+        set(UB24_ITK_BASE "/usr/pubsw/packages/itk/5.4_ubuntu24/lib")
+        set(UB24_VTK_BASE "/usr/lib/${UBUNTU_GCC_LIBDIR}")
+        set(EXT "5.4.so")
+     endif()
 
-     set(UB24_ITK_LIBS libITKCommon-5.3.so.1 libITKgiftiio-5.3.so.1 libITKniftiio-5.3.so.1 libitkv3p_netlib-5.3.so.1 libitkvnl-5.3.so.1 libitkvnl_algo-5.3.so.1)
+     set(UB24_ITK_LIBS libITKCommon-${EXT} libITKgiftiio-${EXT} libITKniftiio-${EXT} libitkv3p_netlib-${EXT} libitkvnl-${EXT} libitkvnl_algo-${EXT})
 
      set(UB24_VTK_LIBS libvtkCommonComputationalGeometry-9.1.so.1 libvtkCommonCore-9.1.so.1 libvtkCommonDataModel-9.1.so.1 libvtkCommonExecutionModel-9.1.so.1 libvtkCommonMath-9.1.so.1 libvtkCommonMisc-9.1.so.1 libvtkCommonTransforms-9.1.so.1 libvtkFiltersCore-9.1.so.1 libvtkFiltersExtraction-9.1.so.1 libvtkFiltersGeneral-9.1.so.1 libvtkFiltersHybrid-9.1.so.1 libvtkFiltersModeling-9.1.so.1 libvtkFiltersSources-9.1.so.1 libvtkGUISupportQt-9.1.so.1 libvtkIOCore-9.1.so.1 libvtkIOExport-9.1.so.1 libvtkIOGeometry-9.1.so.1 libvtkIOImage-9.1.so.1 libvtkIOLegacy-9.1.so.1 libvtkImagingCore-9.1.so.1 libvtkImagingGeneral-9.1.so.1 libvtkImagingMath-9.1.so.1 libvtkImagingMorphological-9.1.so.1 libvtkInteractionStyle-9.1.so.1 libvtkRenderingAnnotation-9.1.so.1 libvtkRenderingCore-9.1.so.1 libvtkRenderingOpenGL2-9.1.so.1)
 
-     foreach(LIB ${UB24_ITK_LIBS} ${UB24_VTK_LIBS})
-        target_link_libraries(freeview ${UB24_BASE}/${LIB})
+     foreach(LIB ${UB24_ITK_LIBS})
+        target_link_libraries(freeview ${UB24_ITK_BASE}/${LIB})
      endforeach()
+     foreach(LIB ${UB24_VTK_LIBS})
+        target_link_libraries(freeview ${UB24_VTK_BASE}/${LIB})
+     endforeach()
+
   endif()
 
   if(LINK_SHARED_AS_NEEDED)
