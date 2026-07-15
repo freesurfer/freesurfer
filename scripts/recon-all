@@ -5996,7 +5996,9 @@ if($?RECONALL_USAGE_FILE) then
         # Despite the above, it still might not be writable if mounted on a
         # read-only system, so see if touching it causes an error.
         touch $RECONALL_USAGE_FILE > /dev/null
-	if($status == 0) then
+        # save of status prior to test will succeed and reset status to 0 (may be needed for clean exit)
+        touch_status = $status
+        if($touch_status == 0) then
           echo "`date` `cat $FREESURFER_HOME/build-stamp.txt`" >> $RECONALL_USAGE_FILE
         endif
       endif
