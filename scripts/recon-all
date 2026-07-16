@@ -5993,8 +5993,13 @@ if($?RECONALL_USAGE_FILE) then
   if(-e $RECONALL_USAGE_FILE) then
     if(-w $RECONALL_USAGE_FILE) then
       if ($RunIt) then
-        echo "`date` `cat $FREESURFER_HOME/build-stamp.txt`" \
-            >> $RECONALL_USAGE_FILE
+        # Despite the above, it still might not be writable if mounted on a
+        # read-only system, so see if touching it causes an error.
+        touch $RECONALL_USAGE_FILE > /dev/null
+        # save of status prior to test will succeed and reset status to 0 (may be needed for clean exit)
+        set touch_status = $status
+        if($touch_status == 0) then
+          echo "`date` `cat $FREESURFER_HOME/build-stamp.txt`" >> $RECONALL_USAGE_FILE
         endif
       endif
   endif
@@ -6125,6 +6130,15 @@ while( $#argv != 0 )
       setenv  SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
+    case "-usage":
+      if ( $#argv < 1) goto arg1err;
+      setenv RECONALL_USAGE_FILE $argv[1]; shift;
+      breaksw
+      
+    case "-no-usage":
+      unsetenv RECONALL_USAGE_FILE
+      breaksw
+      
     case "-i"
     case "--i"
       if( $#argv < 1) goto arg1err;
