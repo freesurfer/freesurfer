@@ -34,7 +34,8 @@ set_target_properties(fsbindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOU
 
 ## the workaround for ubuntu 24 is to copy the python3.8 fsbindings libraries as built on and saved from an ubuntu 22 system
 
-if(HOST_OS MATCHES "Ubuntu24")
+# if(HOST_OS MATCHES "Ubuntu24")
+if(HOST_OS MATCHES "Ubuntu24" AND NOT UBUNTU_ARM64)
    set(FSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings")
    set(GEMSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems")
    if("${FSPYTHON_VERSION}" MATCHES "3.8")
