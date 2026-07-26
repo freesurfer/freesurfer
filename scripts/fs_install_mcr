@@ -49,21 +49,51 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Supported MCR versions and their download URLs, keyed by version string.
-# To support a new MCR version, add a single entry here.
+# Supported MCR versions and their download URLs.
+# Kept as two parallel indexed arrays (rather than an associative array)
+# for compatibility with bash 3.2, which is still the default /bin/bash
+# shipped on macOS. To support a new MCR version, add one entry to each
+# array below, at the same index.
 # ----------------------------------------------------------------------------
-declare -A MCR_URLS=(
-    ["R2012a"]="https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012a/MCR_R2012a_${OS_TAG}_installer.zip"
-    ["R2012b"]="https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012b/MCR_R2012b_${OS_TAG}_installer.zip"
-    ["R2013a"]="https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2013a/MCR_R2013a_${OS_TAG}_installer.zip"
-    ["R2014a"]="https://ssd.mathworks.com/supportfiles/downloads/R2014a/deployment_files/R2014a/installers/${OS_TAG}/MCR_R2014a_${OS_TAG}_installer.zip"
-    ["R2014b"]="https://ssd.mathworks.com/supportfiles/downloads/R2014b/deployment_files/R2014b/installers/${OS_TAG}/MCR_R2014b_${OS_TAG}_installer.zip"
-    ["R2019b"]="https://ssd.mathworks.com/supportfiles/downloads/R2019b/Release/9/deployment_files/installer/complete/${OS_TAG}/MATLAB_Runtime_R2019b_Update_9_${OS_TAG}.zip"
+MCR_SUPPORTED_VERSIONS=(
+    "R2012a"
+    "R2012b"
+    "R2013a"
+    "R2014a"
+    "R2014b"
+    "R2019b"
 )
 
-# build a regex alternation of supported versions from the array keys, e.g. R2012a|R2012b|...
-SUPPORTED_VERSIONS_LIST="${!MCR_URLS[@]}"
-SUPPORTED_VERSIONS_RE="$(echo "$SUPPORTED_VERSIONS_LIST" | tr ' ' '|')"
+MCR_URLS=(
+    "https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012a/MCR_R2012a_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012b/MCR_R2012b_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2013a/MCR_R2013a_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/downloads/R2014a/deployment_files/R2014a/installers/${OS_TAG}/MCR_R2014a_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/downloads/R2014b/deployment_files/R2014b/installers/${OS_TAG}/MCR_R2014b_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/downloads/R2019b/Release/9/deployment_files/installer/complete/${OS_TAG}/MATLAB_Runtime_R2019b_Update_9_${OS_TAG}.zip"
+)
+
+# looks up the download URL for a given MCR version; echoes it, or nothing if unsupported
+mcr_url_for_version() {
+    local version="$1"
+    local i
+    for i in "${!MCR_SUPPORTED_VERSIONS[@]}"; do
+        if [[ "${MCR_SUPPORTED_VERSIONS[$i]}" == "$version" ]]; then
+            echo "${MCR_URLS[$i]}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# builds a "|"-separated regex alternation of supported versions, e.g. R2012a|R2012b|...
+mcr_supported_versions_regex() {
+    local IFS="|"
+    echo "${MCR_SUPPORTED_VERSIONS[*]}"
+}
+
+SUPPORTED_VERSIONS_LIST="${MCR_SUPPORTED_VERSIONS[*]}"
+SUPPORTED_VERSIONS_RE="$(mcr_supported_versions_regex)"
 
 # if a local installer file was provided, validate its name and derive the MCR version from it
 if [[ -n "$LOCAL_INSTALLER" ]]; then
@@ -80,7 +110,8 @@ if [[ -n "$LOCAL_INSTALLER" ]]; then
         exit 1
     fi
 
-    # only accept versions supported by this script
+    # only accept versions supported by this script, matched as a distinct token
+    # (boundaries avoid mistaking e.g. "R2019bc" in a filename for "R2019b")
     if [[ "$LOCAL_INSTALLER_NAME" =~ (^|[^0-9A-Za-z])($SUPPORTED_VERSIONS_RE)([^0-9A-Za-z]|$) ]]; then
         MCR_VER="${BASH_REMATCH[2]}"
     else
@@ -91,10 +122,12 @@ if [[ -n "$LOCAL_INSTALLER" ]]; then
 
     # resolve to an absolute path now, since we'll cd into a tmp dir before using it
     LOCAL_INSTALLER="$(cd "$(dirname "$LOCAL_INSTALLER")" && pwd)/$LOCAL_INSTALLER_NAME"
-elif [[ -z "${MCR_URLS[$MCR_VER]}" ]]; then
-    echo "Unsupported runtime version $MCR_VER"
-    echo "INFO: supported versions are: $SUPPORTED_VERSIONS_LIST"
-    exit 1
+else
+    if ! mcr_url_for_version "$MCR_VER" > /dev/null; then
+        echo "Unsupported runtime version $MCR_VER"
+        echo "INFO: supported versions are: $SUPPORTED_VERSIONS_LIST"
+        exit 1
+    fi
 fi
 
 # operate in tmp directory
@@ -113,7 +146,7 @@ if [[ -n "$LOCAL_INSTALLER" ]]; then
     echo "Using local installer file: $LOCAL_INSTALLER (detected version $MCR_VER)"
     ln -s "$LOCAL_INSTALLER" installer.zip
 else
-    curl --location "${MCR_URLS[$MCR_VER]}" -o installer.zip
+    curl --location "$(mcr_url_for_version "$MCR_VER")" -o installer.zip
 fi
 unzip installer.zip
 
