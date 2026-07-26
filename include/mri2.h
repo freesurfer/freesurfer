@@ -107,6 +107,7 @@ int *MRIsegIdList(MRI *seg, int *nlist, int frame);
 int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame);
 int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame);
 MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out);
+MRI *MRIseg2ColVect(MRI *seg);
 double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);

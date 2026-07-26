@@ -2919,6 +2919,27 @@ int *MRIsegIdList(MRI *seg, int *nlist, int frame)
   // printf("%3d %3d\n",nth,segidlist[nth]);
   return (segidlist);
 }
+/*!
+  \fn MRI *MRIseg2ColVect(MRI *seg)
+  \brief Convert a segmentation into an MRI that is just a column vector
+  where the values are the unique segmentation values from seg (excluding
+  0). This can be used, eg, with the output of mri_gtmpvc when viewing time
+  series; it can be loaded and then double click on the seg list.
+ */
+MRI *MRIseg2ColVect(MRI *seg)
+{
+  if(seg == NULL){
+    printf("MRIseg2ColVectMRI(): seg is NULL\n");
+    return(NULL);
+  }
+  int nsegids;
+  int *segidlist = MRIsegIdListExclude0(seg, &nsegids, 0);
+  MRI *colvect = MRIallocSequence(nsegids,  1, 1, MRI_INT, 1);
+  for(int n = 0; n < nsegids; n++) MRIsetVoxVal(colvect,n,0,0,0, segidlist[n]);
+  if(seg->ct) colvect->ct = CTABdeepCopy(seg->ct);
+  return(colvect);
+}
+
 
 /* ----------------------------------------------------------*/
 /*!
