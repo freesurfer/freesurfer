@@ -48,6 +48,23 @@ else
     OS_TAG=maci64
 fi
 
+# ----------------------------------------------------------------------------
+# Supported MCR versions and their download URLs, keyed by version string.
+# To support a new MCR version, add a single entry here.
+# ----------------------------------------------------------------------------
+declare -A MCR_URLS=(
+    ["R2012a"]="https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012a/MCR_R2012a_${OS_TAG}_installer.zip"
+    ["R2012b"]="https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012b/MCR_R2012b_${OS_TAG}_installer.zip"
+    ["R2013a"]="https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2013a/MCR_R2013a_${OS_TAG}_installer.zip"
+    ["R2014a"]="https://ssd.mathworks.com/supportfiles/downloads/R2014a/deployment_files/R2014a/installers/${OS_TAG}/MCR_R2014a_${OS_TAG}_installer.zip"
+    ["R2014b"]="https://ssd.mathworks.com/supportfiles/downloads/R2014b/deployment_files/R2014b/installers/${OS_TAG}/MCR_R2014b_${OS_TAG}_installer.zip"
+    ["R2019b"]="https://ssd.mathworks.com/supportfiles/downloads/R2019b/Release/9/deployment_files/installer/complete/${OS_TAG}/MATLAB_Runtime_R2019b_Update_9_${OS_TAG}.zip"
+)
+
+# build a regex alternation of supported versions from the array keys, e.g. R2012a|R2012b|...
+SUPPORTED_VERSIONS_LIST="${!MCR_URLS[@]}"
+SUPPORTED_VERSIONS_RE="$(echo "$SUPPORTED_VERSIONS_LIST" | tr ' ' '|')"
+
 # if a local installer file was provided, validate its name and derive the MCR version from it
 if [[ -n "$LOCAL_INSTALLER" ]]; then
     LOCAL_INSTALLER_NAME="$(basename "$LOCAL_INSTALLER")"
@@ -63,17 +80,21 @@ if [[ -n "$LOCAL_INSTALLER" ]]; then
         exit 1
     fi
 
-    # only accept versions supported by this script (same set handled in the download branch below)
-    if [[ "$LOCAL_INSTALLER_NAME" =~ (R2012a|R2012b|R2013a|R2014a|R2014b|R2019b) ]]; then
-        MCR_VER="${BASH_REMATCH[1]}"
+    # only accept versions supported by this script
+    if [[ "$LOCAL_INSTALLER_NAME" =~ (^|[^0-9A-Za-z])($SUPPORTED_VERSIONS_RE)([^0-9A-Za-z]|$) ]]; then
+        MCR_VER="${BASH_REMATCH[2]}"
     else
         echo "ERROR: could not determine a supported MCR version from local installer name '$LOCAL_INSTALLER_NAME'"
-        echo "INFO: supported versions are R2012a, R2012b, R2013a, R2014a, R2014b, R2019b"
+        echo "INFO: supported versions are: $SUPPORTED_VERSIONS_LIST"
         exit 1
     fi
 
     # resolve to an absolute path now, since we'll cd into a tmp dir before using it
     LOCAL_INSTALLER="$(cd "$(dirname "$LOCAL_INSTALLER")" && pwd)/$LOCAL_INSTALLER_NAME"
+elif [[ -z "${MCR_URLS[$MCR_VER]}" ]]; then
+    echo "Unsupported runtime version $MCR_VER"
+    echo "INFO: supported versions are: $SUPPORTED_VERSIONS_LIST"
+    exit 1
 fi
 
 # operate in tmp directory
@@ -91,15 +112,8 @@ trap cleanup EXIT
 if [[ -n "$LOCAL_INSTALLER" ]]; then
     echo "Using local installer file: $LOCAL_INSTALLER (detected version $MCR_VER)"
     ln -s "$LOCAL_INSTALLER" installer.zip
-elif [[ "$MCR_VER" =~ R2012a|R2012b|R2013a ]]; then
-    curl --location https://ssd.mathworks.com/supportfiles/MCR_Runtime/$MCR_VER/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
-elif [[ "$MCR_VER" =~ R2019b ]]; then
-    curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/Release/9/deployment_files/installer/complete/$OS_TAG/MATLAB_Runtime_${MCR_VER}_Update_9_${OS_TAG}.zip -o installer.zip
-elif [[ "$MCR_VER" =~ R2014a|R2014b ]]; then
-    curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/deployment_files/$MCR_VER/installers/$OS_TAG/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
 else
-    echo "Unsupported runtime version $MCR_VER"
-    exit 1
+    curl --location "${MCR_URLS[$MCR_VER]}" -o installer.zip
 fi
 unzip installer.zip
 
