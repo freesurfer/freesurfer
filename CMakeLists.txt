@@ -88,7 +88,11 @@ option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
 option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
-option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" ON)
+if(HOST_OS MATCHES "Ubuntu24" AND UBUNTU_ARM64)
+   option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
+else()
+   option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" ON)
+endif()
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
 
 ## freeview
