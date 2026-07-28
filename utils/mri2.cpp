@@ -2934,7 +2934,10 @@ MRI *MRIseg2ColVect(MRI *seg)
   }
   int nsegids;
   int *segidlist = MRIsegIdListExclude0(seg, &nsegids, 0);
+  // This creation of the MRI matches that in mri_gtmpvc
   MRI *colvect = MRIallocSequence(nsegids,  1, 1, MRI_INT, 1);
+  MRIcopyHeader(seg,colvect);
+  MRIcopyPulseParameters(seg,colvect);
   for(int n = 0; n < nsegids; n++) MRIsetVoxVal(colvect,n,0,0,0, segidlist[n]);
   if(seg->ct) colvect->ct = CTABdeepCopy(seg->ct);
   return(colvect);
