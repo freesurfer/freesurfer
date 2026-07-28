@@ -86,7 +86,11 @@ public:
   std::array<double,3> RTP2XYZ(std::array<double,3> rtp);
   double NormDot(MRIS *surf2);
   int SetSurfXYZ(void);
-  int MakeMRI(int dim, double res);
+  int MakeMRI(int dim, double xres, double yres, double zres);
+  int MakeMRI(int dim, double res) {
+    int r = this->MakeMRI(dim, res, res, res);
+    return(r);
+  }
   int LoadIcoSurf(void);
 };
 

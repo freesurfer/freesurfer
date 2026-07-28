@@ -19,18 +19,37 @@
 
 #include "mris_sphshapepvf.h"
 
-int SphShapePVFSim::MakeMRI(int dim, double res){
-  // just a convenient way to make an MRI, 
-  // might just want to load one from file
+int SphShapePVFSim::MakeMRI(int dim, double xres, double yres, double zres){
+  // Just a convenient way to make an MRI, might just want to load one from file
   vol = MRIalloc(dim,dim,dim,MRI_FLOAT);
   if(vol==NULL) return(1);
-  vol->xsize = res;
-  vol->ysize = res;
-  vol->zsize = res;
-  MATRIX *M = MRIxfmCRS2XYZtkreg(vol);
-  // Set the vox2ras to the tkreg vox2ras
-  MRIsetVox2RASFromMatrix(vol, M);
-  MatrixFree(&M);
+  vol->xsize = xres;
+  vol->ysize = yres;
+  vol->zsize = zres;
+  // Compute vox2ras so that the true center of the image is at 0,0,0; this
+  // forces all volumes created with this to share a RAS space.
+  // D is a diagnonal matrix with the resolutions (there is no shear)
+  MATRIX *D = MatrixAlloc(4,4,MATRIX_REAL);
+  D->rptr[1][1] = xres;
+  D->rptr[2][2] = yres;
+  D->rptr[3][3] = zres;
+  D->rptr[4][4] = 1;
+  // This is the voxel locaiton of the true center
+  MATRIX *Vc = MatrixAlloc(4,1,MATRIX_REAL);
+  Vc->rptr[1][1] = dim/2.0;
+  Vc->rptr[2][1] = dim/2.0;
+  Vc->rptr[3][1] = dim/2.0;
+  Vc->rptr[4][1] = 0.0;
+  // Now compute the first voxel (needs to be neg)
+  MATRIX *P0 = MatrixMultiplyD(D,Vc,NULL);
+  // Stuff first voxel into D to make a full vox2ras
+  D->rptr[1][4] = -P0->rptr[1][1];
+  D->rptr[2][4] = -P0->rptr[2][1];
+  D->rptr[3][4] = -P0->rptr[3][1];
+  MRIsetVox2RASFromMatrix(vol, D);
+  MatrixFree(&D);
+  MatrixFree(&Vc);
+  MatrixFree(&P0);
   if(surf) getVolGeom(vol, &(surf->vg));
   return(0);
 }
