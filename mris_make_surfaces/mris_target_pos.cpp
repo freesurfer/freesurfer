@@ -105,7 +105,7 @@ public:
   double MinSearchDist,MaxSearchDist;
   int interptype=SAMPLE_TRILINEAR;
   double Contrast = -1; // -1 for T1 +1 for T2
-  double sigma; // guass std to smoothing along projetion, in mm
+  double sigma = -1; // guass std to smoothing along projetion, in mm
   double *sigmalist;
   int nsigma;
   MATRIX **Glist;
@@ -413,6 +413,9 @@ int npointset=50;
 double border_hi = -1;
 double outside_low = -1;
 int surftype = GRAY_WHITE;
+float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
+float pial_sigma = 2.0 ;
+float white_sigma = 2.0 ;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -425,8 +428,6 @@ int main(int argc, char **argv) {
   mtp.MinSearchDist = -3.0;
   mtp.MaxSearchDist = +6.0;
   //mtp.interptype=SAMPLE_TRILINEAR;
-  mtp.sigma=0.2; 
-
   nargs = handleVersionOption(argc, argv, "mris_target_pos");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -447,6 +448,9 @@ int main(int argc, char **argv) {
   printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
 #endif
 
+  printf("sigma = %g %d\n",mtp.sigma,DoCBV);
+  if(mtp.sigma < 0 && !DoCBV) mtp.sigma=0.2; 
+
   mtp.vol = MRIread(involname);
   mtp.surf = MRISread(insurfname);
   mtp.InitSampleDist();
@@ -459,24 +463,37 @@ int main(int argc, char **argv) {
     printf("Ripping based on label %s\n",riplabelfile);
     MRISripNotLabel(mtp.surf,riplabel);
   }
-
   const char *field;
-
   MRISclearMarks(mtp.surf); /* for soap bubble smoothing later */
-
   MRIS* surftarget = MRISclone(mtp.surf);
-
-  MRISclearMarks(mtp.surf); /* for soap bubble smoothing later */
-
+  printf("sigma = %g\n",mtp.sigma);
+  
   if(DoCBV){
-    double inside_hi = mtp.adgws.white_inside_hi;
-    double outside_hi = mtp.adgws.white_outside_hi;
-    double border_low = 0;
-    double sigma = 1.0;
+    double inside_hi, outside_hi;
+    double border_low=0;
+    if(surftype == GRAY_WHITE){
+      if(mtp.sigma < 0) mtp.sigma = white_sigma ;
+      inside_hi = mtp.adgws.white_inside_hi;
+      //border_hi = mtp.adgws.white_border_hi; // set in check
+      if(mtp.adgws.white_border_low_factor > -9){
+	double f = mtp.adgws.white_border_low_factor;
+	border_low = f*mtp.adgws.gray_mean + (1-f)*mtp.adgws.white_mean;
+      }
+      //outside_low = mtp.adgws.white_outside_low; // set in check
+      outside_hi = mtp.adgws.white_outside_hi;
+    }
+    else { //GRAY_CSF
+      if(mtp.sigma < 0) mtp.sigma = pial_sigma ;
+      inside_hi = mtp.adgws.pial_inside_hi;
+      //border_hi = mtp.adgws.pial_border_hi; // set in chec
+      border_low = mtp.adgws.pial_border_low;
+      //outside_low = mtp.adgws.pial_outside_low; // set in check
+      outside_hi = mtp.adgws.pial_outside_hi;
+    }
+    MRI *seg = NULL;
     
     MRIScomputeBorderValues(mtp.surf, mtp.vol, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			    sigma, 10, NULL, GRAY_WHITE, NULL, 0, 0, NULL,-1,-1) ;
-    
+			    mtp.sigma, 2*max_cbv_dist, NULL, surftype, NULL, 0.5, 0, seg, -1,-1) ;
   }
   else {
     mtp.InwardThresh = border_hi;
@@ -680,6 +697,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf( pargv[0],"%lf",&mtp.sigma);
       nargsused = 1;
     }
+    else if (CMDstringMatch(option, "--max-cbv-dist")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf( pargv[0],"%f",&max_cbv_dist);
+      nargsused = 1;
+    }
     else if (CMDstringMatch(option, "--interp")) {
       if (nargc < 1) CMDargNErr(option,1);
       interpmethod = pargv[0];
@@ -734,13 +756,20 @@ static void print_usage(void)
   printf("\n");
   printf("USAGE: mris_target_pos\n");
   printf("\n");
-  printf("   --v inputvolume\n");
+  printf("   --v inputvolume \n");
+  printf("     (consider using output vol from mris_place_surfaces or run mps with --no-intensity-proc)\n");
   printf("   --i inputsurf\n");
   printf("   --o outputsurf\n");
   printf("   --adgws adgwsfile\n");
   printf("   --thresh InwardThresh (border_hi) OutwardThresh (outside_low)\n");
+  printf("   --sample-dist min max delta\n");
+  printf("   --search-dist min max\n");
+  printf("   --sigma sigma (default is 0.2 without CBV or 2 with CBV)\n");
+  printf("   --max-cbv-dist dist (defualt is %g mm)\n",max_cbv_dist);
+  printf("   --white, --pial\n");
+  printf("   --cbv, --no-cbv (default)\n");
   printf("   --l label\n");
-  printf("   --interp interpname\n");
+  printf("   --interp interpname; use use --trilin, --nearest, --cubic\n");
   printf("   --debug-vertex vtxno\n");
   printf("   --cbv\n");
   printf("\n");
