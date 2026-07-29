@@ -403,6 +403,7 @@ int main(int argc, char **argv)
 
   if(adgwsinfile == NULL){
     // Note: in long stream orig = orig_white
+    printf("No adgws file specified, so computing GW stats on-the-fly\n");
     err = adgws.AutoDetectStats(subject, hemi);
     if(err) exit(1);
     adgws.white_border_low_factor = -10.0;
@@ -845,6 +846,15 @@ int main(int argc, char **argv)
 	   parms.l_tspring,parms.l_nspring,parms.l_spring,parms.niterations); 
     printf("l_repulse = %g, l_surf_repulse = %g, checktol = %d\n",parms.l_repulse,
 	   parms.l_surf_repulse,parms.check_tol);fflush(stdout);
+
+    if(TargetSurfaceFile){
+      MRISsaveVertexPositions(surf, TMP_VERTICES);
+      MRISrestoreVertexPositions(surf, TARGET_VERTICES);
+      sprintf(tmpstr,"%s.i%d",TargetSurfaceFile,i);
+      printf("Writing target %s\n",tmpstr);
+      MRISwrite(surf,tmpstr);
+      MRISrestoreVertexPositions(surf, TMP_VERTICES);
+    }
 
     for(int subiter = 0; subiter < nsubiters; subiter++){
       printf("\n\nPositioning surface subiter %d\n",subiter);fflush(stdout);
