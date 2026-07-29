@@ -60,6 +60,7 @@
 #include "vtkCutter.h"
 #include "vtkPlane.h"
 #include "vtkIndent.h"
+#include "vtkImageAppend.h"
 #include "MyUtils.h"
 #include "MyVTKUtils.h"
 #include "FSVolume.h"
@@ -931,6 +932,30 @@ void LayerMRI::InitializeVolume()
   //  qDebug() << m_dWorldSize[0] << m_dWorldSize[1] << m_dWorldSize[2];
   
   m_imageData = source->GetImageOutput();
+
+  // if it's 1D image, expand for slice display
+  int* dim = m_imageData->GetDimensions();
+  QList<int> ns;
+  for (int i = 0; i < 3; i++)
+  {
+    if (dim[i] == 1)
+      ns << i;
+  }
+  if (ns.size() == 2)
+  {
+    vtkSmartPointer<vtkImageAppend> append = vtkSmartPointer<vtkImageAppend>::New();
+    append->SetAppendAxis(ns[0]);
+    append->AddInputData(m_imageData);
+    append->AddInputData(m_imageData);
+    append->Update();
+    m_imageData = append->GetOutput();
+    append = vtkSmartPointer<vtkImageAppend>::New();
+    append->SetAppendAxis(ns[1]);
+    append->AddInputData(m_imageData);
+    append->AddInputData(m_imageData);
+    append->Update();
+    m_imageData = append->GetOutput();
+  }
 }
 
 void LayerMRI::InitializeActors()
