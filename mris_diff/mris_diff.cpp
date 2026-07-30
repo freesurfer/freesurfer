@@ -127,6 +127,7 @@ static char *surf1path=NULL, *surf2path=NULL;
 static char *out_fname ;
 static char tmpstr[2000];
 static const char *xyzRMSFile=NULL;
+static const char *xyzSignedRMSFile=NULL;
 static const char *angleRMSFile=NULL;
 static const char *worstBucketFile=NULL;
 static int   okayBucketMax=1;
@@ -616,6 +617,31 @@ int main(int argc, char *argv[]) {
     MRIwrite(angleRMS,angleRMSFile);
     exit(0);
   }
+  if(xyzSignedRMSFile){
+    // This is the RMS signed by whether the 2nd surface is inside
+    // (negative) or outside (positive) of the 1st surface.
+    printf("Computing signed RMS\n");
+    MRI *xyzSignedRMS;
+    double dot, radius1, rms;
+    xyzSignedRMS = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;    
+    for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
+      int nthvtx2 = surf1Vno_to_surf2Vno[nthvtx];
+      if (nthvtx2 < 0) continue;
+
+      VERTEX const * const vtx1 = &(surf1->vertices[nthvtx ]);
+      VERTEX const * const vtx2 = &(surf2->vertices[nthvtx2]);
+      double dx = vtx2->x - vtx1->x; // vector pointing from 1 to 2
+      double dy = vtx2->y - vtx1->y;
+      double dz = vtx2->z - vtx1->z;
+      radius1 = sqrt(dx*dx + dy*dy + dz*dz);
+      dot = (vtx1->nx*dx + vtx1->ny*dy + vtx1->nz*dz)/radius1;
+      rms = sqrt(pow(vtx1->x - vtx2->x,2) + pow(vtx1->y - vtx2->y,2) + pow(vtx1->z - vtx2->z,2));
+      if(dot < 0) rms *= - 1.0;
+      MRIsetVoxVal(xyzSignedRMS,nthvtx,0,0,0,rms);
+    }
+    MRIwrite(xyzSignedRMS,xyzSignedRMSFile);
+    exit(0);
+  }
 
   vnoToWorstBucket.resize(surf1->nvertices);
   std::fill(vnoToWorstBucket.begin(),vnoToWorstBucket.end(),0);
@@ -999,6 +1025,11 @@ static int parse_commandline(int argc, char **argv) {
       xyzRMSFile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--xyz-rms-signed")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      xyzSignedRMSFile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--angle-rms")) {
       if (nargc < 1) CMDargNErr(option,1);
       angleRMSFile = pargv[0];
@@ -1219,6 +1250,7 @@ static void print_usage(void) {
   printf("   --no-check-xyz  : do not check vertex xyz\n");
   printf("   --no-check-nxyz : do not check vertex normals\n");
   printf("   --xyz-rms xyzrmsfile : compute and save rms diff between xyz\n");
+  printf("   --xyz-rms-signed xyzrmsfile : same as --xyz-rms but pos if 2nd is outside 1st (neg otherwise)\n");
   printf("   --angle-rms anglermsfile : compute angle on sphere between xyz\n");
   printf("   --seed seed : set random seed for degenerate normals\n");
   printf("   --min-dist surf1 surf2 exactflag mindist : compute vertex-by-vert RMS distance between surfs\n");
