@@ -1,5 +1,7 @@
 --index-url https://pypi.org/simple
 --extra-index-url https://download.pytorch.org/whl/cpu
+# this must be first to prevent subsequent packages from pulling in non-cpu version of tensorflow
+tensorflow-cpu==2.19.1
 Jinja2
 Markdown==3.9
 MarkupSafe==3.0.3
@@ -88,10 +90,7 @@ sympy==1.13.1
 SynthSeg@git+https://github.com/jnolan14/SynthSeg.git@standalone_predict39
 tensorboard==2.19.0
 tensorboard-data-server==0.7.2
-# the gpu version of tensorflow is still installed and will be removed after pip installs everything here
-# but code does not yet work with cpu version
-# tensorflow-cpu==2.19.1
-tensorflow==2.19.1
+# see entry for tensorflow at top of file
 tensorflow-estimator==2.15.0
 tensorflow-io-gcs-filesystem==0.37.1
 termcolor==3.1.0

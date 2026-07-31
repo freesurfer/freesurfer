@@ -366,24 +366,24 @@ if [ $torchcpu -eq 1 ]; then
       fi
    fi
 
-   ## check also that if tensorflow cpu listed, then remove the non-cpu package
-   # echo "$s: checking for cpu version of tensoflow installed."
-   $python_binary -m pip freeze | grep "^tensorflow_cpu==" > /dev/null
-   if [ $? -eq 0 ]; then
-      echo "$s: pip reports cpu version of tensorflow installed."
-      $python_binary -m pip freeze | grep "^tensorflow==" > /dev/null
-      if [ $? -eq 0 ]; then
-         echo "$s: pip also reports (conflicting) NON-cpu version of tensorflow installed."
-         $python_binary -m pip uninstall -y tensorflow
-         if [ $? -eq 0 ]; then
-            echo "$s: pip uninstall for NON-cpu tensorflow reoprts success."
-         else
-            echo "$s: pip uninstall for NON-cpu tensorflow reoprts failure."
-         fi
-      fi
-   else
-      echo "$s: pip reports tensorflow_cpu not found installed."
-   fi
+   # ## check also that if tensorflow cpu listed, then remove the non-cpu package
+   # # echo "$s: checking for cpu version of tensoflow installed."
+   # $python_binary -m pip freeze | grep "^tensorflow_cpu==" > /dev/null
+   # if [ $? -eq 0 ]; then
+   #    echo "$s: pip reports cpu version of tensorflow installed."
+   #    $python_binary -m pip freeze | grep "^tensorflow==" > /dev/null
+   #    if [ $? -eq 0 ]; then
+   #       echo "$s: pip also reports (conflicting) NON-cpu version of tensorflow installed."
+   #       $python_binary -m pip uninstall -y tensorflow
+   #       if [ $? -eq 0 ]; then
+   #          echo "$s: pip uninstall for NON-cpu tensorflow reoprts success."
+   #       else
+   #          echo "$s: pip uninstall for NON-cpu tensorflow reoprts failure."
+   #       fi
+   #    fi
+   # else
+   #    echo "$s: pip reports tensorflow_cpu not found installed."
+   # fi
 fi
 
 if [ $uninstall -eq 1 ]; then
