@@ -941,7 +941,7 @@ void LayerMRI::InitializeVolume()
     if (dim[i] == 1)
       ns << i;
   }
-  if (ns.size() == 2)
+  if (false) // ns.size() == 2)
   {
     vtkSmartPointer<vtkImageAppend> append = vtkSmartPointer<vtkImageAppend>::New();
     append->SetAppendAxis(ns[0]);
