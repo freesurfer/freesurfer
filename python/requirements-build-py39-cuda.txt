@@ -53,7 +53,7 @@ nvidia-cublas-cu12==12.4.5.8
 nvidia-cuda-cupti-cu12==12.4.127
 nvidia-cuda-nvrtc-cu12==12.4.127
 nvidia-cuda-runtime-cu12==12.4.127
-nvidia-cudnn-cu12==9.1.0.70
+nvidia-cudnn-cu12==9.3.0.75
 nvidia-cufft-cu12==11.2.1.3
 nvidia-cufile-cu12==1.14.1.1
 nvidia-curand-cu12==10.3.5.147
@@ -74,11 +74,12 @@ protobuf==5.29.6
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
 pycparser==2.23
-# pyfs==0.0.0
+# pyfs
 pyparsing==3.3.2
 git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
 python-dateutil==2.9.0.post0
 pytz==2026.2
+# qatoolspython
 requests-oauthlib==2.0.0
 requests==2.32.5
 rich==15.0.0
