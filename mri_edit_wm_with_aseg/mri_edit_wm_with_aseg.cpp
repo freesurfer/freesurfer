@@ -224,8 +224,10 @@ int main(int argc, char *argv[])
   if(entowm)  MRIfixEntoWM(mri_wm, entowm, FixEntoWMLevel, FixEntoWMLhVal, FixEntoWMRhVal, 0);
   if(ACJ)     MRIfixEntoWM(mri_wm, ACJ,                 3, FixACJLhVal,    FixACJRhVal, 1);
 
-  if(KeepH || KeepA || KeepILV || KeepCP)
+  if(KeepH || KeepA || KeepILV || KeepCP){
+    printf("KeepHAILVCP %g %g\n",HILVCPlhVal, HILVCPrhVal);
     KeepHAILVCP(mri_wm, mri_aseg, KeepH, KeepA, KeepILV, KeepCP, HILVCPlhVal, HILVCPrhVal, mri_wm);
+  }
 
   if(wmsafile){
     printf("Applying WMSA edits from %s\n",wmsafile);
@@ -308,6 +310,12 @@ get_option(int argc, char *argv[])
     FixSCMHANdil = atoi(argv[2]) ; // usually set to 1
     printf("FixSCM HA %d\n",FixSCMHANdil);
     nargs = 1;
+  }
+  else if (!stricmp(option, "no-fix-scm-ha"))
+  {
+    FixSCMHA = 0 ;
+    FixSCMHANdil = 0;
+    printf("NOT Fixing SCM HA\n");
   }
   else if (!stricmp(option, "fix-scm-ha-only"))
   {
@@ -393,11 +401,31 @@ get_option(int argc, char *argv[])
   // WM tends to work. WM voxels next to cortex are not filled.
   else if(!stricmp(option, "fill-seg-wm")) FillSegWM = 1;
   else if(!stricmp(option, "no-fill-seg-wm")) FillSegWM = 0;
+
   else if( !stricmp(option, "keep-hailvcp") ){
     sscanf(argv[2],"%lf",&HILVCPlhVal);
     sscanf(argv[3],"%lf",&HILVCPrhVal);
     KeepH=1, KeepA=1, KeepILV=1, KeepCP=1;
+    printf("Keep HAILVCP %g %g\n",HILVCPlhVal,HILVCPrhVal);
+    nargs = 2;
   }
+  else if( !stricmp(option, "sa-keep-hailvcp") ){
+    // seg lhval rhval invol outvol
+    MRI *seg = MRIread(argv[2]);
+    if(seg==NULL) exit(1);
+    sscanf(argv[3],"%lf",&HILVCPlhVal);
+    sscanf(argv[4],"%lf",&HILVCPrhVal);
+    MRI *invol = MRIread(argv[5]);
+    if(invol==NULL) exit(1);
+    KeepH=1, KeepA=1, KeepILV=1, KeepCP=1;
+    printf("Keep HAILVCP %g %g\n",HILVCPlhVal,HILVCPrhVal);
+    printf("KeepHAILVCP %g %g\n",HILVCPlhVal, HILVCPrhVal);
+    KeepHAILVCP(invol, seg, KeepH, KeepA, KeepILV, KeepCP, HILVCPlhVal, HILVCPrhVal, invol);
+    int err = MRIwrite(invol,argv[6]);
+    exit(err);
+  }
+
+  
   else if (!stricmp(option, "debug_voxel"))
   {
     Gx = atoi(argv[2]) ;

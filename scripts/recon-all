@@ -480,7 +480,7 @@ endif
 # variables. This call assumes that there will be no superfluous
 # terminal output, but this is not necessarily the case, so grep with set
 eval "`rca-config2csh $tmp_config | grep set`"
-if($NoFixACJ) set FixACJ = 0
+if($NoFixACJ || $KeepHAILVCP) set FixACJ = 0
 
 # Overwrite argv with all the arguments that were not recognized in the config
 set argv = ( "`cat $tmp_unknown_args`" )
@@ -1079,6 +1079,8 @@ if(-e $seedfile) set WSSeedPoint = `cat $seedfile | grep -v \#`
 set ControlPointsFile = $subjdir/tmp/control.dat
 if(-e $ControlPointsFile) then
   set UseControlPoints = 1;
+else
+  set ControlPointsFile = ()
 endif
 
 #------------ Control Points for Registration -----------#
@@ -2218,10 +2220,16 @@ if($DoNormalization) then
     if($ConformMin)       set cmd = ($cmd -noconform)
     # in base create the ctrl_vol.mgz for init longs later:
     if($DoCreateBaseSubj) set cmd = ($cmd -W ctrl_vol.mgz bias_vol.mgz)
-    set cmd = ($cmd $xopts nu.mgz T1.mgz)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    set ud = 1
+    if(! $longitudinal) then
+      set ud = `UpdateNeeded T1.mgz nu.mgz $ControlPointsFile $Norm1_b $Norm1_n`
+    endif
+    if($ud || $ForceUpdate) then
+      set cmd = ($cmd $xopts nu.mgz T1.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($ud && $RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
   endif
   echo $cmd > $touchdir/inorm1.touch
 endif
@@ -3139,8 +3147,7 @@ if($DoNormalization2) then
   echo "#@# Intensity Normalization2 `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri 
-  set deps = (aseg.presurf.mgz brainmask.mgz)
-  if($UseControlPoints) set deps = ($deps $ControlPointsFile)
+  set deps = (aseg.presurf.mgz brainmask.mgz $ControlPointsFile $Norm1_b $Norm1_n)
   if(! $NoNormMGZ) set deps = ($deps norm.mgz)
   set ud = `UpdateNeeded brain.mgz $deps`
   if($ud || $ForceUpdate) then
@@ -3251,6 +3258,14 @@ if($DoMaskBFS) then
     if($FixACJ) then
       set xopts = `fsr-getxopts bfsfixacj $V8XoptsFile $GlobXOptsFile $XOptsFile `;
       set cmd = (mri_edit_wm_with_aseg -sa-fix-acj aseg.presurf.mgz $IntensityBFS $IntensityBFS \
+        $xopts brain.finalsurfs.mgz brain.finalsurfs.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    if(0 && $KeepHAILVCP) then
+      set xopts = `fsr-getxopts bfskeephailvcp $V8XoptsFile $GlobXOptsFile $XOptsFile `;
+      set cmd = (mri_edit_wm_with_aseg -sa-keep-hailvcp aseg.presurf.mgz $IntensityBFS $IntensityBFS \
         $xopts brain.finalsurfs.mgz brain.finalsurfs.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3374,6 +3389,7 @@ if($DoSegmentation) then
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
     if($FixEntoWM) set cmd = ($cmd -fix-ento-wm entowm.mgz 3 255 255)
     if($FixACJ)    set cmd = ($cmd -fix-acj $AsegForSurf 255 255)
+    if($KeepHAILVCP)    set cmd = ($cmd -keep-hailvcp 255 255 -no-fix-scm-ha);
     if($SynthSegForSurf) set cmd = ($cmd -wmsa aseg.presurf.mgz) # could use -fill-seg-wm
     if($UseSynthSeg) set cmd = ($cmd -fill-seg-wm) # no aseg to fill wmsas
     set cmd = ($cmd $xopts wm.seg.mgz brain.mgz $AsegForSurf wm.asegedit.mgz)
@@ -3410,6 +3426,13 @@ if($DoSegmentation) then
   if($FixACJ) then
     echo "Fixing ACJ in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
     set cmd = (mri_edit_wm_with_aseg -sa-fix-acj $AsegForSurf 255 255 wm.mgz wm.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  if($KeepHAILVCP) then
+    echo "Keeping HAILVCP in wm.mgz"|& tee -a $LF |& tee -a $CF # because mri_pretess will alter it
+    set cmd = (mri_edit_wm_with_aseg -sa-keep-hailvcp $AsegForSurf 255 255 wm.mgz wm.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3954,7 +3977,7 @@ if($DoWhitePreAparc) then
     set cmd = (mris_place_surface --adgws-in $ads --wm $wm --threads $OMP_NUM_THREADS\
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
-    if($FixEntoWM || $FixACJ) set cmd = ($cmd --restore-255) 
+    if($FixEntoWM || $FixACJ || $KeepHAILVCP) set cmd = ($cmd --restore-255) 
     #if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1) # errors near Put/Insula
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
@@ -4459,7 +4482,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     if($UseStopMaskSCM) set cmd = ($cmd --stopmask $stopmaskscm)
-    if($FixEntoWM || $FixACJ) set cmd = ($cmd --restore-255) 
+    if($FixEntoWM || $FixACJ || $KeepHAILVCP) set cmd = ($cmd --restore-255) 
     if($UseHighMyelin) then
       # The factor is a value between 0 and 1 that changes how far
       # into GM the white surface will go. 1 is the same as not using
@@ -4528,7 +4551,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
-    if($FixEntoWM || $FixACJ) set cmd = ($cmd --restore-255) 
+    if($FixEntoWM || $FixACJ || $KeepHAILVCP) set cmd = ($cmd --restore-255) 
     if($longitudinal) then
       set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
       set cmd = ($cmd --blend-surf .25 $white)
@@ -7417,6 +7440,7 @@ while( $#argv != 0 )
     case "-autorecon2-cp":
     case "-autorecon2-noaseg":
       set DoNormalization2 = 1;
+      
       #set DoMaskBFS        = 1; # should this be active?
       set DoSegmentation   = 1;
 # no break!

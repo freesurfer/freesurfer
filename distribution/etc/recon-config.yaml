@@ -201,6 +201,13 @@ NoFixACJ:
     action: enable
     descr: Turn off the fix the WM in the area between amygdala and cortex (if it is on)
     
+# Note: this will turn off -fix-acj regardless of argument order
+KeepHAILVCP:
+    value: False
+    flags: -keep-hailvcp
+    action: enable
+    descr: Include Hip, Amyg, Lat Vent, and Choroid Plex in the subcortical mass
+    
 FixMCADura:
     value: False
     flags: -fix-mca-dura
