@@ -359,7 +359,7 @@ int main(int argc, char **argv)
   } else {
     mri = MRIread(ovslicefile); //ovslice is input, ovsurf output
   }
-  if(argc > 7) mri->ct = CTABreadASCII(argv[7]);
+  if(ctabfile) mri->ct = CTABreadASCII(ctabfile);
   MRI *ss = s2m.sphere2mri(mri,direction);
   if(direction == 1)  MRIwrite(ss,ovslicefile);
   else                MRIwrite(ss,ovsurffile);
