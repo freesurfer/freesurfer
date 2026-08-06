@@ -3167,7 +3167,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 3;
     } 
     else if (!strcmp(option, "--logan") || !strcmp(option, "--logan-ma1")) {
-      // --logan cr.dat time.sec.dat tstar
+      // --logan cr.dat time.sec.dat tstar.sec
       // Logan invasive
       if(nargc < 3) CMDargNErr(option,1);
       TSV tsv;
@@ -3419,8 +3419,8 @@ printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
 printf("          Note: if the k2prime argument is a file, it will read the value from\n");
 printf("          that file; otherwise it inteprets the argument as a numeric value\n");
-printf("   --logan AIF TimeSec tstar   : perform invasive Logan kinetic modeling\n");
-printf("   --logan-ma1 AIF TimeSec tstar   : perform invasive Logan using Ichise 2002 MA1\n");
+printf("   --logan AIF TimeSec tstarSec   : perform invasive Logan kinetic modeling\n");
+printf("   --logan-ma1 AIF TimeSec tstarSec   : perform invasive Logan using Ichise 2002 MA1\n");
 printf("      The AIF can be a simple text file with a value for each PET time point\n");
 printf("      or it can be a highres tsv file with time (in sec) as the first column and a column labeled AIF\n");
 printf("   --bp-clip-neg : set negative BP voxels to 0\n");
