@@ -1,5 +1,17 @@
 project(freeview)
 
+message(STATUS "FreeView =======================================")
+message(STATUS "FREEVIEW CHECK: BUILD_GUIS=${BUILD_GUIS}")
+message(STATUS "FREEVIEW CHECK: VTK_FOUND=${VTK_FOUND}")
+message(STATUS "FREEVIEW CHECK: ITK_FOUND=${ITK_FOUND}")
+
+if(TARGET vtkutils)
+  message(STATUS "FREEVIEW CHECK: vtkutils target exists")
+else()
+  message(STATUS "FREEVIEW CHECK: vtkutils target DOES NOT exist")
+endif()
+message(STATUS "FreeView =======================================")
+
 # if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
 if(BUILD_GUIS AND VTK_FOUND AND TARGET vtkutils AND ITK_FOUND)
 
