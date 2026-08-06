@@ -1708,7 +1708,7 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_aseg,
     int vno_start, int vno_stop, int verbose)
 {
-  float const step_size = mri_brain->xsize/2;
+  float const step_size = mri_brain->xsize/2; // mri_brain->xsize/10;
   Timer mytimer ;
   int msec;
   VERTEX *vgdiag;
@@ -7922,15 +7922,21 @@ int AutoDetGWStats::AutoDetectStats(void)
     //max_gray_at_csf_border = gray_mean-0.5*gray_std ;
       max_gray_at_csf_border = gray_mean-1.0*gray_std ;   // changed to push pial surfaces further out BRF 12/10/2015
   }
-  if (!min_gray_at_csf_border_set)
+  if (!min_gray_at_csf_border_set){
     min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
+    printf("min_gray_at_csf_border = %g, gray_mean = %g, varsig = %g, gray_std = %g\n",
+	   min_gray_at_csf_border,gray_mean,variablesigma,gray_std);
+  }
   
   if (max_gray < max_scale_down*MAX_GRAY)
     max_gray = nint(max_scale_down*MAX_GRAY) ;
   if (max_gray_at_csf_border < max_scale_down*MAX_GRAY_AT_CSF_BORDER)
     max_gray_at_csf_border = nint(max_scale_down*MAX_GRAY_AT_CSF_BORDER) ;
-  if (min_gray_at_csf_border < max_scale_down*MIN_GRAY_AT_CSF_BORDER)
+  if (min_gray_at_csf_border < max_scale_down*MIN_GRAY_AT_CSF_BORDER){
     min_gray_at_csf_border = nint(max_scale_down*MIN_GRAY_AT_CSF_BORDER) ;
+    printf("min_gray_at_csf_border = %g, max_scale_down = %g, MIN_GRAY_AT_CSF_BORDER = %g\n",
+	   min_gray_at_csf_border, max_scale_down, MIN_GRAY_AT_CSF_BORDER) ;
+  }
   
   printf("setting MAX_GRAY to %2.1f (was %f)\n",max_gray, MAX_GRAY) ;
   printf("setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %f)\n",max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
