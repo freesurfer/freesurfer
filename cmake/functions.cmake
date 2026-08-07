@@ -62,17 +62,27 @@ function(host_os)
    set(UBUNTU_ARM64 ${UBUNTU_ARM64} PARENT_SCOPE)
 endfunction()
 
+# only called for linux platforms
 function(cuda_info)
+   # allow decalration of _ROOT variables
+   cmake_policy(SET CMP0074 NEW)
    set(CUDA_INFO undefined)
-   if(NOT APPLE AND EXISTS "/usr/local/cuda/bin/nvcc")
-      # FIX ME - does not strip inter-line CRLF, but does list cuda info
-      execute_process(COMMAND /usr/local/cuda/bin/nvcc \-\-version | tr \-s \'\\n\' \' \' OUTPUT_VARIABLE CUDA_IDENT)
+   if(NOT CMAKE_CUDA_COMPILER)
+      # this is the default on Linux if nothing found in the environment
+      set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+   endif()
+   if(EXISTS ${CMAKE_CUDA_COMPILER})
+      execute_process(COMMAND ${CMAKE_CUDA_COMPILER} \-\-version | tr \-s \'\\n\' \' \' OUTPUT_VARIABLE CUDA_IDENT)
       string(STRIP ${CUDA_IDENT} CUDA_IDENT)
       set(CUDA_INFO "${CUDA_IDENT}")
+      string(REGEX REPLACE "\/bin\/nvcc" "" cuda_base "${CMAKE_CUDA_COMPILER}")
+      set(CUDAToolkit_ROOT ${cuda_base})
+      find_package(CUDAToolkit REQUIRED)
+      message(STATUS "CUDA NVCC Path: ${CUDAToolkit_NVCC_EXECUTABLE}")
+      set(CUDA_INFO ${CUDA_INFO} PARENT_SCOPE)
    else()
-      message(WARNING "You are presumably building for CUDA on a machine without /usr/local/cuda/bin/nvcc installed")
+      message(WARNING "You are presumably building for CUDA on a machine without an nvcc ${CMAKE_CUDA_COMPILER} installed")
    endif()
-   set(CUDA_INFO ${CUDA_INFO} PARENT_SCOPE)
 endfunction()
 
 # add_subdirectories(<subdirs>)
