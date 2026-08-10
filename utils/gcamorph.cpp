@@ -95,7 +95,7 @@ int fix_borders(GCA_MORPH *gcam);
 static GCA_MORPH *__m3zRead(const char *fname);
 static GCA_MORPH *__warpfieldRead(const char *fname);
 static int __m3zWrite(const GCA_MORPH *gcam, const char *fname);
-static int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname, int datainterp, bool asFSLWarp);
+static int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname, int datainterp, bool asFSLWarp=false);
 
 
 int gcam_write_grad = 0;
