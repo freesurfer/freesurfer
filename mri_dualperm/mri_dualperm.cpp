@@ -220,7 +220,14 @@ int main(int argc, char *argv[])
 
     if(ma->subsettype){
       sprintf(fname,"%s/framelist%d.txt",outdir,modeno+1);
-      MRI *mritmp = GetSubSet(dpm->y, ma->nsubset, ma->subsettype, ma->framelistfile, seed+modeno+1,fname);
+      ModeArg *mause = ma;
+      unsigned long int modeseed = seed+modeno+1;
+      if(modeno == 1 && !strcmp(ma->subsettype,"copy")) {
+	mause = &marg[0];
+	modeseed = seed+0+1;
+	printf("INFO: copying subject from subset from mode2 to mode1\n");
+      }
+      MRI *mritmp = GetSubSet(dpm->y, mause->nsubset, mause->subsettype, ma->framelistfile, modeseed, fname);
       if(!mritmp) exit(1);
       dpm->y = mritmp;
     }
