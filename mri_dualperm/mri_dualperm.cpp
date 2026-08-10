@@ -101,6 +101,9 @@ public:
   char *framelistfile=NULL;
   int residualize=1;
   std::vector<int> framelist;
+  // square matrix to multiply input to violate exchangeability. For testing
+  // only.
+  MATRIX *W=NULL; 
 };
 
 const char *Progname = NULL;
@@ -181,7 +184,6 @@ int main(int argc, char *argv[])
 
     dpm->y = MRIread(ma->modefile);
     if(dpm->y==NULL) exit(1);
-
     if(ma->maskfile){
       dpm->mask = MRIread(ma->maskfile);
       if(dpm->mask==NULL) exit(1);
@@ -230,6 +232,16 @@ int main(int argc, char *argv[])
       MRI *mritmp = GetSubSet(dpm->y, mause->nsubset, mause->subsettype, ma->framelistfile, modeseed, fname);
       if(!mritmp) exit(1);
       dpm->y = mritmp;
+    }
+    if(ma->W) {
+      printf("Mode%d Applying exchange violation matrix\n",modeno);
+      printf("  yframes %d, matrix size %d %d\n",dpm->y->nframes,ma->W->rows,ma->W->cols);
+      MRI *mritmp = fMRImatrixMultiply(dpm->y, ma->W, NULL);
+      if(mritmp == NULL) exit(1);
+      MRIfree(&dpm->y);
+      dpm->y = mritmp;
+      sprintf(fname,"%s/weight%d.mat.txt",outdir,modeno+1);
+      MatrixWriteTxt(fname,ma->W);
     }
 
     dpm->glm = GLMalloc();
@@ -640,6 +652,17 @@ static int parse_commandline(int argc, char **argv) {
       marg[modeno-1].subsettype = pargv[1];
       nargsused = 2;
     }
+    else if(!strcasecmp(option, "--w1") || !strcasecmp(option, "--w2")) {
+      if(!strcasecmp(option, "--w1")) modeno = 1;
+      if(!strcasecmp(option, "--w2")) modeno = 2;
+      if(nargc < 1) CMDargNErr(option,2);
+      // Matrix to violate exchangeability. Smooths across subjects. Must be
+      // Ns-by-Ns where Ns is the final number of subjects (ie, after any
+      // subsampling).
+      marg[modeno-1].W = MatrixReadTxt(pargv[0], NULL);
+      if(marg[modeno-1].W == NULL) exit(1);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--no-residualize1") || !strcasecmp(option, "--no-residualize2")) {
       if(!strcasecmp(option, "--no-residualize1")) modeno = 1;
       if(!strcasecmp(option, "--no-residualize2")) modeno = 2;
@@ -753,6 +776,7 @@ static void print_usage(void) {
   printf("   --seed seed : random seed. If not specified, then uses time-of-day\n");
   printf("   --tsgdN : analyze modality N as a two-sample-group-diff (TSGD) \n");
   printf("   --subsetN nsubset type (first, last, rand)\n");
+  printf("   --wN wmat.txt : matrix to smooth across subjects to violate exchangeability (for testing)\n");
   printf("   --listN framelistfile\n");
   printf("   --pX-save : save permuted design matrices\n");
   printf("   --gdiag diagno : set diagnostic level\n");
