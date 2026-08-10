@@ -95,7 +95,7 @@ int fix_borders(GCA_MORPH *gcam);
 static GCA_MORPH *__m3zRead(const char *fname);
 static GCA_MORPH *__warpfieldRead(const char *fname);
 static int __m3zWrite(const GCA_MORPH *gcam, const char *fname);
-static int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname, int datainterp);
+static int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname, int datainterp, bool asFSLWarp);
 
 
 int gcam_write_grad = 0;
@@ -349,7 +349,7 @@ void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
 }
 #endif
 
-int GCAMwrite(const GCA_MORPH *gcam, const char *fname, int datainterp)
+int GCAMwrite(const GCA_MORPH *gcam, const char *fname, int datainterp, bool asFSLWarp)
 {
   printf("GCAMwrite(%s)\n", fname);
 
@@ -357,16 +357,16 @@ int GCAMwrite(const GCA_MORPH *gcam, const char *fname, int datainterp)
   if (type == MGH_MORPH)
     return __m3zWrite(gcam, fname);
   else if (type == MRI_MGH_FILE || type == NII_FILE)
-    return __warpfieldWrite(gcam, fname, datainterp);
+    return __warpfieldWrite(gcam, fname, datainterp, asFSLWarp);
 
   return ERROR_BADPARM;  
 }
 
-int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname, int datainterp)
+int __warpfieldWrite(const GCA_MORPH *gcam, const char *fname, int datainterp, bool asFSLWarp)
 {
   Warpfield *warpfield = new Warpfield();
   warpfield->convert((GCA_MORPH *)gcam, datainterp);
-  warpfield->write(fname);
+  warpfield->write(fname, asFSLWarp);
   
   return 0;
 }

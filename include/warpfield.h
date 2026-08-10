@@ -42,19 +42,23 @@ public:
 #endif
   
   // write 4-frame MRI warp map saved in __warpmap to disk
-  int write(const char *fname);
+  int write(const char *fname, bool asFSLWarp);
 
   // set source coordinates at target [c,r,s] based on dataformat
   void setWarp(int c, int r, int s, float fcs, float frs, float fss, int label);
 
   // change warp field format
   void changeFormat(const int newformat=WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_CRS);
+
+  // convert Freesurfer 3D morph to FSL warpfield
+  void toFSLWarpfield();
   
   // apply warpmap to MRI/MRIS
   int applyWarp(const MRI *inmri, MRI *outmri);
   int applyWarp(const MRIS *insurf, MRIS *outsurf);
 
 private:
+  bool __FSLWarpfield;            // true=FSL Warpfield; false=Freesurfer 3D morph
   int __mgzVersion;               // mgz version
 
   int __invert;                   // __warpmap is inverted

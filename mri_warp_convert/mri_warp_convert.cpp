@@ -144,6 +144,12 @@ GCAM* readFSL2(const string& warp_file, const string& src_geom)
   MATRIX *fslras2vox_src = MatrixInverse(vox2fslras_src,NULL);
   MatrixFree(&vox2fslras_src);
 
+  /* 
+   * 2026-08-07 YJH: 
+   *    The following implementation assumes FSL warp is in relative displacement in RAS.
+   *    It seems that FSL warp can also be in absolute coordinates in RAS.
+   *    ??? Maybe the deformation type - either 'absolute' or 'relative' should be automatically inferred from the data ???
+   */
   // The FSL warp is delta in FSL RAS. Change it to absolute CRS in the source space
   MATRIX *fslras = MatrixAlloc(4,1,MATRIX_REAL);
   fslras->rptr[4][1] = 1;
@@ -424,7 +430,7 @@ GCAM* read_voxel(const string& warp_file, const string& src_geom)
   return out;
 }
 
-void writeFSWARP(const string& fname, GCAM *gcam, bool downsample=false)
+void writeFSWARP(const string& fname, GCAM *gcam, bool downsample=false, bool asFSLWarp=false)
 // Write an freesurfer 3D morph file. Just calls down to GCAMwrite
 {
   int datainterp =  WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN;
@@ -438,19 +444,64 @@ void writeFSWARP(const string& fname, GCAM *gcam, bool downsample=false)
     datainterp = WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS;
 
   GCA_MORPH* out = downsample ? GCAMdownsample2(gcam) : gcam;
-  int err = GCAMwrite(out, fname.c_str(), datainterp);
+  int err = GCAMwrite(out, fname.c_str(), datainterp, asFSLWarp);
   if(err) exit(1);
   if (downsample) {
       GCAMfree(&out);
   }
 }
 
-void writeFSL(const string& fname, const GCAM *gcam)
+
+/* 
+ * Google AI response to search ‘fsl warpfield’:
+ *
+ * In FSL (FMRIB Software Library), a warpfield is a 4D spatial deformation file used in non-linear image registration. 
+ * It stores displacement vectors that map coordinates from one brain image space to another (such as aligning an individual subject's structural scan to the MNI standard template). [1, 2, 3, 4]
+ *
+ * Key Concepts 
+ *	Structure: A 4D NIfTI file where the first three volumes represent the x, y, and z displacement components (usually in millimeters) for every voxel. 
+ *	Relative vs. Absolute: Warp fields can contain relative displacements (offsets to add to coordinates) or absolute coordinates (direct target-to-source mappings). 
+ *	Coefficient vs. Warp File: FNIRT typically outputs a lower-resolution coefficient file () summarizing the deformation parameters, which can be converted or expanded into an explicit warp field (). [4] 
+ * Common FSL Commands 
+ *	: The primary non-linear registration tool that calculates the warp field. 
+ *	: Uses the calculated warp field to transform functional, anatomical, or mask images into another space. 
+ *	: Combines or reparameterizes multiple transforms (e.g., combining an affine matrix from FLIRT with a non-linear warp from FNIRT). [3, 5] 
+ *
+ * [1] https://open.oxcin.ox.ac.uk/pages/fsl/fslpy/fsl.transform.fnirt.html
+ * [2] https://open.oxcin.ox.ac.uk/pages/fsl/fslpy/fsl.transform.x5.html
+ * [3] https://fsl.fmrib.ox.ac.uk/fslcourse/graduate/lectures/practicals/registration/
+ * [4] https://www.fmrib.ox.ac.uk/primers/intro_primer/ExBox16/IntroBox16.html
+ * [5] https://web.mit.edu/fsl_v5.0.10/fsl/doc/wiki/FNIRT(2f)UserGuide.html
+ *
+ *
+ *
+ * Google AI response to search ‘fsl warpfield format’:
+ *
+ * An FSL warp field is stored as a 4D NIfTI image (.nii or .nii.gz) matching the grid, dimensions, and field-of-view of the reference (target) image. 
+ * It contains 3 volumes along the 4th dimension representing the x, y, and z displacement or coordinate vectors for every voxel.
+ * Core File Structure
+ *   Dimensions: 4D file with size X × Y × Z × 3.
+ *   4th Dimension Components:
+ *     Volume 0: X vector component (displacement or coordinate).
+ *     Volume 1: Y vector component.
+ *     Volume 2: Z vector component.
+ * Units: Values are stored in millimetres (mm), not voxels.
+ * Relative vs. Absolute Warps
+ *   Relative Warp (--rel): Voxels contain relative displacement vectors (dx, dy, dz) showing how far each coordinate moves from the reference space to find the corresponding data in the input space.
+ *   Absolute Warp (--abs): Voxels contain absolute target coordinates in the unwarped source space.
+ * Warp Fields vs. Coefficient Files (_coef)
+ *   *_warp.nii.gz: Explicit dense warp field with a displacement vector at every single reference voxel.
+ *   *_coef.nii.gz: Compact non-linear B-spline coefficient representation output directly by fnirt, which gets converted into a full warp field when utilized by tools like applywarp.
+ *
+ */
+void writeFSL(const string& fname, GCAM *gcam)
 // Write an FSL warp file.
-// NOT IMPLEMENTED
 {
-  cerr << "ERROR writeFSL is not implemented, sorry!" << endl;
-  exit(1);
+  bool downsample = false;
+  bool asFSLWarp = true;
+  P.out_interp = string("disp-ras");
+
+  writeFSWARP(fname, gcam, downsample, asFSLWarp);
 }
 
 // Write warp as displacements in RAS or LPS space.

@@ -152,7 +152,7 @@ static MRI *nifti1Read(const char *fname, int read_volume);
 static int nifti1Write(MRI *mri, const char *fname);
 static MRI *niiRead(const char *fname, int read_volume);
 static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct, std::vector<float> *ascalefactors=NULL);
-static int niiWrite(MRI *mri, const char *fname, int intent=MGZ_INTENT_UNKNOWN);
+static int niiWrite(MRI *mri, const char *fname, int intent=MGZ_INTENT_UNKNOWN, bool asFSLWarp=false);
 static int itkMorphWrite(MRI *mri, const char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
@@ -1106,7 +1106,7 @@ MRI *MRIreadHeader(const char *fname, int type)
 
 } /* end MRIreadInfo() */
 
-int MRIwriteType(MRI *mri, const char *fname, int type, int intent)
+int MRIwriteType(MRI *mri, const char *fname, int type, int intent, bool asFSLWarp)
 {
   struct stat stat_buf;
   int error = 0;
@@ -1205,7 +1205,7 @@ int MRIwriteType(MRI *mri, const char *fname, int type, int intent)
   }
   else if (type == NII_FILE) {
     // printf("Before writing nii file \n");
-    error = niiWrite(mri, fname, intent);
+    error = niiWrite(mri, fname, intent, asFSLWarp);
     // printf("The error code is: %d\n", error);
   }
   else if (type == NRRD_FILE) {
@@ -1306,7 +1306,7 @@ int MRIwriteFrame(MRI *mri, const char *fname, int frame)
   return (NO_ERROR);
 }
 
-int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int intent)
+int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int intent, bool asFSLWarp)
 {
   int int_type = -1;
   int error = NO_ERROR;
@@ -1351,7 +1351,7 @@ int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int inte
         sprintf(tmp, "%s_%d.%s", fname_copy, n, ext);
       else
         sprintf(tmp, "%s%s.%s", fname_copy, ((*mriVector)[n])->fnamePostFixes, ext);
-      error = MRIwriteType((*mriVector)[n], tmp, int_type, intent);
+      error = MRIwriteType((*mriVector)[n], tmp, int_type, intent, asFSLWarp);
     }
   }
 
@@ -9525,7 +9525,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct, std::vector<float> 
   edit both. Automatically detects whether an input is Ico7
   and reshapes.
   -----------------------------------------------------------------*/
-static int niiWrite(MRI *mri0, const char *fname, int intent)
+static int niiWrite(MRI *mri0, const char *fname, int intent, bool asFSLWarp)
 {
   struct nifti_1_header hdr;
   int error, shortmax, use_compression, fnamelen;
@@ -9650,7 +9650,9 @@ static int niiWrite(MRI *mri0, const char *fname, int intent)
   hdr.toffset = 0;
   sprintf(hdr.descrip, "FreeSurfer %s", __DATE__);
 
-  if (mri->intent == MGZ_INTENT_WARPMAP)
+  if (asFSLWarp)
+    hdr.intent_code = 2006; // FSL_FNIRT_DISPLACEMENT_FIELD
+  else if (mri->intent == MGZ_INTENT_WARPMAP)
   {
     hdr.intent_code = NIFTI_INTENT_DISPVECT;
     hdr.dim[0] = 5;
