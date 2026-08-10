@@ -42,7 +42,7 @@ public:
 #endif
   
   // write 4-frame MRI warp map saved in __warpmap to disk
-  int write(const char *fname, bool asFSLWarp);
+  int write(const char *fname, bool asFSLWarp=false);
 
   // set source coordinates at target [c,r,s] based on dataformat
   void setWarp(int c, int r, int s, float fcs, float frs, float fss, int label);
