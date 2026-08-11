@@ -445,9 +445,9 @@ class LimbicSegmenter:
         print(f'inshape {self.inshape} features {nfeatures}')
 
         if (pt is not None):
-            ### Freeseg integration
-            from freeseg.checkpoint import Checkpoint
-            from freeseg.utils import utility as utils
+            ### fsdeepnet integration
+            from fsdeepnet.checkpoint import Checkpoint
+            from fsdeepnet.utils import utility as utils
 
             checkpoint = Checkpoint()
             checkpoint.load(model_file, device=self.device)
@@ -464,7 +464,7 @@ class LimbicSegmenter:
             self.model.load_state_dict(checkpoint.model_state_dict)
             self.model.eval()
             print("Done loading weights -----------------------")
-            ### End of Freeseg integration            
+            ### End of fsdeepnet integration            
         else:
             self.model = unet(nb_features=nfeatures,
                             input_shape=(*self.inshape, self.nchannels),
