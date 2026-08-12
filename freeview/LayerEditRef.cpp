@@ -32,6 +32,7 @@
 #include "vtkPlane.h"
 #include "vtkMath.h"
 #include "LayerMRI.h"
+#include "LayerPropertyMRI.h"
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
 #include "vtkAppendPolyData.h"
@@ -339,5 +340,9 @@ void LayerEditRef::ApplyToMRI(LayerMRI *mri_in)
     mri->SetVoxelByIndex(vox.n, 0, true, true);
   }
   mri->MarkDataModified();
+  if (mri->GetProperty()->GetShowAsContour() && mri->GetProperty()->GetShowVoxelizedContour())
+  {
+    mri->RebuildContour(mri->GetFillValue());
+  }
   Reset();
 }
