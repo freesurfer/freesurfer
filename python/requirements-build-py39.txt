@@ -10,22 +10,28 @@ PyWavelets==1.6.0
 PyYAML==6.0.3
 Werkzeug==3.1.8
 absl-py==2.3.1
+annotated-types==0.7.0
 astunparse==1.6.3
 cachetools==6.2.6
 certifi==2026.4.22
 cffi==2.0.0
 charset-normalizer==3.4.7
+click==8.1.8
 contourpy==1.3.0
 cryptography==48.0.0
 cycler==0.12.1
 deepsurfer==0.1.1a5
+eval_type_backport==0.4.0
 filelock==3.19.1
 fireants@git+https://github.com/jnolan14/FireANTs.git@66d54fef55e42ee3906f5514c50c16b1668e225a
 flatbuffers==25.12.19
 fonttools==4.60.2
+fsdeepnet@git+https://github.com/freesurfer/fsdeepnet.git@main
 fsspec==2025.10.0
 #fsutil==1.0
 gast==0.7.0
+gitdb==4.0.12
+gitpython==3.1.59
 google-auth==2.50.0
 google-auth-oauthlib==1.3.1
 google-pasta==0.2.0
@@ -59,9 +65,13 @@ optree==0.19.1
 packaging==26.2
 pandas==2.3.3
 pillow==11.3.0
+platformdirs==4.4.0
 protobuf==5.29.6
+psutil==7.2.2
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
+pydantic==2.13.4
+pydantic_core==2.46.4
 pyparsing==3.3.2
 pystrum@git+https://github.com/adalca/pystrum.git@ba35d4b357f54e5ed577cbd413076a07ef810a21
 python-dateutil==2.9.0.post0
@@ -75,8 +85,10 @@ scikit-image==0.24.0
 scikit-learn==1.6.1
 scipy==1.13.1
 segment-anything==1.0
+sentry_sdk==2.67.1
 simpleitk==2.5.4
 six==1.17.0
+smmap==5.0.3
 # spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
 # specify hash for 8.2.0 release
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
@@ -102,10 +114,12 @@ tqdm==4.67.3
 transforms3d==0.4.2
 trimesh==4.12.2
 typing_extensions==4.15.0
+typing-inspection==0.4.2
 tzdata==2026.2
 urllib3==2.6.3
 uv==0.11.12
 voxelmorph@git+https://github.com/voxelmorph/voxelmorph.git@feb74e0541b8a390ccd2ea57b745aa8808703ca4
+wandb==0.26.1
 wrapt==2.1.2
 xxhash==3.7.0
 zipp==3.23.1
