@@ -109,8 +109,8 @@ You can use one of the first five flags to change these default parms.
       <explanation>to change the different parameters csf_max, transition_intensity and GM_intensity</explanation> 
       <argument>-xthresh xthresh</argument>
       <explanation>Remove voxels whose intensity exceeds xthresh</explanation> 
-      <argument>-mask</argument>
-      <explanation>mask a volume with the brain mask</explanation> 
+      <argument>-mask [input-volume] [masked-output-volume]</argument>
+      <explanation>Use the internally generated brain mask to skull-strip an additional volume. The first argument is the path to the additional volume to be masked; the second is the output filename.</explanation> 
       <argument>-xmask xmask</argument>
       <explanation>Exclusion mask. Set output to 0 where xmask is non-zero. Can have multiple -xmask options</explanation> 
       <argument>--help</argument>
