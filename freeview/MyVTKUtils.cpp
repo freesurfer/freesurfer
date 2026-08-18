@@ -330,6 +330,7 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     cube->SetYLength(voxel_size[1]);
     cube->SetZLength(voxel_size[2]);
 
+    /*
     vtkSmartPointer<vtkGlyph3DMapper> glyph = vtkSmartPointer<vtkGlyph3DMapper>::New();
     glyph->SetSourceConnection(cube->GetOutputPort());
     glyph->SetScaleModeToNoDataScaling();
@@ -344,8 +345,8 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     glyph->Update();
     actor_out->SetMapper(glyph);
     glyph->ScalarVisibilityOn();
+*/
 
-    /*
     vtkSmartPointer<vtkGlyph3D> glyph = vtkSmartPointer<vtkGlyph3D>::New();
     glyph->SetSourceConnection(cube->GetOutputPort());
     glyph->SetScaleModeToDataScalingOff();
@@ -361,7 +362,6 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     mapper->SetInputConnection( glyph->GetOutputPort() );
     actor_out->SetMapper(mapper);
     mapper->ScalarVisibilityOn();
-    */
   }
 
   return true;
