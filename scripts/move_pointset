@@ -84,7 +84,7 @@ def argument_parse(description=None):
     parser.add_argument("--o", type=str, help="Path to transformed coordinates")
     parser.add_argument("--coords", nargs=3, type=float, metavar=("X", "Y", "Z"), help="input coordinate in '--incoordspace <voxel|world|surface>' space")
     parser.add_argument("--incoordspace", type=str, default="surface", choices=['voxel', 'world', 'surface'], help="input coordinates space: 'voxel', 'world', or 'surface'. Default='surface'")
-    parser.add_argument("--outcoordspace", type=str, default="surface", choices=['voxel', 'world', 'surface'], help="output coordinates space: 'voxel', 'world', or 'surface'. Default='surface")
+    parser.add_argument("--outcoordspace", type=str, default="surface", choices=['voxel', 'world', 'surface'], help="output coordinates space: 'voxel', 'world', or 'surface'. Default='surface'")
     parser.add_argument("--debug", action='store_true', help="Debug mode")
 
     # parse commandline arguments
