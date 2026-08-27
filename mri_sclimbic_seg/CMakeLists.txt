@@ -2,10 +2,10 @@ project(mri_sclimbic_seg)
 
 if (FSPYTHON_INSTALL_TREE)
    set(sclimbic_dest "${FSPYTHON_INSTALL_PREFIX}/models")
-   install_pyscript_fspython_tree(mri_sclimbic_seg)
+   install_modelpredict_pyscript_fspython_tree(sclimbic_seg)
 else()
    set(sclimbic_dest "models")
-   install_pyscript(mri_sclimbic_seg)
+   install_modelpredict_pyscript(sclimbic_seg)
 endif()
 
 install(FILES sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5 sclimbic.ctab sclimbic.volstats.csv DESTINATION ${sclimbic_dest})
