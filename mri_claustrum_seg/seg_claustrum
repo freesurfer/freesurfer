@@ -28,12 +28,13 @@ def print_vm_peak():
             continue
         print('claustrum-seg VmPeak:', int(strs[1]))
 
+default_model_path = os.path.join(os.environ.get('FREESURFER_HOME_FSPYTHON'), 'claustrum_seg_20250616.h5')
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument('-i', '--i', help='Image to segment (can be a folder)')
 parser.add_argument('-o', '--o', help='Output seg (can be a folder)');
 parser.add_argument('-c', '--csv', help='Output csv of mm3 volume ');
 parser.add_argument('-p', '--post', help='Output posterior image ');
-parser.add_argument('-m', '--model', help='instead of default ');
+parser.add_argument('-m', '--model', default=default_model_path, help='instead of default ');
 
 # This does nothing
 parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")

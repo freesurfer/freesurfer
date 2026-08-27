@@ -12,13 +12,12 @@ endif()
 # bash wrapper always installed the same way, fspython agnostic
 install(PROGRAMS mri_claustrum_seg DESTINATION bin)
 
-# handle the main python entry point
-install(PROGRAMS model/claustrum-seg.py DESTINATION "${claustrum_python}/scripts")
-
 # install the model file
 if (FSPYTHON_INSTALL_TREE)
+   install_modelpredict_pyscript_fspython_tree(seg_claustrum)
    install_symlinks_fspython_tree(TYPE files DESTINATION "${claustrum_models}" model/claustrum_seg_20250616.h5)
-else()
+ else()
+   install_modelpredict_pyscript(seg_claustrum)   
    install_symlinks(TYPE files DESTINATION "${claustrum_models}" model/claustrum_seg_20250616.h5)
 endif()
 

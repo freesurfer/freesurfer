@@ -30,13 +30,13 @@ set clrhctab = $cdir/claustrum.rh.ctab
 set mansubjectlist = $cdir/subject.list.txt
 
 #set csegdir = $SCRIPT_DIR/model
-set segr = $SCRIPT_DIR/claustrum-seg.py
+#set segr = $SCRIPT_DIR/claustrum-seg.py
+set segr = "mri_seg_claustrum"
 
 
 set MNITargetRes = 1.5mm 
 set ctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
-set pt_model = ()
 set outdir = ();
 set invol = ();
 set subject = ()
@@ -55,7 +55,9 @@ set fovdir = ()
 set RequireConda = 0
 set rot = ()
 set trans = ()
-set model = $MODEL_DIR/claustrum_seg_20250616.h5; 
+### the default model will be set at the Freesurfer/FSdeepnet prediction script
+#set model = $MODEL_DIR/claustrum_seg_20250616.h5;
+set model = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -218,25 +220,14 @@ foreach hemi ($hemilist)
   set ud = `UpdateNeeded $seg $involcrop`
   if($ud || $ForceUpdate) then
     set csv = $outdir/seg.$hemi.vol.csv
-    set cmd = ($python $segr --i $involcrop --o $seg --threads $threads)
-    if($#pt_model) then
-      set fsdeepnetlog = $outdir/log/fsdeepnet_predict-$hemi.Y$year.M$month.D$day.H$hour.M$min.log
-      set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --keep_biggest_component --use_topology_classes --smooth_posteriors --resamplefirst --logfile $fsdeepnetlog)
-      #set cmd = ($cmd --checkpoint $pt_model --nokeepgeom --smooth_posteriors --resamplefirst --logfile $fsdeepnetlog)
-    else if($#model) then
-      set cmd = ($cmd --model $model)
-    endif
-    if($#pt_model) then
-      if($DoPost) set cmd = ($cmd --write_posteriors)
-      if($SaveCsv) set cmd = ($cmd --vol $csv)
-    else
-      if($DoPost) set cmd = ($cmd --post $post)
-      if($SaveCsv) set cmd = ($cmd --csv $csv)
-    endif
+    set cmd = ($segr --i $involcrop --o $seg --threads $threads)
+    if($#model) set cmd = ($cmd --model $model)
+    if($DoPost) set cmd = ($cmd --post $post)
+    if($SaveCsv) set cmd = ($cmd --csv $csv)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF	
     if($status) goto error_exit
-    if($#pt_model) then
+    if($?RUN_FSDEEPNET) then
       # copy fsdeepnet generated posteriors to where they are expected
       set post0 = $tmpdir/posteriors/seg.$hemi.mgz
       if($hemi == lh) set post0 = $tmpdir/posteriors/seg.$hemi.lrrev.mgz
@@ -632,14 +623,6 @@ while( $#argv != 0 )
       set invol = $argv[1]; shift;
       breaksw
 
-    # pytorch model file converted from tensorflow
-    # '-pt_model' takes precedence over '-model'
-    case "--pt_model":
-      if($#argv < 1) goto arg1err;
-      set pt_model = $argv[1]; shift;
-      set segr = $SCRIPT_DIR/fsdeepnet_predict.py
-      breaksw
-
     case "--model":
       if($#argv < 1) goto arg1err;
       set model = $argv[1]; shift;
@@ -649,7 +632,7 @@ while( $#argv != 0 )
       if($#argv < 2) goto arg2err;
       set input = $argv[1]; shift
       set output = $argv[1]; shift
-      set cmd = ($python $segr --i $input --o $output --threads $threads)
+      set cmd = ($segr --i $input --o $output --threads $threads)
       if($#model) set cmd = ($cmd --model $model)
       #if($DoPost) set cmd = ($cmd --post $post)
       echo $cmd
