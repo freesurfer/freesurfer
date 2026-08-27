@@ -359,6 +359,44 @@ function(install_pyscript_fspython_tree)
   endforeach()
 endfunction()
 
+# install_modelpredict_pyscript(<scripts>)
+# This function copies the actual scripts to $FREESURFER_HOME/python/scripts, and
+# creates model prediction wrapper scripts in $FREESURFER_HOME/bin/ directory with 'mri_' as script prefix.
+# For example:
+#     install_modelpredict_pyscript(synthstrip)
+# - copies synthstrip to $FREESURFER_HOME/python/scripts
+# - creates the bash script $FREESURFER_HOME/bin/mri_synthstrip that calls either the Freesurfer version of synthstrip or
+#   the FSdeepnet version of synthstrip depending on if environment variable RUN_FSDEEPNET is set.
+function(install_modelpredict_pyscript)
+  foreach(SCRIPT ${ARGN})
+    install(FILES ${SCRIPT} DESTINATION python/scripts)
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${CMAKE_INSTALL_PREFIX}/bin/mri_${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper ${CMAKE_INSTALL_PREFIX}/bin/mri_${SCRIPT} @ONLY)"
+    )
+  endforeach()
+endfunction()
+
+# install_modelpredict_pyscript_fspython_tree(<scripts>)
+# This function works similarly to 'install_modelpredict_pyscript', except that they
+# - copy the real script to different location
+#   'install_modelpredict_pyscript' copies the script to $FREESURFER_HOME/python/scripts;
+#   'install_modelpredict_pyscript_fspython_tree' copies the script to ${FSPYTHON_INSTALL_PREFIX}/python/script.
+# - use different wrapper templates.
+#   'install_modelpredict_pyscript' uses ${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper;
+#   'install_modelpredict_pyscript_fspython_tree' uses ${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper_fspython_tree.
+function(install_modelpredict_pyscript_fspython_tree)
+  foreach(SCRIPT ${ARGN})
+    install(FILES ${SCRIPT} DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/scripts)
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${FREESURFER_HOME}/bin/mri_${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper_fspython_tree ${FREESURFER_HOME}/bin/mri_${SCRIPT} @ONLY)"
+    )
+  endforeach()
+endfunction()
+
 # get_package_dir(packagename packagedir)
 # retrieve package direcotry
 # ??? todo: this function needs work, it is not working ???
