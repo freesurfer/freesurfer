@@ -16,12 +16,23 @@ patch_installer() {
 
 # check arguments
 if [ "$#" -ne 1 ]; then
-    echo "ERROR: must specify MCR version as argument"
+    echo "ERROR: must specify MCR version, or path to a local MCR installer, as argument"
     echo "EXAMPLE: fs_install_mcr R2019b"
+    echo "EXAMPLE: fs_install_mcr /path/to/MATLAB_Runtime_R2019b_Update_9_glnxa64.zip"
     exit 1
 fi
 
-MCR_VER="$1"
+ARG="$1"
+LOCAL_INSTALLER=""
+MCR_VER=""
+
+if [ -f "$ARG" ]; then
+    # argument identifies a local installer file
+    LOCAL_INSTALLER="$ARG"
+else
+    # argument identifies an MCR version to download
+    MCR_VER="$ARG"
+fi
 
 # check FS directory
 if [[ -z "$FREESURFER_HOME" ]]; then
@@ -29,6 +40,94 @@ if [[ -z "$FREESURFER_HOME" ]]; then
     echo "INFO: if you're using sudo, make sure to pass the FS home variable with"
     echo "INFO: sudo FREESURFER_HOME=\$FREESURFER_HOME fs_install_mcr $@"
     exit 1
+fi
+
+if [ "$(uname -s)" == "Linux" ]; then
+    OS_TAG=glnxa64
+else
+    OS_TAG=maci64
+fi
+
+# ----------------------------------------------------------------------------
+# Supported MCR versions and their download URLs.
+# Kept as two parallel indexed arrays (rather than an associative array)
+# for compatibility with bash 3.2, which is still the default /bin/bash
+# shipped on macOS. To support a new MCR version, add one entry to each
+# array below, at the same index.
+# ----------------------------------------------------------------------------
+MCR_SUPPORTED_VERSIONS=(
+    "R2012a"
+    "R2012b"
+    "R2013a"
+    "R2014a"
+    "R2014b"
+    "R2019b"
+)
+
+MCR_URLS=(
+    "https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012a/MCR_R2012a_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2012b/MCR_R2012b_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/MCR_Runtime/R2013a/MCR_R2013a_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/downloads/R2014a/deployment_files/R2014a/installers/${OS_TAG}/MCR_R2014a_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/downloads/R2014b/deployment_files/R2014b/installers/${OS_TAG}/MCR_R2014b_${OS_TAG}_installer.zip"
+    "https://ssd.mathworks.com/supportfiles/downloads/R2019b/Release/9/deployment_files/installer/complete/${OS_TAG}/MATLAB_Runtime_R2019b_Update_9_${OS_TAG}.zip"
+)
+
+# looks up the download URL for a given MCR version; echoes it, or nothing if unsupported
+mcr_url_for_version() {
+    local version="$1"
+    local i
+    for i in "${!MCR_SUPPORTED_VERSIONS[@]}"; do
+        if [[ "${MCR_SUPPORTED_VERSIONS[$i]}" == "$version" ]]; then
+            echo "${MCR_URLS[$i]}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# builds a "|"-separated regex alternation of supported versions, e.g. R2012a|R2012b|...
+mcr_supported_versions_regex() {
+    local IFS="|"
+    echo "${MCR_SUPPORTED_VERSIONS[*]}"
+}
+
+SUPPORTED_VERSIONS_LIST="${MCR_SUPPORTED_VERSIONS[*]}"
+SUPPORTED_VERSIONS_RE="$(mcr_supported_versions_regex)"
+
+# if a local installer file was provided, validate its name and derive the MCR version from it
+if [[ -n "$LOCAL_INSTALLER" ]]; then
+    LOCAL_INSTALLER_NAME="$(basename "$LOCAL_INSTALLER")"
+
+    # must be a .zip archive, since the rest of the script assumes 'unzip installer.zip' works
+    if [[ "$LOCAL_INSTALLER_NAME" != *.zip ]]; then
+        echo "ERROR: local installer '$LOCAL_INSTALLER_NAME' must be a .zip file"
+        exit 1
+    fi
+
+    if [[ "$LOCAL_INSTALLER_NAME" != *"$OS_TAG"* ]]; then
+        echo "ERROR: local installer '$LOCAL_INSTALLER_NAME' does not appear to match this system's architecture ($OS_TAG)"
+        exit 1
+    fi
+
+    # only accept versions supported by this script, matched as a distinct token
+    # (boundaries avoid mistaking e.g. "R2019bc" in a filename for "R2019b")
+    if [[ "$LOCAL_INSTALLER_NAME" =~ (^|[^0-9A-Za-z])($SUPPORTED_VERSIONS_RE)([^0-9A-Za-z]|$) ]]; then
+        MCR_VER="${BASH_REMATCH[2]}"
+    else
+        echo "ERROR: could not determine a supported MCR version from local installer name '$LOCAL_INSTALLER_NAME'"
+        echo "INFO: supported versions are: $SUPPORTED_VERSIONS_LIST"
+        exit 1
+    fi
+
+    # resolve to an absolute path now, since we'll cd into a tmp dir before using it
+    LOCAL_INSTALLER="$(cd "$(dirname "$LOCAL_INSTALLER")" && pwd)/$LOCAL_INSTALLER_NAME"
+else
+    if ! mcr_url_for_version "$MCR_VER" > /dev/null; then
+        echo "Unsupported runtime version $MCR_VER"
+        echo "INFO: supported versions are: $SUPPORTED_VERSIONS_LIST"
+        exit 1
+    fi
 fi
 
 # operate in tmp directory
@@ -42,22 +141,12 @@ function cleanup {
 }
 trap cleanup EXIT
 
-if [ "$(uname -s)" == "Linux" ]; then
-    OS_TAG=glnxa64
+# get the os-specific installer: either from a local file, or by downloading it
+if [[ -n "$LOCAL_INSTALLER" ]]; then
+    echo "Using local installer file: $LOCAL_INSTALLER (detected version $MCR_VER)"
+    ln -s "$LOCAL_INSTALLER" installer.zip
 else
-    OS_TAG=maci64
-fi
-
-# download the os-specific installer
-if [[ "$MCR_VER" =~ R2012a|R2012b|R2013a ]]; then
-    curl --location https://ssd.mathworks.com/supportfiles/MCR_Runtime/$MCR_VER/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
-elif [[ "$MCR_VER" =~ R2019b ]]; then
-    curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/Release/9/deployment_files/installer/complete/$OS_TAG/MATLAB_Runtime_${MCR_VER}_Update_9_${OS_TAG}.zip -o installer.zip
-elif [[ "$MCR_VER" =~ R2014a|R2014b ]]; then
-    curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/deployment_files/$MCR_VER/installers/$OS_TAG/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
-else
-    echo "Unsupported runtime version $MCR_VER"
-    exit 1
+    curl --location "$(mcr_url_for_version "$MCR_VER")" -o installer.zip
 fi
 unzip installer.zip
 
@@ -108,7 +197,7 @@ if [ -e $TMP_DEST_DIR/v* ]; then
    mv $MCR_DIR $MCR_TARGET_DIR
    echo "$MCR_VER installed successfully in $MCR_TARGET_DIR"
 
-elif [ "$APPLE_M1" == "true" ]; then 
+elif [ "$APPLE_M1" == "true" ]; then
    # Try to fall back to default Matlab GUI install path
    if [ -e $darwin_gui_install/v* ]; then
       MCR_DIR="$(ls -d $darwin_gui_install/v*)"
@@ -124,4 +213,3 @@ elif [ "$APPLE_M1" == "true" ]; then
       fi
    fi
 fi
-
