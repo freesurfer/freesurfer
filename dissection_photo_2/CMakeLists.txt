@@ -1,8 +1,7 @@
 project(dissection_photo_2)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-# if(BUILD_GUIS)
-if(BUILD_GUIS AND NOT APPLE)
+if(BUILD_GUIS)
 
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTOMOC ON)
