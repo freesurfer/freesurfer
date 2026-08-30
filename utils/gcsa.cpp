@@ -1554,7 +1554,14 @@ GCS *GCSAgetGC(GCSA_NODE *gcsan, int label, int *pn)
 
 int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 {
-  int i, n, vno, annotation, best_label, max_ll, ll, nchanged, total;
+  int i, n, vno, annotation, best_label, nchanged, total;
+  // max_ll/ll must be double: gcsaNbhdGibbsLogLikelihood returns a double,
+  // and adjacent labels' log-likelihoods commonly differ by less than 1 at
+  // ambiguous boundaries. Storing them in ints truncated those fractional
+  // differences, so island vertices were absorbed into whichever neighbor
+  // label happened to come first in the adjacency list rather than the
+  // maximum-likelihood one. (GCSAreclassifyMarked already uses double.)
+  double max_ll, ll;
   double v_inputs[100];
 
   total = 0;
