@@ -707,7 +707,14 @@ int GLMtestFFx(GLMMAT *glm)
     if (mtmp != NULL) {
       glm->gtigCVM[n] = MatrixMultiplyD(glm->gammat[n], glm->igCVM[n], glm->gtigCVM[n]);
       F = MatrixMultiplyD(glm->gtigCVM[n], glm->gamma[n], F);
-      glm->F[n] = F->rptr[1][1];
+      // gamma' * inv(gCVM) * gamma is a Wald statistic, distributed as
+      // J*F(J,dof) under the null for a J-row contrast; divide by J so the
+      // value handed to the F CDF is actually F-distributed. Without this,
+      // multi-row FFx contrasts inflate significance roughly J-fold (a J=2
+      // contrast with true p=0.05 was reported as p=0.0025). J=1 contrasts
+      // are unchanged. GLMtest() (random effects) already folds J into its
+      // denominator (dtmp = rvar * C->rows).
+      glm->F[n] = F->rptr[1][1] / glm->C[n]->rows;
       glm->p[n] = sc_cdf_fdist_Q(glm->F[n], glm->C[n]->rows, glm->ffxdof);
       glm->igCVM[n] = mtmp;
     }
