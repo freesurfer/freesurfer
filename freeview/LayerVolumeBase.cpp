@@ -78,6 +78,22 @@ LayerVolumeBase::~LayerVolumeBase()
   delete m_livewire;
 }
 
+bool LayerVolumeBase::IsROIEmptyAt(const QList<Layer *> &rois, int *n)
+{
+  for (int i = 0; i < rois.size(); i++)
+  {
+    LayerVolumeBase* roi = (LayerVolumeBase*)(rois[i]);
+    vtkImageData* im = roi->GetImageData();
+    char* ptr = (char*)im->GetScalarPointer();
+    int* dim = im->GetDimensions();
+    int scalar_type = im->GetScalarType();
+    double fval = MyVTKUtils::GetImageDataComponent(ptr, dim, 1, n[0], n[1], n[2], 0, scalar_type);
+    if (fval != -1)
+      return false;
+  }
+  return true;
+}
+
 QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd, bool ignore_brush_size )
 {
   QVector<int> indices;
@@ -115,6 +131,9 @@ QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd,
   int ref_scalar_type = ref->GetScalarType();
   int ref_n_frames = ref->GetNumberOfScalarComponents();
   bool bNotROI = (GetEndType() != "ROI");
+  QList<Layer*> rois;
+  if (!bNotROI && m_propertyBrush->GetNoOverwrite())
+    rois = MainWindow::GetMainWindow()->GetVisibleLayers("ROI");
   for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
   {
     for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -137,7 +156,8 @@ QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd,
                  ( bNotROI && m_propertyBrush->GetExcludeRangeEnabled() &&
                    ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) ||
                  ( bNotROI && m_propertyBrush->GetDrawConnectedOnly() &&
-                   ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
+                   ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) ||
+                 (!bNotROI && m_propertyBrush->GetNoOverwrite() && !IsROIEmptyAt(rois, n)) )
             {
               ;
             }

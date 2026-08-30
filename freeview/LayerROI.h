@@ -96,6 +96,8 @@ public:
     return m_layerSource;
   }
 
+  bool HasVertex(int nv);
+
 public slots:
 
   virtual void SetModified();
@@ -104,8 +106,8 @@ public slots:
   void UpdateThreshold();
   void SetMappedSurface(LayerSurface* s);
   void OnUpdateLabelRequested();
-  void EditVertex(int nvo, bool bAdd);
-  void EditVertex(const QVector<int> list_nvo, bool bAdd);
+  void EditVertex(int nvo, bool bAdd, bool bNoOverwrite = false);
+  void EditVertex(const QVector<int> list_nvo, bool bAdd, bool bNoOverwrite = false);
   void Dilate(int nTimes = 1);
   void Erode(int nTimes = 1);
   void Open(int nTimes = 1);

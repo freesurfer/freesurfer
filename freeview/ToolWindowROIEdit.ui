@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>190</width>
-    <height>77</height>
+    <width>217</width>
+    <height>87</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -84,6 +84,13 @@
         </spacer>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxNoOverwrite">
+       <property name="text">
+        <string>Do not draw on existing labels</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

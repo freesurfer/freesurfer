@@ -140,6 +140,7 @@ protected:
   bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );
 
   bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );
+  bool IsROIEmptyAt(const QList<Layer*>& rois, int* n);
 
   struct UndoRedoBufferItem
   {

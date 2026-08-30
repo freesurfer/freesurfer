@@ -3323,3 +3323,19 @@ bool LayerSurface::SaveEdgeLines(int n, const QString &fn)
   else
     return false;
 }
+
+bool LayerSurface::IsVertexOnLabel(int vno)
+{
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (m_labels[i]->IsVisible() && m_labels[i]->HasVertex(vno))
+      return true;
+  }
+
+  for (int i = 0; i < m_mappedLabels.size(); i++)
+  {
+    if (m_mappedLabels[i]->IsVisible() && m_mappedLabels[i]->HasVertex(vno))
+      return true;
+  }
+  return false;
+}
