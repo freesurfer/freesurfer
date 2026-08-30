@@ -348,8 +348,15 @@ int main(int argc, char **argv) {
   if (fillribbon) {   /* fill entire ribbon */
     VtxVol = MRIconst(TempVol->width, TempVol->height, TempVol->depth, 1, -1, NULL);
     printf("VtxVol fixed\n");
-    nhits = 0; 
-    for (projfrac = ProjFracStart ; projfrac <= ProjFracStop ; projfrac += ProjFracDelta) {
+    nhits = 0;
+    // Step with an integer index rather than accumulating a float: repeated
+    // "projfrac += ProjFracDelta" builds up rounding error, so for many
+    // (start,stop,delta) triplets (eg, the 0 1 0.05 default) the final
+    // accumulated value exceeds ProjFracStop and the outermost (pial-most)
+    // fill pass is silently skipped.
+    int const nprojmax = (int)round((ProjFracStop-ProjFracStart)/ProjFracDelta) + 1;
+    for (int nthproj = 0; nthproj < nprojmax; nthproj++) {
+      projfrac = ProjFracStart + nthproj*ProjFracDelta;
       MRI *VtxVolp;
       VtxVolp = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac, mask);
       if (VtxVol == NULL) {
