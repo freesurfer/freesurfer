@@ -658,6 +658,22 @@ int main(int argc, char **argv)
         vtx.y = RAS->rptr[2][1];
         vtx.z = RAS->rptr[3][1];
 
+        // Reset the winner-selection state for THIS voxel. These variables
+        // are declared per-column, and the four winner blocks below all use
+        // strict/no-winner-possible comparisons: when every candidate is
+        // rejected (eg, all four distances forced to 1e15 by the dot checks,
+        // or a hemisphere is disabled), none of the blocks executes and the
+        // voxel would otherwise inherit annot/annotid/hemi/dmin from the
+        // previously processed voxel in the column - a stale ROI and
+        // possibly the wrong hemisphere - with annotid additionally read
+        // uninitialized at the first such voxel of each column. Resetting
+        // annotid to -1 routes a no-winner voxel into the existing
+        // "annotation is none -> unknown" handling below.
+        annot = 0;
+        annotid = -1;
+        hemi = 0;
+        dmin = 1e15;
+
         // Get the index of the closest vertex in the
         // lh.white, lh.pial, rh.white, rh.pial
         if(UseHash) {
