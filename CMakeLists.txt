@@ -88,11 +88,7 @@ option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
 option(FSL_INSTALL "force install of FSL binaries for linux platforms only" OFF)
-if(HOST_OS MATCHES "Ubuntu24" AND UBUNTU_ARM64)
-   option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" OFF)
-else()
-   option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" ON)
-endif()
+option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" ON)
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
 
 ## freeview
@@ -128,26 +124,19 @@ option(PATCH_FSPYTHON "Build subdirs with source using gfortran" OFF)
 ## For backwards compatability, use pre-existing python 3.8 default unless overriden via cmake cmd line.
 ## With cmake, set -DFFSPYTHON_VERSION="[0-9].[0-9]" as found under FS_PACKAGES_DIR.
 if(NOT FSPYTHON_VERSION)
-   # set(FSPYTHON_VERSION "3.8")
-   set(FSPYTHON_VERSION "3.9")
+   set(FSPYTHON_VERSION "3.8")
 endif()
 
 if(DISTRIBUTE_FSPYTHON)
    if(FSPYTHON_VERSION MATCHES "3.8")
       ## same path for all linux OS for default python 3.8
       set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION})
-   elseif(FSPYTHON_VERSION MATCHES "3.9")
+   else()
       ## paths may differ under FS_PACKAGES_DIR default /usr/pubsw/packages starting with python 3.9
-      if(HOST_OS MATCHES "Ubuntu22")
+      if(HOST_OS MATCHES "Ubuntu22" OR HOST_OS MATCHES "Ubuntu24")
          set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION}_ubuntu22)
-      elseif(HOST_OS MATCHES "Ubuntu24")
-         set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION}_ubuntu24)
-      elseif(HOST_OS MATCHES "Rocky8")
+      else(HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "Rocky9")
          set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION}_rocky8)
-      elseif(HOST_OS MATCHES "Rocky9")
-         set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION}_rocky9)
-      else()
-         set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/${FSPYTHON_VERSION})
       endif()
    endif()
 
@@ -207,9 +196,6 @@ elseif(HOST_OS MATCHES "Ubuntu22")
    ## may use some ubuntu22 libs on ubuntu24 where the system version of libtiff has changed
    option(TIFF_SYSLIBS "link with system tiff libs" OFF)
    option(LINK_SHARED_AS_NEEDED "link shared libs with --as-needed which does not affect linking in static libs" ON)
-elseif(HOST_OS MATCHES "Ubuntu24")
-   option(TIFF_SYSLIBS "link with system tiff libs" ON)
-   option(LINK_SHARED_AS_NEEDED "link shared libs with --as-needed which does not affect linking in static libs" ON)
 else()
    option(TIFF_SYSLIBS "link with system tiff libs" ON)
    option(LINK_SHARED_AS_NEEDED "link shared libs with --as-needed which does not affect linking in static libs" ON)
@@ -224,7 +210,8 @@ else()
 endif()
 
 ## INFANT_MODULE install and associated binaries working on some platforms
-if(APPLE OR HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+# if(APPLE OR HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+if(APPLE OR HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "Rocky8" OR HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22" OR HOST_OS MATCHES "Ubuntu24")
   set(INFANT_MODULE ON)
   message(STATUS "For HOST_OS=${HOST_OS} INFANT_MODULE=${INFANT_MODULE}")
 endif()
@@ -242,18 +229,14 @@ if(DISABLE_LINEPROF)
 endif()
 
 message(STATUS "For HOST_OS=${HOST_OS} TIFF_SYSLIBS=${TIFF_SYSLIBS}")
+message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
-  if(EXISTS ${USER_SAMSEG_PATH})
-    message(STATUS "For HOST_OS=${HOST_OS} USER_SAMSEG_PATH=${USER_SAMSEG_PATH}")
-    if(NOT INTEGRATE_SAMSEG)
-      message(WARNING "set INTEGRATE_SAMSEG=ON, USER_SAMSEG_PATH only work with INTEGRATE_SAMSEG=ON")
-      set(INTEGRATE_SAMSEG ON)
-    endif()
-  else()
-    message(FATAL_ERROR "USER_SAMSEG_PATH=${USER_SAMSEG_PATH} does not exist.")
+  message(STATUS "User defined SAMSEG sandbox ${USER_SAMSEG_PATH}")
+  if(NOT INTEGRATE_SAMSEG)
+    message(WARNING "set INTEGRATE_SAMSEG=ON, USER_SAMSEG_PATH only work with INTEGRATE_SAMSEG=ON")
+    set(INTEGRATE_SAMSEG ON)
   endif()
 endif()
-message(STATUS "For HOST_OS=${HOST_OS} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG}")
 
 ##  Modern compilers on new platforms often provide many more warnings than older compilers
 ##  for example the gcc 7.5.0 compiler warnings about falling through switch statements
@@ -320,41 +303,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 ## via the standard linux sysem tools and online repos.  Freesurfer can/has been updated
 ## to work with these native packages (preferbale to supporting our own custom builds per OS).
 
-## Default gcc libdir for Linux Intel x86_64 machines
-## Only needed for ifdefs on HOST_OS testing "Ubuntu24" or "Ubuntu"  (or later versions of Ubuntu built on arm64).
-
-# need x86_64 default for Ubuntu 20, 22
-set(UBUNTU_GCC_LIBDIR "x86_64-linux-gnu")
 if(HOST_OS MATCHES "Ubuntu24")
-   message(STATUS "For HOST_OS=${HOST_OS} UBUNTU_ARM64=${UBUNTU_ARM64}")
-   if(UBUNTU_ARM64)
-      set(CMAKE_SYSTEM_PROCESSOR aarch64)
-      ## cannot run big endian
-      set(CMAKE_CXX_BYTE_ORDER "LITTLE_ENDIAN")
-      set(UBUNTU_GCC_LIBDIR "aarch64-linux-gnu")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-      set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DARM64 -Wno-type-limits")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DARM64 -Wno-type-limits")
-      ## turn on if either vtk or itk libraries as installed on the system are used
-      set(UB24_SYSLIBS ON)
-      ## while vtk libs may from the system, itk libs are built locally as shared for ubuntu arm64
-      set(ITK_SYSLIBS ON)
-      set(ITK_STATIC OFF)
-      set(VTK_SYSLIBS ON)
-      set(QT_SYSLIBS ON)
-      set(GLUT_SYSLIBS ON)
-      set(DISABLE_LINEPROF ON)
-   else()
-      set(UBUNTU_GCC_LIBDIR "x86_64-linux-gnu")
-      set(UB24_SYSLIBS ON)
-      # set(UB24_SYSLIBS OFF)
-      set(ITK_SYSLIBS ON)
-      set(VTK_SYSLIBS ON)
-      set(QT_SYSLIBS ON)
-      set(GLUT_SYSLIBS ON)
-      set(DISABLE_LINEPROF ON)
-   endif()
+   set(UB24_SYSLIBS ON)
+   # set(UB24_SYSLIBS OFF)
+   set(ITK_SYSLIBS ON)
+   set(VTK_SYSLIBS ON)
+   set(QT_SYSLIBS ON)
+   set(GLUT_SYSLIBS ON)
+   set(DISABLE_LINEPROF ON)
 elseif(HOST_OS MATCHES "Rocky9")
    set(QT_SYSLIBS ON)
    set(VTK_SYSLIBS ON)
@@ -370,13 +326,7 @@ message(STATUS "For HOST_OS=${HOST_OS} GLUT_SYSLIBS=${GLUT_SYSLIBS}")
 # -------- zlib --------
 find_package(ZLIB REQUIRED)
 if(HOST_OS MATCHES "Ubuntu24")
-   if(UBUNTU_ARM64)
-      ## the local build of ITK shared libs references the system libs
-      add_definitions(-DHAVE_ZLIB)
-   else()
-      # add_definitions(-DHAVE_ZLIB -DITK_USE_SYSTEM_ZLIB)
-      add_definitions(-DHAVE_ZLIB)
-   endif()
+   add_definitions(-DHAVE_ZLIB)
 else()
    add_definitions(-DHAVE_ZLIB -DITK_USE_SYSTEM_ZLIB)
 endif()
@@ -395,10 +345,10 @@ if(NOT APPLE)
         set(BUILD_FORTRAN OFF)
      endif()
      ## otherwise using gcc 8 or HOST_OS_GCC_VERSION=8
-     find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/${UBUNTU_GCC_LIBDIR}/${HOST_OS_GCC_VERSION} NAMES libgfortran.a gfortran)
+     find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/${HOST_OS_GCC_VERSION} NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
      find_library(LAPACK_LIBRARIES NAMES liblapack.a)
-     find_library(QUADMATH_LIBRARIES HINTS /usr/lib/gcc/${UBUNTU_GCC_LIBDIR}/${HOST_OS_GCC_VERSION} NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+     find_library(QUADMATH_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/${HOST_OS_GCC_VERSION} NAMES libquadmath.a libquadmath.so libquadmath.so.0)
   elseif(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "Rocky9")
      if(HOST_OS_GCC_VERSION MATCHES "11")
         set(CMAKE_CXX_STANDARD 17)
@@ -461,8 +411,7 @@ if(APPLE_ARM64)
    ## for testing comment out the above line and uncomment the lines below
    # set(PETSC_DIR "/Users/developer/space_freesurfer/packages/petsc_3.18.3_darwin_arm64/3.18.3/include")
    # find_package(PETSC)
-# elseif(HOST_OS MATCHES "Rocky9" OR HOST_OS MATCHES "Ubuntu24")
-elseif(HOST_OS MATCHES "Rocky9")
+elseif(HOST_OS MATCHES "Rocky9" OR HOST_OS MATCHES "Ubuntu24")
    set(CMAKE_DISABLE_FIND_PACKAGE_PETSC ON)
 else()
    find_package(PETSC)
@@ -557,8 +506,8 @@ if(NOT Qt6_DIR)
            set(Qt5_BASE ${FS_PACKAGES_DIR}/qt/5.15.13_ubuntu24_native CACHE PATH "Qt5 root base")
            set(Qt5_DIR ${Qt5_BASE}/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
         else()
-           set(Qt5_DIR /lib/${UBUNTU_GCC_LIBDIR}/cmake/Qt5  CACHE PATH "Qt5 install directory")
-           set(QT_PLUGIN_PATH /lib/${UBUNTU_GCC_LIBDIR}/qt5/plugins CACHE PATH "Qt5 plugin directory")
+           set(Qt5_DIR /lib/x86_64-linux-gnu/cmake/Qt5  CACHE PATH "Qt5 install directory")
+           set(QT_PLUGIN_PATH /lib/x86_64-linux-gnu/qt5/plugins CACHE PATH "Qt5 plugin directory")
         endif()
      endif()
      if(HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "Rocky9")
@@ -572,7 +521,7 @@ if(NOT Qt6_DIR)
            set(QT_PLUGIN_PATH /usr/lib64/qt5/plugins CACHE PATH "Qt5 plugin directory")
         endif()
      elseif(HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "11")
-        set(Qt5_DIR /usr/lib/${UBUNTU_GCC_LIBDIR}/cmake/Qt5 CACHE PATH "Qt5 install directory")
+        set(Qt5_DIR /usr/lib/x86_64-linux-gnu/cmake/Qt5 CACHE PATH "Qt5 install directory")
      elseif(HOST_OS MATCHES "Ubuntu22" AND HOST_OS_GCC_VERSION MATCHES "8")
         set(Qt5_BASE ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_ub18 CACHE PATH "Qt5 root base")
         set(Qt5_DIR ${Qt5_BASE}/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
@@ -637,8 +586,8 @@ if(NOT VTK_DIR)
          set(VTK_INCLUDE_DIRS ${FS_PACKAGES_DIR}/vtk/9.1.0_native_ubuntu24/include CACHE PATH "VTK include directory")
       else()
          ## patches are included and have to be setup in the build image
-         set(VTK_DIR /lib/${UBUNTU_GCC_LIBDIR}/cmake/vtk-9.1 CACHE PATH "VTK install directory")
-         set(VTK_LIB64_DIR /lib/${UBUNTU_GCC_LIBDIR} CACHE PATH "VTK library directory")
+         set(VTK_DIR /lib/x86_64-linux-gnu/cmake/vtk-9.1 CACHE PATH "VTK install directory")
+         set(VTK_LIB64_DIR /lib/x86_64-linux-gnu CACHE PATH "VTK library directory")
          set(VTK_INCLUDE_DIRS /usr/include/vtk-9.1 CACHE PATH "VTK include directory")
       endif()
    endif()
@@ -729,17 +678,9 @@ endif()
 if(NOT ITK_DIR)
    if(HOST_OS MATCHES "Ubuntu24")
       if(NOT ITK_SYSLIBS)
-         if(UBUNTU_ARM64)
-            set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4_ubuntu24/lib/lib/cmake/ITK-5.4 CACHE PATH "ITK install directory")
-         else()
-            set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4rc01_rok9_ub24/lib/cmake CACHE PATH "ITK install directory")
-         endif()
+         set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4rc01_rok9_ub24/lib/cmake CACHE PATH "ITK install directory")
       else()
-         if(UBUNTU_ARM64)
-            set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4_ubuntu24/lib/cmake/ITK-5.4 CACHE PATH "ITK install directory")
-         else()
-            set(ITK_DIR /usr/lib/${UBUNTU_GCC_LIBDIR}/cmake CACHE PATH "ITK install directory")
-         endif()
+         set(ITK_DIR /usr/lib/x86_64-linux-gnu/cmake CACHE PATH "ITK install directory")
       endif()
    elseif(HOST_OS MATCHES "Rocky9")
       set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4rc01_rocky9/lib/cmake CACHE PATH "ITK install directory")
@@ -794,18 +735,12 @@ message(STATUS "Compiling source under build tree ${CMAKE_BINARY_DIR}")
 add_definitions(-D${CMAKE_SYSTEM_NAME})
 
 ## general check for big endian
-## some platforms may have already set LITTLE ENDIAN, e.g., ubuntu arm64
-if(NOT CMAKE_CXX_BYTE_ORDER STREQUAL "LITTLE_ENDIAN")
-   test_big_endian(IS_BIG_ENDIAN)
-   if(IS_BIG_ENDIAN)
-     set(BYTEORDER 4321)
-   else()
-     set(BYTEORDER 1234)
-   endif()
+test_big_endian(IS_BIG_ENDIAN)
+if(IS_BIG_ENDIAN)
+  set(BYTEORDER 4321)
 else()
-   set(BYTEORDER 1234)
+  set(BYTEORDER 1234)
 endif()
-
 
 # --------------------------------------------------
 #                  third-party code
@@ -952,8 +887,7 @@ add_subdirectory(fem_elastic)
 ##      'git clone --recurse-submodules https://github.com/yhuang43/freesurfer.git'.#
 
 if(NOT INTEGRATE_SAMSEG)
-  ## gems in atiic as of 6/2026
-  # add_subdirectories(samsegmesh2surf gems)
+  add_subdirectories(samsegmesh2surf gems)  
 endif()
 
 # --------------------------------------------------
@@ -1050,7 +984,6 @@ add_subdirectories(
   mris_skeletonize
   mris_smooth
   mris_sphere
-  mris_sphere2mri
   mris_surface_stats
   mris_thickness
   mris_thickness_diff
@@ -1084,7 +1017,6 @@ if(NOT MINIMAL)
     BrainstemSS
     diffusion_tool
     dissection_photo
-    dissection_photo_2
     dummy
     exvivo
     freeview

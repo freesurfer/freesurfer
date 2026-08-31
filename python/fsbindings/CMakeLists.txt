@@ -12,16 +12,6 @@ pybind11_add_module(fsbindings
   bindings_transform.cpp 
 )
 
-## While python 3.8 can be installed on Ubuntu24, switching the
-## system to py38 causes other cmake conflicts where 3.12 (the
-## default native version) is expected for the tool chain.
-
-# if(HOST_OS MATCHES "Ubuntu24")
-#   set(PYTHON_EXECUTABLE "/usr/bin/python3.8" CACHE FILEPATH "" FORCE)
-#   set(PYBIND11_PYTHON_VERSION "3.8" CACHE STRING "" FORCE)
-#   find_package(pybind11 REQUIRED)
-# endif()
-
 # link utilities
 target_link_libraries(fsbindings PRIVATE utils nifti ${ITK_LIBRARIES})
 
@@ -32,32 +22,20 @@ endif()
 # make sure the bindings library gets built into the repository even in out-of-source builds
 set_target_properties(fsbindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/fsbindings)
 
-## the workaround for ubuntu 24 is to copy the python3.8 fsbindings libraries as built on and saved from an ubuntu 22 system
+## FIX ME - this workaround copies in fsbindings libraries that work with an fspython 3.8 from an ubuntu 22 system
+## on an ubuntu 24 system where the installed python is an newer/different version, i.e., 3.12.
 
-# if(HOST_OS MATCHES "Ubuntu24")
-if(HOST_OS MATCHES "Ubuntu24" AND NOT UBUNTU_ARM64)
-   set(FSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings")
-   set(GEMSBIND_UB22_BASE "/space/freesurfer/ubuntu22_x86_64/dev/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems")
-   if("${FSPYTHON_VERSION}" MATCHES "3.8")
-      set(FSBIND_LIB "fsbindings.cpython-38-${UBUNTU_GCC_LIBDIR}.so")
-      set(GEMSBIND_LIB "gemsbindings.cpython-38-${UBUNTU_GCC_LIBDIR}.so")
-   elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
-      set(FSBIND_LIB "fsbindings.cpython-39-${UBUNTU_GCC_LIBDIR}.so")
-      set(GEMSBIND_LIB "gemsbindings.cpython-39-${UBUNTU_GCC_LIBDIR}.so")
-   endif()
-   if("${UBUNTU_GCC_LIBDIR}" MATCHES "x86_64-linux-gnu")
-      add_custom_command(TARGET fsbindings POST_BUILD COMMAND
-        cp -p -f ${FSBIND_UB22_BASE}/${FSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB} && cp -p -f ${GEMSBIND_UB22_BASE}/${GEMSBIND_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt ${CMAKE_CURRENT_SOURCE_DIR}/${GEMSBIND_LIB}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Copy in ubuntu22 x86_64 fsbindings and gemsbinding libraries for ubuntu24 x86_64"
-      )
-   endif()
-   install(FILES ${FSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/packages/fsbindings)
-   install(FILES ${GEMSBIND_LIB} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python/lib/python${FSPYTHON_VERSION}/site-packages/samseg/gems)
+if(HOST_OS MATCHES "Ubuntu24")
+   add_custom_command(TARGET fsbindings POST_BUILD COMMAND
+     # cp -p -f /space/freesurfer/ubuntu22_x86_64/dev/python/packages/fsbindings/*.cpython-38-x86_64-linux-gnu.so ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt *.cpython-38-x86_64-linux-gnu.so
+     cp -p -f /space/freesurfer/ubuntu22_x86_64/8.2.0/python/packages/fsbindings/*.cpython-38-x86_64-linux-gnu.so ${CMAKE_CURRENT_SOURCE_DIR}/. && ls -lt *.cpython-38-x86_64-linux-gnu.so
+     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+     COMMENT "Copy in ubuntu22 fsbindings libraries for ubuntu24"
+   )
    # remove when "make clean" is run - wildcard expressions do not work
-   set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${FSBIND_LIB}")
-   set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${GEMSBIND_LIB}")
+   set_property(TARGET fsbindings APPEND PROPERTY ADDITIONAL_CLEAN_FILES
+      "${CMAKE_CURRENT_SOURCE_DIR}/fsbindings.cpython-38-x86_64-linux-gnu.so"
+      "${CMAKE_CURRENT_SOURCE_DIR}/labelfusion.cpython-38-x86_64-linux-gnu.so"
+   )
 endif()
-
-# PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 
