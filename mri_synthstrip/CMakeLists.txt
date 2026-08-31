@@ -1,5 +1,9 @@
 project(synthstrip)
 
+# use a soft link for synthstrip to be included in the fspylegacy as synthstrip.py
+ADD_CUSTOM_TARGET(synthstrip ALL COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_SOURCE_DIR}/mri_synthstrip/mri_synthstrip\" \"${CMAKE_SOURCE_DIR}/python/fspylegacy/synthstrip.py\")
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR}/mri_synthstrip APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${CMAKE_SOURCE_DIR}/python/fspylegacy/synthstrip.py)
+
 if (FSPYTHON_INSTALL_TREE)
    install_modelpredict_pyscript_fspython_tree(synthstrip)
    install_symlinks_fspython_tree(TYPE files DESTINATION models synthstrip.1.pt synthstrip.nocsf.1.pt)

@@ -6,6 +6,10 @@ else()
    set(mri_synthsr_dest "models")
 endif()
 
+# use a soft link for mri_synthseg to be included in the fspylegacy as synthseg.py
+ADD_CUSTOM_TARGET(mri_synthseg ALL COMMAND ${CMAKE_COMMAND} -E create_symlink \"${CMAKE_SOURCE_DIR}/mri_synthseg/mri_synthseg\" \"${CMAKE_SOURCE_DIR}/python/fspylegacy/synthseg.py\")
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR}/mri_synthseg APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${CMAKE_SOURCE_DIR}/python/fspylegacy/synthseg.py)
+
 install(FILES synthseg_1.0.h5 DESTINATION ${mri_synthsr_dest})
 
 install(FILES synthseg_segmentation_labels.npy DESTINATION ${mri_synthsr_dest})

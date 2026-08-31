@@ -17,10 +17,12 @@ INTEGRATE_SAMSEG = os.environ.get("INTEGRATE_SAMSEG_OPTION")
 if (INTEGRATE_SAMSEG == 'OFF'):
   packages = [
     'fsbindings',
+    'fspylegacy',
   ]
 else:
   packages = [
     'fsbindings',
+    'fspylegacy',
   ]
 
 

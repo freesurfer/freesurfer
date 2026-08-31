@@ -1,14 +1,15 @@
-#!/usr/bin/env bash
-[ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
+#!/usr/bin/env python
 
-if [[ ! -v RUN_FSDEEPNET ]]; then
-    echo "Running Freesurfer version of @SCRIPTNAME@ ..."
-    echo "$FREESURFER_HOME/bin/fspython $FREESURFER_HOME/python/scripts/@SCRIPTNAME@ $@"
-    echo
-    exec $FREESURFER_HOME/bin/fspython $FREESURFER_HOME/python/scripts/@SCRIPTNAME@ "$@"
-else
-    echo "Running FSdeepnet version of @SCRIPTNAME@ ..."
-    echo "$FREESURFER_HOME/bin/fspython $FREESURFER_HOME/python/lib/python$FSPYTHON_VERSION/site-packages/fsdeepnet/apps/@SCRIPTNAME@/cli/@SCRIPTNAME@.py $@"
-    echo
-    exec $FREESURFER_HOME/bin/fspython $FREESURFER_HOME/python/lib/python$FSPYTHON_VERSION/site-packages/fsdeepnet/apps/@SCRIPTNAME@/cli/@SCRIPTNAME@.py "$@"
-fi
+import re
+import sys
+import os
+
+if ("RUN_FSDEEPNET" not in os.environ):
+    print(f"Running Freesurfer version of @SCRIPTNAME@ ...")    
+    from fspylegacy.@SCRIPTNAME@ import main
+else:
+    print(f"Running FSdeepnet version of @SCRIPTNAME@ ...")
+    from fsdeepnet.apps.@SCRIPTNAME@.cli.@SCRIPTNAME@ import main
+
+sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+sys.exit(main())
