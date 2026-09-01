@@ -26,9 +26,9 @@ set model = $topdir/$split/m.$trset.default.nstd$nstd/dice_$iterstr.h5
 set base = entowm31.$trset.i$iterstr.nstd$nstd
 endif
 
-set pt_model = ()
 set logdir = ()
 set model = $FREESURFER/models/entowm.fsm31.t1.nstd00-30.nstd21-108.h5
+set pt_model = $FREESURFER/models/fsdeepnet/entowm.fsm31.t1.nstd00-30.nstd21-108.pth
 set ctab = $FREESURFER/models/entowm.ctab
 set base = entowm
 
@@ -72,8 +72,8 @@ if($#logdir) set LF = $logdir/mri_entowm_seg.Y$year.M$month.D$day.H$hour.M$min.l
 set cmd = (mri_sclimbic_seg --no-cite-sclimbic \
   --keep_ac --ctab $ctab  --percentile 99.9 --vmp \
   --output-base $base $sclimbicargs)
-if($#pt_model) then
-  set cmd = ($cmd --pt_model $pt_model)
+if($?RUN_FSDEEPNET) then
+  set cmd = ($cmd --model $pt_model)
 else
   set cmd = ($cmd --model $model)
 endif
@@ -120,11 +120,6 @@ while( $#argv != 0 )
   set flag = $argv[1]; shift;
   
   switch($flag)
-
-    case "--pt_model":
-      if($#argv < 1) goto arg1err;
-      set pt_model = $argv[1]; shift;    
-      breaksw
 
     case "--logdir":
       if($#argv < 1) goto arg1err;

@@ -1132,7 +1132,7 @@ void LayerMRI::UpdateContourActor( int nSegValue )
   // are different, it means a new thread is rebuilding the contour
   m_nThreadID++;
   ThreadBuildContour* thread = new ThreadBuildContour(this);
-  connect(thread, SIGNAL(Finished(int)), this, SLOT(OnContourThreadFinished(int)));
+  connect(thread, SIGNAL(Finished(int,int)), this, SLOT(OnContourThreadFinished(int,int)));
   thread->BuildContour( this, nSegValue, m_nThreadID );
   emit IsoSurfaceUpdating();
 }
@@ -1151,7 +1151,7 @@ void LayerMRI::UpdateContour2D(bool bEmit)
 }
 
 // Contour mapper is ready, attach it to the actor
-void LayerMRI::OnContourThreadFinished(int thread_id)
+void LayerMRI::OnContourThreadFinished(int thread_id, int seg_val)
 {
   if (m_nThreadID == thread_id)
   {
@@ -1168,7 +1168,12 @@ void LayerMRI::OnContourThreadFinished(int thread_id)
 #endif
           m_labelActors[n]->GetMapper()->SetLookupTable( GetProperty()->GetLUTTable() );
         }
-        OnLabelContourChanged();
+
+        OnLabelContourChanged(seg_val);
+
+        if (seg_val >= 0)
+          GetProperty()->SetSelectLabel(seg_val, true);
+
         emit ActorChanged();
       }
     }
@@ -1288,7 +1293,9 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
     {
       QList<int> keys = m_labelActors.keys();
       foreach (int i, keys)
+      {
         renderer->AddViewProp(m_labelActors[i]);
+      }
     }
     else
     {
@@ -4339,15 +4346,24 @@ void LayerMRI::OnLabelContourChanged(int n)
   emit ActorUpdated();
 }
 
-void LayerMRI::RebuildContour()
+void LayerMRI::RebuildContour(int nSeg)
 {
-  QList<int> keys = m_labelActors.keys();
-  foreach (int i, keys)
+  if (nSeg < 0)
   {
-    m_labelActors[i]->Delete();
+    QList<int> keys = m_labelActors.keys();
+    foreach (int i, keys)
+    {
+      m_labelActors[i]->Delete();
+    }
+    m_labelActors.clear();
+    UpdateContour();
   }
-  m_labelActors.clear();
-  UpdateContour();
+  else if (m_labelActors.contains(nSeg))
+  {
+    m_labelActors[nSeg]->Delete();
+    m_labelActors.remove(nSeg);
+    UpdateContour(nSeg);
+  }
 }
 
 void LayerMRI::OnLabelInformationReady()

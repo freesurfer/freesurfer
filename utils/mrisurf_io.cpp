@@ -6255,7 +6255,12 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
     {
       // regular format is not available, try .gii
       sprintf(file_to_read, "%s.gii", fname);
-      printf("[INFO] read, cannot find %s, trying %s ...\n", fname, file_to_read);       
+      if (!fio_FileExistsReadable(file_to_read))
+      {
+	printf("[ERROR] cannot find %s\n", fname);
+	exit(1);
+      }
+      printf("[INFO] read, cannot find %s, reading %s ...\n", fname, file_to_read);       
       *filetype = GIFTI_FILE;
     }
   }

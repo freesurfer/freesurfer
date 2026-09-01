@@ -359,6 +359,48 @@ function(install_pyscript_fspython_tree)
   endforeach()
 endfunction()
 
+# install_modelpredict_pyscript(<scripts>)
+# this function creates two wrapper scripts:
+#   1. python wrapper in $FREESURFER_HOME/python/scripts directory that invokes
+#      either the Freesurfer version of synthstrip or the FSdeepnet version of synthstrip
+#      depending on if environment variable RUN_FSDEEPNET is set
+#   2. fspython wrapper for the python script created in #1
+#      the fspython wrapper is a bash script and resides in $FREESURFER_HOME/bin directory
+# For example:
+#     install_modelpredict_pyscript(synthstrip)
+# - creates the python script $FREESURFER_HOME/python/scripts/mri_synthstrip
+# - creates the bash script $FREESURFER_HOME/bin/mri_synthstrip
+function(install_modelpredict_pyscript)
+  foreach(SCRIPT ${ARGN})
+    install(CODE "
+      message(STATUS \"Configuring python script: ${CMAKE_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper ${CMAKE_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT} @ONLY)"
+      )
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${CMAKE_INSTALL_PREFIX}/bin/mri_${SCRIPT}\")
+      set(SCRIPTNAME mri_${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/wrapper ${CMAKE_INSTALL_PREFIX}/bin/mri_${SCRIPT} @ONLY)"
+    )
+  endforeach()
+endfunction()
+
+function(install_modelpredict_pyscript_fspython_tree)
+  foreach(SCRIPT ${ARGN})
+    install(CODE "
+      message(STATUS \"Configuring python script: ${FSPYTHON_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper ${FSPYTHON_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT} @ONLY)"
+      )
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${FSPYTHON_INSTALL_PREFIX}/bin/mri_${SCRIPT}\")
+      set(SCRIPTNAME mri_${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/wrapper_fspython_tree ${FSPYTHON_INSTALL_PREFIX}/bin/mri_${SCRIPT} @ONLY)"
+      )
+  endforeach()
+endfunction()
+
+
 # get_package_dir(packagename packagedir)
 # retrieve package direcotry
 # ??? todo: this function needs work, it is not working ???

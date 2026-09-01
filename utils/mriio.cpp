@@ -1319,7 +1319,7 @@ int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int inte
 
   // (*mriVector).size() == 0, use MRI passed in
   if (mriVector == NULL || (*mriVector).size() <= 1)
-    error = MRIwriteType(mri, fname, int_type, intent);
+    error = MRIwriteType(mri, fname, int_type, intent, asFSLWarp);
   else
   {
     char *fname_copy = new char[strlen(fname)+1];

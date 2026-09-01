@@ -10,6 +10,7 @@ set scriptname = `basename $0`
 if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
 
 set model = $FREESURFER_HOME_FSPYTHON/models/vsinus.no-sp.m.all.nstd10-070.h5
+set pt_model = $FREESURFER_HOME_FSPYTHON/models/fsdeepnet/vsinus.no-sp.m.all.nstd10-070.pth
 set priormni = $FREESURFER/average/vsinus.no-sp.prior.mni152.1.0mm.mgz
 # Creates its own ctab below
 #set ctab = $FREESURFER/models/vsinus.no-sp.ctab
@@ -22,7 +23,6 @@ set ctab = ()
 
 set fov = 144 # shape of the unet
 
-set pt_model = ()
 set invol = ();
 set outdir = ();
 set subject = ();
@@ -156,8 +156,8 @@ if($ud || $ForceUpdate) then
   set cmd = (mri_sclimbic_seg --ctab $ctab --keep_ac --conform\
     --percentile 99.9 --vmp --output-base $base --logfile mri_vsinus_seg.log \
     --fov $fov --threads $threads --no-cite-sclimbic --i $involcrop --o $segcrop)
-  if($#pt_model) then
-    set cmd = ($cmd --pt_model $pt_model)
+  if($?RUN_FSDEEPNET) then
+    set cmd = ($cmd --model $pt_model)
   else
     set cmd = ($cmd --model $model)
   endif
@@ -382,11 +382,6 @@ while( $#argv != 0 )
     case "--m":
       if($#argv < 1) goto arg1err;
       set model = $argv[1]; shift;
-      breaksw
-
-    case "--pt_model":
-      if($#argv < 1) goto arg1err;
-      set pt_model = $argv[1]; shift;    
       breaksw
 
     case "--ctab":

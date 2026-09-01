@@ -26,6 +26,7 @@
 #include "LayerSurface.h"
 #include "MainWindow.h"
 #include "CursorFactory.h"
+#include "BrushProperty.h"
 
 Interactor3DROIEdit::Interactor3DROIEdit(QObject* parent) :
   Interactor3D(parent), m_bEditing(false), m_nPrevVertex(-1)
@@ -48,7 +49,7 @@ bool Interactor3DROIEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
       if (nvo >= 0)
       {
         m_nPrevVertex = nvo;
-        roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier));
+        roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier), MainWindow::GetMainWindow()->GetBrushProperty()->GetNoOverwrite());
         return false;
       }
     }
@@ -75,11 +76,11 @@ bool Interactor3DROIEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderView*
           {
             QVector<int> seeds;
             seeds << m_nPrevVertex << nvo;
-            roi->EditVertex(surf->FindPath(seeds), !(event->modifiers() & Qt::ShiftModifier));
+            roi->EditVertex(surf->FindPath(seeds), !(event->modifiers() & Qt::ShiftModifier), MainWindow::GetMainWindow()->GetBrushProperty()->GetNoOverwrite());
           }
         }
         else
-          roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier));
+          roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier), MainWindow::GetMainWindow()->GetBrushProperty()->GetNoOverwrite());
         m_nPrevVertex = nvo;
       }
     }

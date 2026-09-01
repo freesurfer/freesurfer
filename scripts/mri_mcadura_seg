@@ -10,6 +10,7 @@ set scriptname = `basename $0`
 if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
 
 set model = $FREESURFER_HOME_FSPYTHON/models/mca-dura.both-lh.nstd21.fhs.h5
+set pt_model = $FREESURFER_HOME_FSPYTHON/models/fsdeepnet/mca-dura.both-lh.nstd21.fhs.pth
 set ctab = $FREESURFER/models/mca-dura.ctab
 set mni152prior_lh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.lh.nii.gz
 set mni152prior_rh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.rh.nii.gz
@@ -22,7 +23,6 @@ set DoTest = 0
 
 set fsctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
-set pt_model = ()
 set outseg = ()
 set outdir = ();
 set invol = ();
@@ -175,8 +175,8 @@ foreach hemi ($hemilist)
       --percentile 99.9 --vmp --output-base mcadura --conform \
       --logfile mri_mcadura_seg.log --no-cite-sclimbic --threads $threads \
       --fov 72 --i $involcrop --o $seg)
-    if($#pt_model) then
-      set cmd = ($cmd --pt_model $pt_model)
+    if($?RUN_FSDEEPNET) then
+      set cmd = ($cmd --model $pt_model)
     else
       set cmd = ($cmd --model $model)
     endif
@@ -286,11 +286,6 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "--pt_model":
-      if($#argv < 1) goto arg1err;
-      set pt_model = $argv[1]; shift;    
-      breaksw
- 
     case "--o":
       if($#argv < 1) goto arg1err;
       set outseg = $argv[1]; shift;

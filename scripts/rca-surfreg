@@ -111,13 +111,14 @@ if(! $JosaReg) then
     if($ud || $ForceUpdate) then
       set cmd = (mris_register -curv -threads $OMP_NUM_THREADS)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+      if($longitudinal) set cmd = ($cmd -nosulc -norot)
+      set xopts = `fsr-getxopts mris_register $V8XoptsFile $GlobXOptsFile $XOptsFile `;
+      set cmd = ($cmd $xopts)
       if($longitudinal) then
-        set cmd = ($cmd -nosulc -norot $longbasedir/surf/$hemi.sphere.reg)
+        set cmd = ($cmd $longbasedir/surf/$hemi.sphere.reg)
       else
         set cmd = ($cmd $sphere)
       endif # long
-      set xopts = `fsr-getxopts mris_register $V8XoptsFile $GlobXOptsFile $XOptsFile `;
-      set cmd = ($cmd $xopts)
       set cmd = ($cmd $AvgTif $spherereg)
       echo "\n $cmd \n"|& tee -a $LF 
       if($RunIt) then

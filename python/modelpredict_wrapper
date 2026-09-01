@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+import re
+import sys
+import os
+
+if ("RUN_FSDEEPNET" not in os.environ):
+    print(f"Running Freesurfer version of @SCRIPTNAME@ ...")    
+    from fspylegacy.@SCRIPTNAME@ import main
+else:
+    print(f"Running FSdeepnet version of @SCRIPTNAME@ ...")
+    from fsdeepnet.apps.@SCRIPTNAME@.cli.@SCRIPTNAME@ import main
+
+sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+sys.exit(main())

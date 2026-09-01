@@ -36,7 +36,8 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_layerRef( NULL ),
   m_dFillValue(1.0),
   m_dEraseValue(0.0),
-  m_bIsCloning(false)
+  m_bIsCloning(false),
+  m_bNoOverwrite(false)
 {
   m_dDrawRange[0] = 0;
   m_dDrawRange[1] = 1000000;

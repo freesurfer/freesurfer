@@ -30,7 +30,7 @@ public:
   void BuildContour( LayerMRI* mri, int nSegValue, int nThreadID );
 
 signals:
-  void Finished( int nThreadID );
+  void Finished( int nThreadID, int nSegVal );
 
 public slots:
 

@@ -398,7 +398,7 @@ public slots:
   void UpdateResliceInterpolation();
   void UpdateMRIToImage();
   void SetMaskThreshold(double val);
-  void RebuildContour();
+  void RebuildContour(int nSeg = -1);
 
 Q_SIGNALS:
   void ResampleFactorChanged();
@@ -441,7 +441,7 @@ protected slots:
   void UpdateTensorActor();
   virtual void UpdateColorMap();
 
-  void OnContourThreadFinished(int thread_id);
+  void OnContourThreadFinished(int thread_id, int seg_val);
   void UpdateSurfaceCorrelationData();
 
   void ResetRef();
