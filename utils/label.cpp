@@ -4285,3 +4285,78 @@ LABEL *MRISseg2Label(MRIS *surf, MRI *seg, std::vector<int> segidlist)
 
   return(label);
 }
+
+
+/*! 
+  \fn LABEL *Label2Surf(LABEL *label, MRIS *surf, double dminmax, int RemoveHoles, double hashres)
+  \brief Maps label to the given surface. The input label must be a
+  surface-based label with xyz set. xyz can be in TkReg or scanner space,
+  but the output will be in TkReg. For each label point, the closest point
+  on the surface location is found, and the vertex number and xyz are
+  updated. For a point to be included in the new label, the distance from
+  the point to the surface must be < dminmax. If RemoveHoles is set, it will
+  remove holes from inside the label. hasres is typically 16.
+*/
+LABEL *Label2Surf(LABEL * label, MRIS *surf, double dminmax, int RemoveHoles, double hashres)
+{
+  // Get a transform if needed
+  MATRIX *M = MatrixIdentity(4,NULL);
+  int space = 0;
+  if(strcmp(label->space,"TkReg") == 0) space = 1;
+  if(strcmp(label->space,"scanner") == 0){
+    space = 2;
+    M = surf->vg.get_RAS2TkregRAS();
+  }
+  printf("label space %s %d  npoints %d\n",label->space,space,label->n_points);
+  if(space == 0) {
+    printf("ERROR: Label2Surf(): space %s unrecognized\n",label->space);
+    MatrixFree(&M);
+    return(NULL);
+  }
+  LABEL *newlabel = LabelCopy(label,NULL);
+  newlabel->n_points = 0;
+  // Force to be TkReg, otherwise have to convert points back to scanner. Note that
+  // remove holes below will simply set it to TkReg.
+  strcpy(newlabel->space,"TkReg");
+  printf("new label space %s\n",newlabel->space);
+
+  MHT *hash = MHTcreateVertexTable_Resolution(surf, CURRENT_VERTICES,hashres);
+  MATRIX *xyz = MatrixAlloc(4,1,MATRIX_REAL);
+  xyz->rptr[4][1] = 1;
+  for (int n = 0; n < label->n_points; n++) {
+    double x = label->lv[n].x;
+    double y = label->lv[n].y;
+    double z = label->lv[n].z;
+    if(space == 2){//scanner->TkReg
+      xyz->rptr[1][1] = x; xyz->rptr[2][1] = y; xyz->rptr[3][1] = z;
+      xyz = MatrixMultiplyD(M,xyz,xyz);
+      x = xyz->rptr[1][1]; y = xyz->rptr[2][1]; z = xyz->rptr[3][1];
+    }
+    float dmin;
+    int vtxno = MHTfindClosestVertexNoXYZ(hash,surf,x,y,z,&dmin);
+    if(dmin < dminmax){
+      newlabel->lv[newlabel->n_points].vno = vtxno;
+      // Map back to source space if needed here (but see remove holes below)
+      newlabel->lv[newlabel->n_points].x = surf->vertices[vtxno].x;
+      newlabel->lv[newlabel->n_points].y = surf->vertices[vtxno].y;
+      newlabel->lv[newlabel->n_points].z = surf->vertices[vtxno].z;
+      newlabel->lv[newlabel->n_points].stat = label->lv[n].stat;
+      newlabel->n_points++;
+    }
+  }
+  printf("new label has npoints %d\n",newlabel->n_points);
+  if(RemoveHoles){
+    printf("removing holes\n");
+    // Note: this changes the space to TkReg
+    LABEL *tmplab = LabelRemoveHolesSurf(surf,newlabel);
+    LabelFree(&newlabel);
+    newlabel = tmplab;
+    printf("new label has npoints %d\n",newlabel->n_points);
+  }
+  printf("new label space %s\n",newlabel->space);
+  
+  MatrixFree(&xyz);
+  MatrixFree(&M);
+  MHTfree(&hash);
+  return(newlabel);
+}
