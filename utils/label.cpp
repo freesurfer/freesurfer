@@ -4178,21 +4178,21 @@ LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb)
     surf->vertices[lb->lv[n].vno].val = 1;
 
   scs = sclustMapSurfClusters(surf,0.5,2,+1,0,&NClusters,NULL,NULL);
-  printf("-------------------------------------\n");
-  DumpSurfClusterSum(stdout, scs, NClusters);
-  printf("-------------------------------------\n");
+  //printf("-------------------------------------\n");
+  //DumpSurfClusterSum(stdout, scs, NClusters);
+  //printf("-------------------------------------\n");
 
   MaxSize = 0;
   nMax = 0;
   for(n=0; n < NClusters; n++){
-    printf("%d \n",scs[n].nmembers);
+    //printf("%d \n",scs[n].nmembers);
     if(MaxSize < scs[n].nmembers){
       MaxSize = scs[n].nmembers;
       nMax = n;
     }
   }
 
-  printf("n = %d %d\n",nMax,MaxSize);
+  printf("LabelRemoveIslandsSurf(): n = %d %d\n",nMax,MaxSize);
   lbcluster = LabelAlloc(scs[nMax].nmembers+1, lb->subject_name, NULL);
   lbcluster->coords = lb->coords;
   lbcluster->n_points = scs[nMax].nmembers;
