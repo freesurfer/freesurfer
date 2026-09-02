@@ -9,12 +9,12 @@ fsdeepnet = "--fsdeepnet" in sys.argv
 
 if (fsdeepnet):
     sys.argv.remove("--fsdeepnet")
-    os.environ["FSDEEPNET_PRETRAINED_DOWNLOAD"] = "/space/metropolis/1/users/yh887/fsdeepnet/fsdeepnet/apps/pretrained"
 
 if (not fsdeepnet and "RUN_FSDEEPNET" not in os.environ):
     print(f"Running Freesurfer version of @SCRIPTNAME@ ...")    
     from fspylegacy.@SCRIPTNAME@ import main
 else:
+    os.environ["FSDEEPNET_PRETRAINED_DOWNLOAD"] = "/space/metropolis/1/users/yh887/fsdeepnet/fsdeepnet/apps/pretrained"
     print(f"Running FSdeepnet version of @SCRIPTNAME@ ...")
     from fsdeepnet.apps.@SCRIPTNAME@.cli.@SCRIPTNAME@ import main
 
