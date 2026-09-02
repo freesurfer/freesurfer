@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1363</width>
-    <height>857</height>
+    <height>814</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -78,7 +78,7 @@
              <number>0</number>
             </property>
             <property name="bottomMargin">
-             <number>0</number>
+             <number>12</number>
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_2">
@@ -487,7 +487,7 @@ QPushButton:disabled {background: #999999;}</string>
              <number>0</number>
             </property>
             <property name="bottomMargin">
-             <number>0</number>
+             <number>12</number>
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_3">
@@ -520,6 +520,9 @@ QPushButton:disabled {background: #999999;}</string>
             </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_12">
+              <property name="topMargin">
+               <number>20</number>
+              </property>
               <item>
                <spacer name="horizontalSpacer_26">
                 <property name="orientation">
@@ -532,23 +535,6 @@ QPushButton:disabled {background: #999999;}</string>
                  </size>
                 </property>
                </spacer>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButtonCreateMask">
-                <property name="minimumSize">
-                 <size>
-                  <width>100</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #457c92; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
-                </property>
-                <property name="text">
-                 <string>Process and Continue</string>
-                </property>
-               </widget>
               </item>
               <item>
                <widget class="QPushButton" name="pushButtonClearCC">
@@ -569,6 +555,70 @@ QPushButton:disabled {background: #999999;}</string>
               </item>
               <item>
                <spacer name="horizontalSpacer_27">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_15">
+              <property name="topMargin">
+               <number>20</number>
+              </property>
+              <item>
+               <spacer name="horizontalSpacer_49">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_13">
+                <property name="font">
+                 <font>
+                  <pointsize>15</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>Label opacity</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="horizontalSliderLabelOpacity">
+                <property name="maximumSize">
+                 <size>
+                  <width>100</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="maximum">
+                 <number>100</number>
+                </property>
+                <property name="value">
+                 <number>100</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_50">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -612,6 +662,69 @@ QPushButton:disabled {background: #999999;}</string>
              </spacer>
             </item>
             <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_14">
+              <item>
+               <spacer name="horizontalSpacer_44">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonCreateMask">
+                <property name="minimumSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: #457c92; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}</string>
+                </property>
+                <property name="text">
+                 <string>Process and Continue</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_48">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_5">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_11">
               <item>
                <spacer name="horizontalSpacer_22">
@@ -642,7 +755,7 @@ QPushButton:disabled {background: #999999;}</string>
 QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="text">
-                 <string>Quit</string>
+                 <string>Finish Case</string>
                 </property>
                </widget>
               </item>
@@ -678,7 +791,7 @@ QPushButton:disabled {background: #999999;}</string>
              <number>0</number>
             </property>
             <property name="bottomMargin">
-             <number>0</number>
+             <number>12</number>
             </property>
             <item>
              <widget class="QLabel" name="labelTitle">
@@ -740,6 +853,167 @@ QPushButton:disabled {background: #999999;}</string>
              </layout>
             </item>
             <item>
+             <layout class="QGridLayout" name="gridLayout_2">
+              <item row="0" column="0">
+               <spacer name="horizontalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="3">
+               <spacer name="horizontalSpacer_4">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="2">
+               <widget class="QPushButton" name="pushButtonProcess">
+                <property name="minimumSize">
+                 <size>
+                  <width>80</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}</string>
+                </property>
+                <property name="text">
+                 <string>Process Image</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QGridLayout" name="gridLayout_4">
+              <property name="horizontalSpacing">
+               <number>6</number>
+              </property>
+              <item row="0" column="0">
+               <spacer name="horizontalSpacer_7">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="3">
+               <spacer name="horizontalSpacer_8">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="2">
+               <widget class="QPushButton" name="pushButtonTogglePreview">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: none; padding: 0 0 0 0; border: none;}
+</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="dissection_photo.qrc">
+                  <normaloff>:/resource/switch@2x.png</normaloff>
+                  <normalon>:/resource/switch_on@2x.png</normalon>:/resource/switch@2x.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>60</width>
+                  <height>36</height>
+                 </size>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="label_12">
+                <property name="font">
+                 <font>
+                  <pointsize>15</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>Preview</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>30</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>396</width>
+                <height>17</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <item>
                <spacer name="horizontalSpacer_14">
@@ -766,7 +1040,8 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white</string>
+                 <string notr="true">QPushButton {background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="text">
                  <string>Clear Edit</string>
@@ -787,139 +1062,6 @@ QPushButton:disabled {background: #999999;}</string>
                </spacer>
               </item>
              </layout>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_3">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>30</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QGridLayout" name="gridLayout_4">
-              <item row="0" column="0">
-               <spacer name="horizontalSpacer_7">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="2">
-               <spacer name="horizontalSpacer_8">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="1">
-               <widget class="QPushButton" name="pushButtonTogglePreview">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="cursor">
-                 <cursorShape>PointingHandCursor</cursorShape>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white</string>
-                </property>
-                <property name="text">
-                 <string>Toggle Preview</string>
-                </property>
-                <property name="checkable">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QGridLayout" name="gridLayout_2">
-              <item row="0" column="0">
-               <spacer name="horizontalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="2">
-               <spacer name="horizontalSpacer_4">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="1">
-               <widget class="QPushButton" name="pushButtonProcess">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="cursor">
-                 <cursorShape>PointingHandCursor</cursorShape>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white</string>
-                </property>
-                <property name="text">
-                 <string>Process and Conitune</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>396</width>
-                <height>17</height>
-               </size>
-              </property>
-             </spacer>
             </item>
             <item>
              <spacer name="verticalSpacer_2">
@@ -1021,7 +1163,7 @@ QPushButton:disabled {background: #999999;}</string>
               <property name="styleSheet">
                <string notr="true">#widgetDropImages {border-radius:35; border: 8px dashed #57a2c0;}</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_7">
+              <layout class="QVBoxLayout" name="verticalLayout_7" stretch="1,1,0">
                <property name="spacing">
                 <number>15</number>
                </property>
@@ -1040,7 +1182,7 @@ QPushButton:disabled {background: #999999;}</string>
                <item>
                 <widget class="QLabel" name="label_122">
                  <property name="text">
-                  <string>Upload your uncorrected photographs of dissection photographs</string>
+                  <string>Upload your uncorrected photographs of dissection photographs or drag and drop your image folder into this box</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1102,17 +1244,14 @@ QPushButton:disabled {background: #999999;}</string>
                </item>
                <item>
                 <widget class="QLabel" name="labelImageFolder">
-                 <property name="text">
-                  <string>Or drag and drop your image folder into this box</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignHCenter|Qt::AlignTop</set>
-                 </property>
                  <property name="wordWrap">
                   <bool>true</bool>
                  </property>
-                 <property name="textInteractionFlags">
-                  <set>Qt::LinksAccessibleByMouse</set>
+                 <property name="openExternalLinks">
+                  <bool>false</bool>
+                 </property>
+                 <property name="buddy">
+                  <cstring>pushButtonUploadImages</cstring>
                  </property>
                 </widget>
                </item>
@@ -1130,7 +1269,7 @@ QPushButton:disabled {background: #999999;}</string>
               <property name="styleSheet">
                <string notr="true">#widgetDropCalibration {border-radius:35; border: 8px dashed #a6a233;}</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_8">
+              <layout class="QVBoxLayout" name="verticalLayout_8" stretch="1,1,0">
                <property name="spacing">
                 <number>15</number>
                </property>
@@ -1146,7 +1285,7 @@ QPushButton:disabled {background: #999999;}</string>
                <item>
                 <widget class="QLabel" name="label_14">
                  <property name="text">
-                  <string>OPTIONAL: Upload a calibration file for automatic spatial correction.</string>
+                  <string>OPTIONAL: Upload a calibration file for automatic spatial correction or drag and drop your calibration file into this box</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1208,14 +1347,11 @@ QPushButton:disabled {background: #999999;}</string>
                </item>
                <item>
                 <widget class="QLabel" name="labelCalibrationFile">
-                 <property name="text">
-                  <string>Or drag and drop your calibration file into this box</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignHCenter|Qt::AlignTop</set>
-                 </property>
                  <property name="wordWrap">
                   <bool>true</bool>
+                 </property>
+                 <property name="openExternalLinks">
+                  <bool>false</bool>
                  </property>
                 </widget>
                </item>
@@ -1338,12 +1474,15 @@ QPushButton:disabled {background: #999999;}</string>
               <property name="styleSheet">
                <string notr="true">#widgetDropCalibrationPhoto {border-radius:35; border: 8px dashed #a6a233;}</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_13">
+              <layout class="QVBoxLayout" name="verticalLayout_13" stretch="1,1,0">
                <property name="spacing">
                 <number>15</number>
                </property>
                <property name="leftMargin">
                 <number>30</number>
+               </property>
+               <property name="topMargin">
+                <number>20</number>
                </property>
                <property name="rightMargin">
                 <number>30</number>
@@ -1354,7 +1493,7 @@ QPushButton:disabled {background: #999999;}</string>
                <item>
                 <widget class="QLabel" name="label_17">
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>Using fiducial markers a calibration file can be created for your specific setup. Upload a photograph of your empty table setup to go to the next menu. This only needs to be done once as long as fiducial markers are not moved. For more information, please visit our wiki page for FreeSurfer's photo-tools. </string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1415,15 +1554,83 @@ QPushButton:disabled {background: #999999;}</string>
                 </layout>
                </item>
                <item>
-                <widget class="QLabel" name="labelCalibrationPhoto">
+                <widget class="QLabel" name="labelCalibrationPhoto"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="widgetDownloadMarkers" native="true">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>100</height>
+               </size>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_12">
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_7">
+                 <item>
+                  <spacer name="horizontalSpacer_32">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="toolButtonDownloadMarkers">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="dissection_photo.qrc">
+                     <normaloff>:/resource/fiducial_markers@2x.png</normaloff>:/resource/fiducial_markers@2x.png</iconset>
+                   </property>
+                   <property name="iconSize">
+                    <size>
+                     <width>160</width>
+                     <height>160</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_43">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelDownloadMarkers">
                  <property name="text">
-                  <string>Or drag and drop the image of the workspace into this box</string>
+                  <string>Click above to download a printout of the fiducial markers</string>
                  </property>
                  <property name="alignment">
-                  <set>Qt::AlignHCenter|Qt::AlignTop</set>
-                 </property>
-                 <property name="wordWrap">
-                  <bool>true</bool>
+                  <set>Qt::AlignCenter</set>
                  </property>
                 </widget>
                </item>
@@ -1818,6 +2025,11 @@ QPushButton:disabled {background: #999999;}</string>
               </property>
               <item>
                <widget class="QLabel" name="label">
+                <property name="font">
+                 <font>
+                  <bold>true</bold>
+                 </font>
+                </property>
                 <property name="text">
                  <string>Calibration Mode </string>
                 </property>
@@ -1919,14 +2131,11 @@ QPushButton:disabled {background: #999999;}</string>
               <cursorShape>PointingHandCursor</cursorShape>
              </property>
              <property name="styleSheet">
-              <string notr="true">background-color: #4ba9f8; border:none; border-radius: 8; padding: 4;</string>
+              <string notr="true">QToolButton {background: #94902c; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
+QToolButton:disabled {background: #999999;}</string>
              </property>
              <property name="text">
               <string>Re-Center</string>
-             </property>
-             <property name="icon">
-              <iconset resource="dissection_photo.qrc">
-               <normaloff>:/resource/reset@2x.png</normaloff>:/resource/reset@2x.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -2311,6 +2520,7 @@ QPushButton:disabled {background: #999999;}</string>
     <slot>ClearEdits()</slot>
     <slot>UndoLastPoint()</slot>
     <slot>RedoLastPoint()</slot>
+    <slot>SetCombinedMaskOpacity(double)</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -2363,7 +2573,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>828</x>
-     <y>805</y>
+     <y>762</y>
     </hint>
     <hint type="destinationlabel">
      <x>100</x>
@@ -2379,7 +2589,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>940</x>
-     <y>805</y>
+     <y>762</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
@@ -2395,7 +2605,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>1030</x>
-     <y>805</y>
+     <y>762</y>
     </hint>
     <hint type="destinationlabel">
      <x>176</x>
@@ -2411,7 +2621,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>1142</x>
-     <y>805</y>
+     <y>762</y>
     </hint>
     <hint type="destinationlabel">
      <x>304</x>
@@ -2427,7 +2637,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>1232</x>
-     <y>805</y>
+     <y>762</y>
     </hint>
     <hint type="destinationlabel">
      <x>137</x>
@@ -2443,7 +2653,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>1344</x>
-     <y>805</y>
+     <y>762</y>
     </hint>
     <hint type="destinationlabel">
      <x>251</x>
@@ -2491,7 +2701,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>1350</x>
-     <y>70</y>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
      <x>1270</x>
@@ -2506,8 +2716,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonProceedToSeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>331</x>
-     <y>837</y>
+     <x>408</x>
+     <y>782</y>
     </hint>
     <hint type="destinationlabel">
      <x>310</x>
@@ -2538,8 +2748,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonInputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>269</x>
-     <y>225</y>
+     <x>403</x>
+     <y>257</y>
     </hint>
     <hint type="destinationlabel">
      <x>362</x>
@@ -2554,8 +2764,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonClear()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>376</x>
-     <y>164</y>
+     <x>352</x>
+     <y>195</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -2586,28 +2796,12 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonProceedToCC()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>837</y>
+     <x>445</x>
+     <y>782</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
      <y>856</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>labelCalibrationFile</sender>
-   <signal>linkActivated(QString)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnLinkActivated(QString)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>390</x>
-     <y>565</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>1362</x>
-     <y>624</y>
     </hint>
    </hints>
   </connection>
@@ -2634,8 +2828,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonCreateMask()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>161</y>
+     <x>386</x>
+     <y>685</y>
     </hint>
     <hint type="destinationlabel">
      <x>190</x>
@@ -2650,8 +2844,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonCalibrationFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>341</x>
-     <y>489</y>
+     <x>418</x>
+     <y>521</y>
     </hint>
     <hint type="destinationlabel">
      <x>454</x>
@@ -2666,8 +2860,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonContinue()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>255</x>
-     <y>810</y>
+     <x>351</x>
+     <y>782</y>
     </hint>
     <hint type="destinationlabel">
      <x>302</x>
@@ -2682,8 +2876,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonProcess()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>396</x>
-     <y>372</y>
+     <x>371</x>
+     <y>223</y>
     </hint>
     <hint type="destinationlabel">
      <x>261</x>
@@ -2699,27 +2893,11 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>353</x>
-     <y>223</y>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
      <x>247</x>
      <y>0</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>labelImageFolder</sender>
-   <signal>linkActivated(QString)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnLinkActivated(QString)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>390</x>
-     <y>297</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>1339</x>
-     <y>340</y>
     </hint>
    </hints>
   </connection>
@@ -2730,8 +2908,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonTogglePreview(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>372</x>
-     <y>320</y>
+     <x>363</x>
+     <y>276</y>
     </hint>
     <hint type="destinationlabel">
      <x>207</x>
@@ -2746,8 +2924,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonBackToStart()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>65</x>
-     <y>807</y>
+     <x>96</x>
+     <y>781</y>
     </hint>
     <hint type="destinationlabel">
      <x>67</x>
@@ -2763,7 +2941,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>573</x>
-     <y>825</y>
+     <y>781</y>
     </hint>
     <hint type="destinationlabel">
      <x>378</x>
@@ -2778,8 +2956,8 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonSaveCalibration()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>226</x>
-     <y>804</y>
+     <x>368</x>
+     <y>781</y>
     </hint>
     <hint type="destinationlabel">
      <x>246</x>
@@ -2810,12 +2988,12 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>OnButtonCalibrationPhoto()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>277</x>
-     <y>215</y>
+     <x>397</x>
+     <y>256</y>
     </hint>
     <hint type="destinationlabel">
      <x>321</x>
-     <y>-122</y>
+     <y>0</y>
     </hint>
    </hints>
   </connection>
@@ -2827,7 +3005,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>454</x>
-     <y>622</y>
+     <y>683</y>
     </hint>
     <hint type="destinationlabel">
      <x>671</x>
@@ -2843,7 +3021,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>212</x>
-     <y>622</y>
+     <y>683</y>
     </hint>
     <hint type="destinationlabel">
      <x>652</x>
@@ -2859,7 +3037,7 @@ QPushButton:disabled {background: #999999;}</string>
    <hints>
     <hint type="sourcelabel">
      <x>279</x>
-     <y>622</y>
+     <y>683</y>
     </hint>
     <hint type="destinationlabel">
      <x>664</x>
@@ -2874,12 +3052,60 @@ QPushButton:disabled {background: #999999;}</string>
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>326</x>
-     <y>822</y>
+     <x>362</x>
+     <y>782</y>
     </hint>
     <hint type="destinationlabel">
      <x>417</x>
-     <y>1201</y>
+     <y>1033</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>labelImageFolder</sender>
+   <signal>linkActivated(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLinkActivated(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>443</x>
+     <y>291</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>-67</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>labelCalibrationFile</sender>
+   <signal>linkActivated(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLinkActivated(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>339</x>
+     <y>556</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>449</x>
+     <y>-57</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSliderLabelOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSliderLabelOpacity(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>330</x>
+     <y>241</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>546</x>
+     <y>-21</y>
     </hint>
    </hints>
   </connection>
@@ -2913,5 +3139,6 @@ QPushButton:disabled {background: #999999;}</string>
   <slot>OnButtonSaveCalibration()</slot>
   <slot>OnButtonProceedToCalibration()</slot>
   <slot>OnButtonCalibrationPhoto()</slot>
+  <slot>OnSliderLabelOpacity(int)</slot>
  </slots>
 </ui>

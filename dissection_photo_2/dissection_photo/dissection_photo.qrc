@@ -17,5 +17,8 @@
         <file>resource/recon@2x.png</file>
         <file>resource/ruler@2x.png</file>
         <file>resource/slabs@2x.png</file>
+        <file>resource/fiducial_markers@2x.png</file>
+        <file>resource/switch_on@2x.png</file>
+        <file>resource/switch@2x.png</file>
     </qresource>
 </RCC>

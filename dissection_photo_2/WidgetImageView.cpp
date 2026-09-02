@@ -9,7 +9,7 @@
 
 WidgetImageView::WidgetImageView(QWidget *parent)
   : QWidget(parent), m_dScale(1.0), m_ptOffset(QPoint(0,0)), m_bPanning(false), m_bZooming(false), m_bDrawing(false),
-    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7),
+    m_nNumberOfExpectedPoints(2), m_nEditMode(0), m_dMaskOpacity(0.7), m_dCombinedMaskOpacity(1.0),
     m_nBrushSize(10), m_bMaskEdited(false), m_bModifierDown(false)
 {
   setMouseTracking(true);
@@ -136,6 +136,7 @@ void WidgetImageView::PrepareImage()
     if (!m_imageOverlay.isNull())
     {
       QPainter p(&m_image);
+      p.setOpacity(m_dCombinedMaskOpacity);
       p.drawImage(0, 0, m_imageOverlay);
       p.end();
     }
@@ -169,14 +170,12 @@ void WidgetImageView::PrepareImage()
     if (!m_imageCombinedMaskOverlay.isNull())
     {
       QPainter p(&m_image);
-      p.setOpacity(m_dMaskOpacity);
       p.drawImage(0, 0, m_imageCombinedMaskOverlay);
       p.end();
     }
     if (!m_listSelectedMasks.isEmpty())
     {
       QPainter p(&m_image);
-      double val = 1;
       p.setOpacity(qMin(1.0, m_dMaskOpacity*2));
       foreach (QImage img, m_listSelectedMasks)
         p.drawImage(0, 0, img);
@@ -538,6 +537,12 @@ void WidgetImageView::ClearEdits()
 void WidgetImageView::SetMaskOpacity(double val)
 {
   m_dMaskOpacity = val;
+  UpdateAll();
+}
+
+void WidgetImageView::SetCombinedMaskOpacity(double val)
+{
+  m_dCombinedMaskOpacity = val;
   UpdateAll();
 }
 

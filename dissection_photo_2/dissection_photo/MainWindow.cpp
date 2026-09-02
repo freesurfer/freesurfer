@@ -176,7 +176,7 @@ void MainWindow::SetInputFolder(const QString &path, const QString& root_output)
   m_strInputFolder = path;
   if (path.isEmpty())
   {
-    ui->labelImageFolder->setText("Or drag and drop your image folder into this box");
+    ui->labelImageFolder->clear();
   }
   else
   {
@@ -195,7 +195,7 @@ void MainWindow::SetCalibrationFile(const QString &path)
   m_strCalibrationFile = path;
   if (path.isEmpty())
   {
-    ui->labelCalibrationFile->setText("Or drag and drop your calibration file into this box");
+    ui->labelCalibrationFile->clear();
   }
   else
   {
@@ -208,7 +208,7 @@ void MainWindow::SetCalibrationPhoto(const QString &path)
   m_strCalibrationPhoto = path;
   if (path.isEmpty())
   {
-    ui->labelCalibrationPhoto->setText("Or drag and drop the image into this box");
+    ui->labelCalibrationPhoto->clear();
   }
   else
   {
@@ -640,8 +640,9 @@ void MainWindow::UpdateIndex()
     ui->pushButtonNext->setEnabled(m_nIndex < m_listInputFiles.size()-1);
     ui->pushButtonSegmentation->setEnabled(true); // m_listPointData.count() == m_listInputFiles.size());
     ui->pushButtonTogglePreview->blockSignals(true);
-    ui->pushButtonTogglePreview->setChecked(false);
-    ui->pushButtonTogglePreview->setEnabled(m_nIndex >= 0 && m_listPointData.contains(m_nIndex));
+    // if (!m_listPointData.contains(m_nIndex))
+    //   ui->pushButtonTogglePreview->setChecked(false);
+//    ui->pushButtonTogglePreview->setEnabled(m_nIndex >= 0 && m_listPointData.contains(m_nIndex));
     ui->pushButtonTogglePreview->blockSignals(false);
   }
   if (ui->stackedWidget->currentWidget() == ui->pageSegEdit)
@@ -761,7 +762,10 @@ void MainWindow::OnButtonNext()
       if (ui->widgetImageView->SaveMaskIfEdited())
         ui->listWidgetThumbnail->SetItemImage(m_nIndex, ui->widgetImageView->GetImageInView());
     }
-    LoadImage(++m_nIndex);
+    if (ui->stackedWidget->currentWidget() == ui->pageCorrection && ui->pushButtonTogglePreview->isChecked())
+      LoadImage(++m_nIndex, true, true);
+    else
+      LoadImage(++m_nIndex);
     UpdateIndex();
   }
   else if (ui->stackedWidget->currentWidget() == ui->pageCC)
@@ -781,7 +785,10 @@ void MainWindow::OnButtonPrevious()
     if (ui->widgetImageView->SaveMaskIfEdited())
       ui->listWidgetThumbnail->SetItemImage(m_nIndex, ui->widgetImageView->GetImageInView());
   }
-  LoadImage(--m_nIndex);
+  if (ui->stackedWidget->currentWidget() == ui->pageCorrection && ui->pushButtonTogglePreview->isChecked())
+    LoadImage(--m_nIndex, true, true);
+  else
+    LoadImage(--m_nIndex);
   UpdateIndex();
 }
 
@@ -842,8 +849,8 @@ void MainWindow::OnButtonProcess()
     m_listPointData[m_nIndex] = pts;
     m_proc->setProperty("next_task_info", "");
     RunRetrospectiveCorrection(ui->widgetImageView->GetFilename(), pts, dWidth, dHeight);
-    if (ui->pushButtonNext->isEnabled())
-      OnButtonNext();
+    // if (ui->pushButtonNext->isEnabled())
+    //   OnButtonNext();
   }
 }
 
@@ -1018,7 +1025,12 @@ void MainWindow::OnProcessFinished()
       ui->listWidgetThumbnail->SetItemChecked(n-1, true);
     }
     else
+    {
       ui->listWidgetThumbnail->SetItemChecked(m_nIndex, true);
+      UpdateIndex();
+      if (ui->stackedWidget->currentWidget() == ui->pageCorrection && ui->pushButtonTogglePreview->isChecked())
+        LoadImage(m_nIndex, true, true);
+    }
   }
 }
 
@@ -1048,7 +1060,7 @@ void MainWindow::OnButtonProceedToSeg()
   QFileInfoList flist = QDir(m_strOutputFolder).entryInfoList(QDir::Files, QDir::Name);
   if (flist.size() != m_listInputFiles.size())
   {
-    QMessageBox::warning(this, "Error", "Canno proceed because there are unprocessed images");
+    QMessageBox::warning(this, "Error", "Cannot proceed because there are unprocessed images");
     return;
   }
   ui->stackedWidget->setCurrentWidget(ui->pageSegEdit);
@@ -1094,6 +1106,7 @@ void MainWindow::OnButtonProceedToCalibration()
   ui->pushButtonProceedToCalibration->hide();
   ui->widgetCalibrationControl->hide();
   ui->widgetDropCalibrationPhoto->show();
+  ui->widgetDownloadMarkers->show();
 }
 
 void MainWindow::OnButtonCalibration()
@@ -1110,6 +1123,7 @@ void MainWindow::OnButtonCalibration()
     ui->pushButtonProceedToCalibration->hide();
     ui->pushButtonSaveCalibration->show();
     ui->widgetDropCalibrationPhoto->hide();
+    ui->widgetDownloadMarkers->hide();
     ui->widgetCalibrationControl->show();
     ui->frameTopBar->show();
     ui->widgetPointMode->hide();
@@ -1121,6 +1135,11 @@ void MainWindow::OnButtonCalibration()
 void MainWindow::OnSliderSegOpacity(int n)
 {
   ui->widgetImageView->SetMaskOpacity(n/100.0);
+}
+
+void MainWindow::OnSliderLabelOpacity(int n)
+{
+  ui->widgetImageView->SetCombinedMaskOpacity(n/100.0);
 }
 
 void MainWindow::OnLastRegionEdited(int n)
@@ -1279,7 +1298,10 @@ void MainWindow::OnThumbnailIndexChanged(int n)
           ui->listWidgetThumbnail->SetItemImage(m_nIndex, img);
       }
     }
-    LoadImage(n);
+    if (ui->stackedWidget->currentWidget() == ui->pageCorrection && ui->pushButtonTogglePreview->isChecked())
+      LoadImage(n, true, true);
+    else
+      LoadImage(n);
     m_nIndex = n;
     UpdateIndex();
   }

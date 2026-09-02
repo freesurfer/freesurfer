@@ -59,6 +59,7 @@ private slots:
   void OnButtonProceedToRecon();
   void OnButtonProceedToCalibration();
   void OnSliderSegOpacity(int n);
+  void OnSliderLabelOpacity(int n);
   void OnLastRegionEdited(int n);
   void OnToggleMask();
   void OnFileChanged(const QString& path);

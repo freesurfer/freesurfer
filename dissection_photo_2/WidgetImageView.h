@@ -122,6 +122,8 @@ public slots:
 
   void RedoLastPoint();
 
+  void SetCombinedMaskOpacity(double val);
+
 private:
   void PrepareImage();
   void UpdateScaledImage(bool bSmooth = false);
@@ -161,6 +163,7 @@ private:
   QStringList m_listPreMasks;
   QImage    m_imageCombinedMaskOverlay;
   double    m_dMaskOpacity;
+  double    m_dCombinedMaskOpacity;
   QList<QImage> m_listAllMasks;
   QList<QImage> m_listSelectedMasks;
   int      m_nBrushSize;
