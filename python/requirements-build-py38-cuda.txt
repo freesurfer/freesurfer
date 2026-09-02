@@ -63,7 +63,8 @@ scikit-learn==1.3.2
 scipy==1.10.1
 segment-anything==1.0
 six==1.17.0
-spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
+#spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
 # surfa@git+https://github.com/freesurfer/surfa.git@78957160b63a01f4cbfce13b45d63d40d28f87f9
 # surfa@git+https://github.com/freesurfer/surfa.git@ec5ddb193fd1caf22ec654c457b5678f6bd8e460
 git+https://github.com/freesurfer/surfa.git@master

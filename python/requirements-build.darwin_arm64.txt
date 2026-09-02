@@ -85,7 +85,7 @@ scipy==1.10.1
 segment-anything==1.0
 six==1.17.0
 # spheremorph@git+https://github.com/silencer1127/spheremorph.git@master
-spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
 # git+https://github.com/freesurfer/surfa.git@master
 surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
 sympy==1.13.3

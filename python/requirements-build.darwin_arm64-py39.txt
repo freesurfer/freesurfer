@@ -109,7 +109,7 @@ segment-anything==1.0
 sentry_sdk==2.67.1
 simpleitk==2.5.4
 six==1.17.0
-spheremorph@git+https://github.com/silencer1127/spheremorph.git@26c4c8e3f9144e5705563ffcbed8bda381d2fe56
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
 smmap==5.0.3
 # surfa@git+https://github.com/freesurfer/surfa.git@0a04738981ffebe29f6e35bf9bd8c4458c82e50f
 git+https://github.com/freesurfer/surfa.git@master
