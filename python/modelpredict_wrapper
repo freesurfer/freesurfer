@@ -4,7 +4,14 @@ import re
 import sys
 import os
 
-if ("RUN_FSDEEPNET" not in os.environ):
+# Handle wrapper-specific arguments before passing argv to main().
+fsdeepnet = "--fsdeepnet" in sys.argv
+
+if (fsdeepnet):
+    sys.argv.remove("--fsdeepnet")
+    os.environ["FSDEEPNET_PRETRAINED_DOWNLOAD"] = "/space/metropolis/1/users/yh887/fsdeepnet/fsdeepnet/apps/pretrained"
+
+if (not fsdeepnet and "RUN_FSDEEPNET" not in os.environ):
     print(f"Running Freesurfer version of @SCRIPTNAME@ ...")    
     from fspylegacy.@SCRIPTNAME@ import main
 else:
