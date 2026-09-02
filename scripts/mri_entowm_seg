@@ -28,7 +28,7 @@ endif
 
 set logdir = ()
 set model = $FREESURFER/models/entowm.fsm31.t1.nstd00-30.nstd21-108.h5
-set pt_model = $FREESURFER/models/fsdeepnet/entowm.fsm31.t1.nstd00-30.nstd21-108.pth
+set pt_model = entowm.fsm31.t1.nstd00-30.nstd21-108.pth
 set ctab = $FREESURFER/models/entowm.ctab
 set base = entowm
 

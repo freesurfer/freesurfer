@@ -10,7 +10,7 @@ set scriptname = `basename $0`
 if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
 
 set model = $FREESURFER_HOME_FSPYTHON/models/vsinus.no-sp.m.all.nstd10-070.h5
-set pt_model = $FREESURFER_HOME_FSPYTHON/models/fsdeepnet/vsinus.no-sp.m.all.nstd10-070.pth
+set pt_model = vsinus.no-sp.m.all.nstd10-070.pth
 set priormni = $FREESURFER/average/vsinus.no-sp.prior.mni152.1.0mm.mgz
 # Creates its own ctab below
 #set ctab = $FREESURFER/models/vsinus.no-sp.ctab

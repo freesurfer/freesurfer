@@ -10,7 +10,7 @@ set scriptname = `basename $0`
 if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
 
 set model = $FREESURFER_HOME_FSPYTHON/models/mca-dura.both-lh.nstd21.fhs.h5
-set pt_model = $FREESURFER_HOME_FSPYTHON/models/fsdeepnet/mca-dura.both-lh.nstd21.fhs.pth
+set pt_model = mca-dura.both-lh.nstd21.fhs.pth
 set ctab = $FREESURFER/models/mca-dura.ctab
 set mni152prior_lh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.lh.nii.gz
 set mni152prior_rh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.rh.nii.gz
