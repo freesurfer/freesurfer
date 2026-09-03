@@ -61,7 +61,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -432,7 +432,7 @@
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>40</width>
+                  <width>0</width>
                   <height>20</height>
                  </size>
                 </property>
@@ -462,7 +462,7 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>40</width>
+                  <width>0</width>
                   <height>20</height>
                  </size>
                 </property>
