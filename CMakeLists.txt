@@ -967,6 +967,7 @@ endif()
 add_subdirectories(
   AntsDenoiseImageFs
   AntsN4BiasFieldCorrectionFs
+  fsdeepnet_cli
   lta_convert
   io
   mri_and
