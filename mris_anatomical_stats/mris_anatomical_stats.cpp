@@ -550,6 +550,10 @@ main(int argc, char *argv[])
       num_cortex_vertices = 0;
       total_cortex_area = 0;
       mean_cortex_thickness = 0;
+      // counts only vertices whose thickness passes the -i range so that
+      // MeanThickness honors the documented filter while NumVert keeps
+      // reporting the full cortex-label vertex count
+      int num_cortex_thickness_vertices = 0;
       int vno;
 
 #if 0
@@ -619,11 +623,14 @@ main(int argc, char *argv[])
 	  num_cortex_vertices++;
 	  // thickness measures were saved to v->imag_val earlier by the
 	  // call to MRIScopyCurvatureToImagValues(mris)
+	  // honor the -i thickness range (defaults accept everything)
+	  if (v->imag_val < ignore_below || v->imag_val > ignore_above) continue;
 	  mean_cortex_thickness += v->imag_val;
+	  num_cortex_thickness_vertices++;
         }
 #endif
-      if (mean_cortex_thickness && num_cortex_vertices )
-        mean_cortex_thickness /= num_cortex_vertices;
+      if (mean_cortex_thickness && num_cortex_thickness_vertices )
+        mean_cortex_thickness /= num_cortex_thickness_vertices;
     }
 
     fprintf(fp,"# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
@@ -726,6 +733,11 @@ main(int argc, char *argv[])
             volumes[MAX_INDICES], thicknesses[MAX_INDICES],
             avg_thick, volume, thickness_vars[MAX_INDICES], std ;
     int     v0_index, v1_index, v2_index, fno, m, i, dofs[MAX_INDICES] ;
+    // tdofs counts only the vertices whose thickness passed the
+    // [ignore_below, ignore_above] range given with -i, so that ThickAvg
+    // and ThickStd honor the documented filter while NumVert (dofs) still
+    // reports the full vertex count of the annotation.
+    int     tdofs[MAX_INDICES] ;
     VERTEX  *v0, *v1, *v2 ;
     FACE    *f ;
 
@@ -733,6 +745,7 @@ main(int argc, char *argv[])
     memset(volumes, 0, sizeof(volumes)) ;
     memset(thicknesses, 0, sizeof(thicknesses)) ;
     memset(dofs, 0, sizeof(dofs)) ;
+    memset(tdofs, 0, sizeof(tdofs)) ;
     memset(thickness_vars, 0, sizeof(thickness_vars)) ;
     v0_index = v1_index = v2_index = 0 ;
 
@@ -843,17 +856,27 @@ main(int argc, char *argv[])
       {
         continue ;
       }
-      thicknesses[v0->marked] += v0->imag_val ;
       dofs[v0->marked]++ ;
+      // -i range: this filter was documented and printed but never applied
+      // (its intended consumer, MRIScomputeCurvatureStats, is never called),
+      // so -i was a silent no-op. Apply it here to the thickness statistics
+      // only. Defaults (0, 20) accept every vertex, leaving standard output
+      // unchanged.
+      if (v0->imag_val < ignore_below || v0->imag_val > ignore_above)
+      {
+        continue ;
+      }
+      thicknesses[v0->marked] += v0->imag_val ;
+      tdofs[v0->marked]++ ;
     }
 
     for (i = 0 ; i < MAX_INDICES ; i++)
     {
-      if (dofs[i] == 0)
+      if (tdofs[i] == 0)
       {
         continue ;
       }
-      thicknesses[i] /= dofs[i] ;
+      thicknesses[i] /= tdofs[i] ;
     }
 
     // compute thickness variance for each annotation
@@ -861,6 +884,10 @@ main(int argc, char *argv[])
     {
       v0 = &mris->vertices[vno] ;
       if (v0->marked < 0)
+      {
+        continue ;
+      }
+      if (v0->imag_val < ignore_below || v0->imag_val > ignore_above)
       {
         continue ;
       }
@@ -910,7 +937,10 @@ main(int argc, char *argv[])
                                         &folding_index,i) ;
 
       volumes[i] /= 2 ;
-      thickness_vars[i] /= dofs[i] ;
+      if (tdofs[i] > 0)
+      {
+        thickness_vars[i] /= tdofs[i] ;
+      }
 
       if(UseTH3Vol){
 	// compute volumes for each annotation based on TH3
