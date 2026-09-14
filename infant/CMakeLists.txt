@@ -55,9 +55,14 @@ if(APPLE)
   else()
     set(NIFTY_REG_DIR niftyreg/mac_x86)
   endif()
+# aarch64 prebuilt executables logic assumes all non-Apple ARM builds are Ubuntu arm
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+  set(NIFTY_REG_DIR niftyreg/ubuntu_aarch64)
+# This and the Ubuntu20_x86 dir can be dropped/migraged once we drop support for Ubuntu20
 elseif("${HOST_OS}" STREQUAL "Ubuntu20")
   set(NIFTY_REG_DIR niftyreg/ubuntu_x86)
-elseif("${HOST_OS}" STREQUAL "Ubuntu22")
+elseif("${HOST_OS}" MATCHES "Ubuntu")
+  # Executables built on Ubuntu22 should also work on Ubuntu24
   set(NIFTY_REG_DIR niftyreg/ubuntu22_x86)
 else()
   set(NIFTY_REG_DIR niftyreg/linux_x86)
