@@ -4947,7 +4947,8 @@ GCA_SAMPLE *GCAfindStableSamples(GCA *gca,
         }
         if (nfound > 0) {
           double p = randomNumber(0, 1.0);
-          if (p < ((double)label_counts[best_label] / nfound)) {
+          /* best_label is -1 when no label qualified; don't index label_counts with it */
+          if (best_label >= 0 && p < ((double)label_counts[best_label] / nfound)) {
             continue;
           }
         }
