@@ -592,10 +592,15 @@ int main(int argc, char **argv) {
   else
   {
     printf("Projecting %g %g %g\n",ProjFracMin,ProjFracMax,ProjFracDelta);
+    // Step with an integer index rather than accumulating a float:
+    // repeated "ProjFrac += ProjFracDelta" builds up rounding error, so for
+    // many (min,max,delta) triplets (eg, --projfrac-avg 0 1 0.1) the final
+    // accumulated value exceeds ProjFracMax by ~1e-7 and the deepest sample
+    // is silently dropped (0 1 0.1 sampled depths 0 to 0.9, mean 0.45).
+    int const nprojmax = (int)round((ProjFracMax-ProjFracMin)/ProjFracDelta) + 1;
     nproj = 0;
-    for (ProjFrac=ProjFracMin; 
-         ProjFrac <= ProjFracMax; 
-         ProjFrac += ProjFracDelta) {
+    for (int nthproj = 0; nthproj < nprojmax; nthproj++) {
+      ProjFrac = ProjFracMin + nthproj*ProjFracDelta;
       printf("%2d %g %g %g\n",nproj+1,ProjFrac,ProjFracMin,ProjFracMax);
       if(UseOld){
         printf("using old\n");
