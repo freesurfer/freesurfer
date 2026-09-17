@@ -2290,7 +2290,7 @@ int MRInonzeroValRange(MRI *mri, float *pmin, float *pmax)
     for (z = 0; z < depth; z++) {
       for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
-          val = MRIgetVoxVal(mri, x, y, z, 0);
+          val = MRIgetVoxVal(mri, x, y, z, frame);
           if (FZERO(val)) continue;
           if (val < fmin) fmin = val;
           if (val > fmax) fmax = val;
