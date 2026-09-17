@@ -16798,7 +16798,8 @@ MRI *MRIaverageFrames(MRI *mri_src, MRI *mri_dst, int start_frame, int end_frame
   if (start_frame < 0) start_frame = 0;
   if (end_frame < 0 || end_frame >= mri_src->nframes) end_frame = mri_src->nframes - 1;
 
-  mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT);
+  if (mri_dst == NULL)
+    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT);
   MRIcopyHeader(mri_src, mri_dst);
   nframes = end_frame - start_frame + 1;
   for (x = 0; x < mri_src->width; x++)
