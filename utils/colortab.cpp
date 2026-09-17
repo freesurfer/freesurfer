@@ -528,6 +528,14 @@ int CTABunique(COLOR_TABLE *ct, int nmax)
 */
 int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
 {
+  /*
+   * If break_after_found != 0, the function should return after finding the first repeat
+   * because it is used to determine if there are duplicates in the CTAB.
+   * The return value is either 0 or 1.
+   *
+   * Two usages are found in CTABunique() and mris_make_face_parcellation.
+   * Both pass break_after_found=1 as argument.
+   */
   int i,j,nrepeats;
   nrepeats=0;
   for(i = 0; i < ct->nentries; i++) {
@@ -539,7 +547,7 @@ int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
 	//printf("Entries %d and %d have the same RGB\n",i,j);
 	nrepeats++;
 	if (break_after_found)
-	  break ;
+	  return nrepeats;
       }
     }
   }
