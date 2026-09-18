@@ -152,7 +152,7 @@ foreach hemi ($hemilist)
       set white  = $FREESURFER/subjects/fsmni152/surf/$hemi.white
       set ribbon = $FREESURFER/subjects/fsmni152/mri/ribbon.mgz
     else
-      set white = $SUBJECTS_DIR/$targetsubject/surf/$hemi.sphere.reg
+      set white = $SUBJECTS_DIR/$targetsubject/surf/$hemi.white
       set ribbon = $SUBJECTS_DIR/$targetsubject/mri/ribbon.mgz
     endif
     set cmd = (mri_surf2vol --so $white $ovsurf --ribbon $ribbon \
@@ -278,7 +278,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--no-mni152":
-     set DoMNI152 = 1
+     set DoMNI152 = 0
      breaksw
 
     case "--mni152":

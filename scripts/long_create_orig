@@ -289,11 +289,11 @@ foreach tpNid ($tpNids)
   set FOV=`mri_info ${origvol} | grep fov: | awk '{print $2}'`
   set FOV_gt_256=`echo "${FOV} > 256" | bc`
   if ($FOV_gt_256) then
-    echo "\n****************************************" |& tee -a $LF
-    echo "ERROR! FOV=${FOV} > 256" |& tee -a $LF
-    echo "Include the flag -cw256 with recon-all!" |& tee -a $LF
-    echo "Inspect orig.mgz to ensure the head is fully visible." |& tee -a $LF
-    echo "****************************************\n" |& tee -a $LF
+    echo "\n****************************************"
+    echo "ERROR! FOV=${FOV} > 256"
+    echo "Include the flag -cw256 with recon-all!"
+    echo "Inspect orig.mgz to ensure the head is fully visible."
+    echo "****************************************\n"
     exit 1;
   endif
 
