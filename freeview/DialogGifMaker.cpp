@@ -8,7 +8,9 @@
 #include "RenderView.h"
 #include "GifWriterWrapper.h"
 #include <QMessageBox>
-
+#include <QMimeData>
+#include <QClipboard>
+#include <QDebug>
 
 DialogGifMaker::DialogGifMaker(QWidget *parent) :
   QDialog(parent), m_nNumberOfFrames(0),
@@ -51,6 +53,7 @@ void DialogGifMaker::OnButtonAdd()
     m_strTempFilename = QDir::tempPath() + "/freeview-temp-" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".gif";
     m_gif->Initialize(m_strTempFilename, img.size(), ndelay);
     ui->pushButtonSave->setEnabled(true);
+    ui->pushButtonCopy->setEnabled(true);
   }
   m_gif->AddToGif(img, ndelay);
   m_nNumberOfFrames++;
@@ -84,6 +87,18 @@ void DialogGifMaker::OnButtonSave()
     QFile::copy(m_strTempFilename, fn);
     hide();
   }
+}
+
+void DialogGifMaker::OnButtonCopy()
+{
+  if (m_nNumberOfFrames > 0)
+  {
+    Reset();
+  }
+  QClipboard* cb = QApplication::clipboard();
+  QMimeData *mimeData = new QMimeData();
+  mimeData->setUrls({QUrl::fromLocalFile(m_strTempFilename)});
+  cb->setMimeData(mimeData);
 }
 
 void DialogGifMaker::OnButtonClose()

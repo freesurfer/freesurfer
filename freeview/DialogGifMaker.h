@@ -26,6 +26,7 @@ public slots:
     Reset();
   }
   void OnButtonSave();
+  void OnButtonCopy();
   void OnButtonClose();
   void Reset();
 
