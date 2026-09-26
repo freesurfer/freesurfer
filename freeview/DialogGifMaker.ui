@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>353</width>
-    <height>223</height>
+    <width>505</width>
+    <height>218</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -173,14 +173,27 @@
       </spacer>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButtonCopy">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Copy to Clipboard</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="pushButtonSave">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Save</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButtonSave_2">
+      <widget class="QPushButton" name="pushButtonClose">
        <property name="text">
         <string>Close</string>
        </property>
@@ -220,7 +233,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
-     <y>305</y>
+     <y>217</y>
     </hint>
    </hints>
   </connection>
@@ -236,7 +249,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>135</x>
-     <y>282</y>
+     <y>217</y>
     </hint>
    </hints>
   </connection>
@@ -247,28 +260,44 @@
    <slot>OnButtonSave()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>222</x>
-     <y>195</y>
+     <x>413</x>
+     <y>205</y>
     </hint>
     <hint type="destinationlabel">
      <x>294</x>
-     <y>290</y>
+     <y>217</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonSave_2</sender>
+   <sender>pushButtonClose</sender>
    <signal>clicked()</signal>
    <receiver>DialogGifMaker</receiver>
    <slot>OnButtonClose()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>286</x>
-     <y>198</y>
+     <x>491</x>
+     <y>205</y>
     </hint>
     <hint type="destinationlabel">
      <x>304</x>
-     <y>404</y>
+     <y>217</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonCopy</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogGifMaker</receiver>
+   <slot>OnButtonCopy()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>304</x>
+     <y>194</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>334</x>
+     <y>340</y>
     </hint>
    </hints>
   </connection>
@@ -278,5 +307,6 @@
   <slot>OnButtonClear()</slot>
   <slot>OnButtonSave()</slot>
   <slot>OnButtonClose()</slot>
+  <slot>OnButtonCopy()</slot>
  </slots>
 </ui>

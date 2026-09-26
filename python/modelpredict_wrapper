@@ -14,7 +14,7 @@ if (not fsdeepnet and "RUN_FSDEEPNET" not in os.environ):
     print(f"Running Freesurfer version of @SCRIPTNAME@ ...")    
     from fspylegacy.@SCRIPTNAME@ import main
 else:
-    os.environ["FSDEEPNET_PRETRAINED_DOWNLOAD"] = "/space/metropolis/1/users/yh887/fsdeepnet/fsdeepnet/apps/pretrained"
+    # the pretrained model files are now installed in $FREESURFER_HOME/fsdeepnet_models
     print(f"Running FSdeepnet version of @SCRIPTNAME@ ...")
     from fsdeepnet.apps.@SCRIPTNAME@.cli.@SCRIPTNAME@ import main
 
