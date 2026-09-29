@@ -155,6 +155,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_cmdParser(cmdParser),
   m_bHadError(false)
 {
+  if (cmdParser->Found("clean"))
+  {
+    QSettings s;
+    s.clear();
+    s.sync();
+  }
   m_dlgSaveScreenshot = NULL;
   m_dlgPreferences = NULL;
   m_syncFileWatcher = new QFileSystemWatcher(this);

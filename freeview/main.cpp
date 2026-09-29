@@ -335,6 +335,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "verbose", "verbose", "", "Print out a lot more information, such as vertex coordinate of each click, etc." ),
     CmdLineEntry( CMD_LINE_OPTION, "prefix", "prefix", "<prefix> <filename>", "Add prefix to the volume names of the given filenames", 2, 1000 ),
     CmdLineEntry( CMD_LINE_SWITCH, "continue", "continue", "", "Continue as far as possible if an error occured" ),
+    CmdLineEntry( CMD_LINE_SWITCH, "clean", "clean", "", "Clean up the previously saved settings before start freeview." ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 
