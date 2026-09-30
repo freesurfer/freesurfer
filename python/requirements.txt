@@ -20,7 +20,9 @@ segment-anything
 six
 ### 11/2023 - a spheremorph package version cannot be solved for that is compatible with other package versions installed on MacOS
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
-surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
+#surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
+# pulling surfa from release candidate tarball
+surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc1/surfa-0.7.0.tar.gz#sha256=ac87a862ab6ec7e6dde1905ab9ca992ca48dad69bd7528f6893b73d9f62f97e5
 tensorboard
 Werkzeug
 # capping urllib to avoid this conflict with OpenSSL:
