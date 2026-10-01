@@ -19418,6 +19418,7 @@ static int load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z
   return (NO_ERROR);
 }
 
+
 MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform)
 {
   int h, wm_label, wmsa_label, x, y, z, label, nwm, nwmsa, nunknown, ngm, ncaudate, caudate_label, gm_label, n, found,
@@ -19452,6 +19453,12 @@ MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri
 
     GCAcomputeLabelMeansAndCovariances(gca, Unknown, &m_cov_un, &v_mean_un);
     GCAcomputeLabelMeansAndCovariances(gca, wm_label, &m_cov_wm, &v_mean_wm);
+    /* YH887 2026-10-01
+     * the caudate covariance is put into the WM covariance slot. We are not sure if it is intented.
+     *
+     * function GCAlabelWMandWMSAs() is only called in 'mri_ca_label -wmsa'.
+     * mri_ca_label has been replaced by synthseg since FS8.0.
+     */
     GCAcomputeLabelMeansAndCovariances(gca, caudate_label, &m_cov_wm, &v_mean_caudate);
     GCAcomputeLabelMeansAndCovariances(gca, wmsa_label, &m_cov_wmsa, &v_mean_wmsa);
     m_inv_cov_wm = MatrixInverse(m_cov_wm, NULL);
