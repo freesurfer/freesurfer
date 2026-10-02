@@ -131,6 +131,7 @@ static INTEGRATION_PARMS  parms ;
 static int remove_negative = 1 ;
 char *rusage_file=NULL;
 char *regfile = NULL;
+MRI *mask = NULL;
 
 int
 main(int argc, char *argv[])
@@ -238,7 +239,6 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
-
   if(regfile){
     printf("Reading in reg file %s\n",regfile);
     LTA *lta = LTAread(regfile);
@@ -293,8 +293,18 @@ main(int argc, char *argv[])
                 Progname, annot_name) ;
     MRISripMedialWall(mris) ;
   }
-  if(keep_label)
-  {
+  if(mask){ // see also keep_label
+    printf("\nmasking/ripping\n");
+    for(int vno=0; vno < mris->nvertices; vno++){
+      double mval = MRIgetVoxVal(mask,vno,0,0,0);
+      if(!mval){
+	VERTEX *vtx = &(mris->vertices[vno]);
+	vtx->ripflag = 1;
+      }
+    }
+    printf("done masking\n\n");
+  }
+  if(keep_label) { // see also mask
     LABEL *lab = LabelRead(NULL,keep_label);
     if(lab==NULL) exit(1);
     MRI *mask = MRISlabel2Mask(mris,lab,NULL);
@@ -307,7 +317,7 @@ main(int argc, char *argv[])
     }
     printf("Ripping %d vertices from label %s\n",nripped,keep_label);
     //MRIwrite(mask,"junk.mask.mgz");
-    MRIfree(&mask);
+    MRIfree(&mask);mask=NULL;
     LabelFree(&lab);
   }
 
@@ -606,11 +616,12 @@ main(int argc, char *argv[])
                    &parms, max_passes,
                    min_degrees, max_degrees, nangles) ;
     }
-    else
-      MRISregister(mris, mrisp_template,
-                   &parms, max_passes,
-                   min_degrees, max_degrees, nangles) ;
-
+    else{
+      // This is where most of the calls go to.
+      printf("Starting MRISregister() from mris_register\n");
+      MRISregister(mris, mrisp_template,&parms, max_passes,
+                   min_degrees, max_degrees, nangles);
+    }
   }
 #if 0
   parms.l_dist *= 50 ;
@@ -645,16 +656,16 @@ main(int argc, char *argv[])
   MRISfree(&mris) ;
 
   msec = start.milliseconds() ;
-  printf("registration took %2.2f hours\n",(float)msec/(1000.0f*60.0f*60.0f));
-
+  //printf("registration took %2.2f hours\n",(float)msec/(1000.0f*60.0f*60.0f));
+  printf("registration took %6.2f min\n",(float)msec/(1000.0f*60.0f));
   printf("#VMPC# mris_register VmPeak  %d\n",GetVmPeak());
 
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
   int n_omp_threads = omp_get_max_threads();
-  printf("FSRUNTIME@ mris_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
+  printf("FSRUNTIME@ mris_register %7.4f min %d threads\n",msec/(1000.0*60.0),n_omp_threads);
 #else
-  printf("FSRUNTIME@ mris_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
+  printf("FSRUNTIME@ mris_register %7.4f min %d threads\n",msec/(1000.0*60.0),1);
 #endif
 
 
@@ -748,8 +759,17 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "keep-label"))
   {
+    // rip the vertices outside of label. See also -mask
     keep_label = argv[2] ;
     printf("keep_label %s\n", keep_label);
+    nargs=1;
+  }
+  else if (!stricmp(option, "mask"))
+  {
+    // rip the vertices outside of mask. See also -label
+    printf("Reading mask %s\n",argv[2]);
+    mask = MRIread(argv[2]) ;
+    if(!mask) exit(1);
     nargs=1;
   }
   else if (!stricmp(option, "init"))
@@ -1029,6 +1049,13 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_nlarea) ;
     nargs = 1 ;
     fprintf(stderr, "using l_nlarea = %2.3f\n", parms.l_nlarea) ;
+  }
+  else if (!stricmp(option, "pcorr"))
+  {
+    use_defaults = 0 ;
+    sscanf(argv[2], "%f", &parms.l_pcorr) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_pcorr = %2.3f\n", parms.l_pcorr);
   }
   else if (!stricmp(option, "spring"))
   {

@@ -28,6 +28,8 @@ set vtxno = ()
 set view = ()
 if($?FV_PATIENT_ORIENTATION == 0) setenv FV_PATIENT_ORIENTATION 1
 if($?FV_ROTATE_AROUND_CURSOR == 0) setenv FV_ROTATE_AROUND_CURSOR 0
+set lta = ()
+set tallta = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -95,6 +97,7 @@ if(! $UseTkSurfer) then
         set surfarg = "$surfarg":"label=$label"
       end
     endif
+    if($#lta) set surfarg = "$surfarg":"reg=$lta"
     if($#patch) set surfarg = "$surfarg":"patch=$patch"
     if($DoAllSurfs) set surfarg = "$surfarg":"all=true"
     set cmd = ($cmd $surfarg)
@@ -171,6 +174,21 @@ while( $#argv != 0 )
     case "-aparc":
       set annot = aparc.annot
       set annotlist = ($annotlist $annot)
+      breaksw
+
+    case "-sd":
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-lta":
+      if($#argv < 1) goto arg1err;
+      set lta = $argv[1]; shift;
+      breaksw
+
+    case "-tal-lta":
+      set tallta = 1;
       breaksw
 
     case "-overlay":
@@ -333,6 +351,7 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "-keep-sphere-vol-geom":
     case "--keep-sphere-vol-geom":
       setenv FV_SPHERE_IGNORE_VG 0
       breaksw
@@ -440,6 +459,17 @@ if($#patch) then
   endif
 endif
 
+if($tallta) then
+  set lta = $SUBJECTS_DIR/$subject/mri/transforms/talairach.lta
+endif
+
+if($#lta) then
+  if(! -e $lta) then
+    echo "ERROR: cannot find $lta"
+    exit 1
+  endif
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -477,6 +507,9 @@ usage_exit:
   echo "-linear, -linearopaque, -piecewise, -min_to_max (default) : overlay heat scale"
   echo "-medial, -lateral, -inferior, -superior"
   echo "--keep-sphere-vol-geom : do not ignore sphere volume geometry when loading sphere"
+  echo "-lta reg.lta : apply reg.lta to surfaces"
+  echo "-tal-lta  : apply subject/mri/transforms/talairach.lta to surfaces"
+  echo "-sd SUBJECTS_DIR : set subjects dir from command line"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION
