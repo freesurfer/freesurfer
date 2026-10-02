@@ -106,7 +106,9 @@ smmap==5.0.3
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
 # surfa@git+https://github.com/freesurfer/surfa.git@78957160b63a01f4cbfce13b45d63d40d28f87f9
 # surfa@git+https://github.com/freesurfer/surfa.git@ec5ddb193fd1caf22ec654c457b5678f6bd8e460
-git+https://github.com/freesurfer/surfa.git@master
+# git+https://github.com/freesurfer/surfa.git@master
+# testing 0.7.0 release candidate
+surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc1/surfa-0.7.0.tar.gz#sha256=ac87a862ab6ec7e6dde1905ab9ca992ca48dad69bd7528f6893b73d9f62f97e5
 sympy==1.13.1
 tensorboard==2.19.0
 tensorboard-data-server==0.7.2
