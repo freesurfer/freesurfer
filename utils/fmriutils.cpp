@@ -225,6 +225,9 @@ MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1)
     }
   }
 
+  MRIfree(&var);
+  MRIfree(&covar);
+
   return (ar1);
 }
 
