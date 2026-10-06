@@ -179,7 +179,7 @@ MRI *MRIcomplement(MRI *mri_src, MRI *mri_dst)
   depth = mri_src->depth;
 
   if (!mri_dst) {
-    mri_dst = MRIalloc(width, height, depth, mri_src->type);
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, mri_src->nframes);
     MRIcopyHeader(mri_src, mri_dst);
   }
 
