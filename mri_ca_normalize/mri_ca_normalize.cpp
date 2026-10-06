@@ -1133,10 +1133,11 @@ find_control_points
 		    {
 		      // a neighboring voxel is uniform - move this sample over
 		      found = 1 ;
-		      if (getenv("FIX_CA_NORMALIZE_CONTROL_POINT"))
+		      if (getenv("FIX_CA_NORMALIZE_CONTROL_POINT")) {
 			  xv += xk ; yv += yk ; zv += zk ;
-		      else
+		      } else {
 			xv += xk ; yv += yk ; zv += yk ;
+		      }
 		      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
 			printf("moving control point (%d, %d, %d) to (%d, %d, %d) for uniformity\n",
 			       xv, yv, zv, gcas[i].x, gcas[i].y, gcas[i].z) ;
