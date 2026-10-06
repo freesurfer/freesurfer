@@ -416,7 +416,8 @@ MRI *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
   float val = 0;
 
   if (mri == NULL) {
-    mri = MRIalloc(1, 1, mris->nvertices, MRI_FLOAT);
+    // create MRI volume of dimensions nvertices x 1 x 1 x 1
+    mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 1) ;
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
