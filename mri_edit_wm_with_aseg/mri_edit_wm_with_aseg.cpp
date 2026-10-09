@@ -72,7 +72,8 @@ static int spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) ;
 static int distance_to_label(MRI *mri_labeled, int label, int x,
                              int y, int z, int dx, int dy,
                              int dz, int max_dist) ;
-
+static float myMRIgetVoxVal(const MRI *mri, int c, int r, int s, int f=0);
+static int myMRIsetVoxVal(MRI *mri, int c, int r, int s, float voxval, int f=0);
 
 const char *Progname ;
 
@@ -100,6 +101,7 @@ MRI *KeepHAILVCP(MRI *in, MRI *seg, int H, int A, int ILV, int CP, double lhval,
 int KeepH=0, KeepA=0, KeepILV=0, KeepCP=0;
 double HILVCPlhVal,HILVCPrhVal;
 int FillSegWM = 0;
+bool fixUCHAR = false;
 
 int main(int argc, char *argv[])
 {
@@ -434,6 +436,21 @@ get_option(int argc, char *argv[])
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
   }
+  else if (!stricmp(option, "fix-uchar"))
+  {
+    /* this option is to address issue - https://github.com/freesurfer/freesurfer/issues/1473
+     *
+     * if '-fix-uchar' is NOT specified, the original behavior is preserved for comparison,
+     *     - mri_hippo and mri_roi are created as INT
+     *     - voxel values are written with UCHAR macro MRIvox, and read with type-aware MRIgetVoxVal()
+     * if '-fix-uchar' is specified,
+     *     - mri_hippo and mri_roi are created as UCHAR
+     *     - voxel values are accessed through type-aware myMRIgetVoxVal() and myMRIsetVoxVal()
+     */
+    fixUCHAR = true;
+    fprintf(stdout, "\n***'-fix-uchar' specified\n");
+    fflush(stdout);
+  }
   else switch (toupper(*option))
     {
     case '?':
@@ -525,9 +542,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           if ((neighborLabel(mri_seg, x,y,z,1,Left_Cerebral_Cortex) == 0) &&
               (neighborLabel(mri_seg, x,y,z,1,Right_Cerebral_Cortex) == 0))
           {
-            if (MRIvox(mri_wm, x, y, z) >= WM_MIN_VAL)
+            if (myMRIgetVoxVal(mri_wm, x, y, z) >= WM_MIN_VAL)
             {
-              MRIvox(mri_wm, x, y, z) = 0 ;
+              myMRIsetVoxVal(mri_wm, x, y, z, 0) ;
               noff++ ;
             }
           }
@@ -550,9 +567,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           // only fill these if they are not adjacent to cortex
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) == 0) &&
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) == 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)){
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+              (myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL)){
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
           break ;
@@ -561,15 +578,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           // don't fill in choroid next to inf lat vent
           if (((neighborLabel(mri_seg, x, y, z,1,Left_Inf_Lat_Vent) == 0) &&
                (neighborLabel(mri_seg, x, y, z,1,Right_Inf_Lat_Vent) == 0)) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+              (myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL))
           {
             if (x == Gx && y == Gy && z == Gz)
             {
               printf("filling choroid adjacent to ventricle at (%d, %d, %d)\n", x,y,z) ;
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
             break ;
           }
@@ -578,15 +595,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Right_Lateral_Ventricle:
           if (((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_White_Matter) > 0) ||
                (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_White_Matter) > 0)) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+              (myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL))
           {
             if (x == Gx && y == Gy && z == Gz)
             {
               printf("filling ventricle adjacent to wm at (%d, %d, %d)\n", x,y,z) ;
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
             break ;
           }
@@ -594,14 +611,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             break ;
           }
-          if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL)
           {
             if (x == Gx && y == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
 #if __GNUC__ >= 8
@@ -614,27 +631,27 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
 
           /* don't allow cortex to be directly lateral to inf-lat-vent - should be some wm there
           also don't allow it to be diagonally connected */
-          if (IS_CORTEX(olabel) && (MRIvox(mri_wm, xi, y, z) < WM_MIN_VAL))
+          if (IS_CORTEX(olabel) && (myMRIgetVoxVal(mri_wm, xi, y, z) < WM_MIN_VAL))
           {
             if (xi == Gx && y == Gy && z == Gz)
             {
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", xi, y, z);
             }
-            MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, xi, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, xi, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, xi, y, z, AUTO_FILL) ;
             non++ ;
           }
 
           yi = mri_wm->yi[y+1] ; // inferior
           olabel = MRIgetVoxVal(mri_seg, xi, yi, z, 0) ;
-          if (IS_CORTEX(olabel) && (MRIvox(mri_wm, xi, yi, z) < WM_MIN_VAL))
+          if (IS_CORTEX(olabel) && (myMRIgetVoxVal(mri_wm, xi, yi, z) < WM_MIN_VAL))
           {
             if (xi == Gx && yi == Gy && z == Gz)
             {
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", xi, yi, z);
             }
-            MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
-            MRIvox(mri_filled, xi, yi, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, xi, yi, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, xi, yi, z, AUTO_FILL) ;
             non++ ;
           }
 
@@ -647,26 +664,26 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           // check diagonally anterior/posterior and inferior
           zi = mri_wm->zi[z-1] ; // posterior
           olabel = MRIgetVoxVal(mri_seg , x, yi, zi, 0) ;
-          if (IS_CORTEX(olabel) && (MRIvox(mri_wm, x, yi, zi) < WM_MIN_VAL))
+          if (IS_CORTEX(olabel) && (myMRIgetVoxVal(mri_wm, x, yi, zi) < WM_MIN_VAL))
           {
             if (x == Gx && yi == Gy && zi == Gz)
             {
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", x, yi, zi);
             }
-            MRIvox(mri_wm, x, yi, zi) = AUTO_FILL ;
-            MRIvox(mri_filled, x, yi, zi) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, yi, zi, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, yi, zi, AUTO_FILL) ;
             non++ ;
           }
           zi = mri_wm->zi[z+1] ; // anterior
           olabel = MRIgetVoxVal(mri_seg, x, yi, zi, 0) ;
-          if (IS_CORTEX(olabel) && (MRIvox(mri_wm, x, yi, zi) < WM_MIN_VAL))
+          if (IS_CORTEX(olabel) && (myMRIgetVoxVal(mri_wm, x, yi, zi) < WM_MIN_VAL))
           {
             if (x == Gx && yi == Gy && zi == Gz)
             {
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", x, yi, zi);
             }
-            MRIvox(mri_wm, x, yi, zi) = AUTO_FILL ;
-            MRIvox(mri_filled, x, yi, zi) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, yi, zi, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, yi, zi, AUTO_FILL) ;
             non++ ;
           }
 
@@ -677,14 +694,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           }
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) > 0) &&
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) > 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+              (myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL))
           {
             if (x == Gx && y == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
           yi = mri_wm->yi[y+1] ;
@@ -692,14 +709,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
                (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter) ||
                (label == Unknown))
-              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+              && (myMRIgetVoxVal(mri_wm, x, yi, z) < WM_MIN_VAL))
           {
             if (x == Gx && yi == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, yi, z, AUTO_FILL) ;
             non++ ;
           }
           if (label == Left_Inf_Lat_Vent || label ==  Right_Inf_Lat_Vent)  /* fill inferior wm */
@@ -710,7 +727,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             olabel = MRIgetVoxVal(mri_seg, xi, y, z, 0) ;
 #if 0  // no longer needed with path stuff
             /* voxel lateral to this one is not hippocampus   */
-            if ((olabel != label) && (MRIvox(mri_wm, xi, y, z) < WM_MIN_VAL) && !IS_AMYGDALA(olabel) &&
+            if ((olabel != label) && (myMRIgetVoxVal(mri_wm, xi, y, z) < WM_MIN_VAL) && !IS_AMYGDALA(olabel) &&
                 ((distance_to_label(mri_seg, label ==  Left_Inf_Lat_Vent ? Left_Cerebral_White_Matter :
                                     Right_Cerebral_White_Matter, xi, y, z, 0, 1, 0, 5) < 3) ||
                  (distance_to_label(mri_seg, label ==  Left_Inf_Lat_Vent ? Left_Cerebral_Cortex :
@@ -721,8 +738,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
-              MRIvox(mri_filled, xi, y, z) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, xi, y, z, AUTO_FILL) ;
+              myMRIsetVoxVal(mri_filled, xi, y, z, AUTO_FILL) ;
               non++ ;
             }
 #endif
@@ -730,24 +747,24 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             label = MRIgetVoxVal(mri_seg, x,yi, z, 0) ;
             if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
                  (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
-                && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+                && (myMRIgetVoxVal(mri_wm, x, yi, z) < WM_MIN_VAL))
             {
               if (x == Gx && yi == Gy && z == Gz)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
-              MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
+              myMRIsetVoxVal(mri_filled, x, yi, z, AUTO_FILL) ;
               non++ ;
               yi = mri_wm->yi[y+2] ;
-              if (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)
+              if (myMRIgetVoxVal(mri_wm, x, yi, z) < WM_MIN_VAL)
               {
                 if (x == Gx && yi == Gy && z == Gz)
                 {
                   DiagBreak2() ;
                 }
-                MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
-                MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
+                myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
+                myMRIsetVoxVal(mri_filled, x, yi, z, AUTO_FILL) ;
                 non++ ;
               }
             }
@@ -810,7 +827,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           /* voxel lateral to this one is not hippocampus, and not
           superior to hippocampus, and not far from wm or gm */
 #if 0  // not needed anymore with path stuff in place
-          if (olabel != label && (MRIvox(mri_wm, xi, y, z) < MIN_WM_VAL) &&
+          if (olabel != label && (myMRIgetVoxVal(mri_wm, xi, y, z) < MIN_WM_VAL) &&
               (distance_to_label(mri_seg, label, xi, y, z, 0, 1, 0, 10) >= 10) &&
               ((distance_to_label(mri_seg, label == Left_Hippocampus ? Left_Cerebral_Cortex : Right_Cerebral_Cortex, xi, y, z, 0, 1, 0, 5) < 3) ||
                (distance_to_label(mri_seg, label == Left_Hippocampus ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter, xi, y, z, 0, 1, 0, 5) < 3) ||
@@ -820,22 +837,22 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, xi, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, xi, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, xi, y, z, AUTO_FILL) ;
             non++ ;
           }
 #endif
 
           yi = mri_wm->yi[y+1] ;
           olabel = MRIgetVoxVal(mri_seg, xi, yi, z, 0) ;  // diagonally lateral and inferior
-          if (IS_CORTEX(olabel) && (MRIvox(mri_wm, xi, yi, z) < WM_MIN_VAL))
+          if (IS_CORTEX(olabel) && (myMRIgetVoxVal(mri_wm, xi, yi, z) < WM_MIN_VAL))
           {
             if (xi == Gx && yi == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
-            MRIvox(mri_filled, xi, yi, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, xi, yi, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, xi, yi, z, AUTO_FILL) ;
             non++ ;
           }
 
@@ -844,24 +861,24 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
 
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
                (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
-              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+              && (myMRIgetVoxVal(mri_wm, x, yi, z) < WM_MIN_VAL))
           {
             if (x == Gx && yi == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, yi, z, AUTO_FILL) ;
             yi = mri_wm->yi[y+2] ;
             non++ ;
-            if (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)
+            if (myMRIgetVoxVal(mri_wm, x, yi, z) < WM_MIN_VAL)
             {
               if (x == Gx && yi == Gy && z == Gz)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
-              MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
+              myMRIsetVoxVal(mri_filled, x, yi, z, AUTO_FILL) ;
 
               non++ ;
             }
@@ -882,14 +899,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Left_Thalamus:
         case Left_VentralDC:
         case Right_VentralDC:
-          if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL)
           {
             if (x == Gx && y == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
           break ;
@@ -897,17 +914,17 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Right_Cerebral_White_Matter:
           yi = mri_wm->yi[y-1] ;
           slabel = MRIgetVoxVal(mri_seg, x, yi, z, 0) ;
-          if(IS_INF_LAT_VENT(slabel) && MRIvox(mri_wm, x, y, z) < WM_MIN_VAL) {
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+          if(IS_INF_LAT_VENT(slabel) && myMRIgetVoxVal(mri_wm, x, y, z) < WM_MIN_VAL) {
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
 	  if(FillSegWM){
 	    if( (neighborLabel(mri_seg, x, y, z,1, Left_Cerebral_Cortex) == 0) &&
 		(neighborLabel(mri_seg, x, y, z,1, Right_Cerebral_Cortex) == 0)){
 	      // only fill these if they are not adjacent to cortex
-	      MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-	      MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+	      myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+	      myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
 	      non++ ;
 	    }
 	  }
@@ -947,8 +964,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
           break ;
@@ -966,8 +983,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
-            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_filled, x, y, z, AUTO_FILL) ;
             non++ ;
           }
           break ;
@@ -995,7 +1012,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak() ;
           }
-          if  (MRIvox(mri_filled, x,  y, z) == 0)
+          if  (myMRIgetVoxVal(mri_filled, x,  y, z) == 0)
           {
             continue  ;
           }
@@ -1009,16 +1026,16 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               {
                 zi = mri_filled->zi[z+zk] ;
                 label = MRIgetVoxVal(mri_seg, xi, yi, zi, 0) ;
-                if (IS_WM(label) &&  (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
+                if (IS_WM(label) &&  (myMRIgetVoxVal(mri_wm, xi, yi, zi) < WM_MIN_VAL))
                 {
                   if (xi == Gx && yi == Gy && zi == Gz)
                   {
                     DiagBreak2() ;
                   }
                   nchanged++ ;
-                  MRIvox(mri_wm, xi, yi, zi) = AUTO_FILL ;
+                  myMRIsetVoxVal(mri_wm, xi, yi, zi, AUTO_FILL) ;
 #if 0
-                  MRIvox(mri_filled, xi, yi, zi) = AUTO_FILL ;
+                  myMRIsetVoxVal(mri_filled, xi, yi, zi, AUTO_FILL) ;
 #endif
                   non++ ;
                 }
@@ -1044,7 +1061,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         {
           DiagBreak() ;
         }
-        if (MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL)
+        if (myMRIgetVoxVal(mri_wm, x, y, z) >= MIN_WM_VAL)
         {
           continue ;
         }
@@ -1060,7 +1077,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Right_Cerebral_Cortex:
         case Unknown:
           // look for voxels that are lateral to amygdala, and inf to wm. Should be filled
-          if (MRIvox(mri_wm, x, y-1, z) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z) < MIN_WM_VAL)
           {
             continue ;
           }
@@ -1079,7 +1096,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
           nchanged++ ;
           break ;
         case Left_Amygdala:
@@ -1151,7 +1168,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           }
 
           // change either this voxel or the one inferior to it to wm
-          if (MRIvox(mri_T1, x, y, z) > MRIvox(mri_T1, x, y+1, z))
+          if (myMRIgetVoxVal(mri_T1, x, y, z) > myMRIgetVoxVal(mri_T1, x, y+1, z))
           {
             yi = y ;
           }
@@ -1164,9 +1181,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
 #if 0
-          MRIvox(mri_filled, xi, yi, zi) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_filled, xi, yi, zi, AUTO_FILL) ;
 #endif
           non++ ;
 #endif
@@ -1191,7 +1208,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak() ;
           }
-          if (MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y, z) >= MIN_WM_VAL)
           {
             continue ;
           }
@@ -1215,7 +1232,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               continue ;
             }
 #endif
-            if (MRIvox(mri_wm, x, y+1, z) < MIN_WM_VAL)
+            if (myMRIgetVoxVal(mri_wm, x, y+1, z) < MIN_WM_VAL)
             {
               continue ;  // no white matter inferior
             }
@@ -1303,9 +1320,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
 #endif
 
 
-            if (MRIvox(mri_wm, x, y+1, z-1) < MIN_WM_VAL) // fill one of these
+            if (myMRIgetVoxVal(mri_wm, x, y+1, z-1) < MIN_WM_VAL) // fill one of these
             {
-              if (MRIvox(mri_T1, x, y, z) > MRIvox(mri_T1, x, y+1, z-1))
+              if (myMRIgetVoxVal(mri_T1, x, y, z) > myMRIgetVoxVal(mri_T1, x, y+1, z-1))
               {
                 yi = y ;
                 zi = z ;
@@ -1319,14 +1336,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, x, yi, zi) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, x, yi, zi, AUTO_FILL) ;
               nchanged++ ;
               non++ ;
             }
 
-            if (MRIvox(mri_wm, x, y+1, z+1) < MIN_WM_VAL) // fill one of these
+            if (myMRIgetVoxVal(mri_wm, x, y+1, z+1) < MIN_WM_VAL) // fill one of these
             {
-              if (MRIvox(mri_T1, x, y, z) > MRIvox(mri_T1, x, y+1, z+1))
+              if (myMRIgetVoxVal(mri_T1, x, y, z) > myMRIgetVoxVal(mri_T1, x, y+1, z+1))
               {
                 yi = y ;
                 zi = z ;
@@ -1340,14 +1357,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, x, yi, zi) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, x, yi, zi, AUTO_FILL) ;
               nchanged++ ;
               non++ ;
             }
 
-            if (MRIvox(mri_wm, x-1, y+1, z) < MIN_WM_VAL) // fill one of these
+            if (myMRIgetVoxVal(mri_wm, x-1, y+1, z) < MIN_WM_VAL) // fill one of these
             {
-              if (MRIvox(mri_T1, x, y, z) > MRIvox(mri_T1, x-1, y+1, z))
+              if (myMRIgetVoxVal(mri_T1, x, y, z) > myMRIgetVoxVal(mri_T1, x-1, y+1, z))
               {
                 xi = x ;
                 yi = y ;
@@ -1361,14 +1378,14 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, xi, yi, z, AUTO_FILL) ;
               nchanged++ ;
               non++ ;
             }
 
-            if (MRIvox(mri_wm, x+1, y+1, z) < MIN_WM_VAL) // fill one of these
+            if (myMRIgetVoxVal(mri_wm, x+1, y+1, z) < MIN_WM_VAL) // fill one of these
             {
-              if (MRIvox(mri_T1, x, y, z) > MRIvox(mri_T1, x+1, y+1, z))
+              if (myMRIgetVoxVal(mri_T1, x, y, z) > myMRIgetVoxVal(mri_T1, x+1, y+1, z))
               {
                 xi = x ;
                 yi = y ;
@@ -1382,7 +1399,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               {
                 DiagBreak2() ;
               }
-              MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
+              myMRIsetVoxVal(mri_wm, xi, yi, z, AUTO_FILL) ;
               nchanged++ ;
               non++ ;
             }
@@ -1415,7 +1432,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
   [[gnu::fallthrough]];
 #endif
         case Right_Cerebral_Cortex:
-          if (MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y, z) >= MIN_WM_VAL)
           {
             continue ;
           }
@@ -1440,7 +1457,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
 #endif
 
           // look for voxels that are lateral to amygdala, and inf to wm. Should be filled
-          if (MRIvox(mri_wm, x, y-1, z) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z) < MIN_WM_VAL)
           {
             continue ;
           }
@@ -1459,7 +1476,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
           nchanged++ ;
           break ;
         }
@@ -1484,15 +1501,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         switch (label)
         {
         case Unknown:
-          if (MRIvox(mri_wm, x, y-1,z) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1,z) >= MIN_WM_VAL)
           {
             continue ;
           }
-          if (MRIvox(mri_wm, x, y,z) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y,z) >= MIN_WM_VAL)
           {
             continue ;
           }
-          if ((MRIvox(mri_wm, x, y-1, z-1) >= MIN_WM_VAL) && (MRIvox(mri_wm, x, y-1, z+1) >= MIN_WM_VAL))
+          if ((myMRIgetVoxVal(mri_wm, x, y-1, z-1) >= MIN_WM_VAL) && (myMRIgetVoxVal(mri_wm, x, y-1, z+1) >= MIN_WM_VAL))
           {
             continue ;
           }
@@ -1532,7 +1549,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             continue ;
           }
-          if (MRIvox(mri_wm, x, y-1, z-1) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z-1) < MIN_WM_VAL)
           {
             if (x == Gx && y-1 == Gy && z-1 == Gz)
             {
@@ -1540,9 +1557,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             }
             non++ ;
             nchanged++ ;
-            MRIvox(mri_wm, x, y-1, z-1) = AUTO_FILL ;
+            myMRIgetVoxVal(mri_wm, x, y-1, z-1, AUTO_FILL) ;
           }
-          if (MRIvox(mri_wm, x, y-1, z+1) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z+1) < MIN_WM_VAL)
           {
             if (x == Gx && y-1 == Gy && z+1 == Gz)
             {
@@ -1550,7 +1567,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             }
             non++ ;
             nchanged++ ;
-            MRIvox(mri_wm, x, y-1, z+1) = AUTO_FILL ;
+            myMRIgetVoxVal(mri_wm, x, y-1, z+1, AUTO_FILL) ;
           }
           break ;
         case Left_Cerebral_Cortex:
@@ -1578,13 +1595,13 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           slabel = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
           // look for voxels that are lateral to amygdala, and inf to wm. Should be filled
 #if 0
-          if (MRIvox(mri_wm, x, y-1, z) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z) < MIN_WM_VAL)
           {
             continue ;
           }
 #endif
           xi = left ? x-1 : x+1 ;  // lateral
-          if (MRIvox(mri_wm, xi, y-1, z) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, xi, y-1, z) >= MIN_WM_VAL)
           {
             continue ;  // only if diagonal voxel isn't on
           }
@@ -1609,7 +1626,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
           nchanged++ ;
           break ;
         }
@@ -1660,12 +1677,12 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           slabel = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
           // look for voxels that are lateral to amygdala, and inf to wm. Should be filled
 #if 0
-          if (MRIvox(mri_wm, x, y-1, z) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z) < MIN_WM_VAL)
           {
             continue ;
           }
 #endif
-          if (MRIvox(mri_wm, x, y-1, z+1) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z+1) >= MIN_WM_VAL)
           {
             continue ;  // only if diagonal voxel isn't on
           }
@@ -1690,7 +1707,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
           nchanged++ ;
           break ;
         }
@@ -1739,12 +1756,12 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           slabel = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
           // look for voxels that are lateral to amygdala, and inf to wm. Should be filled
 #if 0
-          if (MRIvox(mri_wm, x, y-1, z) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z) < MIN_WM_VAL)
           {
             continue ;
           }
 #endif
-          if (MRIvox(mri_wm, x, y-1, z-1) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z-1) >= MIN_WM_VAL)
           {
             continue ;  // only if diagonal voxel isn't on
           }
@@ -1774,7 +1791,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
           nchanged++ ;
           break ;
         }
@@ -1817,7 +1834,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           if (left)
           {
             i =  distance_to_label(mri_seg, Unknown, x, y, z, -1, 0, 0, 10)  ;
-            if (i < 10 && MRIvox(mri_wm, x-i, y, z) < WM_MIN_VAL)
+            if (i < 10 && myMRIgetVoxVal(mri_wm, x-i, y, z) < WM_MIN_VAL)
             {
               continue ;
             }
@@ -1825,7 +1842,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           else
           {
             i = distance_to_label(mri_seg, Unknown, x, y, z, 1, 0, 0, 10) ;
-            if (i < 10 && MRIvox(mri_wm, x+i, y, z) < WM_MIN_VAL)
+            if (i < 10 && myMRIgetVoxVal(mri_wm, x+i, y, z) < WM_MIN_VAL)
             {
               continue ;
             }
@@ -1845,7 +1862,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, xi, y-1, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, xi, y-1, z, AUTO_FILL) ;
           break ;
 
         case Right_Cerebral_Cortex:
@@ -1871,12 +1888,12 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           slabel = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
           // look for voxels that are lateral to amygdala, and inf to wm. Should be filled
 #if 0
-          if (MRIvox(mri_wm, x, y-1, z) < MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z) < MIN_WM_VAL)
           {
             continue ;
           }
 #endif
-          if (MRIvox(mri_wm, x, y-1, z+1) >= MIN_WM_VAL)
+          if (myMRIgetVoxVal(mri_wm, x, y-1, z+1) >= MIN_WM_VAL)
           {
             continue ;  // only if diagonal voxel isn't on
           }
@@ -1906,7 +1923,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, y, z, AUTO_FILL) ;
           nchanged++ ;
           break ;
         }
@@ -1926,7 +1943,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         {
           DiagBreak() ;
         }
-        if (MRIvox(mri_wm, x, y, z) != AUTO_FILL)
+        if (myMRIgetVoxVal(mri_wm, x, y, z) != AUTO_FILL)
         {
           continue ;
         }
@@ -1952,7 +1969,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               for (zi = z-1 ; erase && zi <= z+1 ; zi++)
               {
-                if (MRIvox(mri_wm, xi, yi, zi) < MIN_WM_VAL)
+                if (myMRIgetVoxVal(mri_wm, xi, yi, zi) < MIN_WM_VAL)
                 {
                   erase = 0 ;
                   break ;
@@ -1970,7 +1987,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x, y, z) = 0 ;
+            myMRIsetVoxVal(mri_wm, x, y, z, 0) ;
             noff++ ;
           }
         }
@@ -1994,7 +2011,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         {
           DiagBreak() ;
         }
-        if ((MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL) ||
+        if ((myMRIgetVoxVal(mri_wm, x, y, z) >= MIN_WM_VAL) ||
             (!IS_WHITE_CLASS(MRIgetVoxVal(mri_seg, x, y, z, 0))))
         {
           continue ;
@@ -2025,7 +2042,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
                 {
                   DiagBreak2() ;
                 }
-                MRIvox(mri_wm, x,y,z) = AUTO_FILL ;
+                myMRIsetVoxVal(mri_wm, x,y,z, AUTO_FILL) ;
                 non++ ;
                 nchanged++ ;
                 break ;
@@ -2084,7 +2101,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             xi = x-1 ;
           }
-          if (MRIvox(mri_wm, xi, y, z) >= WM_MIN_VAL)
+          if (myMRIgetVoxVal(mri_wm, xi, y, z) >= WM_MIN_VAL)
           {
             continue ;  // lateral voxel already on
           }
@@ -2096,13 +2113,13 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           }
 
 #if 0  // no longer needed with path stuff
-          if (MRIvox(mri_T1, xi, y, z) > MRIvox(mri_T1, x, y,z))
+          if (myMRIgetVoxVal(mri_T1, xi, y, z) > myMRIgetVoxVal(mri_T1, x, y,z))
           {
             if (xi == Gx && y == Gy && z == Gz)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, xi,y,z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, xi,y,z, AUTO_FILL) ;
             non++ ;
             break ;
           }
@@ -2112,7 +2129,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               DiagBreak2() ;
             }
-            MRIvox(mri_wm, x,y,z) = AUTO_FILL ;
+            myMRIsetVoxVal(mri_wm, x,y,z, AUTO_FILL) ;
             non++ ;
             break ;
           }
@@ -2339,8 +2356,16 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
   MRI_REGION box ;
 
   xgm = ygm = zgm = -1 ;  // to get rid of warning
-  mri_hippo = MRIclone(mri_aseg, NULL) ;
-  mri_roi = MRIclone(mri_aseg, NULL) ;
+  if (!fixUCHAR) {
+    mri_hippo = MRIclone(mri_aseg, NULL) ;
+    mri_roi = MRIclone(mri_aseg, NULL) ;
+  } else {
+    mri_hippo = MRIallocSequence(mri_aseg->width, mri_aseg->height, mri_aseg->depth, MRI_UCHAR, mri_aseg->nframes);
+    MRIcopyHeader(mri_aseg, mri_hippo);
+    mri_roi = MRIallocSequence(mri_aseg->width, mri_aseg->height, mri_aseg->depth, MRI_UCHAR, mri_aseg->nframes);
+    MRIcopyHeader(mri_aseg, mri_roi);
+  }
+
   MRIcopyLabel(mri_aseg, mri_roi, Left_Hippocampus) ;
   MRIcopyLabel(mri_aseg, mri_roi, Left_Amygdala) ;
   MRIcopyLabel(mri_aseg, mri_roi, Left_Inf_Lat_Vent) ;
@@ -2399,7 +2424,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
             yi = y+1 ;
             if (MRIgetVoxVal(mri_wm, x, yi, z,0) > WM_MIN_VAL)  // inf voxel is wm
             {
-              MRIvox(mri_hippo, x, y, z) = 128 ;
+              myMRIsetVoxVal(mri_hippo, x, y, z, 128) ;
               if (x < xmedial)
               {
                 xmedial = x ;
@@ -2414,9 +2439,9 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
     for (x = x1 ; x <= x2 ; x++)
       for (y = y1 ; y <= y2 ; y++)
         for (z = z1 ; z <= z2 ; z++)
-          if (MRIvox(mri_hippo, x, y, z) && ((x < xmedial+10) || (z > zanterior-15)))
+          if (myMRIgetVoxVal(mri_hippo, x, y, z) && ((x < xmedial+10) || (z > zanterior-15)))
           {
-            MRIvox(mri_hippo, x, y, z) = 0 ;
+            myMRIsetVoxVal(mri_hippo, x, y, z, 0) ;
           }
     if (niter == 0 && (Gdiag & DIAG_WRITE))
     {
@@ -2496,7 +2521,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
                       if (MRIgetVoxVal(mri_roi, xi, yi, zi,0) > 0)
                       {
                         nfilled++ ;
-                        MRIvox(mri_filled, xi, yi, zi) = 128 ;
+                        myMRIsetVoxVal(mri_filled, xi, yi, zi, 128) ;
                       }
                       break ;
                     }
@@ -2565,8 +2590,8 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
       {
         printf("filling voxel (%d, %d, %d)\n", xb, yb, zb) ;
       }
-      MRIvox(mri_wm, xb, yb, zb) = AUTO_FILL ;
-      MRIvox(mri_hippo, xb, yb, zb) = 0 ;
+      myMRIsetVoxVal(mri_wm, xb, yb, zb, AUTO_FILL) ;
+      myMRIsetVoxVal(mri_hippo, xb, yb, zb, 0) ;
       total_filled++ ;
     }
 
@@ -2635,7 +2660,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
             yi = y+1 ;
             if (MRIgetVoxVal(mri_wm, x, yi, z,0) > WM_MIN_VAL)  // inf voxel is wm
             {
-              MRIvox(mri_hippo, x, y, z) = 128 ;
+              myMRIsetVoxVal(mri_hippo, x, y, z, 128) ;
               if (x > xmedial)
               {
                 xmedial = x ;
@@ -2650,9 +2675,9 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
     for (x = x1 ; x <= x2 ; x++)
       for (y = y1 ; y <= y2 ; y++)
         for (z = z1 ; z <= z2 ; z++)
-          if (MRIvox(mri_hippo, x, y, z) && ((x > xmedial-10) || (z > zanterior-15)))
+          if (myMRIgetVoxVal(mri_hippo, x, y, z) && ((x > xmedial-10) || (z > zanterior-15)))
           {
-            MRIvox(mri_hippo, x, y, z) = 0 ;
+            myMRIsetVoxVal(mri_hippo, x, y, z, 0) ;
           }
     if (niter == 0 && (Gdiag & DIAG_WRITE))
     {
@@ -2670,11 +2695,11 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
             {
               DiagBreak() ;
             }
-            if (MRIvox(mri_filled, x, y, z) == 0)
+            if (myMRIgetVoxVal(mri_filled, x, y, z) == 0)
             {
               continue ;
             }
-            if (MRIvox(mri_roi, x, y, z) == 0)
+            if (myMRIgetVoxVal(mri_roi, x, y, z) == 0)
             {
               continue ;
             }
@@ -2691,11 +2716,11 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
                   {
                     DiagBreak() ;
                   }
-                  if (MRIvox(mri_filled, xi, yi, zi))
+                  if (myMRIgetVoxVal(mri_filled, xi, yi, zi))
                   {
                     continue ;
                   }
-                  if (MRIvox(mri_roi, xi, yi, zi) == 0)
+                  if (myMRIgetVoxVal(mri_roi, xi, yi, zi) == 0)
                   {
                     continue ;
                   }
@@ -2715,7 +2740,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
                     if (MRIgetVoxVal(mri_roi, xi, yi, zi,0) > 0)
                     {
                       nfilled++ ;
-                      MRIvox(mri_filled, xi, yi, zi) = 128 ;
+                      myMRIsetVoxVal(mri_filled, xi, yi, zi, 128) ;
                     }
                   }
                 }
@@ -2782,8 +2807,8 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
       {
         printf("filling voxel (%d, %d, %d)\n", xb, yb, zb) ;
       }
-      MRIvox(mri_wm, xb, yb, zb) = AUTO_FILL ;
-      MRIvox(mri_hippo, xb, yb, zb) = 0 ;
+      myMRIsetVoxVal(mri_wm, xb, yb, zb, AUTO_FILL) ;
+      myMRIsetVoxVal(mri_hippo, xb, yb, zb, 0) ;
       total_filled++ ;
     }
 
@@ -2837,9 +2862,9 @@ remove_anterior_and_superior_amygdala(MRI *mri_roi, MRI *mri_aseg)
           continue ;
         }
 #endif
-        MRIvox(mri_roi, x, y, z) = 0 ;
-        MRIvox(mri_roi, x, y, z+1) = 0 ;
-        MRIvox(mri_roi, x, y-1, z) = 0 ;
+        myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
+        myMRIsetVoxVal(mri_roi, x, y, z+1, 0) ;
+        myMRIsetVoxVal(mri_roi, x, y-1, z, 0) ;
       }
     }
   }
@@ -2906,9 +2931,9 @@ remove_lateral_and_anterior_hippocampus(MRI *mri_roi, MRI *mri_aseg, int left)
         {
           continue ;
         }
-        MRIvox(mri_roi, x, y, z) = 0 ;
-        MRIvox(mri_roi, x, y, z+1) = 0 ;
-        MRIvox(mri_roi, x, y-1, z) = 0 ;
+        myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
+        myMRIsetVoxVal(mri_roi, x, y, z+1, 0) ;
+        myMRIsetVoxVal(mri_roi, x, y-1, z, 0) ;
       }
     }
   }
@@ -3057,11 +3082,11 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
                (label == Left_Cerebral_Cortex)) &&
               (x < xmid))
           {
-            MRIvox(mri_roi, x, y, z) = 0 ;
+            myMRIgetVoxVal(mri_roi, x, y, z, 0) ;
           }
           if ((label == Unknown) && x < xmin+3)
           {
-            MRIvox(mri_roi, x, y, z) = 0 ;
+            myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
           }
         }
         else   // rh
@@ -3071,11 +3096,11 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
                (label == Right_Cerebral_Cortex)) &&
               (x > xmid))
           {
-            MRIvox(mri_roi, x, y, z) = 0 ;
+            myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
           }
           if ((label == Unknown) && x > xmax-3)
           {
-            MRIvox(mri_roi, x, y, z) = 0 ;
+            myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
           }
         }
       }
@@ -3130,7 +3155,7 @@ remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
         {
           DiagBreak() ;
         }
-        if (MRIvox(mri_roi, x, y, z) == 0)
+        if (myMRIgetVoxVal(mri_roi, x, y, z) == 0)
         {
           continue ;
         }
@@ -3141,7 +3166,7 @@ remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
         }
         if (distance_to_nonzero(mri_aseg, x, y, z, 0, 1, 0, 6) >= 6)
         {
-          MRIvox(mri_roi, x, y, z) = 0 ;
+          myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
         }
       }
     }
@@ -3165,7 +3190,7 @@ remove_gray_matter_voxels(MRI *mri_roi, MRI *mri_aseg)
         {
           DiagBreak() ;
         }
-        if (MRIvox(mri_roi, x, y, z) == 0)
+        if (myMRIgetVoxVal(mri_roi, x, y, z) == 0)
         {
           continue ;
         }
@@ -3180,7 +3205,7 @@ remove_gray_matter_voxels(MRI *mri_roi, MRI *mri_aseg)
         if ((distance_to_label(mri_aseg, alabel, x, y, z, 0, 0, -1, 10) <= 2) &&
             (distance_to_label(mri_aseg, alabel, x, y, z, 0, 0, 1, 10) >= 10))
         {
-          MRIvox(mri_roi, x, y, z) = 0 ;
+          myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
         }
       }
     }
@@ -3226,27 +3251,27 @@ spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, x, yi, z, AUTO_FILL) ;
         }
         xi = left ? x+1 : x-1 ;
         if (IS_AMYGDALA(label) && IS_CORTEX(MRIgetVoxVal(mri_aseg, xi, y, z, 0)) &&
-            (MRIvox(mri_wm, xi, y, z) < MIN_WM_VAL))
+            (myMRIgetVoxVal(mri_wm, xi, y, z) < MIN_WM_VAL))
         {
           if (xi == Gx && y == Gy && z == Gz)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, xi, y, z, AUTO_FILL) ;
         }
 
         if (IS_AMYGDALA(label) && IS_CORTEX(MRIgetVoxVal(mri_aseg, xi, yi, z, 0)) &&
-            (MRIvox(mri_wm, xi, yi, z) < MIN_WM_VAL))
+            (myMRIgetVoxVal(mri_wm, xi, yi, z) < MIN_WM_VAL))
         {
           if (xi == Gx && yi == Gy && z == Gz)
           {
             DiagBreak2() ;
           }
-          MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
+          myMRIsetVoxVal(mri_wm, xi, yi, z, AUTO_FILL) ;
         }
       }
     }
@@ -3284,4 +3309,57 @@ MRI *KeepHAILVCP(MRI *in, MRI *seg, int H, int A, int ILV, int CP, double lhval,
    }
  }
  return(out);
+}
+
+static float myMRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
+{
+  if (!fixUCHAR)
+    return MRIvox(mri, c, r, s);
+
+  unsigned char *nthrowdata = (unsigned char *)mri->slices[s+(f)*mri->depth][r];
+
+  float voxval = 0;
+  if (mri->type == MRI_UCHAR)
+    voxval = (float) *((unsigned char*)nthrowdata + c);
+  else if (mri->type == MRI_SHORT)
+    voxval = (float) *((short*)nthrowdata + c);
+  else if (mri->type == MRI_USHRT)
+    voxval = (float) *((unsigned short*)nthrowdata + c);
+  else if (mri->type == MRI_RGB || mri->type == MRI_INT)
+    voxval = (float) *((int*)nthrowdata + c);
+  else if (mri->type == MRI_LONG)
+    voxval = (float) *((long*)nthrowdata + c);
+  else if (mri->type == MRI_FLOAT)
+    voxval = (float) *((float*)nthrowdata + c);
+  else
+    ErrorExit(ERROR_UNSUPPORTED, "myMRIgetVoxVal(): unsupported mri->type %d", mri->type);
+
+  return voxval;
+}
+
+
+static int myMRIsetVoxVal(MRI *mri, int c, int r, int s, float voxval, int f)
+{
+  if (!fixUCHAR)
+    MRIvox(mri, c, r, s) = nint(voxval);
+  else {
+    unsigned char *nthrowdata = (unsigned char *)mri->slices[s+(f)*mri->depth][r];
+
+    if (mri->type == MRI_UCHAR)
+      *((unsigned char*)nthrowdata + c) = nint(voxval);
+    else if (mri->type == MRI_SHORT)
+      *((short*)nthrowdata + c) = nint(voxval);
+    else if (mri->type == MRI_USHRT)
+      *((unsigned short*)nthrowdata + c) = nint(voxval);
+    else if (mri->type == MRI_RGB || mri->type == MRI_INT)
+      *((int*)nthrowdata + c) = nint(voxval);
+    else if (mri->type == MRI_LONG)
+      *((long*)nthrowdata + c) = nint(voxval);
+    else if (mri->type == MRI_FLOAT)
+      *((float*)nthrowdata + c) = voxval;
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "myMRIsetVoxVal(): unsupported mri->type %d", mri->type);
+  }
+
+  return 0;
 }

@@ -8646,7 +8646,10 @@ int mrisComputeNormalDotDistribution(MRIS *mris, HISTOGRAM *h_dot)
       dx = vn->x - x;
       dy = vn->y - y;
       dz = vn->z - z;
-      dot = dx * nx + dy * ny * dz * nz;
+      if (getenv("FIX_MRISCOMPUTENORMALDOTDISTRIBUTION"))
+	dot = dx * nx + dy * ny + dz * nz;
+      else
+	dot = dx * nx + dy * ny * dz * nz;
       if (dot < min_dot) {
         min_dot = dot;
       }
@@ -8685,7 +8688,10 @@ int mrisComputeNormalDotDistribution(MRIS *mris, HISTOGRAM *h_dot)
       dx = vn->x - x;
       dy = vn->y - y;
       dz = vn->z - z;
-      dot = dx * nx + dy * ny * dz * nz;
+      if (getenv("FIX_MRISCOMPUTENORMALDOTDISTRIBUTION"))      
+	dot = dx * nx + dy * ny + dz * nz;
+      else
+	dot = dx * nx + dy * ny * dz * nz;
       bin = (int)((dot - min_dot) / bin_size);
       if (bin == 0) {
         DiagBreak();

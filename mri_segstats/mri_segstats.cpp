@@ -919,7 +919,7 @@ int main(int argc, char **argv)
           MRIsegStatsRobust(seg, StatSumTable[n].id, invol, frame,
             &min, &max, &range, &mean, &std, RobustPct);
 
-        snr = mean/std;
+	snr = (std > 0) ? (mean / std) : 0;
       }
       else
       {
