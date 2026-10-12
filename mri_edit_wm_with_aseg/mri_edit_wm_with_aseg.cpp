@@ -3082,7 +3082,7 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
                (label == Left_Cerebral_Cortex)) &&
               (x < xmid))
           {
-            myMRIgetVoxVal(mri_roi, x, y, z, 0) ;
+            myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
           }
           if ((label == Unknown) && x < xmin+3)
           {
