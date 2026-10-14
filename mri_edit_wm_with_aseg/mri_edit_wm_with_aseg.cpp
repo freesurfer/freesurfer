@@ -1557,7 +1557,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             }
             non++ ;
             nchanged++ ;
-            myMRIgetVoxVal(mri_wm, x, y-1, z-1, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_wm, x, y-1, z-1, AUTO_FILL) ;
           }
           if (myMRIgetVoxVal(mri_wm, x, y-1, z+1) < MIN_WM_VAL)
           {
@@ -1567,7 +1567,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             }
             non++ ;
             nchanged++ ;
-            myMRIgetVoxVal(mri_wm, x, y-1, z+1, AUTO_FILL) ;
+            myMRIsetVoxVal(mri_wm, x, y-1, z+1, AUTO_FILL) ;
           }
           break ;
         case Left_Cerebral_Cortex:
@@ -3082,7 +3082,7 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
                (label == Left_Cerebral_Cortex)) &&
               (x < xmid))
           {
-            myMRIgetVoxVal(mri_roi, x, y, z, 0) ;
+            myMRIsetVoxVal(mri_roi, x, y, z, 0) ;
           }
           if ((label == Unknown) && x < xmin+3)
           {
