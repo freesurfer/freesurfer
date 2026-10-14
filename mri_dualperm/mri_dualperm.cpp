@@ -85,6 +85,7 @@ std::vector<int> ReadFrameList(char *fname, int ht, int nmax);
 std::vector<int> randperm2(int ntot, int nlist, unsigned long int seed=0);
 MRI *GetSubSet(MRI *mri, int nsubset, char *subsettype, char *framelistfile, unsigned long int seed,char *outfile=NULL);
 std::vector<std::vector<int>> GetPStackNos(int nperm, int n1, int n2, int seed);
+int AddMap(MRI *y, MRI *addmap, int tsgd);
 
 class ModeArg {
 public:
@@ -101,6 +102,7 @@ public:
   char *framelistfile=NULL;
   int residualize=1;
   std::vector<int> framelist;
+  MRI *addmap=NULL;
   // square matrix to multiply input to violate exchangeability. For testing
   // only.
   MATRIX *W=NULL; 
@@ -233,6 +235,7 @@ int main(int argc, char *argv[])
       if(!mritmp) exit(1);
       dpm->y = mritmp;
     }
+    if(ma->addmap) AddMap(dpm->y, ma->addmap, ma->tsgd);
     if(ma->W) {
       printf("Mode%d Applying exchange violation matrix\n",modeno);
       printf("  yframes %d, matrix size %d %d\n",dpm->y->nframes,ma->W->rows,ma->W->cols);
@@ -314,6 +317,7 @@ int main(int argc, char *argv[])
     MRIwrite(dpm->beta,fname);
     sprintf(fname,"%s/rvar.nii.gz",glmdir);
     MRIwrite(dpm->rvar,fname);
+
     sprintf(fname,"%s/gamma.nii.gz",cdir);
     MRIwrite(dpm->gamma[0],fname);
     if(dpm->mask) MRImask(dpm->sig[0],dpm->mask,dpm->sig[0],0.0,0.0);
@@ -680,6 +684,17 @@ static int parse_commandline(int argc, char **argv) {
       marg[modeno-1].pstackfile = pargv[0];
       dp.permtype[modeno-1] = 4;
       nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--addmap1") || !strcasecmp(option, "--addmap2")) {
+      if(!strcasecmp(option, "--addmap1")) modeno = 1;
+      if(!strcasecmp(option, "--addmap2")) modeno = 2;
+      if(nargc < 2) CMDargNErr(option,2);
+      marg[modeno-1].addmap = MRIread(pargv[0]);
+      double scale;
+      sscanf(pargv[1],"%lf",&scale);
+      printf("mode %d add map scale = %g\n",modeno,scale);
+      MRImultiplyConst(marg[modeno-1].addmap,scale,marg[modeno-1].addmap);
+      nargsused = 2;
     }
     else if(!strcasecmp(option, "--save-surrogates1") || !strcasecmp(option, "--save-surrogates2")) {
       if(!strcasecmp(option, "--save-surrogates1")) modeno = 1;
@@ -1248,6 +1263,28 @@ int writepvals(const char *outdir, double cc0, std::vector<double> cc1,std::vect
   return(0);
 }
 
-
+/* \fn int AddMap(MRI *y, MRI *addmap, int tsgd)
+   \breif simple function that just adds the first frame of addmap to
+   all frames of y, unless tsgd is set, then it adds it to only the
+   first y->nframes/2 frames. The idea here is to simulate activity
+   by adding something to the input.
+ */
+int AddMap(MRI *y, MRI *addmap, int tsgd)
+{
+  int Ns = y->nframes;
+  if(tsgd) Ns = Ns/2;
+  for(int c=0; c < y->width; c++){
+    for(int r=0; r < y->height; r++){
+      for(int s=0; s < y->depth; s++){
+	double add = MRIgetVoxVal(addmap,c,r,s,0);
+	for(int f=0; f < Ns; f++){
+	  double val = MRIgetVoxVal(y,c,r,s,f);
+	  MRIsetVoxVal(y,c,r,s,f,val+add);
+	} //f
+      } //s 
+    }// r
+  }// c
+  return(0);
+}
 
 
