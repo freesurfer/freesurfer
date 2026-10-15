@@ -98,6 +98,7 @@ else()
    option(INTEGRATE_SAMSEG "Integrate standalone SAMSEG" ON)
 endif()
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
+option(FSDEEPNET "build fsdeepnet_cli and download/install its model files" ON)
 
 ## freeview
 ##
@@ -965,7 +966,6 @@ endif()
 add_subdirectories(
   AntsDenoiseImageFs
   AntsN4BiasFieldCorrectionFs
-  fsdeepnet_cli
   lta_convert
   io
   mri_and
@@ -1070,6 +1070,10 @@ if(BUILD_FORTRAN)
   )
 else()
   message(STATUS "For HOST_OS=${HOST_OS} NOT BUILDING talairach subdirs requiring gfortran.")
+endif()
+
+if(FSDEEPNET)
+   add_subdirectories(fsdeepnet_cli)
 endif()
 
 ## the following program subdirectories aren't required in the standard recon-all stream.

@@ -38,7 +38,10 @@ install(PROGRAMS
   DESTINATION .
 )
 
-add_subdirectories(average docs fsafd subjects etc fsdeepnet_models)
+add_subdirectories(average docs fsafd subjects etc)
+if (FSDEEPNET)
+   add_subdirectories(fsdeepnet_models)
+endif()
 
 install_symlinks(
   lib/bem/ic0.tri
