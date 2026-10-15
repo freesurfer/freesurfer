@@ -7,7 +7,7 @@ MarkupSafe==3.0.3
 PyYAML==6.0.3
 Pygments==2.20.0
 # PyWavelets==1.6.0
-SynthSeg@git+https://github.com/jnolan14/SynthSeg.git@standalone_predict39
+SynthSeg@git+https://github.com/jnolan14/SynthSeg.git@a9b4b4d7e7ad9080a02043954355290c35bc9e46
 Werkzeug==3.1.8
 absl-py==2.3.1
 annotated-types==0.7.0
@@ -112,7 +112,7 @@ six==1.17.0
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
 smmap==5.0.3
 # surfa@git+https://github.com/freesurfer/surfa.git@0a04738981ffebe29f6e35bf9bd8c4458c82e50f
-git+https://github.com/freesurfer/surfa.git@master
+surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc2/surfa-0.7.0.tar.gz#sha256=474faea33ecaeced9f87c369105462efc64c89d954bc1439030b2b176d34719a
 # sympy==1.13.1
 sympy
 tensorboard-data-server==0.7.2
