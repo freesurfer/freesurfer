@@ -96,7 +96,7 @@ spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd1
 # surfa@git+https://github.com/freesurfer/surfa.git@ec5ddb193fd1caf22ec654c457b5678f6bd8e460
 # surfa@git+https://github.com/freesurfer/surfa.git@78957160b63a01f4cbfce13b45d63d40d28f87f9
 # testing 0.7.0 release candidate
-surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc3/surfa-0.7.0.tar.gz#sha256=14e5f774ee386d39a3d1aa1396bc3e2a380729a8055f14a983ea504351ebb21c
+surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc3/surfa-0.7.0.tar.gz#sha256=9adbd75c17ee5970bf68bf25927b2bd45fd0a29fcb3dd5f7fe7cc243e5347213
 # specify hash for 8.2.0 release
 # surfa@git+https://github.com/freesurfer/surfa.git@c6cddec65f3f3455c60e7954e630ef94368611ec
 # sympy==1.14.0
