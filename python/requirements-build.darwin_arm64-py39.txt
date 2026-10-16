@@ -112,7 +112,7 @@ six==1.17.0
 spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
 smmap==5.0.3
 # surfa@git+https://github.com/freesurfer/surfa.git@0a04738981ffebe29f6e35bf9bd8c4458c82e50f
-surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc2/surfa-0.7.0.tar.gz#sha256=474faea33ecaeced9f87c369105462efc64c89d954bc1439030b2b176d34719a
+surfa@https://github.com/jnolan14/surfa/releases/download/v0.7.0rc3/surfa-0.7.0.tar.gz#sha256=14e5f774ee386d39a3d1aa1396bc3e2a380729a8055f14a983ea504351ebb21c
 # sympy==1.13.1
 sympy
 tensorboard-data-server==0.7.2
