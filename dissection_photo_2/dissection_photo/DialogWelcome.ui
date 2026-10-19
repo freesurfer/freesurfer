@@ -17,6 +17,9 @@
    <property name="leftMargin">
     <number>25</number>
    </property>
+   <property name="topMargin">
+    <number>25</number>
+   </property>
    <property name="rightMargin">
     <number>25</number>
    </property>
@@ -25,8 +28,9 @@
    </property>
    <item>
     <widget class="QLabel" name="label">
+     <!-- Larger than the 19px section headers so it reads as the window title. -->
      <property name="styleSheet">
-      <string notr="true">font-weight:bold; font-size: 17px;</string>
+      <string notr="true">font-weight:bold; font-size: 24px;</string>
      </property>
      <property name="text">
       <string>FreeSurfer Dissection Photo Tools</string>
@@ -60,7 +64,7 @@
         </font>
        </property>
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 17px; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 20px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Segmentation of Tissue Face</string>
@@ -79,7 +83,7 @@
         </font>
        </property>
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 17px; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 20px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Creating 3D Reconstruction</string>
@@ -98,7 +102,7 @@
         </font>
        </property>
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 17px; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 20px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Spatial Correction</string>
@@ -164,7 +168,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>Images can be manually corrected for scale using a spatial reference such as a ruler. For retrospective data, two, three, or four reference points can be used to apply the correction, where a four-point correction additionally accounts for perspective distortion. For prospective data, we recommand using our fiducial markers to automatically correct photographs. For more information please visit our wiki page.</string>
+        <string>Images can be manually corrected for scale using a spatial reference such as a ruler. For retrospective data, two, three, or four reference points can be used to apply the correction, where a four-point correction additionally accounts for perspective distortion. For prospective data, we recommend using our fiducial markers to automatically correct photographs. For more information please visit our wiki page.</string>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
@@ -175,9 +179,9 @@
       </widget>
      </item>
      <item row="5" column="1">
-      <widget class="QLabel" name="label_9">
+      <widget class="QLabel" name="labelWelcomeCCBody">
        <property name="text">
-        <string>Connected components are manually selected, which is important for slab order and discontinuous slabs commonly see on the slab after the temporal pole is cut.</string>
+        <string>Connected components are manually selected, which is important for slab order and discontinuous slabs commonly seen on the slab after the temporal pole is cut.</string>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
@@ -188,7 +192,7 @@
       </widget>
      </item>
      <item row="0" column="0" rowspan="2">
-      <widget class="QLabel" name="label_11">
+      <widget class="QLabel" name="labelWelcomeCorrectionIcon">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -227,7 +231,7 @@
         </font>
        </property>
        <property name="styleSheet">
-        <string notr="true">font-weight:bold; font-size: 17px; padding-top: 10;</string>
+        <string notr="true">font-weight:bold; font-size: 20px; padding-top: 10;</string>
        </property>
        <property name="text">
         <string>Identifying Connected Components</string>
@@ -320,13 +324,36 @@
    <item>
     <widget class="QLabel" name="label_10">
      <property name="text">
-      <string>&lt;a style='color:#c95659;font-size:16px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;Photo Tools Wiki Page &gt;&lt;/a&gt;</string>
+      <string>&lt;a style='color:#c95659;font-size:16px;text-decoration:none' href='https://surfer.nmr.mgh.harvard.edu/fswiki/PhotoTools' target='_blank'&gt;Photo Tools Wiki Page &gt;&lt;/a&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
      <property name="openExternalLinks">
       <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="frameWelcomeDivider">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>1</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>1</height>
+      </size>
+     </property>
+     <!-- Separator between the wiki link and the Continue row. -->
+     <property name="styleSheet">
+      <string notr="true">background: #d0d0d0;</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
      </property>
     </widget>
    </item>
@@ -383,7 +410,9 @@
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
         <property name="styleSheet">
-         <string notr="true">background: #a2293c; padding: 8 25 8 25;font-size: 16px; border: none; border-radius: 16; color:white</string>
+         <string notr="true">QPushButton {background: #a2293c; padding: 8 25 8 25;font-size: 16px; border: none; border-radius: 18; color:white}
+QPushButton:hover {background: #8e2434;}
+QPushButton:pressed {background: #7b1f2d;}</string>
         </property>
         <property name="text">
          <string>Continue</string>

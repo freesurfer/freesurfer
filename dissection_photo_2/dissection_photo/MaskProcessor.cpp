@@ -2,11 +2,10 @@
 #include <QDebug>
 #include <QFile>
 #include "cnpy.h"
-#include <QList>
 
-MaskProcessor::MaskProcessor() : m_data(NULL), m_dataInBuffer(NULL), m_dataOutBuffer(NULL)
+MaskProcessor::MaskProcessor() : m_data(NULL), m_dataInBuffer(NULL), m_dataOutBuffer(NULL),
+  m_nWidth(0), m_nHeight(0)
 {
-
 }
 
 MaskProcessor::~MaskProcessor()
@@ -16,16 +15,11 @@ MaskProcessor::~MaskProcessor()
 
 void MaskProcessor::ClearData()
 {
-  if (m_data)
-    delete[] m_data;
+  delete[] m_data;
   m_data = NULL;
-
-  if (m_dataInBuffer)
-    delete[] m_dataInBuffer;
+  delete[] m_dataInBuffer;
   m_dataInBuffer = NULL;
-
-  if (m_dataOutBuffer)
-    delete[] m_dataOutBuffer;
+  delete[] m_dataOutBuffer;
   m_dataOutBuffer = NULL;
 }
 
@@ -62,6 +56,9 @@ bool MaskProcessor::Load(const QString& npy_in)
 
 bool MaskProcessor::ProcessSelection(const QPoint& pt1, const QPoint& pt2, int nFillValue)
 {
+  if (!m_data || !m_dataOutBuffer)
+    return false;
+
   QList<int> list;
   for (int i = pt1.x(); i <= pt2.x(); i++)
   {
@@ -95,7 +92,7 @@ bool MaskProcessor::ProcessSelection(const QPoint& pt1, const QPoint& pt2, int n
 
 void MaskProcessor::LoadSelections(const QList<QPoint>& pts)
 {
-  for (int i = 0; i < pts.size(); i+=2)
+  for (int i = 0; i + 1 < pts.size(); i+=2)
   {
     ProcessSelection(pts[i], pts[i+1], i/2+1);
   }
@@ -103,6 +100,9 @@ void MaskProcessor::LoadSelections(const QList<QPoint>& pts)
 
 QImage MaskProcessor::GetMaskImage(const QList<QColor>& colors)
 {
+  if (!m_dataOutBuffer || colors.isEmpty())
+    return QImage();
+
   QImage image(m_nWidth, m_nHeight, QImage::Format_ARGB32);
   image.fill(QColor(0,0,0,0));
   for (int j = 0; j < image.height(); j++)
@@ -127,6 +127,50 @@ void MaskProcessor::ClearBuffer()
 
   memcpy(m_data, m_dataInBuffer, m_nWidth*m_nHeight*sizeof(PY_DATA_TYPE));
   memset(m_dataOutBuffer, 0, m_nWidth*m_nHeight);
+}
+
+bool MaskProcessor::LoadSaved(const QString& fn)
+{
+  if (!m_data || !m_dataOutBuffer || !QFile::exists(fn))
+    return false;
+  cnpy::NpyArray ar;
+  try { ar = cnpy::npy_load(qPrintable(fn)); }
+  catch (const std::exception&) { return false; }
+  if (ar.shape.size() != 2 || (int)ar.shape[0] != m_nHeight || (int)ar.shape[1] != m_nWidth || ar.word_size != 1)
+    return false;
+  const unsigned char* p = ar.data<unsigned char>();
+  for (int n = 0; n < m_nWidth*m_nHeight; n++)
+  {
+    if (p[n] > 0)
+    {
+      m_dataOutBuffer[n] = p[n];
+      m_data[n] = 0;
+    }
+  }
+  return true;
+}
+
+QImage MaskProcessor::SavedMaskImage(const QString& fn, const QList<QColor>& colors)
+{
+  if (!QFile::exists(fn) || colors.isEmpty())
+    return QImage();
+  cnpy::NpyArray ar;
+  try { ar = cnpy::npy_load(qPrintable(fn)); }
+  catch (const std::exception&) { return QImage(); }
+  if (ar.shape.size() != 2 || ar.word_size != 1)
+    return QImage();
+  const int h = ar.shape[0], w = ar.shape[1];
+  const unsigned char* p = ar.data<unsigned char>();
+  QImage image(w, h, QImage::Format_ARGB32);
+  image.fill(QColor(0,0,0,0));
+  for (int j = 0; j < h; j++)
+  {
+    QRgb* q = (QRgb*)image.scanLine(j);
+    for (int i = 0; i < w; i++)
+      if (p[j*w+i] > 0)
+        q[i] = colors[(p[j*w+i]-1)%colors.size()].rgb();
+  }
+  return image;
 }
 
 bool MaskProcessor::SaveToNpy(const QString& fn)

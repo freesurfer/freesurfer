@@ -27,6 +27,9 @@ install(FILES package/LICENSE
 # install the python script in the packages dir for Eugenio's hack
 install_symlinks(process_directory_no_upsample.py TYPE programs DESTINATION ${NNUNET_PKG_DST})
 
+# the segmentation daemon the GUI runs from NNUNET_SCRIPT_DIR; it imports nnunetv2 from this dir
+install_symlinks(process_directory_no_upsample_daemon.py TYPE programs DESTINATION ${NNUNET_PKG_DST})
+
 # install the wrapper in bin/
 install_symlinks(${BIN_PROGRAMS} TYPE programs DESTINATION bin)
 

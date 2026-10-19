@@ -13,3 +13,12 @@ ProgressWindow::~ProgressWindow()
 {
   delete ui;
 }
+
+void ProgressWindow::SetIndeterminate(const QString& msg)
+{
+  ui->label->setText(msg);
+  ui->progressBar->setTextVisible(false);
+  ui->progressBar->setMinimum(0);
+  ui->progressBar->setMaximum(0);
+  ui->progressBar->setValue(0);
+}

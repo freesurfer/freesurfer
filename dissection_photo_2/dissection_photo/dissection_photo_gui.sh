@@ -44,4 +44,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Silence Mesa's "libGL error" lines (dri3 / nouveau) on Linux X11: the app
+# never uses OpenGL, but Qt's XCB plugin probes GLX at startup unless GL
+# integration is off. Not LIBGL_ALWAYS_SOFTWARE=1: it still initialises Mesa
+# and the Python children would inherit it.
+if [ "$(uname -s)" = "Linux" ] && [ -n "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ -z "$QT_XCB_GL_INTEGRATION" ]; then
+    export QT_XCB_GL_INTEGRATION=none
+fi
+
 dissection_photo "$@"

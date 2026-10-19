@@ -2,6 +2,8 @@
 #define MAKETHUMBNAILTHREAD_H
 
 #include <QPixmap>
+#include <QColor>
+#include <QList>
 #include <QThread>
 #include <QMutex>
 
@@ -12,18 +14,11 @@ public:
   MakeThumbnailThread(QObject* parent = NULL);
 
 signals:
-  void PixmapReady(const QPixmap& pix, int n = -1);
+  // nGeneration: the SetGeneration() value the work was started under, so the
+  // receiver can drop results of a list it has since replaced.
+  void PixmapReady(const QPixmap& pix, int n, int nGeneration);
 
 public slots:
-  void LoadImages(const QList<QImage>& images)
-  {
-    m_images = images;
-    m_files.clear();
-    m_maskFiles.clear();
-    m_nUpdateIndex = -1;
-    start();
-  }
-
   void LoadImageFiles(const QStringList& files, const QStringList& mask_files = QStringList())
   {
     m_files = files;
@@ -33,7 +28,14 @@ public slots:
     start();
   }
 
+  // One thumbnail, from an image or from a photo and its mask on disk. Only
+  // while the thread is idle: QThumbnailWidget queues them.
   void UpdateImage(int n, const QImage& img);
+  void UpdateFiles(int n, const QString& file, const QString& mask_file);
+  // A Connected components thumbnail: the photo inside its mask, with the saved
+  // components (a label .npy) in colour on top, as the view shows them.
+  void UpdateComponents(int n, const QString& file, const QString& mask_file, const QString& labels_file,
+                        const QList<QColor>& colors, double dOpacity);
 
   void SetPixmapSize(const QSize& sz, int devicePixelRatio)
   {
@@ -42,10 +44,14 @@ public slots:
   }
 
   void Abort();
+  // Set only while the thread is not running.
+  void SetGeneration(int n) { m_nGeneration = n; }
 
 protected:
   void run();
   QPixmap BuildPixmap(int nIndex, const QImage& img, const QImage& mask = QImage());
+  QPixmap BuildPixmapFromFiles(int nIndex, const QString& file, const QString& mask_file);
+  QPixmap BuildComponentsPixmap(int nIndex);
 
   QMutex          m_mutex;
   QList<QImage>   m_images;
@@ -55,6 +61,12 @@ protected:
   int           m_ratio;
   bool          m_bAbort;
   int           m_nUpdateIndex;
+  int           m_nGeneration = 0;
+  QString       m_strUpdateFile;
+  QString       m_strUpdateMask;
+  QString       m_strUpdateLabels;
+  QList<QColor> m_listColors;
+  double        m_dOpacity = 1;
 };
 
 #endif // MAKETHUMBNAILTHREAD_H
