@@ -39,9 +39,11 @@
        <bool>false</bool>
       </property>
       <widget class="QWidget" name="widgetControl" native="true">
+       <!-- 380 floor keeps the widest left-column buttons from running out of room,
+            with headroom for wider Linux fonts. -->
        <property name="minimumSize">
         <size>
-         <width>300</width>
+         <width>380</width>
          <height>0</height>
         </size>
        </property>
@@ -61,45 +63,100 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="pageSegEdit">
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <property name="spacing">
-             <number>12</number>
+             <number>16</number>
             </property>
             <property name="leftMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="topMargin">
              <number>0</number>
             </property>
             <property name="rightMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="bottomMargin">
-             <number>12</number>
+             <number>0</number>
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_2">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 16px;</string>
+               <string notr="true">font-weight: bold; font-size: 20px; padding-bottom: 8px;</string>
               </property>
               <property name="text">
                <string>Segmentation</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QLabel" name="label_10">
+              <!-- Rich-text QLabels ignore the app-wide QSS font size, so it is set both in
+                   the styleSheet and on the body tag. -->
+              <property name="styleSheet">
+               <string notr="true">font-size: 16px;</string>
+              </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Refine a binary mask of the slab faces within the image. &lt;/p&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left button to draw. Ctrl+Right button to flood fill. Shift+Left click to erase. &lt;/p&gt;&lt;p&gt;Ctrl + Z to toggle mask visibility.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p style=&quot; font-size:16px;&quot;&gt;Clean up automatically segmented masks to only include the slab face.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayoutBackSeg">
+              <item>
+               <widget class="QPushButton" name="pushButtonBackToCorrection">
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: transparent; padding: 4 12 4 12; font-size: 14px; border: 1px solid #999999; border-radius: 14; color:#555555}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
+                </property>
+                <property name="text">
+                 <string>← Back</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacerBackSeg">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <!-- Shortcut reference as a two-column table (action, hotkey): Qt rich text only
+                  column-aligns tables. 14px so it draws less focus than the instruction.
+                  No wordWrap: columns size to content and white-space:pre keeps chords on
+                  one line. Box colours are set per theme in SetDarkMode(); only font-size
+                  lives here (rich-text reason as on label_10). -->
+             <widget class="QLabel" name="labelSegHotkeys">
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot; font-size:14px;&quot;&gt;&lt;p&gt;(Hotkey table is generated per theme by MainWindow::SetDarkMode(), see SegHotkeysHtml() in MainWindow.cpp.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="textFormat">
+               <enum>Qt::RichText</enum>
               </property>
              </widget>
             </item>
@@ -155,19 +212,6 @@
                   <number>0</number>
                  </property>
                  <item>
-                  <spacer name="horizontalSpacer_20">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item>
                   <widget class="QWidget" name="widget" native="true">
                    <property name="minimumSize">
                     <size>
@@ -175,7 +219,10 @@
                      <height>0</height>
                     </size>
                    </property>
-                   <layout class="QHBoxLayout" name="horizontalLayout_10">
+                   <layout class="QVBoxLayout" name="horizontalLayout_10">
+                    <property name="spacing">
+                     <number>8</number>
+                    </property>
                     <property name="leftMargin">
                      <number>0</number>
                     </property>
@@ -189,86 +236,49 @@
                      <number>0</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="label_3">
-                      <property name="text">
-                       <string>Brush size</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QSpinBox" name="spinBoxBrushSize">
-                      <property name="minimum">
-                       <number>1</number>
-                      </property>
-                      <property name="value">
-                       <number>10</number>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_29">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
+                     <!-- Scrubber sliders. A 1-200px brush radius covers fine detail through broad
+                          strokes on ~700-4000px images. -->
+                     <widget class="CompactSlider" name="sliderBrushSize" native="true">
+                      <property name="minimumSize">
                        <size>
-                        <width>40</width>
-                        <height>20</height>
+                        <width>180</width>
+                        <height>34</height>
                        </size>
                       </property>
-                     </spacer>
+                     </widget>
                     </item>
                     <item>
-                     <spacer name="horizontalSpacer_21">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeType">
-                       <enum>QSizePolicy::Fixed</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
+                     <!-- TODO: WidgetImageView has no separate eraser size; erasing reuses
+                          m_nBrushSize, so this slider drives SetBrushSize(int) too. -->
+                     <widget class="CompactSlider" name="sliderEraserSize" native="true">
+                      <property name="minimumSize">
                        <size>
-                        <width>1</width>
-                        <height>5</height>
+                        <width>180</width>
+                        <height>34</height>
                        </size>
                       </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QLabel" name="label_5">
-                      <property name="text">
-                       <string>Opacity</string>
-                      </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSlider" name="horizontalSliderSegOpacity">
-                      <property name="maximum">
-                       <number>100</number>
+                     <layout class="QHBoxLayout" name="horizontalLayoutSegOpacityRow">
+                      <property name="spacing">
+                       <number>8</number>
                       </property>
-                      <property name="value">
-                       <number>70</number>
-                      </property>
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                     </widget>
+                      <item>
+                       <!-- CompactSlider; set up and wired in MainWindow's constructor. -->
+                       <widget class="CompactSlider" name="sliderSegOpacity" native="true">
+                        <property name="minimumSize">
+                         <size>
+                          <width>180</width>
+                          <height>34</height>
+                         </size>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
                     </item>
                    </layout>
                   </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_37">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
                  </item>
                 </layout>
                </item>
@@ -307,14 +317,70 @@
                    </spacer>
                   </item>
                   <item>
+                   <widget class="QPushButton" name="pushButtonToggleMaskVisibility">
+                    <property name="cursor">
+                     <cursorShape>PointingHandCursor</cursorShape>
+                    </property>
+                    <property name="toolTip">
+                     <string>Show/hide the mask overlay (Ctrl+T)</string>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">QPushButton {background: #cccccc; padding: 6 10 6 10;font-size: 14px; font-weight: bold; border: none; border-radius: 14; color:#555555}
+QPushButton:hover {background: #bbbbbb;}
+QPushButton:checked {background: #a6a233; color:white}
+QPushButton:checked:hover {background: #928e2c;}
+QPushButton:disabled {background: #999999; color:white}</string>
+                    </property>
+                    <property name="text">
+                     <string>Show mask</string>
+                    </property>
+                    <property name="checkable">
+                     <bool>true</bool>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <!-- Show mask to Undo: the layout adds its 6px spacing once across a spacer, so
+                        2 gives an 8px gap. This is the column's widest row (278px). -->
+                   <spacer name="horizontalSpacerSegShowMask">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>2</width>
+                      <height>5</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
                    <widget class="QPushButton" name="pushButtonMaskEditUndo">
+                    <property name="cursor">
+                     <cursorShape>PointingHandCursor</cursorShape>
+                    </property>
+                    <property name="toolTip">
+                     <string>Undo (Ctrl+Z)</string>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">QPushButton {background: #a6a233; padding: 6 10 6 10;font-size: 14px; border: none; border-radius: 14; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #928e2c;}
+QPushButton:pressed {background: #7e7b26;}</string>
+                    </property>
                     <property name="text">
                      <string>Undo</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <spacer name="horizontalSpacer_34">
+                   <spacer name="horizontalSpacer_56">
                     <property name="orientation">
                      <enum>Qt::Horizontal</enum>
                     </property>
@@ -328,6 +394,25 @@
                      </size>
                     </property>
                    </spacer>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="pushButtonMaskEditRedo">
+                    <property name="cursor">
+                     <cursorShape>PointingHandCursor</cursorShape>
+                    </property>
+                    <property name="toolTip">
+                     <string>Redo (Ctrl+Shift+Z)</string>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">QPushButton {background: #a6a233; padding: 6 10 6 10;font-size: 14px; border: none; border-radius: 14; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #928e2c;}
+QPushButton:pressed {background: #7e7b26;}</string>
+                    </property>
+                    <property name="text">
+                     <string>Redo</string>
+                    </property>
+                   </widget>
                   </item>
                   <item>
                    <spacer name="horizontalSpacer_35">
@@ -362,36 +447,6 @@
                 </spacer>
                </item>
                <item>
-                <layout class="QGridLayout" name="gridLayout_3">
-                 <item row="0" column="4">
-                  <spacer name="horizontalSpacer_18">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item row="0" column="0">
-                  <spacer name="horizontalSpacer_19">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item>
                 <spacer name="verticalSpacer_8">
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
@@ -424,6 +479,94 @@
              </spacer>
             </item>
             <item>
+             <widget class="QFrame" name="frameCCProceedDivider">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacerCCProceedDivider">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>16</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QWidget" name="widgetSegProgress" native="true">
+              <property name="visible">
+               <bool>false</bool>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayoutSegProgress">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>8</number>
+               </property>
+               <property name="spacing">
+                <number>4</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="labelSegProgress">
+                 <property name="styleSheet">
+                  <string notr="true">color: #666666; font-size: 13px;</string>
+                 </property>
+                 <property name="text">
+                  <string>Segmenting images in the background: 0 of 0 ready</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QProgressBar" name="progressBarSeg">
+                 <property name="maximum">
+                  <number>1</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                 <property name="textVisible">
+                  <bool>false</bool>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>6</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_3">
               <item>
                <spacer name="horizontalSpacer_16">
@@ -447,11 +590,13 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #467d92; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #457c92; padding: 8 18 8 18;font-size: 14px; font-weight: bold; border: none; border-radius: 18; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #3c6d80; border: none; border-radius: 18; color:white}
+QPushButton:pressed {background: #345e6e; border: none; border-radius: 18; color:white}</string>
                 </property>
                 <property name="text">
-                 <string>Proceed to Connected Components</string>
+                 <string>Continue to Connected Components</string>
                 </property>
                </widget>
               </item>
@@ -475,19 +620,19 @@ QPushButton:disabled {background: #999999;}</string>
           <widget class="QWidget" name="pageCC">
            <layout class="QVBoxLayout" name="verticalLayout_5">
             <property name="spacing">
-             <number>10</number>
+             <number>16</number>
             </property>
             <property name="leftMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="topMargin">
              <number>0</number>
             </property>
             <property name="rightMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="bottomMargin">
-             <number>12</number>
+             <number>0</number>
             </property>
             <item>
              <widget class="QLabel" name="labelTitle_3">
@@ -495,23 +640,28 @@ QPushButton:disabled {background: #999999;}</string>
                <bool>false</bool>
               </property>
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 16px;</string>
+               <string notr="true">font-weight: bold; font-size: 20px; padding-bottom: 8px;</string>
               </property>
               <property name="text">
                <string>Connected Components</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QLabel" name="label_4">
+              <!-- See label_10's identical fix (pageSegEdit) for why both
+                   of these are needed for rich-text QLabel content. -->
+              <property name="styleSheet">
+               <string notr="true">font-size: 16px;</string>
+              </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select the slabs in order and include all connected components. Any component not included with be ignored.&lt;/p&gt;&lt;p&gt;Left mouse button to pan, Right button to zoom, Ctrl+Left to draw. Please select slices in order. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p style=&quot; font-size:16px;&quot;&gt;Draw boxes over each of the slabs in your photographs. Select slabs in a consistent order, anterior-to-posterior or posterior-to-anterior.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
@@ -519,12 +669,24 @@ QPushButton:disabled {background: #999999;}</string>
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_12">
-              <property name="topMargin">
-               <number>20</number>
-              </property>
+             <layout class="QHBoxLayout" name="horizontalLayoutBackCC">
               <item>
-               <spacer name="horizontalSpacer_26">
+               <widget class="QPushButton" name="pushButtonBackToSegmentation">
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: transparent; padding: 4 12 4 12; font-size: 14px; border: 1px solid #999999; border-radius: 14; color:#555555}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
+                </property>
+                <property name="text">
+                 <string>← Back</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacerBackCC">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -536,17 +698,51 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                </spacer>
               </item>
+             </layout>
+            </item>
+            <item>
+             <!-- Save components, with Clear to its right. Both have 0 minimum width
+                  so the row fits the 380px column (hence pushButtonCreateMask is excluded from
+                  EqualizePrimaryActionButtonWidths()). Padding 9 makes it 40px, like Clear. -->
+             <layout class="QHBoxLayout" name="horizontalLayoutCCProcessRow">
+              <property name="spacing">
+               <number>10</number>
+              </property>
               <item>
-               <widget class="QPushButton" name="pushButtonClearCC">
+               <widget class="QPushButton" name="pushButtonCreateMask">
                 <property name="minimumSize">
                  <size>
-                  <width>100</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #457c92; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #457c92; padding: 9 18 9 18;font-size: 14px; font-weight: bold; border: none; border-radius: 18; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #3c6d80; border: none; border-radius: 18; color:white}
+QPushButton:pressed {background: #345e6e; border: none; border-radius: 18; color:white}</string>
+                </property>
+                <property name="text">
+                 <string>Save components</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonClearCC">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: transparent; padding: 8 18 8 18;font-size: 14px; border: 1px solid #999999; border-radius: 18; color:#555555}
+QPushButton:disabled {background: transparent; color: #bbbbbb; border: 1px solid #dddddd;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; border-radius: 18; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; border-radius: 18; color:#333333}</string>
                 </property>
                 <property name="text">
                  <string>Clear</string>
@@ -554,7 +750,7 @@ QPushButton:disabled {background: #999999;}</string>
                </widget>
               </item>
               <item>
-               <spacer name="horizontalSpacer_27">
+               <spacer name="horizontalSpacer_58">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -569,71 +765,7 @@ QPushButton:disabled {background: #999999;}</string>
              </layout>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_15">
-              <property name="topMargin">
-               <number>20</number>
-              </property>
-              <item>
-               <spacer name="horizontalSpacer_49">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_13">
-                <property name="font">
-                 <font>
-                  <pointsize>15</pointsize>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>Label opacity</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QSlider" name="horizontalSliderLabelOpacity">
-                <property name="maximumSize">
-                 <size>
-                  <width>100</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="maximum">
-                 <number>100</number>
-                </property>
-                <property name="value">
-                 <number>100</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_50">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_11">
+             <spacer name="verticalSpacerCCProcessRow">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
               </property>
@@ -643,53 +775,70 @@ QPushButton:disabled {background: #999999;}</string>
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>20</height>
+                <height>10</height>
                </size>
               </property>
              </spacer>
             </item>
             <item>
-             <spacer name="verticalSpacer_12">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
+             <!-- Slab overlay scrubber, full column width; the label is drawn in the track.
+                  topMargin 0: the fixed 10 spacer above separates it. -->
+             <layout class="QHBoxLayout" name="horizontalLayout_15">
+              <property name="topMargin">
+               <number>0</number>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>671</height>
-               </size>
-              </property>
-             </spacer>
+              <item>
+               <widget class="CompactSlider" name="horizontalSliderLabelOpacity" native="true">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>34</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_14">
+              <property name="spacing">
+               <number>10</number>
+              </property>
               <item>
-               <spacer name="horizontalSpacer_44">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+               <widget class="QPushButton" name="pushButtonUndoCC">
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
                 </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButtonCreateMask">
-                <property name="minimumSize">
-                 <size>
-                  <width>100</width>
-                  <height>0</height>
-                 </size>
+                <property name="toolTip">
+                 <string>Undo the last region</string>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #457c92; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: transparent; padding: 8 14 8 14;font-size: 14px; border: 1px solid #999999; border-radius: 18; color:#555555}
+QPushButton:disabled {background: transparent; color: #bbbbbb; border: 1px solid #dddddd;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; border-radius: 18; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; border-radius: 18; color:#333333}</string>
                 </property>
                 <property name="text">
-                 <string>Process and Continue</string>
+                 <string>Undo</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButtonRedoCC">
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="toolTip">
+                 <string>Redo the last undone region</string>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: transparent; padding: 8 14 8 14;font-size: 14px; border: 1px solid #999999; border-radius: 18; color:#555555}
+QPushButton:disabled {background: transparent; color: #bbbbbb; border: 1px solid #dddddd;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; border-radius: 18; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; border-radius: 18; color:#333333}</string>
+                </property>
+                <property name="text">
+                 <string>Redo</string>
                 </property>
                </widget>
               </item>
@@ -709,6 +858,19 @@ QPushButton:disabled {background: #999999;}</string>
              </layout>
             </item>
             <item>
+             <spacer name="verticalSpacer_12">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>671</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
              <spacer name="verticalSpacer_5">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -723,6 +885,111 @@ QPushButton:disabled {background: #999999;}</string>
                </size>
               </property>
              </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelCCHotkeys">
+              <!-- Shortcuts card like labelSegHotkeys / labelCorrectionHotkeys: styled by
+                   SetDarkMode()'s panel sheet, text from CCHotkeysHtml(). -->
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot; font-size:14px;&quot;&gt;&lt;p&gt;(Generated per theme by MainWindow::SetDarkMode(), see CCHotkeysHtml() in MainWindow.cpp.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="textFormat">
+               <enum>Qt::RichText</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frameFinishCaseDivider">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacerFinishCaseDivider">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>16</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <!-- Same inline bar as widgetSegProgress: shown while the
+                  connected-components pass runs in the background. -->
+             <widget class="QWidget" name="widgetCCProgress" native="true">
+              <property name="visible">
+               <bool>false</bool>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayoutCCProgress">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>8</number>
+               </property>
+               <property name="spacing">
+                <number>4</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="labelCCProgress">
+                 <property name="styleSheet">
+                  <string notr="true">color: #666666; font-size: 13px;</string>
+                 </property>
+                 <property name="text">
+                  <string>Finding connected components in the background: 0 of 0 ready</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QProgressBar" name="progressBarCC">
+                 <property name="maximum">
+                  <number>1</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                 <property name="textVisible">
+                  <bool>false</bool>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>6</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
             </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -751,11 +1018,13 @@ QPushButton:disabled {background: #999999;}</string>
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #89448e; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #89448e; padding: 8 18 8 18;font-size: 14px; font-weight: bold; border: none; border-radius: 18; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #783b7c; border: none; border-radius: 18; color:white}
+QPushButton:pressed {background: #68336b; border: none; border-radius: 18; color:white}</string>
                 </property>
                 <property name="text">
-                 <string>Finish Case</string>
+                 <string>Continue to Reconstruction</string>
                 </property>
                </widget>
               </item>
@@ -779,40 +1048,45 @@ QPushButton:disabled {background: #999999;}</string>
           <widget class="QWidget" name="pageCorrection">
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <property name="spacing">
-             <number>15</number>
+             <number>16</number>
             </property>
             <property name="leftMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="topMargin">
              <number>0</number>
             </property>
             <property name="rightMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="bottomMargin">
-             <number>12</number>
+             <number>0</number>
             </property>
             <item>
              <widget class="QLabel" name="labelTitle">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 16px;</string>
+               <string notr="true">font-weight: bold; font-size: 20px; padding-bottom: 8px;</string>
               </property>
               <property name="text">
                <string>Retrospective Correction</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QLabel" name="label_2">
+              <!-- Same header order as Segmentation (title, instruction, Back). Rich-text font
+                   size set twice, as on label_10. 16px: this is the page's longest copy. -->
+              <property name="styleSheet">
+               <string notr="true">font-size: 16px;</string>
+              </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select between manual calibration modes and preview the corrected image. Include the dimension of your rulers within the text box.&lt;/p&gt;&lt;p&gt;Left mouse button to pan, right button to zoom, Ctrl+left button to place points&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p style=&quot; font-size:16px;&quot;&gt;Get photographs in the same pixel scale. Choose the correction mode above, provide the real dimensions, and select the key points in your image.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
               <property name="wordWrap">
                <bool>true</bool>
@@ -820,25 +1094,24 @@ QPushButton:disabled {background: #999999;}</string>
              </widget>
             </item>
             <item>
-             <layout class="QGridLayout" name="gridLayout">
-              <property name="verticalSpacing">
-               <number>6</number>
-              </property>
-              <item row="0" column="1">
-               <spacer name="horizontalSpacer_2">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+             <layout class="QHBoxLayout" name="horizontalLayoutBackCorrection">
+              <item>
+               <widget class="QPushButton" name="pushButtonBackToStartFromCorrection">
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
                 </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: transparent; padding: 4 12 4 12; font-size: 14px; border: 1px solid #999999; border-radius: 14; color:#555555}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
                 </property>
-               </spacer>
+                <property name="text">
+                 <string>← Back</string>
+                </property>
+               </widget>
               </item>
-              <item row="0" column="0">
-               <spacer name="horizontalSpacer_5">
+              <item>
+               <spacer name="horizontalSpacerBackCorrection">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -854,87 +1127,25 @@ QPushButton:disabled {background: #999999;}</string>
             </item>
             <item>
              <layout class="QGridLayout" name="gridLayout_2">
-              <item row="0" column="0">
-               <spacer name="horizontalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="3">
-               <spacer name="horizontalSpacer_4">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="2">
-               <widget class="QPushButton" name="pushButtonProcess">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="cursor">
-                 <cursorShape>PointingHandCursor</cursorShape>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
-                </property>
-                <property name="text">
-                 <string>Process Image</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QGridLayout" name="gridLayout_4">
+              <!-- [Correct this photo][Clear points], left aligned with Back; the trailing
+                   column takes the slack. -->
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
               <property name="horizontalSpacing">
-               <number>6</number>
+               <number>8</number>
               </property>
               <item row="0" column="0">
-               <spacer name="horizontalSpacer_7">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+               <widget class="QPushButton" name="pushButtonProcess">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
                 </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="3">
-               <spacer name="horizontalSpacer_8">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="2">
-               <widget class="QPushButton" name="pushButtonTogglePreview">
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
@@ -945,117 +1156,103 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: none; padding: 0 0 0 0; border: none;}
-</string>
+                 <string notr="true">QPushButton {background: #a2293c; padding: 8 18 8 18;font-size: 14px; font-weight: bold; border: none; border-radius: 18; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #8f2334; border: none; border-radius: 18; color:white}
+QPushButton:pressed {background: #7a1e2c; border: none; border-radius: 18; color:white}</string>
+                </property>
+                <property name="toolTip">
+                 <string>Correct this photo using the placed points and the entered size</string>
                 </property>
                 <property name="text">
-                 <string/>
-                </property>
-                <property name="icon">
-                 <iconset resource="dissection_photo.qrc">
-                  <normaloff>:/resource/switch@2x.png</normaloff>
-                  <normalon>:/resource/switch_on@2x.png</normalon>:/resource/switch@2x.png</iconset>
-                </property>
-                <property name="iconSize">
-                 <size>
-                  <width>60</width>
-                  <height>36</height>
-                 </size>
-                </property>
-                <property name="checkable">
-                 <bool>true</bool>
+                 <string>Correct this photo</string>
                 </property>
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLabel" name="label_12">
-                <property name="font">
-                 <font>
-                  <pointsize>15</pointsize>
-                 </font>
+               <widget class="QPushButton" name="pushButtonClear">
+                <!-- Re-themed per mode by RethemeGhostPillButtons(); the rule
+                     below is the light-mode starting point only. -->
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="toolTip">
+                 <string>Remove every placed point</string>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QPushButton {background: transparent; padding: 7 17 7 17;font-size: 14px; border: 1px solid #999999; border-radius: 18; color:#555555}
+QPushButton:disabled {background: transparent; color: #bbbbbb; border: 1px solid #dddddd;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; border-radius: 18; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; border-radius: 18; color:#333333}</string>
                 </property>
                 <property name="text">
-                 <string>Preview</string>
+                 <string>Clear points</string>
                 </property>
                </widget>
               </item>
-             </layout>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_3">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>30</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>396</width>
-                <height>17</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <spacer name="horizontalSpacer_14">
+              <item row="0" column="2">
+               <spacer name="horizontalSpacerCorrectionActions">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>40</width>
+                  <width>0</width>
                   <height>20</height>
                  </size>
                 </property>
                </spacer>
               </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayoutPreviewRow">
+              <!-- "Show Original | Corrected". Set up in the MainWindow constructor; see
+                   UpdatePreviewAvailability(). -->
+              <property name="spacing">
+               <number>8</number>
+              </property>
               <item>
-               <widget class="QPushButton" name="pushButtonClear">
+               <widget class="QLabel" name="label_12">
+                <property name="styleSheet">
+                 <string notr="true">font-size: 14px;</string>
+                </property>
+                <property name="text">
+                 <string>Show</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="SegmentedControl" name="segControlPreview" native="true">
+                <!-- 14px like the "Show" caption and the buttons above it. -->
+                <property name="styleSheet">
+                 <string notr="true">font-size: 14px;</string>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
-                  <height>0</height>
+                  <width>0</width>
+                  <height>30</height>
                  </size>
                 </property>
                 <property name="cursor">
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
-                <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #a2293c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
-                </property>
-                <property name="text">
-                 <string>Clear Edit</string>
-                </property>
                </widget>
               </item>
               <item>
-               <spacer name="horizontalSpacer_15">
+               <spacer name="horizontalSpacer_8">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>40</width>
+                  <width>0</width>
                   <height>20</height>
                  </size>
                 </property>
@@ -1077,6 +1274,71 @@ QPushButton:disabled {background: #999999;}</string>
              </spacer>
             </item>
             <item>
+             <widget class="QLabel" name="labelCorrectionHotkeys">
+              <!-- Same card as labelSegHotkeys: styled by SetDarkMode()'s
+                   panel sheet, text from CorrectionHotkeysHtml(). -->
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot; font-size:14px;&quot;&gt;&lt;p&gt;(Generated per theme by MainWindow::SetDarkMode(), see CorrectionHotkeysHtml() in MainWindow.cpp.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="textFormat">
+               <enum>Qt::RichText</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frameSegmentationProceedDivider">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacerSegmentationProceedDivider">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>16</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="corrContinueCaption">
+              <!-- Readiness line above Continue, like #segContinueCaption.
+                   Text: UpdateCorrContinueCaption(); style: RethemeGhostPillButtons(). -->
+              <property name="text">
+               <string>Correct all photos to continue</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <item>
                <spacer name="horizontalSpacer_12">
@@ -1085,7 +1347,7 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>0</width>
+                  <width>40</width>
                   <height>20</height>
                  </size>
                 </property>
@@ -1106,11 +1368,13 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #94902c; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #a6a233; padding: 8 18 8 18;font-size: 14px; font-weight: bold; border: none; border-radius: 18; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #928e2c; border: none; border-radius: 18; color:white}
+QPushButton:pressed {background: #7e7b26; border: none; border-radius: 18; color:white}</string>
                 </property>
                 <property name="text">
-                 <string>Proceed to Segmentation</string>
+                 <string>Continue to Segmentation</string>
                 </property>
                </widget>
               </item>
@@ -1121,7 +1385,7 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>0</width>
+                  <width>40</width>
                   <height>20</height>
                  </size>
                 </property>
@@ -1132,32 +1396,64 @@ QPushButton:disabled {background: #999999;}</string>
            </layout>
           </widget>
           <widget class="QWidget" name="pageStartUp">
-           <layout class="QVBoxLayout" name="verticalLayout_9" stretch="0,0,0,0,1,0">
+           <layout class="QVBoxLayout" name="verticalLayout_9" stretch="0,0,0,0,0,1,0">
             <property name="spacing">
-             <number>25</number>
+             <number>16</number>
             </property>
             <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>16</number>
+            </property>
+            <property name="rightMargin">
+             <number>16</number>
+            </property>
+            <property name="bottomMargin">
              <number>0</number>
             </property>
             <item>
              <widget class="QLabel" name="label_9">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 16px;</string>
+               <string notr="true">font-weight: bold; font-size: 20px; padding-bottom: 8px;</string>
               </property>
               <property name="text">
-               <string>FreeSurfer Dissection Photo Tools</string>
+               <string>Add photographs</string>
+              </property>
+              <!-- Left aligned like the other pages' titles. -->
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelStartSubtitle">
+              <!-- What this step is for, under the title like label_2 on
+                   Correction and label_10 on Segmentation. -->
+              <property name="styleSheet">
+               <string notr="true">font-size: 16px;</string>
+              </property>
+              <property name="text">
+               <string>Provide the slab photographs of the specimen. They will be copied to the project folder.</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QWidget" name="widgetDropImages" native="true">
+              <!-- 280: with a folder picked this box also holds the path lines and Change
+                   button. A plain QWidget doesn't propagate heightForWidth, so a 240 floor
+                   clipped the Change button. 280 = 22 label + 15 + 58 button + 15 + 84 folder
+                   info + 25/28 margins, at the narrowest (380px) column. -->
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>240</height>
+                <height>280</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -1181,8 +1477,13 @@ QPushButton:disabled {background: #999999;}</string>
                </property>
                <item>
                 <widget class="QLabel" name="label_122">
+                 <!-- Matches label_14 below: supporting copy inside a drop
+                      box sits a notch under the 18px app base. -->
+                 <property name="styleSheet">
+                  <string notr="true">font-size: 16px;</string>
+                 </property>
                  <property name="text">
-                  <string>Upload your uncorrected photographs of dissection photographs or drag and drop your image folder into this box</string>
+                  <string>Drop a folder of photographs here, or choose one below.</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1206,11 +1507,28 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButtonUploadImages">
+                   <!-- 285 shared with pushButtonUploadCalibration and pushButtonUploadPhoto so all
+                        upload pills are the same size. A floor sized for the widest fallback font
+                        (" Upload Calibration" bold 19px is 204px in Verdana): 204 + 32 icon + 4 gap +
+                        40 padding + 2 border = 282. -->
+                   <property name="minimumSize">
+                    <size>
+                     <width>285</width>
+                     <height>0</height>
+                    </size>
+                   </property>
                    <property name="cursor">
                     <cursorShape>PointingHandCursor</cursorShape>
                    </property>
                    <property name="styleSheet">
-                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 18px;background: #57a2c0; border-radius: 15; color:white;</string>
+                    <!-- A declared transparent border is required: with "border: none" Fusion
+                         doesn't clip the fill to border-radius, so corners go square. Hover/pressed
+                         darken like the other buttons (#4c8da7/#427a91). Each state repeats border
+                         and radius. -->
+                    <string notr="true">QPushButton {padding: 10 24 10 24; font-weight: bold; font-size: 14px; background: #57a2c0; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:hover {background: #4c8da7; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:pressed {background: #427a91; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:disabled {background: #999999; border: 1px solid transparent; border-radius: 22; color:white;}</string>
                    </property>
                    <property name="text">
                     <string> Upload Images</string>
@@ -1243,23 +1561,139 @@ QPushButton:disabled {background: #999999;}</string>
                 </layout>
                </item>
                <item>
-                <widget class="QLabel" name="labelImageFolder">
-                 <property name="wordWrap">
-                  <bool>true</bool>
+                <widget class="QWidget" name="widgetImageFolderInfo" native="true">
+                 <!-- Vertically Minimum so sizeHint is a floor: in a short column this
+                      stretch-0 row was starved and clipped the Change button; the word-wrapped
+                      rows above now reflow instead. -->
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
                  </property>
-                 <property name="openExternalLinks">
-                  <bool>false</bool>
-                 </property>
-                 <property name="buddy">
-                  <cstring>pushButtonUploadImages</cstring>
-                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayoutImageFolderInfo">
+                  <property name="spacing">
+                   <number>4</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="labelImageFolder">
+                    <!-- 13px, matching labelOutputFolder (size only; this input path stays body
+                         colour as the primary). Rich text, so the size is also on the body tag in
+                         MainWindow.cpp. -->
+                    <property name="styleSheet">
+                     <string notr="true">font-size: 13px;</string>
+                    </property>
+                    <property name="wordWrap">
+                     <bool>true</bool>
+                    </property>
+                    <property name="openExternalLinks">
+                     <bool>false</bool>
+                    </property>
+                    <property name="buddy">
+                     <cstring>pushButtonUploadImages</cstring>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayoutOutputFolder">
+                    <property name="spacing">
+                     <number>8</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="labelOutputFolder">
+                      <property name="styleSheet">
+                       <string notr="true">color: #808080; font-size: 13px;</string>
+                      </property>
+                      <property name="text">
+                       <string/>
+                      </property>
+                      <property name="wordWrap">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="pushButtonChangeOutputFolder">
+                      <property name="cursor">
+                       <cursorShape>PointingHandCursor</cursorShape>
+                      </property>
+                      <property name="visible">
+                       <bool>false</bool>
+                      </property>
+                      <property name="toolTip">
+                       <string>Choose a different folder for the corrected output</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QPushButton {background: transparent; padding: 3 12 3 12; font-size: 12px; border: 1px solid #999999; border-radius: 12; color:#555555}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
+                      </property>
+                      <property name="text">
+                       <string>Change</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacerOutputFolder">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>1</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
                 </widget>
                </item>
               </layout>
              </widget>
             </item>
             <item>
+             <widget class="QToolButton" name="toolButtonToggleCalibration">
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="toolTip">
+               <string>A calibration file lets images be corrected automatically instead of placing points by hand</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QToolButton {background: transparent; border: none; color: #a6a233; font-size: 14px; padding: 4px;}
+QToolButton:hover {color: #928e2c;}</string>
+              </property>
+              <property name="text">
+               <string>+ Add a calibration file (optional)</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="autoRaise">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QWidget" name="widgetDropCalibration" native="true">
+              <property name="visible">
+               <bool>false</bool>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -1269,23 +1703,34 @@ QPushButton:disabled {background: #999999;}</string>
               <property name="styleSheet">
                <string notr="true">#widgetDropCalibration {border-radius:35; border: 8px dashed #a6a233;}</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_8" stretch="1,1,0">
+              <!-- Margins 25/28 as in the images box, so the lead line clears the dashed
+                   border. The fourth, stretch-0 row is label_15 ("Create one"). -->
+              <layout class="QVBoxLayout" name="verticalLayout_8" stretch="1,1,0,0">
                <property name="spacing">
                 <number>15</number>
                </property>
                <property name="leftMargin">
                 <number>30</number>
                </property>
+               <property name="topMargin">
+                <number>25</number>
+               </property>
                <property name="rightMargin">
                 <number>30</number>
                </property>
                <property name="bottomMargin">
-                <number>25</number>
+                <number>28</number>
                </property>
                <item>
                 <widget class="QLabel" name="label_14">
+                 <!-- Supporting copy, below the 18px base; size set here and on the body tag
+                      (rich text). "Optional." is bold olive #a6a233 inline in the HTML, matching
+                      the box border and calibration accent. -->
+                 <property name="styleSheet">
+                  <string notr="true">font-size: 16px;</string>
+                 </property>
                  <property name="text">
-                  <string>OPTIONAL: Upload a calibration file for automatic spatial correction or drag and drop your calibration file into this box</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p style=&quot; font-size:16px;&quot;&gt;&lt;b style=&quot;color:#a6a233;&quot;&gt;Optional.&lt;/b&gt; A calibration file corrects every photo automatically, with no points to place.&lt;/p&gt;&lt;p style=&quot; font-size:13px;&quot;&gt;Drop one here, or choose it below.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1309,11 +1754,24 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButtonUploadCalibration">
+                   <!-- Same 285 floor as pushButtonUploadImages (see there); at natural width the
+                        final "n" of "Calibration" clipped. -->
+                   <property name="minimumSize">
+                    <size>
+                     <width>285</width>
+                     <height>0</height>
+                    </size>
+                   </property>
                    <property name="cursor">
                     <cursorShape>PointingHandCursor</cursorShape>
                    </property>
+                   <!-- Declared transparent border keeps rounded corners (see
+                        pushButtonUploadImages). -->
                    <property name="styleSheet">
-                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 18px;background: #a6a233; border-radius: 15; color:white;</string>
+                    <string notr="true">QPushButton {padding: 10 24 10 24; font-weight: bold; font-size: 14px; background: #a6a233; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:hover {background: #928e2c; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:pressed {background: #7e7b26; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:disabled {background: #999999; border: 1px solid transparent; border-radius: 22; color:white;}</string>
                    </property>
                    <property name="text">
                     <string> Upload Calibration</string>
@@ -1347,6 +1805,11 @@ QPushButton:disabled {background: #999999;}</string>
                </item>
                <item>
                 <widget class="QLabel" name="labelCalibrationFile">
+                 <!-- 13px like labelImageFolder; repeated on the body tag in
+                      SetCalibrationFile(). -->
+                 <property name="styleSheet">
+                  <string notr="true">font-size: 13px;</string>
+                 </property>
                  <property name="wordWrap">
                   <bool>true</bool>
                  </property>
@@ -1355,34 +1818,30 @@ QPushButton:disabled {background: #999999;}</string>
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QLabel" name="label_15">
+                 <!-- One 13px line inside the calibration box: grey lead-in, underlined olive
+                      link. linkActivated is connected to OnButtonProceedToCalibration at the
+                      bottom of this file. -->
+                 <property name="styleSheet">
+                  <string notr="true">font-size: 13px;</string>
+                 </property>
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot;font-size:13px;&quot;&gt;&lt;span style=&quot;color:#808080;&quot;&gt;Don't have one?&lt;/span&gt; &lt;a style=&quot;color:#a6a233;text-decoration:underline&quot; href=&quot;create&quot;&gt;Create one &amp;gt;&lt;/a&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                 <property name="openExternalLinks">
+                  <bool>false</bool>
+                 </property>
+                 <property name="textInteractionFlags">
+                  <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse</set>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
-            </item>
-            <item>
-             <layout class="QGridLayout" name="gridLayout_5">
-              <property name="verticalSpacing">
-               <number>8</number>
-              </property>
-              <item row="1" column="0" colspan="2">
-               <widget class="QLabel" name="label_15">
-                <property name="styleSheet">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>&lt;a style='color:#a6a233;font-size:20px;text-decoration:none' href='https://www.google.com/' target='_blank'&gt;What is a calibration file? &gt;&lt;/a&gt;</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="openExternalLinks">
-                 <bool>false</bool>
-                </property>
-                <property name="textInteractionFlags">
-                 <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse</set>
-                </property>
-               </widget>
-              </item>
-             </layout>
             </item>
             <item>
              <spacer name="verticalSpacer_13">
@@ -1393,6 +1852,41 @@ QPushButton:disabled {background: #999999;}</string>
                <size>
                 <width>20</width>
                 <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QFrame" name="frameStartupDivider">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>1</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacerStartupDivider">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>16</height>
                </size>
               </property>
              </spacer>
@@ -1417,26 +1911,18 @@ QPushButton:disabled {background: #999999;}</string>
                 <property name="cursor">
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
+                <!-- Horizontal padding 44 so the primary action reads as one, growing with wider
+                     fonts. Declared transparent border keeps rounded corners. -->
                 <property name="styleSheet">
-                 <string notr="true">background: #a72f40; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white</string>
+                 <string notr="true">QPushButton {background: #a2293c; padding: 8 44 8 44;font-size: 14px; font-weight: bold; border: 1px solid transparent; border-radius: 18; color:white}
+QPushButton:hover {background: #8f2334;}
+QPushButton:pressed {background: #7a1e2c;}
+QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="text">
-                 <string>Continue</string>
+                 <string>Get started</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_41">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
@@ -1445,21 +1931,31 @@ QPushButton:disabled {background: #999999;}</string>
           <widget class="QWidget" name="pageCalibration">
            <layout class="QVBoxLayout" name="verticalLayout_14">
             <property name="spacing">
-             <number>25</number>
+             <number>16</number>
             </property>
             <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>16</number>
+            </property>
+            <property name="rightMargin">
+             <number>16</number>
+            </property>
+            <property name="bottomMargin">
              <number>0</number>
             </property>
             <item>
              <widget class="QLabel" name="label_11">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 16px;</string>
+               <string notr="true">font-weight: bold; font-size: 20px; padding-bottom: 8px;</string>
               </property>
               <property name="text">
                <string>Calibration</string>
               </property>
+              <!-- Left justified for the same reason as label_9 above. -->
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
@@ -1468,7 +1964,7 @@ QPushButton:disabled {background: #999999;}</string>
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>240</height>
+                <height>170</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -1492,8 +1988,11 @@ QPushButton:disabled {background: #999999;}</string>
                </property>
                <item>
                 <widget class="QLabel" name="label_17">
+                 <property name="styleSheet">
+                  <string notr="true">font-size: 14px;</string>
+                 </property>
                  <property name="text">
-                  <string>Using fiducial markers a calibration file can be created for your specific setup. Upload a photograph of your empty table setup to go to the next menu. This only needs to be done once as long as fiducial markers are not moved. For more information, please visit our wiki page for FreeSurfer's photo-tools. </string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p style=&quot; font-size:16px;&quot;&gt;Photograph your empty table with the printed markers on it. That one photo becomes the calibration file for this setup.&lt;/p&gt;&lt;p style=&quot; font-size:13px;&quot;&gt;You only need to do this once, for as long as the markers stay where they are.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1517,11 +2016,22 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButtonUploadPhoto">
+                   <!-- The third upload pill (pageCalibration): same 285 floor and border as the
+                        other two. -->
+                   <property name="minimumSize">
+                    <size>
+                     <width>285</width>
+                     <height>0</height>
+                    </size>
+                   </property>
                    <property name="cursor">
                     <cursorShape>PointingHandCursor</cursorShape>
                    </property>
                    <property name="styleSheet">
-                    <string notr="true">padding: 10 20 10 20; font-weight: bold; font-size: 18px;background: #a6a233; border-radius: 15; color:white;</string>
+                    <string notr="true">QPushButton {padding: 10 24 10 24; font-weight: bold; font-size: 14px; background: #a6a233; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:hover {background: #928e2c; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:pressed {background: #7e7b26; border: 1px solid transparent; border-radius: 22; color:white;}
+QPushButton:disabled {background: #999999; border: 1px solid transparent; border-radius: 22; color:white;}</string>
                    </property>
                    <property name="text">
                     <string> Upload Photo</string>
@@ -1594,8 +2104,11 @@ QPushButton:disabled {background: #999999;}</string>
                    <property name="cursor">
                     <cursorShape>PointingHandCursor</cursorShape>
                    </property>
+                   <property name="styleSheet">
+                    <string notr="true">font-size: 14px;</string>
+                   </property>
                    <property name="text">
-                    <string/>
+                    <string>Download Marker Printout</string>
                    </property>
                    <property name="icon">
                     <iconset resource="dissection_photo.qrc">
@@ -1603,9 +2116,12 @@ QPushButton:disabled {background: #999999;}</string>
                    </property>
                    <property name="iconSize">
                     <size>
-                     <width>160</width>
-                     <height>160</height>
+                     <width>120</width>
+                     <height>120</height>
                     </size>
+                   </property>
+                   <property name="toolButtonStyle">
+                    <enum>Qt::ToolButtonTextUnderIcon</enum>
                    </property>
                   </widget>
                  </item>
@@ -1626,8 +2142,14 @@ QPushButton:disabled {background: #999999;}</string>
                </item>
                <item>
                 <widget class="QLabel" name="labelDownloadMarkers">
+                 <property name="styleSheet">
+                  <string notr="true">font-size: 14px;</string>
+                 </property>
                  <property name="text">
-                  <string>Click above to download a printout of the fiducial markers</string>
+                  <string>Print at actual size and place the markers around your subject before photographing</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignCenter</set>
@@ -1658,7 +2180,7 @@ QPushButton:disabled {background: #999999;}</string>
                   </size>
                  </property>
                  <property name="text">
-                  <string>For each fiducial marker in your image click the center of the marker and its outer circle. Include the dimention between fiducial centers in the provided text box.</string>
+                  <string>Click the centre of each marker, then its outer circle. Enter the distance between marker centres in the box below.</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1682,21 +2204,39 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QLabel" name="label_7">
+                   <property name="maximumSize">
+                    <size>
+                     <width>100</width>
+                     <height>100</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string/>
                    </property>
                    <property name="pixmap">
                     <pixmap resource="dissection_photo.qrc">:/resource/calibration1@2x.png</pixmap>
                    </property>
+                   <property name="scaledContents">
+                    <bool>true</bool>
+                   </property>
                   </widget>
                  </item>
                  <item>
                   <widget class="QLabel" name="label_8">
+                   <property name="maximumSize">
+                    <size>
+                     <width>100</width>
+                     <height>100</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string/>
                    </property>
                    <property name="pixmap">
                     <pixmap resource="dissection_photo.qrc">:/resource/calibration2@2x.png</pixmap>
+                   </property>
+                   <property name="scaledContents">
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
@@ -1738,6 +2278,15 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButtonUndoCalibration">
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {background: transparent; padding: 5 14 5 14; font-size: 14px; border: 1px solid #999999; border-radius: 14; color:#555555}
+QPushButton:disabled {background: transparent; color: #cccccc; border: 1px solid #e5e5e5;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
+                   </property>
                    <property name="text">
                     <string>Undo</string>
                    </property>
@@ -1745,6 +2294,15 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButtonRedoCallibration">
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {background: transparent; padding: 5 14 5 14; font-size: 14px; border: 1px solid #999999; border-radius: 14; color:#555555}
+QPushButton:disabled {background: transparent; color: #cccccc; border: 1px solid #e5e5e5;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
+                   </property>
                    <property name="text">
                     <string>Redo</string>
                    </property>
@@ -1765,6 +2323,15 @@ QPushButton:disabled {background: #999999;}</string>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pushButtonClearCalibration">
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {background: transparent; padding: 5 14 5 14; font-size: 14px; border: 1px solid #999999; border-radius: 14; color:#555555}
+QPushButton:disabled {background: transparent; color: #cccccc; border: 1px solid #e5e5e5;}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; color:#333333}</string>
+                   </property>
                    <property name="text">
                     <string>Clear</string>
                    </property>
@@ -1809,10 +2376,12 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">background: #a72f40; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white</string>
+                 <string notr="true">QPushButton {background: transparent; padding: 8 18 8 18;font-size: 14px; border: 1px solid #999999; border-radius: 18; color:#555555}
+QPushButton:hover {background: #f0f0f0; border: 1px solid #888888; border-radius: 18; color:#333333}
+QPushButton:pressed {background: #e2e2e2; border: 1px solid #777777; border-radius: 18; color:#333333}</string>
                 </property>
                 <property name="text">
-                 <string>Back</string>
+                 <string>← Back</string>
                 </property>
                </widget>
               </item>
@@ -1851,24 +2420,13 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #a6a233; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #a6a233; padding: 8 18 8 18;font-size: 14px; border: none; border-radius: 18; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #928e2c; border: none; border-radius: 18; color:white}
+QPushButton:pressed {background: #7e7b26; border: none; border-radius: 18; color:white}</string>
                 </property>
                 <property name="text">
                  <string>Save Calibration</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="pushButtonProceedToCalibration">
-                <property name="cursor">
-                 <cursorShape>PointingHandCursor</cursorShape>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">background: #a6a233; padding: 8 18 8 18;font-size: 16px; border: none; border-radius: 16; color:white</string>
-                </property>
-                <property name="text">
-                 <string>Proceed to Calibration</string>
                 </property>
                </widget>
               </item>
@@ -1879,16 +2437,16 @@ QPushButton:disabled {background: #999999;}</string>
           <widget class="QWidget" name="pagePhotoRecon">
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <property name="spacing">
-             <number>5</number>
+             <number>16</number>
             </property>
             <property name="leftMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="topMargin">
              <number>0</number>
             </property>
             <property name="rightMargin">
-             <number>0</number>
+             <number>16</number>
             </property>
             <property name="bottomMargin">
              <number>0</number>
@@ -1896,61 +2454,15 @@ QPushButton:disabled {background: #999999;}</string>
             <item>
              <widget class="QLabel" name="label_6">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold; font-size: 16px;</string>
+               <string notr="true">font-weight: bold; font-size: 20px;</string>
               </property>
               <property name="text">
                <string>3D Photo Reconstruction</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
              </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_7">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::MinimumExpanding</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>30</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_8">
-              <item>
-               <spacer name="horizontalSpacer_10">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_11">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
             </item>
            </layout>
           </widget>
@@ -2031,31 +2543,25 @@ QPushButton:disabled {background: #999999;}</string>
                  </font>
                 </property>
                 <property name="text">
-                 <string>Calibration Mode </string>
+                 <string>Mode</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QRadioButton" name="radioButton2Points">
-                <property name="text">
-                 <string>2 Point</string>
+               <widget class="SegmentedControl" name="segControlPointMode" native="true">
+                <!-- Fixed at its sizeHint with no explicit minimum: an explicit minimumSize
+                     overrides minimumSizeHint() and let the bold labels elide. -->
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="radioButton3Points">
-                <property name="text">
-                 <string>3 Point</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="radioButton4Points">
-                <property name="text">
-                 <string>4 Point</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>30</height>
+                 </size>
                 </property>
                </widget>
               </item>
@@ -2077,8 +2583,23 @@ QPushButton:disabled {background: #999999;}</string>
            </item>
            <item>
             <widget class="QLabel" name="labelRectWidth">
+             <!-- No width floor, so the two fields get the room they need. -->
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">font-size: 14px;</string>
+             </property>
              <property name="text">
-              <string>Box width (mm) </string>
+              <string>Box width (mm)</string>
+             </property>
+             <!-- Right aligned next to its field; text switches between "Box width (mm)" and
+                  "Ruler width (mm)". -->
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
@@ -2090,12 +2611,30 @@ QPushButton:disabled {background: #999999;}</string>
                <height>16777215</height>
               </size>
              </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="labelRectHeight">
+             <!-- Same right justification as labelRectWidth, sized to its
+                  own text (see labelRectWidth). -->
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+             <!-- 15px, matching the input fields in style.qss. -->
+             <property name="styleSheet">
+              <string notr="true">font-size: 14px;</string>
+             </property>
              <property name="text">
-              <string>  Box height (mm) </string>
+              <string>Box height (mm)</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
@@ -2106,6 +2645,9 @@ QPushButton:disabled {background: #999999;}</string>
                <width>45</width>
                <height>16777215</height>
               </size>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
@@ -2130,9 +2672,14 @@ QPushButton:disabled {background: #999999;}</string>
              <property name="cursor">
               <cursorShape>PointingHandCursor</cursorShape>
              </property>
+             <property name="toolTip">
+              <string>Reset pan and zoom to fit the image in the view</string>
+             </property>
              <property name="styleSheet">
-              <string notr="true">QToolButton {background: #94902c; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QToolButton:disabled {background: #999999;}</string>
+              <string notr="true">QToolButton {background: #a6a233; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QToolButton:disabled {background: #999999;}
+QToolButton:hover {background: #928e2c;}
+QToolButton:pressed {background: #7e7b26;}</string>
              </property>
              <property name="text">
               <string>Re-Center</string>
@@ -2172,7 +2719,7 @@ QToolButton:disabled {background: #999999;}</string>
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_22" stretch="1,0,0,0">
+          <layout class="QHBoxLayout" name="horizontalLayout_22" stretch="1,0,0,0,0">
            <property name="spacing">
             <number>6</number>
            </property>
@@ -2211,21 +2758,24 @@ QToolButton:disabled {background: #999999;}</string>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <!-- 98, not ImageGridView's 94: this strip has a frame and spacing 3.
+                     Needed: item 80 (68 icon + 12) + 3 + 3 spacing + 1 + 1 frame + 12 scrollbar
+                     = 96; less clips the bottom of the selection ring. +2 for 2px frames. -->
                 <property name="maximumSize">
                  <size>
                   <width>16777215</width>
-                  <height>120</height>
+                  <height>98</height>
                  </size>
                 </property>
                 <property name="styleSheet">
                  <string notr="true">QListWidget {background: transparent;}
 QListWidget::item {
-    background-color: none; 
-    border: 4px solid transparent; 
+    background-color: transparent;
+    border: 3px solid transparent;
 }
 QListWidget::item:selected {
     background-color: transparent;
-    border: 4px solid white; 
+    border: 3px solid white;
 }</string>
                 </property>
                 <property name="editTriggers">
@@ -2236,8 +2786,8 @@ QListWidget::item:selected {
                 </property>
                 <property name="iconSize">
                  <size>
-                  <width>120</width>
-                  <height>100</height>
+                  <width>88</width>
+                  <height>68</height>
                  </size>
                 </property>
                 <property name="movement">
@@ -2249,16 +2799,46 @@ QListWidget::item:selected {
                 <property name="viewMode">
                  <enum>QListView::IconMode</enum>
                 </property>
+                <property name="uniformItemSizes">
+                 <bool>true</bool>
+                </property>
+                <property name="spacing">
+                 <number>3</number>
+                </property>
                </widget>
               </item>
              </layout>
             </widget>
            </item>
            <item>
+            <!-- Thin divider between the carousel and the index widgets (only one of which
+                 is visible at a time). A 1px NoFrame with a background tone, not VLine
+                 (heavier, palette-derived bevel). Tone set per theme in SetDarkMode(). -->
+            <widget class="QFrame" name="frameCarouselDivider">
+             <property name="minimumSize">
+              <size>
+               <width>1</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>1</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QWidget" name="widgetIndex" native="true">
              <property name="styleSheet">
-              <string>QPushButton {background: #a2293c; padding: 10 18 10 18;font-size: 18px; border: none; border-radius: 20; color:white}
-QPushButton:disabled {background: #999999;}</string>
+              <string>QPushButton {background: #a2293c; padding: 10 18 10 18;font-size: 20px; border: none; border-radius: 22; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #8e2434; border: none; border-radius: 22; color:white}
+QPushButton:pressed {background: #7b1f2d; border: none; border-radius: 22; color:white}</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_21">
               <property name="spacing">
@@ -2277,7 +2857,7 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>60</width>
+                  <width>88</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -2285,11 +2865,13 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #a2293c; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #a2293c; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #8e2434; border: none; border-radius: 16; color:white}
+QPushButton:pressed {background: #7b1f2d; border: none; border-radius: 16; color:white}</string>
                 </property>
                 <property name="text">
-                 <string>Prev</string>
+                 <string>Previous</string>
                 </property>
                </widget>
               </item>
@@ -2316,7 +2898,7 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>60</width>
+                  <width>88</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -2324,8 +2906,10 @@ QPushButton:disabled {background: #999999;}</string>
                  <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #a2293c; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #a2293c; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #8e2434; border: none; border-radius: 16; color:white}
+QPushButton:pressed {background: #7b1f2d; border: none; border-radius: 16; color:white}</string>
                 </property>
                 <property name="text">
                  <string>Next</string>
@@ -2337,9 +2921,12 @@ QPushButton:disabled {background: #999999;}</string>
            </item>
            <item>
             <widget class="QWidget" name="widgetIndexSeg" native="true">
+             <!-- Container default follows the Segmentation step color. -->
              <property name="styleSheet">
-              <string>QPushButton {background: #a2293c; padding: 10 18 10 18;font-size: 18px; border: none; border-radius: 20; color:white}
-QPushButton:disabled {background: #999999;}</string>
+              <string>QPushButton {background: #a6a233; padding: 10 18 10 18;font-size: 20px; border: none; border-radius: 22; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #8e2434; border: none; border-radius: 22; color:white}
+QPushButton:pressed {background: #7b1f2d; border: none; border-radius: 22; color:white}</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_23">
               <property name="spacing">
@@ -2353,18 +2940,22 @@ QPushButton:disabled {background: #999999;}</string>
               </property>
               <item>
                <widget class="QPushButton" name="pushButtonPreviousSeg">
+                <!-- Olive: prev/next use their step's colour (red Correction, olive
+                     Segmentation, blue Connected Components), as in the Resume dialog. -->
                 <property name="minimumSize">
                  <size>
-                  <width>60</width>
+                  <width>88</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #94902c; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #a6a233; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #928e2c; border: none; border-radius: 16; color:white}
+QPushButton:pressed {background: #7e7b26; border: none; border-radius: 16; color:white}</string>
                 </property>
                 <property name="text">
-                 <string>Prev</string>
+                 <string>Previous</string>
                 </property>
                </widget>
               </item>
@@ -2388,13 +2979,15 @@ QPushButton:disabled {background: #999999;}</string>
                <widget class="QPushButton" name="pushButtonNextSeg">
                 <property name="minimumSize">
                  <size>
-                  <width>60</width>
+                  <width>88</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #94902c; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #a6a233; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #928e2c; border: none; border-radius: 16; color:white}
+QPushButton:pressed {background: #7e7b26; border: none; border-radius: 16; color:white}</string>
                 </property>
                 <property name="text">
                  <string>Next</string>
@@ -2406,9 +2999,12 @@ QPushButton:disabled {background: #999999;}</string>
            </item>
            <item>
             <widget class="QWidget" name="widgetIndexCC" native="true">
+             <!-- Container default follows the Connected Components color. -->
              <property name="styleSheet">
-              <string>QPushButton {background: #a2293c; padding: 10 18 10 18;font-size: 18px; border: none; border-radius: 20; color:white}
-QPushButton:disabled {background: #999999;}</string>
+              <string>QPushButton {background: #457c92; padding: 10 18 10 18;font-size: 20px; border: none; border-radius: 22; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #8e2434; border: none; border-radius: 22; color:white}
+QPushButton:pressed {background: #7b1f2d; border: none; border-radius: 22; color:white}</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_24">
               <property name="spacing">
@@ -2427,16 +3023,18 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>60</width>
+                  <width>88</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #457c92; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #457c92; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #3c6d80; border: none; border-radius: 16; color:white}
+QPushButton:pressed {background: #345e6e; border: none; border-radius: 16; color:white}</string>
                 </property>
                 <property name="text">
-                 <string>Prev</string>
+                 <string>Previous</string>
                 </property>
                </widget>
               </item>
@@ -2463,13 +3061,15 @@ QPushButton:disabled {background: #999999;}</string>
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>60</width>
+                  <width>88</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QPushButton {background: #457c92; padding: 6 8 6 8;font-size: 16px; border: none; border-radius: 14; color:white}
-QPushButton:disabled {background: #999999;}</string>
+                 <string notr="true">QPushButton {background: #457c92; padding: 6 8 6 8;font-size: 14px; border: none; border-radius: 16; color:white}
+QPushButton:disabled {background: #999999;}
+QPushButton:hover {background: #3c6d80; border: none; border-radius: 16; color:white}
+QPushButton:pressed {background: #345e6e; border: none; border-radius: 16; color:white}</string>
                 </property>
                 <property name="text">
                  <string>Next</string>
@@ -2497,13 +3097,62 @@ QPushButton:disabled {background: #999999;}</string>
      <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionSwitchProject"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <addaction name="menuFile"/>
   </widget>
   <action name="actionToggleMask">
    <property name="text">
-    <string>Toggle Mask</string>
+    <string>Show mask</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+  </action>
+  <action name="actionUndoMaskEdit">
+   <property name="text">
+    <string>Undo</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionRedoMaskEdit">
+   <property name="text">
+    <string>Redo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Z</string>
+   </property>
+  </action>
+  <action name="actionSwitchProject">
+   <property name="text">
+    <string>Switch Project…</string>
+   </property>
+   <property name="toolTip">
+    <string>Save your place and return to the Projects window</string>
+   </property>
+  </action>
+  <action name="actionToggleDarkMode">
+   <property name="text">
+    <string>Toggle Dark Mode</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>
@@ -2516,6 +3165,7 @@ QPushButton:disabled {background: #999999;}</string>
    <slots>
     <slot>SetBrushSize(int)</slot>
     <slot>UndoLastMaskEdit()</slot>
+    <slot>RedoLastMaskEdit()</slot>
     <slot>Reset()</slot>
     <slot>ClearEdits()</slot>
     <slot>UndoLastPoint()</slot>
@@ -2528,43 +3178,21 @@ QPushButton:disabled {background: #999999;}</string>
    <extends>QListWidget</extends>
    <header location="global">QThumbnailWidget.h</header>
   </customwidget>
+  <customwidget>
+   <class>SegmentedControl</class>
+   <extends>QWidget</extends>
+   <header location="global">SegmentedControl.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CompactSlider</class>
+   <extends>QWidget</extends>
+   <header location="global">CompactSlider.h</header>
+  </customwidget>
  </customwidgets>
  <resources>
   <include location="dissection_photo.qrc"/>
  </resources>
  <connections>
-  <connection>
-   <sender>radioButton4Points</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnTogglePointMode(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>943</x>
-     <y>62</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>172</x>
-     <y>0</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>radioButton2Points</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnTogglePointMode(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>800</x>
-     <y>62</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>224</x>
-     <y>0</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>pushButtonPrevious</sender>
    <signal>clicked()</signal>
@@ -2662,18 +3290,34 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
-   <sender>radioButton3Points</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnTogglePointMode(bool)</slot>
+   <sender>actionUndoMaskEdit</sender>
+   <signal>triggered()</signal>
+   <receiver>widgetImageView</receiver>
+   <slot>UndoLastMaskEdit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>871</x>
-     <y>62</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
     <hint type="destinationlabel">
-     <x>342</x>
-     <y>0</y>
+     <x>600</x>
+     <y>400</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRedoMaskEdit</sender>
+   <signal>triggered()</signal>
+   <receiver>widgetImageView</receiver>
+   <slot>RedoLastMaskEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>600</x>
+     <y>400</y>
     </hint>
    </hints>
   </connection>
@@ -2742,6 +3386,38 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
+   <sender>pushButtonMaskEditRedo</sender>
+   <signal>clicked()</signal>
+   <receiver>widgetImageView</receiver>
+   <slot>RedoLastMaskEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>328</x>
+     <y>258</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1158</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonToggleMaskVisibility</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleMask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>328</x>
+     <y>258</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1158</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>pushButtonUploadImages</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -2774,22 +3450,6 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
-   <sender>spinBoxBrushSize</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>widgetImageView</receiver>
-   <slot>SetBrushSize(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>251</x>
-     <y>213</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>642</x>
-     <y>421</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>pushButtonCC</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -2801,22 +3461,6 @@ QPushButton:disabled {background: #999999;}</string>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
-     <y>856</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>horizontalSliderSegOpacity</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnSliderSegOpacity(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>458</x>
-     <y>215</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>576</x>
      <y>856</y>
     </hint>
    </hints>
@@ -2902,22 +3546,6 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonTogglePreview</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnButtonTogglePreview(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>363</x>
-     <y>276</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>207</x>
-     <y>0</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>pushButtonBackToStart</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -2930,22 +3558,6 @@ QPushButton:disabled {background: #999999;}</string>
     <hint type="destinationlabel">
      <x>67</x>
      <y>924</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonProceedToCalibration</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnButtonCalibration()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>573</x>
-     <y>781</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>378</x>
-     <y>891</y>
     </hint>
    </hints>
   </connection>
@@ -3046,26 +3658,26 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonQuit</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>362</x>
-     <y>782</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>417</x>
-     <y>1033</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>labelImageFolder</sender>
    <signal>linkActivated(QString)</signal>
    <receiver>MainWindow</receiver>
    <slot>OnLinkActivated(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>443</x>
+     <y>291</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>-67</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonChangeOutputFolder</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonChangeOutputFolder()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>443</x>
@@ -3094,46 +3706,81 @@ QPushButton:disabled {background: #999999;}</string>
    </hints>
   </connection>
   <connection>
-   <sender>horizontalSliderLabelOpacity</sender>
-   <signal>valueChanged(int)</signal>
+   <sender>pushButtonBackToStartFromCorrection</sender>
+   <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>OnSliderLabelOpacity(int)</slot>
+   <slot>OnButtonBackToStart()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>241</y>
+     <x>60</x>
+     <y>810</y>
     </hint>
     <hint type="destinationlabel">
-     <x>546</x>
-     <y>-21</y>
+     <x>60</x>
+     <y>-1</y>
     </hint>
    </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonBackToCorrection</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonContinue()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>60</x>
+     <y>93</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>60</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonBackToSegmentation</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonProceedToSeg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>60</x>
+     <y>504</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>60</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionQuit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
   </connection>
  </connections>
  <slots>
   <slot>OnButtonInputFolder()</slot>
   <slot>OnButtonCalibrationFile()</slot>
-  <slot>OnButtonOutputFolder()</slot>
   <slot>OnButtonContinue()</slot>
-  <slot>OnTogglePointMode(bool)</slot>
+  <slot>OnPointModeChanged(int)</slot>
   <slot>OnButtonPrevious()</slot>
   <slot>OnButtonNext()</slot>
-  <slot>OnButtonPreviousCC()</slot>
-  <slot>OnButtonNextCC()</slot>
   <slot>OnButtonProcess()</slot>
   <slot>OnButtonClear()</slot>
+  <slot>OnButtonUndoCC()</slot>
+  <slot>OnButtonRedoCC()</slot>
   <slot>OnButtonProceedToSeg()</slot>
   <slot>OnButtonProceedToCC()</slot>
-  <slot>OnButtonFinalOutputFolder()</slot>
   <slot>OnButtonLoadMask()</slot>
   <slot>OnSliderSegOpacity(int)</slot>
   <slot>OnButtonCreateMask()</slot>
-  <slot>OnButtonUndoMaskEdit()</slot>
   <slot>OnToggleMask()</slot>
   <slot>OnButtonOutputFolderCC()</slot>
   <slot>OnLinkActivated(QString)</slot>
+  <slot>OnButtonChangeOutputFolder()</slot>
   <slot>OnButtonProceedToRecon()</slot>
-  <slot>OnButtonTogglePreview(bool)</slot>
   <slot>OnButtonBackToStart()</slot>
   <slot>OnButtonCalibration()</slot>
   <slot>OnButtonSaveCalibration()</slot>

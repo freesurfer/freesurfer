@@ -3,13 +3,11 @@
         <file alias="func_retrospective_correction.py">../py_scripts/func_retrospective_correction.py</file>
         <file alias="horizontal.png">../py_scripts/horizontal.png</file>
         <file alias="vertical.png">../py_scripts/vertical.png</file>
-        <file alias="func_fiducials_correction.py">../py_scripts/func_fiducials_correction.py</file>
         <file alias="func_fiducials_calibration.py">../py_scripts/func_fiducials_calibration.py</file>
         <file alias="registration.py">../py_scripts/registration.py</file>
         <file alias="func_fiducials_detection.py">../py_scripts/func_fiducials_detection.py</file>
         <file alias="func_mask_to_cc.py">../py_scripts/func_mask_to_cc.py</file>
         <file>resource/upload@2x.png</file>
-        <file>resource/reset@2x.png</file>
         <file>resource/calibration1@2x.png</file>
         <file>resource/calibration2@2x.png</file>
         <file>resource/checked@2x.png</file>
@@ -18,7 +16,24 @@
         <file>resource/ruler@2x.png</file>
         <file>resource/slabs@2x.png</file>
         <file>resource/fiducial_markers@2x.png</file>
-        <file>resource/switch_on@2x.png</file>
-        <file>resource/switch@2x.png</file>
+        <file>resource/fiducial_markers_printout.png</file>
+        <file>resource/icons/brush.png</file>
+        <file>resource/icons/brush@2x.png</file>
+        <file>resource/icons/bucket.png</file>
+        <file>resource/icons/bucket@2x.png</file>
+        <file>resource/icons/eraser.png</file>
+        <file>resource/icons/eraser@2x.png</file>
+        <file>resource/icons/hide@2x.png</file>
+        <file>resource/icons/link@2x.png</file>
+        <file>resource/icons/pan@2x.png</file>
+        <file>resource/icons/recenter@2x.png</file>
+        <file>resource/icons/undo@2x.png</file>
+        <file>resource/icons/zoom@2x.png</file>
+        <file>resource/icons/settings.png</file>
+        <file>resource/icons/settings@2x.png</file>
+        <file>resource/icons/home.png</file>
+        <file>resource/icons/home@2x.png</file>
+        <file>resource/dissection_photo_icon.png</file>
+        <file alias="resource/style.qss">../resource/style.qss</file>
     </qresource>
 </RCC>

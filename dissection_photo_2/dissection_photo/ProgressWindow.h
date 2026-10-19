@@ -2,6 +2,7 @@
 #define PROGRESSWINDOW_H
 
 #include <QFrame>
+#include <QString>
 
 namespace Ui {
 class ProgressWindow;
@@ -14,6 +15,9 @@ class ProgressWindow : public QFrame
 public:
   explicit ProgressWindow(QWidget *parent = nullptr);
   ~ProgressWindow();
+
+  // Shows msg over a busy (indeterminate) progress bar.
+  void SetIndeterminate(const QString& msg);
 
 private:
   Ui::ProgressWindow *ui;

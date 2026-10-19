@@ -21,19 +21,21 @@
 #ifndef MyUtils_h
 #define MyUtils_h
 
-#include <math.h>
-#include <vector>
 #include <QImage>
 
 class MyUtils
 {
 public:
-  MyUtils()
-  {}
-
-  static void FloodFill( char** data, int x, int y, int min_x, int min_y, int max_x, int max_y, int fill_value, int border_value );
   static void FloodFill( char* data, int x, int y, int dim_x, int dim_y, int fill_value, int border_value );
   static QImage ReadImageWithExifAwareness(const QString& filename);
+
+  // EXIF orientation (1-8, 0 if none) of filename. Separate from
+  // ReadImageWithExifAwareness() so an image derived from a photo, such as a
+  // mask with no EXIF of its own, can get the photo's rotation.
+  static int GetExifOrientation(const QString& filename);
+  // Applies the same rotation ReadImageWithExifAwareness() would for the
+  // given orientation code -- see GetExifOrientation().
+  static QImage ApplyExifOrientation(const QImage& image, int orientation);
 };
 
 #endif

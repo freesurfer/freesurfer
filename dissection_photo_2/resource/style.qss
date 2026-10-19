@@ -1,0 +1,182 @@
+/* App-wide light stylesheet on top of Fusion, shared by the apps in this repo.
+ * Dark counterparts are appended by AppTheme::BaseStyleSheet(). Inline .ui
+ * styleSheets override it for the widgets they target.
+ *
+ * Brand palette (keep in sync with the inline button colors in
+ * dissection_photo/MainWindow.ui / DialogWelcome.ui):
+ *   primary blue   #457c92
+ *   olive/warning  #a6a233
+ *   danger/red     #a2293c
+ *   secondary      #89448e
+ *   accent blue    #57a2c0
+ *   disabled grey  #999999
+ */
+
+QWidget {
+  /* No font is bundled. The Linux fonts come before Arial: their proportions
+     are closer to Inter. */
+  font-family: "Inter", "Helvetica Neue", Helvetica, "Noto Sans", "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+  /* Smaller text was too small on Linux. */
+  font-size: 18px;
+  /* Any property here drops the palette background fill, so it must be
+     explicit (else dialogs show the native backing, e.g. black in macOS Dark
+     Mode). */
+  background-color: #f0f0f0;
+}
+
+QPushButton {
+  background: #457c92;
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 18px;
+  min-height: 22px;
+}
+QPushButton:hover {
+  background: #3c6d80;
+}
+QPushButton:pressed {
+  background: #34606f;
+}
+QPushButton:disabled {
+  background: #999999;
+  color: #eeeeee;
+}
+QPushButton:focus {
+  outline: none;
+  border-color: #2c4c58;
+}
+
+QToolTip {
+  background-color: #333333;
+  color: white;
+  border: 1px solid #555555;
+  padding: 4px;
+}
+
+/* Input boxes: QSS has no box-shadow, so a soft bevel suggests a recess.
+   font-size is pinned so boxes don't grow with the body text; the combo popup
+   is a separate widget, hence its own rule. The fill is just off the window
+   background: pure white reads as a hole. */
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+  font-size: 15px;
+  border-top: 1px solid #d9d9d9;
+  border-left: 1px solid #d9d9d9;
+  border-bottom: 1px solid #fbfbfb;
+  border-right: 1px solid #fbfbfb;
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: #f7f7f7;
+  color: #262626;
+  selection-background-color: #457c92;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+  border: 1px solid #457c92;
+}
+QComboBox QAbstractItemView {
+  font-size: 15px;
+  background: #ffffff;
+  color: #262626;
+  border: 1px solid #cccccc;
+  selection-background-color: #457c92;
+  selection-color: #ffffff;
+}
+
+/* Menus need both background and text colour: the QWidget rule sets the
+   background while text still comes from the palette. */
+QMenu {
+  background-color: #ffffff;
+  color: #262626;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  padding: 4px;
+}
+QMenu::item {
+  padding: 5px 24px 5px 18px;
+  border-radius: 4px;
+}
+QMenu::item:selected {
+  background-color: #457c92;
+  color: #ffffff;
+}
+QMenu::item:disabled {
+  color: #a0a0a0;
+}
+QMenu::separator {
+  height: 1px;
+  background: #dddddd;
+  margin: 4px 8px;
+}
+
+/* Check boxes / radio buttons:
+   1. Every ::indicator rule keeps the same width, height and border-width, or
+      the label shifts on toggle.
+   2. Styling ::indicator removes Fusion's checkmark and image urls don't
+      resolve across the apps' .qrc files, so checked is a solid fill.
+   Neutral greys, not brand blue, which looked heavy. */
+QCheckBox::indicator, QRadioButton::indicator {
+  width: 14px;
+  height: 14px;
+  background-color: #ffffff;
+  border: 1px solid #8c8c8c;
+}
+QCheckBox::indicator {
+  border-radius: 3px;
+}
+QRadioButton::indicator {
+  /* Half the 14px content box plus the 1px border, so this stays a circle. */
+  border-radius: 8px;
+}
+QCheckBox::indicator:unchecked:hover, QRadioButton::indicator:unchecked:hover {
+  border: 1px solid #5f5f5f;
+}
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+  background-color: #555555;
+  border: 1px solid #555555;
+}
+QCheckBox::indicator:checked:hover, QRadioButton::indicator:checked:hover {
+  background-color: #3f3f3f;
+  border: 1px solid #3f3f3f;
+}
+QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {
+  background-color: #e8e8e8;
+  border: 1px solid #c8c8c8;
+}
+QCheckBox::indicator:checked:disabled, QRadioButton::indicator:checked:disabled {
+  background-color: #b4b4b4;
+  border: 1px solid #b4b4b4;
+}
+
+QScrollBar:vertical {
+  background: transparent;
+  width: 12px;
+  margin: 0;
+}
+QScrollBar::handle:vertical {
+  background: #bbbbbb;
+  border-radius: 5px;
+  min-height: 24px;
+}
+QScrollBar::handle:vertical:hover {
+  background: #999999;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+  height: 0;
+}
+
+QScrollBar:horizontal {
+  background: transparent;
+  height: 12px;
+  margin: 0;
+}
+QScrollBar::handle:horizontal {
+  background: #bbbbbb;
+  border-radius: 5px;
+  min-width: 24px;
+}
+QScrollBar::handle:horizontal:hover {
+  background: #999999;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+  width: 0;
+}

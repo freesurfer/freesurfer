@@ -489,7 +489,13 @@ class nnUNetPredictor(object):
             # second iteration to crash due to OOM. Grabbing that with try except cause way more bloated code than
             # this actually saves computation time
             if prediction is None:
-                prediction = self.predict_sliding_window_return_logits(data).to('cpu')
+                # dissection_photo fix (not upstream nnUNet): predict_sliding_window_return_logits() runs under
+                # @torch.inference_mode(), so it returns an inference tensor. On a GPU, .to('cpu') copies it into
+                # a normal tensor; on the CPU it is a no-op, and the in-place "+=" for the next fold then fails
+                # outside inference mode ("Inplace update to inference tensor outside InferenceMode is not
+                # allowed"). clone() makes a normal tensor; values are unchanged.
+                # prediction = self.predict_sliding_window_return_logits(data).to('cpu')
+                prediction = self.predict_sliding_window_return_logits(data).to('cpu').clone()
             else:
                 prediction += self.predict_sliding_window_return_logits(data).to('cpu')
 

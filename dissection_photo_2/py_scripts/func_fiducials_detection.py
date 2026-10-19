@@ -1,39 +1,36 @@
 import argparse
 import os
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import cv2
 import numpy as np
 from registration import fiducial_detection
+from func_retrospective_correction import retrospective_correction
 
 
-def fiducials_detection(args):
-    """Perform automated detection of fiducials in a photo"""
+def calibrated_correction(args):
+    """Detect the fiducials in each photo and correct it with them.
 
-    npz_file_path = args.npz_file
-    input_image = args.in_image
-    output_file = args.out_file
+    One run for all the photos: the camera may move between photos, so every
+    photo gets its own detection. A few photos are worked on at a time (OpenCV
+    and the image codecs release the GIL). Progress goes to stdout, one
+    tab-separated line per event, for MainWindow.cpp (SIZE, START, DONE, FAILED).
+    """
 
-    if not os.path.isfile(npz_file_path):
+    if not os.path.isfile(args.npz_file):
         raise Exception("Warning", "Calibration File not Found")
 
-    if not os.path.isfile(input_image):
-        raise Exception("Warning", "Input Directory Cannot be Empty")
-
-    output_dir = os.path.dirname(output_file)
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
-
-    # Read data from model file
-    variables = np.load(npz_file_path, allow_pickle=True)
-    true_width = variables["true_w"].astype("float")
-    true_height = variables["true_h"].astype("float")
+    variables = np.load(args.npz_file, allow_pickle=True)
+    true_width = float(variables["true_w"])
+    true_height = float(variables["true_h"])
     template = variables["img_template"]
-    kp_template_tmp = variables["kp_template"]
     des_template = variables["des_template"]
     centers = variables["centers"]
 
     # reassemble the key points (which we split for saving to disk)
     kp_template = []
-    for point in kp_template_tmp:
+    for point in variables["kp_template"]:
         temp = cv2.KeyPoint(
             x=point[0],
             y=point[1],
@@ -45,27 +42,44 @@ def fiducials_detection(args):
         )
         kp_template.append(temp)
 
-    fiducial_detection(
-        true_width,
-        true_height,
-        template,
-        des_template,
-        centers,
-        kp_template,
-        input_image,
-        output_file
-    )
+    lock = threading.Lock()
 
-    print("Performed fiducial detection")
+    def report(*fields):
+        with lock:  # whole lines, however the threads interleave
+            sys.stdout.write("\t".join(fields) + "\n")
+            sys.stdout.flush()
+
+    def correct(image):
+        report("START", image)
+        try:
+            corners = fiducial_detection(
+                true_width, true_height, template, des_template, centers, kp_template, image
+            )
+            retrospective_correction(
+                argparse.Namespace(
+                    in_img=image,
+                    pos_tuple=corners.tolist(),
+                    e1=true_width,
+                    e2=true_height,
+                    out_dir=args.out_dir,
+                )
+            )
+            report("DONE", image, " ".join(f"{v:.1f}" for v in corners.ravel()))
+        except Exception as e:  # this photo is left for the user to correct by hand
+            report("FAILED", image, str(e))
+
+    report("SIZE", str(true_width), str(true_height))
+    with ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 1)) as pool:
+        list(pool.map(correct, args.in_images))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--in_image", type=str, dest="in_image", default=None)
+    parser.add_argument("--in_images", type=str, nargs="+", dest="in_images", default=None)
     parser.add_argument("--calibration_file", type=str, dest="npz_file", default=None)
-    parser.add_argument("--out_file", type=str, dest="out_file", default=None)
+    parser.add_argument("--out_dir", type=str, dest="out_dir", default=None)
 
     args = parser.parse_args()
 
-    fiducials_detection(args)
+    calibrated_correction(args)

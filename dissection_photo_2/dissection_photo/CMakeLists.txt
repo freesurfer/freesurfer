@@ -8,16 +8,35 @@ if(BUILD_GUIS)
     ../WidgetImageView.cpp
     ../cnpy.cpp
     ../exif.cpp
+    AppMotion.cpp
+    ReconPage.cpp
+    StepperBar.cpp
     MaskProcessor.cpp
+    SegmentedControl.cpp
+    CompactSlider.cpp
+    ImageGridView.cpp
     ../MyUtils.cpp
+    AppTheme.cpp
     MainWindow.cpp
     ProgressWindow.cpp
     DialogWelcome.cpp
+    DialogProjectsHub.cpp
+    DialogSegmentationSettings.cpp
+    ProjectCardWidget.cpp
+    ProjectManager.cpp
     main.cpp
     QThumbnailWidget.cpp
     MakeThumbnailThread.cpp
     dissection_photo.qrc
   )
+
+  # App icon in Finder and the Dock, named by CFBundleIconFile in Info.plist
+  # (main.cpp also sets it at runtime).
+  if(APPLE)
+    set(APP_ICON resource/dissection_photo.icns)
+    set_source_files_properties(${APP_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    list(APPEND SOURCES ${APP_ICON})
+  endif()
 
   add_executable(dissection_photo_2 ${SOURCES})
 

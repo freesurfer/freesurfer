@@ -1,9 +1,7 @@
 import argparse
-import os
 import sys
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 import pathlib
@@ -34,13 +32,7 @@ class SplitArgs(argparse.Action):
 
 
 def get_euclidean(a, b):
-    """Calculate Euclidean Distance between two points a and b
-    Args:
-        a (float): center
-        b (float): edge
-    Returns:
-        float: radius
-    """
+    """Distance between points a (center) and b (edge): the radius."""
     a = np.array(a)
     b = np.array(b)
 
@@ -48,34 +40,18 @@ def get_euclidean(a, b):
 
 
 def get_radii(point_pairs):
-    """Calculate radius using (center, edge) pair
-    Args:
-        point_pairs (list): list of lists where each element is a [center, edge] pair
-    Returns:
-        list: list of radii (size if equal to len(point_pairs))
-    """
+    """Radius of each [center, edge] pair."""
     return [get_euclidean(pair[0], pair[1]) for pair in point_pairs]
 
 
 def get_pairs(point_list):
-    """Converts list of point clicks to pairs of points
-    A pair represents (center, edge)
-    Args:
-        point_list (list): list of ordered click on the template
-    Returns:
-        list: list of lists where each sublist represents a (center, edge) pair
-    """
+    """Group the ordered clicks into [center, edge] pairs."""
     n = 2
     return [point_list[i : i + n] for i in range(0, len(point_list) - n + 1, n)]
 
 
 def calculate_centers_and_radii(mouse_clicks):
-    """Calculate centers and radius of the balls on the template
-    Args:
-        mouse_clicks (list): ordered list of mouse clicks
-    Returns:
-        tuple: (centers, radius)
-    """
+    """Centers and radii of the balls on the template, from center/edge clicks."""
     centers = mouse_clicks[::2]
     point_set = get_pairs(mouse_clicks)
     radii = get_radii(point_set)
@@ -90,16 +66,12 @@ def calculate_centers_and_radii(mouse_clicks):
 
 
 def fiducials_calibration(args):
-    """This function performs the calibration/registration and close the GUI automatically"""
+    """Save the template's SIFT keypoints inside the four balls, for func_fiducials_detection.py."""
     true_w, true_h = args.e1, args.e2
 
-    # extract centers and radius
     centers, radii = calculate_centers_and_radii(args.pos_tuple)
 
-    # Open image
     img = Image.open(args.in_img)
-
-    # get width and height of image
     width, height = img.width, img.height
     print(f"Image Width: {width}, Height: {height}")
 
@@ -128,8 +100,6 @@ def fiducials_calibration(args):
         for i in range(len(kp_template)):
             dist = np.sqrt(np.sum((kp_template[i].pt - centers[c, :]) ** 2))
             if dist < (radii[c]):
-                # kp_tmp.append(kp_template[i])
-
                 temp = (
                     *kp_template[i].pt,
                     kp_template[i].size,
@@ -161,35 +131,6 @@ def fiducials_calibration(args):
         sift_res=sift_res,
     )
 
-    if False:  # TODO:  if DEBUG or something like that?
-        # A bit silly, but we need to reassemble the key points (which we split for saving to disk)
-        kp = []
-        for point in kp_template:
-            temp = cv2.KeyPoint(
-                x=point[0],
-                y=point[1],
-                size=point[2],
-                angle=point[3],
-                response=point[4],
-                octave=point[5],
-                class_id=point[6],
-            )
-            kp.append(temp)
-
-        kp_im_template = template.copy()
-        kp_im_template = cv2.drawKeypoints(
-            template,
-            kp,
-            kp_im_template,
-            flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
-        )
-
-        plt.figure()
-        plt.imshow(kp_im_template, aspect="equal")
-        plt.title("Key points in template image")
-        plt.savefig(os.path.join(args.out_dir, "keypoints.png"))
-        plt.show()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -199,25 +140,6 @@ if __name__ == "__main__":
     parser.add_argument("--width", nargs="?", type=float, dest="e1", default=None)
     parser.add_argument("--height", nargs="?", type=float, dest="e2", default=None)
     parser.add_argument("--out_file", type=str, dest="out_file", default=None)
-
-    # If running the code in debug mode
-    gettrace = getattr(sys, "gettrace", None)
-
-    if gettrace():
-        PROJ_DIR = "/space/calico/1/users/Harsha/photo-calibration-gui"
-        sys.argv = [
-            "func_fiducials_calibration.py",
-            "--in_img",
-            f"{PROJ_DIR}/misc/fiducials_calibration/prospective_without_tissue.jpg",
-            "--points",
-            "22 17 40 9 478 25 492 9 18 465 30 451 462 472 478 460",
-            "--width",
-            "272",
-            "--height",
-            "272",
-            "--out_file",
-            "/tmp/cal",
-        ]
 
     args = parser.parse_args()
 

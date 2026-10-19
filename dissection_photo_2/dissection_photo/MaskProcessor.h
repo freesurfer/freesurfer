@@ -21,6 +21,11 @@ public:
   void LoadSelections(const QList<QPoint>& pts);
   bool ProcessSelection(const QPoint& pt1, const QPoint& pt2, int nFillValue);
   bool SaveToNpy(const QString& fn);
+  // Shows components saved earlier (a SaveToNpy() file) on the loaded photo, as if
+  // their boxes had been drawn: they are taken out of what new boxes can pick.
+  bool LoadSaved(const QString& fn);
+  // The colours GetMaskImage() gives a saved label file (empty when unreadable).
+  static QImage SavedMaskImage(const QString& fn, const QList<QColor>& colors);
 
   void ClearBuffer();
 
