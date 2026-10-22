@@ -1,7 +1,9 @@
 project(fspython)
 
 # build the cxx/python bindings for the below modules
-add_subdirectories(fsbindings)
+if(BUILD_FSBINDINGS)
+  add_subdirectories(fsbindings)
+endif()
 
 ## FSPYTHON_VERSION set in top level CMakeLists.txt
 # set(FSPYTHON_VERSION "3.8")
@@ -180,10 +182,11 @@ endfunction()
 
 function(packages_install)
    # run 'pip install' and direct package installs to freesurfer/python/packages
+   # pass BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} environment variable for setup.py to act accordingly
    install(CODE "
      message(STATUS \"Installing python packages\")
-     message(STATUS \"${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING}  ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\")
-     execute_process(COMMAND bash -c \"${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
+     message(STATUS \"BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING}  ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\")
+     execute_process(COMMAND bash -c \"BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
      if(NOT \${retcode} STREQUAL 0)
        message(FATAL_ERROR \"Could not install python modules\")
      endif()"

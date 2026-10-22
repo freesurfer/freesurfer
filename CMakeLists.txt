@@ -99,6 +99,7 @@ else()
 endif()
 option(FIPS_SUPPORT "allow FS license to be read on FIPS system" OFF)
 option(FSDEEPNET "build fsdeepnet_cli and download/install its model files" ON)
+option(BUILD_FSBINDINGS "Build fsbinding.so library" ON)
 
 ## freeview
 ##

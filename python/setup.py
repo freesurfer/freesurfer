@@ -39,6 +39,8 @@ def find_libs(libname, required=True):
         sys.exit(1)
     return [path.basename(filename) for filename in libraries]
 
+BUILD_FSBINDINGS = os.environ.get("BUILD_FSBINDINGS_OPTION")
+fsbindings_required = True if (BUILD_FSBINDINGS == "ON") else False
 setup(
     distclass=BinaryDistribution,
     name='pyfs',
@@ -46,7 +48,7 @@ setup(
     author='Laboratory for Computational Neuroimaging',
     packages=packages,
     package_data={
-        'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
+        'fsbindings': find_libs('fsbindings', required=fsbindings_required) + find_libs('labelfusion', required=False),
     },
     install_requires=requirements,
     include_package_data=True
