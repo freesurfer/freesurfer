@@ -9,18 +9,7 @@ import os.path as path
 from setuptools import setup, find_packages, Distribution
 
 # the freesurfer python packages
-#
-# Removed for case INTEGRATE_SAMSEG == 'OFF'
-#    'gems',
-#    'gems.subregions',
-INTEGRATE_SAMSEG = os.environ.get("INTEGRATE_SAMSEG_OPTION")
-if (INTEGRATE_SAMSEG == 'OFF'):
-  packages = [
-    'fsbindings',
-    'fspylegacy',
-  ]
-else:
-  packages = [
+packages = [
     'fsbindings',
     'fspylegacy',
   ]
@@ -50,34 +39,16 @@ def find_libs(libname, required=True):
         sys.exit(1)
     return [path.basename(filename) for filename in libraries]
 
-if (INTEGRATE_SAMSEG == 'OFF'):
-  setup(
-      distclass=BinaryDistribution,
-      name='pyfs',
-      description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
-      author='Laboratory for Computational Neuroimaging',
-      packages=packages,
-      # package_data={
-      #     'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
-      #     'gems': find_libs('gemsbindings'),
-      # },
-      package_data={
-          'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False)
-      },
-      install_requires=requirements,
-      include_package_data=True
-   )
-else:
-  setup(
-      distclass=BinaryDistribution,
-      name='pyfs',
-      description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
-      author='Laboratory for Computational Neuroimaging',
-      packages=packages,
-      package_data={
-          'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
-      },
-      install_requires=requirements,
-      include_package_data=True
-   )
+setup(
+    distclass=BinaryDistribution,
+    name='pyfs',
+    description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
+    author='Laboratory for Computational Neuroimaging',
+    packages=packages,
+    package_data={
+        'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
+    },
+    install_requires=requirements,
+    include_package_data=True
+  )
 

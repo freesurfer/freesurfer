@@ -941,20 +941,6 @@ add_subdirectory(vtkutils)
 ## the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
 
-## build the gems library#
-## If INTEGRATE_SAMSEG=ON,#
-##   1. only integrate the python part of samseg for now#
-##      python/packages/gems package is replaced with standalone samseg package#
-##   2. samsegmesh2surf is not built, no need 'samseg' codes for building libkvlGEMSCommon.a#
-##   3. 'samseg' codes are needed in build pass when we integrate C/C++ codes later#
-##   4. 'samseg' can be added as a submodule for freesurfer to be pulled using#
-##      'git clone --recurse-submodules https://github.com/yhuang43/freesurfer.git'.#
-
-if(NOT INTEGRATE_SAMSEG)
-  ## gems in atiic as of 6/2026
-  # add_subdirectories(samsegmesh2surf gems)
-endif()
-
 # --------------------------------------------------
 #                      programs
 # --------------------------------------------------
