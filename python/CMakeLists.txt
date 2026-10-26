@@ -1,11 +1,9 @@
 project(fspython)
 
 # build the cxx/python bindings for the below modules
-add_subdirectories(fsbindings)
-## gems in atiic as of 6/2026
-# if(NOT INTEGRATE_SAMSEG)
-#  add_subdirectories(gems/cxx)
-# endif()
+if(BUILD_FSBINDINGS)
+  add_subdirectories(fsbindings)
+endif()
 
 ## FSPYTHON_VERSION set in top level CMakeLists.txt
 # set(FSPYTHON_VERSION "3.8")
@@ -48,56 +46,60 @@ endif()
  set(requirements_samseg "-r ${requirements_samseg_path}/${requirements_samseg_file}")
  set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
 
- ## default linux python currently 3.8
- if(NOT FSPYTHON_VERSION)
-    set(FSPYTHON_VERSIOM "3.8")
- endif()
+## FSPYTHOHN_VERSION set in top level CMakeLists.txt
+# if(NOT FSPYTHON_VERSION)
+#   set(FSPYTHON_VERSION "3.9")
+# endif()
 
- if("${FSPYTHON_VERSION}" MATCHES "3.8")
-    ## previous behavior before differentiated by python version (requirements-build.txt and requirements-build-py38.txt started out as same file)
-    # set(FSPYTHON_REQFILE "requirements-build.txt")
-    if(FSPYTHON_INSTALL_CUDA)
-       set(FSPYTHON_REQFILE "requirements-build-py38-cuda.txt")
-    else()
-       set(FSPYTHON_REQFILE "requirements-build-py38.txt")
-    endif() 
- elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
-    if(FSPYTHON_INSTALL_CUDA)
-       set(FSPYTHON_REQFILE "requirements-build-py39-cuda.txt")
-    else()
-       set(FSPYTHON_REQFILE "requirements-build-py39.txt")
-    endif()
- endif()
+set(FSPYTHON_REQFILE "")
+set(requirements"")
+## no longer used
+set(requirements_extra "")
 
  if(FSPYTHON_BUILD_REQ)
-    # pip install current snapshot of (hardcoded) package revisions into fspython
+    ## pip install current snapshot of (hardcoded) package revisions into fspython
+    ## linux variants
     if(NOT APPLE)
-       ## python requirments file for all linux OS
-       # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-linux.txt")
-       set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/${FSPYTHON_REQFILE}")
-       set(requirements_extra "")
-    else()
+       if("${FSPYTHON_VERSION}" MATCHES "3.8")
+          if(FSPYTHON_INSTALL_CUDA)
+             set(FSPYTHON_REQFILE "requirements-build-py38-cuda.txt")
+          else()
+             set(FSPYTHON_REQFILE "requirements-build-py38.txt")
+          endif() 
+       endif()
+       if("${FSPYTHON_VERSION}" MATCHES "3.9")
+          if(NOT UBUNTU_ARM64)
+             if(FSPYTHON_INSTALL_CUDA)
+                set(FSPYTHON_REQFILE "requirements-build-py39-cuda.txt")
+             else()
+                set(FSPYTHON_REQFILE "requirements-build-py39.txt")
+             endif()
+          else()
+                set(FSPYTHON_REQFILE "requirements-build.ubuntu24_arm64-py39.txt")
+          endif()
+       endif()
+   else() 
+       ## darwin variants (no cuda)
        if(NOT APPLE_ARM64)
           ## darwin_x86_64
           if("${FSPYTHON_VERSION}" MATCHES "3.8")
-             set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.darwin_x86_64-py38.txt")
+             set(FSPYTHON_REQFILE "requirements-build.darwin_x86_64-py38.txt")
           elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
-             set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.darwin_x86_64-py39.txt")
+             set(FSPYTHON_REQFILE "requirements-build.darwin_x86_64-py39.txt")
           endif()
-          set(requirements_extra "")
-          message(STATUS "For HOST_OS=${HOST_OS} using requirements file ${requirements}")
        else()
           ## darwin_arm64
           if("${FSPYTHON_VERSION}" MATCHES "3.8")
-             set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.arm_x86_64-py38.txt")
+             set(FSPYTHON_REQFILE "requirements-build.arm_x86_64-py38.txt")
           elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
-             set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.arm_x86_64-py39.txt")
+             set(FSPYTHON_REQFILE "requirements-build.arm_x86_64-py39.txt")
           endif()
-          set(requirements_extra "")
-          message(STATUS "For HOST_OS=${HOST_OS} using requirements file ${requirements}")
        endif()
     endif()
+    set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/${FSPYTHON_REQFILE}")
+    message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
  endif()
+
  if(NOT APPLE_ARM64)
     if(INFANT_MODULE)
        ## provide requirements file for infant module to allow for different package revisions compared to what
@@ -106,28 +108,17 @@ endif()
        # set(requirements_extra "")
     endif()
  endif()
- if(NOT APPLE_ARM64)
-    message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
- endif() 
 
 # Definition of FSPYTHON_INSTALL_PREFIX is in top level CMakeLists.txt
 
 function(requirements_file_install)
   if(FSPYTHON_BUILD_REQ)
       if(NOT APPLE_ARM64)
-         set(num ${FSPYTHON_VERSION})
-         string(REPLACE "." "" num "${num}")
          if(FSPYTHON_INSTALL_TREE)
-            # install the approriate requirement file(s) for the python version per FSPYTHON_VERSION
-            install(PROGRAMS requirements-build-py${num}.txt DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python)
-            if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/requirements-build-py${num}-cuda.txt")
-               install(PROGRAMS requirements-build-py${num}-cuda.txt DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python)
-            endif()
+            ## install the approriate requirement file
+            install(PROGRAMS ${FSPYTHON_REQFILE} DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python)
          else()
-            install(PROGRAMS requirements-build-py${num}.txt DESTINATION python)
-            if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/requirements-build-py${num}-cuda.txt")
-               install(PROGRAMS requirements-build-py${num}-cuda.txt DESTINATION python)
-            endif()
+            install(PROGRAMS ${FSPYTHON_REQFILE}  DESTINATION python)
          endif()
       endif()
    endif()
@@ -184,11 +175,11 @@ endfunction()
 
 function(packages_install)
    # run 'pip install' and direct package installs to freesurfer/python/packages
-   # pass INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} environment variable for setup.py to act accordingly
+   # pass BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} environment variable for setup.py to act accordingly
    install(CODE "
      message(STATUS \"Installing python packages\")
-     message(STATUS \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING}  ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\")
-     execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
+     message(STATUS \"BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING}  ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\")
+     execute_process(COMMAND bash -c \"BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
      if(NOT \${retcode} STREQUAL 0)
        message(FATAL_ERROR \"Could not install python modules\")
      endif()"

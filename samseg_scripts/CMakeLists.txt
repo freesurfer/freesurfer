@@ -21,27 +21,9 @@ endif()
 
 if(INTEGRATE_SAMSEG)
    if (FSPYTHON_INSTALL_TREE)
-
       install_pyscript_fspython_tree(computeTissueConcentrations gems_compute_atlas_probs merge_add_mesh_alphas prepareAtlasDirectory run_samseg run_samseg_long sbtiv segment_subregions)
-      #if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
-      #   ## if var set, replace actual file installed above with symlink to the source file version in the python package
-      #   ## ... do not set var for public freesurfer releases ...
-      #   foreach(_samseg_script computeTissueConcentrations gems_compute_atlas_probs merge_add_mesh_alphas prepareAtlasDirectory run_samseg run_samseg_long sbtiv segment_subregions)
-      #      symlink(${FSPYTHON_INSTALL_PREFIX}/python/packages/samseg/cli/${_samseg_script}.py ${pydir}/scripts/${_samseg_script})
-      #   endforeach()
-      #endif()
-
    else()
-
       install_pyscript(computeTissueConcentrations gems_compute_atlas_probs merge_add_mesh_alphas prepareAtlasDirectory run_samseg run_samseg_long sbtiv segment_subregions)
-      #if(NOT "${USER_SAMSEG_PATH}" STREQUAL "")
-      #   ## if var set, replace actual file installed above with symlink to the source file version in the python package
-      #   ## ... do not set var for public freesurfer releases ...
-      #   foreach(_samseg_script computeTissueConcentrations gems_compute_atlas_probs merge_add_mesh_alphas prepareAtlasDirectory run_samseg run_samseg_long sbtiv segment_subregions)
-      #      symlink(${FSPYTHON_INSTALL_PREFIX}/python/packages/samseg/cli/${_samseg_script}.py ${pydir}/scripts/${_samseg_script})
-      #   endforeach()
-      #endif()
-
    endif()
 endif()
 

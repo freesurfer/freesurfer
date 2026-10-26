@@ -1,4 +1,7 @@
-try:
+import importlib.util
+spec = importlib.util.find_spec('fsbindings.fsbindings')
+if (spec):
     from .fsbindings import *
-except ImportError:
-    raise ImportError('fsbindings have not been built for this python version')
+#else:
+#    import warnings
+#    warnings.warn('fsbindings c++ libraries have not been built for this python version')

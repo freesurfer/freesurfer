@@ -7609,6 +7609,12 @@ while( $#argv != 0 )
       unsetenv FIX_VERTEX_AREA;
       breaksw
 
+    case "-fsdeepnet":
+      # runs mri_synthseg, mri_synthstrip, and sclimbic-derived (mri_{mcadura,entowm,vsinus}_seg)
+      # using fsdeepnet/pytoch instead of tensorflow
+      setenv RUN_FSDEEPNET 1
+      breaksw
+
     case "-norandomness":
       set NoRandomness = 1;
       breaksw
