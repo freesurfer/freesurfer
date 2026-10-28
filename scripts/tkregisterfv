@@ -35,6 +35,8 @@ set regheader = 0;
 set interp = (cubic) 
 if($?FV_PATIENT_ORIENTATION == 0) setenv FV_PATIENT_ORIENTATION 1
 if($?FV_ROTATE_AROUND_CURSOR == 0) setenv FV_ROTATE_AROUND_CURSOR 0
+# This will allow the old color picker on newer platforms if set to none
+if($?FV_QT_QPA_PLATFORMTHEME) setenv QT_QPA_PLATFORMTHEME $FV_QT_QPA_PLATFORMTHEME
 
 set tmpdir = ();
 set cleanup = 1;
