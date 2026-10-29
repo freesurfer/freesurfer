@@ -339,7 +339,8 @@ if(HOST_OS MATCHES "Ubuntu24")
       ## turn on if either vtk or itk libraries as installed on the system are used
       set(UB24_SYSLIBS ON)
       ## while vtk libs may from the system, itk libs are built locally as shared for ubuntu arm64
-      set(ITK_SYSLIBS ON)
+      # set(ITK_SYSLIBS ON)
+      set(ITK_SYSLIBS OFF)
       set(ITK_STATIC OFF)
       set(VTK_SYSLIBS ON)
       set(QT_SYSLIBS ON)
@@ -730,7 +731,8 @@ if(NOT ITK_DIR)
    if(HOST_OS MATCHES "Ubuntu24")
       if(NOT ITK_SYSLIBS)
          if(UBUNTU_ARM64)
-            set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4_ubuntu24/lib/lib/cmake/ITK-5.4 CACHE PATH "ITK install directory")
+            set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4_ubuntu24/lib/cmake/ITK-5.4 CACHE PATH "ITK install directory")
+            set(ITK_LIB_DIR ${FS_PACKAGES_DIR}/itk/5.4_ubuntu24/lib CACHE PATH "ITK library directory")
          else()
             set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.4rc01_rok9_ub24/lib/cmake CACHE PATH "ITK install directory")
          endif()
@@ -771,6 +773,19 @@ endif()
 
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 message(STATUS "For HOST_OS=${HOST_OS} ITK_DIR=${ITK_DIR}")
+
+if(UBUNTU_ARM64)
+   if(ITK_FOUND)
+     file(GLOB _found_library "${ITK_LIB_DIR}/lib*.so*")
+     list(APPEND _itk_library_list ${_found_library})
+     ## install found libraries to the freesurfer lib/itk dir and add this directory to rpath
+     if(_itk_library_list)
+       list(REMOVE_DUPLICATES _itk_library_list)
+       install(PROGRAMS ${_itk_library_list} DESTINATION lib/itk)
+       set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/itk:${CMAKE_INSTALL_RPATH}")
+     endif()
+   endif()
+endif()
 
 # -------- glut --------
 
