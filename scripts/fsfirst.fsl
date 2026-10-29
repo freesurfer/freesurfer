@@ -15,6 +15,7 @@ set outdir = ();
 set subject = ();
 set source = ();
 set diceseg = ()
+set ctab = $FREESURFER/ASegStatsLUT.txt # has more than in first
 
 set tmpdir = ();
 set cleanup = 1;
@@ -133,7 +134,7 @@ if($status) goto error_exit;
 set firstseg = $outdir/first_all_fast_firstseg.nii.gz
 set sourceseg = $outdir/source.first_all_fast_firstseg.nii.gz
 set cmd = (mri_vol2vol --mov $firstseg --targ $source --regheader \
-  --interp nearest --o $sourceseg)
+  --interp nearest --o $sourceseg --ctab $ctab)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -304,14 +305,13 @@ if($#subject) then
   set segstats = $SUBJECTS_DIR/$subject/stats/first.fsl.stats
   set diceseg  = $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz
   if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/mri/first
+else
+  if($#outdir == 0) then
+    echo "ERROR: must spec outdir"
+    exit 1;
+  endif
+  set segstats = $outdir/first.fsl.stats
 endif
-
-if($#outdir == 0) then
-  echo "ERROR: must spec outdir"
-  exit 1;
-endif
-
-if($#segstats == 0) set segstats = $outdir/first.fsl.stats
 
 if(! -e $source) then
   echo "ERROR: cannot find $source"
