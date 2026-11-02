@@ -130,6 +130,14 @@ QString ProjectManager::FolderNameFor(const QString& strName)
   return str.trimmed();
 }
 
+QString ProjectManager::ProjectNameProblem(const QString& strName)
+{
+  if (strName.trimmed().contains(QRegularExpression("\\s")))
+    return QString::fromUtf8("Project names can\u2019t contain spaces, because the reconstruction can\u2019t handle "
+                             "them in folder paths. Use _ or - instead (for example, Case_01).");
+  return QString();
+}
+
 bool ProjectManager::RenameProject(const QString& strOldRoot, const QString& strNewName, QString* pNewRoot, QString* pError)
 {
   auto fail = [pError](const QString& s) { if (pError) *pError = s; return false; };
@@ -137,6 +145,9 @@ bool ProjectManager::RenameProject(const QString& strOldRoot, const QString& str
   const QString strFolder = FolderNameFor(strName);
   if (strName.isEmpty() || strFolder.isEmpty())
     return fail("Enter a name for the project.");
+  const QString strProblem = ProjectNameProblem(strName);
+  if (!strProblem.isEmpty())
+    return fail(strProblem);
 
   ProjectInfo info;
   if (!LoadProject(strOldRoot, info))
