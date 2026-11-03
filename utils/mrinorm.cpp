@@ -1355,6 +1355,8 @@ MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
   // depth = mri_src->depth;
 
   mri_kernel = MRIgaussian1d(sigma, -1);
+  if (mri_bias != NULL)
+    MRIfree(&mri_bias);
   mri_bias = MRIclone(mri_src, NULL);
   printf("building Voronoi diagram...\n");
   MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_bias);
