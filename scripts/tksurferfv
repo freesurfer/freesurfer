@@ -33,7 +33,9 @@ set tallta = 0
 
 # This will allow the old volume color picker on newer platforms if set to none.
 # For surface annotations, this may have no effect
-if($?FV_QT_QPA_PLATFORMTHEME) setenv QT_QPA_PLATFORMTHEME $FV_QT_QPA_PLATFORMTHEME
+if($?FV_QT_QPA_PLATFORMTHEME) then
+  setenv QT_QPA_PLATFORMTHEME $FV_QT_QPA_PLATFORMTHEME
+endif  
 
 set tmpdir = ();
 set cleanup = 1;
