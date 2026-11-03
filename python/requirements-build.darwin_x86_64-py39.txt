@@ -30,7 +30,7 @@ filelock==3.19.1
 fireants@git+https://github.com/jnolan14/FireANTs.git@66d54fef55e42ee3906f5514c50c16b1668e225a
 flatbuffers==25.12.19
 fonttools==4.60.2
-fsdeepnet@git+https://github.com/freesurfer/fsdeepnet.git@d58eb4f8014c63fda33ae7eb8e9f00c7de2f6de0
+fsdeepnet@git+https://github.com/freesurfer/fsdeepnet.git@fee86aa7d7cc944c1d7ecc4e495d33b897fd38ac
 fsspec==2025.10.0
 gast==0.7.0
 gitdb==4.0.12
