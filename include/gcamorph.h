@@ -311,7 +311,7 @@ int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca,
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 double    GCAMelasticEnergy(GCA_MORPH *gcam) ;
 MRI       *GCAMestimateLameConstants(GCA_MORPH *gcam) ;
-int       GCAMwrite( const GCA_MORPH *gcam, const char *fname, int datainterp=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS );
+int       GCAMwrite( const GCA_MORPH *gcam, const char *fname, int datainterp=WarpfieldDTFMT::WARPFIELD_DTFMT_ABS_CRS, bool asFSLWarp=false );
 //int       GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam, MRI *mrtemplate=NULL);
 int       GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam);
 GCA_MORPH *GCAMread(const char *fname) ;

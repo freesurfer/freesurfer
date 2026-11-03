@@ -56,7 +56,7 @@ class LinearTransform:
 
     def transform(self, points):
         '''Applies the transform matrix to a point or array of points.'''
-        pts = np.array(points, copy=False)
+        pts = np.asarray(points)
         if pts.ndim == 1:
             pts = pts[np.newaxis]
         pts = np.c_[pts, np.ones(pts.shape[0])].T

@@ -304,11 +304,11 @@ end
 
   set suffix2 = $SUFFIX.
 foreach hemi (lh rh)
-  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.hippoSfVolumes-T1-$ANALYSISID.$SUFFIX.txt
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.hippoSfVolumes-T2-$ANALYSISID.$SUFFIX.txt
   set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/hipposubfields.$hemi.T2.$SUFFIX.$ANALYSISID.stats
   echo "# Hippocampal subfield volumes as created by segmentHA_T2.sh" > $stats
   cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
-  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.amygNucVolumes-T1-$ANALYSISID.$SUFFIX.txt
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.amygNucVolumes-T2-$ANALYSISID.$SUFFIX.txt
   set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/amygdalar-nuclei.$hemi.T2.$SUFFIX.$ANALYSISID.stats
   echo "# Amygdala nuclei volumes as created by segmentHA_T2.sh" > $stats
   cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats

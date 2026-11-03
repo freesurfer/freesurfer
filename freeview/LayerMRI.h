@@ -398,7 +398,7 @@ public slots:
   void UpdateResliceInterpolation();
   void UpdateMRIToImage();
   void SetMaskThreshold(double val);
-  void RebuildContour();
+  void RebuildContour(int nSeg = -1);
 
 Q_SIGNALS:
   void ResampleFactorChanged();
@@ -430,6 +430,7 @@ protected slots:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata = NULL, vtkImageData* brightnessData = NULL );
   virtual void UpdateVectorActor( int nPlane );
+  void UpdateVectorColor();
 
   void ResetSurfaceRegionIds();
 
@@ -440,7 +441,7 @@ protected slots:
   void UpdateTensorActor();
   virtual void UpdateColorMap();
 
-  void OnContourThreadFinished(int thread_id);
+  void OnContourThreadFinished(int thread_id, int seg_val);
   void UpdateSurfaceCorrelationData();
 
   void ResetRef();

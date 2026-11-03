@@ -307,6 +307,7 @@ typedef struct _nj_cmp {
 } nj_component_t;
 
 typedef struct _nj_ctx {
+	int color_transform; // 0 = unknown, 1 = RGB, 2 = YCbCr, 3 = YCCK
 	nj_result_t error;
 	const unsigned char *pos;
 	int size;
@@ -314,7 +315,7 @@ typedef struct _nj_ctx {
 	int width, height;
 	int mbwidth, mbheight;
 	int mbsizex, mbsizey;
-	int ncomp;
+	int ncomp, isRGB;
 	nj_component_t comp[3];
 	int qtused, qtavail;
 	unsigned char qtab[4][64];
@@ -577,6 +578,19 @@ NJ_INLINE void njDecodeSOF(void) {
 			ssxmax = c->ssx;
 		if (c->ssy > ssymax)
 			ssymax = c->ssy;
+	}
+	nj.isRGB = 0;
+	if (nj.ncomp == 3) {
+		switch (nj.color_transform) {
+			case 1: nj.isRGB = 1; break;
+			case 2: nj.isRGB = 0; break;
+			default:
+				// fallback heuristic
+				if (nj.comp[0].cid == 1 && nj.comp[1].cid == 2 && nj.comp[2].cid == 3)
+					nj.isRGB = 0;
+				else
+					nj.isRGB = 1;
+		}
 	}
 	if (nj.ncomp == 1) {
 		c = nj.comp;
@@ -910,18 +924,31 @@ NJ_INLINE void njConvert(void) {
 		const unsigned char *py = nj.comp[0].pixels;
 		const unsigned char *pcb = nj.comp[1].pixels;
 		const unsigned char *pcr = nj.comp[2].pixels;
-		for (yy = nj.height; yy; --yy) {
-			for (x = 0; x < nj.width; ++x) {
-				int y = py[x] << 8;
-				int cb = pcb[x] - 128;
-				int cr = pcr[x] - 128;
-				*prgb++ = njClip((y + 359 * cr + 128) >> 8);
-				*prgb++ = njClip((y - 88 * cb - 183 * cr + 128) >> 8);
-				*prgb++ = njClip((y + 454 * cb + 128) >> 8);
+		if (nj.isRGB) {
+			for (yy = nj.height; yy; --yy) {
+				for (x = 0; x < nj.width; ++x) {
+					*prgb++ = py[x];
+					*prgb++ = pcb[x];
+					*prgb++ = pcr[x];
+				}
+				py += nj.comp[0].stride;
+				pcb += nj.comp[1].stride;
+				pcr += nj.comp[2].stride;
+			}		
+		} else {
+			for (yy = nj.height; yy; --yy) {
+				for (x = 0; x < nj.width; ++x) {
+					int y = py[x] << 8;
+					int cb = pcb[x] - 128;
+					int cr = pcr[x] - 128;
+					*prgb++ = njClip((y + 359 * cr + 128) >> 8);
+					*prgb++ = njClip((y - 88 * cb - 183 * cr + 128) >> 8);
+					*prgb++ = njClip((y + 454 * cb + 128) >> 8);
+				}
+				py += nj.comp[0].stride;
+				pcb += nj.comp[1].stride;
+				pcr += nj.comp[2].stride;
 			}
-			py += nj.comp[0].stride;
-			pcb += nj.comp[1].stride;
-			pcr += nj.comp[2].stride;
 		}
 	} else if (nj.comp[0].width != nj.comp[0].stride) {
 		// grayscale -> only remove stride
@@ -984,10 +1011,21 @@ nj_result_t njDecode(const void *jpeg, const int size) {
 			njSkipMarker();
 			break;
 		default:
-			if ((nj.pos[-1] & 0xF0) == 0xE0)
-				njSkipMarker();
-			else
+			if ((nj.pos[-1] & 0xF0) == 0xE0) {
+				// APP0..APP15
+				int marker = nj.pos[-1];
+				njDecodeLength();
+				if (nj.length >= 5) {
+					if (marker == 0xE0 && memcmp(nj.pos, "JFIF", 4) == 0) {
+						nj.color_transform = 2; // YCbCr
+					} else if (marker == 0xEE && memcmp(nj.pos, "Adobe", 5) == 0 && nj.length >= 12) {
+						nj.color_transform = nj.pos[11] + 1; // 0→1=RGB, 1→2=YCbCr, 2→3=YCCK
+					}
+				}
+				njSkip(nj.length);
+			} else {
 				return NJ_UNSUPPORTED;
+			}
 		}
 	}
 	if (nj.error != __NJ_FINISHED)

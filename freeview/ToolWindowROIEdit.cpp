@@ -46,7 +46,8 @@ ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   ui->actionPolyLine->setData( Interactor2DROIEdit::EM_Polyline );
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnEditMode(QAction*)) );
   MainWindow* wnd = MainWindow::GetMainWindow();
-  connect( ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
+  connect(ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
+  connect(ui->checkBoxNoOverwrite, SIGNAL(toggled(bool)), wnd->GetBrushProperty(), SLOT(SetNoOverwrite(bool)));
 
   UpdateWidgets();
 

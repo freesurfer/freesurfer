@@ -1106,6 +1106,7 @@ static void print_usage(void) {
   printf("   --fwhmdat fwhmdatfile : compute and save the fwhm of each dim (based on mean ar1)\n");
   printf("   --fwhmvolmn fwhmvolmnfile : compute and save the fwhm of each dim (based on fwhmvol)\n");
   printf("   --fwhmvol fwhmvol : Save 3 frame map of the FWHM at each voxel.\n");
+  printf("   --arN nhops outvol : compute arN at each voxel and save\n");
   printf("\n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");

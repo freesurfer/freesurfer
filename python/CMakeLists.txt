@@ -1,9 +1,8 @@
 project(fspython)
 
 # build the cxx/python bindings for the below modules
-add_subdirectories(fsbindings)
-if(NOT INTEGRATE_SAMSEG)
-  add_subdirectories(gems/cxx)
+if(BUILD_FSBINDINGS)
+  add_subdirectories(fsbindings)
 endif()
 
 ## FSPYTHON_VERSION set in top level CMakeLists.txt
@@ -47,42 +46,60 @@ endif()
  set(requirements_samseg "-r ${requirements_samseg_path}/${requirements_samseg_file}")
  set(pybind11_DIR           "${CMAKE_SOURCE_DIR}/packages/pybind11")
 
- ## default linux python currently 3.8
- if(NOT FSPYTHON_VERSION)
-    set(FSPYTHON_VERSIOM "3.8")
- endif()
+## FSPYTHOHN_VERSION set in top level CMakeLists.txt
+# if(NOT FSPYTHON_VERSION)
+#   set(FSPYTHON_VERSION "3.9")
+# endif()
 
- if("${FSPYTHON_VERSION}" MATCHES "3.8")
-    ## previous behavior before differentiated by python version (requirements-build.txt and requirements-build-py38.txt started out as same file)
-    # set(FSPYTHON_REQFILE "requirements-build.txt")
-    if(FSPYTHON_INSTALL_CUDA)
-       set(FSPYTHON_REQFILE "requirements-build-py38-cuda.txt")
-    else()
-       set(FSPYTHON_REQFILE "requirements-build-py38.txt")
-    endif() 
- elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
-    set(FSPYTHON_REQFILE "requirements-build-py39.txt")
- endif()
+set(FSPYTHON_REQFILE "")
+set(requirements"")
+## no longer used
+set(requirements_extra "")
 
  if(FSPYTHON_BUILD_REQ)
-    # pip install current snapshot of (hardcoded) package revisions into fspython
+    ## pip install current snapshot of (hardcoded) package revisions into fspython
+    ## linux variants
     if(NOT APPLE)
-       ## python requirments file for all linux OS
-       # set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-linux.txt")
-       set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/${FSPYTHON_REQFILE}")
-       set(requirements_extra "")
-    else()
+       if("${FSPYTHON_VERSION}" MATCHES "3.8")
+          if(FSPYTHON_INSTALL_CUDA)
+             set(FSPYTHON_REQFILE "requirements-build-py38-cuda.txt")
+          else()
+             set(FSPYTHON_REQFILE "requirements-build-py38.txt")
+          endif() 
+       endif()
+       if("${FSPYTHON_VERSION}" MATCHES "3.9")
+          if(NOT UBUNTU_ARM64)
+             if(FSPYTHON_INSTALL_CUDA)
+                set(FSPYTHON_REQFILE "requirements-build-py39-cuda.txt")
+             else()
+                set(FSPYTHON_REQFILE "requirements-build-py39.txt")
+             endif()
+          else()
+                set(FSPYTHON_REQFILE "requirements-build.ubuntu24_arm64-py39.txt")
+          endif()
+       endif()
+   else() 
+       ## darwin variants (no cuda)
        if(NOT APPLE_ARM64)
           ## darwin_x86_64
-        set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-build.darwin_x86_64.txt")
-        set(requirements_extra "")
- 	 message(STATUS "For HOST_OS=${HOST_OS} using default requirements files")
+          if("${FSPYTHON_VERSION}" MATCHES "3.8")
+             set(FSPYTHON_REQFILE "requirements-build.darwin_x86_64-py38.txt")
+          elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
+             set(FSPYTHON_REQFILE "requirements-build.darwin_x86_64-py39.txt")
+          endif()
        else()
           ## darwin_arm64
- 	 message(STATUS "For HOST_OS=${HOST_OS} - requirements files managed separately for mininconda darwin_arm64.")
+          if("${FSPYTHON_VERSION}" MATCHES "3.8")
+             set(FSPYTHON_REQFILE "requirements-build.arm_x86_64-py38.txt")
+          elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
+             set(FSPYTHON_REQFILE "requirements-build.arm_x86_64-py39.txt")
+          endif()
        endif()
     endif()
+    set(requirements "-r ${CMAKE_CURRENT_SOURCE_DIR}/${FSPYTHON_REQFILE}")
+    message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
  endif()
+
  if(NOT APPLE_ARM64)
     if(INFANT_MODULE)
        ## provide requirements file for infant module to allow for different package revisions compared to what
@@ -91,28 +108,17 @@ endif()
        # set(requirements_extra "")
     endif()
  endif()
- if(NOT APPLE_ARM64)
-    message(STATUS "For HOST_OS=${HOST_OS} fspython pip set to use requirement arguments: ${requirements} ${requirements_extra}")
- endif() 
 
 # Definition of FSPYTHON_INSTALL_PREFIX is in top level CMakeLists.txt
 
 function(requirements_file_install)
   if(FSPYTHON_BUILD_REQ)
       if(NOT APPLE_ARM64)
-         set(num ${FSPYTHON_VERSION})
-         string(REPLACE "." "" num "${num}")
          if(FSPYTHON_INSTALL_TREE)
-            # install the approriate requirement file(s) for the python version per FSPYTHON_VERSION
-            install(PROGRAMS requirements-build-py${num}.txt DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python)
-            if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/requirements-build-py${num}-cuda.txt")
-               install(PROGRAMS requirements-build-py${num}-cuda.txt DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python)
-            endif()
+            ## install the approriate requirement file
+            install(PROGRAMS ${FSPYTHON_REQFILE} DESTINATION ${FSPYTHON_INSTALL_PREFIX}/python)
          else()
-            install(PROGRAMS requirements-build-py${num}.txt DESTINATION python)
-            if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/requirements-build-py${num}-cuda.txt")
-               install(PROGRAMS requirements-build-py${num}-cuda.txt DESTINATION python)
-            endif()
+            install(PROGRAMS ${FSPYTHON_REQFILE}  DESTINATION python)
          endif()
       endif()
    endif()
@@ -169,11 +175,11 @@ endfunction()
 
 function(packages_install)
    # run 'pip install' and direct package installs to freesurfer/python/packages
-   # pass INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} environment variable for setup.py to act accordingly
+   # pass BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} environment variable for setup.py to act accordingly
    install(CODE "
      message(STATUS \"Installing python packages\")
-     message(STATUS \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING}  ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\")
-     execute_process(COMMAND bash -c \"INTEGRATE_SAMSEG_OPTION=${INTEGRATE_SAMSEG} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
+     message(STATUS \"BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING}  ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\")
+     execute_process(COMMAND bash -c \"BUILD_FSBINDINGS_OPTION=${BUILD_FSBINDINGS} ${PYTHON_EXECUTABLE} -m ${PIP_SUBSTRING} ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_NODEP_ARG} --upgrade ${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
      if(NOT \${retcode} STREQUAL 0)
        message(FATAL_ERROR \"Could not install python modules\")
      endif()"
@@ -200,8 +206,8 @@ endfunction()
 function(sitepackages_install_rev2)
   install(CODE "
     message(STATUS \"Installing python package dependencies into fspython with cmd:\")
-    message(STATUS \"FSPYTHON_VERSION=${FSPYTHON_VERSION} ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} SAMSEG_REQ=${requirements_samseg_path}/${requirements_samseg_file} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG} FSPYTHON_INSTALL_CUDA=${FSPYTHON_INSTALL_CUDA} FS_INSTALL_DIR=${CMAKE_INSTALL_PREFIX} ${CMAKE_CURRENT_SOURCE_DIR}/req.sh --expand ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} --upgrade ${PIP_NOVER_ARG} ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET} ${PIP_LAST_ARG}\")
-    execute_process(COMMAND bash -c \"FSPYTHON_VERSION=${FSPYTHON_VERSION} ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} SAMSEG_REQ=${requirements_samseg_path}/${requirements_samseg_file} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG} FSPYTHON_INSTALL_CUDA=${FSPYTHON_INSTALL_CUDA} FS_INSTALL_DIR=${CMAKE_INSTALL_PREFIX} ${CMAKE_CURRENT_SOURCE_DIR}/req.sh --expand ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} --upgrade ${PIP_NOVER_ARG} ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET} ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
+    message(STATUS \"FSPYTHON_VERSION=${FSPYTHON_VERSION} ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} SAMSEG_REQ=${requirements_samseg_path}/${requirements_samseg_file} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG} FSPYTHON_INSTALL_CUDA=${FSPYTHON_INSTALL_CUDA} FS_INSTALL_DIR=${CMAKE_INSTALL_PREFIX} ${CMAKE_CURRENT_SOURCE_DIR}/req.sh --expand ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} ${PIP_NODEP_ARG} --upgrade ${PIP_NOVER_ARG} ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET} ${PIP_LAST_ARG}\")
+    execute_process(COMMAND bash -c \"FSPYTHON_VERSION=${FSPYTHON_VERSION} ITK_DIR=${ITK_DIR} pybind11_DIR=${pybind11_DIR} SAMSEG_REQ=${requirements_samseg_path}/${requirements_samseg_file} INTEGRATE_SAMSEG=${INTEGRATE_SAMSEG} FSPYTHON_INSTALL_CUDA=${FSPYTHON_INSTALL_CUDA} FS_INSTALL_DIR=${CMAKE_INSTALL_PREFIX} ${CMAKE_CURRENT_SOURCE_DIR}/req.sh --expand ${FSPYTHON_INSTALL_PREFIX}/python/bin/python3 -m ${PIP_SUBSTRING} ${PIP_NODEP_ARG} --upgrade ${PIP_NOVER_ARG} ${EXTRA_PACKAGES} ${requirements} ${requirements_extra} ${PKG_TARGET} ${PIP_LAST_ARG}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install python dependencies\")
     endif()
@@ -234,6 +240,17 @@ function(fspython_patch)
      execute_process(COMMAND bash -c \" ( cd ${FSPYTHON_PREVIOUS_BUILD_BASE}/python/lib/python${FSPYTHON_VERSION}/site-packages && tar cpf - surfa* xxhash* ) | ( cd ${FSPYTHON_INSTALL_PREFIX}/python/lib/python${FSPYTHON_VERSION}/site-packages && tar xpf - ) \" RESULT_VARIABLE patch)
      if(NOT \${patch} STREQUAL 0)
        message(FATAL_ERROR \"Could not patch fspython\")
+     endif()"
+   )
+endfunction()
+
+function(darwin_arm64_py_install)
+   install(CODE "
+     message(STATUS \"Installing darwin_arm64 miniforge3 python ${FSPYTHON_VERSION} for fspython\")
+     message(STATUS \"( cd $HOME/space_freesurfer && bash -x fs_install_darwin_arm64_conda ${FSPYTHON_VERSION} ${FSPYTHON_INSTALL_PREFIX} )\")
+     execute_process(COMMAND bash -c \" ( cd $HOME/space_freesurfer && bash -x fs_install_darwin_arm64_conda ${FSPYTHON_VERSION} ${FSPYTHON_INSTALL_PREFIX} ) \" RESULT_VARIABLE retcode)
+     if(NOT \${retcode} STREQUAL 0)
+       message(FATAL_ERROR \"Could not install darwin_arm64 fspython ${FSPYTHON_VERSION}\")
      endif()"
    )
 endfunction()
@@ -319,13 +336,13 @@ function(rm_fspython_packages_bin)
    )
 endfunction()
 
-# used as current default for intel linux and mac builds
+## CASE 1
+# This is the default for all linux and darwin_x86_64 builds where all python packages listed
+# in the requirements file should be installed under ./site-packages.  These packages should
+# not be duplicated under python/packages.
 if(DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
-   message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES ON")
+   message(STATUS "For HOST_OS=${HOST_OS} CASE 1: DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES ON")
    # install base python distribution
-   # install C bindings, etc. under python/packages
-   # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
-   # install a copy of the requirements-build.txt file if the build was set to use it for the revs of pkgs to install
    if("${FSPYTHON_VERSION}" MATCHES "3.8")
       python_3_8_base_install()
    elseif("${FSPYTHON_VERSION}" MATCHES "3.9")
@@ -333,15 +350,20 @@ if(DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    else()
       message(FATAL_ERROR "Don\'t know how to build with FSPYTHON_VERSION=${FSPYTHON_VERSION}.")
    endif()
+   # install C bindings under python/packages
    packages_install()
+   # install packages with pip using requirements file under python/lib/python<rev>/site-packages
    if(NOT APPLE)
       sitepackages_install_rev2()
    else()
       sitepackages_install()
    endif()
    clean_and_optional_link()
+   # add fspython wrapper
    fspython_script_install()
+   # add copy of requirmeents file under python/lib/python<rev>/site-packages
    requirements_file_install()
+   # remove any NVIDIA related files we should not distribute
    if(NOT FSPYTHON_INSTALL_CUDA)
       prune_cuda()
    endif()
@@ -354,12 +376,11 @@ if(DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    endif()
 endif()
 
-# useful for basic debugging
+## CASE 2
+# useful for basic debugging w/o anything pre-installed under site-packages
 if(DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
-   message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES OFF")
+   message(STATUS "For HOST_OS=${HOST_OS} CASE 2: DISTRIBUTE_FSPYTHON ON AND INSTALL_PYTHON_DEPENDENCIES OFF")
    # install base python distribution
-   # install C bindings, etc. under python/packages
-   # NO pre-installed site-packages, add fspython wrapper
    if("${FSPYTHON_VERSION}" STREQUAL "3.8")
       python_3_8_base_install()
    elseif("${FSPYTHON_VERSION}" STREQUAL "3.9")
@@ -367,33 +388,42 @@ if(DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
    else()
       message(FATAL_ERROR "Don't know how to build with FSPYTHON_VERSION=${FSPYTHON_VERSION}.")
    endif()
+   # install C bindings under python/packages
    packages_install()
+   #
+   # NO PACKAGES INSTALLED VIA PIP AND REQUIREMENTS FILES UNDER python/lib/python<rev>/site-packages
+   # 
    if(INTEGRATE_SAMSEG)
       integrate_samseg()
       # rm_fspython_packages_bin()
    endif()
+   # add fspython wrapper
    fspython_script_install()
 endif()
 
-# used for linking what's installed under site-packages to an external/3rd party, e.g., anaconda, python distribution
-# FSPYTHON_INSTALL_PREFIX/python/bin/python3 soft link not used
+## CASE 3
+# use what is normally installed for under site-packages with an external/3rd party, e.g., anaconda, python distribution
 if(NOT DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
-   message(STATUS For "HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES ON")
-   # Use an existing 3rd party python instead of base python distribution
-   # install C bindings, etc. under python/packages
-   # install packages under python/lib/python<rev>/site-packages, add fspython wrapper
-   # install a copy of the requirements-build.txt file if the build was set to use it for the revs of pkgs to install
+   message(STATUS For "HOST_OS=${HOST_OS} CASE 3: DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES ON")
+   #
+   # NO BASE PYTHON DISTRIBUTION INSTALLED
+   # 
    set(PKG_TARGET "${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages")
    message(STATUS For "HOST_OS=${HOST_OS} PKG_TARGET=${PKG_TARGET}")
+   # install C bindings under python/packages
    packages_install()
+   # install packages with pip using requirements file under python/lib/python<rev>/site-packages
    if(NOT APPLE)
       sitepackages_install_rev2()
    else()
       sitepackages_install()
    endif()
    clean_and_optional_link()
+   # add fspython wrapper
    fspython_script_install()
+   # add copy of requirmeents file under python/lib/python<rev>/site-packages
    requirements_file_install()
+   # remove any NVIDIA related files we should not distribute
    if(NOT FSPYTHON_INSTALL_CUDA)
       prune_cuda()
    endif()
@@ -406,23 +436,42 @@ if(NOT DISTRIBUTE_FSPYTHON AND INSTALL_PYTHON_DEPENDENCIES)
    endif()
 endif()
 
-# used for silicon Mac, -DAPPLE_ARM64, with download and install of external/3rd party miniconda arm64 python
-# FSPYTHON_INSTALL_PREFIX/python/bin/python3 soft link changed to point to anaconda python
+## CASE 4
+# do not install a base python distribution, but instead create a soft link from FSPYTHON_INSTALL_PREFIX/python/bin/python3 to the systemn python.
+# do not install anything under site packages using pip and requirements files.
 if(NOT DISTRIBUTE_FSPYTHON AND NOT INSTALL_PYTHON_DEPENDENCIES)
-   message(STATUS "For HOST_OS=${HOST_OS} DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES OFF")
-   # Use an existing 3rd party python instead of base python distribution
-   # install C bindings, etc. under python/packages
-   # NO pre-installed site-packages, add fspython wrapper
-   set(PKG_TARGET "${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages")
-   message(STATUS For "HOST_OS=${HOST_OS} PKG_TARGET=${PKG_TARGET}")
+   message(STATUS "For HOST_OS=${HOST_OS} CASE 4: DISTRIBUTE_FSPYTHON OFF AND INSTALL_PYTHON_DEPENDENCIES OFF")
+   #
+   # NO BASE PYTHON DISTRIBUTION INSTALLED
+   #
+   # install C bindings under python/packages
    packages_install()
-   if(INTEGRATE_SAMSEG)
-      integrate_samseg()
-      # rm_fspython_packages_bin()
+   #   
+   # NO PACKAGES INSTALLED VIA PIP AND REQUIREMENTS FILES UNDER python/lib/python<rev>/site-packages
+   #
+   if(NOT APPLE_ARM64)
+      if(INTEGRATE_SAMSEG)
+         set(PKG_TARGET "${pip_target_option}=${FSPYTHON_INSTALL_PREFIX}/python/packages")
+         message(STATUS For "HOST_OS=${HOST_OS} PKG_TARGET=${PKG_TARGET}")
+         integrate_samseg()
+         # rm_fspython_packages_bin()
+      endif()
+   else()
+      # However for darwin_arm64 MacOS (-DAPPLE_ARM64) replace soft link to system python under ./python/bin with a
+      # link to the miniforge3 python and do a normal install via pip and requirements files under site-packages, i.e.,
+      # THIS IS CASE 1 ABOVE ONLY FOR darwin_arm64
+      #
+      # install base python distribution
+      # install packages with pip using requirements file under python/lib/python<rev>/site-packages
+      message(STATUS "For HOST_OS=${HOST_OS} CASE 4: will instead install darwin_arm64 miniforge3 python")
+      darwin_arm64_py_install()
+      if(INTEGRATE_SAMSEG)
+         integrate_samseg()
+      endif()
    endif()
+   # add fspython wrapper
    fspython_script_install()
 endif()
-
 
 # WIP: Custom packages to modify existing install - install over pre-existing package with --ignore-installed and rebuild (--no-cache-dir)
 # surfa

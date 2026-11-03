@@ -439,7 +439,14 @@ def MRIread(filename, dtype=None, im_only=False):
     assert filename.endswith(('.nii', '.nii.gz', '.mgz')), 'Unknown data file: %s' % filename
 
     x = nib.load(filename)
-    volume = x.get_fdata()
+    try:
+        volume = x.get_fdata()
+    except ValueError as e:
+        print(f'ERROR loading image data: {e}')
+        print('Try downsampling and re-run. For example:')
+        print(f'    mri_convert -ds 2 2 2 {filename} downsampled_input.mgz')
+        sys.exit(1)
+    
     aff = x.affine
 
     if dtype is not None:

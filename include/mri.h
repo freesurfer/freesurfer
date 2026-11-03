@@ -1903,9 +1903,9 @@ MRI *MRIreadType(const char *fname, int type);
 MRI *MRIreadInfo(const char *fname);
 MRI *MRIreadHeader(const char *fname, int type);
 int GetSPMStartFrame(void);
-int MRIwrite(MRI *mri,const  char *fname, std::vector<MRI*> *mriVector=NULL, int intent=MGZ_INTENT_UNKNOWN);
+int MRIwrite(MRI *mri,const  char *fname, std::vector<MRI*> *mriVector=NULL, int intent=MGZ_INTENT_UNKNOWN, bool asFSLWarp=false);
 int MRIwriteFrame(MRI *mri,const  char *fname, int frame) ;
-int MRIwriteType(MRI *mri,const  char *fname, int type, int intent=MGZ_INTENT_UNKNOWN);
+int MRIwriteType(MRI *mri,const  char *fname, int type, int intent=MGZ_INTENT_UNKNOWN, bool asFSLWarp=false);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 int MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
@@ -2170,6 +2170,7 @@ int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, do
 int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm);
 std::vector<std::vector<double>> *MRIdiff2Vect(const MRI *mri1, const MRI *mri2, const double thresh, const MRI *mask);
 MRI *MRIapplyDiffVect(MRI *mri1, const MRI *mask, std::vector<std::vector<double>> diffvec, int *napply, MRI *mri2);
+int MRIindex2segid(MRI *indexseg, COLOR_TABLE *ctab=NULL);
 
 #endif
 

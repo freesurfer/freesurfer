@@ -38,6 +38,8 @@
 #include "mrisutils.h"
 #include "timer.h"
 
+#define REMOVE_OPTION_I "TRUE"
+
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -48,8 +50,10 @@ double MRISmeasureTotalWhiteMatterVolume(MRI *mri) ;
 double MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris) ;
 int MRIScomputeCurvatureIndicesMarked(MRI_SURFACE *mris, double *pici,
                                       double *pfi, int mark) ;
+#ifndef REMOVE_OPTION_I
 int MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
                               float ignore_below, float ignore_above) ;
+#endif
 double MRIScomputeAbsoluteCurvature(MRI_SURFACE *mris) ;
 double MRIScomputeAbsoluteCurvatureMarked(MRI_SURFACE *mris, int mark) ;
 int    MRISrestoreSurface(MRI_SURFACE *mris) ;
@@ -67,8 +71,10 @@ int    MRISreplaceAnnotations(MRI_SURFACE *mris,
                               int out_annotation) ;
 const char *Progname ;
 static double sigma = 0.0f ;
+#ifndef REMOVE_OPTION_I
 static float ignore_below = 0 ;
 static float ignore_above = 20 ;
+#endif
 static char *label_name = NULL ;
 static char *annotation_name = NULL ;
 static const char *thickness_name = "thickness" ;
@@ -1257,6 +1263,7 @@ get_option(int argc, char *argv[])
       annotctabfile = argv[2] ;
       nargs = 1 ;
       break ;
+#ifndef REMOVE_OPTION_I
     case 'I':
       ignore_below = atof(argv[2]) ;
       ignore_above = atof(argv[3]) ;
@@ -1265,6 +1272,7 @@ get_option(int argc, char *argv[])
               ignore_below, ignore_above) ;
       nargs = 2 ;
       break ;
+#endif
     case 'B':
       tabular_output_flag = 1;
       nargs = 0;
@@ -1345,6 +1353,7 @@ MRISmeasureTotalWhiteMatterVolume(MRI *mri)
   return(total_volume) ;
 }
 
+#ifndef REMOVE_OPTION_I
 int
 MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
                           float ignore_below, float ignore_above)
@@ -1388,6 +1397,7 @@ MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
   *pvar = var ;
   return(NO_ERROR) ;
 }
+#endif
 double
 MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris)
 {

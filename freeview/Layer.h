@@ -52,11 +52,6 @@ public:
 
   virtual bool HasProp( vtkProp* prop ) = 0;
 
-  virtual void SetVisible( bool bVisible = true )
-  {
-    emit VisibilityChanged(bVisible);
-  }
-
   virtual bool IsVisible() = 0;
 
   bool Transform (double* mat, int sample_method);
@@ -262,6 +257,10 @@ Q_SIGNALS:
   void VisibilityChanged(bool bVisible);
 
 public slots:
+  virtual void SetVisible( bool bVisible = true )
+  {
+    emit VisibilityChanged(bVisible);
+  }
   void ResetTransform();
   void UndoLastTransform();
 

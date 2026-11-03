@@ -765,6 +765,11 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       act = new QAction("Clear Marks", this);
       connect(act, SIGNAL(triggered()), ref, SLOT(Reset()));
       menu.addAction(act);
+      act = new QAction("Toggle Mark Visibility", this);
+      act->setCheckable(true);
+      act->setChecked(ref->IsVisible());
+      connect(act, SIGNAL(toggled(bool)), ref, SLOT(SetVisible(bool)));
+      menu.addAction(act);
       menu.addSeparator();
     }
   }

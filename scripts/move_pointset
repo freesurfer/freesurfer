@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+
+import sys
+import argparse
+import textwrap
+import numpy as np
+
+import surfa as sf
+from surfa.mesh import FSLabelFile
+from surfa.transform import Space
+
+description = textwrap.dedent(
+    "description:\n"
+    "The script transforms target-image coordinates to source-image coordinates by applying a warp from source image to target image, \n"
+    "as warpfields that go from source image to target image go from target coordinates to source coordinates.\n"
+    "\n"
+    "The transform is given by either '--warp <>' or '--lta <>'.\n"
+    "When it is given as '--lta <>', the absolute vox2vox warpfields going from source image to target image \n"
+    "are computed from the linear transform array before applying to target-image coordinates.\n"
+)
+
+# printouts from the script directly are sent to sys.stderr to separate them from transformed coordinates output sent to sys.stdout.
+def main():
+    args = argument_parse(description=description)
+
+    fs_warp = None
+    if (args.warp is not None):
+        print(f"Reading Freesurfer 3D morph {args.warp} ...", file=sys.stderr)
+        fs_warp = sf.load_warp(args.warp)
+    elif (args.lta is not None):
+        from surfa.transform import Warp
+        fs_warp = sf.load_affine(args.lta).to_warp(format=Warp.Format.abs_crs)
+        if (args.debug):
+            fs_warp.save("/space/metropolis/1/users/yh887/tests/warp_ras/tests/lta/warp-affine-to_warp.mgz")
+        """
+        print(f"Computing absolute vox2vox warpfields from LTA {args.lta}...", file=sys.stderr)
+        lta2warp = Warp.lta2warp(args.lta)
+        lta2warp.save("/space/metropolis/1/users/yh887/tests/warp_ras/tests/lta/warp.mgz")
+        """
+
+    src_geom = fs_warp.source if (fs_warp is not None) else None
+    if (args.src_geom is not None):
+        src = sf.load_volume(args.src_geom)
+        src_geom = src.geom
+
+    trg_geom = fs_warp.target if (fs_warp is not None) else None
+    if (args.trg_geom is not None):
+        trg = sf.load_volume(args.trg_geom)
+        trg_geom = trg.geom
+
+    assert (src_geom is not None and trg_geom is not None), f"Need source and target geom information"
+ 
+    if (args.labelfile is not None):
+        print(f"Reading Freesurfer label file {args.labelfile} ...", file=sys.stderr)
+        fs_label_file = FSLabelFile(geom=trg_geom)
+        fs_label_file.read(args.labelfile)
+    elif (args.coords is not None):
+        print(f"Input coordinates {args.coords} in '{args.incoordspace}' space", file=sys.stderr)
+        fs_label_file = FSLabelFile(geom=trg_geom, coords=np.array(args.coords).reshape(1, -1), coordspace=Space.LETTER_TO_CODE[args.incoordspace])
+    else:
+        raise ValueError(f"Specify pointsets using '--labelfile <>' or '--coords <> --incoordspace <>'")
+
+    print(f"Transforming coordinates into '{args.outcoordspace}' space ...", file=sys.stderr)
+    fs_label_file.transform(warp=fs_warp, coordspace=Space.LETTER_TO_CODE[args.outcoordspace], geom=src_geom)
+
+    if (args.o is not None):
+        print(f"Output transform coordinates as {args.o}", file=sys.stderr)
+    fs_label_file.write(outfile=args.o)
+
+
+def argument_parse(description=None):
+    # passing 'formatter_class=RawDescriptionHelpFormatter' indicates that 'description' and 'epilog' are already correctly formatted and should not be line-wrapped
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    # Create a required mutually exclusive group
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--warp", type=str, help="FreeSurfer warp, e.g. talairach.m3z converted to .mgz or other FS warp .mgz")
+    group.add_argument("--lta", type=str, help="FreeSurfer LTA")
+
+    parser.add_argument("--src_geom",  type=str, help="source image geometry, e.g. moving.mgz, overwrite warp/LTA source geometry")
+    parser.add_argument("--trg_geom",  type=str, help="target image geometry, e.g. fixed.mgz, overwrite warp/LTA target geometry")
+    parser.add_argument("--labelfile", type=str, help="Set of coordinates in FreeSurfer .label format")
+    parser.add_argument("--o", type=str, help="Path to transformed coordinates")
+    parser.add_argument("--coords", nargs=3, type=float, metavar=("X", "Y", "Z"), help="input coordinate in '--incoordspace <voxel|world|surface>' space")
+    parser.add_argument("--incoordspace", type=str, default="surface", choices=['voxel', 'world', 'surface'], help="input coordinates space: 'voxel', 'world', or 'surface'. Default='surface'")
+    parser.add_argument("--outcoordspace", type=str, default="surface", choices=['voxel', 'world', 'surface'], help="output coordinates space: 'voxel', 'world', or 'surface'. Default='surface'")
+    parser.add_argument("--debug", action='store_true', help="Debug mode")
+
+    # parse commandline arguments
+    args = parser.parse_args()
+
+    return args
+    
+
+if __name__ == "__main__":
+    main()

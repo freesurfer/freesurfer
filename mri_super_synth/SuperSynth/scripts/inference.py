@@ -296,7 +296,7 @@ def main():
                         row2 = []
                         for l in range(len(llist)):
                             lab = llist[l]
-                            if (lab > 0) and (lab != 24) and (lab < 900) and (lab != 99):
+                            if (lab > 0) and ((lab != 24) or (mode=='invivo')) and (lab < 900) and (lab != 99):
                                 if FSlabelNames[lab] is None:
                                     row1.append('(' + str(lab) + ')')
                                 else:
@@ -311,7 +311,7 @@ def main():
                         sigma_usm = 1.5
                         T1 += ((T1 - gaussian_blur_3d(T1, sigma_usm * np.ones(3), device)) * amount_usm)
                         T2 += ((T2 - gaussian_blur_3d(T2, sigma_usm * np.ones(3), device)) * amount_usm)
-                        FLAIR += ((FLAIR - gaussian_blur_3d(T2, sigma_usm * np.ones(3), device)) * amount_usm)
+                        FLAIR += ((FLAIR - gaussian_blur_3d(FLAIR, sigma_usm * np.ones(3), device)) * amount_usm)
 
                     print('   Fitting atlas transforms')
 

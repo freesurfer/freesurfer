@@ -1,30 +1,6 @@
 // main_console.cpp dcm2niix
 //  by Chris Rorden on 3/22/14, see license.txt
-//  Copyright (c) 2014-2021 Chris Rorden. All rights reserved.
-
-// g++ -O3 main_console.cpp nii_dicom.cpp nifti1_io_core.cpp nii_ortho.cpp nii_dicom_batch.cpp -s -o dcm2niix -lz
-
-// if you do not have zlib,you can compile without it
-//  g++ -O3 -DmyDisableZLib main_console.cpp nii_dicom.cpp nifti1_io_core.cpp nii_ortho.cpp nii_dicom_batch.cpp -s -o dcm2niix
-// or you can build your own copy:
-//  to compile you will first want to build the Z library, then compile the project
-//  cd zlib-1.2.8
-//  sudo ./configure;
-//  sudo make
-
-// to generate combined 32-bit and 64-bit builds for OSX :
-//  g++ -O3 -x c++ main_console.c nii_dicom.c nifti1_io_core.c nii_ortho.c nii_dicom_batch.c -s -arch x86_64 -o dcm2niix64 -lz
-//  g++ -O3 -x c++ main_console.c nii_dicom.c nifti1_io_core.c nii_ortho.c nii_dicom_batch.c -s -arch i386 -o dcm2niix32 -lz
-//  lipo -create dcm2niix32 dcm2niix64 -o dcm2niix
-
-// On windows with mingw you may get "fatal error: zlib.h: No such file
-//  to remedy, run "mingw-get install libz-dev" from mingw
-
-// Alternatively, windows users with VisualStudio can compile this project
-//  vcvarsall amd64
-//  cl /EHsc main_console.cpp nii_foreign.cpp nii_dicom.cpp jpg_0XC3.cpp ujpeg.cpp nifti1_io_core.cpp nii_ortho.cpp nii_dicom_batch.cpp -DmyDisableOpenJPEG /o dcm2niix
-
-// #define mydebugtest //automatically process directory specified in main, ignore input arguments
+//  Copyright (c) 2014-2025 Chris Rorden. All rights reserved.
 
 #include <ctype.h>
 #include <float.h>

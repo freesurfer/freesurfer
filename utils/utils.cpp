@@ -1157,7 +1157,14 @@ void __qtol(void)
   printf("ERROR: Attempting usage of '__qtol' routine!\n");
   exit(1);
 }
-
+double stddevvector(const std::vector<double>& x)
+{
+    if (x.size() < 2) return 0.0;
+    double mean = std::accumulate(x.begin(), x.end(), 0.0) / x.size();
+    double sqsum = 0.0;
+    for (double v : x) sqsum += (v - mean) * (v - mean);
+    return std::sqrt(sqsum / (x.size() - 1)); // sample stddev
+}
 /*------------------------------------------------------------------*/
 /*!
   \fn double sum2stddev(double xsum, double xsum2, int nx)

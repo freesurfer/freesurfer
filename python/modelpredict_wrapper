@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+import re
+import sys
+import os
+
+# Handle wrapper-specific arguments before passing argv to main().
+fsdeepnet = "--fsdeepnet" in sys.argv
+
+if (fsdeepnet):
+    sys.argv.remove("--fsdeepnet")
+
+if (not fsdeepnet and "RUN_FSDEEPNET" not in os.environ):
+    print(f"Running Freesurfer version of @SCRIPTNAME@ ...")    
+    from fspylegacy.@SCRIPTNAME@ import main
+else:
+    # the pretrained model files are now installed in $FREESURFER_HOME/fsdeepnet_models
+    print(f"Running FSdeepnet version of @SCRIPTNAME@ ...")
+    from fsdeepnet.apps.@SCRIPTNAME@.cli.@SCRIPTNAME@ import main
+
+sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+sys.exit(main())

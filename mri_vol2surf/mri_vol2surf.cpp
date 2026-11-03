@@ -1252,18 +1252,30 @@ static int parse_commandline(int argc, char **argv) {
       }
       exit(0);
     }
-    else if (!strcmp(option, "--profile")) {
-      if(nargc < 7){
-	printf("ERROR: --profile requires 7 args\n");
-	printf("USAGE: --profile surf vol dist delta sigma interp output\n");
-	exit(1);
+    else if (!strcmp(option, "--profile") || !strcmp(option, "--profile-minmax")) {
+      double max;
+      if(!strcmp(option, "--profile")){
+	if(nargc < 7){
+	  printf("ERROR: --profile requires 7 args\n");
+	  printf("USAGE: --profile surf vol dist delta sigma interp output\n"); // interp eg, trilin
+	  exit(1);
+	}
+      } else {
+	if(nargc < 8){
+	  printf("ERROR: --profile-minmax requires 8 args\n");
+	  printf("USAGE: --profile surf vol min delta sigma interp output max\n");
+	  exit(1);
+	}
+	sscanf(pargv[7],"%lf",&max);
       }
       MRIS *surf  = MRISread(pargv[0]);
       if(surf==NULL) exit(1);
       MRI *mri = MRIread(pargv[1]); //norm
       if(mri==NULL) exit(1);
-      double dist,delta,sigma;
+      double dist,delta,sigma,min;
       sscanf(pargv[2],"%lf",&dist);
+      if(!strcmp(option, "--profile")) {min = -dist; max = dist;}
+      else                             {min =  dist;}
       sscanf(pargv[3],"%lf",&delta);
       sscanf(pargv[4],"%lf",&sigma);
       int interpcode = MRIinterpCode(pargv[5]);
@@ -1273,8 +1285,8 @@ static int parse_commandline(int argc, char **argv) {
       }
       if(strcmp(pargv[5],"cubic")==0) interpcode = SAMPLE_CUBIC; // bug in MRIinterpCode?
       if(delta <= 0) delta = mri->xsize/2.0;
-      printf("dist %g, delta=%g, sigma=%g, interp %s %d\n",dist,delta,sigma,pargv[5],interpcode);
-      MRI *mri2 = MRISsampleProfile(surf, mri, -dist, +dist, delta, sigma, interpcode, NULL);
+      printf("min %g, max %g, delta=%g, sigma=%g, interp %s %d\n",min,max,delta,sigma,pargv[5],interpcode);
+      MRI *mri2 = MRISsampleProfile(surf, mri, min, max, delta, sigma, interpcode, NULL);
       if(mri2==NULL) exit(1);
       mri2->tr = delta;
       int err = MRIwrite(mri2,pargv[6]);
@@ -1491,10 +1503,12 @@ static void print_usage(void) {
   printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header\n");
   printf("   --sd SUBJECTS_DIR \n");
-  printf("   --profile surf vol dist delta sigma interpname output\n");
-  printf("     Computes intensity profile from -dist:delta:+dist\n");
+  printf("   --profile        surf vol dist delta sigma interpname output\n");
+  printf("   --profile-minmax surf vol min  delta sigma interpname output max\n");
+  printf("     Computes intensity profile from -dist:delta:+dist or min:delta:max\n");
   printf("     If delta is <= 0, then xsize/2 is used\n");
   printf("     If sigma >= 0, then the gradient is estimated with smoothing parameter sigma\n");
+  printf("     interp can be nearest or trilin\n");
   printf("   --norm-pointset surf vtxno dist delta output\n");
   printf("     Creates a freeview pointset using points along the normal\n");
   printf("   --v2slabel 0=seg 1=surf 2=din 3=dout 4=delta 5=distmap 6=output 7=profile : stand-alone\n");

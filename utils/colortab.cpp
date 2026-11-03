@@ -95,7 +95,9 @@ COLOR_TABLE *CTABreadASCII2(const char *fname, int checkDuplicateNames)
   /* If no structures, bail. */
   if (max_structure <= 0) {
     fclose(fp);
-    ErrorReturn(NULL, (ERROR_NOFILE, "CTABreadASCII(%s): badly formed file", fname));
+    printf("ERROR: CTABreadASCII2(): no structures found\n");
+    printf("   break %s:%d\n", __FILE__, __LINE__);
+    ErrorReturn(NULL, (ERROR_NOFILE, "CTABreadASCII2(%s): badly formed file", fname));
   }
 
   /* Allocate our table. */
@@ -526,6 +528,14 @@ int CTABunique(COLOR_TABLE *ct, int nmax)
 */
 int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
 {
+  /*
+   * If break_after_found != 0, the function should return after finding the first repeat
+   * because it is used to determine if there are duplicates in the CTAB.
+   * The return value is either 0 or 1.
+   *
+   * Two usages are found in CTABunique() and mris_make_face_parcellation.
+   * Both pass break_after_found=1 as argument.
+   */
   int i,j,nrepeats;
   nrepeats=0;
   for(i = 0; i < ct->nentries; i++) {
@@ -537,7 +547,7 @@ int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
 	//printf("Entries %d and %d have the same RGB\n",i,j);
 	nrepeats++;
 	if (break_after_found)
-	  break ;
+	  return nrepeats;
       }
     }
   }
@@ -1126,9 +1136,9 @@ COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp)
 
   /* Read the number of entries to read. */
   num_entries_to_read = znzreadInt(fp);
-  if (Gdiag & DIAG_INFO)
-    printf("[INFO] znzCTABreadFromBinaryV2(): fname = '%s' (%d bytes), ct->nentries=%d, num_entries_to_read=%d\n",
-	   ct->fname, toread, ct->nentries, num_entries_to_read);
+  //if (Gdiag & DIAG_INFO)
+  //  printf("[INFO] znzCTABreadFromBinaryV2(): fname = '%s' (%d bytes), ct->nentries=%d, num_entries_to_read=%d\n",
+  //	   ct->fname, toread, ct->nentries, num_entries_to_read);
 
   /* For each entry, read in the info. */
   for (i = 0; i < num_entries_to_read; i++) {
@@ -1695,8 +1705,8 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
   if (NULL == ct) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABprintASCII: ct was NULL"));
   if (NULL == fp) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CTABprintASCII: fp was NULL"));
 
-  if (Gdiag & DIAG_INFO)
-    printf("[DEBUG] CTABprintASCII(): fname = '%s' (%lu bytes)\n", ct->fname, strlen(ct->fname));
+  //if (Gdiag & DIAG_INFO)
+  //  printf("[DEBUG] CTABprintASCII(): fname = '%s' (%lu bytes)\n", ct->fname, strlen(ct->fname));
 
   for (structure = 0; structure < ct->nentries; structure++) {
     if (NULL != ct->entries[structure]) {

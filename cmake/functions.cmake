@@ -10,6 +10,7 @@
 
 function(host_os)
    set(HOST_OS undefined)
+   set(UBUNTU_ARM64 FALSE)
    if(EXISTS "/usr/bin/sw_vers")
       execute_process(COMMAND sw_vers \-productVersion OUTPUT_VARIABLE OS_IDENT)
       string(STRIP ${OS_IDENT} OS_IDENT)
@@ -37,6 +38,12 @@ function(host_os)
          set(HOST_OS Ubuntu22)
       elseif(OS_IDENT MATCHES "Ubuntu 24")
          set(HOST_OS Ubuntu24)
+         execute_process(COMMAND uname \-p OUTPUT_VARIABLE UNAME_OUTPUT)
+         string(STRIP ${UNAME_OUTPUT} UNAME_OUTPUT)
+         set(UBUNTU24_ARCH "${UNAME_OUTPUT}")
+         if(UBUNTU24_ARCH MATCHES "aarch64")
+           set(UBUNTU_ARM64 TRUE)
+         endif()
       endif()
       execute_process(COMMAND gcc \-dumpversion OUTPUT_VARIABLE GCC_VERSION)
       string(STRIP ${GCC_VERSION} GCC_VERSION)
@@ -52,19 +59,30 @@ function(host_os)
    # message(STATUS "FROM functions.cmake building on host running ${HOST_OS}")
    set(HOST_OS ${HOST_OS} PARENT_SCOPE)
    set(HOST_OS_GCC_VERSION ${HOST_OS_GCC_VERSION} PARENT_SCOPE)
+   set(UBUNTU_ARM64 ${UBUNTU_ARM64} PARENT_SCOPE)
 endfunction()
 
+# only called for linux platforms
 function(cuda_info)
+   # allow decalration of _ROOT variables
+   cmake_policy(SET CMP0074 NEW)
    set(CUDA_INFO undefined)
-   if(NOT APPLE AND EXISTS "/usr/local/cuda/bin/nvcc")
-      # FIX ME - does not strip inter-line CRLF, but does list cuda info
-      execute_process(COMMAND /usr/local/cuda/bin/nvcc \-\-version | tr \-s \'\\n\' \' \' OUTPUT_VARIABLE CUDA_IDENT)
+   if(NOT CMAKE_CUDA_COMPILER)
+      # this is the default on Linux if nothing found in the environment
+      set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+   endif()
+   if(EXISTS ${CMAKE_CUDA_COMPILER})
+      execute_process(COMMAND ${CMAKE_CUDA_COMPILER} \-\-version | tr \-s \'\\n\' \' \' OUTPUT_VARIABLE CUDA_IDENT)
       string(STRIP ${CUDA_IDENT} CUDA_IDENT)
       set(CUDA_INFO "${CUDA_IDENT}")
+      string(REGEX REPLACE "\/bin\/nvcc" "" cuda_base "${CMAKE_CUDA_COMPILER}")
+      set(CUDAToolkit_ROOT ${cuda_base})
+      find_package(CUDAToolkit REQUIRED)
+      message(STATUS "CUDA NVCC Path: ${CUDAToolkit_NVCC_EXECUTABLE}")
+      set(CUDA_INFO ${CUDA_INFO} PARENT_SCOPE)
    else()
-      message(WARNING "You are presumably building for CUDA on a machine without /usr/local/cuda/bin/nvcc installed")
+      message(WARNING "You are presumably building for CUDA on a machine without an nvcc ${CMAKE_CUDA_COMPILER} installed")
    endif()
-   set(CUDA_INFO ${CUDA_INFO} PARENT_SCOPE)
 endfunction()
 
 # add_subdirectories(<subdirs>)
@@ -340,6 +358,48 @@ function(install_pyscript_fspython_tree)
     )
   endforeach()
 endfunction()
+
+# install_modelpredict_pyscript(<scripts>)
+# this function creates two wrapper scripts:
+#   1. python wrapper in $FREESURFER_HOME/python/scripts directory that invokes
+#      either the Freesurfer version of synthstrip or the FSdeepnet version of synthstrip
+#      depending on if environment variable RUN_FSDEEPNET is set
+#   2. fspython wrapper for the python script created in #1
+#      the fspython wrapper is a bash script and resides in $FREESURFER_HOME/bin directory
+# For example:
+#     install_modelpredict_pyscript(synthstrip)
+# - creates the python script $FREESURFER_HOME/python/scripts/mri_synthstrip
+# - creates the bash script $FREESURFER_HOME/bin/mri_synthstrip
+function(install_modelpredict_pyscript)
+  foreach(SCRIPT ${ARGN})
+    install(CODE "
+      message(STATUS \"Configuring python script: ${CMAKE_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper ${CMAKE_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT} @ONLY)"
+      )
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${CMAKE_INSTALL_PREFIX}/bin/mri_${SCRIPT}\")
+      set(SCRIPTNAME mri_${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/wrapper ${CMAKE_INSTALL_PREFIX}/bin/mri_${SCRIPT} @ONLY)"
+    )
+  endforeach()
+endfunction()
+
+function(install_modelpredict_pyscript_fspython_tree)
+  foreach(SCRIPT ${ARGN})
+    install(CODE "
+      message(STATUS \"Configuring python script: ${FSPYTHON_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/modelpredict_wrapper ${FSPYTHON_INSTALL_PREFIX}/python/scripts/mri_${SCRIPT} @ONLY)"
+      )
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${FSPYTHON_INSTALL_PREFIX}/bin/mri_${SCRIPT}\")
+      set(SCRIPTNAME mri_${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/wrapper_fspython_tree ${FSPYTHON_INSTALL_PREFIX}/bin/mri_${SCRIPT} @ONLY)"
+      )
+  endforeach()
+endfunction()
+
 
 # get_package_dir(packagename packagedir)
 # retrieve package direcotry

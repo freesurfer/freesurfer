@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
     "':vector_skip=n' Skip n voxels in vector display. Default is 0 (no skipping).\n\n"
     "':vector_normalize=flag' Normalize vector length. flag can be 'yes', 'true' or '1'.\n\n"
     "':vector_scale=scale' Set the length scale of the vectors.\n\n"
+    "':vector_color=color' Set the solid color for the vectors. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
     "':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line, 'directional' as directional line and 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n"
     "':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n"
     "':outline=flag' Display labels as outline only. flag can be '1', 'yes' or 'true'.\n\n"
@@ -334,6 +335,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "verbose", "verbose", "", "Print out a lot more information, such as vertex coordinate of each click, etc." ),
     CmdLineEntry( CMD_LINE_OPTION, "prefix", "prefix", "<prefix> <filename>", "Add prefix to the volume names of the given filenames", 2, 1000 ),
     CmdLineEntry( CMD_LINE_SWITCH, "continue", "continue", "", "Continue as far as possible if an error occured" ),
+    CmdLineEntry( CMD_LINE_SWITCH, "clean", "clean", "", "Clean up the previously saved settings before start freeview." ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 

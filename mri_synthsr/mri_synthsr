@@ -26,12 +26,15 @@ backend.set_image_data_format('channels_last')
 
 def batch_normalization(axis, name, tensor):
     major, minor, patch = (int(x) for x in tf.__version__.split(".")[:3])
-    if (major, minor) <= (2, 13):
-        # Old behavior requires fused=False
+    if (os.getenv("TF_USE_LEGACY_KERAS")):
         return keras.layers.BatchNormalization(axis=axis, name=name, fused=False)(tensor)
-    else:
-        # New behavior (fused argument removed)
-        return keras.layers.BatchNormalization(axis=axis, name=name)(tensor)
+    else:    
+        if (major, minor) <= (2, 13):
+            # Old behavior requires fused=False
+            return keras.layers.BatchNormalization(axis=axis, name=name, fused=False)(tensor)
+        else:
+            # New behavior (fused argument removed)
+            return keras.layers.BatchNormalization(axis=axis, name=name)(tensor)
 
 
 def main():
@@ -1229,7 +1232,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
         if ras_axes_flo[i] != ras_axes_ref[i]:
             new_volume = np.swapaxes(new_volume, ras_axes_flo[i], ras_axes_ref[i])
             swapped_axis_idx = np.where(ras_axes_flo == ras_axes_ref[i])
-            ras_axes_flo[swapped_axis_idx], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx]
+            ras_axes_flo[swapped_axis_idx[0][0]], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx[0][0]]
 
     # align directions
     dot_products = np.sum(aff_flo[:3, :3] * aff_ref[:3, :3], axis=0)

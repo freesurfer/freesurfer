@@ -44,7 +44,11 @@
       <argument>-addframe &lt;which_field, where_in_atlas (ints)&gt;</argument>
       <explanation>Add field which_field with location where_in_atlas in the atlas</explanation>
       <argument>-annot &lt;annot_name&gt;</argument>
-      <explanation>Zeroes medial wall using annotation {annot_name}</explanation>
+      <explanation>Rips medial wall using annotation {annot_name}</explanation>
+      <argument>-label-keep &lt;label&gt;</argument>
+      <explanation>Rips outside of label (see also -mask)</explanation>
+      <argument>-mask &lt;mask&gt;</argument>
+      <explanation>Rips outside of mask (see also -label-keep)</explanation>
       <argument>-C &lt;curvature_fname&gt;</argument>
       <argument>-canon &lt;canon_name&gt;</argument>
       <explanation>Use surface {canon_name} for canonical properties</explanation>
@@ -73,7 +77,7 @@
       <argument>-curv</argument>
       <explanation>Use smoothwm curvature for final alignment</explanation>
       <argument>-dist &lt;l_dist (float)&gt;</argument>
-      <explanation>Specify distance term. Sets l_dist and also use_defaults = 0</explanation>
+      <explanation>Specify distance weight term. Sets l_dist and also use_defaults = 0</explanation>
       <argument>-dt &lt;dt (float)&gt;</argument>
       <explanation>Sets momentum with dt</explanation>
       <argument>-dt_dec &lt;dt_decrease (float)&gt;</argument>

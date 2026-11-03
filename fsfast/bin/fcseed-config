@@ -19,7 +19,7 @@ set DoSqr = 0;
 set roicfg = ();
 set MakeMask = 0;
 set DoWM = 0;
-set WMErode = 0;
+set Erode = 0;
 set SVDSynth = 0;
 set UseB0DC = 0;
 set UseExtract = 0
@@ -67,7 +67,7 @@ echo "DoMean $DoMean"     >> $fcconfig
 echo "DoSVD $DoSVD"       >> $fcconfig
 echo "DoSqr $DoSqr"       >> $fcconfig
 echo "MakeMask $MakeMask" >> $fcconfig
-echo "WMErode $WMErode"   >> $fcconfig
+echo "Erode $Erode"   >> $fcconfig
 echo "SVDSynth $SVDSynth" >> $fcconfig
 echo "DoWM $DoWM"         >> $fcconfig
 echo "UseB0DC $UseB0DC"   >> $fcconfig
@@ -157,9 +157,10 @@ while( $#argv != 0 )
       set DoWM = 1;
       breaksw
 
+    case "-erode":
     case "-wm-erode":
       if ( $#argv < 1) goto arg1err;
-      set WMErode = $argv[1]; shift;
+      set Erode = $argv[1]; shift;
       breaksw
 
     case "-vcsf":
@@ -348,7 +349,7 @@ usage_exit:
   echo ""
   echo " -fcname fcname : name of output file (default is configname)"
   echo " -mask  : create a mask for segmentation-based. Good for checking"
-  echo " -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
+  echo " -erode N : erode seg mask by N anat voxels (default is $Erode) "
   echo " -overwrite : delete and overwrite any existing files"
   echo ""
   echo "Functional ROI-based options"

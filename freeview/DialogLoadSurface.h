@@ -16,12 +16,13 @@ public:
   explicit DialogLoadSurface(QWidget *parent = 0);
   ~DialogLoadSurface();
 
-  QString GetFilename();
-  QStringList GetSupFiles();
+  QStringList GetFilenames();
+  bool GetLoadAll();
 
 public slots:
   void accept();
   void OnOpen();
+  void SetRecentFiles( const QStringList& fns);
 
 private:
   void UpdateStatus();

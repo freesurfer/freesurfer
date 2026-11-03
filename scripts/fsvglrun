@@ -32,9 +32,10 @@ else
   #echo "Could not find vglrun"
   FS_ALLOW_VGLRUN=0
 fi
+egl=""
 if [ ! -f /etc/opt/VirtualGL/vgl_xauth_key ] ; then
   # VGL is not installed
-  FS_ALLOW_VGLRUN=0
+  egl="-d egl"
 fi
 
 if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]]; then
@@ -50,7 +51,7 @@ fi
 
 echo "Using VGL"
 #export VGL_DISPLAY=:0 # is this needed?
-exec $vglrun "$@"
+exec $vglrun $egl "$@"
 exit $status
 
 #ps auxw | grep X | grep -v NX

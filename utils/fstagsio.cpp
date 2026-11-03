@@ -324,7 +324,7 @@ long long FStagsIO::getlen_endtag(bool addtaglength)
 int FStagsIO::write_tag(int tag, void *data, long long dlen)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(tag, fp);
@@ -339,7 +339,7 @@ int FStagsIO::write_tag(int tag, void *data, long long dlen)
 
   long long fend = znztell(fp);
     
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] FStagsIO::write_tag() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld) (%-6lld)\n", tag, fend-fstart, fstart, fend, dlen);
   
   return NO_ERROR;
@@ -349,7 +349,7 @@ int FStagsIO::write_tag(int tag, void *data, long long dlen)
 // tags.cpp::znzWriteMatrix()
 int FStagsIO::write_matrix(MATRIX *M, int tag)
 {
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     printf("[DEBUG] FStagsIO::write_matrix()\n");
     MatrixPrint(stdout, M);
@@ -381,7 +381,7 @@ int FStagsIO::write_matrix(MATRIX *M, int tag)
           M->rptr[4][3],
           M->rptr[4][4]);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     printf("[DEBUG] FStagsIO::write_matrix() TAG = %-4d, len = %-6lld\n", tag, dlen);
     printf("[DEBUG] FStagsIO::write_matrix() %s\n", matbuf);
@@ -395,7 +395,7 @@ int FStagsIO::write_matrix(MATRIX *M, int tag)
 int FStagsIO::write_old_colortable(COLOR_TABLE *ctab)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_OLD_COLORTABLE, fp);
@@ -407,7 +407,7 @@ int FStagsIO::write_old_colortable(COLOR_TABLE *ctab)
   
   znzCTABwriteIntoBinary(ctab, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_old_colortable() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_OLD_COLORTABLE, fend-fstart, fstart, fend);
@@ -424,7 +424,7 @@ int FStagsIO::write_mri_frames(MRI *mri)
     return __write_mri_frames_niftiheaderext(mri);
 
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   // write some extra space so that we have enough room (can't seek in zz files)
@@ -505,7 +505,7 @@ int FStagsIO::write_mri_frames(MRI *mri)
   }
   //znzTAGwriteEnd(fp, fend);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_mri_frames() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_MRI_FRAME, fend-fstart, fstart, fend);
@@ -521,7 +521,7 @@ int FStagsIO::write_mri_frames(MRI *mri)
 int FStagsIO::write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target, bool shearless)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   int tag = TAG_GCAMORPH_GEOM;
@@ -545,7 +545,7 @@ int FStagsIO::write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target, bool shear
   src_geom.write(fp, niftiheaderext, shearless);
   trg_geom.write(fp, niftiheaderext, shearless);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     source->vgprint();
     target->vgprint();
@@ -565,7 +565,7 @@ int FStagsIO::write_gcamorph_geom(VOL_GEOM *source, VOL_GEOM *target, bool shear
 int FStagsIO::write_gcamorph_meta(int warpFieldFormat, int gcamorphSpacing, double gcamorphExp_k)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_GCAMORPH_META, fp);
@@ -576,7 +576,7 @@ int FStagsIO::write_gcamorph_meta(int warpFieldFormat, int gcamorphSpacing, doub
   znzwriteInt(gcamorphSpacing, fp);
   znzwriteFloat(gcamorphExp_k, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_gcamorph_meta() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_GCAMORPH_META, fend-fstart, fstart, fend);
@@ -590,7 +590,7 @@ int FStagsIO::write_gcamorph_meta(int warpFieldFormat, int gcamorphSpacing, doub
 int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_GCAMORPH_LABELS, fp);
@@ -606,7 +606,7 @@ int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel
       for (int z = 0; z < z0; z++)
         znzwriteInt(gcamorphLabel[x][y][z], fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_gcamorph_labels() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_GCAMORPH_LABELS, fend-fstart, fstart, fend);
@@ -620,7 +620,7 @@ int FStagsIO::write_gcamorph_labels(int x0, int y0, int z0, int ***gcamorphLabel
 int FStagsIO::write_dof(int dof)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_DOF, fp);
@@ -629,7 +629,7 @@ int FStagsIO::write_dof(int dof)
   znzwriteLong(dlen, fp);
   znzwriteInt(dof, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_dof() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_DOF, fend-fstart, fstart, fend);
@@ -643,7 +643,7 @@ int FStagsIO::write_dof(int dof)
 int FStagsIO::write_scan_parameters(MRI *mri)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_SCAN_PARAMETERS, fp);
@@ -662,7 +662,7 @@ int FStagsIO::write_scan_parameters(MRI *mri)
   else
     znzwrite((void *)"UNKNOWN", sizeof(char), strlen("UNKNOWN"), fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_scan_parameters() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_SCAN_PARAMETERS, fend-fstart, fstart, fend);
@@ -676,7 +676,7 @@ int FStagsIO::write_scan_parameters(MRI *mri)
 int FStagsIO::write_ras_xform(VOL_GEOM *vg)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
 
   znzwriteInt(TAG_RAS_XFORM, fp);
@@ -688,7 +688,7 @@ int FStagsIO::write_ras_xform(VOL_GEOM *vg)
   znzwriteFloat(vg->z_r, fp); znzwriteFloat(vg->z_a, fp); znzwriteFloat(vg->z_s, fp);
   znzwriteFloat(vg->c_r, fp); znzwriteFloat(vg->c_a, fp); znzwriteFloat(vg->c_s, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     vg->geomprint("[DEBUG] FStagsIO::write_ras_xform() ras xform info:\n");
 
@@ -704,7 +704,7 @@ int FStagsIO::write_ras_xform(VOL_GEOM *vg)
 int FStagsIO::write_ras_xform_extra(VOL_GEOM *vg)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
 
   znzwriteInt(TAG_RAS_XFORM_EXTRA, fp);
@@ -715,7 +715,7 @@ int FStagsIO::write_ras_xform_extra(VOL_GEOM *vg)
   znzwriteInt(vg->width, fp);   znzwriteInt(vg->height, fp);  znzwriteInt(vg->depth, fp);
   znzwriteFloat(vg->xsize, fp); znzwriteFloat(vg->ysize, fp); znzwriteFloat(vg->zsize, fp);  
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     vg->geomprint("[DEBUG] FStagsIO::write_ras_xform_extra() ras xform info:\n");
 
@@ -740,7 +740,7 @@ int FStagsIO::write_ras_xform_extra(VOL_GEOM *vg)
 int FStagsIO::write_endtag()
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_END_NIIHDREXTENSION, fp);
@@ -751,7 +751,7 @@ int FStagsIO::write_endtag()
   char endchar = '*';
   znzwrite(&endchar, sizeof(char), dlen, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::write_endtag() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_END_NIIHDREXTENSION, fend-fstart, fstart, fend);
@@ -855,7 +855,7 @@ MATRIX* FStagsIO::read_matrix()
            &(M->rptr[4][4]));
   }
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     printf("[DEBUG] FStagsIO::read_matrix()\n");
     MatrixPrint(stdout, M);
@@ -902,7 +902,7 @@ int FStagsIO::read_mri_frames(MRI *mri, long long len)
     long long matlen = 0;
     int mattag = read_tagid_len(&matlen);
     frame->m_ras2vox = read_matrix();  // znzReadMatrix(fp);
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     {
       printf("[DEBUG] FStagsIO::read_mri_frame() TAG = %-4d, len = %-6lld\n", mattag, matlen);
       MatrixPrint(stdout, frame->m_ras2vox);
@@ -944,7 +944,7 @@ int FStagsIO::read_mri_frames(MRI *mri, long long len)
   if (len > 0) {
     // write_mri_frames() outputs more than it is needed to disk
     // skip any extra bytes
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] read_mri_frames() TAG = %-4d, bytes_read = %-6lld (%-6lld - %-6lld), skip extra bytes %lld\n", TAG_MRI_FRAME, fend-fstart, fstart, fend, len);
 	
     char *buf = (char *)calloc(len, sizeof(char));
@@ -1018,7 +1018,7 @@ int FStagsIO::read_scan_parameters(MRI *mri, long long dlen)
   
   mri->pedir = (char *)calloc(dlen + 1, sizeof(char));
   long long bytesread = znzread(mri->pedir, sizeof(char), dlen, fp);
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] read_scan_parameters(): bytesread=%lld, dlen=%lld\n", bytesread, dlen);
 
   return NO_ERROR;  
@@ -1033,7 +1033,7 @@ int FStagsIO::read_ras_xform(VOL_GEOM *vg)
   vg->z_r = znzreadFloat(fp); vg->z_a = znzreadFloat(fp); vg->z_s = znzreadFloat(fp);
   vg->c_r = znzreadFloat(fp); vg->c_a = znzreadFloat(fp); vg->c_s = znzreadFloat(fp);
   
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     vg->geomprint("[DEBUG] FStagsIO::read_ras_xform(): from FS header extension:\n");
 
   return NO_ERROR;  
@@ -1047,7 +1047,7 @@ int FStagsIO::read_ras_xform_extra(VOL_GEOM *vg)
   vg->width = znzreadInt(fp);   vg->height = znzreadInt(fp);   vg->depth = znzreadInt(fp);
   vg->xsize = znzreadFloat(fp); vg->ysize  = znzreadFloat(fp); vg->zsize = znzreadFloat(fp);
   
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     vg->geomprint("[DEBUG] FStagsIO::read_ras_xform_extra(): from FS header extension:\n");
 
   return NO_ERROR;  
@@ -1075,7 +1075,7 @@ int FStagsIO::skip_tag(int tag, long long len)
 int FStagsIO::__write_matrix_niftiheaderext(MATRIX *M, int tag)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
 
   if (tag > 0)
@@ -1103,7 +1103,7 @@ int FStagsIO::__write_matrix_niftiheaderext(MATRIX *M, int tag)
   znzwriteFloat(M->rptr[4][3], fp);
   znzwriteFloat(M->rptr[4][4], fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::__write_matrix_niftiheaderext() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", tag, fend-fstart, fstart, fend);
@@ -1141,7 +1141,7 @@ MATRIX* FStagsIO::__read_matrix_niftiheaderext()
 int FStagsIO::__write_mri_frames_niftiheaderext(MRI *mri)
 {
   long long fstart = 0;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     fstart = znztell(fp);
   
   znzwriteInt(TAG_MRI_FRAME, fp);
@@ -1156,7 +1156,7 @@ int FStagsIO::__write_mri_frames_niftiheaderext(MRI *mri)
     znzwriteFloat(frame->thresh, fp);
   }
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long fend = znztell(fp);
     printf("[DEBUG] FStagsIO::__write_mri_frames_niftiheaderext() TAG = %-4d, dlen = %-6lld (%-6lld - %-6lld)\n", TAG_MRI_FRAME, fend-fstart, fstart, fend);
@@ -1183,7 +1183,7 @@ int FStagsIO::__read_mri_frames_niftiheaderext(MRI *mri, long long len)
     // previous version wrote more data under this TAG
     // if len > 0, it is reading file generated with previous version write
     // this is to skip those extra data, but the data read in are also wrong
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __read_mri_frames_niftiheaderext() TAG = %-4d, bytes_read = %-6lld (%-6lld - %-6lld), skip extra bytes %lld\n", TAG_MRI_FRAME, fend-fstart, fstart, fend, len);
   
     char *buf = (char *)calloc(len, sizeof(char));

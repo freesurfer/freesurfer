@@ -33,7 +33,7 @@ std::unique_ptr<JpegMarkerSegment> JpegMarkerSegment::CreateStartOfFrameSegment(
         content.push_back(0);                                   // Tqi = Quantization table destination selector (reserved for JPEG-LS, should be set to 0)
     }
 
-    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::StartOfFrameJpegLS, move(content));
+    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::StartOfFrameJpegLS, std::move(content));
 }
 
 
@@ -64,7 +64,7 @@ std::unique_ptr<JpegMarkerSegment> JpegMarkerSegment::CreateJpegFileInterchangeF
             static_cast<uint8_t*>(params.thumbnail) + static_cast<size_t>(3) * params.Xthumbnail * params.Ythumbnail);
     }
 
-    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::ApplicationData0, move(content));
+    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::ApplicationData0, std::move(content));
 }
 
 
@@ -81,7 +81,7 @@ std::unique_ptr<JpegMarkerSegment> JpegMarkerSegment::CreateJpegLSPresetParamete
     push_back(content, static_cast<uint16_t>(params.Threshold3));
     push_back(content, static_cast<uint16_t>(params.ResetValue));
 
-    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::JpegLSPresetParameters, move(content));
+    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::JpegLSPresetParameters, std::move(content));
 }
 
 
@@ -112,5 +112,5 @@ std::unique_ptr<JpegMarkerSegment> JpegMarkerSegment::CreateStartOfScanSegment(i
     content.push_back(static_cast<uint8_t>(interleaveMode)); // ILV parameter
     content.push_back(0); // transformation
 
-    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::StartOfScan, move(content));
+    return std::make_unique<JpegMarkerSegment>(JpegMarkerCode::StartOfScan, std::move(content));
 }

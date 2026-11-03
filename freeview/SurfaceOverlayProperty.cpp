@@ -28,6 +28,8 @@
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkMath.h"
+#include "StockColorMap.h"
+#include "TurboColorMap.h"
 #include "FSSurface.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceLabel.h"
@@ -183,7 +185,7 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
   }
 
   m_lut->RemoveAllPoints();
-  if ( nScale <= CS_BlueRed )
+  if ( nScale == CS_Heat )
   {
     if ( !m_bColorTruncate || m_bColorInverse )
     {
@@ -249,7 +251,7 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
       }
     }
   }
-  else if ( nScale == CS_ColorWheel)
+  else if (nScale == CS_ColorWheel)
   {
     if ( !m_bColorInverse )
     {
@@ -287,7 +289,23 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
       m_lut->AddRGBAPoint( m_dMaxPoint + m_dOffset, 0, 0, 1, 1);
     }
   }
-  else if ( nScale == CS_Custom)
+  else if (nScale == CS_Turbo)
+  {
+    BuildGenericLUT(stock_turbo_color);
+  }
+  else if (nScale == CS_GEColor)
+  {
+    BuildGenericLUT(stock_ge_color);
+  }
+  else if (nScale == CS_NIH)
+  {
+    BuildGenericLUT(stock_nih);
+  }
+  else if (nScale == CS_PET)
+  {
+    BuildGenericLUT(stock_pet);
+  }
+  else if (nScale == CS_Custom)
   {
     for (int i = 0; i < m_customScale.size(); i++)
     {
@@ -459,7 +477,7 @@ void SurfaceOverlayProperty::SetColorTruncate( bool bTruncate )
 
 void SurfaceOverlayProperty::MapOverlayColor( float* data, unsigned char* colordata, int nPoints )
 {
-  if ( m_nColorScale <= CS_BlueRed )
+  if ( m_nColorScale == CS_Heat )
   {
     MapOverlayColorSymmetric(data, colordata, nPoints);
   }
@@ -891,4 +909,20 @@ bool SurfaceOverlayProperty::SaveCustomColorScale(const QString &filename)
     qDebug() << "Unable to save color scale to " << filename;
     return false;
   }
+}
+
+void SurfaceOverlayProperty::BuildGenericLUT( const int colors[256][3] )
+{
+  m_lut->RemoveAllPoints();
+  m_lut->AddRGBAPoint( m_dMinPoint, 0, 0, 0, 0 );
+  double stepsize = ( m_dMaxPoint - m_dMinPoint ) / 256;
+  for ( int i = 1; i < 256; i++ )
+  {
+    m_lut->AddRGBAPoint( m_dMinPoint + stepsize*i,
+                                  colors[i][0]/255.0,
+                                  colors[i][1]/255.0,
+                                  colors[i][2]/255.0,
+                                  1 );
+  }
+  m_lut->Build();
 }

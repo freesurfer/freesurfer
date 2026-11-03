@@ -17,6 +17,13 @@ extern "C" {
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+
+#if defined(myTurboJPEG)
+#define kTurbosuf " (JP:Turbo)"
+#else
+#define kTurbosuf ""
+#endif
+
 #if defined(myEnableJPEGLS) || defined(myEnableJPEGLS1)
 #define kLSsuf " (JP-LS:CharLS)"
 #else
@@ -50,15 +57,15 @@ extern "C" {
 #define kCPUsuf " " // unknown CPU
 #endif
 
-#define kDCMdate "v1.0.20241211"
-#define kDCMvers kDCMdate " " kJP2suf kLSsuf kCCsuf kCPUsuf
+#define kDCMdate "v1.0.20250505"
+#define kDCMvers kDCMdate " " kJP2suf kTurbosuf kLSsuf kCCsuf kCPUsuf
 
 static const int kMaxEPI3D = 1024; // maximum number of EPI images in Siemens Mosaic
 
 #if defined(__linux__)				  // Unix users must use setrlimit
 static const int kMaxSlice2D = 65535; // issue460 maximum number of 2D slices in 4D (Philips) images
 #else
-static const int kMaxSlice2D = 131070; // 65535; //issue460 maximum number of 2D slices in 4D (Philips) images
+static const int kMaxSlice2D = 98303; // issue922 maximum number of 2D slices in 4D (Philips) images
 #endif
 static const int kMaxDTI4D = kMaxSlice2D; // issue460: maximum number of DTI directions for 4D (Philips) images, also maximum number of 2D slices for Enhanced DICOM and PAR/REC
 
@@ -78,6 +85,7 @@ static const int kMaxDTI4D = kMaxSlice2D; // issue460: maximum number of DTI dir
 #define kMANUFACTURER_MEDISO 9
 #define kMANUFACTURER_MRSOLUTIONS 10
 #define kMANUFACTURER_HYPERFINE 11
+#define  kMANUFACTURER_LEICA 12
 
 // note: note a complete modality list, e.g. XA,PX, etc
 #define kMODALITY_UNKNOWN 0
@@ -200,6 +208,7 @@ struct TDTI {
 struct TDTI4D {
 	struct TDTI S[kMaxDTI4D];
 	int sliceOrder[kMaxSlice2D]; // [7,3,2] means the first slice on disk should be moved to 7th position
+  size_t offsetTable[kMaxSlice2D]; //basic offset table
 	int gradDynVol[kMaxDTI4D];	 // used to parse dimensions of Philips data, e.g. file with multiple dynamics, echoes, phase+magnitude
 	// int fragmentOffset[kMaxDTI4D], fragmentLength[kMaxDTI4D]; //for images with multiple compressed fragments
 	float frameReferenceTime[kMaxDTI4D], frameDuration[kMaxDTI4D], decayFactor[kMaxDTI4D], volumeOnsetTime[kMaxDTI4D], triggerDelayTime[kMaxDTI4D], TE[kMaxDTI4D], TR[kMaxDTI4D], RWVScale[kMaxDTI4D], RWVIntercept[kMaxDTI4D], intenScale[kMaxDTI4D], intenIntercept[kMaxDTI4D], intenScalePhilips[kMaxDTI4D];
@@ -251,7 +260,7 @@ struct TDICOMdata {
 	int xyzDim[5];
 	uint32_t coilCrc, seriesUidCrc, instanceUidCrc;
 	int overlayStart[kMaxOverlay];
-	int postLabelDelay, shimGradientX, shimGradientY, shimGradientZ, phaseNumber, spoiling, mtState, partialFourierDirection, interp3D, aslFlags, durationLabelPulseGE, epiVersionGE, internalepiVersionGE, maxEchoNumGE, rawDataRunNumber, numberOfTR, numberOfImagesInGridUIH, numberOfDiffusionT2GE, numberOfDiffusionDirectionGE, tensorFileGE, diffCyclingModeGE, phaseEncodingGE, protocolBlockStartGE, protocolBlockLengthGE, modality, dwellTime, effectiveEchoSpacingGE, phaseEncodingLines, phaseEncodingSteps, frequencyEncodingSteps, phaseEncodingStepsOutOfPlane, echoTrainLength, echoNum, sliceOrient, manufacturer, converted2NII, acquNum, frameNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel, locationsInAcquisition, locationsInAcquisitionConflict, compressionScheme;
+	int postLabelDelay, shimGradientX, shimGradientY, shimGradientZ, phaseNumber, spoiling, mtState, partialFourierDirection, interp3D, aslFlags, durationLabelPulseGE, epiVersionGE, internalepiVersionGE, maxEchoNumGE, rawDataRunNumber, numberOfTR, numberOfImagesInGridUIH, numberOfDiffusionT2GE, numberOfDiffusionDirectionGE, tensorFileGE, diffCyclingModeGE, phaseEncodingGE, protocolBlockStartGE, protocolBlockLengthGE, modality, dwellTime, effectiveEchoSpacingGE, phaseEncodingLines, phaseEncodingSteps, frequencyEncodingSteps, phaseEncodingStepsOutOfPlane, echoTrainLength, echoNum, sliceOrient, manufacturer, converted2NII, acquNum, frameNum, imageNum, imageStart, offsetTableItems, imageBytes, bitsStored, bitsAllocated, samplesPerPixel, locationsInAcquisition, locationsInAcquisitionConflict, compressionScheme;
 	float compressedSensingFactor, xRayTubeCurrent, exposureTimeMs, numberOfExcitations, numberOfArms, numberOfPointsPerArm, groupDelay, decayFactor, scatterFraction, percentSampling, waterFatShift, numberOfAverages, patientSize, patientWeight, zSpacing, zThick, pixelBandwidth, SAR, phaseFieldofView, accelFactPE, accelFactOOP, flipAngle, fieldStrength, TE, TI, TR, intenScale, intenIntercept, intenScalePhilips, gantryTilt, lastScanLoc, angulation[4], velocityEncodeScaleGE;
 	float orient[7], patientPosition[4], patientPositionLast[4], xyzMM[4], stackOffcentre[4];
 	float rtia_timerGE, radionuclidePositronFraction, radionuclideTotalDose, radionuclideHalfLife, doseCalibrationFactor, injectedVolume, reconFilterSize; // PET ISOTOPE MODULE ATTRIBUTES (C.8-57)
@@ -264,7 +273,7 @@ struct TDICOMdata {
 	uint32_t dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS];
 	int deID_CS_n;
 	struct TCSAdata CSA;
-	bool isDeepLearning, isVariableFlipAngle, isQuadruped, isRealIsPhaseMapHz, isPrivateCreatorRemap, isHasOverlay, isEPI, isIR, isPartialFourier, isDiffusion, isVectorFromBMatrix, isRawDataStorage, isGrayscaleSoftcopyPresentationState, isStackableSeries, isCoilVaries, isNonParallelSlices, isBVecWorldCoordinates, isSegamiOasis, isXA10A, isScaleOrTEVaries, isScaleVariesEnh, isDerived, isXRay, isMultiEcho, isValid, is3DAcq, is2DAcq, isExplicitVR, isLittleEndian, isPlanarRGB, isSigned, isHasPhase, isHasImaginary, isHasReal, isHasMagnitude, isHasMixed, isFloat, isResampled, isLocalizer;
+	bool isYBRfull, isDeepLearning, isVariableFlipAngle, isQuadruped, isRealIsPhaseMapHz, isPrivateCreatorRemap, isHasOverlay, isEPI, isIR, isPartialFourier, isDiffusion, isVectorFromBMatrix, isRawDataStorage, isMicroscopy, isGrayscaleSoftcopyPresentationState, isStackableSeries, isCoilVaries, isNonParallelSlices, isBVecWorldCoordinates, isSegamiOasis, isXA10A, isXA, isScaleOrTEVaries, isScaleVariesEnh, isDerived, isXRay, isMultiEcho, isValid, is3DAcq, is2DAcq, isExplicitVR, isLittleEndian, isPlanarRGB, isSigned, isHasPhase, isHasImaginary, isHasReal, isHasMagnitude, isHasMixed, isFloat, isResampled, isLocalizer;
 	char phaseEncodingRC, patientSex;
 };
 

@@ -15,7 +15,7 @@ then
   echo "- A probabilistic histological atlas of the human brain for MRI segmentation"
   echo "    Casamitjana et al., Nature, 2025 (https://www.nature.com/articles/s41586-025-09708-2)"
   echo "- Fast segmentation with the NextBrain histological atlas"
-  echo "    Puonti et al. (under revision)"
+  echo "    Puonti et al., Imaging Neuroscience, 2026 (accepted for publication)"
   echo " "
   echo "Basic usage:"
   echo "   mri_histo_atlas_segment_fireants --i INPUT_SCAN --o OUTPUT_DIRECTORY --device [cpu/cuda] \\ "
@@ -67,7 +67,7 @@ echo "Please cite: "
 echo "- A probabilistic histological atlas of the human brain for MRI segmentation"
 echo "    Casamitjana et al., Nature, 2025 (https://www.nature.com/articles/s41586-025-09708-2)"
 echo "- Fast segmentation with the NextBrain histological atlas"
-echo "    Puonti et al. (under revision)"
+echo "    Puonti et al., Imaging Neuroscience, 2026 (accepted for publication)"
 echo "  "
 
 

@@ -1,6 +1,5 @@
 #! /bin/tcsh -f
 
-
 # mri_cvs_register
 #
 # Wrapper for Combined Volumetric- and Surface-based Registration (CVS)
@@ -58,6 +57,7 @@ set CleanSurfReg = 0
 set CleanElReg = 0
 set CleanVolReg = 0
 set openmpN = 0
+set penaltyweight = 1000
 
 set FStemplate = cvs_avg35
 set usingFStemplate = 0
@@ -362,7 +362,8 @@ if ($maskmovinghemi) then
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  set cmd = (mri_binarize --i $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz --o $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz --replace 2 0 --replace 3 0 --replace 4 0 --replace 10 0 --replace 14 0 --replace 16 0 --replace 28 0 --replace 47 0 ) # 05/10/24 to delete some remaining hyperfile labels....(LZ)
+  # This is not needed any more (11/03/2025)
+  #set cmd = (mri_binarize --i $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz --o $outdir/maskedmoving.$hemiReq.$asegfname.nii.gz --replace 2 0 --replace 3 0 --replace 4 0 --replace 10 0 --replace 14 0 --replace 16 0 --replace 28 0 --replace 47 0 ) # 05/10/24 to delete some remaining hyperfine labels....(LZ)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -386,8 +387,11 @@ endif
 # * newtopology option should not be used
 ###
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
-  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
-  #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+    #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+    #  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 100 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+    #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
+    #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight $penaltyweight -fem_steps 17 -elt_vol_range 5.0,10.0 \
+    set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight $penaltyweight -fem_steps 75 -elt_vol_range 5.0,10.0 \
                        -topology_old -compress -pc_type jacobi -ksp_type preonly \
                        -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
  if ($BothHemis) then
@@ -734,6 +738,7 @@ endif
 
 endif # int-based registration
 
+if (0) then  # 11/03/2025: this cleanup seems to be too premature 
 ## 03/13/2024
 set filesToDelete = ()
 if ($cleanup) then # deleting tm3d file!
@@ -751,6 +756,7 @@ if ($cleanup) then # deleting tm3d file!
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
+endif
 
 ## APPLY the morph to the norm and aseg volumes; former will be resampled
 ## one less time and the latter is just for visualization
@@ -765,6 +771,15 @@ if ($maskmovinghemi) then
 else
   set regmoving = $mmri/$voltype.mgz
 endif
+
+#######
+## create INVERSE of the final CVS morph
+set cmd = (mri_concatenate_gcam -i $outdir/${combined:r}.${morphsuffix} $outdir/inverse.${combined:r}.${morphsuffix})
+echo $cmd >> $LF
+echo $cmd >> $sLF
+$cmd |& tee -a $LF
+if($status) exit 1;
+#######
 
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
@@ -1011,6 +1026,11 @@ while( $#argv != 0 )
     case "--openmp":
       if ( $#argv < 1) goto arg1err;
       set openmpN = $argv[1]; shift;
+    breaksw
+
+    case "--penaltyweight":
+      if ( $#argv < 1) goto arg1err;
+      set penaltyweight = $argv[1]; shift;
     breaksw
 
     case "--no-log":

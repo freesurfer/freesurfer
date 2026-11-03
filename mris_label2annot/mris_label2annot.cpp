@@ -852,7 +852,7 @@ static void label2annotationV2()
 
     for (int n = 0; n < label->n_points; n++) {
       int vtxno = label->lv[n].vno;
-      if (vtxno < 0 || vtxno > mris->nvertices) {
+      if (vtxno < 0 || vtxno >= mris->nvertices) {
         printf("ERROR: %s, n=%d, vertex %d out of range\n", LabelFiles[nthlabel], n, vtxno);
         exit(1);
       }

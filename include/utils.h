@@ -106,6 +106,7 @@ char *strcpyalloc(const char *str);
 int  ItemsInString(const char *str);
 char *deblank(const char *str);
 char *str_toupper(char *str);
+double stddevvector(const std::vector<double>& x);
 double sum2stddev(double xsum, double xsum2, int nx);
 int compare_ints(const void *v1,const void *v2);
 int compare_floats(const void *v1,const void *v2)  ;

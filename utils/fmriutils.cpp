@@ -218,12 +218,18 @@ MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1)
           }
         }
         voxvar = MRIFseq_vox(var, c, r, s, 0);
-        if (voxvar == 0) MRIFseq_vox(ar1, c, r, s, 0) = 0;
-        voxcovar = MRIFseq_vox(covar, c, r, s, 0);
-        MRIFseq_vox(ar1, c, r, s, 0) = voxcovar / voxvar;
+        if (voxvar == 0)
+	  MRIFseq_vox(ar1, c, r, s, 0) = 0;
+	else {
+	  voxcovar = MRIFseq_vox(covar, c, r, s, 0);
+	  MRIFseq_vox(ar1, c, r, s, 0) = voxcovar / voxvar;
+	}
       }
     }
   }
+
+  MRIfree(&var);
+  MRIfree(&covar);
 
   return (ar1);
 }

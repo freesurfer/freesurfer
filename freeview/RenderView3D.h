@@ -157,6 +157,8 @@ public slots:
   void SnapToNearestAxis();
   void Rotate90();
   void Rotate180();
+  void Rotate90Right();
+  void Rotate90DOP();
   void UpdateSurfaceCorrelationData();
   void SetShowAllSlices(bool bShow);
   void OnShowSlice(bool bShow = true);
@@ -173,6 +175,7 @@ public slots:
   void OnLayerVisibilityChanged();
   void Azimuth(double degrees);
   void Elevation(double degrees);
+  void Roll(double degrees);
   void UpdateScalarBar();
   void SetFocalPointAtCursor(bool b);
   void UpdateAxesActor();

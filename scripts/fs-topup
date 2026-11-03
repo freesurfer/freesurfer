@@ -110,7 +110,7 @@ if($UseConfig && $#config == 0) then
   set dim = `cat $tmpfile`
   rm $tmpfile
   set nslices = $dim[3];
-  set IsOdd = `python -c "print($nslices%2)"`
+  set IsOdd = `fspython -c "print($nslices%2)"`
   echo "Dim: $dim  IsOdd $IsOdd" | tee -a $LF
   if($IsOdd) then
     set config = $configodd

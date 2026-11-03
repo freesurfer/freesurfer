@@ -83,6 +83,7 @@ install(FILES
   randb.m
   read_all.m
   read_annotation.m
+  read_annotation_seg.m
   read_ascii_curv.m
   read_asc.m
   read_cor.m

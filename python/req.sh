@@ -347,7 +347,7 @@ if [ $torchcpu -eq 1 ]; then
    ## Does not look like there is a way to specify the latest version of the torch cpu package
    ## in requirements-extra.txt, e.g., torch==*.cpu
    # func_setup_fspython
-   torch_rev=`$python_binary -m pip freeze | grep torch | sed 's;^.*==;;'`
+   torch_rev=`$python_binary -m pip freeze | grep "torch==" | sed 's;^.*==;;'`
    torch_rev_numeric=`echo $torch_rev| sed 's;\+.*;;'`
    if [ "${torch_rev}" == "${torch_rev_numeric}+cpu" ]; then
       echo "$s: ${torch_rev} already installed - nothing to do."
@@ -365,6 +365,25 @@ if [ $torchcpu -eq 1 ]; then
          exit 1
       fi
    fi
+
+   # ## check also that if tensorflow cpu listed, then remove the non-cpu package
+   # # echo "$s: checking for cpu version of tensoflow installed."
+   # $python_binary -m pip freeze | grep "^tensorflow_cpu==" > /dev/null
+   # if [ $? -eq 0 ]; then
+   #    echo "$s: pip reports cpu version of tensorflow installed."
+   #    $python_binary -m pip freeze | grep "^tensorflow==" > /dev/null
+   #    if [ $? -eq 0 ]; then
+   #       echo "$s: pip also reports (conflicting) NON-cpu version of tensorflow installed."
+   #       $python_binary -m pip uninstall -y tensorflow
+   #       if [ $? -eq 0 ]; then
+   #          echo "$s: pip uninstall for NON-cpu tensorflow reoprts success."
+   #       else
+   #          echo "$s: pip uninstall for NON-cpu tensorflow reoprts failure."
+   #       fi
+   #    fi
+   # else
+   #    echo "$s: pip reports tensorflow_cpu not found installed."
+   # fi
 fi
 
 if [ $uninstall -eq 1 ]; then
@@ -390,21 +409,27 @@ if [ $uninstall -eq 1 ]; then
    # tflow_subdir="$install_path/python/lib/python3.8/site-packages"
    # tflow_subdir="$install_path/python/lib/python3.8/site-packages/tensorflow"
    if [ ! -z ${FSPYTHON_VERSION} ]; then
-      tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python${FSPYTHON_VERSION}/site-packages/tensorflow"
+      # tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python${FSPYTHON_VERSION}/site-packages/tensorflow"
+      site_packages_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python${FSPYTHON_VERSION}/site-packages"
    else
-      tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python3.8/site-packages/tensorflow"
+      # tflow_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python3.8/site-packages/tensorflow"
+      site_packages_subdir="$FSPYTHON_INSTALL_PREFIX/python/lib/python3.8/site-packages"
    fi
-   if [ -e $tflow_subdir ]; then
+   # if [ -e $tflow_subdir ]; then
+   if [ -e $site_packages_subdir ]; then
       rm -f header.list
-      (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+      # (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+      (cd ${site_packages_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
       if [ -e ./header.list ]; then
         if [ ! -z ./header.list ]; then
            file_cnt=`wc -l header.list | awk '{print $1}'`
            if [ "$file_cnt" != "0" ]; then
               echo "$s: Removing $file_cnt NVIDIA copyrighted source files"
-              (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+              # (cd ${tflow_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
+              (cd ${site_packages_subdir} && find -type f ! -name "*LICENSE*" ! -name "*.so*" -exec grep -i "copyright.*nvidia" {} \; -print | grep "^\.\/") > header.list
               rm -f delete_header.sh
-              cat header.list | sed 's;^;rm -f '${tflow_subdir}'/;' > delete_header.sh
+              # cat header.list | sed 's;^;rm -f '${tflow_subdir}'/;' > delete_header.sh
+              cat header.list | sed 's;^;rm -f '${site_packages_subdir}'/;' > delete_header.sh
               bash delete_header.sh
               # rm -f header.list delete_header.sh
            else
@@ -412,7 +437,8 @@ if [ $uninstall -eq 1 ]; then
               echo "no license text mentioning NVIDIA found to remove."
            fi
         else
-           echo "%s: no source files found to check for copyrights under $tflow_subdir"
+           # echo "%s: no source files found to check for copyrights under $tflow_subdir"
+           echo "%s: no source files found to check for copyrights under $site_packages_subdir"
         fi
       fi
    else

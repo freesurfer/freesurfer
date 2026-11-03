@@ -85,6 +85,7 @@ std::vector<int> ReadFrameList(char *fname, int ht, int nmax);
 std::vector<int> randperm2(int ntot, int nlist, unsigned long int seed=0);
 MRI *GetSubSet(MRI *mri, int nsubset, char *subsettype, char *framelistfile, unsigned long int seed,char *outfile=NULL);
 std::vector<std::vector<int>> GetPStackNos(int nperm, int n1, int n2, int seed);
+int AddMap(MRI *y, MRI *addmap, int tsgd);
 
 class ModeArg {
 public:
@@ -101,6 +102,10 @@ public:
   char *framelistfile=NULL;
   int residualize=1;
   std::vector<int> framelist;
+  MRI *addmap=NULL;
+  // square matrix to multiply input to violate exchangeability. For testing
+  // only.
+  MATRIX *W=NULL; 
 };
 
 const char *Progname = NULL;
@@ -181,7 +186,6 @@ int main(int argc, char *argv[])
 
     dpm->y = MRIread(ma->modefile);
     if(dpm->y==NULL) exit(1);
-
     if(ma->maskfile){
       dpm->mask = MRIread(ma->maskfile);
       if(dpm->mask==NULL) exit(1);
@@ -220,9 +224,27 @@ int main(int argc, char *argv[])
 
     if(ma->subsettype){
       sprintf(fname,"%s/framelist%d.txt",outdir,modeno+1);
-      MRI *mritmp = GetSubSet(dpm->y, ma->nsubset, ma->subsettype, ma->framelistfile, seed+modeno+1,fname);
+      ModeArg *mause = ma;
+      unsigned long int modeseed = seed+modeno+1;
+      if(modeno == 1 && !strcmp(ma->subsettype,"copy")) {
+	mause = &marg[0];
+	modeseed = seed+0+1;
+	printf("INFO: copying subject from subset from mode2 to mode1\n");
+      }
+      MRI *mritmp = GetSubSet(dpm->y, mause->nsubset, mause->subsettype, ma->framelistfile, modeseed, fname);
       if(!mritmp) exit(1);
       dpm->y = mritmp;
+    }
+    if(ma->addmap) AddMap(dpm->y, ma->addmap, ma->tsgd);
+    if(ma->W) {
+      printf("Mode%d Applying exchange violation matrix\n",modeno);
+      printf("  yframes %d, matrix size %d %d\n",dpm->y->nframes,ma->W->rows,ma->W->cols);
+      MRI *mritmp = fMRImatrixMultiply(dpm->y, ma->W, NULL);
+      if(mritmp == NULL) exit(1);
+      MRIfree(&dpm->y);
+      dpm->y = mritmp;
+      sprintf(fname,"%s/weight%d.mat.txt",outdir,modeno+1);
+      MatrixWriteTxt(fname,ma->W);
     }
 
     dpm->glm = GLMalloc();
@@ -295,12 +317,19 @@ int main(int argc, char *argv[])
     MRIwrite(dpm->beta,fname);
     sprintf(fname,"%s/rvar.nii.gz",glmdir);
     MRIwrite(dpm->rvar,fname);
+
     sprintf(fname,"%s/gamma.nii.gz",cdir);
     MRIwrite(dpm->gamma[0],fname);
     if(dpm->mask) MRImask(dpm->sig[0],dpm->mask,dpm->sig[0],0.0,0.0);
     MRIsetSign(dpm->sig[0],dpm->gamma[0],0);
     sprintf(fname,"%s/sig.nii.gz",cdir);
     MRIwrite(dpm->sig[0],fname);
+    int nmask = MRIcountNonzero(dpm->mask);
+    sprintf(fname,"%s/nmask.dat",glmdir);
+    fp = fopen(fname,"w");
+    fprintf(fp,"%d\n",nmask);
+    fclose(fp);
+    printf("nmask %d\n",nmask);
 
     modemap[modeno] = dpm->gamma[0];
     pmode[modeno] = MRIglmDeepCopy(dpm);
@@ -345,12 +374,14 @@ int main(int argc, char *argv[])
   // Write out the basic data and set up a file pointer for loop
   FILE *fp1=NULL, *fp2=NULL, *fp12=NULL;
   std::vector<double> cc0;
+  double cc0val = 0;
   if(nmodes == 2){
     SpatialCor sc(modemap[0],modemap[1],dp.mode[0]->mask);
     sc.pearsoncor();
     sprintf(fname,"%s/cc.dat",outdir);
     cc0.push_back(sc.pcc);
     printf("cc0 = %12.9lf\n",sc.pcc);
+    cc0val = sc.pcc;
     fp = fopen(fname,"w");
     fprintf(fp,"%12.9lf\n",sc.pcc);
     fclose(fp);
@@ -449,6 +480,7 @@ int main(int argc, char *argv[])
     if(fp12) fclose(fp12);
 
     double p1pos=0, p1neg=0, p1abs=0, p2pos=0, p2neg=0, p2abs=0, p12pos=0, p12neg=0, p12abs=0;
+    double cc1std=0,cc2std=0,cc12std=0;
     if(dp.permtype[0] != 0){
       sprintf(fname,"%s/p1.dat",outdir);
       fp = fopen(fname,"w");
@@ -456,6 +488,11 @@ int main(int argc, char *argv[])
       p1neg = GetPVal(cc0[0], cc1, -1); fprintf(fp,"%31.28lf ",p1neg);
       p1abs = GetPVal(cc0[0], cc1,  0); fprintf(fp,"%31.28lf ",p1abs);
       fprintf(fp,"\n");
+      fclose(fp);
+      cc1std = stddevvector(cc1);
+      sprintf(fname,"%s/cc1.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf\n",cc1std);
       fclose(fp);
     }
     if(dp.permtype[1] != 0){
@@ -465,6 +502,11 @@ int main(int argc, char *argv[])
       p2neg = GetPVal(cc0[0], cc2, -1); fprintf(fp,"%31.28lf ",p2neg);
       p2abs = GetPVal(cc0[0], cc2,  0); fprintf(fp,"%31.28lf ",p2abs);
       fprintf(fp,"\n");
+      fclose(fp);
+      cc2std = stddevvector(cc2);
+      sprintf(fname,"%s/cc2.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf\n",cc2std);
       fclose(fp);
     }
     if(dp.permtype[0] != 0 && dp.permtype[1] != 0){
@@ -487,6 +529,36 @@ int main(int argc, char *argv[])
       fprintf(fp,"\n");
       fclose(fp);
 
+      cc12std = stddevvector(cc12);
+      sprintf(fname,"%s/cc12.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf\n",cc12std);
+      fclose(fp);
+
+      sprintf(fname,"%s/p.maxdv.dat",outdir);
+      fp = fopen(fname,"w");
+      int pick = 0;
+      if(fabs(cc12std-cc1std) > fabs(cc12std-cc2std)) {
+	pick = 1;
+	fprintf(fp,"%31.28lf %31.28lf %31.28lf\n",p1pos,p1neg,p1abs);
+	printf("MaxDV %31.28lf %31.28lf %31.28lf\n",p1pos,p1neg,p1abs);
+      }
+      else {
+	pick = 2;
+	fprintf(fp,"%31.28lf %31.28lf %31.28lf\n",p2pos,p2neg,p2abs);
+	printf("MaxDV %31.28lf %31.28lf %31.28lf\n",p2pos,p2neg,p2abs);
+      }
+      fclose(fp);
+
+      sprintf(fname,"%s/cc.perm.std.dat",outdir);
+      fp = fopen(fname,"w");
+      fprintf(fp,"%31.28lf %31.28lf %31.28lf %d\n",cc1std,cc2std,cc12std,pick);
+      fclose(fp);
+      
+      printf("cc0 %31.28lf\n",cc0val);
+      printf("pick %d\n",pick);
+      printf("CCSTD: %31.28lf %31.28lf %31.28lf %d\n",cc1std,cc2std,cc12std,pick);
+      
     }
   }
 
@@ -584,6 +656,17 @@ static int parse_commandline(int argc, char **argv) {
       marg[modeno-1].subsettype = pargv[1];
       nargsused = 2;
     }
+    else if(!strcasecmp(option, "--w1") || !strcasecmp(option, "--w2")) {
+      if(!strcasecmp(option, "--w1")) modeno = 1;
+      if(!strcasecmp(option, "--w2")) modeno = 2;
+      if(nargc < 1) CMDargNErr(option,2);
+      // Matrix to violate exchangeability. Smooths across subjects. Must be
+      // Ns-by-Ns where Ns is the final number of subjects (ie, after any
+      // subsampling).
+      marg[modeno-1].W = MatrixReadTxt(pargv[0], NULL);
+      if(marg[modeno-1].W == NULL) exit(1);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--no-residualize1") || !strcasecmp(option, "--no-residualize2")) {
       if(!strcasecmp(option, "--no-residualize1")) modeno = 1;
       if(!strcasecmp(option, "--no-residualize2")) modeno = 2;
@@ -601,6 +684,17 @@ static int parse_commandline(int argc, char **argv) {
       marg[modeno-1].pstackfile = pargv[0];
       dp.permtype[modeno-1] = 4;
       nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--addmap1") || !strcasecmp(option, "--addmap2")) {
+      if(!strcasecmp(option, "--addmap1")) modeno = 1;
+      if(!strcasecmp(option, "--addmap2")) modeno = 2;
+      if(nargc < 2) CMDargNErr(option,2);
+      marg[modeno-1].addmap = MRIread(pargv[0]);
+      double scale;
+      sscanf(pargv[1],"%lf",&scale);
+      printf("mode %d add map scale = %g\n",modeno,scale);
+      MRImultiplyConst(marg[modeno-1].addmap,scale,marg[modeno-1].addmap);
+      nargsused = 2;
     }
     else if(!strcasecmp(option, "--save-surrogates1") || !strcasecmp(option, "--save-surrogates2")) {
       if(!strcasecmp(option, "--save-surrogates1")) modeno = 1;
@@ -684,6 +778,7 @@ static void print_usage(void) {
   printf("   --ptypeN permtype (0=noperm, 1=sign, 2=shuffle, 3=sign+shufflen\n");
   printf("   --no-residualizeN : do not residualize modality N before permuting (not recommended)\n");
   printf("   --save-surrogatesN : save all surrogates in one file (a stack) for modality N=1,2\n");
+  printf("   --save-input : save input maps\n");
   printf("   --map1-only only analyze modality 1 (for creating atlases and surrogatess); modality 2 not needed\n");
   printf("   --surrogatesN surrogatesNfile : input surrogate stack for modality N\n");
   printf("     as output from another run of mri_dualperm, possibly using --map1-only.\n");
@@ -696,6 +791,7 @@ static void print_usage(void) {
   printf("   --seed seed : random seed. If not specified, then uses time-of-day\n");
   printf("   --tsgdN : analyze modality N as a two-sample-group-diff (TSGD) \n");
   printf("   --subsetN nsubset type (first, last, rand)\n");
+  printf("   --wN wmat.txt : matrix to smooth across subjects to violate exchangeability (for testing)\n");
   printf("   --listN framelistfile\n");
   printf("   --pX-save : save permuted design matrices\n");
   printf("   --gdiag diagno : set diagnostic level\n");
@@ -1167,6 +1263,28 @@ int writepvals(const char *outdir, double cc0, std::vector<double> cc1,std::vect
   return(0);
 }
 
-
+/* \fn int AddMap(MRI *y, MRI *addmap, int tsgd)
+   \breif simple function that just adds the first frame of addmap to
+   all frames of y, unless tsgd is set, then it adds it to only the
+   first y->nframes/2 frames. The idea here is to simulate activity
+   by adding something to the input.
+ */
+int AddMap(MRI *y, MRI *addmap, int tsgd)
+{
+  int Ns = y->nframes;
+  if(tsgd) Ns = Ns/2;
+  for(int c=0; c < y->width; c++){
+    for(int r=0; r < y->height; r++){
+      for(int s=0; s < y->depth; s++){
+	double add = MRIgetVoxVal(addmap,c,r,s,0);
+	for(int f=0; f < Ns; f++){
+	  double val = MRIgetVoxVal(y,c,r,s,f);
+	  MRIsetVoxVal(y,c,r,s,f,val+add);
+	} //f
+      } //s 
+    }// r
+  }// c
+  return(0);
+}
 
 

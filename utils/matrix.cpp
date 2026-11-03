@@ -298,7 +298,7 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
 static MATRIX *MatrixAlloc_old(const int rows, const int cols, const int type)
 {
   MATRIX *mat;
-  int row, nelts;
+  int row;
 #ifdef _POSIX_MAPPED_FILES
   int i;
   float f;
@@ -317,7 +317,7 @@ static MATRIX *MatrixAlloc_old(const int rows, const int cols, const int type)
     row pointers to the proper locations.
   */
 
-  nelts = rows * cols;
+  size_t nelts = (size_t)rows * (size_t)cols;
   if (type == MATRIX_COMPLEX) nelts *= 2;
 
   /*

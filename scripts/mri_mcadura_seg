@@ -10,6 +10,7 @@ set scriptname = `basename $0`
 if($?FREESURFER_HOME_FSPYTHON == 0) setenv FREESURFER_HOME_FSPYTHON $FREESURFER
 
 set model = $FREESURFER_HOME_FSPYTHON/models/mca-dura.both-lh.nstd21.fhs.h5
+set pt_model = mca-dura.both-lh.nstd21.fhs.pth
 set ctab = $FREESURFER/models/mca-dura.ctab
 set mni152prior_lh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.lh.nii.gz
 set mni152prior_rh = $FREESURFER/average/mca-dura.prior.warp.mni152.1.0mm.rh.nii.gz
@@ -170,10 +171,15 @@ foreach hemi ($hemilist)
   # Now segment
   set ud = `UpdateNeeded $seg $involcrop`
   if($ud || $ForceUpdate) then
-    set cmd = (mri_sclimbic_seg --model $model --ctab $ctablh --keep_ac \
+    set cmd = (mri_sclimbic_seg --ctab $ctablh --keep_ac \
       --percentile 99.9 --vmp --output-base mcadura --conform \
       --logfile mri_mcadura_seg.log --no-cite-sclimbic --threads $threads \
       --fov 72 --i $involcrop --o $seg)
+    if($?RUN_FSDEEPNET) then
+      set cmd = ($cmd --model $pt_model)
+    else
+      set cmd = ($cmd --model $model)
+    endif
     if(! $cleanup) set cmd = ($cmd --write_posteriors)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF

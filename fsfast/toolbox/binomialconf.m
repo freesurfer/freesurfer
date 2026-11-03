@@ -1,5 +1,5 @@
-function [xlow, xhi, xmean, xstd] = binomialconf(n,theta,pct)
-% [xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,pct)
+function [xlow, xhi, xmean, xstd] = binomialconf(n,theta,pct,scale)
+% [xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,pct,<scale>)
 %
 % Computes the theoretical confidence intervals for a binomial
 % distribution. For a given experiment with n trials where theta is
@@ -43,10 +43,12 @@ xstd = [];
 xlow = [];
 xhi = [];
 
-if(nargin ~= 3)
-  fprintf('[xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,pct)\n');
+if(nargin < 3)
+  fprintf('[xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,pct,scale)\n');
   return;
 end
+
+if(nargin < 4) scale=4; end
 
 if(pct <= 0 | pct >= 100)
   fprintf('ERROR: pct = %g, must be 0 < pct < 100\n',pct);
@@ -79,7 +81,7 @@ xmean = round(n*theta);
 xstd  = sqrt(n*theta*(1-theta));
 
 % Create a list of x that bracket the mean %
-x = round([xmean-4*xstd:xmean+4*xstd]);
+x = round([xmean-scale*xstd:xmean+scale*xstd]);
 indok = find(x > 0 & x < n);
 x = x(indok);
 
@@ -102,5 +104,28 @@ xlow = x(indlow);
 xhi  = x(indhi);
 
 return;
+
+% test - this comes out very close but not perfect. Not sure why
+nmeas = 5000;
+ntrials = 500;
+theta = 0.05;
+[xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,95);
+i025 = round(nmeas*.025);
+i975 = round(nmeas*.975);
+xx = [0:3*round(ntrials*theta)];
+fx = binomialpdf(xx,ntrials,theta);
+
+clear xlowsim xhiwsim ph
+for nthsim = 1:100
+  a = sum(rand(ntrials,nmeas)<=theta);
+  asort = sort(a);
+  xlowsim(nthsim) = asort(i025);
+  xhisim(nthsim) = asort(i975);
+  ph(nthsim,:) = hist(a,xx)/nmeas;
+end
+
+[mean(xlowsim) xlow mean(xhisim) xhi]
+plot(xx,fx,xx,mean(ph))
+
 
 

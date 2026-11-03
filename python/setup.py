@@ -9,16 +9,9 @@ import os.path as path
 from setuptools import setup, find_packages, Distribution
 
 # the freesurfer python packages
-INTEGRATE_SAMSEG = os.environ.get("INTEGRATE_SAMSEG_OPTION")
-if (INTEGRATE_SAMSEG == 'OFF'):
-  packages = [
+packages = [
     'fsbindings',
-    'gems',
-    'gems.subregions',
-  ]
-else:
-  packages = [
-    'fsbindings',
+    'fspylegacy',
   ]
 
 
@@ -46,31 +39,18 @@ def find_libs(libname, required=True):
         sys.exit(1)
     return [path.basename(filename) for filename in libraries]
 
-if (INTEGRATE_SAMSEG == 'OFF'):
-  setup(
-      distclass=BinaryDistribution,
-      name='pyfs',
-      description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
-      author='Laboratory for Computational Neuroimaging',
-      packages=packages,
-      package_data={
-          'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
-          'gems': find_libs('gemsbindings'),
-      },
-      install_requires=requirements,
-      include_package_data=True
-   )
-else:
-  setup(
-      distclass=BinaryDistribution,
-      name='pyfs',
-      description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
-      author='Laboratory for Computational Neuroimaging',
-      packages=packages,
-      package_data={
-          'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
-      },
-      install_requires=requirements,
-      include_package_data=True
-   )
+BUILD_FSBINDINGS = os.environ.get("BUILD_FSBINDINGS_OPTION")
+fsbindings_required = True if (BUILD_FSBINDINGS == "ON") else False
+setup(
+    distclass=BinaryDistribution,
+    name='pyfs',
+    description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
+    author='Laboratory for Computational Neuroimaging',
+    packages=packages,
+    package_data={
+        'fsbindings': find_libs('fsbindings', required=fsbindings_required) + find_libs('labelfusion', required=False),
+    },
+    install_requires=requirements,
+    include_package_data=True
+  )
 

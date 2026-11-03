@@ -2919,6 +2919,30 @@ int *MRIsegIdList(MRI *seg, int *nlist, int frame)
   // printf("%3d %3d\n",nth,segidlist[nth]);
   return (segidlist);
 }
+/*!
+  \fn MRI *MRIseg2ColVect(MRI *seg)
+  \brief Convert a segmentation into an MRI that is just a column vector
+  where the values are the unique segmentation values from seg (excluding
+  0). This can be used, eg, with the output of mri_gtmpvc when viewing time
+  series; it can be loaded and then double click on the seg list.
+ */
+MRI *MRIseg2ColVect(MRI *seg)
+{
+  if(seg == NULL){
+    printf("MRIseg2ColVectMRI(): seg is NULL\n");
+    return(NULL);
+  }
+  int nsegids;
+  int *segidlist = MRIsegIdListExclude0(seg, &nsegids, 0);
+  // This creation of the MRI matches that in mri_gtmpvc
+  MRI *colvect = MRIallocSequence(nsegids,  1, 1, MRI_INT, 1);
+  MRIcopyHeader(seg,colvect);
+  MRIcopyPulseParameters(seg,colvect);
+  for(int n = 0; n < nsegids; n++) MRIsetVoxVal(colvect,n,0,0,0, segidlist[n]);
+  if(seg->ct) colvect->ct = CTABdeepCopy(seg->ct);
+  return(colvect);
+}
+
 
 /* ----------------------------------------------------------*/
 /*!
@@ -8122,4 +8146,41 @@ MRI *MRIsegBorder(MRI *seg, int *maxlabel, int topo)
   }//c
   printf("nhits = %d, maxlabel=%d\n",nhits,*maxlabel);
   return(border);
+}
+
+/*!
+  \fn int MRIindex2segid(MRI *indexseg, COLOR_TABLE *ctab)
+  \brief converts an index segmentation to a segmentation. The
+  assumption is that the index represents the nth non-null entry in
+  the ctab. This happens in mri_concat with the --max-index flag.
+  Operates in-place. If ctab is NULL, then looks in the MRI structure
+  for a ctab. If no ctab arg passed, sets to NULL. 
+ */
+int MRIindex2segid(MRI *indexseg, COLOR_TABLE *ctab)
+{
+  if(ctab == NULL) ctab = indexseg->ct;
+  if(ctab == NULL){
+    printf("ERROR: MRIindex2segid(): need ctab\n");
+    return(1);
+  }
+  // Get the list of non-null entry numbers
+  std::vector<int> index2segid;
+  for(int segid = 0; segid < ctab->nentries; segid++) {
+    if(!ctab->entries[segid]) continue;
+    index2segid.push_back(segid);
+  }
+  for(int c=0; c < indexseg->width; c++){
+    for(int r=0; r < indexseg->height; r++){
+      for(int s=0; s < indexseg->depth; s++){
+	int index = MRIgetVoxVal(indexseg,c,r,s,0);
+	if(index >= ctab->nentries){
+	  printf("ERROR: MRIindex2segid(): (%d,%d,%d) index=%d ctabmax=%d\n",c,r,s,index,ctab->nentries);
+	  return(1);
+	}
+	int segid = index2segid[index];
+	MRIsetVoxVal(indexseg,c,r,s,0,segid);
+      }
+    }
+  }
+  return(0);
 }

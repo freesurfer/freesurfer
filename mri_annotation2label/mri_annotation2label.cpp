@@ -290,10 +290,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--version")) {
       print_version() ;
     }
-
-    else if (!strcmp(option, "--diag-debug"))
-      Gdiag |= DIAG_INFO;
-    
     else if (!strcmp(option, "--debug")) {
       debug = 1;
     } else if (!strcmp(option, "--a2005s")) {
@@ -740,7 +736,7 @@ static void __annotation2labelV2()
   printf("calling annotation2labelV2() ...\n");
 
   int nlabels = 0;
-  LABEL **labels = annotation2labelV2(Surf, label_index, StatFile, &nlabels);
+  LABEL **labels = annotation2labelV2(Surf, label_index, StatFile, &nlabels, (debug == 1));
   for (int nlabel = 0; nlabel < nlabels; nlabel++)
   {
     if (labels[nlabel] == NULL)

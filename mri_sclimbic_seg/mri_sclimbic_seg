@@ -48,6 +48,20 @@ and saved automatically.
 #                                         Main Entrypoint
 # ------------------------------------------------------------------------------------------------
 
+def batch_normalization(axis, name, tensor):
+    fused_batch_norm = False if (platform.system() == 'Darwin' and platform.machine() == 'arm64') else None
+    
+    major, minor, patch = (int(x) for x in tf.__version__.split(".")[:3])
+    if (os.getenv("TF_USE_LEGACY_KERAS")):
+        return tf.keras.layers.BatchNormalization(axis=axis, name=name, fused=fused_batch_norm)(tensor)
+    else:    
+        if (major, minor) <= (2, 13):
+            # Old behavior requires fused=False
+            return tf.keras.layers.BatchNormalization(axis=axis, name=name, fused=fused_batch_norm)(tensor)
+        else:
+            # New behavior (fused argument removed)
+            return tf.keras.layers.BatchNormalization(axis=axis, name=name)(tensor)
+
 
 def main():
 
@@ -129,7 +143,10 @@ def main():
 
     cuda_device = os.getenv('CUDA_VISIBLE_DEVICES')
     if cuda_device is None or cuda_device == '-1':
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # hide gpu
+
+    device = None
+    if (os.environ['CUDA_VISIBLE_DEVICES'] == '-1'):
         print('Using CPU')
     else:
         print('Using GPU device', cuda_device)
@@ -145,6 +162,8 @@ def main():
     print('Using %d thread(s)' % args.threads)
     tf.config.threading.set_inter_op_parallelism_threads(args.threads)
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
+
+    model_file = args.model if args.model else os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
 
     percentile = args.percentile
     if args.sevenT:
@@ -166,7 +185,6 @@ def main():
     print('Loaded population stats', pop_stats_file)
 
     # load model weights and initialize segmenter
-    model_file = args.model if args.model else os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
     segmenter = LimbicSegmenter(model_file=model_file,
                                 labels=labels,
                                 population_stats=population_stats,
@@ -179,7 +197,8 @@ def main():
                                 exclude=args.exclude,
                                 inshape=(args.fov,args.fov,args.fov),
                                 nfeatures=args.features,
-                                nchannels=args.nchannels);
+                                nchannels=args.nchannels,
+                                device=device);
     print('Loaded model weights', model_file) 
 
     # loop through each image and segment
@@ -375,7 +394,8 @@ class LimbicSegmenter:
                  exclude=[],
                  inshape=(160,160,160),
                  nfeatures=24,
-                 nchannels=1):
+                 nchannels=1,
+                 device=None):
 
         self.labels = labels
         self.population_stats = population_stats
@@ -392,6 +412,7 @@ class LimbicSegmenter:
         self.percentile = percentile
         self.nchannels = nchannels;
         self.nfeatures = nfeatures;
+        self.device = device
 
         # build mask of labels to exclude in stats output files
         # always ignore unknown label
@@ -401,25 +422,26 @@ class LimbicSegmenter:
         print(f'nb_labels {len(self.labels)}');
         # build and load model
         print(f'inshape {self.inshape} features {nfeatures}')
+
         self.model = unet(nb_features=nfeatures,
-                          input_shape=(*self.inshape, self.nchannels),
-                          nb_levels=3,
-                          conv_size=3,
-                          nb_labels=len(self.labels),
-                          name='unet',
-                          prefix=None,
-                          feat_mult=2,
-                          pool_size=2,
-                          padding='same',
-                          dilation_rate_mult=1,
-                          activation='elu',
-                          use_residuals=False,
-                          final_pred_activation='softmax',
-                          nb_conv_per_level=2,
-                          layer_nb_feats=None,
-                          conv_dropout=0,
-                          batch_norm=-1,
-                          input_model=None)
+                        input_shape=(*self.inshape, self.nchannels),
+                        nb_levels=3,
+                        conv_size=3,
+                        nb_labels=len(self.labels),
+                        name='unet',
+                        prefix=None,
+                        feat_mult=2,
+                        pool_size=2,
+                        padding='same',
+                        dilation_rate_mult=1,
+                        activation='elu',
+                        use_residuals=False,
+                        final_pred_activation='softmax',
+                        nb_conv_per_level=2,
+                        layer_nb_feats=None,
+                        conv_dropout=0,
+                        batch_norm=-1,
+                        input_model=None)
         print(f'  {self.model.layers[0].input_shape[0]}');
         print(f"Loading weights from {model_file} -----------------------");
         self.model.load_weights(model_file, by_name=True)
@@ -524,6 +546,7 @@ class LimbicSegmenter:
         # posterior prediction
         self.reset_timer()
         prediction = self.model.predict(conformed.framed_data[np.newaxis]).squeeze()
+        
         self.print_time('Prediction time')
         
         self.reset_timer()
@@ -859,7 +882,6 @@ def conv_enc(nb_features,
     convL = getattr(tf.keras.layers, 'Conv%dD' % ndims)
     conv_kwargs = {'padding': padding, 'activation': activation, 'data_format': 'channels_last'}
     maxpool = getattr(tf.keras.layers, 'MaxPooling%dD' % ndims)
-    fused_batch_norm = False if (platform.system() == 'Darwin' and platform.machine() == 'arm64') else None
 
     # down arm:
     # add nb_levels of conv + ReLu + conv + ReLu. Pool after each of first nb_levels - 1 layers
@@ -912,7 +934,7 @@ def conv_enc(nb_features,
 
         if batch_norm is not None:
             name = '%s_bn_down_%d' % (prefix, level)
-            last_tensor = tf.keras.layers.BatchNormalization(axis=batch_norm, name=name, fused=fused_batch_norm)(last_tensor)
+            last_tensor = batch_normalization(batch_norm, name, last_tensor)
 
         # max pool if we're not at the last level
         if level < (nb_levels - 1):
@@ -984,7 +1006,6 @@ def conv_dec(nb_features,
     convL = getattr(tf.keras.layers, 'Conv%dD' % ndims)
     conv_kwargs = {'padding': padding, 'activation': activation}
     upsample = getattr(tf.keras.layers, 'UpSampling%dD' % ndims)
-    fused_batch_norm = False if (platform.system() == 'Darwin' and platform.machine() == 'arm64') else None    
 
     # up arm:
     # nb_levels - 1 layers of Deconvolution3D
@@ -1048,7 +1069,7 @@ def conv_dec(nb_features,
 
         if batch_norm is not None:
             name = '%s_bn_up_%d' % (prefix, level)
-            last_tensor = tf.keras.layers.BatchNormalization(axis=batch_norm, name=name, fused=fused_batch_norm)(last_tensor)
+            last_tensor = batch_normalization(batch_norm, name, last_tensor)
 
     # Compute likelyhood prediction (no activation yet)
     name = '%s_likelihood' % prefix

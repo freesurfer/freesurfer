@@ -90,6 +90,7 @@
 #include "FSGroupDescriptor.h"
 #include "WindowGroupPlot.h"
 #include "DialogLoadSurfaceOverlay.h"
+#include "DialogLoadSurface.h"
 #include "DialogReloadLayer.h"
 #include "DialogSmoothSurface.h"
 
@@ -154,6 +155,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_cmdParser(cmdParser),
   m_bHadError(false)
 {
+  if (cmdParser->Found("clean"))
+  {
+    QSettings s;
+    s.clear();
+    s.sync();
+  }
   m_dlgSaveScreenshot = NULL;
   m_dlgPreferences = NULL;
   m_syncFileWatcher = new QFileSystemWatcher(this);
@@ -2561,6 +2568,15 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         }
         else
           sup_data["VectorSkip"] = subArgu;
+      }
+      else if ( subOption == "vector_color" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector_color argument.\n";
+        }
+        else
+          sup_data["VectorColor"] = subArgu;
       }
       else if ( subOption == "vector_normalize" )
       {
@@ -5927,6 +5943,18 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   if (sup_data.contains("BinaryColor"))
     layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
 
+  if (sup_data.contains("VectorColor"))
+  {
+    QColor c = ParseColorInput(sup_data["VectorColor"].toString());
+    if (c.isValid())
+    {
+      layer->GetProperty()->SetVectorColor(c);
+      layer->GetProperty()->SetVectorColorCode(LayerPropertyMRI::VC_Single);
+    }
+    else
+      qDebug() << "Invalid vector color input";
+  }
+
   if (sup_data.contains("ClearBackground"))
   {
     layer->GetProperty()->SetClearBackground(true);
@@ -6713,16 +6741,27 @@ void MainWindow::OnCloseTrack()
 
 void MainWindow::OnLoadSurface()
 {
-  // user getSaveFilename as a hack to allow adding options next to filename
-  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select surface file",
-                                                         AutoSelectLastDir( "surf" ),
-                                                         "Surface files (*)", 0, QFileDialog::DontConfirmOverwrite);
-  if ( !filenames.isEmpty() )
+  DialogLoadSurface dlg( this );
+  QStringList recentFiles;
+  for ( int i = 0; i < m_actionRecentSurfaces.size(); i++ )
   {
-    for ( int i = 0; i < filenames.size(); i++ )
+    if ( m_actionRecentSurfaces[i]->isVisible() )
     {
-      if (!filenames[i].trimmed().isEmpty())
-        AddScript(QStringList("loadsurface") << filenames[i]);
+      recentFiles << m_actionRecentSurfaces[i]->data().toString();
+    }
+  }
+  dlg.SetRecentFiles( recentFiles );
+  if (dlg.exec() == QDialog::Accepted)
+  {
+    QStringList filenames = dlg.GetFilenames();
+    bool bAll = dlg.GetLoadAll();
+    if ( !filenames.isEmpty() )
+    {
+      for ( int i = 0; i < filenames.size(); i++ )
+      {
+        if (!filenames[i].trimmed().isEmpty())
+          AddScript(QStringList("loadsurface") << (filenames[i] + ":all=" + (bAll?"1":"0")));
+      }
     }
   }
 }
@@ -10406,7 +10445,8 @@ void MainWindow::SetEditRefPoint(LayerMRI *mri, double *pos_in)
   int n[3];
   mri->WorldToVoxelIndex(pos_in, n);
   mri->VoxelIndexToWorld(n, pos);
-  //  qDebug() << "num of marks" << ref->GetNumberOfMarks();
+  if (!ref->IsVisible())
+    ref->SetVisible(true);
   if (ref->GetMRIRef() != mri || ref->GetNumberOfMarks() != 1)
   {
     ref->SetMRIRef(mri);

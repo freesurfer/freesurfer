@@ -43,6 +43,9 @@
 #include "fio.h"
 #include "fsenv.h"
 #include "mris_sphshapepvf.h"
+#ifdef _OPENMP
+#include "romp_support.h"
+#endif
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -122,6 +125,7 @@ LTA *ArrayLTA=NULL;
 int MaskToCortex=0;
 char *labelfile=NULL;
 MRI *mask=NULL;
+int nthreads=1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -663,22 +667,34 @@ static int parse_commandline(int argc, char **argv) {
       precision = pargv[0];
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--sphpvf")) {
-      // --sphpvf radius nvox voxsize fsubsamp icoorder outvol outsurf
-      if(nargc < 7) argnerr(option,7);
+      // --sphpvf radius nvox xvoxsize yvoxsize zvoxsize fsubsamp icoorder outvol outsurf
+      // fsubsamp is bet 0 and 1; fraction of voxel to sample for PVF, eg, 0.1
+      if(nargc < 9) argnerr(option,9);
       BasicSpherePVF b;
       sscanf(pargv[0],"%lf",&b.radius);
       int nvox; sscanf(pargv[1],"%d",&nvox);
-      double voxsize; sscanf(pargv[2],"%lf",&voxsize);
-      sscanf(pargv[3],"%lf",&b.fsubsample);
-      sscanf(pargv[4],"%d",&b.icoOrder);
+      double xvoxsize, yvoxsize, zvoxsize;
+      sscanf(pargv[2],"%lf",&xvoxsize);
+      sscanf(pargv[3],"%lf",&yvoxsize);
+      sscanf(pargv[4],"%lf",&zvoxsize);
+      sscanf(pargv[5],"%lf",&b.fsubsample);
+      sscanf(pargv[6],"%d",&b.icoOrder);
       b.LoadIcoSurf();
       b.SetSurfXYZ();
       b.NormDot(b.surf);
-      b.MakeMRI(nvox,voxsize);
+      b.MakeMRI(nvox,xvoxsize,yvoxsize,zvoxsize);
       b.ComputePVF();
-      MRIwrite(b.vol,pargv[5]);
-      MRISwrite(b.surf,pargv[6]);
+      MRIwrite(b.vol,pargv[7]);
+      MRISwrite(b.surf,pargv[8]);
       nargsused = 7;
       exit(0);
     } 

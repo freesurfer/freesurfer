@@ -148,6 +148,14 @@ protected slots:
 
   void OnCheckBoxSetOffsetToMean(bool b);
 
+  void OnCheckAllSelectedLabelItems();
+
+  void OnUncheckAllSelectedLabelItems();
+
+  void OnComboVectorColor(int n);
+
+  void OnColorPickerVectorColor(const QColor& c);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );
   void DoUpdateWidgets();

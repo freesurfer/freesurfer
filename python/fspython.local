@@ -4,14 +4,29 @@
 [ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
 
 if [ ! -e "${FREESURFER_HOME}/python/bin/python3" ]; then
-    echo "error: fspython has not been configured correctly - \$FREESURFER_HOME/python/bin/python3 does not exist"
+    echo "Error: *** fspython has not been configured correctly - \$FREESURFER_HOME/python/bin/python3 does not exist"
     exit 1
 fi
 
-# Installation of miniconda for Apple arm64 has already provided python3 above
-# as a relative soft link to arm64 python with Apple tensorflow, etc.
-conda_path=`readlink ${FREESURFER_HOME}/python/bin/python3 | sed 's;^\.\.\/;;' | sed 's;\/bin\/python3$;;'`
-conda_pkgs="${FREESURFER_HOME}/python/${conda_path}/lib/python3.8/site-packages"
+# Installation of miniconda for Apple arm64 provides python3 as a
+# soft link to arm64 python with Apple tensorflow-metal, etc.
+# Must install a version of tensorflow in python3 that is compatible with tensorflow-metal.
+
+ls -d $FREESURFER_HOME/python/lib/python3*/site-packages > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+   # ls -d $FREESURFER_HOME/python/lib/python3*/site-packages
+   # /usr/local/freesurfer/dev/python/lib/python3.9/site-packages
+   python_version=`ls -d ${FREESURFER_HOME}/python/lib/python3*/site-packages | sed 's;^.*python\/lib\/python;;' | sed 's;\/site.*;;'`
+   conda_path=`readlink ${FREESURFER_HOME}/python/bin/python3 | sed 's;^\.\.\/;;' | sed 's;\/bin\/python3$;;'`
+   conda_pkgs="${FREESURFER_HOME}/python/${conda_path}/lib/python${python_version}/site-packages"
+   if [ "$python_version" == "3.9" ]; then
+      # needed for updated versions of tensorflow, e.g., version 2.19.1, and related pkgs installed in python 3.9
+      export TF_USE_LEGACY_KERAS=1
+   fi
+else
+   echo "Error: *** Cannot run fspython wrapper without installation of $FREESURFER_HOME/python/lib/python3*/site-packages"
+   exit 1
+fi
 
 # Append conda site packages to PYTHOMPATH
 #

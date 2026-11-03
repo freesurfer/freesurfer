@@ -545,11 +545,11 @@ void LayerROI::OnBaseVoxelEdited(const QVector<int>& voxel_list, bool bAdd)
   }
 }
 
-void LayerROI::EditVertex(int nvo, bool bAdd)
+void LayerROI::EditVertex(int nvo, bool bAdd, bool bNoOverwrite)
 {
   QVector<int> list;
   list << nvo;
-  EditVertex(list, bAdd);
+  EditVertex(list, bAdd, bNoOverwrite);
 }
 
 void LayerROI::OnLabelDataUpdated()
@@ -569,7 +569,7 @@ void LayerROI::OnLabelDataUpdated()
   emit ActorUpdated();
 }
 
-void LayerROI::EditVertex(const QVector<int> list_nvo_in, bool bAdd)
+void LayerROI::EditVertex(const QVector<int> list_nvo_in, bool bAdd, bool bNoOverwrite)
 {
   if (m_layerMappedSurface)
   {
@@ -588,6 +588,9 @@ void LayerROI::EditVertex(const QVector<int> list_nvo_in, bool bAdd)
     for (int i = 0; i < list_nvo.size(); i++)
     {
       int nvo = list_nvo[i];
+      if (bNoOverwrite && m_layerMappedSurface->IsVertexOnLabel(nvo))
+        continue;
+
       if (bAdd)
         ret = qMax(ret, ::LabelAddVertex(m_label->GetRawLabel(), nvo, coords));
       else
@@ -866,4 +869,15 @@ void LayerROI::Clear()
 LABEL* LayerROI::GetRawLabel()
 {
   return m_label->GetRawLabel();
+}
+
+bool LayerROI::HasVertex(int vno)
+{
+  LABEL* label = GetRawLabel();
+  for ( int i = 0; i < label->n_points; i++ )
+  {
+    if (vno == label->lv[i].vno)
+      return true;
+  }
+  return false;
 }

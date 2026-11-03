@@ -212,7 +212,7 @@ get_option(int argc, char *argv[]) {
       printf("INFO: using %s float2int\n",argv[2]);
       nargs = 1 ;
       break ;
-    case 'f':
+    case 'F':
       sscanf(argv[2], "%f", &fov) ;
       nargs = 1 ;
       break ;

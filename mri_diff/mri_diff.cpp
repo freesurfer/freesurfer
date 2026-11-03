@@ -373,9 +373,9 @@ int main(int argc, char *argv[]) {
   if (CheckGeo) {
     vox2ras1 = MRIxfmCRS2XYZ(InVol1,0);
     vox2ras2 = MRIxfmCRS2XYZ(InVol2,0);
-    if (Gdiag & DIAG_INFO) {
+    if (getenv("TAG_RAS_XFORM_DEBUG") != NULL) {
       printf("[DEBUG] mri_diff CheckGeo: geometry check, thresh=%g ...\n", geothresh);
-      bool geodiff = VOL_GEOM::checkgeom(InVol1, InVol2, geothresh, Gdiag & DIAG_INFO);
+      bool geodiff = VOL_GEOM::checkgeom(InVol1, InVol2, geothresh, (getenv("TAG_RAS_XFORM_DEBUG") != NULL));
       if (geodiff) {
 	InVol1->geomprint("vol 1 xform:\n");
 	InVol2->geomprint("vol 2 xform:\n");
@@ -407,7 +407,7 @@ int main(int argc, char *argv[]) {
           }
           ExitStatus = 104;
           if (ExitOnDiff) {
-	    if (Gdiag & DIAG_INFO) {
+	    if (getenv("TAG_RAS_XFORM_DEBUG") != NULL) {
 	      int precision = 10;
 	      printf("[DEBUG] mri_diff CheckGeo vox2ras1:\n");
 	      MatrixPrint(stdout, vox2ras1, precision);
@@ -707,7 +707,6 @@ static int parse_commandline(int argc, char **argv) {
     nargsused = 0;
 
     if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--diag-debug")) Gdiag |= DIAG_INFO;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;

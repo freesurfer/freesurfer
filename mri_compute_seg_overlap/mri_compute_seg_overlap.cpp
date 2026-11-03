@@ -102,6 +102,7 @@ static int isOverallDiceLabel(int volVal)
   return 0;
 }
 
+
 /* maximum number of classes: 
    large enough to handle the maximum label value
    in FreeSurferColorLUT.txt
@@ -494,6 +495,11 @@ static int get_option(int argc, char *argv[])
     if(sd.mask==NULL) exit(1);
     nargs = 1;
   }
+  else if (!stricmp(option, "case-name")){ // -case-name
+    // Must go before -dice
+    sd.CaseName = argv[2];
+    nargs = 1;
+  }
   else if (!stricmp(option, "dice")){ // -dice
     // Stand-alone method to compute dice. Has  more flexibility
     // 7: seg1 seg2 ctab ReportEmpty01 ExcludeId datfile tablefile
@@ -504,7 +510,8 @@ static int get_option(int argc, char *argv[])
     // ExcludeId - exclude this seg (eg, 0 to exclude Unknown)
     // datfile - save the dice for each seg on a single line without anymore info
     // tablefile - save as a table with each seg on a row followed by 
-    //   count1 count2 dice tpr fdr jaccard
+    //   count1 count2 dice tpr fdr jaccard. If the file has a .stats extension
+    //   then it will store it like the output of mri_segstats, suitable for asegstats2table
     sd.seg1 = MRIread(argv[2]);
     if(sd.seg1==NULL) exit(1);
     sd.seg2 = MRIread(argv[3]);
@@ -534,7 +541,9 @@ static int get_option(int argc, char *argv[])
     int err = sd.ComputeDice();
     if(err) exit(err);
     sd.WriteDiceDat(argv[7]);
-    sd.WriteDiceTable(argv[8]);
+    char *ext = fio_extension(argv[8]);
+    if(ext != NULL && strcmp(ext,"stats")==0) sd.WriteDiceStats(argv[8]);
+    else                                      sd.WriteDiceTable(argv[8]);
     exit(0);
   }
   else if (!stricmp(option, "tpfpfn")){

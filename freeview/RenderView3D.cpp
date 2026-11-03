@@ -34,6 +34,7 @@
 #include "SurfaceOverlayProperty.h"
 #include "SurfacePath.h"
 #include <vtkProp.h>
+#include <vtkPropPicker.h>
 #include <vtkCellPicker.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -437,7 +438,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
   }
 
   // MousePositionToRAS( posX, posY, pos );
-  // vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
+//   vtkSmartPointer<vtkPropPicker> picker = vtkSmartPointer<vtkPropPicker>::New();
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
   if ( picker )
   {
@@ -477,12 +478,12 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
 #endif
     picker->Pick( posX, posY, 0, GetRenderer() );
     picker->GetPickPosition( pos );
-
     vtkProp* prop = picker->GetViewProp();
     if ( !prop )
     {
       HighlightSliceFrame( -1 );
-      return;
+      if (!bCursor)
+        return;
     }
 
     // check slice frame selection first
@@ -549,10 +550,10 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
       {
         picker->DeletePickList( m_actorSliceBoundingBox[i] );
       }
-
-      picker->Pick( posX, posY, 0, GetRenderer() );
-      picker->GetPickPosition( pos );
-      prop = picker->GetViewProp();
+      vtkSmartPointer<vtkPropPicker> ppicker = vtkSmartPointer<vtkPropPicker>::New();
+      ppicker->Pick( posX, posY, 0, GetRenderer() );
+      ppicker->GetPickPosition( pos );
+      prop = ppicker->GetViewProp();
       LayerMRI* mri_sel = (LayerMRI*)lc_mri->HasProp(prop);
       if (mri_sel && mri_sel->GetProperty()->GetShowAsContour())
       {
@@ -631,6 +632,11 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
         }
         else
           lc_mri->SetCurrentRASPosition( pos );
+      }
+      else if (!mri_sel)
+      {
+        lc_mri->SetCursorRASPosition( pos );
+        MainWindow::GetMainWindow()->SetSlicePosition( pos );
       }
     }
   }
@@ -1501,6 +1507,15 @@ void RenderView3D::Elevation(double degrees)
   RequestRedraw();
 }
 
+void RenderView3D::Roll(double degrees)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->Roll(degrees);
+  cam->OrthogonalizeViewUp();
+  m_renderer->ResetCameraClippingRange();
+  RequestRedraw();
+}
+
 void RenderView3D::Rotate90()
 {
   Azimuth(90);
@@ -1509,6 +1524,16 @@ void RenderView3D::Rotate90()
 void RenderView3D::Rotate180()
 {
   Azimuth(180);
+}
+
+void RenderView3D::Rotate90Right()
+{
+  Elevation(90);
+}
+
+void RenderView3D::Rotate90DOP()
+{
+  Roll(90);
 }
 
 void RenderView3D::UpdateScalarBar()
@@ -1554,6 +1579,11 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       menu->addAction(act);
       act = new QAction("Clear Marks", this);
       connect(act, SIGNAL(triggered()), ref, SLOT(Reset()));
+      menu->addAction(act);
+      act = new QAction("Toggle Mark Visibility", this);
+      act->setCheckable(true);
+      act->setChecked(ref->IsVisible());
+      connect(act, SIGNAL(toggled(bool)), ref, SLOT(SetVisible(bool)));
       menu->addAction(act);
       menu->addSeparator();
     }

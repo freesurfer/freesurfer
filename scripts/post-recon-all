@@ -579,7 +579,7 @@ while( $#argv != 0 )
       breaksw
     case "--no-qa-stats":
     case "--no-qastats":
-      set DoQAStats = 1
+      set DoQAStats = 0
       breaksw
 
     case "--qcache":

@@ -2165,9 +2165,9 @@ int mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, INTEGRAT
 
     if (vno == Gdiag_no) {
       fprintf(stdout,
-              "l_location: targ (%2.1f, %2.1f, %2.f), "
-              "current (%2.1f, %2.1f, %2.1f), "
-              "del (%2.1f, %2.1f, %2.1f), norm=%2.1f, dot=%2.3f\n",
+              "l_location: targ (%7.2f, %7.1f, %7.2f), "
+              "current (%7.2f, %7.2f, %7.2f), "
+              "del (%7.4f, %7.4f, %7.4f), norm=%4.3f, dot=%5.3f\n",
               v->targx,
               v->targy,
               v->targz,

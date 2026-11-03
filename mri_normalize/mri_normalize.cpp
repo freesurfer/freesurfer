@@ -449,11 +449,6 @@ main(int argc, char *argv[])
       remove_nonwm_voxels(mri_ctrl, mri_aseg, mri_ctrl) ;
       MRIfree(&mri_aseg) ;
     }
-    else
-    {
-      printf("Removing surface outliers\n");
-      remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist) ;
-    }
 
     if (checknorm_fname)
     {
@@ -466,7 +461,6 @@ main(int argc, char *argv[])
     }
 
     threshold_control_points(mri_ctrl, mri_dst, 10.0) ;
-    remove_outliers_near_surface(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist+1, 2.5) ;
 
     if (contrast == T2_CONTRAST)
       remove_surface_outliers_T2(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;

@@ -416,7 +416,8 @@ MRI *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
   float val = 0;
 
   if (mri == NULL) {
-    mri = MRIalloc(1, 1, mris->nvertices, MRI_FLOAT);
+    // create MRI volume of dimensions nvertices x 1 x 1 x 1
+    mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 1) ;
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -6255,7 +6256,12 @@ void __MRISapplyFSGIIread(char *file_to_read, const char *fname, int *filetype)
     {
       // regular format is not available, try .gii
       sprintf(file_to_read, "%s.gii", fname);
-      printf("[INFO] read, cannot find %s, trying %s ...\n", fname, file_to_read);       
+      if (!fio_FileExistsReadable(file_to_read))
+      {
+	printf("[ERROR] cannot find %s\n", fname);
+	exit(1);
+      }
+      printf("[INFO] read, cannot find %s, reading %s ...\n", fname, file_to_read);       
       *filetype = GIFTI_FILE;
     }
   }

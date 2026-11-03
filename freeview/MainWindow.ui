@@ -404,6 +404,8 @@
     <addaction name="separator"/>
     <addaction name="actionResetView"/>
     <addaction name="actionResetViewNearestAxis"/>
+    <addaction name="actionRotateView90In"/>
+    <addaction name="actionRotateView90Right"/>
     <addaction name="actionRotateView90"/>
     <addaction name="actionSetCamera"/>
     <addaction name="separator"/>
@@ -1633,7 +1635,7 @@
   </action>
   <action name="actionRotateView90">
    <property name="text">
-    <string>Rotate View 90 Degree</string>
+    <string>Rotate View 90 Degree By Up Vector</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+9</string>
@@ -1906,6 +1908,28 @@
     <enum>QAction::NoRole</enum>
    </property>
   </action>
+  <action name="actionRotateView90Right">
+   <property name="text">
+    <string>Rotate View 90 Degree By Right Vector</string>
+   </property>
+   <property name="toolTip">
+    <string>Rotate View 90 Degree By Right Vector</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+8</string>
+   </property>
+  </action>
+  <action name="actionRotateView90In">
+   <property name="text">
+    <string>Rotate View 90 Degree By Direction of Projection</string>
+   </property>
+   <property name="toolTip">
+    <string>Rotate View 90 Degree By Direction of Projection</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+7</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1925,6 +1949,8 @@
     <slot>ResetViewInferior()</slot>
     <slot>ResetViewAnterior()</slot>
     <slot>ResetViewPosterior()</slot>
+    <slot>Rotate90Right()</slot>
+    <slot>Rotate90DOP()</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -3950,6 +3976,38 @@
     <hint type="destinationlabel">
      <x>558</x>
      <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRotateView90Right</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>Rotate90Right()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>864</x>
+     <y>521</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRotateView90In</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>Rotate90DOP()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>864</x>
+     <y>521</y>
     </hint>
    </hints>
   </connection>

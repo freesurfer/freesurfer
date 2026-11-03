@@ -408,7 +408,6 @@ int main(int argc, char *argv[])
   //printf("Writing anat seg\n");
   //sprintf(tmpstr,"%s/anat.seg.nii.gz",AuxDir);
   //MRIwrite(gtm->anatseg,tmpstr);
-
   gtm->volperseg = CTABcount2MRI(gtm->ctGTMSeg, gtm->anatseg);
   sprintf(tmpstr,"%s/seg.vol.nii.gz",AuxDir);
   MRIwrite(gtm->volperseg,tmpstr);
@@ -1190,6 +1189,10 @@ int main(int argc, char *argv[])
   MRIfree(&gtm->yvol);
   gtm->yvol = mritmp;
   
+  MRI *segcolvect = MRIseg2ColVect(gtm->gtmseg);
+  sprintf(tmpstr,"%s/seg.colvect.nii.gz",AuxDir);
+  MRIwrite(segcolvect,tmpstr);
+
   if(gtm->nContrasts > 0){
     printf("Testing %d contrasts\n",gtm->nContrasts);
     GTMttest(gtm);

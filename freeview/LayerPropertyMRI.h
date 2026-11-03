@@ -66,6 +66,11 @@ public:
     VR_Line = 0, VR_Direction_Line, VR_Bar
   };
 
+  enum GetVectorColorCode
+  {
+    VC_Directional = 0, VC_Single
+  };
+
   enum TensorRepresentation
   {
     TR_Boxoid = 0, TR_Ellipsoid
@@ -244,6 +249,11 @@ public:
   int GetVectorRepresentation()
   {
     return m_nVectorRepresentation;
+  }
+
+  int GetVectorColorCode()
+  {
+    return m_nVectorColorCode;
   }
 
   bool GetTensorRepresentation()
@@ -429,6 +439,11 @@ public:
     return m_bAutoWindowSlice;
   }
 
+  QColor GetVectorColor()
+  {
+    return m_colorVector;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -496,6 +511,10 @@ public slots:
 
   void SetAutoWindowSlice(bool b);
 
+  void SetVectorColorCode(int n);
+
+  void SetVectorColor(const QColor& c);
+
 signals:
   void ColorMapChanged();
   void ResliceInterpolationChanged();
@@ -518,6 +537,7 @@ signals:
   void VectorSkipChanged(int nSkip);
   void AutoAdjustFrameContrastChanged(bool);
   void AutoWindowSliceChanged(bool);
+  void VectorColorChanged();
 
 private:
   void UpdateMinMaxValues();
@@ -589,6 +609,7 @@ private:
   double  m_dVectorDisplayScale;
   double  m_dVectorScale;
   double  m_dVectorNormThreshold;
+  int     m_nVectorColorCode;
 
   bool    m_bDisplayRGB;
 
@@ -630,6 +651,7 @@ private:
 
   QList<int>  m_listVisibleLabels;
   QColor  m_colorBinary;
+  QColor  m_colorVector;
 };
 
 #endif

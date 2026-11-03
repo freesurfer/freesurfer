@@ -1669,6 +1669,7 @@ int PrintSegStat(FILE *fp, SEGSTAT *segstat)
   int n, c;
   char tmpstr[1000];
 
+  if(segstat->CaseName) fprintf(fp, "# CaseName %s \n",segstat->CaseName);
   fprintf(fp, "# TableCol  1 ColHeader Index \n");
   fprintf(fp, "# TableCol  1 FieldName Index \n");
   fprintf(fp, "# TableCol  1 Units     NA \n");

@@ -629,11 +629,11 @@ MATRIX *MRIxfmCRS2XYZ(const VOL_GEOM *mri, int base, bool useshear)
     *MATRIX_RELT(matshear, 1, 2) = (MRIxfmCRS2XYZPrecision)mri->s_r;
     *MATRIX_RELT(matshear, 1, 3) = (MRIxfmCRS2XYZPrecision)mri->s_a;
     *MATRIX_RELT(matshear, 2, 3) = (MRIxfmCRS2XYZPrecision)mri->s_s;
-    if (Gdiag & DIAG_INFO)
-    {
-      printf("[DEBUG] MRIxfmCRS2XYZ() matshear:\n");
-      MatrixPrint(stdout, matshear);
-    }
+    //if (Gdiag & DIAG_INFO)
+    //{
+    //  printf("[DEBUG] MRIxfmCRS2XYZ() matshear:\n");
+    //  MatrixPrint(stdout, matshear);
+    //}
     m = MatrixMultiplyD(m, matshear, NULL);
   }
 
@@ -2290,7 +2290,7 @@ int MRInonzeroValRange(MRI *mri, float *pmin, float *pmax)
     for (z = 0; z < depth; z++) {
       for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
-          val = MRIgetVoxVal(mri, x, y, z, 0);
+          val = MRIgetVoxVal(mri, x, y, z, frame);
           if (FZERO(val)) continue;
           if (val < fmin) fmin = val;
           if (val > fmax) fmax = val;
@@ -16798,6 +16798,8 @@ MRI *MRIaverageFrames(MRI *mri_src, MRI *mri_dst, int start_frame, int end_frame
   if (start_frame < 0) start_frame = 0;
   if (end_frame < 0 || end_frame >= mri_src->nframes) end_frame = mri_src->nframes - 1;
 
+  if (mri_dst != NULL)
+    MRIfree(&mri_dst);
   mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT);
   MRIcopyHeader(mri_src, mri_dst);
   nframes = end_frame - start_frame + 1;

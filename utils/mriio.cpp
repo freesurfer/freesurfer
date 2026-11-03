@@ -152,7 +152,7 @@ static MRI *nifti1Read(const char *fname, int read_volume);
 static int nifti1Write(MRI *mri, const char *fname);
 static MRI *niiRead(const char *fname, int read_volume);
 static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct, std::vector<float> *ascalefactors=NULL);
-static int niiWrite(MRI *mri, const char *fname, int intent=MGZ_INTENT_UNKNOWN);
+static int niiWrite(MRI *mri, const char *fname, int intent=MGZ_INTENT_UNKNOWN, bool asFSLWarp=false);
 static int itkMorphWrite(MRI *mri, const char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
@@ -1106,7 +1106,7 @@ MRI *MRIreadHeader(const char *fname, int type)
 
 } /* end MRIreadInfo() */
 
-int MRIwriteType(MRI *mri, const char *fname, int type, int intent)
+int MRIwriteType(MRI *mri, const char *fname, int type, int intent, bool asFSLWarp)
 {
   struct stat stat_buf;
   int error = 0;
@@ -1205,7 +1205,7 @@ int MRIwriteType(MRI *mri, const char *fname, int type, int intent)
   }
   else if (type == NII_FILE) {
     // printf("Before writing nii file \n");
-    error = niiWrite(mri, fname, intent);
+    error = niiWrite(mri, fname, intent, asFSLWarp);
     // printf("The error code is: %d\n", error);
   }
   else if (type == NRRD_FILE) {
@@ -1306,7 +1306,7 @@ int MRIwriteFrame(MRI *mri, const char *fname, int frame)
   return (NO_ERROR);
 }
 
-int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int intent)
+int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int intent, bool asFSLWarp)
 {
   int int_type = -1;
   int error = NO_ERROR;
@@ -1319,7 +1319,7 @@ int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int inte
 
   // (*mriVector).size() == 0, use MRI passed in
   if (mriVector == NULL || (*mriVector).size() <= 1)
-    error = MRIwriteType(mri, fname, int_type, intent);
+    error = MRIwriteType(mri, fname, int_type, intent, asFSLWarp);
   else
   {
     char *fname_copy = new char[strlen(fname)+1];
@@ -1351,7 +1351,7 @@ int MRIwrite(MRI *mri, const char *fname, std::vector<MRI*> *mriVector, int inte
         sprintf(tmp, "%s_%d.%s", fname_copy, n, ext);
       else
         sprintf(tmp, "%s%s.%s", fname_copy, ((*mriVector)[n])->fnamePostFixes, ext);
-      error = MRIwriteType((*mriVector)[n], tmp, int_type, intent);
+      error = MRIwriteType((*mriVector)[n], tmp, int_type, intent, asFSLWarp);
     }
   }
 
@@ -7870,7 +7870,8 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (hdr.sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stderr, "INFO: using NIfTI-1 sform \n");
+    if (getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -7879,7 +7880,8 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   }
   else if (hdr.qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform \n");
+    if (getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
       MRIfree(&mri);
       return (NULL);
@@ -8581,14 +8583,14 @@ static MRI *niiRead(const char *fname, int read_volume)
       ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding extension data in %s", fname));
     }
 
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     {
       long here = znztell(fp);
       printf("[DEBUG] niiRead(): skip nifti1 header, after znzseek(%ld), file position = %ld\n", nift1_hdr_len, here);
     }
   } // if (!KEEP_NII_OPEN)
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long here = znztell(fp);
     printf("[DEBUG] niiRead(): hdr.vox_offset = %ld, file position = %ld\n", (long)hdr.vox_offset, here);
@@ -8598,7 +8600,7 @@ static MRI *niiRead(const char *fname, int read_volume)
   if (__niiReadSetVox2ras(mri, &hdr, nii_sform))  // error
       return NULL;
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("TAG_RAS_XFORM_DEBUG") != NULL)
     mri->geomprint("[DEBUG] niiRead(): geom from Nifti sform/qform:\n");
   
   // implement reading nifti1 header extension  
@@ -8606,10 +8608,14 @@ static MRI *niiRead(const char *fname, int read_volume)
   znzread(extdr.extension, 1, 4, fp); /* get extender */
   if (extdr.extension[0] == 1)
   {
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] niiRead(): processing extension ...\n");
     bool has_ras_xform = false;
     VOL_GEOM ras_xform = __niiReadHeaderextension(fp, mri, fname, swapped_flag, &has_ras_xform);
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL) {
+      long long here = znztell(fp);
+      printf("[DEBUG] niiRead(): extension processed, hdr.vox_offset = %ld, file position = %lld\n", (long)hdr.vox_offset, here);
+    }
     if (has_ras_xform)
     {
       bool TAG_RAS_XFORM_DEBUG = (getenv("TAG_RAS_XFORM_DEBUG") != NULL) ? true : false;
@@ -8624,9 +8630,9 @@ static MRI *niiRead(const char *fname, int read_volume)
 	if (vol_geom_thresh != NULL)
 	  geothresh = atof(vol_geom_thresh);
 
-	if (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG) {
+	if (TAG_RAS_XFORM_DEBUG) {
 	  printf("[DEBUG] niiRead(): geometry check, thresh=%g (ras_xform vs sform/qform) ...\n", geothresh);
-	  bool founddiff = VOL_GEOM::checkgeom(&ras_xform, mri, geothresh, (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG));
+	  bool founddiff = VOL_GEOM::checkgeom(&ras_xform, mri, geothresh, TAG_RAS_XFORM_DEBUG);
 	  if (founddiff) {
 	    // print vol geometry
 	    mri->geomprint("[WARNING] niiRead(%s): vol geom from Nifti sform/qform:\n", fname);
@@ -8634,10 +8640,10 @@ static MRI *niiRead(const char *fname, int read_volume)
 	  }
 	}
     
-	if (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG)
+	if (TAG_RAS_XFORM_DEBUG)
 	  printf("[DEBUG] niiRead(): volume vox2ras check, thresh=%g (ras_xform vs sform/qform) ...\n", geothresh);
-	vox2rasdiff = VOL_GEOM::checkvox2ras(&ras_xform, mri, geothresh, (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG), nii_sform);      
-	if (vox2rasdiff && (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG)) {
+	vox2rasdiff = VOL_GEOM::checkvox2ras(&ras_xform, mri, geothresh, TAG_RAS_XFORM_DEBUG, nii_sform);      
+	if (vox2rasdiff && TAG_RAS_XFORM_DEBUG) {
 	  // We now treat the differences between TAG_RAS_XFORM and vol_geom as WARNING not ERROR
 	  printf("[WARNING] niiRead(%s): VOX2RAS differs - TAG_RAS_XFORM vs Nifti sform/qform in FS header extension (thresh=%g)\n", fname, vg_isEqual_Threshold);
 	  printf("[WARNING] niiRead(%s): ignore TAG_RAS_XFORM in FS header extension, use Nifti sform/qform\n", fname);
@@ -8647,7 +8653,7 @@ static MRI *niiRead(const char *fname, int read_volume)
       if (!vox2rasdiff)
       {
 	// difference between ras_xform and *mri is within threshold
-	if (Gdiag & DIAG_INFO || TAG_RAS_XFORM_DEBUG)
+	if (TAG_RAS_XFORM_DEBUG)
 	  printf("[INFO] niiRead(): update vol geom with TAG_RAS_XFORM in FS header extension\n");
 	mri->update_ras_xform(ras_xform);
       }
@@ -8694,7 +8700,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     return (mri);
   }
     
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] niiRead(): hdr.vox_offset = %ld\n", (long)hdr.vox_offset);
   
   // skip to image data hdr.vox_offset
@@ -8706,7 +8712,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding voxel data in %s", fname));
   }
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long here = znztell(fp);
     printf("[DEBUG] niiRead(): zeek to image data, after znzseek(%ld), file position = %ld\n", (long)hdr.vox_offset, here);
@@ -9519,7 +9525,7 @@ static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct, std::vector<float> 
   edit both. Automatically detects whether an input is Ico7
   and reshapes.
   -----------------------------------------------------------------*/
-static int niiWrite(MRI *mri0, const char *fname, int intent)
+static int niiWrite(MRI *mri0, const char *fname, int intent, bool asFSLWarp)
 {
   struct nifti_1_header hdr;
   int error, shortmax, use_compression, fnamelen;
@@ -9644,7 +9650,9 @@ static int niiWrite(MRI *mri0, const char *fname, int intent)
   hdr.toffset = 0;
   sprintf(hdr.descrip, "FreeSurfer %s", __DATE__);
 
-  if (mri->intent == MGZ_INTENT_WARPMAP)
+  if (asFSLWarp)
+    hdr.intent_code = 2006; // FSL_FNIRT_DISPLACEMENT_FIELD
+  else if (mri->intent == MGZ_INTENT_WARPMAP)
   {
     hdr.intent_code = NIFTI_INTENT_DISPVECT;
     hdr.dim[0] = 5;
@@ -9689,7 +9697,7 @@ static int niiWrite(MRI *mri0, const char *fname, int intent)
     esize += 8;  // int esize + int ecode
     esize += 4;  // int mgz intent encoded version
 
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] niiWrite(): mgztaglen = %d, esize = %d\n", mgztaglen, esize);
     
     // esize needs to be multiple of 16 bytes
@@ -9700,7 +9708,7 @@ static int niiWrite(MRI *mri0, const char *fname, int intent)
 
     // update hdr.vox_offset
     hdr.vox_offset += esize;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] niiWrite(): updated vox_offset = %ld (mgztaglen = %d, esize = %d)\n",
 	     (long)hdr.vox_offset, mgztaglen, esize);
   }
@@ -9750,7 +9758,7 @@ static int niiWrite(MRI *mri0, const char *fname, int intent)
       znzwrite(padzero, sizeof(unsigned char), reminder, fp);
     }
 
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     {
       printf("[DEBUG] niiWrite(): mgztaglen = %d, esize = %d, reminder = %d\n", mgztaglen, esize, reminder);
       printf("[DEBUG] niiWrite(): write freesurfer header-extension, mgztaglen = %d, esize = %d, ecode = %d\n", mgztaglen, esize, ecode);
@@ -10126,7 +10134,7 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr, MATRIX *nii_sfo
   sform->rptr[1][4] = hdr->srow_x[3];
   sform->rptr[2][4] = hdr->srow_y[3];
   sform->rptr[3][4] = hdr->srow_z[3];
-  if (Gdiag & DIAG_INFO)
+  if (getenv("TAG_RAS_XFORM_DEBUG") != NULL)
   {
     printf("[DEBUG] niftiSformToMri() sform:\n");
     int precision = 10;
@@ -10970,7 +10978,7 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
     mri->nframes = nframes;
     mri->version = version;                  // version saved in mgz
     mri->intent  = (version >> 8) & 0xffff;  // content of the mgz file, annot, curv, warp, ...
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] mghRead() mri->intent = %d, mri->version = %d\n", mri->intent, mri->version);
   
     if (gzipped) {  // pipe cannot seek
@@ -11011,7 +11019,7 @@ MRI *mghRead(const char *fname, int read_volume, int frame)
 
     mri->version = version;                // version saved in mgz
     mri->intent  = (version >> 8) & 0xffff;  // content of the mgz file, annot, curv, warp, ...
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] mghRead() mri->intent = %d, mri->version = %d\n", mri->intent, mri->version);    
     
     struct timespec begin, end;
@@ -11338,7 +11346,7 @@ int mghWrite(MRI *mri, const char *fname, int frame, int intent)
   memset(buf, 0, UNUSED_SPACE_SIZE * sizeof(char));
   znzwrite(buf, sizeof(char), unused_space_size, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     printf("[DEBUG] mghWrite() intent (user) = %d, mri->intent (new) = %d, mri->version (new) = %d\n", intent, mri->intent, mri->version);
     
@@ -11459,8 +11467,8 @@ int mghWrite(MRI *mri, const char *fname, int frame, int intent)
 		znzwriteFloat(real, fp);
 		float imag = MRIgetVoxVal(mri, x, y, z, frame, MRI_COMPLEX_IMAG);
 		znzwriteFloat(imag, fp);
-		if (Gdiag & DIAG_INFO)
-		  printf("[DEBUG] [%d %d %d %d] real = %f, imag = %f\n", x, y, z, frame, real, imag);
+		//if (Gdiag & DIAG_INFO)
+		//  printf("[DEBUG] [%d %d %d %d] real = %f, imag = %f\n", x, y, z, frame, real, imag);
 	      }
 	      break;
             case MRI_UCHAR:
@@ -11489,7 +11497,7 @@ int mghWrite(MRI *mri, const char *fname, int frame, int intent)
            (USEVOXELBUF) ? " (USEVOXELBUF)" : "");
   }
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     long long here = znztell(fp);
     printf("[DEBUG] mghWrite() fpos = %-6lld (after 4D data, before scan parameters)\n", here);
@@ -11501,7 +11509,7 @@ int mghWrite(MRI *mri, const char *fname, int frame, int intent)
   znzwriteFloat(mri->ti, fp);
   znzwriteFloat(mri->fov, fp);
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {
     printf("[DEBUG] tr = %.6f, flip_angle = %.6f, te = %.6f, ti = %.6f, fov = %.6f\n", mri->tr, mri->flip_angle, mri->te, mri->ti, mri->fov);
     long long here = znztell(fp);
@@ -12214,13 +12222,13 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
     int tag = fstagsio.read_tagid_len(&len);
     if (tag == 0)
     {
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
 	printf("[DEBUG] MRITAGread(): remaining taglen = %lld (tag = %d)\n", mgztaglen, tag);
       
       break;
     }
 
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] MRITAGread(): remaining taglen = %lld (tag = %d, len = %lld)\n", mgztaglen, tag, len);
       
     switch (tag) {
@@ -12285,7 +12293,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
         fnamedir = NULL;
         //fstagsio.read_data(mri->transform_fname, len + 1);
 	fstagsio.read_data(mri->transform_fname, len);
-        if (Gdiag & DIAG_INFO)
+        if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
           printf("[DEBUG] MRITAGread() TAG_MGH_XFORM = %s (%lld)\n", mri->transform_fname, len);
 	
         // If this file exists, copy it to transform_fname
@@ -12342,7 +12350,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       case TAG_GCAMORPH_META:
 	// MGZ_INTENT_WARPMAP only	
         fstagsio.read_gcamorph_meta(&mri->warpFieldFormat, &mri->gcamorphSpacing, &mri->gcamorphExp_k);
-	if (Gdiag & DIAG_INFO)
+	if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
 	{
 	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_META\n");
 	  printf("[DEBUG] MRITAGread() warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
@@ -12353,7 +12361,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       case TAG_GCAMORPH_GEOM:
 	// MGZ_INTENT_WARPMAP only
 	fstagsio.read_gcamorph_geom(&(mri->gcamorph_image_vg), &(mri->gcamorph_atlas_vg));
-        if (Gdiag & DIAG_INFO)
+        if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
 	{
 	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_GEOM\n");
 	  mri->gcamorph_image_vg.vgprint(true);
@@ -12363,7 +12371,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       case TAG_GCAMORPH_GEOM_PLUSSHEAR:
 	// MGZ_INTENT_WARPMAP only
 	fstagsio.read_gcamorph_geom(&(mri->gcamorph_image_vg), &(mri->gcamorph_atlas_vg), false);
-        if (Gdiag & DIAG_INFO)
+        if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
 	{
 	  printf("[DEBUG] MRITAGread() TAG_GCAMORPH_GEOM_PLUSSHEAR\n");
 	  mri->gcamorph_image_vg.vgprint(true);
@@ -12373,7 +12381,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       case TAG_GCAMORPH_AFFINE:
 	// MGZ_INTENT_WARPMAP only	
         mri->gcamorphAffine = fstagsio.read_matrix();
-        if (Gdiag & DIAG_INFO)
+        if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         {
           printf("[DEBUG] MRITAGread() TAG_GCAMORPH_AFFINE\n");
           MatrixPrint(stdout, mri->gcamorphAffine);
@@ -12384,8 +12392,8 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
         // allocate memory for mri->gcamorphLabel
         mri->initGCAMorphLabel();
 
-	if (Gdiag & DIAG_INFO)
-          printf("[DEBUG] read TAG_GCAMORPH_LABELS\n");
+	if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
+          printf("[DEBUG] MRITAGread() TAG_GCAMORPH_LABELS\n");
 	
         fstagsio.read_gcamorph_labels(mri->width, mri->height, mri->depth, mri->gcamorphLabel);
         break;
@@ -12400,7 +12408,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       // mgztaglen also includes the bytes for TAGs and data-length
       int len_tagheader = sizeof(long long) + sizeof(int);
       mgztaglen -= (len + len_tagheader);
-      //if (Gdiag & DIAG_INFO)
+      //if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       //  printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
 
       // can't reply on znzeof() to detect end of tag data for nifti header extension
@@ -12409,7 +12417,7 @@ void MRITAGread(MRI *mri, znzFile fp, const char *fname, bool niftiheaderext, lo
       // check if there is at least 12 bytes (sizeof(long long) + sizeof(int)) left 
       if (mgztaglen < len_tagheader)
       {
-	if (Gdiag & DIAG_INFO)
+	if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
 	  printf("[DEBUG] MRITAGread(): remaining taglen = %lld\n", mgztaglen);
         break;
       }
@@ -12430,7 +12438,7 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
     fstagsio.write_gcamorph_geom(&mri->gcamorph_image_vg, &mri->gcamorph_atlas_vg, false);
 
     // output TAG_GCAMORPH_META data-length data
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     {
       long long dlen = sizeof(int) + sizeof(int) + sizeof(float);
       printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_META dlen = %lld, warpFieldFormat = %d, gcamorphSpacing = %d, gcamorphExp_k = %.6f\n",
@@ -12442,7 +12450,7 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
     // output TAG_GCAMORPH_AFFINE
     if (mri->gcamorphAffine)
     {
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       {
         printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_AFFINE\n");
         MatrixPrint(stdout, mri->gcamorphAffine);
@@ -12454,7 +12462,7 @@ void MRITAGwrite(MRI *mri, znzFile fp, bool niftiheaderext)
     // output TAG_GCAMORPH_LABELS
     if (mri->gcamorphLabel)
     {
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] MRITAGwrite() TAG_GCAMORPH_LABELS\n");
 
       fstagsio.write_gcamorph_labels(mri->width, mri->height, mri->depth, mri->gcamorphLabel);
@@ -12540,7 +12548,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
 {
   long long dlen = 0, taglen = 0;
 
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] __getMRITAGlength(): dlen = %-6lld\n", dlen);
   
   if (mri->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_UNKNOWN)
@@ -12548,19 +12556,19 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     // output TAG_GCAMORPH_GEOM
     taglen = FStagsIO::getlen_gcamorph_geom((mri->gcamorph_image_vg).fname, (mri->gcamorph_atlas_vg).fname, niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_GEOM);
 
     // output TAG_GCAMORPH_GEOM_PLUSSHEAR
     taglen = FStagsIO::getlen_gcamorph_geom((mri->gcamorph_image_vg).fname, (mri->gcamorph_atlas_vg).fname, niftiheaderext, true, false);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_GEOM_PLUSSHEAR);
 
     // output TAG_GCAMORPH_META data-length data
     taglen = FStagsIO::getlen_gcamorph_meta();  //sizeof(int) + sizeof(int) + sizeof(float);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_META);    
 
     // output TAG_GCAMORPH_AFFINE
@@ -12568,7 +12576,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     {
       taglen = FStagsIO::getlen_matrix(niftiheaderext);
       dlen += taglen;
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_AFFINE);
     }
 
@@ -12577,7 +12585,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     {
       taglen = FStagsIO::getlen_gcamorph_labels(mri->width, mri->height, mri->depth, sizeof(int), niftiheaderext);
       dlen += taglen;
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_GCAMORPH_LABELS);
     }
 
@@ -12586,7 +12594,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
       // TAG_END_NIIHDREXTENSION
       taglen = FStagsIO::getlen_endtag();
       dlen += taglen;
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_END_NIIHDREXTENSION);    
     }
   
@@ -12599,22 +12607,22 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     // TAG_DOF, TAG_SCAN_PARAMETERS, TAG_RAS_XFORM
     taglen = FStagsIO::getlen_dof(mri->dof);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_DOF);
     
     taglen = FStagsIO::getlen_scan_parameters(mri);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_SCAN_PARAMETERS);
 
     taglen = FStagsIO::getlen_ras_xform(mri);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_RAS_XFORM);
 
     taglen = FStagsIO::getlen_ras_xform_extra(mri);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_RAS_XFORM_EXTRA);
   }
 
@@ -12626,7 +12634,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   if ((flen = strlen(mri->transform_fname)) > 0) {
     taglen = FStagsIO::getlen_tag(TAG_MGH_XFORM, flen + 1, niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_MGH_XFORM);
   }
 
@@ -12634,7 +12642,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   {
     taglen = FStagsIO::getlen_matrix(niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_AUTO_ALIGN);
   }
 
@@ -12644,14 +12652,14 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     {
       taglen = FStagsIO::getlen_tag(TAG_PEDIR, strlen(mri->pedir) + 1, niftiheaderext);
       dlen += taglen;
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_PEDIR);
     }
     else
     {
       taglen = FStagsIO::getlen_tag(TAG_PEDIR, strlen("UNKNOWN"), niftiheaderext);
       dlen += taglen;
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_PEDIR);
     }
   }
@@ -12661,7 +12669,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   {
     taglen = FStagsIO::getlen_matrix(niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_ORIG_RAS2VOX);
   }
 
@@ -12669,7 +12677,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   {
     taglen = FStagsIO::getlen_tag(TAG_FIELDSTRENGTH, sizeof(mri->FieldStrength), niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_FIELDSTRENGTH);
   }
 
@@ -12678,7 +12686,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   {    
     taglen = FStagsIO::getlen_mri_frames(mri, niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_MRI_FRAME);
   }
 
@@ -12686,7 +12694,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   {
     taglen = FStagsIO::getlen_old_colortable(mri->ct, niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_OLD_COLORTABLE);
   }
 
@@ -12695,7 +12703,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
   {
     taglen = FStagsIO::getlen_tag(TAG_CMDLINE, strlen(mri->cmdlines[i]) + 1, niftiheaderext);
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_CMDLINE);
   }
 
@@ -12704,7 +12712,7 @@ long long __getMRITAGlength(MRI *mri, bool niftiheaderext)
     // TAG_END_NIIHDREXTENSION
     taglen = FStagsIO::getlen_endtag();
     dlen += taglen;
-    if (Gdiag & DIAG_INFO)
+    if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
       printf("[DEBUG] __getMRITAGlength(): +%-6lld, dlen = %-6lld (TAG = %-2d)\n", taglen, dlen, TAG_END_NIIHDREXTENSION);    
   }
 
@@ -12734,14 +12742,19 @@ VOL_GEOM __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int s
       
     // it seems that znzseek() works fine on either .nii or .nii.gz
     if (count != 2 || !valid_ecode) {
-      printf("[WARN] __niiReadHeaderextension(): no valid extension read, rollback bytes read\n");
       znzseek(fp, -4 * count, SEEK_CUR); /* back up past any read */
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL) {
+	long long here = znztell(fp);
+	printf("[DEBUG] __niiReadHeaderextension(): no more valid extension read, rollback bytes read, file position = %lld, "
+	       "(swapped_flag=%d, esize=%d, ecode=%d, count=%d, valid_ecode=%d)\n",
+	       here, swapped_flag, esize, ecode, count, valid_ecode);
+      }
       break;                             /* no extension, no error condition */
     }
     else
     {
       if (swapped_flag) {
-	if (Gdiag & DIAG_INFO)
+	if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
           printf("[DEBUG] __niiReadHeaderextension(): pre-swap exts: ecode %d, esize %d\n", ecode, esize);
 
         byteswapbuffloat(&esize, 4);
@@ -12754,22 +12767,23 @@ VOL_GEOM __niiReadHeaderextension(znzFile fp, MRI *mri, const char *fname, int s
          */
       }
       
-      if (Gdiag & DIAG_INFO)
+      if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
         printf("[DEBUG] __niiReadHeaderextension(): ecode %d, esize %d\n", ecode, esize);
 
-      if (ecode != NIFTI_ECODE_FREESURFER)
+      if (ecode != NIFTI_ECODE_FREESURFER) {
+        // move file pointer to the end of current extension data
+	znzseek(fp, esize-8, SEEK_CUR); /* back up past any read */
 	continue;
-      else
-      {
+      } else {
 	mri->ras_good_flag = 1;
 	
-        if (Gdiag & DIAG_INFO)
+        if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
           printf("[DEBUG] __niiReadHeaderextension(): processing NIFTI_ECODE_FREESURFER ...\n");
 
         long long mgztaglen = esize - 12; // exclude esize, ecode, version
 
 	__readFSniiextensionHeader(fp, mri);
-        if (Gdiag & DIAG_INFO)
+        if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
           printf("[DEBUG] __niiReadHeaderextension(): version = %d, intent = %d (%s)\n", mri->version, mri->intent, MRI::intentName(mri->intent));
 	
         bool niftiheaderext = true;
@@ -12791,7 +12805,8 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr, MATRIX *nii_tra
   if (niihdr->sform_code != 0) {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stderr, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
+    if (getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 sform (sform_code=%d)\n", niihdr->sform_code);
     if (niftiSformToMri(mri, niihdr, nii_transform) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
@@ -12800,7 +12815,8 @@ int __niiReadSetVox2ras(MRI *mri, struct nifti_1_header* niihdr, MATRIX *nii_tra
   }
   else if (niihdr->qform_code != 0) {
     // Then, try the qform, if that is ok
-    fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
+    if (getenv("TAG_RAS_XFORM_DEBUG") != NULL)
+      fprintf(stderr, "INFO: using NIfTI-1 qform (qform_code=%d)\n", niihdr->qform_code);
     if (niftiQformToMri(mri, niihdr) != NO_ERROR) {
       MRIfree(&mri);
       return 1;
@@ -12837,7 +12853,7 @@ void __readFSniiextensionHeader(znzFile fp, MRI *mri)
 {
   unsigned char extheader[4] = {'\0'};
   znzread(extheader, 4, 1, fp);
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] __readFSniiextensionHeader(): %02x %02x %02x %02x\n", extheader[0], extheader[1], extheader[2], extheader[3]);
   
   unsigned char intent[2];
@@ -12845,7 +12861,7 @@ void __readFSniiextensionHeader(znzFile fp, MRI *mri)
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   intent[0] = extheader[2];
   intent[1] = extheader[1];
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] __readFSniiextensionHeader(): intent swapped byte order (%02x %02x) => (%02x %02x)\n", extheader[1], extheader[2], intent[0], intent[1]);
 #endif
 
@@ -12854,7 +12870,7 @@ void __readFSniiextensionHeader(znzFile fp, MRI *mri)
   unsigned char mgh_version = extheader[3];
   mri->version = ((intentcode & 0xffff) << 8) | mgh_version;
   mri->intent  = intentcode;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] __readFSniiextensionHeader(): intent = %d, mgh version = %d, mri->version = %d\n", mri->intent, mgh_version, mri->version);
 }  // end of __readFSniiextensionHeader()
 
@@ -12864,7 +12880,7 @@ void __readFSniiextensionHeader(znzFile fp, MRI *mri)
 //   endian (1 byte), intent (unsigned short, 2 bytes), version (1 byte)
 void __writeFSniiextensionHeader(znzFile fp, MRI *mri, int intentcode)
 {
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] __writeFSniiextensionHeader(): intent (user) = %d, mri->intent (orig) = %d, mri->version (orig) = %d\n", intentcode, mri->intent, mri->version);
   
   unsigned char extheader[4] = {'\0'};
@@ -12883,13 +12899,13 @@ void __writeFSniiextensionHeader(znzFile fp, MRI *mri, int intentcode)
   unsigned char c = extheader[1];
   extheader[1] = extheader[2];
   extheader[2] = c;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
     printf("[DEBUG] __writeFSniiextensionHeader(): intent swapped byte order (%02x %02x) => (%02x %02x)\n", c, extheader[1], extheader[1], extheader[2]);
 #endif
 
   unsigned char mgh_version = mri->version & 0xff;  // 1 byte for version
   extheader[3] = mgh_version;
-  if (Gdiag & DIAG_INFO)
+  if (getenv("NII_HEADER_EXT_DEBUG") != NULL)
   {  
     printf("[DEBUG] __writeFSniiextensionHeader(): intent = %d, mgh version = %d, mri->intent (new) = %d, mri->version (new) = %d\n", intent, mgh_version, mri->intent, mri->version);   
     printf("[DEBUG] __writeFSniiextensionHeader(): %02x %02x %02x %02x\n", extheader[0], extheader[1], extheader[2], extheader[3]);

@@ -55,11 +55,21 @@ if(APPLE)
   else()
     set(NIFTY_REG_DIR niftyreg/mac_x86)
   endif()
-elseif("${HOST_OS}" STREQUAL "Ubuntu20")
+# besides (Apple) darwin_arm64, only ubuntu24 also allows for arm64
+elseif(HOST_OS MATCHES "Ubuntu24" AND UBUNTU_ARM64)
+  set(NIFTY_REG_DIR niftyreg/ubuntu_aarch64)
+elseif(HOST_OS MATCHES "Ubuntu24" AND NOT UBUNTU_ARM64)
+  # x86_64 executables built on Ubuntu22 should also work on Ubuntu24
+  set(NIFTY_REG_DIR niftyreg/ubuntu22_x86)
+elseif(HOST_OS MATCHES "Ubuntu22")
+  set(NIFTY_REG_DIR niftyreg/ubuntu22_x86)
+elseif(HOST_OS MATCHES "Ubuntu20")
+  # This and the Ubuntu20_x86 dir can be dropped/migraged once we drop support for Ubuntu20
   set(NIFTY_REG_DIR niftyreg/ubuntu_x86)
-elseif("${HOST_OS}" STREQUAL "Ubuntu22")
+elseif(HOST_OS MATCHES "Ubuntu")
   set(NIFTY_REG_DIR niftyreg/ubuntu22_x86)
 else()
+  # default for rocky8, rocky9 and all other linux
   set(NIFTY_REG_DIR niftyreg/linux_x86)
 endif()
 

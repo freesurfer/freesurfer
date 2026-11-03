@@ -20,6 +20,7 @@ set MulVal = ()
 set DivVal = ()
 set RescaleLocal = ();
 set ctab = $FREESURFER/FreeSurferColorLUT.txt
+set Erode = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -91,6 +92,7 @@ set segbin = $tmpdir/seg.bin.mgh
 set ud = `UpdateNeeded $segbin $seg`
 if($ud || $ForceUpdate) then
   set cmd = (mri_binarize --i $seg --match $indexlist --o $segbin)
+  if($Erode > 0) set cmd = ($cmd --erode $Erode)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit
@@ -229,6 +231,11 @@ while( $#argv != 0 )
     case "--vsm":
       if($#argv < 1) goto arg1err;
       set vsm = $argv[1]; shift;
+      breaksw
+
+    case "--erode":
+      if($#argv < 1) goto arg1err;
+      set Erode = $argv[1]; shift;
       breaksw
 
     case "--id":
@@ -394,6 +401,7 @@ usage_exit:
   echo " --vsm vsm.nii.gz : voxel shift map for B0 distortion correction"
   echo " --regheader"
   echo " --demean : remove mean, first, and second order trends"
+  echo " --erode nerodes : erode the mask by nerodes"
   echo " --o waveform.dat"
   echo ""
   echo " --mul mulval : multiply by mulval (will be combined with --div)"

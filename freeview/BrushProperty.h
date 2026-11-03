@@ -99,6 +99,11 @@ public:
     m_mapGeos[name] = val;
   }
 
+  bool GetNoOverwrite()
+  {
+    return m_bNoOverwrite;
+  }
+
 signals:
   void FillValueChanged(double);
   void EraseValueChanged(double);
@@ -126,6 +131,11 @@ public slots:
   void SetEraseRangeEnabled( bool bEnable );
   void SetEraseExcludeRangeEnabled( bool bEnable );
 
+  void SetNoOverwrite(bool b)
+  {
+    m_bNoOverwrite = b;
+  }
+
 protected:
   int  m_nBrushSize;
   int  m_nBrushTolerance;
@@ -140,6 +150,7 @@ protected:
   bool m_bDrawConnectedOnly;
   bool  m_bFill3D;
   bool m_bIsCloning;
+  bool m_bNoOverwrite;
 
   double m_dFillValue;
   double m_dEraseValue;

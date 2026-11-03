@@ -1161,6 +1161,28 @@ static int parse_commandline(int argc, char **argv) {
       exit(err);
       nargsused = 3;
     } 
+    else if (!strcmp(option, "--label2surf")) {
+      // This maps a surface label to a new surface. The new surf must be in
+      // registration with the label.  The use case for this is if you have
+      // manual surface labels and then re-generate the surfaces.  This
+      // causes a mismatch between indicies but the xyz is usually quite
+      // similar. So this goes through each label point and finds the
+      // nearest vertex (fills holes too).
+      if(nargc != 3) {
+	printf("--label2surf label surf newlabel\n");
+	exit(1);
+      }
+      srclabel = LabelRead(NULL, pargv[0]);
+      if(!srclabel) exit(1);
+      SrcSurfReg = MRISread(pargv[1]);
+      if(!SrcSurfReg) exit(1);
+      // dminmax=10, RemoveHoles=1, hashres=16
+      LABEL *newlabel = Label2Surf(srclabel, SrcSurfReg, 10, 1, 16);
+      if(newlabel == NULL) exit(1);
+      int err = LabelWrite(newlabel,pargv[2]);
+      exit(err);
+      nargsused = 3;
+    } 
     else if (!strcmp(option, "--outstat")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
@@ -1298,6 +1320,7 @@ static void print_usage(void) {
   printf("   --baryfill surf surflabel delta outlabel\n");
   printf("   --label-cortex surface aseg KeepHipAmyg01 outlabel : create a label like ?h.cortex.label <entowm.mgz>\n");
   printf("   --surf-label2mask label surf mask : stand-alone way to convert a label to a binary mask\n");
+  printf("   --label2surf label surf outlabel : stand-alone way to map a surf label to a new (in reg) surface\n");
   printf("   --annot-fill-holes surf inannot outannot : stand-alone option to fill holes in the annot/parc overlay segmentation\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
@@ -1599,3 +1622,5 @@ static int singledash(char *flag) {
   if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
+
+

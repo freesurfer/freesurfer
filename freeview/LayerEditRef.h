@@ -50,9 +50,6 @@ public:
   void SetStartPosition(double* pos);
   void SetEndPosition(double* pos);
 
-  void SetColor(const QColor& color);
-
-  void SetVisible( bool bVisible = true );
 
   int GetNumberOfMarks();
 
@@ -65,6 +62,8 @@ public:
 signals:
 
 public slots:
+  void SetColor(const QColor& color);
+  void SetVisible( bool bVisible = true );
   void SetMRIRef(LayerMRI* mri);
   void Reset();
   void ApplyToMRI(LayerMRI* mri_in = NULL);

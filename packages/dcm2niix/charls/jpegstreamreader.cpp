@@ -82,7 +82,7 @@ void JpegImageDataSegment::Serialize(JpegStreamWriter& streamWriter)
     auto codec = JlsCodecFactory<EncoderStrategy>().CreateCodec(info, _params.custom);
     std::unique_ptr<ProcessLine> processLine(codec->CreateProcess(_rawStreamInfo));
     ByteStreamInfo compressedData = streamWriter.OutputStream();
-    const size_t cbyteWritten = codec->EncodeScan(move(processLine), compressedData);
+    const size_t cbyteWritten = codec->EncodeScan(std::move(processLine), compressedData);
     streamWriter.Seek(cbyteWritten);
 }
 
@@ -122,7 +122,7 @@ void JpegStreamReader::Read(ByteStreamInfo rawPixels)
 
         std::unique_ptr<DecoderStrategy> qcodec = JlsCodecFactory<DecoderStrategy>().CreateCodec(_params, _params.custom);
         std::unique_ptr<ProcessLine> processLine(qcodec->CreateProcess(rawPixels));
-        qcodec->DecodeScan(move(processLine), _rect, _byteStream);
+        qcodec->DecodeScan(std::move(processLine), _rect, _byteStream);
         SkipBytes(rawPixels, static_cast<size_t>(bytesPerPlane));
 
         if (_params.interleaveMode != InterleaveMode::None)

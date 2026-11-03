@@ -387,6 +387,8 @@ public:
 
   SurfaceAnnotation* CreateNewAnnotation(const QString& ct_file, const QString& name = "");
 
+  bool IsVertexOnLabel(int vno);
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);

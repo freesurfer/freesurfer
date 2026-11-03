@@ -44,6 +44,7 @@ Warpfield::Warpfield()
   __freewarpmap = true;
   __invert = 0;
   __mgzVersion = ((MGZ_INTENT_WARPMAP & 0xffff ) << 8) | MGH_VERSION;
+  __FSLWarpfield = false;  
 
   __srcRAS2Vox = NULL;
   __srcVox2RAS = NULL;
@@ -65,6 +66,7 @@ Warpfield::Warpfield(MRI* mri)
   __freewarpmap = false;
   __invert = 0;
   __mgzVersion = ((MGZ_INTENT_WARPMAP & 0xffff ) << 8) | MGH_VERSION;
+  __FSLWarpfield = false;
 
   // pre-calulated transform matrix taking shears into consideration
   __srcRAS2Vox = __warpmap->gcamorph_image_vg.get_RAS2Vox(0, true);
@@ -564,8 +566,11 @@ GCA_MORPH *Warpfield::read(const char *fname)
 
 
 // write out the 3-frame MRI warping map
-int Warpfield::write(const char *fname)
+int Warpfield::write(const char *fname, bool asFSLWarp)
 {
+  if (asFSLWarp && !__FSLWarpfield)
+    toFSLWarpfield();
+    
   int type = mri_identify(fname);
   if (type != MRI_MGH_FILE && type != NII_FILE)
   {
@@ -577,7 +582,7 @@ int Warpfield::write(const char *fname)
   if (__invert)
     __mgzVersion = ((MGZ_INTENT_WARPMAP_INV & 0xffff ) << 8) | MGH_VERSION;
 
-  int ret = MRIwrite(__warpmap, fname);  //mghWrite(__warpmap, fname);
+  int ret = MRIwrite(__warpmap, fname, NULL, MGZ_INTENT_UNKNOWN, asFSLWarp);  //mghWrite(__warpmap, fname);
   if (ret)
     printf("ERROR: Warpfield::write(%s)\n", fname);
   
@@ -948,6 +953,21 @@ void Warpfield::__changeFormatFrom_disp_ras(const int newformat)
   MatrixFree(&image_RAS);
   MatrixFree(&atlas_CRS);
   MatrixFree(&atlas_RAS);
+}
+
+
+// convert Freesurfer 3D morph to FSL warpfield
+void Warpfield::toFSLWarpfield()
+{
+  // FSL warpfields are RAS space
+  if (__warpmap->warpFieldFormat != WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS)
+    changeFormat(WarpfieldDTFMT::WARPFIELD_DTFMT_DISP_RAS);
+  
+  // todo:
+  // adjust warpfield values for non-negative determinant
+  // ...
+
+  __FSLWarpfield = true;  
 }
 
 

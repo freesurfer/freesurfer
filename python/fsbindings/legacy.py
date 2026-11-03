@@ -466,6 +466,7 @@ class StatsParser:
         self.exclude_structlist = [] 
         self.structlist = []
         self.measurelist = []
+        self.caselist = [] # list of casenames        
         self.include_vol_extras = 1;
 
     # parse only the following structures
@@ -499,7 +500,7 @@ Derived from StatsParser
 """
 class AsegStatsParser(StatsParser):
 
-    measure_column_map = {'nvoxels':2,'nvertices':2,'volume':3,'Area_mm2':3, 'mean':5, 'std':6, 'max':8, 'snr':10}
+    measure_column_map = {'nvoxels':2,'nvertices':2,'volume':3,'Area_mm2':3, 'mean':5, 'std':6, 'min':7, 'max':8, 'range':9, 'snr':10}
     maxsegno = None
     id_name_map = StableDict()
 
@@ -522,6 +523,9 @@ class AsegStatsParser(StatsParser):
                 self.id_name_map[seg] = strlst[4] # Col 4 is Seg Name
                 # Float of the measure we are interested in 
                 self.measurelist.append( float(strlst[self.measure_column_map[measure]] ))
+            elif (line.strip().startswith("# CaseName ")):
+                casename = line.strip().removeprefix("# CaseName ")
+                self.caselist.append(casename)
 
         # if we have a spec which instructs the table to have only specified segs,
         # we need to make sure the order also has to be maintained

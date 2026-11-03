@@ -101,5 +101,5 @@ void ThreadBuildContour::run()
   }
   m_mri->m_labelActorsTemp = map;
 
-  emit Finished(m_nThreadID);
+  emit Finished(m_nThreadID, m_nSegValue);
 }

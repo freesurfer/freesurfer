@@ -79,8 +79,11 @@
       <explanation>check all labels</explanation>
       <argument>-dice-mask mask</argument>
       <explanation>Mask to use with -dice. Must come before -dice</explanation>
+      <argument>-case-name casename</argument>
+      <explanation>Case name to put in stats file with -dice. Must come before -dice</explanation>
       <argument>-dice seg1 seg2 ctab ReportEmpty01 ExcludeId datfile tablefile</argument>
-      <explanation>Standalone way to compute dice. ctab can = embedded. output = count1 count2 dice tpr fdr jaccard</explanation>
+      <explanation>Standalone way to compute dice. ctab can = embedded. output = count1 count2 dice tpr fdr jaccard. If tablefile has .stats extension then saves in format that can be used with asegststats2table.
+</explanation>
       <argument>-tpfpfn outvol manseg autoseg segid1 ... segidN</argument>
       <explanation>Compute seg of TruePos, FalsePos, and TrueNeg for given (combined) segids</explanation>
     </optional-flagged>

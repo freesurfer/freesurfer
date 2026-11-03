@@ -60,6 +60,7 @@
 #include "vtkCutter.h"
 #include "vtkPlane.h"
 #include "vtkIndent.h"
+#include "vtkImageAppend.h"
 #include "MyUtils.h"
 #include "MyVTKUtils.h"
 #include "FSVolume.h"
@@ -295,6 +296,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(VectorLineWidthChanged(double)), this, SLOT(UpdateVectorLineWidth(double)));
   connect( p, SIGNAL(VectorSkipChanged(int)), SLOT(UpdateVectorActor()));
   connect( p, SIGNAL(Contour2DShown(bool)), SLOT(UpdateContour2D()));
+  connect( p, SIGNAL(VectorColorChanged()), SLOT(UpdateVectorColor()));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -930,6 +932,30 @@ void LayerMRI::InitializeVolume()
   //  qDebug() << m_dWorldSize[0] << m_dWorldSize[1] << m_dWorldSize[2];
   
   m_imageData = source->GetImageOutput();
+
+  // if it's 1D image, expand for slice display
+  int* dim = m_imageData->GetDimensions();
+  QList<int> ns;
+  for (int i = 0; i < 3; i++)
+  {
+    if (dim[i] == 1)
+      ns << i;
+  }
+  if (false) // ns.size() == 2)
+  {
+    vtkSmartPointer<vtkImageAppend> append = vtkSmartPointer<vtkImageAppend>::New();
+    append->SetAppendAxis(ns[0]);
+    append->AddInputData(m_imageData);
+    append->AddInputData(m_imageData);
+    append->Update();
+    m_imageData = append->GetOutput();
+    append = vtkSmartPointer<vtkImageAppend>::New();
+    append->SetAppendAxis(ns[1]);
+    append->AddInputData(m_imageData);
+    append->AddInputData(m_imageData);
+    append->Update();
+    m_imageData = append->GetOutput();
+  }
 }
 
 void LayerMRI::InitializeActors()
@@ -1106,7 +1132,7 @@ void LayerMRI::UpdateContourActor( int nSegValue )
   // are different, it means a new thread is rebuilding the contour
   m_nThreadID++;
   ThreadBuildContour* thread = new ThreadBuildContour(this);
-  connect(thread, SIGNAL(Finished(int)), this, SLOT(OnContourThreadFinished(int)));
+  connect(thread, SIGNAL(Finished(int,int)), this, SLOT(OnContourThreadFinished(int,int)));
   thread->BuildContour( this, nSegValue, m_nThreadID );
   emit IsoSurfaceUpdating();
 }
@@ -1125,7 +1151,7 @@ void LayerMRI::UpdateContour2D(bool bEmit)
 }
 
 // Contour mapper is ready, attach it to the actor
-void LayerMRI::OnContourThreadFinished(int thread_id)
+void LayerMRI::OnContourThreadFinished(int thread_id, int seg_val)
 {
   if (m_nThreadID == thread_id)
   {
@@ -1142,7 +1168,12 @@ void LayerMRI::OnContourThreadFinished(int thread_id)
 #endif
           m_labelActors[n]->GetMapper()->SetLookupTable( GetProperty()->GetLUTTable() );
         }
-        OnLabelContourChanged();
+
+        OnLabelContourChanged(seg_val);
+
+        if (seg_val >= 0)
+          GetProperty()->SetSelectLabel(seg_val, true);
+
         emit ActorChanged();
       }
     }
@@ -1262,7 +1293,9 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
     {
       QList<int> keys = m_labelActors.keys();
       foreach (int i, keys)
+      {
         renderer->AddViewProp(m_labelActors[i]);
+      }
     }
     else
     {
@@ -2348,6 +2381,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   default:
     break;
   }
+
+  if (GetProperty()->GetVectorColorCode() == LayerPropertyMRI::VC_Single)
+    UpdateVectorColor();
   
   emit ActorUpdated();
 }
@@ -4310,15 +4346,24 @@ void LayerMRI::OnLabelContourChanged(int n)
   emit ActorUpdated();
 }
 
-void LayerMRI::RebuildContour()
+void LayerMRI::RebuildContour(int nSeg)
 {
-  QList<int> keys = m_labelActors.keys();
-  foreach (int i, keys)
+  if (nSeg < 0)
   {
-    m_labelActors[i]->Delete();
+    QList<int> keys = m_labelActors.keys();
+    foreach (int i, keys)
+    {
+      m_labelActors[i]->Delete();
+    }
+    m_labelActors.clear();
+    UpdateContour();
   }
-  m_labelActors.clear();
-  UpdateContour();
+  else if (m_labelActors.contains(nSeg))
+  {
+    m_labelActors[nSeg]->Delete();
+    m_labelActors.remove(nSeg);
+    UpdateContour(nSeg);
+  }
 }
 
 void LayerMRI::OnLabelInformationReady()
@@ -4770,4 +4815,20 @@ int LayerMRI::GetLabelCount(int nVal, int nPlane, int nStart, int nEnd)
     }
   }
   return nCount;
+}
+
+void LayerMRI::UpdateVectorColor()
+{
+  bool single_color = (GetProperty()->GetVectorColorCode() == LayerPropertyMRI::VC_Single);
+  QColor c = GetProperty()->GetVectorColor();
+  for (int i = 0; i < 3; i++)
+  {
+    m_glyphActor2D[i]->GetMapper()->SetScalarVisibility(single_color?0:1);
+    m_glyphActor3D[i]->GetMapper()->SetScalarVisibility(single_color?0:1);
+    m_vectorDotActor2D[i]->GetMapper()->SetScalarVisibility(single_color?0:1);
+    m_glyphActor2D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+    m_glyphActor3D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+    m_vectorDotActor2D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  }
+  emit ActorUpdated();
 }

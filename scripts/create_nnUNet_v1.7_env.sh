@@ -148,7 +148,7 @@ trap cleanup EXIT
 source $SOURCE_CONDA
 
 # cretate the conda env
-CONDA_CREATE_CMD="conda create -n $CREATE_ENV_NAME python=3.8.13 pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 -c pytorch -y"
+CONDA_CREATE_CMD="conda create -n $CREATE_ENV_NAME python=3.9 pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 -c pytorch -y"
 
 # append the cuda dependencies if --cuda passed
 if [[ $INSTALL_CUDA -eq 1 ]]; then
@@ -215,5 +215,5 @@ echo "export nnUNet_preprocessed=$nnUNet_preprocessed" | tee -a $PATH_FILE
 echo "export RESULTS_FOLDER=$RESULTS_FOLDER" | tee -a $PATH_FILE
 
 echo "Installation complete"
-echo "Activate the conda envrionment named: $CREATE_ENV_NAME, and source $PATH_FILE to run the nnUNet model."
+echo "Activate the conda environment named: $CREATE_ENV_NAME, and source $PATH_FILE to run the nnUNet model."
 echo "You can save a copy of $PATH_FILE in $CONDA_PREFIX/etc/conda/activate.d, for this to happen automatically when you activate the environment."

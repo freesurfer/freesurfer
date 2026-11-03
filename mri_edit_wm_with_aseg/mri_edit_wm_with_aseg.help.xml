@@ -59,8 +59,10 @@
       <explanation>Stand-alone version of -fix-acj </explanation>
       <argument>-label-acj aseg.presurf outvol</argument>
       <explanation>Stand-alone option to output the ACJ labels</explanation>
-      <argument>-keep-hailvcp</argument>
-      <explanation>Experimental option to keep hippo/amyg/inf lat vent/choroid plexus in the subcortical mass.</explanation>
+      <argument>-keep-hailvcp lhval rhval</argument>
+      <explanation>Experimental option to keep hippo/amyg/inf lat vent/choroid plexus in the subcortical mass. See -fix-acj for how to set the values</explanation>
+      <argument>-sa-keep-hailvcp seg lhval rhval invol outvol</argument>
+      <explanation>Stand-alone version of -keep-hailvcp</explanation>
       <argument>-fill-seg-wm (-no-fill-seg-wm)</argument>
       <explanation>Fill WM from seg (excluding voxels adjacent to cortex); off by default</explanation>
       <argument>-debug_voxel Gx Gy Gz</argument>
