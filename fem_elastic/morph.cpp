@@ -421,7 +421,8 @@ DeltaTransform3d::doOwnImg(const tCoords& pt) const
   // sample the mask first - do this on a nearest neighbor method
   if ( m_mask )
   {
-    MRIsampleVolumeFrameType( m_mask, pt(0), pt(1), pt(2), 0, m_interpolation, &val );
+    // MRIsampleVolumeFrameType( m_mask, pt(0), pt(1), pt(2), 0, m_interpolation, &val );
+    MRIsampleVolumeFrameType( m_mask, pt(0), pt(1), pt(2), 0, SAMPLE_NEAREST, &val );
     if ( !val )
     {
       retVal.invalidate();
@@ -527,7 +528,7 @@ DeltaTransform3d::doOutput(std::ostream& os) const
 void
 DeltaTransform3d::invert()
 { 
-  double val;
+  /*  double val;
   //  std::cout << "DeltaTransform3d: invert" << std::endl;
   int i, j, k;
   for (i = 0; i < m_field->width; i++)
@@ -536,7 +537,15 @@ DeltaTransform3d::invert()
 	{
 	  MRIsampleVolume(m_field, i, j, k, &val);
 	  MRIsetVoxVal(m_field, i, j, k, 0, -val); 
-	}
+	  }*/
+
+  if ( !m_field )
+    throw "DeltaTransform3d invert - NULL data";
+  for (int f = 0; f < m_field->nframes; f++)
+    for (int i = 0; i < m_field->width; i++)
+      for (int j = 0; j < m_field->height; j++)
+        for (int k = 0; k < m_field->depth; k++)
+          MRIsetVoxVal(m_field, i, j, k, f, -MRIgetVoxVal(m_field, i, j, k, f));
 }
 
 
@@ -601,11 +610,12 @@ FemTransform3d::invert()
 }
 
 FemTransform3d::TransformType*
-FemTransform3d::convert_to_delta() const
+//FemTransform3d::convert_to_delta() const
+FemTransform3d::convert_to_delta(int width, int height, int depth) const
 {
   MRI* field = NULL;
   MRI* mask = NULL;
-  int width(256), height(256), depth(256);
+  // int width(256), height(256), depth(256);
 
   // alloc volume
   field = MRIallocSequence( width,
@@ -1542,6 +1552,10 @@ VolumeMorph::exportGcam(MRI* mriMoving,
     box.dy = m_template->height;
     box.dz = m_template->depth;
   }
+
+  if ( box.dx <= 0 || box.dy <= 0 || box.dz <= 0 )
+    throw "VolumeMorph exportGcam -> empty bounding box (threshold too high?)";
+  
   std::cout << " box = " << std::endl
   << box.x << " , " << box.y << " , " << box.z << std::endl
   << box.dx << " , " << box.dy << " , " << box.dz << std::endl;

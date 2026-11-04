@@ -161,7 +161,8 @@ SmallMatrix::inplace_transpose()
     for (int j=0; j<m_cols; ++j)
       pdata[ j*m_rows + i ] = (*this)(i,j);
 
-  delete m_pdata;
+  //delete m_pdata;
+  delete[] m_pdata;
   m_pdata = pdata;
 
   int ibuf = m_rows;

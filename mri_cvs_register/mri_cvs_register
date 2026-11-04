@@ -386,14 +386,25 @@ endif
 #                 big difference.)
 # * newtopology option should not be used
 ###
+
+# the cached affine depends on the template, the hemisphere set and the moving surfaces
+if ($BothHemis) then
+  set affinecache = $outdir/transform.${templateid}.both.txt
+else
+  set affinecache = $outdir/transform.${templateid}.${hemiReq}.txt
+endif
+if ($CleanSurfReg || $CleanElReg) then
+  rm -f $affinecache
+endif
+
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
     #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
-    #  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 100 -fem_steps 17 -elt_vol_range 5.0,10.0 \
-    #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 500 -fem_steps 17 -elt_vol_range 5.0,10.0 \
     #set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight $penaltyweight -fem_steps 17 -elt_vol_range 5.0,10.0 \
     set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight $penaltyweight -fem_steps 75 -elt_vol_range 5.0,10.0 \
-                       -topology_old -compress -pc_type jacobi -ksp_type preonly \
-                       -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
+    #                   -topology_old -compress -pc_type jacobi -ksp_type preonly \
+			-topology_old -compress -pc_type jacobi -ksp_type cg \
+			-ksp_view -ksp_converged_reason -poisson .3 -young 1000)
+
  if ($BothHemis) then
   set regmoving = $mmri/$voltype.mgz
   set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
@@ -403,7 +414,8 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       -fixed_surf_4 $tsurf/rh.pial    -moving_surf_4 $outdir/rh.resample.pial \
                       -aparc $tlabel/lh.aparc.annot   -aparc_2 $tlabel/rh.aparc.annot \
                       -aparc_3 $tlabel/lh.aparc.annot -aparc_4 $tlabel/rh.aparc.annot \
-                      $elasticoptions -cache_transform $outdir/transform.txt \
+                      # $elasticoptions -cache_transform $outdir/transform.txt \
+		      $elasticoptions -cache_transform $affinecache \
                       -out $outdir/${elasticmorph:r}.mgz -out_mesh $outdir/${elasticmorph:r} -out_affine $outdir/${elasticmorph:r}.affine.mgz )
 		    # -out_surf $outdir/surf-mfc_to$templateid
 
@@ -430,7 +442,8 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       -fixed_surf $tsurf/$hemiReq.white     -moving_surf $outdir/$hemiReq.resample.white \
                       -fixed_surf_2 $tsurf/$hemiReq.pial    -moving_surf_2 $outdir/$hemiReq.resample.pial \
                       -aparc $tlabel/$hemiReq.aparc.annot   -aparc_2 $tlabel/$hemiReq.aparc.annot \
-                      $elasticoptions -cache_transform $outdir/transform.txt \
+                      # $elasticoptions -cache_transform $outdir/transform.txt \
+		      $elasticoptions -cache_transform $affinecache \
                       -out $outdir/${elasticmorph:r}.mgz -out_mesh $outdir/${elasticmorph:r} -out_affine $outdir/${elasticmorph:r}.affine.mgz)
                       # -out_surf $outdir/surf-mfc_to$templateid \
   
