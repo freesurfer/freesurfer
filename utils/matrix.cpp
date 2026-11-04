@@ -2624,22 +2624,6 @@ VECTOR *VectorNormalize(const VECTOR *vin, VECTOR *vout)
   return (vout);
 }
 
-float VectorAngle(const VECTOR *v1, const VECTOR *v2)
-{
-  float angle, l1, l2, dot, norm;
-
-  l1 = VectorLen(v1);
-  l2 = VectorLen(v2);
-  norm = fabs(l1 * l2);
-  if (FZERO(norm)) return (0.0f);
-  dot = VectorDot(v1, v2);
-  if (dot > norm)
-    angle = acos(1.0);
-  else
-    angle = acos(dot / norm);
-  return (angle);
-}
-
 double Vector3Angle(VECTOR *v1, VECTOR *v2)
 {
   double angle, l1, l2, dot, norm, x, y, z;
