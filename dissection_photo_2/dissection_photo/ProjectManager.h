@@ -61,6 +61,10 @@ namespace ProjectManager
   // become "_" (as New Project does).
   QString FolderNameFor(const QString& strName);
 
+  // Why a name can't be a project name ("" when it can): spaces are refused,
+  // because mri_3d_photo_recon splits paths at them.
+  QString ProjectNameProblem(const QString& strName);
+
   // Renames the project and its folder (same parent): the folder on disk, the
   // paths kept in project.json, the Hub's list (same place) and the
   // Reconstruction form's saved settings. Returns false with *pError set, and
