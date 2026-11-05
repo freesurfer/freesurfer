@@ -310,7 +310,7 @@ public:
   bool m_bdbg;
   bool m_signalTopology;
 
-  TransformType* convert_to_delta() const;
+  TransformType* convert_to_delta(int width, int height, int depth) const;
 protected:
   void doInput(std::istream& is);
   void doOutput(std::ostream& os) const;

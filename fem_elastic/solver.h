@@ -918,8 +918,6 @@ TSolver<Cstr,n>::comm_solution()
 {
   PetscErrorCode ierr;
 
-  int no_eqs = m_pmesh->get_no_nodes() *n;
-
   //PetscScalar *pdelta = new PetscScalar[no_eqs];
   PetscScalar *pdelta = NULL;
   ierr = VecGetArray(m_delta, &pdelta);
@@ -942,10 +940,6 @@ TSolver<Cstr,n>::comm_solution()
   ierr = VecRestoreArray(m_delta, &pdelta);
   CHKERRQ(ierr);
 
-  delete[] indices;
-  delete[] values;
-  delete[] rhsValues;
-  
   return 0;
 }
 
@@ -1142,6 +1136,10 @@ TSolver<Cstr,n>::setup_load_sym()
 
   ierr = ISDestroy(is);
   CHKERRQ(ierr);
+
+  delete[] indices;
+  delete[] values;
+  delete[] rhsValues;
 
   return 0;
 }
