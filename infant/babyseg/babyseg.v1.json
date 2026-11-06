@@ -76,5 +76,10 @@
                 "labels": "labels/baby.eval.json"
             }
         }
+    },
+    "eval": {
+        "orientation": "LIA",
+        "spacing": 0.7,
+        "divisor": 64
     }
 }

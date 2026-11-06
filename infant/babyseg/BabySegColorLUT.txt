@@ -1,0 +1,24 @@
+#No. Label Name:                            R   G   B   A
+
+0   Unknown                                 0   0   0   0
+2   Left-Cerebral-White-Matter              245 245 245 0
+3   Left-Cerebral-Cortex                    205 62  78  0
+4   Left-Lateral-Ventricles                 120 18  134 0
+8   Left-Cerebellum                         230 148 34  0
+10  Left-Thalamus                           0   118 14  0
+11  Left-Caudate                            122 186 220 0
+16  Brain-Stem                              119 159 176 0
+17  Left-Hippocampus                        220 216 20  0
+18  Left-Amygdala                           103 255 255 0
+28  Left-VentralDC                          145 42  42  0
+41  Right-Cerebral-White-Matter             245 245 245 0
+42  Right-Cerebral-Cortex                   205 62  78  0
+43  Right-Lateral-Ventricles                120 18  134 0
+47  Right-Cerebellum                        230 148 34  0
+49  Right-Thalamus                          0   118 14  0
+50  Right-Caudate                           122 186 220 0
+53  Right-Hippocampus                       220 216 20  0
+54  Right-Amygdala                          103 255 255 0
+60  Right-VentralDC                         165 42  42  0
+169 Left-Basal-Ganglia                      236 13  127 0
+176 Right-Basal-Ganglia                     236 13  126 0
