@@ -9,6 +9,11 @@ import glob
 import argparse
 import surfa as sf
 from surfa import pipeline as fsp
+import babyseg
+from pathlib import Path
+import json
+import numpy as np
+import pandas as pd
 
 
 description='''
@@ -59,6 +64,7 @@ parser.add_argument('--no-stats', action='store_true', help='Do not compute aseg
 
 # Alternative utilities
 parser.add_argument('--intnormFSL', action='store_true', help='FSL will be used for intensity normalization instead of the default MNI tools.')
+parser.add_argument('--babyseg', action='store_true', help='Babyseg will be used for automated segmentation')
 
 # Pipeline options
 parser.add_argument('--keep-going', action='store_true', help='Pick-up processing pipeline where it left off or modified. Please make sure the' \
@@ -144,7 +150,7 @@ if args.t2 and not args.t2file:
 if input_seg and not input_masked and not args.forceskullstrip:
     sf.system.fatal('Must have a masked mprage file specified with --masked if the segmentation file is provided.')
 
-if subj_group == 'default' and subj_age is None and not input_seg:
+if subj_group == 'default' and subj_age is None and not input_seg and not args.babyseg:
     sf.system.fatal('Must set the age (in months) for the subject to be analyzed.')
 
 if args.newborn and args.oneyear:
@@ -156,6 +162,8 @@ if input_masked and input_seg:
     if img_shape != seg_shape:
         sf.system.fatal('The masked mprage and segmentation files have to have the same volume dimensions!')
 
+if not subj_age and not args.babyseg and not input_seg:
+    sf.sysetm.fatal('Need --age argument in months for segmentation. Useg --babyseg flag for segmentation without age.')
 
 # ---- Start pipeline ----
 pl = fsp.CommandPipeline(
@@ -267,13 +275,43 @@ if check_results:
 aseg = 'mri/aseg.nii.gz'
 
 if input_seg:
-
-    pl.print('Working with existing segmentation: %s' % input_seg)
+    pl.print('Working with user provided segmentation: %s' % input_seg)
+    # pl.print('Segmentation Provided by user. Please Note: Deviations from babyseg or freesurfer labels will result in unpredictable surface reconstruction and volume statistics!')
     cmd = f'mri_convert --conform-dc {input_seg} {aseg} -rt nearest --no_scale 1'
     pl.run(cmd, inputs=input_seg, outputs=aseg)
+    input_vol = sf.load_volume('mri/aseg.nii.gz')
+    
+    # check against freesurfer labels
+    fs_minimum_labels = np.array([2, 41, 3, 42, 4, 43, 7, 46, 8, 47,
+                                  9, 48, 11, 50, 12, 51, 13, 52, 14,
+                                  15, 17, 53, 18, 54, 26, 58, 28, 60,
+                                  172, 173, 174, 175])
+    
+    # check against babyseg labels
+    babyseg_labels = np.array([2, 3, 4, 8, 10, 11, 16, 17, 18, 28,
+                               41, 42, 43, 47, 49, 50, 53, 54, 60, 169,
+                               176])
+    input_labels = np.unique(input_vol.data)
+
+    if np.intersect1d(input_labels, fs_minimum_labels).size > 0 or np.intersect1d(input_labels, babyseg_labels).size > 0:
+        if np.intersect1d(input_labels, fs_minimum_labels).size >= fs_minimum_labels.size or np.intersect1d(input_labels, babyseg_labels).size >= babyseg_labels.size:
+            pl.print('Segmentation contains minimum labelset, continue as normal...')
+        else:
+            pl.print('Subset of expected labels detected but correspondence cannot be verified. Please make sure number -> label correspondence matches freesurfer labels.')
+    else:
+        pl.print('Provided segmentation does not use any labels found in the minimal freesurfer labelset or the babyseg labelset. Please reconfigure your segmentation to match on or the other!')
+        pl.fatal()
+
+elif args.babyseg:
+    pl.print('Using BabySeg for volumetric segmentation...')
+    babyseg_checkpoint = os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/babyseg.v1.pt")
+    babyseg_config = babyseg.config.load(os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/babyseg.v1.json"))
+    babyseg_config['synthesis']['kwargs']['optimize'] = os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/baby.loss.json")
+    babyseg.eval.segment(config=babyseg_config, images=masked, checkpoint=babyseg_checkpoint, out_seg=aseg, device='cpu')
+    pl.print('...BabySeg Finished')
 
 else:
-
+    pl.print('Proceeding with multilabel fusion for segmentation...')
     # Load template subject information into dictionary
     with open(os.path.join(fshome, 'average', 'CNYBCH.yaml'), 'r') as file:
         template_subjs_config = yaml.load(file, Loader=yaml.FullLoader)
@@ -413,13 +451,14 @@ else:
         opt= '-n'
     commands.append(f'mri_correct_segmentations $opt {recoded} {aseg}')
 
-    if not args.no_cleanup:
-        commands.append('rm -rf work/*')
-
     pl.run(commands, inputs=recoded, outputs=aseg)
 
-# ---- Step 3: Preprocess for surface creation ----
+    if not args.no_cleanup:
+        commands.append('rm -rf work/*')
+   
 
+
+# ---- Step 3: Preprocess for surface creation ----
 
 # Copy nifti files to mgh for prepare for surface stream
 # TODO can we just ditch nifti format entirely?
@@ -525,37 +564,75 @@ try:
             cmd = f'mris_anatomical_stats -th3 -mgz -f {statsfile} -b -a aparc.annot -c label/aparc.annot.ctab {output_subj} {hemi}'
             pl.run(cmd, inputs, outputs)
 
-        # Base options for mri_segstats
-        options = '--seg mri/aseg.mgz --sum stats/aseg.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg' \
-        ' --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR' \
-        ' --surf-wm-vol --surf-ctx-vol --totalgray --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject ' + output_subj # --euler 
+        # ctab = '$FREESURFER_HOME/average/babyseg/BabySegColorLUT.txt' if args.babyseg else '$FREESURFER_HOME/ASegStatsLUT.txt'
+        # options = '--seg mri/aseg.mgz --sum stats/infantfs.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg' \
+        # ' --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR' \
+        # f' --surf-wm-vol --surf-ctx-vol --totalgray --ctab {ctab} --subject ' + output_subj # --euler 
+            
+        # inputs = [
+        #     'mri/norm.mgz',
+        #     'mri/brainmask.mgz',
+        #     'mri/aseg.mgz',
+        # ]
+        # outputs = 'stats/infantfs.stats'
 
-        inputs = [
-            'mri/norm.mgz',
-            'mri/brainmask.mgz',
-            'mri/aseg.mgz',
-        ]
-        outputs = 'stats/aseg.stats'
+        # pl.run(f'mri_segstats --etiv --stiv {icv} {options}', inputs, outputs)
+        aseg = sf.load_volume('mri/aseg.nii.gz')
 
-        # TODO: Needs further testing (12/06/2020)
-        if subj_age is None or subj_age < 12:
-            etiv = 'stats/eTIV.txt'
-            template = '$FREESURFER_HOME/average/all_c_robtemplate_affine_mean.05.01.2018.nii.gz'
-            base = 'mri/transforms/subj_2_common'
-            detfile = 'mri/transforms/det.txt'
-            mult = '400321.078176'  # see wiki for explanation
-            commands = [
-                f'reg_aladin -ref {template} -flo {masked} -aff {base}.txt -res {base}.nii.gz -voff -pad 0',
-                f'lta_convert --inniftyreg {base}.txt --outlta {base}.lta --outmni {base}.xfm --src {masked} --trg {template}',
-                f'lta_diff {base}.lta --dist 5 >> {detfile}',
-                f'echo `tail -n 1 {detfile}` \* {mult} | bc -l >> {etiv}',
-            ]
-            pl.run(commands, inputs=masked, outputs=etiv)
+        
+        if args.babyseg:
+            bbyseg_labels_path = os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/baby.loss.json")
+            with open(bbyseg_labels_path, 'r', encoding='utf-8') as loss_labs:
+                    labels = json.load(loss_labs)
+            labels_dict = {int(key): value for key, value in labels.items()}
 
-            pl.run(f'mri_segstats {options}', inputs, outputs)
         else:
-            pl.run(f'mri_segstats --etiv {options}', inputs, outputs)
+            fs_labels_path = os.path.join(os.environ.get('FREESURFER_HOME'),"FreeSurferColorLUT.txt")
+            labels_dict = {}
+            with open(fs_labels_path, 'r') as f:
+                for line in f:
+                    if line.startswith('#') or not line.strip():
+                        continue
 
+                    columns = line.split()
+
+                    key = int(columns[0])
+
+                    value = columns[1]
+                    labels_dict[key] = value
+        
+        voxvol = np.prod(aseg.geom.voxsize)
+
+        exclude_vals = [0, 4, 43, 5, 44, 14, 15, 72]
+        aseg_label_vals, aseg_label_counts = np.unique(aseg.data, return_counts=True)
+        mask = ~np.isin(aseg_label_vals, exclude_vals)
+        aseg_label_vals_masked = aseg_label_vals[mask]
+        aseg_label_counts_masked = aseg_label_counts[mask]
+
+        aseg_label_names = np.array([labels_dict[int(x)] for x in aseg_label_vals])
+        aseg_label_volumes = aseg_label_counts * voxvol
+
+        ic_voxels = np.sum(aseg_label_counts_masked)
+        icv = voxvol * ic_voxels
+
+        volume_df = pd.DataFrame({
+        'Label Name': aseg_label_names,
+        'Label Number': aseg_label_vals,
+        'Label Count': aseg_label_counts,
+        'Label Volume': aseg_label_volumes
+        })
+
+        with open('stats/infantfs.stats', 'w') as f:
+            f.write("====================================\n")
+            f.write("Segmentation Based Volume Statistics\n")
+            f.write("=====================================\n\n")
+            f.write(f'voxel volume is: {voxvol} mm^3\n')
+            f.write(f'total number of intracranial voxels: {np.count_nonzero(aseg.data)}\n')
+            f.write(f'total volume of brain: {icv} mm^3\n')
+            f.write('PLEASE NOTE: CSF, Ventricles are not considered in total volume of brain (FreeSurfer labels: 0, 4, 43, 5, 44, 14, 15, 72).\n')
+            f.write('Per-Anatomy Volume:\n')
+
+            f.write(volume_df.to_string(index=False))
 
     # Compute aparc + aseg
     inputs = [
@@ -571,9 +648,9 @@ except:
     print('infant_recon_all run FAILED, resetting SUBJECTS_DIR and PWD envvars')
     os.environ['SUBJECTS_DIR'] = s_dir_cache
     os.environ['PWD'] = pwd_dir_cache
+    pl.fatal()
 
 # ---- Cleanup ----
-
 
 # cleanup
 if not args.no_cleanup:

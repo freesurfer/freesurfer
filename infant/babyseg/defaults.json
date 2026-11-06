@@ -1,0 +1,49 @@
+{
+    "setup": {
+        "device": "cuda"
+    },
+    "repositories": {
+    },
+    "log": {
+        "folder": "runs",
+        "path": "{name}/{run:02d}",
+        "glob": "{name}/[0-9][0-9]/committed",
+        "regex": "/(?P<name>[^/]+)/(?P<run>[0-9]+)",
+        "commit": "committed",
+        "environ": "{name}.environ.json",
+        "logging": "{name}.messages.log",
+        "config": "{name}.config.json"
+    },
+    "training": {
+        "loss": "katy.losses.dice",
+        "epochs": 10000,
+        "steps_per_epoch": 100,
+        "accumulation": 1,
+        "resume": true
+    },
+    "dataloader": {
+        "batch_size": 1,
+        "shuffle": true
+    },
+    "checkpoint": {
+        "period": 100,
+        "folder": "checkpoints",
+        "path": "{name}/{epoch:05d}.pt",
+        "glob": "{name}/[0-9][0-9][0-9][0-9][0-9].pt",
+        "regex": "/(?P<name>[^/]+)/(?P<epoch>[0-9]+).pt$"
+    },
+    "validation": {
+        "period": 100,
+        "labels": "labels/baby.eval.json",
+        "datasets": {
+        }
+    },
+    "tensorboard": {
+        "colors": "labels/FreeSurferColorLUT.txt"
+    },
+    "eval": {
+        "orientation": "LIA",
+        "spacing": 0.7,
+        "divisor": 64
+    }
+}

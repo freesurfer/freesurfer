@@ -1,0 +1,85 @@
+{
+    "training": {
+        "sampler": "babyseg.train.UniformAgeSampler",
+        "dataset": {
+            "name": "babyseg.train.ImageLabelSet",
+            "kwargs": {
+                "files": [
+                ]
+            }
+        }
+    },
+    "dataloader": {
+        "clear": true,
+        "num_workers": 10
+    },
+    "optimizer": {
+        "name": "torch.optim.Adam",
+        "kwargs": {
+            "lr": 1e-04
+        }
+    },
+    "model": {
+        "name": "babyseg.nn.GroupNet",
+        "kwargs": {
+            "ndim": 3,
+            "out": 22,
+            "enc": [1, 64, 64, 64, 64, 64],
+            "dec": [64, 64, 64, 64, 64, 64],
+            "add": [],
+            "rep": 2
+        }
+    },
+    "synthesis": {
+        "name": "babyseg.synth.ImageAndLabelsToImage",
+        "kwargs": {
+            "labels": "labels/baby.all.json",
+            "optimize": "labels/baby.loss.json",
+            "channels": [1, 4],
+            "affine": {
+                "shift": 64
+            },
+            "remap": {
+                "prob": 0.5
+            },
+            "resize": {
+                "size": 192
+            },
+            "flip": {
+                "dim": 0,
+                "labels": "labels/baby.all.json"
+            },
+            "blobs": {
+                "bins": 3,
+                "prob": 0.5
+            },
+            "blur": {
+                "fwhm": 4
+            },
+            "noise": {
+                "sd": [0.01, 0.1]
+            },
+            "downsample": {
+                "factor": 4,
+                "prob": 0.5
+            },
+            "crop": {
+                "prob": 0.5
+            },
+            "lines": {
+                "prob": 0.5
+            },
+            "mask": {
+                "prob": 0.5,
+                "fill": 0.5,
+                "border": [-4, 8],
+                "labels": "labels/baby.eval.json"
+            }
+        }
+    },
+    "eval": {
+        "orientation": "LIA",
+        "spacing": 0.7,
+        "divisor": 64
+    }
+}
