@@ -194,7 +194,6 @@ masked = 'mri/norm.nii.gz'
 if input_masked:
 
     # Masked input was provided on the commandline
-    pl.print('Segmentation Provided by user. Please Note: Deviations from babyseg or freesurfer labels will result in unpredictable surface reconstruction and volume statistics!')
     cmd = f'mri_convert --conform-dc {input_masked} {masked}'
     pl.run(cmd, inputs=input_masked, outputs=masked)
     cmd = 'mkdir -p work'
@@ -277,6 +276,7 @@ aseg = 'mri/aseg.nii.gz'
 
 if input_seg:
     pl.print('Working with existing segmentation: %s' % input_seg)
+    pl.print('Segmentation Provided by user. Please Note: Deviations from babyseg or freesurfer labels will result in unpredictable surface reconstruction and volume statistics!')
     cmd = f'mri_convert --conform-dc {input_seg} {aseg} -rt nearest --no_scale 1'
     pl.run(cmd, inputs=input_seg, outputs=aseg)
 
