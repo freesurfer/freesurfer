@@ -13,10 +13,10 @@ absl-py==2.3.1
 annotated-types==0.7.0
 astunparse==1.6.3
 # boltons@file:///home/conda/feedstock_root/build_artifacts/boltons_1711936407380/work
-# babyseg and dependencies for infantfs. Forked and minimally edited to work with python 3.9 for infantfs needs
-babyseg@git+https://github.com/Ash-Bal/babyseg.git@814d58c7f88078aa977babb799ba3a0ed2e048eb
-katy@git+https://github.com/Ash-Bal/katy.git@deeed61188943e672774c97fe91e0edc67e0a328
-voxel@git+https://github.com/Ash-Bal/voxel.git@1001aaa9f550c9ca89decbd079d5d188a31747d7
+## babyseg and dependencies for infantfs. Forked and minimally edited to work with python 3.9 for infantfs needs
+# babyseg@git+https://github.com/Ash-Bal/babyseg.git@814d58c7f88078aa977babb799ba3a0ed2e048eb
+# katy@git+https://github.com/Ash-Bal/katy.git@deeed61188943e672774c97fe91e0edc67e0a328
+# voxel@git+https://github.com/Ash-Bal/voxel.git@1001aaa9f550c9ca89decbd079d5d188a31747d7
 cachetools==6.2.6
 # certifi@file:///home/conda/feedstock_root/build_artifacts/certifi_1754231422783/work/certifi
 cffi==2.0.0
@@ -29,7 +29,8 @@ charset-normalizer==3.4.4
 # conda_package_streaming@file:///home/conda/feedstock_root/build_artifacts/conda-package-streaming_1691009212940/work
 click==8.1.8
 contourpy==1.3.0
-cryptography==48.0.0
+# cryptography==48.0.0
+cryptography
 cycler==0.12.1
 deepsurfer==0.1.1a5
 eval_type_backport==0.4.0
