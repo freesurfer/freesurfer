@@ -4742,7 +4742,12 @@ int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int
   val = MRIgetVoxVal(mri_src, x, y, z, 0);
   dist = (float)val - gmean;
   dist *= dist;
-  pg = exp(-dist / (2 * wvar));
+  // issue #1481: the gray probability was scored against the white-matter
+  // variance; gvar is computed above for this term but otherwise unused
+  if (getenv("FIX_MRIBORDERCLASSIFYVOXEL"))
+    pg = exp(-dist / (2 * gvar));
+  else
+    pg = exp(-dist / (2 * wvar));
 
   ptotal = pg + pw;
 
