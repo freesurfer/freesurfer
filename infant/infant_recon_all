@@ -305,9 +305,9 @@ if input_seg:
 elif args.babyseg:
     pl.print('Using BabySeg for volumetric segmentation...')
     babyseg_checkpoint = os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/babyseg.v1.pt")
-    babyseg_config = babyseg.config.load(os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/babyseg.v1.json"))
-    babyseg_config['synthesis']['kwargs']['optimize'] = os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/baby.loss.json")
-    babyseg.eval.segment(config=babyseg_config, images=masked, checkpoint=babyseg_checkpoint, out_seg=aseg, device='cpu')
+    # babyseg.eval.segment(config=babyseg_config, images=masked, checkpoint=babyseg_checkpoint, out_seg=aseg, device='cpu')
+    babyseg_command = f'mri_babyseg --input {masked} --output {aseg} --checkpoint {babyseg_checkpoint} --device cpu'
+    pl.run(babyseg_command, inputs=masked, outputs=aseg)
     pl.print('...BabySeg Finished')
 
 else:

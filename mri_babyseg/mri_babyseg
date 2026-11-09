@@ -1,0 +1,27 @@
+import argparse
+import babyseg
+import os
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-i', '--input', type=str, help="Input volume")
+    parser.add_argument('-o', '--output', type=str, help="Output volume path")
+    parser.add_argument('-c', '--checkpoint', help="model checkpoint")
+    parser.add_argument('-d', '--device', default='cpu', help="device to use to run babyseg")
+
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+    babyseg_config = babyseg.config.load(os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/babyseg.v1.json"))
+    babyseg_config['synthesis']['kwargs']['optimize'] = os.path.join(os.environ.get('FREESURFER_HOME'),"average/babyseg/baby.loss.json")
+    babyseg.eval.segment(config=babyseg_config,
+                         images=args.input,
+                         checkpoint=args.checkpoint,
+                         out_seg=args.output,
+                         device=args.device)
+
+if __name__ == "__main__":
+    main()

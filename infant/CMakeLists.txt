@@ -80,12 +80,7 @@ endforeach()
 # install the model file for skullstripping
 install_symlinks(infant_synthstrip_01012025.pt TYPE files DESTINATION average/synthstrip_skullstripping)
 
-# install babyseg files
-install_symlinks(babyseg/babyseg.v1.pt TYPE files DESTINATION average/babyseg)
-install(FILES babyseg/baby.loss.json DESTINATION average/babyseg)
-install(FILES babyseg/babyseg.v1.json DESTINATION average/babyseg)
-install(FILES babyseg/defaults.json DESTINATION average/babyseg)
-install(FILES babyseg/BabySegColorLUT.txt DESTINATION average/babyseg)
+
 
 # # add test script
 # add_test_script(NAME infantfs_test SCRIPT test.sh)

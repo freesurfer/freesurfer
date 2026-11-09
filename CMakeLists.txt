@@ -1338,10 +1338,13 @@ if(EXISTS "./mri_make_bem_surfaces")
    endif()
 endif()
 
-if(INFANT_MODULE)
-  add_subdirectory(infant)
-endif()
 message(STATUS "For HOST_OS=${HOST_OS} INFANT_MODULE=${INFANT_MODULE}")
+if(INFANT_MODULE)
+   add_subdirectories(
+    infant
+    mri_babyseg
+   )
+endif()
 
 if(INFANT_MODULE AND MINIMAL)
   add_subdirectory(mri_distance_transform)
