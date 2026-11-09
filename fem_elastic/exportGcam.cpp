@@ -145,15 +145,24 @@ main(int ac, char** av)
                                        params.useBoundingBox,
                                        params.threshold);
   printf("#VMPC# exportGcam:pre-write VmPeak  %d\n",GetVmPeak());
-  GCAMwrite( gcam,
-             const_cast<char*>
-             (params.strGcam.c_str()));
+  //  GCAMwrite( gcam,
+  //           const_cast<char*>
+  //           (params.strGcam.c_str()));
 
+  if ( GCAMwrite( gcam,
+                  const_cast<char*>
+                  (params.strGcam.c_str())) != NO_ERROR )
+    {
+      std::cerr << " Failed writing GCAM " << params.strGcam << std::endl;
+      exit(1);
+    }
+  
   // test the presence of the gc structures -- LZ: WHAT DOES THAT DO???
   printf("#VMPC# exportGcam:pre-norm VmPeak  %d\n",GetVmPeak());
   GCAMnormalizeIntensities(gcam, mriFixed);
 
-  if ( params.doTest && (!params.useBoundingBox || 1) )
+  // if ( params.doTest && (!params.useBoundingBox || 1) )
+  if ( params.doTest && !params.useBoundingBox )
   {
     std::cout << " applying morph\n"
     << " width = " << gcam->width << std::endl;

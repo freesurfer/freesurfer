@@ -3724,7 +3724,11 @@ void MainWindow::OnCalibratedLine(const QString& strLine)
   if (f[0] == "DONE" && f.size() >= 3)
   {
     // This photo's own markers, shown on its Original.
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     const QStringList c = f[2].split(' ', Qt::SkipEmptyParts);
+#else
+    const QStringList c = f[2].split(' ', QString::SkipEmptyParts);
+#endif
     QList<QPoint> pts;
     for (int i = 0; i + 1 < c.size(); i += 2)
       pts << QPoint(qRound(c[i].toDouble()), qRound(c[i+1].toDouble()));

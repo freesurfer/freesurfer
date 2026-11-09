@@ -8,6 +8,9 @@ class ZlibStringCompressor
 {
 public:
   ZlibStringCompressor(unsigned long bufferSize=0);
+  ~ZlibStringCompressor();
+  ZlibStringCompressor(const ZlibStringCompressor&) = delete;
+  ZlibStringCompressor& operator=(const ZlibStringCompressor&) = delete;
   const string compress(const string& toCompress, int level);
   const string inflate(const string& compressed);
   unsigned long getBufferSize();

@@ -288,8 +288,10 @@ bool AskProjectName(QWidget* parent, const QString& strFolderParent, QString& st
   auto update = [&]()
   {
     const QString strFolder = ProjectManager::FolderNameFor(edit->text());
-    ok->setEnabled(!strFolder.isEmpty());
+    const QString strProblem = ProjectManager::ProjectNameProblem(edit->text());
+    ok->setEnabled(!strFolder.isEmpty() && strProblem.isEmpty());
     caption->setText(strFolder.isEmpty() ? QString("Enter a name for the project.")
+        : !strProblem.isEmpty() ? strProblem
         : QString::fromUtf8("Its folder becomes \u201c%1\u201d in %2.").arg(strFolder, QDir::toNativeSeparators(strFolderParent)));
   };
   QObject::connect(edit, &QLineEdit::textChanged, &dlg, update);
@@ -395,11 +397,19 @@ void DialogProjectsHub::OnNewProject()
   // Start page (MainWindow::SetInputFolder) and copied into <project
   // folder>/photos, so the project folder is always a location the user chose.
   bool ok = false;
-  QString name = QInputDialog::getText(this, "Name Your Project", "Project name:", QLineEdit::Normal, "", &ok).trimmed();
-  if (!ok)
-    return;
+  QString name;
+  for (;;)
+  {
+    name = QInputDialog::getText(this, "Name Your Project", "Project name:", QLineEdit::Normal, name, &ok).trimmed();
+    if (!ok)
+      return;
+    const QString strProblem = ProjectManager::ProjectNameProblem(name);
+    if (strProblem.isEmpty())
+      break;
+    QMessageBox::warning(this, "Choose Another Name", strProblem);
+  }
   if (name.isEmpty())
-    name = "Untitled Project";
+    name = "Untitled_Project";
 
   QString safeName = name;
   safeName.replace(QRegularExpression("[\\\\/:*?\"<>|]"), "_");
@@ -414,6 +424,13 @@ void DialogProjectsHub::OnNewProject()
   if (dlg.exec() != QDialog::Accepted || dlg.selectedFiles().isEmpty())
     return;
   QString projectFolder = dlg.selectedFiles().first();
+  // The folder name can be edited in the save panel, so check it too.
+  const QString strFolderProblem = ProjectManager::ProjectNameProblem(QFileInfo(projectFolder).fileName());
+  if (!strFolderProblem.isEmpty())
+  {
+    QMessageBox::warning(this, "Choose Another Folder Name", strFolderProblem);
+    return;
+  }
 
   if (QFileInfo::exists(projectFolder) && !QDir(projectFolder).isEmpty())
   {

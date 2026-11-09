@@ -416,7 +416,7 @@ static MATRIX *MatrixAlloc_new(
   // that mat->rptr[0][0] is a valid address even though it wont be used.
   //
   size_t const data_offset = size_needed;
-  int const nelts = ((rows * cols) + 2) * ((type == MATRIX_COMPLEX) ? 2 : 1);
+  size_t const nelts = (((size_t)rows * (size_t)cols) + 2) * ((type == MATRIX_COMPLEX) ? 2 : 1);
   size_needed += nelts*sizeof(float);
   size_needed = (size_needed + 63) & ~63;   // round up
 
@@ -455,19 +455,24 @@ static MATRIX *MatrixAlloc_new(
   
 #ifdef _POSIX_MAPPED_FILES
   if (!data) { // Try to allocate a mmap'd tmpfile
-
     printf("MatrixAlloc(%d, %d): Using mmap'd tmpfile\n", rows, cols);
-    if ((mmapfile = tmpfile())) {
-
+    // Claude says that this section has a bug and the section below
+    // should be used. 
+    if(0 && (mmapfile = tmpfile()) ) {
       // This seems to matter with some implementations of mmap
-      //
       fseek(mmapfile, 0, 0);
       fflush(mmapfile);
-
       data = (float *)mmap(0, (nelts + 2) * sizeof(float), PROT_READ | PROT_WRITE, MAP_SHARED, fileno(mat->mmapfile), 0);
-
       if (data == MAP_FAILED) {
         data = NULL;
+      }
+    }
+    // Claude says to use this instead
+    if((mmapfile = tmpfile())) {
+      if (ftruncate(fileno(mmapfile), nelts * sizeof(float)) == 0) {
+	data = (float *)mmap(0, nelts * sizeof(float), PROT_READ | PROT_WRITE,
+			     MAP_SHARED, fileno(mmapfile), 0);
+	if (data == MAP_FAILED) data = NULL;
       }
     }
   }
@@ -502,10 +507,10 @@ static MATRIX *MatrixAlloc_new(
   for (row = 1; row <= rows; row++) {
     switch (type) {
       case MATRIX_REAL:
-        rptr[row] = mat->data + (row - 1) * cols - 1;
+        rptr[row] = mat->data + (size_t)(row - 1) * cols - 1;
         break;
       case MATRIX_COMPLEX:
-        rptr[row] = (float *)(((CPTR)mat->data) + (row - 1) * cols - 1);
+        rptr[row] = (float *)(((CPTR)mat->data) + (size_t)(row - 1) * cols - 1);
         break;
       default:
         ErrorReturn(NULL, (ERROR_BADPARM, "MatrixAlloc: unknown type %d\n", type));
@@ -559,9 +564,9 @@ int MatrixFree(MATRIX **pmat)
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2;
   if (mat->mmapfile) {
-    int nelts;
+    size_t nelts;
 
-    nelts = mat->rows * mat->cols;
+    nelts = (size_t)mat->rows * (size_t)mat->cols;
     if (mat->type == MATRIX_COMPLEX) nelts *= 2;
 
 #ifdef _POSIX_MAPPED_FILES
@@ -2617,22 +2622,6 @@ VECTOR *VectorNormalize(const VECTOR *vin, VECTOR *vout)
     for (col = 1; col <= cols; col++) vout->rptr[row][col] = vin->rptr[row][col] / len;
   }
   return (vout);
-}
-
-float VectorAngle(const VECTOR *v1, const VECTOR *v2)
-{
-  float angle, l1, l2, dot, norm;
-
-  l1 = VectorLen(v1);
-  l2 = VectorLen(v2);
-  norm = fabs(l1 * l2);
-  if (FZERO(norm)) return (0.0f);
-  dot = VectorDot(v1, v2);
-  if (dot > norm)
-    angle = acos(1.0);
-  else
-    angle = acos(dot / norm);
-  return (angle);
 }
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2)

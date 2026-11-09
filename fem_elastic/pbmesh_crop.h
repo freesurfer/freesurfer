@@ -54,8 +54,9 @@ private:
   TPbMeshCrop(const TPbMeshCrop&); // purposely not implemented
   void operator=(const TPbMeshCrop&); // purposely not implemented
 
-  IndexSetType m_leafElements;
-
+  // IndexSetType m_leafElements;
+  std::map<unsigned int, unsigned int> m_bestRadius; // best remaining radius seen per element
+  
   const MeshType* m_pmesh;
 
   void bfs(unsigned int seed,
@@ -88,7 +89,8 @@ TPbMeshCrop<Cstr,n>::Crop(MeshType* outMesh,
                           unsigned int seed,
                           unsigned int radius)
 {
-  m_leafElements.clear();
+  // m_leafElements.clear();
+  m_bestRadius.clear();
 
   // get elements
   IndexSetType eltVisited; // will contain all the elements
@@ -203,13 +205,14 @@ TPbMeshCrop<Cstr,n>::bfs(unsigned int seed,
   typename IndexSetType::const_iterator cit;
   typename NodeType::tElt_citer eltBegin, eltEnd;
 
-  // if element was already visited, return
-  if ( eltVisited.find(seed) != eltVisited.end() )
-  {
-    // if not a leaf, truly visited
-    if ( m_leafElements.find(seed) == m_leafElements.end() )
-      return;
-  }
+  //// if element was already visited, return
+  //if ( eltVisited.find(seed) != eltVisited.end() )
+  //{
+  //  // if not a leaf, truly visited
+  //  if ( m_leafElements.find(seed) == m_leafElements.end() )
+  //    return;
+  // }
+  
 
   cpseed = m_pmesh->get_elt(seed);
   if ( !cpseed  )
@@ -222,10 +225,15 @@ TPbMeshCrop<Cstr,n>::bfs(unsigned int seed,
   if ( cpseed->orientation_pb( dst ) )
     radius = maxRadius;
 
+  // (re)visit only if reached with a larger remaining radius than before
+  typename std::map<unsigned int,unsigned int>::iterator bit = m_bestRadius.find( seed );
+  if ( bit != m_bestRadius.end() && bit->second >= radius ) return;
+  m_bestRadius[seed] = radius;
+  
   eltVisited.insert( seed );
 
   if ( !radius )
-  {
+    /*{
     m_leafElements.insert( seed );
     return;
   }
@@ -235,7 +243,9 @@ TPbMeshCrop<Cstr,n>::bfs(unsigned int seed,
     cit = m_leafElements.find( seed );
     if ( cit != m_leafElements.end() )
       m_leafElements.erase( cit );
-  }
+      }*/
+    return;
+  
   radius -= 1;
 
   // populate the set of neighbors
@@ -247,9 +257,9 @@ TPbMeshCrop<Cstr,n>::bfs(unsigned int seed,
       std::cerr << " Failed to get node for element " << seed << std::endl;
       exit(1);
     }
-    // continue if node was already visited
-    // no backward propagation
-    if ( nodeVisited.find( pnode->get_id() ) != nodeVisited.end() ) continue;
+    //// continue if node was already visited
+    //// no backward propagation
+    //if ( nodeVisited.find( pnode->get_id() ) != nodeVisited.end() ) continue;
 
     nodeVisited.insert( pnode->get_id() );
 

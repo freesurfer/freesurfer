@@ -224,7 +224,6 @@ float XYZApproxAngle_knownLength(
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2) ;
 float  VectorLen( const VECTOR *v ) ;
-float  VectorAngle( const VECTOR *v1, const VECTOR *v2) ;
 float  VectorDot( const VECTOR *v1, const VECTOR *v2) ;
 float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
