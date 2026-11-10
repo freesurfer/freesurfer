@@ -52,4 +52,4 @@ if [ "$(uname -s)" = "Linux" ] && [ -n "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]
     export QT_XCB_GL_INTEGRATION=none
 fi
 
-dissection_photo "$@"
+dissection_photo_2 "$@"

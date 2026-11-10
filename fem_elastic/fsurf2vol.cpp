@@ -288,7 +288,9 @@ main(int argc,
   //std::string errMsg = params.parse(argc, argv);
 
   std::string errMsg;
-  params.parse(errMsg);
+  //params.parse(errMsg);
+  if ( params.parse(errMsg) != 0 && errMsg.empty() )
+    errMsg = "option parsing failed (see the PETSc message above)";
 
   if ( !errMsg.empty() )
   {
@@ -394,8 +396,12 @@ main(int argc,
   TMPcmin = TMPcmin - tDblCoords(10.0);
 
   cmin = max( cmin - tDblCoords(10.0), tDblCoords(0.0) );
-  //cmax = cmax + tDblCoords(10.0);
-  cmax = tDblCoords(256.0);
+  // cmax = cmax + tDblCoords(10.0);
+  // cmax = tDblCoords(256.0);
+  cmax(0) = mri_fixed->width;
+  cmax(1) = mri_fixed->height;
+  cmax(2) = mri_fixed->depth;
+  
   TMPcmax = TMPcmax + tDblCoords(10.0);
   std::cout << " bounding box elts = " << std::endl
   << " min = " << cmin << std::endl
@@ -454,19 +460,29 @@ main(int argc,
     }
   }
 
-  tDblCoords dbgCoords, dbgImage;
+  /*  tDblCoords dbgCoords, dbgImage;
   {
     PointsListType::const_iterator cit = initPoints.begin();
     for ( unsigned int counter = 0;
           counter < 100; ++counter) ++cit;
     dbgCoords = *cit;
     dbgImage = dbgCoords;
-  }
-
+    }*/
+  tDblCoords dbgCoords(0.0), dbgImage;
+  if ( initPoints.size() > 100 )
+    {
+      PointsListType::const_iterator cit = initPoints.begin();
+      std::advance( cit, 100 );
+      dbgCoords = *cit;
+    }
+  dbgImage = dbgCoords;
+  
 
   std::cout << " srcPoints size = " << srcPoints.size() << std::endl;
 
   printf("baseline %g",timer.minutes()); PrintMemUsage(stdout);
+
+  int exitStatus = 0;
   try
   {
     Transform3SPointer ptransform(new gmp::IdentityTransform3d);
@@ -570,7 +586,8 @@ main(int argc,
         std::cout << " compressing morph\n";
         FemTransform3SPointer pTmpTransform(new gmp::FemTransform3d);
         pTmpTransform->set_mesh( std::shared_ptr<TMesh3d>(pmesh) );
-        Transform3SPointer pBufTransform(pTmpTransform->convert_to_delta());
+        //Transform3SPointer pBufTransform(pTmpTransform->convert_to_delta());
+	Transform3SPointer pBufTransform(pTmpTransform->convert_to_delta(mri_fixed->width,mri_fixed->height,mri_fixed->depth));
 
         // set a name for the mesh - useful for tracking
         std::ostringstream os;
@@ -652,8 +669,12 @@ main(int argc,
 
       MRI* warped = morph.apply_transforms(mri_moving);
 
-      MRIwrite(warped,
-               const_cast<char*>( params.strOutput.c_str())  );
+      //MRIwrite(warped,
+      //         const_cast<char*>( params.strOutput.c_str())  );
+      if ( MRIwrite(warped,
+                    const_cast<char*>( params.strOutput.c_str()) ) != NO_ERROR )
+        throw "failed to write the output volume";
+      
 
       // 02/07/13: orig location has a bug...needed to write it here...
       if( !params.strGcam.empty() ) {
@@ -753,11 +774,13 @@ main(int argc,
     {
       std::cout << " caught const char exception \n"
 		<< msg << std::endl;
+      exitStatus = 1;
     }
   catch (const std::exception& e)
     {
       std::cout << " Master-net caught exception\n"
 		<< e.what() << std::endl;
+      exitStatus = 1;
     }
   
   std::cout << " releasing Petsc resources\n";
@@ -769,7 +792,8 @@ main(int argc,
   printf("surf2vol done ");PrintMemUsage(stdout);  
   printf("#VMPC# fsurf2vol VmPeak  %d\n",GetVmPeak());
 
-  return 0;
+  // return 0;
+  return exitStatus;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -914,7 +938,8 @@ float* powell_lin(const SurfaceVectorType& vmris_x,
          ui+=linInc, pvtx_x+=linInc, pvtx_fx+=linInc )
     {
       // don't use medial or unknown regions in linear fit
-      if ( pvtx_x->ripflag ) continue;
+      //if ( pvtx_x->ripflag ) continue;
+      if ( pvtx_fx->ripflag ) continue; // ripflag is only set on the fixed surfaces
 
       pt_x(0) = pvtx_x->x;
       pt_x(1) = pvtx_x->y;
@@ -1019,7 +1044,8 @@ create_surf_container( PointsListType& srcPoints,
   for ( SurfaceVectorType::const_iterator cit = vmris.begin();
         cit != vmris.end(); ++cit )
   {
-    if ( cit->type == pial || !usePialForSurf )
+    //if ( cit->type == pial || !usePialForSurf )
+    if ( cit->type == pial && !usePialForSurf )
       continue;
 
     MRI_SURFACE* mris = cit->mris;
@@ -1027,7 +1053,8 @@ create_surf_container( PointsListType& srcPoints,
 
     if ( subsampleDist > 0 )
     {
-      int markedVertices = MRISsubsampleDist(mris, 3.5f);
+      //int markedVertices = MRISsubsampleDist(mris, 3.5f);
+      int markedVertices = MRISsubsampleDist(mris, subsampleDist);
       std::cout << " create_surf_container - init size = " << mris->nvertices
       << " subsampled = " << markedVertices << std::endl;
     }
@@ -1232,6 +1259,7 @@ IoParams::IoParams()
     strGcam(),
     strOutputAffine()  
 {
+  compress = false;
   eltVolMin = 2;
   eltVolMax = 21;
   poissonRatio = .3f;
@@ -1557,12 +1585,18 @@ public:
   }
   void operator()(VERTEX* pvtx)
   {
-    int ctIndex;
+    //int ctIndex;
+    int ctIndex = -1;
+    
     CTABfindAnnotation( m_psurf->ct, pvtx->annotation, &ctIndex );
-    if ( std::binary_search( m_vecAparcIgnored.begin(),
+    //if ( std::binary_search( m_vecAparcIgnored.begin(),
+    //                         m_vecAparcIgnored.end(),
+    //                         ctIndex )
+    if ( ctIndex < 0 ||     // unlabeled (FS >= 5 medial wall)
+         std::binary_search( m_vecAparcIgnored.begin(),
                              m_vecAparcIgnored.end(),
                              ctIndex )
-       )
+	 )
       pvtx->ripflag = 1;
   }
 private:
@@ -1575,10 +1609,12 @@ private:
   void
   addLabelToIgnored(const char* name)
   {
-    int aparcVal;
+    int aparcVal = -1;
     CTABfindName( m_psurf->ct, const_cast<char*>(name), &aparcVal );
     std::cout << " label = " << name << " -> value = " << aparcVal << std::endl;
-    m_vecAparcIgnored.push_back(aparcVal);
+    //m_vecAparcIgnored.push_back(aparcVal);
+    if ( aparcVal >= 0 )   // name absent (e.g. a2009s has no corpuscallosum)
+      m_vecAparcIgnored.push_back(aparcVal);
   }
 };
 

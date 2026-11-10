@@ -134,12 +134,19 @@ Element3d::get_matrix() const
   // of the elasticity matrix
   double dnu = m_cpMaterial->get_nu();
 
-//  double dvol = abs( vol( m_vpNodes[0]->coords(),
+  //double dvol = abs( vol( m_vpNodes[0]->coords(),
   //   m_vpNodes[1]->coords(),
   //   m_vpNodes[2]->coords(),
   //   m_vpNodes[3]->coords() ) );
   //dfactor *= dvol;
 
+  // K_e = V_e * B^T D B; vol() returns 6*V_e
+  double dvol = std::abs( vol( m_vpNodes[0]->coords(),
+                               m_vpNodes[1]->coords(),
+                               m_vpNodes[2]->coords(),
+                               m_vpNodes[3]->coords() ) ) / 6.0;
+  dfactor *= dvol;
+  
   SmallMatrix mret(12,12);
   for (int i=0; i<4; i++)
     for (int j=0; j<4; j++)
@@ -391,8 +398,8 @@ Element3d::dst_contains(const tDblCoords& c) const
 tDblCoords
 Element3d::inv_img(const tDblCoords& c) const
 {
-  if ( !m_isInterpolUpdated )
-    update_interpol_coefs();
+  //if ( !m_isInterpolUpdated )
+  update_interpol_coefs(); // node deltas may have changed since the last call
 
   m_int_b(0) += 1.0;
   m_int_c(1) += 1.0;
@@ -478,8 +485,8 @@ Element3d::contains( const tDblCoords& c1,
 tDblCoords
 Element3d::dir_img(const tDblCoords& src_coords) const
 {
-  if ( !m_isInterpolUpdated )
-    update_interpol_coefs();
+  //if ( !m_isInterpolUpdated )
+  update_interpol_coefs(); // node deltas may have changed since the last call
 
   return src_coords + m_int_a
          + src_coords(0) * m_int_b

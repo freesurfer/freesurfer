@@ -1246,7 +1246,8 @@ TMesh<Cstr,n>::dir_img(const tCoords& c_src,
 
   if ( !pelt )
     img.status() = cOutOfBounds;
-  else if ( pelt->orientation_pb() )
+  //else if ( pelt->orientation_pb() )
+  else if ( signalTopology && pelt->orientation_pb() )
     img.invalidate();
   else
     img = pelt->dir_img( c_src );

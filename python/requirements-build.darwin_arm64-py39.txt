@@ -29,7 +29,8 @@ charset-normalizer==3.4.4
 # conda_package_streaming@file:///home/conda/feedstock_root/build_artifacts/conda-package-streaming_1691009212940/work
 click==8.1.8
 contourpy==1.3.0
-cryptography==48.0.0
+# cryptography==48.0.0
+cryptography
 cycler==0.12.1
 deepsurfer==0.1.1a5
 eval_type_backport==0.4.0
@@ -113,7 +114,7 @@ segment-anything==1.0
 sentry_sdk==2.67.1
 simpleitk==2.5.4
 six==1.17.0
-spheremorph@git+https://github.com/silencer1127/spheremorph.git@4dfcf0fb25a37fd15a7272315725b36be9386d80
+spheremorph@git+https://github.com/silencer1127/spheremorph.git@742f6584e3968ed709150f25c791c79f432633b5
 smmap==5.0.3
 # surfa@git+https://github.com/freesurfer/surfa.git@0a04738981ffebe29f6e35bf9bd8c4458c82e50f
 surfa@git+https://github.com/freesurfer/surfa.git@3d282add0a4365c5b0669bc03f00481ee1983ef0

@@ -388,6 +388,9 @@ TSolver<Cstr,n>::solve()
   CHKERRQ(ierr);
   std::cout << " convergence reason = " << reason << std::endl;
 
+  if ( reason < 0 )
+    std::cerr << " WARNING: linear solve diverged (reason " << reason << ")\n";
+  
   // view solver info
   ierr = KSPView(ksp, PETSC_VIEWER_STDOUT_WORLD);
   CHKERRQ(ierr);
@@ -915,9 +918,8 @@ TSolver<Cstr,n>::comm_solution()
 {
   PetscErrorCode ierr;
 
-  int no_eqs = m_pmesh->get_no_nodes() *n;
-
-  PetscScalar *pdelta = new PetscScalar[no_eqs];
+  //PetscScalar *pdelta = new PetscScalar[no_eqs];
+  PetscScalar *pdelta = NULL;
   ierr = VecGetArray(m_delta, &pdelta);
   CHKERRQ(ierr);
 
@@ -1134,6 +1136,10 @@ TSolver<Cstr,n>::setup_load_sym()
 
   ierr = ISDestroy(is);
   CHKERRQ(ierr);
+
+  delete[] indices;
+  delete[] values;
+  delete[] rhsValues;
 
   return 0;
 }

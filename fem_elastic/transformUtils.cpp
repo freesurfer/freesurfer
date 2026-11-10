@@ -18,9 +18,10 @@ float* read_transform(const char* fname)
 
   float* fp = new float[12];
   unsigned int ui=0;
-  for ( float *pbuf = fp; ui<12 && ifs; ++ui, ++pbuf)
-    ifs >> *pbuf;
-
+  //for ( float *pbuf = fp; ui<12 && ifs; ++ui, ++pbuf)
+  //  ifs >> *pbuf;
+  while ( ui<12 && (ifs >> fp[ui]) )
+    ++ui;
 
   if ( ui<12 )
   {

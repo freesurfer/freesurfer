@@ -14,6 +14,11 @@ ZlibStringCompressor::ZlibStringCompressor(unsigned long bufferSize)
   if (bufferSize) setBufferSize(bufferSize);
 }
 
+ZlibStringCompressor::~ZlibStringCompressor()
+{
+  delete[] m_buffer;
+}
+
 unsigned long ZlibStringCompressor::getBufferSize()
 {
   return m_bufferSize;
@@ -21,7 +26,10 @@ unsigned long ZlibStringCompressor::getBufferSize()
 
 Bytef* ZlibStringCompressor::setBufferSize(const unsigned long size)
 {
-  delete m_buffer;
+  // delete m_buffer;
+  delete[] m_buffer;
+  m_buffer = 0;
+  
   if (getDebugLevel()>0) std::cout << "Deleted buffer" << std::endl;
   m_bufferSize=0;
   try
