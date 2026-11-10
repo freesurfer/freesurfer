@@ -8,7 +8,7 @@ Werkzeug==3.0.6
 absl-py==2.2.2
 astunparse==1.6.3
 # babyseg and dependencies for infantfs. Forked and minimally edited to work with python 3.9 for infantfs needs
-babyseg@git+https://github.com/Ash-Bal/babyseg.git@b167423230489dce3a8329958c1afd0cac92c80e
+babyseg@git+https://github.com/Ash-Bal/babyseg.git@7f781b4fd8975a48a82ac19994db5ce0197f00b9
 katy@git+https://github.com/Ash-Bal/katy.git@deeed61188943e672774c97fe91e0edc67e0a328
 voxel@git+https://github.com/Ash-Bal/voxel.git@1001aaa9f550c9ca89decbd079d5d188a31747d7
 cachetools==5.5.2
