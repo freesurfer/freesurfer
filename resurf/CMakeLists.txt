@@ -168,7 +168,7 @@ if(ITK_FOUND AND VTK_FOUND)
 
      target_link_libraries(mri_vessel_segment utils nifti)
      install(TARGETS mri_vessel_segment DESTINATION bin)
-  elseif(NOT ((HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "CentOS9stream" OR HOST_OS MATCHES "Rocky9" OR (HOST_OS MATCHES "Ubuntu24" AND NOT UB24_SYSLIBS) OR HOST_OS MATCHES "Ubuntu22") AND HOST_OS_GCC_VERSION MATCHES "11"))
+  elseif(NOT ((HOST_OS MATCHES "CentOS9" OR HOST_OS MATCHES "CentOS9stream" OR (HOST_OS MATCHES "Ubuntu24" AND NOT UB24_SYSLIBS) OR HOST_OS MATCHES "Ubuntu22") AND HOST_OS_GCC_VERSION MATCHES "11"))
      # fails if some vtk packages are not installed/present
      add_executable(mri_vessel_segment mri_vessel_segment.cxx)
      target_link_libraries(mri_vessel_segment utils nifti "${ITK_LIBRARIES};ITKLabelMap" ${VTK_LIBRARIES})
