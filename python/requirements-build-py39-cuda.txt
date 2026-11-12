@@ -112,7 +112,7 @@ spheremorph@git+https://github.com/silencer1127/spheremorph.git@742f6584e3968ed7
 # surfa@git+https://github.com/freesurfer/surfa.git@ec5ddb193fd1caf22ec654c457b5678f6bd8e460
 # git+https://github.com/freesurfer/surfa.git@master
 # testing 0.7.0 release candidate
-surfa@git+https://github.com/freesurfer/surfa.git@3d282add0a4365c5b0669bc03f00481ee1983ef0
+surfa@git+https://github.com/freesurfer/surfa.git@c5687c456f89cf3d15583f0790ded7e22dd00b2f
 sympy==1.13.1
 tensorboard==2.19.0
 tensorboard-data-server==0.7.2
