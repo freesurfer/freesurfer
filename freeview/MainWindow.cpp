@@ -4510,6 +4510,16 @@ void MainWindow::CommandSetSurfaceOverlayColormap(const QStringList &cmd)
           overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_ColorWheel);
         else if (cmd[i] == "jet")
           overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Jet);
+        else if (cmd[i] == "turbo")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Turbo);
+        else if (cmd[i] == "ge_color")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_GEColor);
+        else if (cmd[i] == "nih")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_NIH);
+        else if (cmd[i] == "pet")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_PET);
+        else if (cmd[i] == "heat")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Heat);
         else if (cmd[i] == "inverse")
           overlay->GetProperty()->SetColorInverse(true);
         else if (cmd[i] == "truncate")
