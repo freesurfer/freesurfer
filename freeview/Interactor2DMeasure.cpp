@@ -314,3 +314,8 @@ void Interactor2DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
     Interactor2D::UpdateCursor( event, wnd );
   }
 }
+
+void Interactor2DMeasure::Reset()
+{
+  m_region = NULL;
+}

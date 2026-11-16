@@ -528,6 +528,16 @@ void RenderView2D::DeleteRegion( Region2D* region )
   }
 }
 
+void RenderView2D::DeleteAllRegions()
+{
+  emit RegionSelected(NULL);
+  foreach (Region2D* reg, m_regions)
+    delete reg;
+  m_regions.clear();
+  RefreshAllActors();
+  m_interactorMeasure->Reset();
+}
+
 void RenderView2D::MoveSlice( int nStep )
 {
   MainWindow* mainWnd = MainWindow::GetMainWindow();
@@ -912,6 +922,16 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       menu.addSeparator();
     QAction* act = new QAction("Save Surface Contours As...", this);
     connect(act, SIGNAL(triggered(bool)), SLOT(OnSaveSurfaceEdge()));
+    menu.addAction(act);
+  }
+
+  if (!m_regions.isEmpty())
+  {
+    if (!menu.actions().isEmpty())
+      menu.addSeparator();
+
+    QAction* act = new QAction("Remove All Measurements", this);
+    connect(act, SIGNAL(triggered(bool)), SLOT(DeleteAllRegions()));
     menu.addAction(act);
   }
 

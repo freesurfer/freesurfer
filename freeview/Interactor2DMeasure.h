@@ -42,6 +42,9 @@ public:
 
 signals:
 
+public slots:
+  void Reset();
+
 protected:
   void UpdateCursor( QEvent* event, QWidget* wnd );
 

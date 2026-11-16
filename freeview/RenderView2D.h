@@ -158,6 +158,7 @@ public slots:
   void ShowGrid(bool bShow);
   void SetGridSize(double val);
   void SetBrainstemView(bool b);
+  void DeleteAllRegions();
 
 signals:
   void RegionSelected( Region2D* );
