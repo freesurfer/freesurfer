@@ -10344,6 +10344,11 @@ void MainWindow::SetNeurologicalView(bool b)
   {
     ((LayerMRI*)layer)->SetDisplayInNeurologicalView(b);
   }
+  layers = GetLayers("PointSet");
+  foreach (Layer* layer, layers)
+  {
+    ((LayerPointSet*)layer)->SetDisplayInNeurologicalView(b);
+  }
   for (int i = 0; i < 3; i++)
   {
     ((RenderView2D*)m_views[i])->ResetCameraClippingRange();

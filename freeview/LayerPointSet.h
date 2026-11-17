@@ -141,6 +141,8 @@ signals:
 protected:
   virtual void OnSlicePositionChanged( int nPlane );
   void Initialize(int nType);
+  virtual void OnSetDisplayInNeurologicalView();
+  void UpdateslicePosition();
 
   PointSet m_points;
   vtkActor*    m_actorBalls;

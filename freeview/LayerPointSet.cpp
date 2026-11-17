@@ -80,12 +80,8 @@ void LayerPointSet::Initialize(int nType)
     m_actorSplineSlice[i]->GetProperty()->SetInterpolationToFlat();
     m_actorSplineSlice[i]->GetProperty()->SetAmbient( 1 );
     m_actorSplineSlice[i]->GetProperty()->SetDiffuse( 0 );
-    double pos[3] = {0,0,0};
-    pos[i] = 1e-4;
-    if (i == 2)
-      pos[i] = -pos[i];
-    m_actorSplineSlice[i]->SetPosition(pos);
   }
+  UpdateslicePosition();
   m_pointSetSource = new FSPointSet();
 
   m_splinedPoints = vtkSmartPointer<vtkPoints>::New();
@@ -681,6 +677,26 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
 
   blockSignals(false);
   emit ActorUpdated();
+}
+
+void LayerPointSet::UpdateslicePosition()
+{
+  for (int i = 0; i < 3; i++)
+  {
+    double pos[3] = {0,0,0};
+    if (i == 0)
+      pos[i] = 1e-4;
+    else if (i == 1)
+      pos[i] = (m_dTinyOffset < 0 ? -1e-4:1e-4);
+    else
+      pos[i] = (m_dTinyOffset < 0 ? 1e-4:-1e-4);
+    m_actorSplineSlice[i]->SetPosition(pos);
+  }
+}
+
+void LayerPointSet::OnSetDisplayInNeurologicalView()
+{
+  UpdateslicePosition();
 }
 
 void LayerPointSet::UpdateScalars(vtkPolyData* polydata)
