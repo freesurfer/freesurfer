@@ -97,6 +97,8 @@ mri_vol2vol
   --shear Sxy Sxz Syz : xz is in-plane
   --reg-final regfinal.dat : final reg after rot and trans (but not inv)
 
+  --vector        : treat input as vector field and apply rotation to vectors
+
   --synth : replace input with white gaussian noise
   --seed seed : seed for synth (def is to set from time of day)
 
@@ -472,6 +474,7 @@ ENDHELP --------------------------------------------------------------
 #include "registerio.h"
 #include "resample.h"
 #include "transform.h"
+#include "mriTransform.h"
 #include "gca.h"
 #include "gcamorph.h"
 #include "fio.h"
@@ -626,6 +629,7 @@ double MultiplyVal=0;
 int DownSample[3] = {0,0,0}; // downsample source
 int pedir = 2; // for VSM 1=x, 2=y, 3=z
 char *ctabfile = NULL;
+int DoVectorRotation = 0; // flag to indicate vector field rotation should be applied
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -903,6 +907,14 @@ int main(int argc, char **argv) {
   Stemp    = MRIxfmCRS2XYZ(mri_template,0);
   invStemp = MatrixInverse(Stemp,NULL);
 
+  // Compute ScannerRAS_input -> ScannerRAS_template transform
+  // Chain: ScannerRAS_input -> voxel_input -> tkRAS_input -> tkRAS_template -> voxel_template -> ScannerRAS_template
+  // = Stemp * invTtemp * invR * Tin * invSin
+  MATRIX *RAS_input_to_template = MatrixMultiply(Stemp, invTtemp, NULL);
+  MatrixMultiply(RAS_input_to_template, invR, RAS_input_to_template);
+  MatrixMultiply(RAS_input_to_template, Tin, RAS_input_to_template);
+  MatrixMultiply(RAS_input_to_template, invSin, RAS_input_to_template);
+
   if(noresample) {
     printf("Not resampling, only changing vox2ras matrix\n");
     // Compte new vox2ras instead of resampling
@@ -993,6 +1005,23 @@ int main(int argc, char **argv) {
 	if(vsmlta) printf("Using vsmlta\n");
 	MRIvol2VolVSM(in,out,vox2vox,interpcode,sinchw,vsm,vsmlta,pedir);
       }
+    }
+
+    if (DoVectorRotation) {
+      printf("Applying rotation to vector field\n");
+      MATRIX * R_rot_4x4 = MatrixAlloc(4, 4, MATRIX_REAL);
+      Trns_ExtractRotationMatrix(RAS_input_to_template, R_rot_4x4);
+      if (Gdiag_no > 0) {
+        printf("R_rot_4x4:\n");
+        MatrixPrint(stdout, R_rot_4x4);
+      }
+      // Extract 3x3 rotation matrix from top-left of 4x4 matrix
+      MATRIX * R_rot_3x3 = MatrixCopyRegion(R_rot_4x4, NULL, 1, 1, 3, 3, 1, 1);
+      MatrixFree(&R_rot_4x4);
+      // Pass NULL for Vt2s since src == targ (in-place rotation)
+      // MRIvol2VolR will compute identity internally
+      MRIvol2VolR(out, out, NULL, 0, 0, R_rot_3x3);
+      MatrixFree(&R_rot_3x3);
     }
   }
   else {
@@ -1303,6 +1332,10 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&pedir);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--vector")) {
+      DoVectorRotation = 1;
+      printf("Vector field rotation enabled\n");
+    }
     else if (istringnmatch(option, "--targ",0)) {
       if (nargc < 1) argnerr(option,1);
       targvolfile = pargv[0];
@@ -2399,6 +2432,7 @@ MATRIX *LoadRfsl(char *fname) {
   }
   return(FSLRegMat);
 }
+
 /*
   \fn MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst)
   \brief Converts one volume into another using as many as four transforms: VSM, src linear, gcam/m3z, dst linear.
