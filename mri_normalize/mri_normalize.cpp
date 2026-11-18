@@ -802,6 +802,12 @@ main(int argc, char *argv[])
     mri_dst = MRIapplyBiasCorrectionSameGeometry
               (mri_dst, mri_bias, mri_dst,
                DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+    // Where the bias image is 0 the correction divides by zero, giving NaN or
+    // Inf. MRI3dGentleNormalize below reads voxels into an int, turning those
+    // into INT_MIN, and the whole-volume histogram in MRI3dNormalize then
+    // asks HISTOalloc for ~2^31 bins and aborts (#1452). Same guard as the
+    // -surface branch above.
+    MRIremoveNaNs(mri_dst, mri_dst) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       MRIwrite(mri_dst, "norm_1.mgz") ;
