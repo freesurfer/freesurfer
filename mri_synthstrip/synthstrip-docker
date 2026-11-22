@@ -42,14 +42,13 @@ while idx < len(sys.argv):
         args.append(path)
         paths.append(path)
     idx += 1
-args = ' '.join(args)
 
 # Get the unique mount points
 mounts = list(set([os.path.dirname(p) for p in paths]))
-mounts = ' '.join(['-v %s:%s' % (p, p) for p in mounts])
+mounts = [arg for p in mounts for arg in ['-v', '%s:%s' % (p, p)]]
 
 # Set UID and GID to avoid output files owned by root
-user = '-u %s:%s' % (os.getuid(), os.getgid())
+user = ['-u', '%s:%s' % (os.getuid(), os.getgid())]
 
 print('Running SynthStrip version %s from Docker' % version)
 
@@ -57,10 +56,9 @@ print('Running SynthStrip version %s from Docker' % version)
 image = 'freesurfer/synthstrip:' + version
 
 # Let's check to see if we have this container on the system
-proc = subprocess.Popen('docker images -q %s' % image,
+proc = subprocess.Popen(['docker', 'images', '-q', image],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        shell=True,
         universal_newlines=True)
 stdout, stderr = proc.communicate()
 if proc.returncode != 0:
@@ -72,15 +70,15 @@ if proc.returncode != 0:
 # but we're trying to be transparent here...
 if not stdout:
     print('Docker image %s is not installed. Downloading now. This only needs to be done once.' % image)
-    proc = subprocess.Popen('docker pull %s' % image, shell=True)
+    proc = subprocess.Popen(['docker', 'pull', image])
     proc.communicate()
     if proc.returncode != 0:
         print('Error running docker pull.')
         exit(proc.returncode)
 
 # Go ahead and run the entry point
-command = 'docker run %s %s %s %s' % (user, mounts, image, args)
-proc = subprocess.Popen(command, shell=True)
+command = ['docker', 'run'] + user + mounts + [image] + args
+proc = subprocess.Popen(command)
 proc.communicate()
 if proc.returncode == 137:
     print('Container ran out of memory, try increasing RAM in Docker preferences.')
