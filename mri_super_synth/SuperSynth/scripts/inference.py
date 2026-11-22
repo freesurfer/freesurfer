@@ -275,7 +275,7 @@ def main():
 
                     # postprocess soft segmentations and compute volumes
                     seg[0][~Mdilated] = 1
-                    for l in range(seg.shape[0]):
+                    for l in range(1, seg.shape[0]):
                         seg[l][~Mdilated] = 0
                     vols = seg.sum(dim=[1, 2, 3]).detach().cpu().numpy()
                     if os.path.isdir(outputdir) is False:
