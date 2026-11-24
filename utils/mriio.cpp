@@ -8511,7 +8511,7 @@ static MRI *niiRead(const char *fname, int read_volume)
       fs_type = MRI_FLOAT_COMPLEX;
       bytes_per_voxel = 8;
     }
-    else if (hdr.datatype == DT_DOUBLE) {
+    else if (hdr.datatype == DT_DOUBLE || hdr.datatype == DT_INT64) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 8;
       printf("niiRead(): detected input as 64 bit double, reading in as 32 bit float\n");
@@ -8721,21 +8721,22 @@ static MRI *niiRead(const char *fname, int read_volume)
   if (!scaledata) {
     // no voxel value scaling needed
     void *buf;
-    float *fbuf;
-    double *dbuf;
     int nn;
-    fbuf = (float *)calloc(mri->width, sizeof(float));
-    dbuf = (double *)calloc(mri->width, sizeof(double));
+    float *fbuf = (float *)calloc(mri->width, sizeof(float));
+    double *dbuf = (double *)calloc(mri->width, sizeof(double));
+    long long *llbuf = (long long *)calloc(mri->width, sizeof(long long));
 
     for (t = 0; t < mri->nframes; t++) {
       for (k = 0; k < mri->depth; k++) {
         for (j = 0; j < mri->height; j++) {
           buf = &MRIseq_vox(mri, 0, j, k, t);
 
-          if (hdr.datatype != DT_DOUBLE)
+          if (hdr.datatype != DT_DOUBLE && hdr.datatype != DT_INT64)
             n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
-          else
+          else if (hdr.datatype == DT_DOUBLE)
             n_read = znzread(dbuf, bytes_per_voxel, mri->width, fp);
+	  else // DT_INT64
+	    n_read = znzread(llbuf, bytes_per_voxel, mri->width, fp);
           if (n_read != mri->width) {
             printf("ERROR: Read %d, expected %d\n", n_read, mri->width);
             znzclose(fp);
@@ -8752,7 +8753,10 @@ static MRI *niiRead(const char *fname, int read_volume)
           if (hdr.datatype == DT_DOUBLE) {
             for (nn = 0; nn < mri->width; nn++) fbuf[nn] = (float)dbuf[nn];
             memcpy(buf, fbuf, 4 * mri->width);
-          }
+          } else if (hdr.datatype == DT_INT64) {
+            for (nn = 0; nn < mri->width; nn++) fbuf[nn] = (float)llbuf[nn];
+            memcpy(buf, fbuf, 4 * mri->width);
+	  }
         }
         exec_progress_callback(k, mri->depth, t, mri->nframes);
       }
