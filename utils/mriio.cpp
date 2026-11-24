@@ -8514,7 +8514,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     else if (hdr.datatype == DT_DOUBLE || hdr.datatype == DT_INT64) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 8;
-      printf("niiRead(): detected input as 64 bit double, reading in as 32 bit float\n");
+      printf("niiRead(): detected input as 64 bit %s, reading in as 32 bit float\n", (hdr.datatype == DT_DOUBLE) ? "double" : "long long");
     }
     else {
       ErrorReturn(
