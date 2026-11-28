@@ -15,7 +15,7 @@ fi
 
 test_command samseg --i input.mgz --o output --threads 1 --options config.json
 
-if [ "$host_os" == "ubuntu24" ]; then
+if [[ "$host_os" == "ubuntu24" ]] || [[ "$host_os" == "centos9" ]] || [[ "$host_os" == "rocky9" ]]; then
       TESTDATA_SUFFIX=".gcc11"
 fi
 
@@ -28,4 +28,3 @@ elif [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "macos10" ]] || [[ "$hos
 else
    compare_vol output/seg.mgz seg.ref.mgz
 fi
-
